@@ -19,9 +19,10 @@ Response query_server_t::handle(const Query &q) {
     query_language::type_checking_environment_t type_environment;
 
     query_language::backtrace_t root_backtrace;
+    bool is_deterministic;
 
     try {
-        query_language::check_query_type(q, &type_environment, root_backtrace);
+        query_language::check_query_type(q, &type_environment, &is_deterministic, root_backtrace);
     } catch (query_language::bad_protobuf_exc_t &e) {
         res.set_status_code(Response::BAD_PROTOBUF);
         res.set_error_message("bad protocol buffer; client is buggy.");

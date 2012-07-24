@@ -74,6 +74,18 @@ enum term_type_t {
     TERM_TYPE_ARBITRARY
 };
 
+
+class term_info_t {
+public:
+    term_info_t() { }
+    term_info_t(term_type_t _type, bool _deterministic)
+        : type(_type), deterministic(_deterministic)
+    { }
+
+    term_type_t type;
+    bool deterministic;
+};
+
 template <class T>
 class variable_scope_t {
 public:
@@ -134,7 +146,7 @@ private:
     scopes_t scopes;
 };
 
-typedef variable_scope_t<term_type_t> variable_type_scope_t;
+typedef variable_scope_t<term_info_t> variable_type_scope_t;
 
 typedef variable_type_scope_t::new_scope_t new_scope_t;
 
@@ -196,7 +208,7 @@ private:
     scopes_t scopes;
 };
 
-typedef implicit_value_t<term_type_t> implicit_type_t;
+typedef implicit_value_t<term_info_t> implicit_type_t;
 
 struct type_checking_environment_t {
     variable_type_scope_t scope;
@@ -206,15 +218,15 @@ struct type_checking_environment_t {
 /* These functions throw exceptions if their inputs aren't well defined or
 fail type-checking. (A well-defined input has the correct fields filled in.) */
 
-term_type_t get_term_type(const Term &t, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_term_type(const Term &t, term_type_t expected, type_checking_environment_t *env, const backtrace_t &backtrace);
-term_type_t get_function_type(const Term::Call &c, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_reduction_type(const Reduction &m, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_mapping_type(const Mapping &m, term_type_t return_type, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_predicate_type(const Predicate &m, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_read_query_type(const ReadQuery &rq, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_write_query_type(const WriteQuery &wq, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_query_type(const Query &q, type_checking_environment_t *env, const backtrace_t &backtrace);
+term_info_t get_term_type(const Term &t, type_checking_environment_t *env, const backtrace_t &backtrace);
+void check_term_type(const Term &t, term_type_t expected, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
+term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *env, const backtrace_t &backtrace);
+void check_reduction_type(const Reduction &m, type_checking_environment_t *env, bool *is_det_out, bool args_are_det, const backtrace_t &backtrace);
+void check_mapping_type(const Mapping &m, term_info_t return_type, type_checking_environment_t *env, bool *is_det_out, bool args_are_det, const backtrace_t &backtrace);
+void check_predicate_type(const Predicate &m, type_checking_environment_t *env, bool *is_det_out, bool args_are_det, const backtrace_t &backtrace);
+void check_read_query_type(const ReadQuery &rq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
+void check_write_query_type(const WriteQuery &wq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
+void check_query_type(const Query &q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 
 /* functions to evaluate the queries */
 
