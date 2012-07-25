@@ -976,14 +976,14 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             std::string errmsg;
             boost::shared_ptr<scoped_cJSON_t> result;
 
-            // Check whether the function has been compiled.
-            js::id_t id;
-            (void) id;          // FIXME
-            if (!t->HasExtension(extension::js_id)) {
-                // Not compiled yet. Compile it and add the extension.
-                // FIXME
-                guarantee(0 && "unimplemented");
-            }
+            // // Check whether the function has been compiled.
+            // js::id_t id;
+            // (void) id;          // FIXME
+            // if (!t->HasExtension(extension::js_id)) {
+            //     // Not compiled yet. Compile it and add the extension.
+            //     // FIXME
+            //     guarantee(0 && "unimplemented");
+            // }
 
             // TODO(rntz): set up a js::runner_t::req_config_t with an
             // appropriately-chosen timeout.

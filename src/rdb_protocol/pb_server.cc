@@ -53,6 +53,10 @@ Response query_server_t::handle(Query *q) {
     // js_runner shouldn't survive the end of query execution (really we'd like
     // a scoped_ptr_t)
     guarantee(js_runner.unique());
+    if (js_runner->begun()) {
+        // Clean shutdown.
+        js_runner->finish();
+    }
 
     return res;
 }

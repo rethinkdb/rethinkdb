@@ -220,7 +220,7 @@ struct eval_task_t : auto_task_t<eval_task_t> {
 
         // Compile & run script to get a function.
         // TODO (rntz): should do this mangling engine-side, or even client-side.
-        std::string func_src_ = strprintf("(function(){return(%s)})", src_.c_str()); 
+        std::string func_src_ = strprintf("(function(){%s})", src_.c_str());
         // TODO(rntz): use an "external resource" to avoid copy
         v8::Handle<v8::String> src = v8::String::New(func_src_.c_str());
 
