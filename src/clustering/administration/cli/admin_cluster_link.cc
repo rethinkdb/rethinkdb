@@ -199,12 +199,18 @@ void admin_print_table(const std::vector<std::vector<std::string> >& table) {
     }
 
     // Print out each line, spacing each column
+    std::string output;
+    char buffer[1024];
     for (size_t i = 0; i < table.size(); ++i) {
         for (size_t j = 0; j < table[i].size(); ++j) {
-            printf("%-*s", column_widths[j] + 2, table[i][j].c_str());
+            sprintf(buffer, "%-*s", column_widths[j] + 2, table[i][j].c_str());
+            output.append(buffer);
         }
-        printf("\n");
+        sprintf(buffer, "\n");
+        output.append(buffer);
     }
+    printf("%s", output.c_str());
+    logSTDOUT("%s", output.c_str());
 }
 
 // Truncate a uuid for easier user-interface
