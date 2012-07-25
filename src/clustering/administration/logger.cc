@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <stdarg.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "arch/runtime/thread_pool.hpp"   /* for `run_in_blocker_pool()` */
 #include "clustering/administration/persist.hpp"
@@ -16,6 +17,8 @@ std::string format_log_level(log_level_t l) {
         case log_level_info: return "info";
         case log_level_warn: return "warn";
         case log_level_error: return "error";
+        case log_level_stdout: return "stdout";
+        case log_level_stderr: return "stderr";
         default: unreachable();
     }
 }
@@ -29,6 +32,10 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
         return log_level_warn;
     else if (s == "error")
         return log_level_error;
+    else if (s == "stdout")
+        return log_level_stdout;
+    else if (s == "stderr")
+        return log_level_stderr;
     else
         throw std::runtime_error("cannot parse '" + s + "' as log level");
 }
@@ -264,12 +271,17 @@ void log_writer_t::write(const log_message_t &lm) {
 }
 
 void log_writer_t::write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out) {
-    int res; 
+    int res, output_fileno;
     std::string formatted = format_log_message(msg);
     std::string console_formatted = "[LOGGER] " + formatted;
 
-    // Print the log message to stderr.
-    res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
+    // Print the log message to stderr or stdout.
+    if(msg.level == log_level_stdout) {
+        output_fileno = STDOUT_FILENO;
+    } else {
+        output_fileno = STDERR_FILENO;
+    }
+    res = ::write(output_fileno, console_formatted.data(), console_formatted.length());
     if (res != int(console_formatted.length())) {
         *error_out = std::string("cannot write to standard error: ") + strerror(errno);
         *ok_out = false;
