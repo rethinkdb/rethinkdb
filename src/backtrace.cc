@@ -14,7 +14,7 @@
 #include <boost/ptr_container/ptr_map.hpp>
 
 #include "containers/scoped.hpp"
-
+#include "logger.hpp"
 
 
 
@@ -202,42 +202,61 @@ void print_backtrace(FILE *out, bool use_addr2line) {
     char **symbols = backtrace_symbols(stack_frames, size);
 
     if (symbols) {
+        char buffer[255] = {0};
+        std::string output("");
         for (int i = 0; i < size; i ++) {
             // Parse each line of the backtrace
             scoped_malloc_t<char> line(symbols[i], symbols[i] + (strlen(symbols[i]) + 1));
             char *executable, *function, *offset, *address;
 
-            fprintf(out, "%d: ", i+1);
+            sprintf(buffer, "%d: ", i+1);
+            output += std::string(buffer);
 
             if (!parse_backtrace_line(line.get(), &executable, &function, &offset, &address)) {
-                fprintf(out, "%s\n", symbols[i]);
+                sprintf(buffer, "%s\n", symbols[i]);
+                output += std::string(buffer);
             } else {
                 if (function) {
                     try {
                         std::string demangled = demangle_cpp_name(function);
-                        fprintf(out, "%s", demangled.c_str());
+                        sprintf(buffer, "%s", demangled.c_str());
+                        output += std::string(buffer);
                     } catch (demangle_failed_exc_t) {
-                        fprintf(out, "%s+%s", function, offset);
+                        sprintf(buffer, "%s+%s", function, offset);
+                        output += std::string(buffer);
                     }
                 } else {
-                    fprintf(out, "?");
+                    sprintf(buffer, "?");
+                    output += std::string(buffer);
                 }
 
-                fprintf(out, " at ");
+                sprintf(buffer, " at ");
+                output += std::string(buffer);
 
                 char line[255] = {0};
                 if (use_addr2line && run_addr2line(&procs, executable, address, line, sizeof(line))) {
-                    fprintf(out, "%s", line);
+                    sprintf(buffer, "%s", line);
+                    output += std::string(buffer);
                 } else {
-                    fprintf(out, "%s (%s)", address, executable);
+                    sprintf(buffer, "%s (%s)", address, executable);
+                    output += std::string(buffer);
                 }
 
-                fprintf(out, "\n");
+                sprintf(buffer, "\n");
+                output += std::string(buffer);
             }
         }
 
+        if (out != stderr) {
+            fprintf(out, "%s", output.c_str());
+        }
+        logSTDERR("%s", output.c_str());
+
         free(symbols);
     } else {
-        fprintf(out, "(too little memory for backtrace)\n");
+        if (out != stderr) {
+            fprintf(out, "(too little memory for backtrace)\n");
+        }
+        logSTDERR("%s", "(too little memory for backtrace)\n");
     }
 }
