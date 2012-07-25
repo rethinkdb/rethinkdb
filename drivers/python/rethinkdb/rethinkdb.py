@@ -716,19 +716,25 @@ class let(Term):
         parts = ["(%r, %s)" % (var, printer(value, "bind:%s" % var)) for var, value in self.pairs]
         return "r.let(%s, %s)" % (", ".join(parts), printer(self.expr, "expr"))
 
-class Javascript(Term):
-    def __init__(self, src):
-        assert isinstance(src, str)
-        self.source = src
+class js(Term):
+    def __init__(self, expr = None, body = None):
+        self.expr = expr
+        if body is not None:
+            assert expr is None
+            self.body = unicode(body)
+        else:
+            assert expr is not None
+            self.body = u'return (%s);' % expr
 
     def _write_ast(self, parent):
         parent.type = p.Term.JAVASCRIPT
-        parent.javascript = self.source
+        parent.javascript = self.body
 
     def _pretty_print(self, printer):
-        return "r.js(%r)" % self.source
-
-js = Javascript                 # convenient abbreviation
+        if self.expr is not None:
+            return "r.js(%r)" % self.expr
+        else:
+            return "r.js(body=%r)" % self.body
 
 def toTerm(value):
     if isinstance(value, (bool, int, float, dict, list, str, unicode)):
