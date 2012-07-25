@@ -6,7 +6,7 @@ from vcoptparse import *
 
 op = OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-workload_runner.prepare_option_parser_for_split_or_continuous_workload(op, allow_between = True)
+workload_runner.prepare_option_parser_for_split_or_continuous_workload(op)
 op["num-nodes"] = IntFlag("--num-nodes", 2)
 opts = op.parse(sys.argv)
 
@@ -41,6 +41,6 @@ with driver.Metacluster() as metacluster:
         time.sleep(10)
         cluster.check()
         http.check_no_issues()
-        workoad.run_after()
+        workload.run_after()
 
     cluster.check_and_close()
