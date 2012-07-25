@@ -117,7 +117,7 @@ patch_disk_storage_t::~patch_disk_storage_t() {
 }
 
 // Loads on-disk data into memory
-void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storage) {
+void patch_disk_storage_t::load_patches(patch_memory_storage_t *in_memory_storage) {
     rassert(log_block_bufs.size() == number_of_blocks);
     cache->assert_thread();
     if (number_of_blocks == 0)
@@ -158,23 +158,23 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
         patch_list->second.sort(dereferencing_buf_patch_compare_t());
 
         // Store list into in_core_storage
-        in_memory_storage.load_block_patch_list(patch_list->first, patch_list->second);
+        in_memory_storage->load_block_patch_list(patch_list->first, patch_list->second);
     }
 }
 
 // Returns true on success, false if patch could not be stored (e.g. because of insufficient free space in log)
 // This function never blocks and must only be called while the flush_lock is held.
-bool patch_disk_storage_t::store_patch(buf_patch_t &patch, const block_sequence_id_t current_block_block_sequence_id) {
+bool patch_disk_storage_t::store_patch(buf_patch_t *patch, const block_sequence_id_t current_block_block_sequence_id) {
     rassert(log_block_bufs.size() == number_of_blocks);
     cache->assert_thread();
-    rassert(patch.get_block_sequence_id() == NULL_BLOCK_SEQUENCE_ID);
-    patch.set_block_sequence_id(current_block_block_sequence_id);
+    rassert(patch->get_block_sequence_id() == NULL_BLOCK_SEQUENCE_ID);
+    patch->set_block_sequence_id(current_block_block_sequence_id);
 
     if (number_of_blocks == 0)
         return false;
 
     // Check if we have sufficient free space in the current log block to store the patch
-    const size_t patch_serialized_size = patch.get_serialized_size();
+    const size_t patch_serialized_size = patch->get_serialized_size();
     rassert(cache->get_block_size().value() >= (size_t)next_patch_offset);
     size_t free_space = cache->get_block_size().value() - (size_t)next_patch_offset;
     if (patch_serialized_size > free_space) {
@@ -208,7 +208,7 @@ bool patch_disk_storage_t::store_patch(buf_patch_t &patch, const block_sequence_
     block_is_empty[active_log_block - first_block] = false;
 
     void *buf_data = log_buf->get_data_major_write();
-    patch.serialize(reinterpret_cast<char *>(buf_data) + next_patch_offset);
+    patch->serialize(reinterpret_cast<char *>(buf_data) + next_patch_offset);
     next_patch_offset += patch_serialized_size;
 
     return true;

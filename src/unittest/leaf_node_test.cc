@@ -74,18 +74,18 @@ private:
 
 class LeafNodeTracker {
 public:
-    LeafNodeTracker() : bs_(block_size_t::unsafe_make(4096)), sizer_(bs_), node_(reinterpret_cast<leaf_node_t *>(new char[bs_.value()])),
-                    tstamp_counter_(0) {
-        leaf::init(&sizer_, node_);
+    LeafNodeTracker() : bs_(block_size_t::unsafe_make(4096)), sizer_(bs_), node_(bs_.value()),
+                        tstamp_counter_(0) {
+        leaf::init(&sizer_, node_.get());
         Print();
     }
-    ~LeafNodeTracker() { delete[] reinterpret_cast<char *>(node_); }
+
+    leaf_node_t *node() { return node_.get(); }
 
     bool Insert(const store_key_t& key, const std::string& value) {
-        // printf("\n\nInserting %s\n\n", key.c_str());
         short_value_buffer_t v(value);
 
-        if (leaf::is_full(&sizer_, node_, key.btree_key(), v.data())) {
+        if (leaf::is_full(&sizer_, node(), key.btree_key(), v.data())) {
             Print();
 
             Verify();
@@ -93,7 +93,7 @@ public:
         }
 
         repli_timestamp_t tstamp = NextTimestamp();
-        leaf::insert(&sizer_, node_, key.btree_key(), v.data(), tstamp, key_modification_proof_t::real_proof());
+        leaf::insert(&sizer_, node(), key.btree_key(), v.data(), tstamp, key_modification_proof_t::real_proof());
 
         kv_[key] = value;
 
@@ -104,35 +104,33 @@ public:
     }
 
     void Remove(const store_key_t& key) {
-        // printf("\n\nRemoving %s\n\n", key.c_str());
-
         ASSERT_TRUE(ShouldHave(key));
 
         kv_.erase(key);
 
         repli_timestamp_t tstamp = NextTimestamp();
-        leaf::remove(&sizer_, node_, key.btree_key(), tstamp, key_modification_proof_t::real_proof());
+        leaf::remove(&sizer_, node(), key.btree_key(), tstamp, key_modification_proof_t::real_proof());
 
         Verify();
 
         Print();
     }
 
-    void Merge(LeafNodeTracker& lnode) {
+    void Merge(LeafNodeTracker *lnode) {
         SCOPED_TRACE("Merge");
 
-        ASSERT_EQ(bs_.ser_value(), lnode.bs_.ser_value());
+        ASSERT_EQ(bs_.ser_value(), lnode->bs_.ser_value());
 
-        leaf::merge(&sizer_, lnode.node_, node_);
+        leaf::merge(&sizer_, lnode->node(), node());
 
         int old_kv_size = kv_.size();
-        for (std::map<store_key_t, std::string>::iterator p = lnode.kv_.begin(), e = lnode.kv_.end(); p != e; ++p) {
+        for (std::map<store_key_t, std::string>::iterator p = lnode->kv_.begin(), e = lnode->kv_.end(); p != e; ++p) {
             kv_[p->first] = p->second;
         }
 
-        ASSERT_EQ(kv_.size(), old_kv_size + lnode.kv_.size());
+        ASSERT_EQ(kv_.size(), old_kv_size + lnode->kv_.size());
 
-        lnode.kv_.clear();
+        lnode->kv_.clear();
 
         {
             SCOPED_TRACE("mergee verify");
@@ -140,45 +138,45 @@ public:
         }
         {
             SCOPED_TRACE("lnode verify");
-            lnode.Verify();
+            lnode->Verify();
         }
     }
 
-    void Level(int nodecmp_value, LeafNodeTracker& sibling, bool *could_level_out) {
+    void Level(int nodecmp_value, LeafNodeTracker *sibling, bool *could_level_out) {
         // Assertions can cause us to exit the function early, so give
         // the output parameter an initialized value.
         *could_level_out = false;
-        ASSERT_EQ(bs_.ser_value(), sibling.bs_.ser_value());
+        ASSERT_EQ(bs_.ser_value(), sibling->bs_.ser_value());
 
         store_key_t replacement;
-        bool can_level = leaf::level(&sizer_, nodecmp_value, node_, sibling.node_, replacement.btree_key());
+        bool can_level = leaf::level(&sizer_, nodecmp_value, node(), sibling->node(), replacement.btree_key());
 
         if (can_level) {
-            ASSERT_TRUE(!sibling.kv_.empty());
+            ASSERT_TRUE(!sibling->kv_.empty());
             if (nodecmp_value < 0) {
                 // Copy keys from front of sibling until and including replacement key.
 
-                std::map<store_key_t, std::string>::iterator p = sibling.kv_.begin();
-                while (p != sibling.kv_.end() && p->first < replacement) {
+                std::map<store_key_t, std::string>::iterator p = sibling->kv_.begin();
+                while (p != sibling->kv_.end() && p->first < replacement) {
                     kv_[p->first] = p->second;
                     std::map<store_key_t, std::string>::iterator prev = p;
                     ++p;
-                    sibling.kv_.erase(prev);
+                    sibling->kv_.erase(prev);
                 }
-                ASSERT_TRUE(p != sibling.kv_.end());
+                ASSERT_TRUE(p != sibling->kv_.end());
                 ASSERT_EQ(key_to_unescaped_str(p->first), key_to_unescaped_str(replacement));
                 kv_[p->first] = p->second;
-                sibling.kv_.erase(p);
+                sibling->kv_.erase(p);
             } else {
                 // Copy keys from end of sibling until but not including replacement key.
 
-                std::map<store_key_t, std::string>::iterator p = sibling.kv_.end();
+                std::map<store_key_t, std::string>::iterator p = sibling->kv_.end();
                 --p;
-                while (p != sibling.kv_.begin() && p->first > replacement) {
+                while (p != sibling->kv_.begin() && p->first > replacement) {
                     kv_[p->first] = p->second;
                     std::map<store_key_t, std::string>::iterator prev = p;
                     --p;
-                    sibling.kv_.erase(prev);
+                    sibling->kv_.erase(prev);
                 }
 
                 ASSERT_EQ(key_to_unescaped_str(p->first), key_to_unescaped_str(replacement));
@@ -188,21 +186,21 @@ public:
         *could_level_out = can_level;
 
         Verify();
-        sibling.Verify();
+        sibling->Verify();
     }
 
-    void Split(LeafNodeTracker& right) {
-        ASSERT_EQ(bs_.ser_value(), right.bs_.ser_value());
+    void Split(LeafNodeTracker *right) {
+        ASSERT_EQ(bs_.ser_value(), right->bs_.ser_value());
 
-        ASSERT_TRUE(leaf::is_empty(right.node_));
+        ASSERT_TRUE(leaf::is_empty(right->node()));
 
         store_key_t median;
-        leaf::split(&sizer_, node_, right.node_, median.btree_key());
+        leaf::split(&sizer_, node(), right->node(), median.btree_key());
 
         std::map<store_key_t, std::string>::iterator p = kv_.end();
         --p;
         while (p->first > median && p != kv_.begin()) {
-            right.kv_[p->first] = p->second;
+            right->kv_[p->first] = p->second;
             std::map<store_key_t, std::string>::iterator prev = p;
             --p;
             kv_.erase(prev);
@@ -213,7 +211,7 @@ public:
 
     bool IsFull(const store_key_t& key, const std::string& value) {
         short_value_buffer_t value_buf(value);
-        return leaf::is_full(&sizer_, node_, key.btree_key(), value_buf.data());
+        return leaf::is_full(&sizer_, node(), key.btree_key(), value_buf.data());
     }
 
     bool ShouldHave(const store_key_t& key) {
@@ -223,7 +221,7 @@ public:
     repli_timestamp_t NextTimestamp() {
         ++tstamp_counter_;
         repli_timestamp_t ret;
-        ret.time = tstamp_counter_;
+        ret.longtime = tstamp_counter_;
         return ret;
     }
 
@@ -274,11 +272,11 @@ public:
 
     void Verify() {
         // Of course, this will fail with rassert, not a gtest assertion.
-        leaf::validate(&sizer_, node_);
+        leaf::validate(&sizer_, node());
 
         verify_receptor_t receptor;
         repli_timestamp_t max_possible_tstamp = { tstamp_counter_ };
-        leaf::dump_entries_since_time(&sizer_, node_, repli_timestamp_t::distant_past, max_possible_tstamp, &receptor);
+        leaf::dump_entries_since_time(&sizer_, node(), repli_timestamp_t::distant_past, max_possible_tstamp, &receptor);
 
         if (receptor.map() != kv_) {
             printf("receptor.map(): ");
@@ -293,7 +291,7 @@ public:
 public:
     block_size_t bs_;
     value_sizer_t<short_value_t> sizer_;
-    leaf_node_t *node_;
+    scoped_malloc_t<leaf_node_t> node_;
 
     int tstamp_counter_;
 
@@ -320,7 +318,6 @@ TEST(LeafNodeTest, Reinserts) {
     for (; v[0] <= 'z'; ++v[0]) {
         v[1] = 'a';
         for (; v[1] <= 'z'; ++v[1]) {
-            // printf("inserting %s\n", v.c_str());
             tracker.Insert(k, v);
         }
     }
@@ -391,7 +388,7 @@ TEST(LeafNodeTest, ZeroZeroMerging) {
     LeafNodeTracker left;
     LeafNodeTracker right;
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 TEST(LeafNodeTest, ZeroOneMerging) {
@@ -400,7 +397,7 @@ TEST(LeafNodeTest, ZeroOneMerging) {
 
     right.Insert(store_key_t("b"), "B");
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 TEST(LeafNodeTest, OneZeroMerging) {
@@ -409,7 +406,7 @@ TEST(LeafNodeTest, OneZeroMerging) {
 
     left.Insert(store_key_t("a"), "A");
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 
@@ -420,7 +417,7 @@ TEST(LeafNodeTest, OneOneMerging) {
     left.Insert(store_key_t("a"), "A");
     right.Insert(store_key_t("b"), "B");
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 TEST(LeafNodeTest, SimpleMerging) {
@@ -429,35 +426,35 @@ TEST(LeafNodeTest, SimpleMerging) {
 
     // We use the largest value that will underflow.
     //
-    // key_cost = 251, max_possible_size() = 256, sizeof(uint16_t) = 2, sizeof(repli_timestamp) = 4.
+    // key_cost = 251, max_possible_size() = 256, sizeof(uint16_t) = 2, sizeof(repli_timestamp) = 8.
     //
     // 4084 - 12 = 4072.  4072 / 2 = 2036.  2036 - (251 + 256 + 2
-    // + 4) = 2036 - 513 = 1523.  So 1522 is the max possible
+    // + 8) = 2036 - 517 = 1519.  So 1518 is the max possible
     // mandatory_cost.  (See the is_underfull implementation.)
     //
-    // With 5*4 mandatory timestamp bytes and 12 bytes per entry,
-    // that gives us 1502 / 12 as the loop boundary value that
+    // With 5*8 mandatory timestamp bytes and 12 bytes per entry,
+    // that gives us 1478 / 12 as the loop boundary value that
     // will underflow.  We get 12 byte entries if entries run from
     // a000 to a999.  But if we allow two-digit entries, that
-    // frees up 2 bytes per entry, so add 200, giving 1702.  If we
+    // frees up 2 bytes per entry, so add 200, giving 1678.  If we
     // allow one-digit entries, that gives us 20 more bytes to
-    // use, giving 1722 / 12 as the loop boundary.  That's an odd
+    // use, giving 1698 / 12 as the loop boundary.  That's an odd
     // way to look at the arithmetic, but if you don't like that,
     // you can go cry to your mommy.
 
-    for (int i = 0; i < 1722 / 12; ++i) {
+    for (int i = 0; i < 1698 / 12; ++i) {
         left.Insert(store_key_t(strprintf("a%d", i)), strprintf("A%d", i));
         right.Insert(store_key_t(strprintf("b%d", i)), strprintf("B%d", i));
     }
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 TEST(LeafNodeTest, MergingWithRemoves) {
     LeafNodeTracker left;
     LeafNodeTracker right;
 
-    for (int i = 0; i < (1722 * 5 / 6) / 12; ++i) {
+    for (int i = 0; i < (1698 * 5 / 6) / 12; ++i) {
         left.Insert(store_key_t(strprintf("a%d", i)), strprintf("A%d", i));
         right.Insert(store_key_t(strprintf("b%d", i)), strprintf("B%d", i));
         if (i % 5 == 0) {
@@ -466,7 +463,7 @@ TEST(LeafNodeTest, MergingWithRemoves) {
         }
     }
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 TEST(LeafNodeTest, MergingWithHugeEntries) {
@@ -488,7 +485,7 @@ TEST(LeafNodeTest, MergingWithHugeEntries) {
         right.Remove(store_key_t(std::string(250, 'n' + 1 + i)));
     }
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 
@@ -511,7 +508,7 @@ TEST(LeafNodeTest, LevelingLeftToRight) {
     right.Insert(store_key_t("b0"), "B0");
 
     bool could_level;
-    right.Level(1, left, &could_level);
+    right.Level(1, &left, &could_level);
     ASSERT_TRUE(could_level);
 }
 
@@ -524,7 +521,7 @@ TEST(LeafNodeTest, LevelingLeftToZero) {
     }
 
     bool could_level;
-    right.Level(1, left, &could_level);
+    right.Level(1, &left, &could_level);
     ASSERT_TRUE(could_level);
 }
 
@@ -538,7 +535,7 @@ TEST(LeafNodeTest, LevelingRightToLeft) {
     left.Insert(store_key_t("a0"), "A0");
 
     bool could_level;
-    left.Level(-1, right, &could_level);
+    left.Level(-1, &right, &could_level);
     ASSERT_TRUE(could_level);
 }
 
@@ -551,7 +548,7 @@ TEST(LeafNodeTest, LevelingRightToZero) {
     }
 
     bool could_level;
-    left.Level(-1, right, &could_level);
+    left.Level(-1, &right, &could_level);
     ASSERT_TRUE(could_level);
 }
 
@@ -563,7 +560,7 @@ TEST(LeafNodeTest, Splitting) {
 
     LeafNodeTracker right;
 
-    left.Split(right);
+    left.Split(&right);
 }
 
 TEST(LeafNodeTest, Fullness) {

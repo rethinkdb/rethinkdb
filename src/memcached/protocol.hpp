@@ -1,17 +1,15 @@
 #ifndef MEMCACHED_PROTOCOL_HPP_
 #define MEMCACHED_PROTOCOL_HPP_
 
+#include <string>
 #include <vector>
 
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
-#include "arch/io/io_utils.hpp"
 #include "btree/backfill.hpp"
-#include "btree/parallel_traversal.hpp"  // TODO: sigh
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
-#include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "hash_region.hpp"
 #include "memcached/queries.hpp"
@@ -22,7 +20,9 @@
 #include "perfmon/types.hpp"
 #include "repli_timestamp.hpp"
 
+class io_backender_t;
 class real_superblock_t;
+class traversal_progress_combiner_t;
 
 write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf);
 archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf);
@@ -62,7 +62,6 @@ public:
         explicit read_response_t(const result_t& r) : result(r) { }
 
         result_t result;
-        RDB_MAKE_ME_SERIALIZABLE_1(result);
     };
 
     struct read_t {
@@ -79,8 +78,6 @@ public:
 
         query_t query;
         exptime_t effective_time;
-
-        RDB_MAKE_ME_SERIALIZABLE_2(query, effective_time);
     };
 
     struct write_response_t {
@@ -91,7 +88,6 @@ public:
         explicit write_response_t(const result_t& rv) : result(rv) { }
 
         result_t result;
-        RDB_MAKE_ME_SERIALIZABLE_1(result);
     };
 
     struct write_t {
@@ -108,8 +104,6 @@ public:
         query_t mutation;
         cas_t proposed_cas;
         exptime_t effective_time;   /* so operations are deterministic even with expiration */
-
-        RDB_MAKE_ME_SERIALIZABLE_3(mutation, proposed_cas, effective_time);
     };
 
     struct backfill_chunk_t {
@@ -119,24 +113,18 @@ public:
 
             delete_key_t() { }
             delete_key_t(const store_key_t& key_, const repli_timestamp_t& recency_) : key(key_), recency(recency_) { }
-
-            RDB_MAKE_ME_SERIALIZABLE_1(key);
         };
         struct delete_range_t {
             region_t range;
 
             delete_range_t() { }
             explicit delete_range_t(const region_t& _range) : range(_range) { }
-
-            RDB_MAKE_ME_SERIALIZABLE_1(range);
         };
         struct key_value_pair_t {
             backfill_atom_t backfill_atom;
 
             key_value_pair_t() { }
             explicit key_value_pair_t(const backfill_atom_t& backfill_atom_) : backfill_atom(backfill_atom_) { }
-
-            RDB_MAKE_ME_SERIALIZABLE_1(backfill_atom);
         };
 
         backfill_chunk_t() { }
@@ -159,8 +147,6 @@ public:
         static backfill_chunk_t set_key(const backfill_atom_t& key) {
             return backfill_chunk_t(key_value_pair_t(key));
         }
-
-        RDB_MAKE_ME_SERIALIZABLE_1(val);
     };
 
     typedef traversal_progress_combiner_t backfill_progress_t;
@@ -168,10 +154,10 @@ public:
     static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 
     class store_t : public store_view_t<memcached_protocol_t> {
-        boost::scoped_ptr<standard_serializer_t> serializer;
+        scoped_ptr_t<standard_serializer_t> serializer;
         mirrored_cache_config_t cache_dynamic_config;
-        boost::scoped_ptr<cache_t> cache;
-        boost::scoped_ptr<btree_slice_t> btree;
+        scoped_ptr_t<cache_t> cache;
+        scoped_ptr_t<btree_slice_t> btree;
         order_source_t order_source;
 
         fifo_enforcer_source_t token_source;
@@ -181,26 +167,26 @@ public:
         // TODO: This was originally private.  Do we still want it to be private?
         typedef region_map_t<memcached_protocol_t, binary_blob_t> metainfo_t;
 
-        store_t(io_backend_t io_backend, const std::string& filename, bool create, perfmon_collection_t *collection);
+        store_t(io_backender_t *io_backender, const std::string& filename, bool create, perfmon_collection_t *collection);
         ~store_t();
 
-        void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
-        void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out);
+        void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
+        void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
 
-        metainfo_t get_metainfo(order_token_t order_token,
-                                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        metainfo_t do_get_metainfo(order_token_t order_token,
+                                   scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void set_metainfo(const metainfo_t &new_metainfo,
                           order_token_t order_token,
-                          boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                          scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                           signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         memcached_protocol_t::read_response_t read(
                 DEBUG_ONLY(const metainfo_checker_t<memcached_protocol_t>& metainfo_checker, )
                 const memcached_protocol_t::read_t &read,
                 order_token_t order_token,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
 
@@ -210,7 +196,7 @@ public:
                 const memcached_protocol_t::write_t &write,
                 transition_timestamp_t timestamp,
                 order_token_t order_token,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
 
@@ -219,20 +205,20 @@ public:
                 const boost::function<bool(const metainfo_t&)> &should_backfill,
                 const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
                 backfill_progress_t *progress_out,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
 
         void receive_backfill(
                 const memcached_protocol_t::backfill_chunk_t &chunk,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
 
         void reset_data(
                 const hash_region_t<key_range_t> &subregion,
                 const metainfo_t &new_metainfo,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
     private:
@@ -240,24 +226,23 @@ public:
 
         void acquire_superblock_for_read(
                 access_t access,
-                bool snapshot,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-                boost::scoped_ptr<transaction_t> &txn_out,
-                boost::scoped_ptr<real_superblock_t> &sb_out,
+                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                scoped_ptr_t<transaction_t> *txn_out,
+                scoped_ptr_t<real_superblock_t> *sb_out,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void acquire_superblock_for_backfill(
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-                boost::scoped_ptr<transaction_t> &txn_out,
-                boost::scoped_ptr<real_superblock_t> &sb_out,
+                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                scoped_ptr_t<transaction_t> *txn_out,
+                scoped_ptr_t<real_superblock_t> *sb_out,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void acquire_superblock_for_write(
                 access_t access,
                 int expected_change_count,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-                boost::scoped_ptr<transaction_t> &txn_out,
-                boost::scoped_ptr<real_superblock_t> &sb_out,
+                scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                scoped_ptr_t<transaction_t> *txn_out,
+                scoped_ptr_t<real_superblock_t> *sb_out,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void check_and_update_metainfo(
@@ -275,8 +260,19 @@ public:
         void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
 
         perfmon_collection_t perfmon_collection;
+        perfmon_membership_t perfmon_collection_membership;
     };
 };
+
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::read_response_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::read_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::write_response_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::write_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::delete_key_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::delete_range_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::key_value_pair_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t);
+
 
 void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::write_t& write);
 void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t& chunk);

@@ -15,12 +15,14 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i, executable_path = executable_path, command_prefix = command_prefix), executable_path = executable_path, log_path = "serve-output-%d" % i, command_prefix = command_prefix)
+    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i, executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-%d" % i,
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
         for i in xrange(opts["num-nodes"])]
     if opts["use-proxy"]:
-        proxy_process = driver.ProxyProcess(cluster, 'proxy-logfile', executable_path = executable_path, log_path = 'proxy-output', command_prefix = command_prefix)
+        proxy_process = driver.ProxyProcess(cluster, 'proxy-logfile', log_path = 'proxy-output',
+            executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
         processes.append(proxy_process)
     for process in processes:
         process.wait_until_started_up()
@@ -35,8 +37,8 @@ with driver.Metacluster() as metacluster:
         http.add_namespace_shard(ns, chr(ord('a') + 26 * i // opts["num-shards"]))
     http.wait_until_blueprint_satisfied(ns)
 
-    host, port = driver.get_namespace_host(ns.port, processes if not opts["use-proxy"] else [proxy_process])
-    workload_runner.run(opts["workload"], host, port, opts["timeout"])
+    workload_ports = scenario_common.get_workload_ports(ns.port, processes if not opts["use-proxy"] else [proxy_process])
+    workload_runner.run(opts["workload"], workload_ports, opts["timeout"])
 
     cluster.check_and_stop()
 

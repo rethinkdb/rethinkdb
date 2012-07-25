@@ -38,8 +38,8 @@ def find_subpath(subpath):
 def find_rethinkdb_executable(mode = "debug"):
     return find_subpath("build/%s/rethinkdb" % mode)
 
-def get_namespace_host(port, processes):
-    return 'localhost', port + random.choice(processes).port_offset
+def get_namespace_host(namespace_port, processes):
+    return ("localhost", namespace_port + random.choice(processes).port_offset)
 
 class Metacluster(object):
     """A `Metacluster` is a group of clusters. It's responsible for maintaining
@@ -192,10 +192,9 @@ class Files(object):
             "--name=" + self.machine_name]
 
         if log_path is None:
-            subprocess.check_call(create_args, stdout = sys.stdout, stderr = subprocess.STDOUT)
-        else:
-            with open(log_path, "w") as log_file:
-                subprocess.check_call(create_args, stdout = log_file, stderr = subprocess.STDOUT)
+            log_path = "/dev/null"
+        with open(log_path, "w") as log_file:
+            subprocess.check_call(create_args, stdout = log_file, stderr = log_file)
 
 class _Process(object):
     # Base class for Process & ProxyProcess. Do not instantiate directly.
@@ -225,7 +224,7 @@ class _Process(object):
             else:
                 self.log_file = open(self.log_path, "w")
 
-            self.process = subprocess.Popen(self.args, stdout = self.log_file, stderr = subprocess.STDOUT)
+            self.process = subprocess.Popen(self.args, stdout = self.log_file, stderr = self.log_file)
 
         except Exception, e:
             # `close()` won't be called because we haven't put ourself into
@@ -334,7 +333,7 @@ class ProxyProcess(_Process):
     """A `ProxyProcess` object represents a running RethinkDB proxy. It cannot be
     restarted; stop it and then create a new one instead. """
 
-    def __init__(self, cluster, logfile_path, log_path = None, executable_path = None, command_prefix = []):
+    def __init__(self, cluster, logfile_path, log_path = None, executable_path = None, command_prefix = [], extra_options = []):
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
 
@@ -354,7 +353,7 @@ class ProxyProcess(_Process):
                    "--log-file=" + self.logfile_path,
                    "--port=" + str(self.cluster_port),
                    "--port-offset=" + str(self.port_offset),
-                   "--client-port=" + str(self.local_cluster_port)]
+                   "--client-port=" + str(self.local_cluster_port)] + extra_options
 
         _Process.__init__(self, cluster, options,
             log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)

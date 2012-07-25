@@ -1,15 +1,24 @@
 import subprocess, os, time, string, signal
 from vcoptparse import *
 
-def run(command_line, host, port, timeout):
+# TODO: Merge this file into `scenario_common.py`?
+
+class Ports(object):
+    def __init__(self, host, http_port, memcached_port):
+        self.host = host
+        self.http_port = http_port
+        self.memcached_port = memcached_port
+
+def run(command_line, ports, timeout):
     start_time = time.time()
     end_time = start_time + timeout
     print "Running %r..." % command_line
 
     # Set up environment
     new_environ = os.environ.copy()
-    new_environ["HOST"] = host
-    new_environ["PORT"] = str(port)
+    new_environ["HOST"] = ports.host
+    new_environ["HTTP_PORT"] = str(ports.http_port)
+    new_environ["MC_PORT"] = new_environ["PORT"] = str(ports.memcached_port)
 
     proc = subprocess.Popen(command_line, shell = True, env = new_environ, preexec_fn = lambda: os.setpgid(0, 0))
 
@@ -33,10 +42,9 @@ def run(command_line, host, port, timeout):
     raise RuntimeError("workload timed out before completion")
 
 class ContinuousWorkload(object):
-    def __init__(self, command_line, host, port):
+    def __init__(self, command_line, ports):
         self.command_line = command_line
-        self.host = host
-        self.port = port
+        self.ports = ports
         self.running = False
 
     def __enter__(self):
@@ -48,8 +56,9 @@ class ContinuousWorkload(object):
 
         # Set up environment
         new_environ = os.environ.copy()
-        new_environ["HOST"] = self.host
-        new_environ["PORT"] = str(self.port)
+        new_environ["HOST"] = self.ports.host
+        new_environ["HTTP_PORT"] = str(self.ports.http_port)
+        new_environ["MC_PORT"] = new_environ["PORT"] = str(self.ports.memcached_port)
 
         self.proc = subprocess.Popen(self.command_line, shell = True, env = new_environ, preexec_fn = lambda: os.setpgid(0, 0))
 
@@ -91,52 +100,68 @@ class ContinuousWorkload(object):
             except OSError:
                 pass
 
-# A lot of scenarios work either with a two-phase split workload or a continuous
-# workload. This code factors out the details of parsing and handling that. The
-# syntax for invoking such scenarios is as follows:
-#     scenario.py --split-workload 'workload1.py $HOST:$PORT' 'workload2.py $HOST:$PORT' [--timeout timeout]
-#     scenario.py --continuous-workload 'workload.py $HOST:$PORT'
+def prepare_option_parser_for_split_or_continuous_workload(op, allow_between = False):
+    # `--workload-during` specifies one or more workloads that will be run
+    # continuously while other stuff is happening. `--extra-*` specifies how
+    # many seconds to sit while the workloads are running.
+    op["workload-during"] = ValueFlag("--workload-during", converter = str, default = [], combiner = append_combiner)
+    op["extra-before"] = IntFlag("--extra-before", 10)
+    op["extra-between"] = IntFlag("--extra-between", 10)
+    op["extra-after"] = IntFlag("--extra-after", 10)
 
-def prepare_option_parser_for_split_or_continuous_workload(op):
+    # `--workload-*` specifies a workload to run at some point in the scenario.
+    # `--timeout-*` specifies the timeout to enforce for `--workload-*`.
     op["workload-before"] = StringFlag("--workload-before", None)
     op["timeout-before"] = IntFlag("--timeout-before", 600)
-    op["workload-during"] = StringFlag("--workload-during", None)
-    op["extra-before"] = IntFlag("--extra-before", 10)
-    op["extra-after"] = IntFlag("--extra-after", 10)
+    if allow_between:
+        op["workload-between"] = StringFlag("--workload-between", None)
+        op["timeout-between"] = IntFlag("--timeout-between", 600)
     op["workload-after"] = StringFlag("--workload-after", None)
     op["timeout-after"] = IntFlag("--timeout-after", 600)
 
 class SplitOrContinuousWorkload(object):
-    def __init__(self, opts, host, port):
-        self.opts, self.host, self.port = opts, host, port
+    def __init__(self, opts, ports):
+        self.opts, self.ports = opts, ports
     def __enter__(self):
-        if self.opts["workload-during"] is not None:
-            self.continuous_workload = ContinuousWorkload(self.opts["workload-during"], self.host, self.port)
-            self.continuous_workload.__enter__()
+        self.continuous_workloads = []
+        for cl in self.opts["workload-during"]:
+            cwl = ContinuousWorkload(cl, self.ports)
+            cwl.__enter__()
+            self.continuous_workloads.append(cwl)
         return self
-    def step1(self):
+    def _spin_continuous_workloads(self, seconds):
+        assert self.opts["workload-during"]
+        if seconds != 0:
+            print "Letting %s run for %d seconds..." % \
+                (" and ".join(repr(x) for x in self.opts["workload-during"]), seconds)
+            for i in xrange(seconds):
+                time.sleep(1)
+                self.check()
+    def run_before(self):
         if self.opts["workload-before"] is not None:
-            run(self.opts["workload-before"], self.host, self.port, self.opts["timeout-before"])
-        if self.opts["workload-during"] is not None:
-            self.continuous_workload.start()
-            if self.opts["extra-before"] != 0:
-                print "Letting %r run for %d seconds..." % (self.opts["workload-during"], self.opts["extra-before"])
-                for i in xrange(self.opts["extra-before"]):
-                    time.sleep(1)
-                    self.continuous_workload.check()
+            run(self.opts["workload-before"], self.ports, self.opts["timeout-before"])
+        if self.opts["workload-during"]:
+            for cwl in self.continuous_workloads:
+                cwl.start()
+            self._spin_continuous_workloads(self.opts["extra-before"])
     def check(self):
-        if self.opts["workload-during"] is not None:
-            self.continuous_workload.check()
-    def step2(self):
-        if self.opts["workload-during"] is not None:
-            if self.opts["extra-after"] != 0:
-                print "Letting %r run for %d seconds..." % (self.opts["workload-during"], self.opts["extra-after"])
-                for i in xrange(self.opts["extra-after"]):
-                    self.continuous_workload.check()
-                    time.sleep(1)
-            self.continuous_workload.stop()
+        for cwl in self.continuous_workloads:
+            cwl.check()
+    def run_between(self):
+        self.check()
+        assert "workload-between" in self.opts, "pass allow_between=True to prepare_option_parser_for_split_or_continuous_workload()"
+        if self.opts["workload-between"] is not None:
+            run(self.opts["workload-between"], self.ports, self.opts["timeout-between"])
+        if self.opts["workload-during"]:
+            self._spin_continuous_workloads(self.opts["extra-between"])
+    def run_after(self):
+        if self.opts["workload-during"]:
+            self._spin_continuous_workloads(self.opts["extra-after"])
+            for cwl in self.continuous_workloads:
+                cwl.stop()
         if self.opts["workload-after"] is not None:
-            run(self.opts["workload-after"], self.host, self.port, self.opts["timeout-after"])
+            run(self.opts["workload-after"], self.ports, self.opts["timeout-after"])
     def __exit__(self, exc = None, ty = None, tb = None):
         if self.opts["workload-during"] is not None:
-            self.continuous_workload.__exit__()
+            for cwl in self.continuous_workloads:
+                cwl.__exit__()

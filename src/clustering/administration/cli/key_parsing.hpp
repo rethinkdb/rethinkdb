@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_CLI_KEY_PARSING_HPP_
 #define CLUSTERING_ADMINISTRATION_CLI_KEY_PARSING_HPP_
 
+#include <string>
+
 #include "btree/keys.hpp"
 
 bool cli_str_to_key(const std::string &str, store_key_t *out);

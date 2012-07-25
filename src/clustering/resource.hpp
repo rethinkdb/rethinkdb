@@ -1,6 +1,11 @@
 #ifndef CLUSTERING_RESOURCE_HPP_
 #define CLUSTERING_RESOURCE_HPP_
 
+#include <string>
+
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "concurrency/wait_any.hpp"
 #include "concurrency/watchable.hpp"
 #include "rpc/mailbox/mailbox.hpp"

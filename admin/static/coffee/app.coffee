@@ -18,22 +18,21 @@ declare_client_connected = ->
 
 # Check if new_data is included in old_data and if the values are equals. (Note: We don't check if the objects are equals)
 need_update_objects = (new_data, old_data) ->
-    need_update = false
     for key of new_data
         if key of old_data is false
-            need_update = true
-            break
+            return true
  
-    if need_update is false
-        for key of new_data
-            if typeof new_data[key] is object and typeof old_data[key] is object
-                need_update = compare_object(new_data[key], old_data[key])
-                if need_update is true
-                    break
-                else if new_data[key] isnt old_data[key]
-                    need_update = true
-                    break
-    return need_update
+    for key of new_data
+        if typeof new_data[key] is object and typeof old_data[key] is object
+            need_update = compare_object(new_data[key], old_data[key])
+            if need_update is true
+                return need_update
+        else if typeof new_data[key] isnt typeof old_data[key]
+            return true
+        else if new_data[key] isnt old_data[key]
+            return true
+
+    return false
 
 
 
@@ -47,9 +46,12 @@ apply_to_collection = (collection, collection_data) ->
                             delete collection_data[id].blueprint.peers_roles[machine_uuid]
             if collection.get(id)
                 # We update only if something changed so we don't trigger to much 'update'
+                ###
                 need_update = need_update_objects(data, collection.get(id))
                 if need_update is true
-                    collection.get(id).set(data)
+                ###
+                collection.get(id).set(data)
+                collection.trigger('change')
             else
                 data.id = id
                 collection.add(new collection.model(data))
@@ -125,29 +127,28 @@ set_last_seen = (last_seen_from_server) ->
             _m.set('last_seen_from_server', timestamp)
 
 set_log_entries = (log_data_from_server) ->
-    all_log_entries = []
     for machine_uuid, log_entries of log_data_from_server
-        _m_collection = new LogEntries
-        for json in log_entries
-            entry = new LogEntry json
-            entry.set('machine_uuid',machine_uuid)
-            _m_collection.add entry
-            all_log_entries.push entry
-    
-        _m = machines.get(machine_uuid)
-        if _m?
-            machines.get(machine_uuid).set('log_entries', _m_collection)
+        if not machines.get(machine_uuid)?
+            continue # Machine not ready or down, we skip
 
-    recent_log_entries_view.length = 0
-    recent_log_entries.reset(all_log_entries, {silent: true})
-    index = 0
-    for log_entry in recent_log_entries.models
-        if index > 4
-            break
-        index++
-        recent_log_entries_view.push new Sidebar.RecentLogEntry model: log_entry
-    recent_log_entries.trigger 'reset'
-    all_log_entries.length = 0 # Clean array
+        for json in log_entries
+
+            new_timestamp = parseFloat(json.timestamp)
+            for entry, i in recent_log_entries.models
+                if new_timestamp > parseFloat(entry.get('timestamp'))
+                    entry = new LogEntry json
+                    entry.set('machine_uuid',machine_uuid)
+
+                    recent_log_entries.add entry, {at: i}
+                    if recent_log_entries.length > 3
+                        recent_log_entries.shift()
+
+                    if parseFloat(json.timestamp) > recent_log_entries.min_timestamp
+                        recent_log_entries.min_timestamp = Math.ceil parseFloat json.timestamp # /ajax/log juste compare integers
+            if recent_log_entries.length < 4
+                entry = new LogEntry json
+                entry.set('machine_uuid',machine_uuid)
+                recent_log_entries.push entry
 
 set_stats = (stat_data) ->
     for machine_id, data of stat_data
@@ -157,7 +158,7 @@ set_stats = (stat_data) ->
 collections_ready = ->
     # Data is now ready, let's get rockin'!
     render_body()
-    cluster = new BackboneCluster
+    window.router = new BackboneCluster
     Backbone.history.start()
 
 # A helper function to collect data from all of our shitty
@@ -165,10 +166,12 @@ collections_ready = ->
 # sakes!!!
 #   - an optional callback can be provided. Currently this callback will only be called after the /ajax route (metadata) is collected
 # To avoid memory leak, we use function declaration (so with pure javascript since coffeescript can't do it)
+# Using setInterval seems to be safe, TODO
 `function collect_stat_data() {
     $.ajax({
         url: '/ajax/stat',
         dataType: 'json',
+        contentType: 'application/json',
         success: function(data) {
             set_stats(data)
             setTimeout(collect_stat_data, statUpdateInterval)
@@ -176,10 +179,12 @@ collections_ready = ->
     });
 }
 
-function collect_server_data_once(optional_callback) {
+function collect_server_data_once(async, optional_callback) {
     $.ajax({
         url: '/ajax',
         dataType: 'json',
+        contentType: 'application/json',
+        async: async,
         success: function(updates) {
             if (window.is_disconnected != null) {
                 delete window.is_disconnected
@@ -205,20 +210,22 @@ function collect_server_data_once(optional_callback) {
     })
     
     $.ajax({
+        contentType: 'application/json',
         url: '/ajax/progress', 
         dataType: 'json',
         success: set_progress
     })
     
     $.ajax({
-        url: '/ajax/log/_?max_length=10',
+        contentType: 'application/json',
+        url: '/ajax/log/_?max_length=10&min_timestamp='+window.recent_log_entries.min_timestamp,
         dataType: 'json',
         success: set_log_entries
     })
 } 
 
 function collect_server_data(optional_callback) {
-    collect_server_data_once(optional_callback)
+    collect_server_data_once(true, optional_callback)
     setTimeout(collect_server_data, updateInterval) // The callback are used just once.
 }`
 
@@ -236,9 +243,6 @@ $ ->
     window.progress_list = new ProgressList
     window.directory = new Directory
     window.recent_log_entries = new LogEntries
-    # We tie recent_log_entries_view to window and not to the sidebar to avoid a memory leak
-    # (we have to clean the views before reseting the collection)
-    window.recent_log_entries_view = [] 
     window.issues_redundancy = new IssuesRedundancy
     window.connection_status = new ConnectionStatus
     window.computed_cluster = new ComputedCluster

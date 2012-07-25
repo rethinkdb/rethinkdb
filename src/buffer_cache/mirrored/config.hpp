@@ -59,7 +59,7 @@ struct mirrored_cache_config_t {
     int io_priority_reads;
     int io_priority_writes;
 
-    void rdb_serialize(write_message_t &msg) const {
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const {
         msg << max_size;
         msg << wait_for_flush;
         msg << flush_timer_ms;

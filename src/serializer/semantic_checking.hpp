@@ -1,11 +1,12 @@
 #ifndef SERIALIZER_SEMANTIC_CHECKING_HPP_
 #define SERIALIZER_SEMANTIC_CHECKING_HPP_
 
-#include <set>
-#include <string>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+
+#include <set>
+#include <string>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/crc.hpp>
@@ -55,8 +56,8 @@ public:
     typedef typename inner_serializer_t::static_config_t static_config_t;
     typedef typename inner_serializer_t::config_t config_t;
 
-    static void create(dynamic_config_t config, private_dynamic_config_t private_config, static_config_t static_config);
-    semantic_checking_serializer_t(dynamic_config_t config, private_dynamic_config_t private_config);
+    static void create(dynamic_config_t config, io_backender_t *backender, private_dynamic_config_t private_config, static_config_t static_config);
+    semantic_checking_serializer_t(dynamic_config_t config, io_backender_t *backender, private_dynamic_config_t private_config);
     ~semantic_checking_serializer_t();
 
     typedef typename inner_serializer_t::check_callback_t check_callback_t;

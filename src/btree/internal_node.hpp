@@ -1,10 +1,8 @@
 #ifndef BTREE_INTERNAL_NODE_HPP_
 #define BTREE_INTERNAL_NODE_HPP_
 
-#include "utils.hpp"
-#include <boost/scoped_array.hpp>
-
 #include "btree/node.hpp"
+#include "utils.hpp"
 
 // See internal_node_t in node.hpp
 
@@ -26,7 +24,6 @@ namespace internal_node {
 void init(block_size_t block_size, internal_node_t *node);
 void init(block_size_t block_size, internal_node_t *node, const internal_node_t *lnode, const uint16_t *offsets, int numpairs);
 
-void get_children_ids(const internal_node_t *node, boost::scoped_array<block_id_t>& ids_out, size_t *num_children);
 block_id_t lookup(const internal_node_t *node, const btree_key_t *key);
 bool insert(block_size_t block_size, buf_lock_t *node_buf, const btree_key_t *key, block_id_t lnode, block_id_t rnode);
 bool remove(block_size_t block_size, buf_lock_t *node_buf, const btree_key_t *key);

@@ -17,7 +17,7 @@
 // get_data() returns or get_data_if_available() returns non-NULL, get_data_if_available() will
 // return the same (non-NULL) value.
 
-// TODO (rntz): it should be possible for us to cause snapshots which were not cow-referenced to be
+// TODO(rntz): it should be possible for us to cause snapshots which were not cow-referenced to be
 // flushed to disk during writeback, sans block id, to allow them to be unloaded if necessary.
 class mc_inner_buf_t::buf_snapshot_t : private evictable_t, public intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
 public:
@@ -176,7 +176,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
 }
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
-mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, file_account_t *_io_account)
+mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_account_t *_io_account)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
@@ -196,8 +196,8 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, file_accou
 
     // Some things expect us to return immediately (as of 5/12/2011), so we do the loading in a
     // separate coro. We have to make sure that load_inner_buf() acquires the lock first
-    // however, so we use spawn_now_deprecated().
-    coro_t::spawn_now_deprecated(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
+    // however, so we use spawn_now().
+    coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
 
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
     ++_cache->stats->pm_n_blocks_in_memory;
@@ -210,7 +210,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, file_accou
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
@@ -240,7 +240,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
     replay_patches();
 }
 
-mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp) {
+mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp) {
     cache->assert_thread();
 
     if (snapshot_version == faux_version_id)
@@ -280,7 +280,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
 // Used by mc_inner_buf_t::allocate() and by the patch log.
 // If you update this constructor, please don't forget to update mc_inner_buf_t::allocate
 // accordingly.
-mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
@@ -391,7 +391,14 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool leave_clo
             num_snapshots_affected = cache->calculate_snapshots_affected(version_id, new_version);
         }
     }
-    rassert(snap_refcount <= num_snapshots_affected); // sanity check
+
+    // This "sanity check" is commented out because it is now wrong.
+    // It is possible for multiple buf_lock_t's from the same
+    // transaction to be held at the same time (for example, when
+    // backfilling).  That invalidates this assertion, without meaning
+    // the rest of the code is broken.
+
+    // commented out: rassert(snap_refcount <= num_snapshots_affected); // sanity check
 
     // check whether snapshot refcount is > 0
     if (0 == num_snapshots_affected + cow_refcount)
@@ -800,7 +807,7 @@ void mc_buf_lock_t::set_eviction_priority(eviction_priority_t val) {
     inner_buf->eviction_priority = val;
 }
 
-void mc_buf_lock_t::apply_patch(buf_patch_t *patch) {
+void mc_buf_lock_t::apply_patch(buf_patch_t *_patch) {
     assert_thread();
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
@@ -808,7 +815,9 @@ void mc_buf_lock_t::apply_patch(buf_patch_t *patch) {
     // TODO (sam): Obviously something's f'd up about this.
     rassert(inner_buf->data.equals(data));
     rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
-    rassert(patch->get_block_id() == inner_buf->block_id);
+    rassert(_patch->get_block_id() == inner_buf->block_id);
+
+    scoped_ptr_t<buf_patch_t> patch(_patch);
 
     patch->apply_to_buf(reinterpret_cast<char *>(data), inner_buf->cache->get_block_size());
     inner_buf->writeback_buf().set_dirty();
@@ -825,7 +834,6 @@ void mc_buf_lock_t::apply_patch(buf_patch_t *patch) {
         const int32_t max_patches_size = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->get_max_patches_size_ratio();
         if (patch->get_serialized_size() + inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > max_patches_size) {
             ensure_flush();
-            delete patch;
         } else {
             // Store the patch if the buffer does not have to be flushed anyway
             if (patch->get_patch_counter() == 1) {
@@ -834,10 +842,8 @@ void mc_buf_lock_t::apply_patch(buf_patch_t *patch) {
             }
 
             // Takes ownership of patch.
-            inner_buf->cache->patch_memory_storage.store_patch(patch);
+            inner_buf->cache->patch_memory_storage.store_patch(patch.release());
         }
-    } else {
-        delete patch;
     }
 }
 
@@ -1056,61 +1062,17 @@ void mc_buf_lock_t::release() {
  * Transaction implementation.
  */
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp)
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp)
     : cache(_cache),
       expected_change_count(_expected_change_count),
       access(_access),
       recency_timestamp(_recency_timestamp),
       snapshot_version(mc_inner_buf_t::faux_version_id),
       snapshotted(false),
-      num_buf_locks_acquired(0)
-{
+      cache_account(NULL),
+      num_buf_locks_acquired(0),
+      is_writeback_transaction(false) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
-
-    // HISTORICAL COMMENTS:
-
-    // Writes and reads must separately have their order preserved,
-    // but we're expecting, in the case of throttling, for writes to
-    // be throttled while reads are not.
-
-    // We think there is a bug in throttling that could reorder writes
-    // when throttling _ends_.  Reordering can also happen if
-    // begin_transaction sometimes returns NULL and other times does
-    // not, because then in one case cb.join() needs to spin around
-    // the event loop.  So there's an obvious problem with the code
-    // below, if we did not have coro_fifo_acq_t protecting it.
-
-    // MODERN COMMENTS:
-
-    // Why do "writes" need to have their order preserved at all, now
-    // that we have sequence_group_t?  Perhaps it's because in the
-    // presence of replication, that prevents the gated store gate
-    // limitations being bypassed.  You could look at the gated store
-    // code to prove or disprove this claim, but since v1.1.x is
-    // supposed to be stable, we're being conservative.
-    //
-    // Yeah.  Really it's only backfill or replication that is the big
-    // question and the reason we're being conservative here.
-
-    // POST-MODERN COMMENTS:
-    //
-    // It would make more sense if this function took a
-    // per_slice_sequence_group_t, instead of taking a
-    // sequence_group_t and having the cache know about what slice it
-    // is.  This would be proper software design.  However, it would
-    // require that stop using the get_store and set_store_interface_t
-    // stuff as abstract classes, or interfaces.  While that would
-    // make sense, and even though it always would have made sense,
-    // that would be more pain to do and then merge.  So we're not
-    // doing it.
-
-    // It is important that we leave the sequence group's fifo _after_
-    // we leave the write throttle fifo.  So we construct it first.
-    // (The destructor will run after.)
-
-    // POST-POST-MODERN COMMENTS:
-
-    // Sequence groups are going away now.
 
     coro_fifo_acq_t write_throttle_acq;
 
@@ -1122,22 +1084,23 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
     cache->assert_thread();
     rassert(!cache->shutting_down);
     rassert(access == rwi_write || expected_change_count == 0);
-    cache->num_live_transactions++;
+    cache->num_live_non_writeback_transactions++;
     cache->writeback.begin_transaction(this);
 
     cache->stats->pm_transactions_active.begin(&start_time);
 }
 
 /* This version is only for read transactions from the writeback!  And some unit tests use it. */
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED int fook, UNUSED bool dont_assert_about_shutting_down) :
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED int fook, UNUSED bool dont_assert_about_shutting_down) :
     cache(_cache),
     expected_change_count(0),
     access(_access),
     recency_timestamp(repli_timestamp_t::distant_past),
     snapshot_version(mc_inner_buf_t::faux_version_id),
     snapshotted(false),
-    num_buf_locks_acquired(0)
-{
+    cache_account(NULL),
+    num_buf_locks_acquired(0),
+    is_writeback_transaction(false) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
@@ -1145,25 +1108,26 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED int
 
     cache->assert_thread();
     rassert(dont_assert_about_shutting_down || !cache->shutting_down);
-    cache->num_live_transactions++;
+    cache->num_live_non_writeback_transactions++;
     cache->writeback.begin_transaction(this);
     cache->stats->pm_transactions_active.begin(&start_time);
 }
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED i_am_writeback_t i_am_writeback) :
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED i_am_writeback_t i_am_writeback) :
     cache(_cache),
     expected_change_count(0),
     access(_access),
     recency_timestamp(repli_timestamp_t::distant_past),
     snapshot_version(mc_inner_buf_t::faux_version_id),
     snapshotted(false),
-    num_buf_locks_acquired(0)
-{
+    cache_account(NULL),
+    num_buf_locks_acquired(0),
+    is_writeback_transaction(true) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
     cache->assert_thread();
-    cache->num_live_transactions++;
+    cache->num_live_writeback_transactions++;
     cache->writeback.begin_transaction(this);
     cache->stats->pm_transactions_active.begin(&start_time);
 }
@@ -1188,7 +1152,9 @@ mc_transaction_t::~mc_transaction_t() {
 
     if (snapshotted && snapshot_version != mc_inner_buf_t::faux_version_id) {
         cache->unregister_snapshot(this);
-        for (owned_snapshots_list_t::iterator it = owned_buf_snapshots.begin(); it != owned_buf_snapshots.end(); it++) {
+        for (std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> >::iterator it = owned_buf_snapshots.begin();
+             it != owned_buf_snapshots.end();
+             ++it) {
             (*it).first->release_snapshot((*it).second);
         }
     }
@@ -1214,8 +1180,6 @@ mc_transaction_t::~mc_transaction_t() {
 
     cache->stats->pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
     cache->stats->pm_registered_snapshot_blocks -= owned_buf_snapshots.size();
-
-    cache_account_.reset();
 }
 
 void mc_transaction_t::maybe_finalize_version() {
@@ -1240,19 +1204,21 @@ void mc_transaction_t::snapshot() {
     snapshotted = true;
 }
 
-void mc_transaction_t::set_account(const boost::shared_ptr<mc_cache_account_t>& cache_account) {
-    cache_account_ = cache_account;
+void mc_transaction_t::set_account(mc_cache_account_t *_cache_account) {
+    rassert(cache_account == NULL, "trying to set the transaction's cache_account twice");
+
+    cache_account = _cache_account;
 }
 
 file_account_t *mc_transaction_t::get_io_account() const {
-    return (cache_account_.get() == NULL ? cache->reads_io_account.get() : cache_account_->io_account_);
+    return (cache_account == NULL ? cache->reads_io_account.get() : cache_account->io_account_);
 }
 
 void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
     serializer->assert_thread();
 
     for (size_t i = 0; i < num_block_ids; ++i) {
-        if (block_ids[i] != NULL_BLOCK_ID && recencies_out[i].time == repli_timestamp_t::invalid.time) {
+        if (block_ids[i] != NULL_BLOCK_ID && recencies_out[i] == repli_timestamp_t::invalid) {
             recencies_out[i] = serializer->get_recency(block_ids[i]);
         }
     }
@@ -1265,7 +1231,7 @@ void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_b
     bool need_second_loop = false;
     for (size_t i = 0; i < num_block_ids; ++i) {
         if (block_ids[i] != NULL_BLOCK_ID) {
-            inner_buf_t *inner_buf = cache->find_buf(block_ids[i]);
+            mc_inner_buf_t *inner_buf = cache->find_buf(block_ids[i]);
             if (inner_buf) {
                 recencies_out[i] = inner_buf->subtree_recency;
             } else {
@@ -1335,7 +1301,8 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
     /* Build list of free blocks (the free_list constructor blocks) */
     free_list(_serializer, stats.get()),
     shutting_down(false),
-    num_live_transactions(0),
+    num_live_writeback_transactions(0),
+    num_live_non_writeback_transactions(0),
     to_pulse_when_last_transaction_commits(NULL),
     max_patches_size_ratio((dynamic_config->wait_for_flush || dynamic_config->flush_timer_ms == 0) ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
     read_ahead_registered(false),
@@ -1343,8 +1310,8 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
 
     {
         on_thread_t thread_switcher(serializer->home_thread());
-        reads_io_account.reset(serializer->make_io_account(dynamic_config->io_priority_reads));
-        writes_io_account.reset(serializer->make_io_account(dynamic_config->io_priority_writes));
+        reads_io_account.init(serializer->make_io_account(dynamic_config->io_priority_reads));
+        writes_io_account.init(serializer->make_io_account(dynamic_config->io_priority_writes));
     }
 
 #ifndef NDEBUG
@@ -1352,8 +1319,8 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
 #endif
 
     /* Load differential log from disk */
-    patch_disk_storage.reset(new patch_disk_storage_t(this, MC_CONFIGBLOCK_ID));
-    patch_disk_storage->load_patches(patch_memory_storage);
+    patch_disk_storage.init(new patch_disk_storage_t(this, MC_CONFIGBLOCK_ID));
+    patch_disk_storage->load_patches(&patch_memory_storage);
 
     /* Please note: writebacks must *not* happen prior to this point! */
     /* Writebacks ( / syncs / flushes) can cause blocks to be rewritten and require an intact patch_memory_storage! */
@@ -1379,12 +1346,17 @@ mc_cache_t::~mc_cache_t() {
     shutting_down = true;
     serializer->unregister_read_ahead_cb(this);
 
+    rassert(num_live_non_writeback_transactions == 0,
+            "num_live_non_writeback_transactions is %d\n",
+            num_live_non_writeback_transactions);
+
     /* Wait for all transactions to commit before shutting down */
-    if (num_live_transactions > 0) {
+    if (num_live_non_writeback_transactions + num_live_writeback_transactions > 0) {
         cond_t cond;
         to_pulse_when_last_transaction_commits = &cond;
         cond.wait();
-        to_pulse_when_last_transaction_commits = NULL; // writeback is going to start another transaction, we don't want to get notified again (which would fail)
+        // writeback is going to start another transaction, we don't want to get notified again (which would fail)
+        to_pulse_when_last_transaction_commits = NULL;
     }
 
     if (writeback.has_active_flushes()) {
@@ -1395,7 +1367,9 @@ mc_cache_t::~mc_cache_t() {
     }
 
     rassert(!writeback.has_active_flushes());
-    rassert(num_live_transactions == 0, "num_live_transactions = %d", num_live_transactions);
+    rassert(num_live_writeback_transactions + num_live_non_writeback_transactions == 0,
+            "num_live_writeback_transactions = %d, num_live_non_writeback_transactions = %d",
+            num_live_writeback_transactions, num_live_non_writeback_transactions);
 
     /* Perform a final sync */
     struct : public writeback_t::sync_callback_t, public cond_t {
@@ -1409,7 +1383,7 @@ mc_cache_t::~mc_cache_t() {
 
     /* Delete all the buffers */
     while (evictable_t *buf = page_repl.get_first_buf()) {
-        // TODO (rntz) check that buf is actually a mc_inner_buf_t
+        // TODO(rntz) check that buf is actually a mc_inner_buf_t
         delete buf;
     }
 
@@ -1434,7 +1408,7 @@ void mc_cache_t::register_snapshot(mc_transaction_t *txn) {
 }
 
 void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
-    snapshots_map_t::iterator it = active_snapshots.find(txn->snapshot_version);
+    std::map<mc_inner_buf_t::version_id_t, mc_transaction_t *>::iterator it = active_snapshots.find(txn->snapshot_version);
     if (it != active_snapshots.end() && (*it).second == txn) {
         active_snapshots.erase(it);
     } else {
@@ -1446,7 +1420,7 @@ void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
 size_t mc_cache_t::calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
     rassert(snapshotted_version <= new_version);    // on equals we'll get 0 snapshots affected
     size_t num_snapshots_affected = 0;
-    for (snapshots_map_t::iterator it = active_snapshots.lower_bound(snapshotted_version),
+    for (std::map<mc_inner_buf_t::version_id_t, mc_transaction_t *>::iterator it = active_snapshots.lower_bound(snapshotted_version),
              itend = active_snapshots.lower_bound(new_version);
          it != itend;
          it++) {
@@ -1458,7 +1432,7 @@ size_t mc_cache_t::calculate_snapshots_affected(mc_inner_buf_t::version_id_t sna
 size_t mc_cache_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
     rassert(snapshotted_version <= new_version);    // on equals we'll get 0 snapshots affected
     size_t num_snapshots_affected = 0;
-    for (snapshots_map_t::iterator it = active_snapshots.lower_bound(snapshotted_version),
+    for (std::map<mc_inner_buf_t::version_id_t, mc_transaction_t *>::iterator it = active_snapshots.lower_bound(snapshotted_version),
              itend = active_snapshots.lower_bound(new_version);
          it != itend;
          it++) {
@@ -1468,8 +1442,8 @@ size_t mc_cache_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf
     return num_snapshots_affected;
 }
 
-mc_cache_t::inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
-    inner_buf_t *buf = page_map.find(block_id);
+mc_inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
+    mc_inner_buf_t *buf = page_map.find(block_id);
     if (buf) {
         ++stats->pm_cache_hits;
     } else {
@@ -1483,7 +1457,7 @@ bool mc_cache_t::contains_block(block_id_t block_id) {
 }
 
 
-boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
+void mc_cache_t::create_cache_account(int priority, scoped_ptr_t<mc_cache_account_t> *out) {
     // We assume that a priority of 100 means that the transaction should have the same priority as
     // all the non-accounted transactions together. Not sure if this makes sense.
 
@@ -1499,16 +1473,21 @@ boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
         io_account = serializer->make_io_account(io_priority, outstanding_requests_limit);
     }
 
-    return boost::shared_ptr<cache_account_t>(new cache_account_t(serializer->home_thread(), io_account));
+    out->init(new mc_cache_account_t(serializer->home_thread(), io_account));
 }
 
-void mc_cache_t::on_transaction_commit(transaction_t *txn) {
+void mc_cache_t::on_transaction_commit(mc_transaction_t *txn) {
     assert_thread();
 
     writeback.on_transaction_commit(txn);
 
-    num_live_transactions--;
-    if (to_pulse_when_last_transaction_commits && num_live_transactions == 0) {
+    if (txn->is_writeback_transaction) {
+        num_live_writeback_transactions--;
+    } else {
+        num_live_non_writeback_transactions--;
+    }
+
+    if (to_pulse_when_last_transaction_commits && num_live_writeback_transactions + num_live_non_writeback_transactions == 0) {
         // We started a shutdown earlier, but we had to wait for the transactions to all finish.
         // Now that all transactions are done, continue shutting down.
         to_pulse_when_last_transaction_commits->pulse();
@@ -1551,7 +1530,7 @@ void mc_cache_t::maybe_unregister_read_ahead_callback() {
     if (read_ahead_registered && page_repl.is_full(dynamic_config.max_size / serializer->get_block_size().ser_value() / 10 + 1)) {
         read_ahead_registered = false;
         // unregister_read_ahead_cb requires a coro context, but we might not be in any
-        coro_t::spawn_now_deprecated(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
+        coro_t::spawn_now(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
     }
 }
 

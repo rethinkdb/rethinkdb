@@ -75,8 +75,8 @@ void data_block_manager_t::end_reconstruct() {
 void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock) {
     rassert(state == state_unstarted);
     dbfile = file;
-    gc_io_account_nice.reset(new file_account_t(file, GC_IO_PRIORITY_NICE));
-    gc_io_account_high.reset(new file_account_t(file, GC_IO_PRIORITY_HIGH));
+    gc_io_account_nice.init(new file_account_t(file, GC_IO_PRIORITY_NICE));
+    gc_io_account_high.init(new file_account_t(file, GC_IO_PRIORITY_HIGH));
 
     /* Reconstruct the active data block extents from the metablock. */
 
@@ -402,7 +402,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
     std::vector<block_write_cond_t*> block_write_conds;
     block_write_conds.reserve(num_writes);
 
-    extent_manager_t::transaction_t *em_trx = parent->serializer->extent_manager->begin_transaction();
+    extent_manager_t::transaction_t em_trx;
+    parent->serializer->extent_manager->begin_transaction(&em_trx);
     // Step 1: Write buffers to disk and assemble index operations
     for (int i = 0; i < num_writes; ++i) {
         block_write_conds.push_back(new block_write_cond_t());
@@ -413,7 +414,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
         writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back());
     }
     parent->serializer->extent_manager->end_transaction(em_trx);
-    parent->serializer->extent_manager->commit_transaction(em_trx);
+    parent->serializer->extent_manager->commit_transaction(&em_trx);
 
     // Step 2: Wait on all writes to finish
     for (size_t i = 0; i < block_write_conds.size(); ++i) {
@@ -484,10 +485,11 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 void data_block_manager_t::on_gc_write_done() {
 
     // Process GC data changes which have been caused by the tokens
-    extent_manager_t::transaction_t *em_trx = serializer->extent_manager->begin_transaction();
+    extent_manager_t::transaction_t em_trx;
+    serializer->extent_manager->begin_transaction(&em_trx);
     check_and_handle_outstanding_empty_extents();
     serializer->extent_manager->end_transaction(em_trx);
-    serializer->extent_manager->commit_transaction(em_trx);
+    serializer->extent_manager->commit_transaction(&em_trx);
 
     // Continue GC
     run_gc();

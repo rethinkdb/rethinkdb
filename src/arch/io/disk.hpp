@@ -1,13 +1,12 @@
 #ifndef ARCH_IO_DISK_HPP_
 #define ARCH_IO_DISK_HPP_
 
-#include "utils.hpp"
-#include <boost/scoped_ptr.hpp>
-
-#include "config/args.hpp"
 #include "arch/io/io_utils.hpp"
-
+#include "arch/runtime/event_queue.hpp"
 #include "arch/types.hpp"
+#include "config/args.hpp"
+#include "containers/scoped.hpp"
+#include "utils.hpp"
 
 class linux_iocallback_t;
 struct linux_disk_manager_t;
@@ -15,6 +14,57 @@ struct linux_disk_manager_t;
 class linux_file_t;
 
 class perfmon_collection_t;
+
+/* Disk manager object takes care of queueing operations, collecting statistics, preventing
+   conflicts, and actually sending them to the disk. */
+struct linux_disk_manager_t {
+    linux_disk_manager_t() { }
+
+    virtual ~linux_disk_manager_t() { }
+
+    virtual void *create_account(int priority, int outstanding_requests_limit) = 0;
+    virtual void destroy_account(void *account) = 0;
+
+    virtual void submit_write(fd_t fd, const void *buf, size_t count, size_t offset,
+        void *account, linux_iocallback_t *cb) = 0;
+    virtual void submit_read(fd_t fd, void *buf, size_t count, size_t offset,
+        void *account, linux_iocallback_t *cb) = 0;
+
+private:
+    DISABLE_COPYING(linux_disk_manager_t);
+};
+
+
+class io_backender_t {
+public:
+    virtual void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
+                                   perfmon_collection_t *stats,
+                                   scoped_ptr_t<linux_disk_manager_t> *out) = 0;
+
+    virtual ~io_backender_t() { }
+
+protected:
+    io_backender_t() { }
+
+private:
+    DISABLE_COPYING(io_backender_t);
+};
+
+class native_io_backender_t : public io_backender_t {
+public:
+    void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
+                           perfmon_collection_t *stats,
+                           scoped_ptr_t<linux_disk_manager_t> *out);
+};
+
+class pool_io_backender_t : public io_backender_t {
+public:
+    void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
+                           perfmon_collection_t *stats,
+                           scoped_ptr_t<linux_disk_manager_t> *out);
+};
+
+void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out);
 
 class linux_file_account_t {
 public:
@@ -40,7 +90,7 @@ public:
         mode_create = 1 << 2
     };
 
-    linux_file_t(const char *path, int mode, bool is_really_direct, perfmon_collection_t *stats, const linux_io_backend_t io_backend, const int batch_factor);
+    linux_file_t(const char *path, int mode, bool is_really_direct, perfmon_collection_t *stats, io_backender_t *io_backender, const int batch_factor);
 
     bool exists();
     bool is_block_device();
@@ -64,10 +114,10 @@ private:
     void verify(size_t offset, size_t length, const void *buf);
 
     /* In a scoped pointer because it's polymorphic */
-    boost::scoped_ptr<linux_disk_manager_t> diskmgr;
+    scoped_ptr_t<linux_disk_manager_t> diskmgr;
 
     /* In a scoped_ptr so we can initialize it after "diskmgr" */
-    boost::scoped_ptr<linux_file_account_t> default_account;
+    scoped_ptr_t<linux_file_account_t> default_account;
 
     DISABLE_COPYING(linux_file_t);
 };
@@ -77,8 +127,8 @@ file is opened in O_DIRECT mode, and there are restrictions on the
 alignment of the chunks being written and read to and from the file. */
 class linux_direct_file_t : public linux_file_t {
 public:
-    linux_direct_file_t(const char *path, int mode, perfmon_collection_t *stats, const linux_io_backend_t io_backend = aio_native, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
-        linux_file_t(path, mode, true, stats, io_backend, batch_factor) { }
+    linux_direct_file_t(const char *path, int mode, perfmon_collection_t *stats, io_backender_t *io_backender, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
+        linux_file_t(path, mode, true, stats, io_backender, batch_factor) { }
 
 private:
     DISABLE_COPYING(linux_direct_file_t);
@@ -86,8 +136,8 @@ private:
 
 class linux_nondirect_file_t : public linux_file_t {
 public:
-    linux_nondirect_file_t(const char *path, int mode, perfmon_collection_t *stats, const linux_io_backend_t io_backend = aio_native, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
-        linux_file_t(path, mode, false, stats, io_backend, batch_factor) { }
+    linux_nondirect_file_t(const char *path, int mode, perfmon_collection_t *stats, io_backender_t *io_backender, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
+        linux_file_t(path, mode, false, stats, io_backender, batch_factor) { }
 
 private:
     DISABLE_COPYING(linux_nondirect_file_t);

@@ -1,13 +1,14 @@
 #ifndef RPC_CONNECTIVITY_MESSAGES_HPP_
 #define RPC_CONNECTIVITY_MESSAGES_HPP_
 
-#include "errors.hpp"
-#include <boost/function.hpp>
-
 class connectivity_service_t;
 class peer_id_t;
 class read_stream_t;
 class write_stream_t;
+
+namespace boost {
+template <class> class function;
+}
 
 /* `message_service_t` is an abstract superclass for things that let you send
 messages to other nodes. `message_handler_t` is an abstract superclass for

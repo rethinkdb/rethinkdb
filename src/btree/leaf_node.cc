@@ -158,24 +158,25 @@ struct entry_iter_t {
     }
 };
 
-void strprint_entry(std::string& out, value_sizer_t<void> *sizer, const entry_t *entry) {
+void strprint_entry(std::string *out, value_sizer_t<void> *sizer, const entry_t *entry) {
     if (entry_is_live(entry)) {
         const btree_key_t *key = entry_key(entry);
-        out += strprintf("%.*s:", int(key->size), key->contents);
-        out += strprintf("[entry size=%d]", entry_size(sizer, entry));
-        out += strprintf("[value size=%d]", sizer->size(entry_value(entry)));
+        *out += strprintf("%.*s:", int(key->size), key->contents);
+        *out += strprintf("[entry size=%d]", entry_size(sizer, entry));
+        *out += strprintf("[value size=%d]", sizer->size(entry_value(entry)));
     } else if (entry_is_deletion(entry)) {
         const btree_key_t *key = entry_key(entry);
-        out += strprintf("%.*s:[deletion]", int(key->size), key->contents);
+        *out += strprintf("%.*s:[deletion]", int(key->size), key->contents);
     } else if (entry_is_skip(entry)) {
-        out += strprintf("[skip %d]", entry_size(sizer, entry));
+        *out += strprintf("[skip %d]", entry_size(sizer, entry));
     } else {
-        out += strprintf("[code %d]", *reinterpret_cast<const uint8_t *>(entry));
+        *out += strprintf("[code %d]", *reinterpret_cast<const uint8_t *>(entry));
     }
 }
 
 
-void strprint(std::string& out, value_sizer_t<void> *sizer, const leaf_node_t *node) {
+std::string strprint_leaf(value_sizer_t<void> *sizer, const leaf_node_t *node) {
+    std::string out;
     out += strprintf("Leaf(magic='%4.4s', num_pairs=%u, live_size=%u, frontmost=%u, tstamp_cutpoint=%u)\n",
             node->magic.bytes, node->num_pairs, node->live_size, node->frontmost, node->tstamp_cutpoint);
 
@@ -188,7 +189,7 @@ void strprint(std::string& out, value_sizer_t<void> *sizer, const leaf_node_t *n
     out += strprintf("  By Key:");
     for (int i = 0; i < node->num_pairs; ++i) {
         out += strprintf(" %d:", node->pair_offsets[i]);
-        strprint_entry(out, sizer, get_entry(node, node->pair_offsets[i]));
+        strprint_entry(&out, sizer, get_entry(node, node->pair_offsets[i]));
     }
     out += strprintf("\n");
 
@@ -199,12 +200,14 @@ void strprint(std::string& out, value_sizer_t<void> *sizer, const leaf_node_t *n
         out += strprintf(":");
         if (iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
-            out += strprintf("[t=%u]", tstamp.time);
+            out += strprintf("[t=%lu]", tstamp.longtime);
         }
-        strprint_entry(out, sizer, get_entry(node, iter.offset));
+        strprint_entry(&out, sizer, get_entry(node, iter.offset));
         iter.step(sizer, node);
     }
     out += strprintf("\n");
+
+    return out;
 }
 
 
@@ -253,7 +256,7 @@ void print(FILE *fp, value_sizer_t<void> *sizer, const leaf_node_t *node) {
         fflush(fp);
         if (iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
-            fprintf(fp, "[t=%u]", tstamp.time);
+            fprintf(fp, "[t=%lu]", tstamp.longtime);
             fflush(fp);
         }
         print_entry(fp, sizer, get_entry(node, iter.offset));
@@ -1143,7 +1146,7 @@ void assert_not_old_timestamp(DEBUG_ONLY_VAR leaf_node_t *node, DEBUG_ONLY_VAR r
         repli_timestamp_t old_tstamp = get_timestamp(node, node->frontmost);
         // Timestamps aren't unique (because they're low-resolution)
         // but they are in order.
-        rassert(tstamp >= old_tstamp, "tstamp = %u, old_tstamp = %u, key=%.*s", tstamp.time, old_tstamp.time, key->size, key->contents);
+        rassert(tstamp >= old_tstamp, "tstamp = %lu, old_tstamp = %lu, key=%.*s", tstamp.longtime, old_tstamp.longtime, key->size, key->contents);
     }
 #endif
 }
@@ -1293,7 +1296,7 @@ void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node
         entry_iter_t iter = entry_iter_t::make(node);
         while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
-            rassert(earliest_so_far >= tstamp, "asserted earliest_so_far (%u) >= tstamp (%u)", earliest_so_far.time, tstamp.time);
+            rassert(earliest_so_far >= tstamp, "asserted earliest_so_far (%lu) >= tstamp (%lu)", earliest_so_far.longtime, tstamp.longtime);
             earliest_so_far = tstamp;
 
             if (tstamp < minimum_tstamp) {

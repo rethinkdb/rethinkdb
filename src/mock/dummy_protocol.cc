@@ -1,8 +1,5 @@
 #include "mock/dummy_protocol.hpp"
 
-#include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
-
 // TODO: Move version_range_t out of clustering/immediate_consistency/branch/metadata.hpp.
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "arch/timing.hpp"
@@ -203,7 +200,7 @@ dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_prot
     initialize_empty();
 }
 
-dummy_protocol_t::store_t::store_t(UNUSED const io_backend_t io_backend, const std::string& fn, bool create, perfmon_collection_t *) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
+dummy_protocol_t::store_t::store_t(UNUSED io_backender_t *io_backend, const std::string& fn, bool create, perfmon_collection_t *) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
     if (create) {
         initialize_empty();
     } else {
@@ -233,22 +230,21 @@ dummy_protocol_t::store_t::~store_t() {
     }
 }
 
-void dummy_protocol_t::store_t::new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) THROWS_NOTHING {
+void dummy_protocol_t::store_t::new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING {
     fifo_enforcer_read_token_t token = token_source.enter_read();
-    token_out.reset(new fifo_enforcer_sink_t::exit_read_t(&token_sink, token));
+    token_out->init(new fifo_enforcer_sink_t::exit_read_t(&token_sink, token));
 }
 
-void dummy_protocol_t::store_t::new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) THROWS_NOTHING {
+void dummy_protocol_t::store_t::new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out) THROWS_NOTHING {
     fifo_enforcer_write_token_t token = token_source.enter_write();
-    token_out.reset(new fifo_enforcer_sink_t::exit_write_t(&token_sink, token));
+    token_out->init(new fifo_enforcer_sink_t::exit_write_t(&token_sink, token));
 }
 
 dummy_protocol_t::store_t::metainfo_t
-dummy_protocol_t::store_t::get_metainfo(order_token_t order_token,
-                                        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-                                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
-    local_token.swap(token);
+dummy_protocol_t::store_t::do_get_metainfo(order_token_t order_token,
+                                           scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                           signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
 
     wait_interruptible(local_token.get(), interruptor);
 
@@ -263,12 +259,11 @@ dummy_protocol_t::store_t::get_metainfo(order_token_t order_token,
 
 void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
                                              order_token_t order_token,
-                                             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                                             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
-    local_token.swap(token);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
 
     wait_interruptible(local_token.get(), interruptor);
 
@@ -285,15 +280,14 @@ dummy_protocol_t::read_response_t
 dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
                                 const dummy_protocol_t::read_t &read,
                                 order_token_t order_token,
-                                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), read.get_region()));
 
     dummy_protocol_t::read_response_t resp;
     {
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
-        local_token.swap(token);
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
 
         wait_interruptible(local_token.get(), interruptor);
         order_sink.check_out(order_token);
@@ -357,7 +351,7 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_proto
                                  const dummy_protocol_t::write_t &write,
                                  transition_timestamp_t timestamp,
                                  order_token_t order_token,
-                                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                                 scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
@@ -366,8 +360,7 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_proto
 
     dummy_protocol_t::write_response_t resp;
     {
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
-        local_token.swap(token);
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
 
         wait_interruptible(local_token.get(), interruptor);
 
@@ -394,11 +387,10 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_proto
 }
 
 bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
-        const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, backfill_progress_t *, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, backfill_progress_t *, scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), start_point.get_domain()));
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
-    local_token.swap(token);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
 
     wait_interruptible(local_token.get(), interruptor);
 
@@ -434,9 +426,8 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
     }
 }
 
-void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
-    local_token.swap(token);
+void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
 
     rassert(get_region().keys.count(chunk.key) != 0);
 
@@ -448,13 +439,12 @@ void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfil
 
 void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &subregion,
                                            const metainfo_t &new_metainfo,
-                                           boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                                           scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
-    local_token.swap(token);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
 
     wait_interruptible(local_token.get(), interruptor);
 

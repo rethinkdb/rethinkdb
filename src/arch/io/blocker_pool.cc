@@ -110,10 +110,15 @@ void blocker_pool_t::on_event(UNUSED int event) {
     rassert(event == poll_event_in);
     ce_signal.read();   // So pipe doesn't get backed up
 
-    system_mutex_t::lock_t ce_lock(&ce_mutex);
-    for (int i = 0; i < (int)completed_events.size(); i++) {
-        completed_events[i]->done();
+    std::vector<job_t *> local_completed_events;
+
+    {
+        system_mutex_t::lock_t ce_lock(&ce_mutex);
+        local_completed_events.swap(completed_events);
     }
-    completed_events.clear();
+
+    for (int i = 0; i < (int)local_completed_events.size(); ++i) {
+        local_completed_events[i]->done();
+    }
 }
 

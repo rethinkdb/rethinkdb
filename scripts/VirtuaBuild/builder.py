@@ -17,7 +17,7 @@ class Builder(Thread):
             semaphore.acquire()
             self.target.run(self.branch, self.name)
             self.success = True
-        except self.target.RunError, err:
+        except vm_build.RunError, err:
             self.exception = err
         finally:
             semaphore.release()
@@ -44,6 +44,10 @@ def help():
     print >>sys.stderr, "                 Requires a target."
     print >>sys.stderr, "     --clean-up"
     print >>sys.stderr, "                 Shutdown all running vms"
+    print >>sys.stderr, "     --username"
+    print >>sys.stderr, "                 Starts the Virtual Machine using VirtualBox from the specified username."
+    print >>sys.stderr, "     --hostname"
+    print >>sys.stderr, "                 Starts the Virtual Machine using VirtualBox from the specified host machine."
 
 o = OptParser()
 o["help"] = BoolFlag("--help")
@@ -54,7 +58,8 @@ o["threads"] = IntFlag("--threads", 3)
 o["clean-up"] = BoolFlag("--clean-up")
 o["interact"] = BoolFlag("--interact")
 o["debug"] = BoolFlag("--debug");
-
+o["username"] = StringFlag("--username", "rethinkdb") # For now, these default values should always be the ones you should use
+o["hostname"] = StringFlag("--hostname", "deadshot") # because the UUID values below are hard-coded to correspond with rethinkdb@deadshot
 
 try:
     opts = o.parse(sys.argv)
@@ -86,13 +91,12 @@ if opts["debug"]:
 else:
     flags += " DEBUG=0"
 
-
-suse = vm_build.target('12c1cf78-5dc5-4baa-8e93-ac6fdd1ebf1f', '192.168.0.173', 'rethinkdb', 'LANG=C make LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 rpm-suse10 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
-redhat5_1 = vm_build.target('5eaf8089-9ae4-4493-81fc-a885dc8e08ff', '192.168.0.159', 'rethinkdb', 'LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
-ubuntu = vm_build.target('b555d9f6-441f-4b00-986f-b94286d122e9', '192.168.0.172', 'rethinkdb', 'LANG=C make deb' + flags, 'deb', vm_build.deb_install, vm_build.deb_uninstall, vm_build.deb_get_binary)
-debian = vm_build.target('3ba1350e-eda8-4166-90c1-714be0960724', '192.168.0.176', 'root', 'LANG=C make deb NO_EVENTFD=1 LEGACY_LINUX=1 ' + flags, 'deb', vm_build.deb_install, vm_build.deb_uninstall, vm_build.deb_get_binary)
-centos5_5 = vm_build.target('46c6b842-b4ac-4cd6-9eae-fe98a7246ca9', '192.168.0.177', 'root', 'LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
-centos6 = vm_build.target('b01809f9-4000-4857-862f-b1face8d54ea', '192.168.0.178', 'rethinkdb', 'LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
+suse = vm_build.target('765127b8-2007-43ff-8668-fe4c60176a2b', '192.168.0.173', 'rethinkdb', 'make LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 rpm-suse10 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary, opts["username"], opts["hostname"])
+redhat5_1 = vm_build.target('32340f79-cea9-42ca-94d5-2da13d408d02', '192.168.0.159', 'rethinkdb', 'make rpm LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary, opts["username"], opts["hostname"])
+ubuntu = vm_build.target('1f4521a0-6e74-4d20-b4b9-9ffd8e231423', '192.168.0.172', 'rethinkdb', 'make deb' + flags, 'deb', vm_build.deb_install, vm_build.deb_uninstall, vm_build.deb_get_binary, opts["username"], opts["hostname"])
+debian = vm_build.target('cc76e2a5-92c0-4208-be08-5c02429c2c50', '192.168.0.176', 'root', 'make deb NO_EVENTFD=1 LEGACY_LINUX=1 ' + flags, 'deb', vm_build.deb_install, vm_build.deb_uninstall, vm_build.deb_get_binary, opts["username"], opts["hostname"])
+centos5_5 = vm_build.target('25710682-666f-4449-bd28-68b25abd8bea', '192.168.0.153', 'root', 'make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary, opts["username"], opts["hostname"])
+centos6 = vm_build.target('d9058650-a45a-44a5-953f-c2402253a614', '192.168.0.178', 'rethinkdb', 'make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary, opts["username"], opts["hostname"])
 
 targets = {"suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ubuntu, "debian" : debian, "centos5_5" : centos5_5, "centos6" : centos6}
 
@@ -129,3 +133,6 @@ else:
         print name, "." * (20 - len(name)), colored("[Pass]", "green") if val else colored("[Fail]", "red")
         if (not val):
             print "Failed on: ", exception[name]
+            raise exception[name]
+
+print "Done."

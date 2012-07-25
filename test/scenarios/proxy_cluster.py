@@ -12,10 +12,12 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    serve_process = driver.Process(cluster, driver.Files(metacluster, db_path = "db", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output", executable_path = executable_path, command_prefix = command_prefix)
-    proxy_process = driver.ProxyProcess(cluster, 'proxy-logfile', executable_path = executable_path, log_path = 'proxy-output', command_prefix = command_prefix)
+    serve_process = driver.Process(cluster, driver.Files(metacluster, db_path = "db", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    proxy_process = driver.ProxyProcess(cluster, 'proxy-logfile', log_path = 'proxy-output',
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     processes = [serve_process, proxy_process]
     for process in processes:
         process.wait_until_started_up()
@@ -28,8 +30,8 @@ with driver.Metacluster() as metacluster:
     ns = http.add_namespace(protocol = "memcached", primary = dc)
     http.wait_until_blueprint_satisfied(ns)
 
-    host, port = driver.get_namespace_host(ns.port, [proxy_process])
-    workload_runner.run(opts["workload"], host, port, opts["timeout"])
+    workload_ports = scenario_common.get_workload_ports(ns.port, [proxy_process])
+    workload_runner.run(opts["workload"], workload_ports, opts["timeout"])
 
     cluster.check_and_stop()
 

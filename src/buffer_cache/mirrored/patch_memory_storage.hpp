@@ -3,6 +3,7 @@
 
 #include <list>
 #include <map>
+#include <utility>
 #include <vector>
 
 #include "buffer_cache/buf_patch.hpp"

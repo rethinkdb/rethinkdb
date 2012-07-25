@@ -1,14 +1,17 @@
 #ifndef HTTP_HTTP_HPP_
 #define HTTP_HTTP_HPP_
 
+#include <string>
+#include <vector>
+
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
-#include <boost/scoped_ptr.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/optional.hpp>
 
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "containers/scoped.hpp"
 #include "parsing/util.hpp"
 
 enum http_method_t {
@@ -103,21 +106,21 @@ private:
     struct version_parser_t {
         std::string version;
 
-        bool parse(std::string &src);
+        bool parse(const std::string &src);
     };
 
     struct resource_string_parser_t {
         std::string resource;
         std::vector<query_parameter_t> query_params;
 
-        bool parse(std::string &src);
+        bool parse(const std::string &src);
     };
 
     struct header_line_parser_t {
         std::string key;
         std::string val;
 
-        bool parse(std::string &src);
+        bool parse(const std::string &src);
     };
 };
 
@@ -144,10 +147,10 @@ public:
     http_server_t(int port, http_app_t *application);
     ~http_server_t();
 private:
-    void handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &conn, auto_drainer_t::lock_t);
+    void handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &conn, auto_drainer_t::lock_t);
     http_app_t *application;
     auto_drainer_t auto_drainer;
-    boost::scoped_ptr<tcp_listener_t> tcp_listener;
+    scoped_ptr_t<tcp_listener_t> tcp_listener;
 };
 
 std::string percent_escaped_string(const std::string &s);

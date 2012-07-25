@@ -51,10 +51,20 @@ void poll_event_queue_t::run() {
     int res;
 
 #ifdef LEGACY_LINUX
-    // Create an empty sigmask for ppoll
-    sigset_t sigmask, sigmask_full;
-    res = sigemptyset(&sigmask);
-    guarantee_err(res == 0, "Could not create an empty signal mask");
+    // Create a restricted sigmask for ppoll:
+    // In the upcoming loop, we want to continue blocking signals
+    // (especially SIGINT and SIGTERM, which the main thread
+    // has interrupt handlers for). However, LEGACY_LINUX
+    // builds use timerfd_provider, which requires
+    // this thread to be able to catch the TIMER_NOTIFY_SIGNAL.
+    // sigmask_restricted is configured to allow this
+    // one signal through while blocking the other signals
+    // for the main thread to handle.
+    sigset_t sigmask_restricted, sigmask_full;
+    res = sigfillset(&sigmask_restricted);
+    guarantee_err(res == 0, "Could not create an full signal mask");
+    res = sigdelset(&sigmask_restricted, TIMER_NOTIFY_SIGNAL);
+    guarantee_err(res == 0, "Could not remove TIMER_NOTIFY_SIGNAL from signal mask");
 
     res = sigfillset(&sigmask_full);
     guarantee_err(res == 0, "Could not create a full signal mask");
@@ -64,7 +74,7 @@ void poll_event_queue_t::run() {
     while (!parent->should_shut_down()) {
         // Grab the events from the kernel!
 #ifdef LEGACY_LINUX
-        res = ppoll(&watched_fds[0], watched_fds.size(), NULL, &sigmask);
+        res = ppoll(&watched_fds[0], watched_fds.size(), NULL, &sigmask_restricted);
 #else
         res = poll(&watched_fds[0], watched_fds.size(), 0);
 #endif
@@ -97,7 +107,7 @@ void poll_event_queue_t::run() {
         // kernel starves out signals, so we need to unblock them to
         // let the signal handlers get called, and then block them
         // right back. What a sensible fucking system.
-        res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
+        res = pthread_sigmask(SIG_SETMASK, &sigmask_restricted, NULL);
         guarantee_err(res == 0, "Could not unblock signals");
         res = pthread_sigmask(SIG_SETMASK, &sigmask_full, NULL);
         guarantee_err(res == 0, "Could not block signals");
@@ -105,12 +115,6 @@ void poll_event_queue_t::run() {
 
         parent->pump();
     }
-
-#ifdef LEGACY_LINUX
-    // Unblock all signals
-    res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
-    guarantee_err(res == 0, "Could not unblock signals");
-#endif
 }
 
 poll_event_queue_t::~poll_event_queue_t() {

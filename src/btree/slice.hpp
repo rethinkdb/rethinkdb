@@ -1,12 +1,9 @@
 #ifndef BTREE_SLICE_HPP_
 #define BTREE_SLICE_HPP_
 
-#include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
-#include <boost/shared_ptr.hpp>
-
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
+#include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 
 const unsigned int STARTING_ROOT_EVICTION_PRIORITY = 2 << 16;
@@ -17,17 +14,25 @@ class key_tester_t;
 class btree_stats_t {
 public:
     explicit btree_stats_t(perfmon_collection_t *parent)
-        : btree_collection("btree", parent, true, true),
-          pm_keys_read("keys_read", secs_to_ticks(1), &btree_collection),
-          pm_keys_set("keys_set", secs_to_ticks(1), &btree_collection),
-          pm_keys_expired("keys_expired", secs_to_ticks(1), &btree_collection)
+        : btree_collection(),
+          btree_collection_membership(parent, &btree_collection, "btree"),
+          pm_keys_read(secs_to_ticks(1)),
+          pm_keys_set(secs_to_ticks(1)),
+          pm_keys_expired(secs_to_ticks(1)),
+          pm_keys_membership(&btree_collection,
+              &pm_keys_read, "keys_read",
+              &pm_keys_set, "keys_set",
+              &pm_keys_expired, "keys_expired",
+              NULL)
     { }
 
     perfmon_collection_t btree_collection;
+    perfmon_membership_t btree_collection_membership;
     perfmon_rate_monitor_t
         pm_keys_read,
         pm_keys_set,
         pm_keys_expired;
+    perfmon_multi_membership_t pm_keys_membership;
 };
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
@@ -48,7 +53,7 @@ public:
     ~btree_slice_t();
 
     cache_t *cache() { return cache_; }
-    boost::shared_ptr<cache_account_t> get_backfill_account() { return backfill_account; }
+    cache_account_t *get_backfill_account() { return backfill_account.get(); }
 
     plain_sink_t pre_begin_transaction_sink_;
 
@@ -69,7 +74,7 @@ private:
     cache_t *cache_;
 
     // Cache account to be used when backfilling.
-    boost::shared_ptr<cache_account_t> backfill_account;
+    scoped_ptr_t<cache_account_t> backfill_account;
 
     DISABLE_COPYING(btree_slice_t);
 

@@ -1,6 +1,8 @@
 #ifndef SERIALIZER_TRANSLATOR_HPP_
 #define SERIALIZER_TRANSLATOR_HPP_
 
+#include <vector>
+
 #include "serializer/serializer.hpp"
 #include "buffer_cache/types.hpp"
 

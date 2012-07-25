@@ -46,7 +46,7 @@ module 'NamespaceView', ->
                     diff[@model.get('id')] = response
                     apply_to_collection(namespaces, add_protocol_tag(diff, "memcached"))
                     # Grab the latest view of things
-                    $('#user-alert-space').append (@alert_tmpl
+                    $('#user-alert-space').html(@alert_tmpl
                         namespace_uuid: @model.get('id')
                         namespace_name: @model.get('name')
                         datacenter_uuid: new_dc.get('id')
@@ -119,9 +119,9 @@ module 'NamespaceView', ->
             return @
 
         destroy: ->
-            @model.off()
-            directory.off()
-            progress_list.off()
+            @model.off 'all', @render
+            directory.off 'all', @render
+            progress_list.off 'all', @render
 
     # Modify replica counts and ack counts in each datacenter
     class @ModifyReplicasModal extends UIComponents.AbstractModal
@@ -238,6 +238,7 @@ module 'NamespaceView', ->
                 processData: false
                 url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                 type: 'POST'
+                contentType: 'application/json'
                 data: JSON.stringify
                     replica_affinities: replica_affinities_to_send
                     ack_expectations: ack_expectations_to_send
@@ -248,7 +249,7 @@ module 'NamespaceView', ->
             super
             namespaces.get(@namespace.id).set(response)
             if @modified_replicas or @modified_acks
-                $('#user-alert-space').append (@alert_tmpl
+                $('#user-alert-space').html(@alert_tmpl
                     modified_replicas: @modified_replicas
                     old_replicas: @old_replicas
                     new_replicas: @nreplicas

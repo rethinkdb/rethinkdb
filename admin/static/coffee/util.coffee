@@ -17,6 +17,14 @@ Handlebars.registerHelper 'comma_separated', (context, block) ->
         out += ", " if i isnt context.length-1
     return out
 
+# Returns a comma-separated list of the provided array without the need of a transformation
+Handlebars.registerHelper 'comma_separated_simple', (context) ->
+    out = ""
+    for i in [0...context.length]
+        out += context[i]
+        out += ", " if i isnt context.length-1
+    return out
+
 # Returns an html list
 Handlebars.registerHelper 'html_list', (context) ->
     out = "<ul>"
@@ -29,9 +37,16 @@ Handlebars.registerHelper 'html_list', (context) ->
 Handlebars.registerHelper 'links_to_machines', (machines) ->
     out = ""
     for i in [0...machines.length]
-        out += '<a href="#machines/'+machines[i].uid+'" class="links_to_other_view">'+machines[i].name+'</a>'
+        out += '<a href="#machines/'+machines[i].id+'" class="links_to_other_view">'+machines[i].name+'</a>'
         out += ", " if i isnt machines.length-1
     return out
+
+Handlebars.registerHelper 'links_to_machines_inline', (machines) ->
+    out = ""
+    for i in [0...machines.length]
+        out += '<a href="#machines/'+machines[i].uid+'" class="links_to_other_view">'+machines[i].name+'</a>'
+        out += ", " if i isnt machines.length-1
+    return new Handlebars.SafeString(out)
 
 #Returns a list of links to namespaces
 Handlebars.registerHelper 'links_to_namespaces', (namespaces) ->
@@ -39,6 +54,22 @@ Handlebars.registerHelper 'links_to_namespaces', (namespaces) ->
     for i in [0...namespaces.length]
         out += '<p><a href="#namespaces/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a></p>'
     return out
+
+#Returns a list of links to namespaces on one line
+Handlebars.registerHelper 'links_to_namespaces_inline', (namespaces) ->
+    out = ""
+    for i in [0...namespaces.length]
+        out += '<a href="#namespaces/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
+        out += ", " if i isnt namespaces.length-1
+    return new Handlebars.SafeString(out)
+
+#Returns a list of links to datacenters on one line
+Handlebars.registerHelper 'links_to_datacenters_inline', (datacenters) ->
+    out = ""
+    for i in [0...datacenters.length]
+        out += '<a href="#datacenters/'+datacenters[i].id+'" class="links_to_other_view">'+datacenters[i].name+'</a>'
+        out += ", " if i isnt datacenters.length-1
+    return new Handlebars.SafeString(out)
 
 #Returns a list of links to machines and namespaces
 Handlebars.registerHelper 'links_to_masters_and_namespaces', (machines) ->
@@ -277,6 +308,7 @@ bind_dev_tools = ->
 
     $('#reset-simulation-data').click (e) ->
         $.ajax
+            contentType: 'application/json'
             url: '/ajax/reset_data',
             success: ->
                 console.log 'Reset simulation data.'
@@ -284,6 +316,7 @@ bind_dev_tools = ->
 
     $('#reset-session').click (e) ->
         $.ajax
+            contentType: 'application/json'
             url: '/ajax/reset_session',
             success: ->
                 console.log 'Reset session.'
@@ -294,6 +327,7 @@ bind_dev_tools = ->
 
     $('#make-diff').click (e) ->
         $.ajax
+            contentType: 'application/json'
             url: '/ajax/make_diff',
             success: ->
                 console.log 'Made diff to simulation data.'

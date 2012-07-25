@@ -1,25 +1,15 @@
-#include "unittest/gtest.hpp"
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
-#include "unittest/unittest_utils.hpp"
+#include "containers/scoped.hpp"
+#include "mock/unittest_utils.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
+#include "unittest/gtest.hpp"
 
 namespace unittest {
-
-struct starter_t : public thread_message_t {
-    thread_pool_t *tp;
-    boost::function<void()> fun;
-    starter_t(thread_pool_t *tp, boost::function<void()> fun) : tp(tp), fun(fun) { }
-    void run() {
-        fun();
-        tp->shutdown();
-    }
-    void on_thread_switch() {
-        coro_t::spawn_now_deprecated(boost::bind(&starter_t::run, this));
-    }
-};
 
 /* `recording_test_application_t` sends and receives integers over a
 `message_service_t`. It keeps track of the integers it has received.
@@ -80,40 +70,40 @@ private:
 /* `StartStop` starts a cluster of three nodes, then shuts it down again. */
 
 void run_start_stop_test() {
-    int port = randport();
+    int port = mock::randport();
     connectivity_cluster_t c1, c2, c3;
     connectivity_cluster_t::run_t cr1(&c1, port, NULL), cr2(&c2, port+1, NULL), cr3(&c3, port+2, NULL);
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
-    let_stuff_happen();
+    mock::let_stuff_happen();
 }
 TEST(RPCConnectivityTest, StartStop) {
-    run_in_thread_pool(&run_start_stop_test);
+    mock::run_in_thread_pool(&run_start_stop_test);
 }
 
 TEST(RPCConnectivityTest, StartStopMultiThread) {
-    run_in_thread_pool(&run_start_stop_test, 3);
+    mock::run_in_thread_pool(&run_start_stop_test, 3);
 }
 
 
 /* `Message` sends some simple messages between the nodes of a cluster. */
 
 void run_message_test() {
-    int port = randport();
+    int port = mock::randport();
     connectivity_cluster_t c1, c2, c3;
     recording_test_application_t a1(&c1), a2(&c2), a3(&c3);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2), cr3(&c3, port+2, &a3);
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
 
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     a1.send(873, c2.get_me());
     a2.send(66663, c1.get_me());
     a3.send(6849, c1.get_me());
     a3.send(999, c3.get_me());
 
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     a2.expect(873, c1.get_me());
     a1.expect(66663, c2.get_me());
@@ -121,28 +111,28 @@ void run_message_test() {
     a3.expect(999, c3.get_me());
 }
 TEST(RPCConnectivityTest, Message) {
-    run_in_thread_pool(&run_message_test);
+    mock::run_in_thread_pool(&run_message_test);
 }
 TEST(RPCConnectivityTest, MesssageMultiThread) {
-    run_in_thread_pool(&run_message_test, 3);
+    mock::run_in_thread_pool(&run_message_test, 3);
 }
 
 /* `UnreachablePeer` tests that messages sent to unreachable peers silently
 fail. */
 
 void run_unreachable_peer_test() {
-    int port = randport();
+    int port = mock::randport();
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1), a2(&c2);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2);
 
     /* Note that we DON'T join them together. */
 
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     a1.send(888, c2.get_me());
 
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     /* The message should not have been delivered. The system shouldn't have
     crashed, either. */
@@ -150,41 +140,41 @@ void run_unreachable_peer_test() {
 
     cr1.join(c2.get_peer_address(c2.get_me()));
 
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     a1.send(999, c2.get_me());
 
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     a2.expect_undelivered(888);
     a2.expect(999, c1.get_me());
 }
 TEST(RPCConnectivityTest, UnreachablePeer) {
-    run_in_thread_pool(&run_unreachable_peer_test);
+    mock::run_in_thread_pool(&run_unreachable_peer_test);
 }
 TEST(RPCConnectivityTest, UnreachablePeerMultiThread) {
-    run_in_thread_pool(&run_unreachable_peer_test, 3);
+    mock::run_in_thread_pool(&run_unreachable_peer_test, 3);
 }
 
 /* `Ordering` tests that messages sent by the same route arrive in the same
 order they were sent in. */
 
 void run_ordering_test() {
-    int port = randport();
+    int port = mock::randport();
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1), a2(&c2);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2);
 
     cr1.join(c2.get_peer_address(c2.get_me()));
 
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     for (int i = 0; i < 10; i++) {
         a1.send(i, c2.get_me());
         a1.send(i, c1.get_me());
     }
 
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     for (int i = 0; i < 9; i++) {
         a1.expect_order(i, i+1);
@@ -192,17 +182,17 @@ void run_ordering_test() {
     }
 }
 TEST(RPCConnectivityTest, Ordering) {
-    run_in_thread_pool(&run_ordering_test);
+    mock::run_in_thread_pool(&run_ordering_test);
 }
 TEST(RPCConnectivityTest, OrderingMultiThread) {
-    run_in_thread_pool(&run_ordering_test, 3);
+    mock::run_in_thread_pool(&run_ordering_test, 3);
 }
 
 /* `GetPeersList` confirms that the behavior of `cluster_t::get_peers_list()` is
 correct. */
 
 void run_get_peers_list_test() {
-    int port = randport();
+    int port = mock::randport();
     connectivity_cluster_t c1;
     connectivity_cluster_t::run_t cr1(&c1, port, NULL);
 
@@ -216,45 +206,49 @@ void run_get_peers_list_test() {
         connectivity_cluster_t::run_t cr2(&c2, port+1, NULL);
         cr2.join(c1.get_peer_address(c1.get_me()));
 
-        let_stuff_happen();
+        mock::let_stuff_happen();
 
         /* Make sure `get_peers_list()` correctly notices that a peer connects */
         std::set<peer_id_t> list_2 = c1.get_peers_list();
-        EXPECT_TRUE(list_2.find(c2.get_me()) != list_2.end());
+        ASSERT_TRUE(list_2.find(c2.get_me()) != list_2.end());
         EXPECT_EQ(port + 1, c1.get_peer_address(c2.get_me()).port);
 
         /* `c2`'s destructor is called here */
     }
 
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     /* Make sure `get_peers_list()` notices that a peer has disconnected */
     std::set<peer_id_t> list_3 = c1.get_peers_list();
     EXPECT_EQ(list_3.size(), 1);
 }
 TEST(RPCConnectivityTest, GetPeersList) {
-    run_in_thread_pool(&run_get_peers_list_test);
+    mock::run_in_thread_pool(&run_get_peers_list_test);
 }
 TEST(RPCConnectivityTest, GetPeersListMultiThread) {
-    run_in_thread_pool(&run_get_peers_list_test, 3);
+    mock::run_in_thread_pool(&run_get_peers_list_test, 3);
 }
 
 /* `EventWatchers` confirms that `disconnect_watcher_t` and
 `connectivity_service_t::peers_list_subscription_t` work properly. */
 
 void run_event_watchers_test() {
-    int port = randport();
+    int port = mock::randport();
     connectivity_cluster_t c1;
     connectivity_cluster_t::run_t cr1(&c1, port, NULL);
 
     connectivity_cluster_t c2;
-    boost::scoped_ptr<connectivity_cluster_t::run_t> cr2(new connectivity_cluster_t::run_t(&c2, port+1, NULL));
+    scoped_ptr_t<connectivity_cluster_t::run_t> cr2(new connectivity_cluster_t::run_t(&c2, port+1, NULL));
 
     /* Make sure `c1` notifies us when `c2` connects */
-    cond_t connection_established;
-    connectivity_service_t::peers_list_subscription_t subs(
-        boost::bind(&cond_t::pulse, &connection_established),
-        NULL);
+    struct : public cond_t, public peers_list_callback_t {
+        void on_connect(UNUSED peer_id_t peer) {
+            pulse();
+        }
+        void on_disconnect(UNUSED peer_id_t peer) { }
+    } connection_established;
+    connectivity_service_t::peers_list_subscription_t subs(&connection_established);
+
     {
         connectivity_service_t::peers_list_freeze_t freeze(&c1);
         if (c1.get_peers_list().count(c2.get_me()) == 0) {
@@ -266,14 +260,14 @@ void run_event_watchers_test() {
 
     EXPECT_FALSE(connection_established.is_pulsed());
     cr1.join(c2.get_peer_address(c2.get_me()));
-    let_stuff_happen();
+    mock::let_stuff_happen();
     EXPECT_TRUE(connection_established.is_pulsed());
 
     /* Make sure `c1` notifies us when `c2` disconnects */
     disconnect_watcher_t disconnect_watcher(&c1, c2.get_me());
     EXPECT_FALSE(disconnect_watcher.is_pulsed());
     cr2.reset();
-    let_stuff_happen();
+    mock::let_stuff_happen();
     EXPECT_TRUE(disconnect_watcher.is_pulsed());
 
     /* Make sure `disconnect_watcher_t` works for an already-unconnected peer */
@@ -281,24 +275,21 @@ void run_event_watchers_test() {
     EXPECT_TRUE(disconnect_watcher_2.is_pulsed());
 }
 TEST(RPCConnectivityTest, EventWatchers) {
-    run_in_thread_pool(&run_event_watchers_test);
+    mock::run_in_thread_pool(&run_event_watchers_test);
 }
 TEST(RPCConnectivityTest, EventWatchersMultiThread) {
-    run_in_thread_pool(&run_event_watchers_test, 3);
+    mock::run_in_thread_pool(&run_event_watchers_test, 3);
 }
 
 /* `EventWatcherOrdering` confirms that information delivered via event
 notification is consistent with information delivered via `get_peers_list()`. */
 
-struct watcher_t {
+struct watcher_t : private peers_list_callback_t {
 
     watcher_t(connectivity_cluster_t *c, recording_test_application_t *a) :
         cluster(c),
         application(a),
-        event_watcher(
-            boost::bind(&watcher_t::on_connect, this, _1),
-            boost::bind(&watcher_t::on_disconnect, this, _1))
-    {
+        event_watcher(this) {
         connectivity_service_t::peers_list_freeze_t freeze(cluster);
         event_watcher.reset(cluster, &freeze);
     }
@@ -310,9 +301,9 @@ struct watcher_t {
         EXPECT_TRUE(list.find(p) != list.end());
 
         /* Make sure messages sent from connection events are delivered
-        properly. We must use `coro_t::spawn_now_deprecated()` because `send_message()`
+        properly. We must use `coro_t::spawn_now()` because `send_message()`
         may block. */
-        coro_t::spawn_now_deprecated(boost::bind(&recording_test_application_t::send, application, 89765, p));
+        coro_t::spawn_now(boost::bind(&recording_test_application_t::send, application, 89765, p));
     }
 
     void on_disconnect(peer_id_t p) {
@@ -329,7 +320,7 @@ struct watcher_t {
 
 void run_event_watcher_ordering_test() {
 
-    int port = randport();
+    int port = mock::randport();
     connectivity_cluster_t c1;
     recording_test_application_t a1(&c1);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1);
@@ -343,19 +334,19 @@ void run_event_watcher_ordering_test() {
         connectivity_cluster_t::run_t cr2(&c2, port+1, &a2);
         cr2.join(c1.get_peer_address(c1.get_me()));
 
-        let_stuff_happen();
+        mock::let_stuff_happen();
 
         /* Make sure that the message sent in `on_connect()` was delivered */
         a2.expect(89765, c1.get_me());
     }
 
-    let_stuff_happen();
+    mock::let_stuff_happen();
 }
 TEST(RPCConnectivityTest, EventWatcherOrdering) {
-    run_in_thread_pool(&run_event_watcher_ordering_test);
+    mock::run_in_thread_pool(&run_event_watcher_ordering_test);
 }
 TEST(RPCConnectivityTest, EventWatcherOrderingMultiThread) {
-    run_in_thread_pool(&run_event_watcher_ordering_test, 3);
+    mock::run_in_thread_pool(&run_event_watcher_ordering_test, 3);
 }
 
 /* `StopMidJoin` makes sure that nothing breaks if you shut down the cluster
@@ -363,16 +354,16 @@ while it is still coming up */
 
 void run_stop_mid_join_test() {
 
-    int port = randport();
+    int port = mock::randport();
 
     const int num_members = 5;
 
     /* Spin up `num_members` cluster-members */
-    boost::scoped_ptr<connectivity_cluster_t> nodes[num_members];
-    boost::scoped_ptr<connectivity_cluster_t::run_t> runs[num_members];
+    scoped_ptr_t<connectivity_cluster_t> nodes[num_members];
+    scoped_ptr_t<connectivity_cluster_t::run_t> runs[num_members];
     for (int i = 0; i < num_members; i++) {
-        nodes[i].reset(new connectivity_cluster_t);
-        runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
+        nodes[i].init(new connectivity_cluster_t);
+        runs[i].init(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
     }
     for (int i = 1; i < num_members; i++) {
         runs[i]->join(nodes[0]->get_peer_address(nodes[0]->get_me()));
@@ -389,10 +380,10 @@ void run_stop_mid_join_test() {
     work of shutting down.) */
 }
 TEST(RPCConnectivityTest, StopMidJoin) {
-    run_in_thread_pool(&run_stop_mid_join_test);
+    mock::run_in_thread_pool(&run_stop_mid_join_test);
 }
 TEST(RPCConnectivityTest, StopMidJoinMultiThread) {
-    run_in_thread_pool(&run_stop_mid_join_test, 3);
+    mock::run_in_thread_pool(&run_stop_mid_join_test, 3);
 }
 
 /* `BlobJoin` tests whether two groups of cluster nodes can correctly merge
@@ -400,17 +391,17 @@ together. */
 
 void run_blob_join_test() {
 
-    int port = randport();
+    int port = mock::randport();
 
     /* Two blobs of `blob_size` nodes */
     const size_t blob_size = 4;
 
     /* Spin up cluster-members */
-    boost::scoped_ptr<connectivity_cluster_t> nodes[blob_size * 2];
-    boost::scoped_ptr<connectivity_cluster_t::run_t> runs[blob_size * 2];
+    scoped_ptr_t<connectivity_cluster_t> nodes[blob_size * 2];
+    scoped_ptr_t<connectivity_cluster_t::run_t> runs[blob_size * 2];
     for (size_t i = 0; i < blob_size * 2; i++) {
-        nodes[i].reset(new connectivity_cluster_t);
-        runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
+        nodes[i].init(new connectivity_cluster_t);
+        runs[i].init(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
     }
 
     for (size_t i = 1; i < blob_size; i++) {
@@ -424,7 +415,7 @@ void run_blob_join_test() {
     uint32_t total_waits = 0;
     bool pass = false;
     while(!pass) {
-        let_stuff_happen();
+        mock::let_stuff_happen();
         ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce internally
 
         pass = true;
@@ -438,7 +429,7 @@ void run_blob_join_test() {
 
     pass = false;
     while(!pass) {
-        let_stuff_happen();
+        mock::let_stuff_happen();
         ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce with each other
 
         pass = true;
@@ -448,17 +439,17 @@ void run_blob_join_test() {
     }
 }
 TEST(RPCConnectivityTest, BlobJoin) {
-    run_in_thread_pool(&run_blob_join_test);
+    mock::run_in_thread_pool(&run_blob_join_test);
 }
 TEST(RPCConnectivityTest, BlobJoinMultiThread) {
-    run_in_thread_pool(&run_blob_join_test, 3);
+    mock::run_in_thread_pool(&run_blob_join_test, 3);
 }
 
 /* `Multiplexer` tests `message_multiplexer_t`. */
 
 void run_multiplexer_test() {
 
-    int port = randport();
+    int port = mock::randport();
     connectivity_cluster_t c1, c2;
     message_multiplexer_t c1m(&c1), c2m(&c2);
     message_multiplexer_t::client_t c1mcA(&c1m, 'A'), c2mcA(&c2m, 'A');
@@ -471,13 +462,13 @@ void run_multiplexer_test() {
     connectivity_cluster_t::run_t c1r(&c1, port, &c1mr), c2r(&c2, port+1, &c2mr);
 
     c1r.join(c2.get_peer_address(c2.get_me()));
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     c1aA.send(10065, c2.get_me());
     c1aB.send(10066, c2.get_me());
     c1aA.send(65, c1.get_me());
 
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     c2aA.expect(10065, c1.get_me());
     c2aB.expect(10066, c1.get_me());
@@ -487,7 +478,7 @@ void run_multiplexer_test() {
 }
 
 TEST(RPCConnectivityTest, Multiplexer) {
-    run_in_thread_pool(&run_multiplexer_test);
+    mock::run_in_thread_pool(&run_multiplexer_test);
 }
 
 /* `BinaryData` makes sure that any octet can be sent over the wire. */
@@ -526,25 +517,25 @@ public:
 
 void run_binary_data_test() {
 
-    int port = randport();
+    int port = mock::randport();
     connectivity_cluster_t c1, c2;
     binary_test_application_t a1(&c1), a2(&c2);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2);
     cr1.join(c2.get_peer_address(c2.get_me()));
 
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     a1.send_spectrum(c2.get_me());
 
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     EXPECT_TRUE(a2.got_spectrum);
 }
 TEST(RPCConnectivityTest, BinaryData) {
-    run_in_thread_pool(&run_binary_data_test);
+    mock::run_in_thread_pool(&run_binary_data_test);
 }
 TEST(RPCConnectivityTest, BinaryDataMultiThread) {
-    run_in_thread_pool(&run_binary_data_test, 3);
+    mock::run_in_thread_pool(&run_binary_data_test, 3);
 }
 
 /* `PeerIDSemantics` makes sure that `peer_id_t::is_nil()` works as expected. */
@@ -558,15 +549,15 @@ void run_peer_id_semantics_test() {
     ASSERT_FALSE(cluster_node.get_me().is_nil());
 }
 TEST(RPCConnectivityTest, PeerIDSemantics) {
-    run_in_thread_pool(&run_peer_id_semantics_test);
+    mock::run_in_thread_pool(&run_peer_id_semantics_test);
 }
 TEST(RPCConnectivityTest, PeerIDSemanticsMultiThread) {
-    run_in_thread_pool(&run_peer_id_semantics_test, 3);
+    mock::run_in_thread_pool(&run_peer_id_semantics_test, 3);
 }
 
 /* `CheckHeaders` makes sure that we close the connection if we get a malformed header. */
 void run_check_headers_test() {
-    int port = randport();
+    int port = mock::randport();
 
     // Set up a cluster node.
     connectivity_cluster_t c1;
@@ -591,23 +582,23 @@ void run_check_headers_test() {
     const int64_t initlen = 10;
     ASSERT_TRUE(initlen < len); // sanity check
     ASSERT_TRUE(initlen == conn.write(cluster_proto_header, initlen));
-    let_stuff_happen();
+    mock::let_stuff_happen();
     ASSERT_TRUE(conn.is_read_open() && conn.is_write_open());
 
     // Send malformed continuation.
     char badchar = cluster_proto_header[initlen] ^ 0x7f;
     ASSERT_EQ(1, conn.write(&badchar, 1));
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     // Try to write something, and discover that the other end has shut down.
     (void)(1 == conn.write("a", 1)); // avoid unused return value warning
-    let_stuff_happen();
+    mock::let_stuff_happen();
     ASSERT_FALSE(conn.is_write_open());
     ASSERT_FALSE(conn.is_read_open());
 }
 
 TEST(RPCConnectivityTest, CheckHeaders) {
-    run_in_thread_pool(&run_check_headers_test);
+    mock::run_in_thread_pool(&run_check_headers_test);
 }
 
 }   /* namespace unittest */

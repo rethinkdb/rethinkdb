@@ -1,9 +1,6 @@
 #ifndef MEMCACHED_BTREE_RGET_HPP_
 #define MEMCACHED_BTREE_RGET_HPP_
 
-#include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
-
 #include "buffer_cache/types.hpp"
 #include "memcached/queries.hpp"
 #include "utils.hpp"

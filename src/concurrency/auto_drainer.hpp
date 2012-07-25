@@ -73,7 +73,7 @@ private:
             { }
 
     private:
-        void serve(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<tcp_conn_t> &conn) {
+        void serve(auto_drainer_t::lock_t keepalive, scoped_ptr_t<tcp_conn_t> &conn) {
             signal_t *interruptor = keepalive.get_drain_signal();
             try {
                 serve_queries_until_interrupted(conn, interruptor);

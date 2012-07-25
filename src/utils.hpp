@@ -109,6 +109,14 @@ void debugf_print(const char *msg, const T& obj) {
 #define debugf_print(...) ((void)0)
 #endif
 
+class debugf_in_dtor_t {
+public:
+    debugf_in_dtor_t(const char *msg, ...);
+    ~debugf_in_dtor_t();
+private:
+    std::string message;
+};
+
 class rng_t {
 public:
 // Returns a random number in [0, n).  Is not perfectly uniform; the
@@ -239,11 +247,6 @@ std::string render_as_path(const path_t &);
 enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
 
 template <class T>
-void delete_a_thing(T *thing_to_delete) {
-    delete thing_to_delete;
-}
-
-template <class T>
 class assignment_sentry_t {
 public:
     assignment_sentry_t(T *v, const T &value) :
@@ -257,5 +260,6 @@ private:
     T *var;
     T old_value;
 };
+
 
 #endif // UTILS_HPP_

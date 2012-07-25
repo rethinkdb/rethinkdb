@@ -12,9 +12,11 @@ opts = op.parse(sys.argv)
 with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
-    database_machine = driver.Process(cluster, driver.Files(metacluster, db_path = "db-database", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-database", executable_path = executable_path, command_prefix = command_prefix)
-    access_machine = driver.Process(cluster, driver.Files(metacluster, db_path = "db-access", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-access", executable_path = executable_path, command_prefix = command_prefix)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    database_machine = driver.Process(cluster, driver.Files(metacluster, db_path = "db-database", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-database",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    access_machine = driver.Process(cluster, driver.Files(metacluster, db_path = "db-access", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-access",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     database_machine.wait_until_started_up
     access_machine.wait_until_started_up()
 
@@ -29,8 +31,8 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     http.check_no_issues()
 
-    host, port = driver.get_namespace_host(ns.port, [access_machine])
-    with workload_runner.ContinuousWorkload(opts["workload"], host, port) as workload:
+    workload_ports = scenario_common.get_workload_ports(ns.port, [access_machine])
+    with workload_runner.ContinuousWorkload(opts["workload"], workload_ports) as workload:
         workload.start()
         print "Running workload for 10 seconds..."
         time.sleep(10)

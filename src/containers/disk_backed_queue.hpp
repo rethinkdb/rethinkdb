@@ -3,6 +3,10 @@
 
 #define MAX_REF_SIZE 251
 
+#include <string>
+#include <vector>
+
+#include "arch/io/disk.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/semantic_checking.hpp"
@@ -23,7 +27,7 @@ struct queue_block_t {
 template <class T>
 class disk_backed_queue_t {
 public:
-    disk_backed_queue_t(std::string filename, perfmon_collection_t *stats_parent) :
+    disk_backed_queue_t(io_backender_t *io_backender, std::string filename, perfmon_collection_t *stats_parent) :
             queue_size(0), head_block_id(NULL_BLOCK_ID), tail_block_id(NULL_BLOCK_ID)
     {
         /* We're going to register for writes, however those writes won't be able
@@ -33,13 +37,15 @@ public:
 
         standard_serializer_t::create(
                 standard_serializer_t::dynamic_config_t(),
+                io_backender,
                 standard_serializer_t::private_dynamic_config_t(filename),
                 standard_serializer_t::static_config_t(),
                 stats_parent
                 );
 
-        serializer.reset(new standard_serializer_t(
+        serializer.init(new standard_serializer_t(
             standard_serializer_t::dynamic_config_t(),
+            io_backender,
             standard_serializer_t::private_dynamic_config_t(filename),
             stats_parent
             ));
@@ -57,7 +63,7 @@ public:
         mirrored_cache_config_t cache_dynamic_config;
         cache_dynamic_config.max_size = MEGABYTE;
         cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
-        cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, stats_parent));
+        cache.init(new cache_t(serializer.get(), &cache_dynamic_config, stats_parent));
     }
 
     void push(const T &t) {
@@ -70,7 +76,7 @@ public:
             add_block_to_head(&txn);
         }
 
-        boost::scoped_ptr<buf_lock_t> _head(new buf_lock_t(&txn, head_block_id, rwi_write));
+        scoped_ptr_t<buf_lock_t> _head(new buf_lock_t(&txn, head_block_id, rwi_write));
         queue_block_t* head = reinterpret_cast<queue_block_t *>(_head->get_data_major_write());
 
         write_message_t wm;
@@ -92,7 +98,7 @@ public:
             head = NULL;
             _head.reset();
             add_block_to_head(&txn);
-            _head.reset(new buf_lock_t(&txn, head_block_id, rwi_write));
+            _head.init(new buf_lock_t(&txn, head_block_id, rwi_write));
             head = reinterpret_cast<queue_block_t *>(_head->get_data_major_write());
         }
 
@@ -108,7 +114,7 @@ public:
         char buffer[MAX_REF_SIZE];
         transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past);
 
-        boost::scoped_ptr<buf_lock_t> _tail(new buf_lock_t(&txn, tail_block_id, rwi_write));
+        scoped_ptr_t<buf_lock_t> _tail(new buf_lock_t(&txn, tail_block_id, rwi_write));
         queue_block_t *tail = reinterpret_cast<queue_block_t *>(_tail->get_data_major_write());
         rassert(tail->data_size != tail->live_data_offset);
 
@@ -116,8 +122,7 @@ public:
 
         memcpy(buffer, tail->data + tail->live_data_offset, blob::ref_size(cache->get_block_size(), tail->data + tail->live_data_offset, MAX_REF_SIZE));
         blob_t blob(buffer, MAX_REF_SIZE);
-        std::string data;
-        blob.read_to_string(data, &txn, 0, blob.valuesize());
+        std::string data = blob.read_to_string(&txn, 0, blob.valuesize());
 
         /* Record how far along in the blob we are. */
         tail->live_data_offset += blob.refsize(cache->get_block_size());
@@ -187,8 +192,8 @@ private:
     mutex_t mutex;
     int64_t queue_size;
     block_id_t head_block_id, tail_block_id;
-    boost::scoped_ptr<standard_serializer_t> serializer;
-    boost::scoped_ptr<cache_t> cache;
+    scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<cache_t> cache;
 };
 
 #endif /* CONTAINERS_DISK_BACKED_QUEUE_HPP_ */

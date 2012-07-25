@@ -3,6 +3,7 @@
 
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "containers/scoped.hpp"
 #include "memcached/protocol.hpp"
 #include "memcached/stats.hpp"
 
@@ -25,17 +26,17 @@ private:
 
     int next_thread;
 
-    /* We use this to make sure that all TCP connections stop when the
-    `memcached_listener_t` is destroyed. */
-    auto_drainer_t drainer;
-
-    tcp_listener_t *tcp_listener;
-
     perfmon_collection_t *parent;
 
     memcached_stats_t stats;
 
-    void handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<nascent_tcp_conn_t>& conn);
+    /* We use this to make sure that all TCP connections stop when the
+    `memcached_listener_t` is destroyed. */
+    auto_drainer_t drainer;
+
+    scoped_ptr_t<tcp_listener_t> tcp_listener;
+
+    void handle(auto_drainer_t::lock_t keepalive, const scoped_ptr_t<nascent_tcp_conn_t>& conn);
 };
 
 #endif /* MEMCACHED_TCP_CONN_HPP_ */

@@ -1,10 +1,10 @@
+#include "arch/runtime/thread_pool.hpp"
+
 #include <errno.h>
-#include <fcntl.h>
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "arch/runtime/thread_pool.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "errors.hpp"
@@ -160,7 +160,7 @@ void linux_thread_pool_t::enable_coroutine_summary() {
 }
 #endif
 
-void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
+void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_message) {
     int res;
 
     do_shutdown = false;
@@ -175,10 +175,8 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
         tdata->barrier = &barrier;
         tdata->thread_pool = this;
         tdata->current_thread = i;
-        // The initial message (which creates utility workers) gets
-        // sent to the last thread. The last thread is not reported by
-        // get_num_db_threads() (see it for more details).
-        tdata->initial_message = (i == n_threads - 1) ? initial_message : NULL;
+        // The initial message gets sent to thread zero.
+        tdata->initial_message = (i == 0) ? initial_message : NULL;
 
         res = pthread_create(&pthreads[i], NULL, &start_thread, tdata);
         guarantee(res == 0, "Could not create thread");
@@ -253,7 +251,7 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     for (int i = 0; i < n_threads; i++) {
         // Cause child thread to break out of its loop
 #ifndef NDEBUG
-        threads[i]->initiate_shut_down(coroutine_counts[i]);
+        threads[i]->initiate_shut_down(&coroutine_counts[i]);
 #else
         threads[i]->initiate_shut_down();
 #endif
@@ -324,7 +322,7 @@ void linux_thread_pool_t::sigsegv_handler(int signum, siginfo_t *info, UNUSED vo
     }
 }
 
-void linux_thread_pool_t::shutdown() {
+void linux_thread_pool_t::shutdown_thread_pool() {
     int res;
 
     // This will tell the main() thread to tell all the child threads to
@@ -404,13 +402,13 @@ bool linux_thread_t::should_shut_down() {
 }
 
 #ifndef NDEBUG
-void linux_thread_t::initiate_shut_down(std::map<std::string, size_t> &coroutine_counts) {
+void linux_thread_t::initiate_shut_down(std::map<std::string, size_t> *coroutine_counts) {
 #else
 void linux_thread_t::initiate_shut_down() {
 #endif
     pthread_mutex_lock(&do_shutdown_mutex);
 #ifndef NDEBUG
-    coroutine_counts_at_shutdown = &coroutine_counts;
+    coroutine_counts_at_shutdown = coroutine_counts;
 #endif
     do_shutdown = true;
     shutdown_notify_event.write(1);

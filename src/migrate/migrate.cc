@@ -13,7 +13,7 @@
 namespace migrate {
 
 void usage(UNUSED const char *name) {
-    Help_Pager *help = Help_Pager::instance();
+    help_pager_t *help = help_pager_t::instance();
     help->pagef("Usage:\n"
                 "        rethinkdb migrate --in -f <file_1> [-f <file_2> ...] --out -f <file_1> [-f <file_2>] [--intermediate file]\n");
     help->pagef("\n"

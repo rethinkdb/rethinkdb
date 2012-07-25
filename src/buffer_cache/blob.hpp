@@ -1,14 +1,11 @@
 #ifndef BUFFER_CACHE_BLOB_HPP_
 #define BUFFER_CACHE_BLOB_HPP_
 
-#include <string>
-#include <vector>
-
 #include <stdint.h>
 #include <stddef.h>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
+#include <string>
+#include <vector>
 
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/access.hpp"
@@ -135,10 +132,17 @@ bool deep_fsck(block_getter_t *getter, block_size_t bs, const char *ref, int max
 
 class blob_t {
 public:
-    //TODO this is a really confusing api. In order for this to create a new
-    //blob you need to manually bzero ref otherwise it will interpret the
-    //garbage data as a valid ref.
-    // maxreflen must be less than the block size minus 4 bytes.
+    // This is a really confusing api. In order for this to create a
+    // new blob you need to manually bzero ref.  Otherwise, it will
+    // interpret the garbage data as a valid ref.
+
+    // If you're going to modify the blob, ref must be a pointer to an
+    // array of length maxreflen.  If you're going to use the blob
+    // in-place, it does not need to be so.  (For example, blob refs
+    // in leaf nodes usually take much less space -- the average size
+    // for a large blob would be half the space (or less, thanks to
+    // Benford's law), and the size for a small blob is 1 plus the
+    // size of the blob, or maybe 2 plus the size of the blob.
     blob_t(char *ref, int maxreflen);
 
     // Returns ref_size(block_size, ref, maxreflen), the number of
@@ -154,7 +158,8 @@ public:
     // buffers to the buffer_group_t, initializing acq_group_out so
     // that it holds the acquisition of such buffers.  acq_group_out
     // must not be destroyed until the buffers are finished being
-    // used.
+    // used.  If you want to expose the region in a _readonly_
+    // fashion, use a const_cast!  I am so sorry.
     void expose_region(transaction_t *txn, access_t mode, int64_t offset, int64_t size, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
     void expose_all(transaction_t *txn, access_t mode, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
 
@@ -184,7 +189,7 @@ public:
     void write_from_string(const std::string &val, transaction_t *txn, int64_t offset);
 
     // Reads from the region of the blob from offset to offset + length into the string s_out
-    void read_to_string(std::string &s_out, transaction_t *txn, int64_t offset, int64_t length);
+    std::string read_to_string(transaction_t *txn, int64_t offset, int64_t length);
 
 private:
     bool traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, blob::traverse_helper_t *helper);

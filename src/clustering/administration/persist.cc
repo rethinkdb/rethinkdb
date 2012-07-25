@@ -51,20 +51,19 @@ static void write_blob(transaction_t *txn, char *ref, int maxreflen, const T &va
 template<class T>
 static void read_blob(transaction_t *txn, const char *ref, int maxreflen, T *value_out) {
     blob_t blob(const_cast<char *>(ref), maxreflen);
-    std::string str;
-    blob.read_to_string(str, txn, 0, blob.valuesize());
+    std::string str = blob.read_to_string(txn, 0, blob.valuesize());
     read_string_stream_t ss(str);
     int res = deserialize(&ss, value_out);
     guarantee(res == 0);
 }
 
-persistent_file_t::persistent_file_t(const io_backend_t io_backend, const std::string &filename, perfmon_collection_t *perfmon_parent) {
-    construct_serializer_and_cache(io_backend, false, filename, perfmon_parent);
+persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::string &filename, perfmon_collection_t *perfmon_parent) {
+    construct_serializer_and_cache(io_backender, false, filename, perfmon_parent);
     construct_branch_history_managers(false);
 }
 
-persistent_file_t::persistent_file_t(const io_backend_t io_backend, const std::string& filename, perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &initial_metadata) {
-    construct_serializer_and_cache(io_backend, true, filename, perfmon_parent);
+persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &initial_metadata) {
+    construct_serializer_and_cache(io_backender, true, filename, perfmon_parent);
 
     transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past);
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
@@ -190,21 +189,22 @@ branch_history_manager_t<memcached_protocol_t> *persistent_file_t::get_memcached
     return memcached_branch_history_manager.get();
 }
 
-void persistent_file_t::construct_serializer_and_cache(const io_backend_t io_backend, const bool create, const std::string &filename, perfmon_collection_t *const perfmon_parent) {
+void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backender, const bool create, const std::string &filename, perfmon_collection_t *const perfmon_parent) {
     standard_serializer_t::dynamic_config_t serializer_dynamic_config;
-    serializer_dynamic_config.io_backend = io_backend;
 
     if (create) {
         standard_serializer_t::create(
-            serializer_dynamic_config,
+            standard_serializer_t::dynamic_config_t(),
+            io_backender,
             standard_serializer_t::private_dynamic_config_t(filename),
             standard_serializer_t::static_config_t(),
             perfmon_parent
         );
     }
 
-    serializer.reset(new standard_serializer_t(
-        serializer_dynamic_config,
+    serializer.init(new standard_serializer_t(
+        standard_serializer_t::dynamic_config_t(),
+        io_backender,
         standard_serializer_t::private_dynamic_config_t(filename),
         perfmon_parent
     ));
@@ -218,13 +218,13 @@ void persistent_file_t::construct_serializer_and_cache(const io_backend_t io_bac
     cache_dynamic_config.flush_waiting_threshold = 0;
     cache_dynamic_config.max_size = MEGABYTE;
     cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
-    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, perfmon_parent));
+    cache.init(new cache_t(serializer.get(), &cache_dynamic_config, perfmon_parent));
 }
 
 void persistent_file_t::construct_branch_history_managers(bool create) {
-    dummy_branch_history_manager.reset(new persistent_branch_history_manager_t<mock::dummy_protocol_t>(
+    dummy_branch_history_manager.init(new persistent_branch_history_manager_t<mock::dummy_protocol_t>(
         this, &metadata_superblock_t::dummy_branch_history_blob, create));
-    memcached_branch_history_manager.reset(new persistent_branch_history_manager_t<memcached_protocol_t>(
+    memcached_branch_history_manager.init(new persistent_branch_history_manager_t<memcached_protocol_t>(
         this, &metadata_superblock_t::memcached_branch_history_blob, create));
 }
 
@@ -247,7 +247,8 @@ void semilattice_watching_persister_t::dump_loop(auto_drainer_t::lock_t keepaliv
                 wait_interruptible(&c, keepalive.get_drain_signal());
             }
             if (flush_again->is_pulsed()) {
-                flush_again.reset(new cond_t);
+                scoped_ptr_t<cond_t> tmp(new cond_t);
+                flush_again.swap(tmp);
             } else {
                 break;
             }

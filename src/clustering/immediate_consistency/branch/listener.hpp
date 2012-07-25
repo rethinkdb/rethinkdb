@@ -57,6 +57,7 @@ public:
     };
 
     listener_t(
+            io_backender_t *io_backender,
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
             branch_history_manager_t<protocol_t> *branch_history_manager,
@@ -70,6 +71,7 @@ public:
     becoming the first mirror of a new branch. It should only be called once for
     each `broadcaster_t`. */
     listener_t(
+            io_backender_t *io_backender,
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
             branch_history_manager_t<protocol_t> *branch_history_manager,
@@ -195,10 +197,12 @@ private:
 
     uuid_t uuid;
     perfmon_collection_t perfmon_collection;
-    fifo_enforcer_sink_t write_queue_entrance_sink;
+    perfmon_membership_t perfmon_collection_membership;
     disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue;
-    boost::scoped_ptr<typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t> write_queue_coro_pool_callback;
-    boost::scoped_ptr<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool;
+
+    fifo_enforcer_sink_t write_queue_entrance_sink;
+    scoped_ptr_t<typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t> write_queue_coro_pool_callback;
+    scoped_ptr_t<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool;
     adjustable_semaphore_t write_queue_semaphore;
     cond_t write_queue_has_drained;
 
@@ -219,7 +223,7 @@ private:
     typename listener_business_card_t<protocol_t>::writeread_mailbox_t writeread_mailbox;
     typename listener_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
 
-    boost::scoped_ptr<registrant_t<listener_business_card_t<protocol_t> > > registrant;
+    scoped_ptr_t<registrant_t<listener_business_card_t<protocol_t> > > registrant;
 
     /* Avaste this be used to keep track of people who are waitin' for a us to
      * be up to date (past the given state_timestamp_t). The only use case for

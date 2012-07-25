@@ -12,10 +12,10 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
 
     keyvalue_location_t<memcached_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, store_key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
-    scoped_malloc<memcached_value_t> the_value;
+    scoped_malloc_t<memcached_value_t> the_value;
     the_value.reinterpret_swap(kv_location.value);
 
-    bool expired = the_value && the_value->expired(effective_time);
+    bool expired = the_value.has() && the_value->expired(effective_time);
 
     // If the value's expired, delete it.
     if (expired) {
@@ -24,11 +24,11 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
         the_value.reset();
     }
 
-    bool update_needed = oper->operate(txn, the_value);
+    bool update_needed = oper->operate(txn, &the_value);
     update_needed = update_needed || expired;
 
     // Add a CAS to the value if necessary
-    if (the_value) {
+    if (the_value.has()) {
         if (the_value->has_cas()) {
             rassert(proposed_cas != BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
             the_value->set_cas(block_size, proposed_cas);

@@ -6,19 +6,19 @@ from vcoptparse import *
 
 op = OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-op["workload1"] = PositionalArg()
-op["workload2"] = PositionalArg()
-op["timeout"] = IntFlag("--timeout", 600)
+workload_runner.prepare_option_parser_for_split_or_continuous_workload(op, allow_between = True)
 op["num-nodes"] = IntFlag("--num-nodes", 2)
 opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i, executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-%d" % i, executable_path = executable_path, command_prefix = command_prefix)
+    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i, executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-%d" % i,
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
         for i in xrange(opts["num-nodes"])]
     time.sleep(3)
+
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     primary_dc = http.add_datacenter()
@@ -31,13 +31,16 @@ with driver.Metacluster() as metacluster:
     time.sleep(10)
     cluster.check()
     http.check_no_issues()
-    host, port = driver.get_namespace_host(ns.port, processes)
-    workload_runner.run(opts["workload1"], host, port, opts["timeout"])
-    cluster.check()
-    http.check_no_issues()
-    http.move_namespace_to_datacenter(ns, secondary_dc)
-    time.sleep(10)
-    cluster.check()
-    http.check_no_issues()
-    workload_runner.run(opts["workload2"], host, port, opts["timeout"])
+
+    workload_ports = scenario_common.get_workload_ports(ns.port, processes)
+    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
+        workload.run_before()
+        cluster.check()
+        http.check_no_issues()
+        http.move_namespace_to_datacenter(ns, secondary_dc)
+        time.sleep(10)
+        cluster.check()
+        http.check_no_issues()
+        workoad.run_after()
+
     cluster.check_and_close()

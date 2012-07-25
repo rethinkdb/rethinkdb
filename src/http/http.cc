@@ -176,7 +176,7 @@ void test_header_parser() {
 }
 
 http_server_t::http_server_t(int port, http_app_t *_application) : application(_application) {
-    tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
+    tcp_listener.init(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
 }
 
 http_server_t::~http_server_t() { }
@@ -184,30 +184,93 @@ http_server_t::~http_server_t() { }
 
 std::string human_readable_status(int code) {
     switch(code) {
+    case 100:
+        return "Continue";
+    case 101:
+        return "Switching Protocols";
     case 200:
         return "OK";
+    case 201:
+        return "Created";
+    case 202:
+        return "Accepted";
+    case 203:
+        return "Non-Authoritative Information";
     case 204:
         return "No Content";
+    case 205:
+        return "Reset Content";
+    case 206:
+        return "Partial Content";
+    case 300:
+        return "Multiple Choices";
+    case 301:
+        return "Moved Permanently";
+    case 302:
+        return "Found";
+    case 303:
+        return "See Other";
+    case 304:
+        return "Not Modified";
+    case 305:
+        return "Use Proxy";
+    case 307:
+        return "Temporary Redirect";
     case 400:
         return "Bad Request";
+    case 401:
+        return "Unauthorized";
     case 403:
         return "Forbidden";
     case 404:
         return "Not Found";
     case 405:
         return "Method Not Allowed";
+    case 406:
+        return "Not Acceptable";
+    case 407:
+        return "Proxy Authentication Required";
+    case 408:
+        return "Request Timeout";
+    case 409:
+        return "Conflict";
+    case 410:
+        return "Gone";
+    case 411:
+        return "Length Required";
+    case 412:
+        return "Precondition Failed";
+    case 413:
+        return "Request Entity Too Large";
+    case 414:
+        return "Request-URI Too Long";
+    case 415:
+        return "Unsupported Media Type";
+    case 416:
+        return "Request Range Not Satisfiable";
+    case 417:
+        return "Expectation Failed";
+    case 451:
+        return "Unavailable For Legal Reasons";
     case 500:
         return "Internal Server Error";
     case 501:
         return "Not Implemented";
+    case 502:
+        return "Bad Gateway";
     case 503:
         return "Service Unavailable";
+    case 504:
+        return "Gateway Timeout";
+    case 505:
+        return "HTTP Version Not Supported";
     default:
-        unreachable("Unknown code %d.", code);
+        rassert(false, "Unknown code %d.", code);
+        return "(Unknown status code)";
     }
 }
 
-void write_http_msg(boost::scoped_ptr<tcp_conn_t> &conn, http_res_t const &res) {
+void write_http_msg(tcp_conn_t *conn, const http_res_t &res) {
     conn->writef("HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
     for (std::vector<header_line_t>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); it++) {
         conn->writef("%s: %s\r\n", it->key.c_str(), it->val.c_str());
@@ -216,9 +279,9 @@ void write_http_msg(boost::scoped_ptr<tcp_conn_t> &conn, http_res_t const &res) 
     conn->write(res.body.c_str(), res.body.size());
 }
 
-void http_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t) {
-    boost::scoped_ptr<tcp_conn_t> conn;
-    nconn->ennervate(conn);
+void http_server_t::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t) {
+    scoped_ptr_t<tcp_conn_t> conn;
+    nconn->ennervate(&conn);
 
     http_req_t req;
     tcp_http_msg_parser_t http_msg_parser;
@@ -228,17 +291,17 @@ void http_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn, au
         if (http_msg_parser.parse(conn.get(), &req)) {
             http_res_t res = application->handle(req);
             res.version = req.version;
-            write_http_msg(conn, res);
+            write_http_msg(conn.get(), res);
         } else {
             // Write error
             http_res_t res;
             res.code = 400;
-            write_http_msg(conn, res);
+            write_http_msg(conn.get(), res);
         }
-    } catch (linux_tcp_conn_t::read_closed_exc_t &) {
+    } catch (const linux_tcp_conn_t::read_closed_exc_t &) {
         //Someone disconnected before sending us all the information we
         //needed... oh well.
-    } catch (linux_tcp_conn_t::write_closed_exc_t &) {
+    } catch (const linux_tcp_conn_t::write_closed_exc_t &) {
         //We were trying to write to someone and they didn't stick around long
         //enough to write it.
     }
@@ -315,7 +378,7 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req) {
 }
 
 #define HTTP_VERSION_PREFIX "HTTP/"
-bool tcp_http_msg_parser_t::version_parser_t::parse(std::string &src) {
+bool tcp_http_msg_parser_t::version_parser_t::parse(const std::string &src) {
     // Very simple, src will almost always be 'HTTP/1.1', we just need the '1.1'
     if(strncmp(HTTP_VERSION_PREFIX, src.c_str(), strlen(HTTP_VERSION_PREFIX)) == 0) {
         version = std::string(src.begin() + strlen(HTTP_VERSION_PREFIX), src.end());
@@ -324,8 +387,8 @@ bool tcp_http_msg_parser_t::version_parser_t::parse(std::string &src) {
     return false;
 }
 
-bool tcp_http_msg_parser_t::resource_string_parser_t::parse(std::string &src) {
-    std::string::iterator iter = src.begin();
+bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &src) {
+    std::string::const_iterator iter = src.begin();
     while(iter != src.end() && *iter != '?') {
         ++iter;
     }
@@ -345,13 +408,13 @@ bool tcp_http_msg_parser_t::resource_string_parser_t::parse(std::string &src) {
         query_parameter_t param;
 
         // Skip to the end of this param
-        std::string::iterator query_start = iter;
+        std::string::const_iterator query_start = iter;
         while(!(iter == src.end() || *iter == '&')) {
             ++iter;
         }
 
         // Find '=' that splits the key and value
-        std::string::iterator query_iter = query_start;
+        std::string::const_iterator query_iter = query_start;
         while(!(query_iter == iter || *query_iter == '=')) {
             ++query_iter;
         }
@@ -373,8 +436,8 @@ bool tcp_http_msg_parser_t::resource_string_parser_t::parse(std::string &src) {
     return true;
 }
 
-bool tcp_http_msg_parser_t::header_line_parser_t::parse(std::string &src) {
-    std::string::iterator iter = src.begin();
+bool tcp_http_msg_parser_t::header_line_parser_t::parse(const std::string &src) {
+    std::string::const_iterator iter = src.begin();
     while(iter != src.end() && *iter != ':') {
         ++iter;
     }

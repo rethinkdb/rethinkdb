@@ -7,7 +7,7 @@ module 'DashboardView', ->
         className: 'dashboard_view'
         template: Handlebars.compile $('#dashboard_view-template').html() # TODO use div instead of a table
         initialize: =>
-            log_initial '(initializing) sidebar view:'
+            log_initial '(initializing) dashboard container view'
 
             @cluster_status = new DashboardView.ClusterStatus()
 
@@ -26,7 +26,7 @@ module 'DashboardView', ->
         className: 'dashboard-view'
         template: Handlebars.compile $('#cluster_status-template').html()
 
-        events:->
+        events:
             'click a[rel=dashboard_details]': 'show_popover'
 
         show_popover: (event) =>
@@ -37,12 +37,15 @@ module 'DashboardView', ->
             $popover.on 'clickoutside', (e) ->
                 if e.target isnt event.target  # so we don't remove the popover when we click on the link
                     $(e.currentTarget).remove()
-
+            $('.popover_close').on 'click', (e) ->
+                $(e.target).parent().parent().remove()
         initialize: ->
-            log_initial '(initializing) dashboard view'
+            log_initial '(initializing) dashboard cluster status'
             issues.on 'all', @render
-            issues_redundancy.on 'reset', @render # when issues_redundancy is reset
+            issues_redundancy.on 'all', @render # when issues_redundancy is reset
             machines.on 'stats_updated', @render # when the stats of the machines are updated
+            directory.on 'all', @render
+            namespaces.on 'all', @render
 
             $('.links_to_other_view').live 'click', ->
                 $('.popover-inner').remove()
@@ -191,7 +194,6 @@ module 'DashboardView', ->
 
         render: =>
             log_render '(rendering) cluster status view'
-
 
             @.$el.html @template(@compute_status())
             @.$('a[rel=dashboard_details]').popover

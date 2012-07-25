@@ -6,7 +6,7 @@
 #include "rpc/connectivity/messages.hpp"
 
 template<class metadata_t>
-class directory_write_manager_t {
+class directory_write_manager_t : private peers_list_callback_t {
 public:
     directory_write_manager_t(
         message_service_t *message_service,
@@ -14,6 +14,7 @@ public:
 
 private:
     void on_connect(peer_id_t peer) THROWS_NOTHING;
+    void on_disconnect(UNUSED peer_id_t p) { }
     void on_change() THROWS_NOTHING;
 
     void send_initialization(peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state, auto_drainer_t::lock_t keepalive) THROWS_NOTHING;

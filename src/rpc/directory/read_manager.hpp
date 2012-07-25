@@ -1,19 +1,22 @@
 #ifndef RPC_DIRECTORY_READ_MANAGER_HPP_
 #define RPC_DIRECTORY_READ_MANAGER_HPP_
 
+#include <map>
+
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
+#include "containers/scoped.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
 
 template<class metadata_t>
 class directory_read_manager_t :
     public home_thread_mixin_t,
-    public message_handler_t
-{
+    public message_handler_t,
+    private peers_list_callback_t {
 public:
     explicit directory_read_manager_t(connectivity_service_t *connectivity_service) THROWS_NOTHING;
     ~directory_read_manager_t() THROWS_NOTHING;
@@ -32,7 +35,7 @@ private:
         `connectivity_service_t` from `super_connectivity_service`. */
         const uuid_t session_id;
         cond_t got_initial_message;
-        boost::scoped_ptr<fifo_enforcer_sink_t> metadata_fifo_sink;
+        scoped_ptr_t<fifo_enforcer_sink_t> metadata_fifo_sink;
         auto_drainer_t drainer;
     };
 
@@ -43,8 +46,8 @@ private:
 
     /* These will be called in a blocking fashion by the connectivity service
     (or message service, in the case of `on_message()`) */
-    void on_connect(peer_id_t peer) THROWS_NOTHING;
     void on_message(peer_id_t, read_stream_t *) THROWS_NOTHING;
+    void on_connect(peer_id_t peer) THROWS_NOTHING;
     void on_disconnect(peer_id_t peer) THROWS_NOTHING;
 
     /* These are meant to be spawned in new coroutines */

@@ -17,6 +17,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
+#include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/printf_buffer.hpp"
@@ -59,7 +60,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
 
     int res = connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)); if (res != 0) {
         if (errno == EINPROGRESS) {
-            linux_event_watcher_t::watch_t watch(event_watcher, poll_event_out);
+            linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_out);
             wait_interruptible(&watch, interruptor);
             int error;
             socklen_t error_size = sizeof(error);
@@ -141,7 +142,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
             /* There's no data available right now, so we must wait for a notification from the
             epoll queue, or for an order to shut down. */
 
-            linux_event_watcher_t::watch_t watch(event_watcher, poll_event_in);
+            linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_in);
             wait_any_t waiter(&watch, &read_closed);
             waiter.wait_lazily_unordered();
 
@@ -268,11 +269,6 @@ bool linux_tcp_conn_t::is_read_open() {
     return !read_closed.is_pulsed();
 }
 
-void delete_char_vector(std::vector<char> *x) {
-    rassert(x);
-    delete x;
-}
-
 linux_tcp_conn_t::write_handler_t::write_handler_t(linux_tcp_conn_t *parent_) :
     parent(parent_)
 { }
@@ -303,10 +299,10 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
     released once the write is over. */
     op->buffer = current_write_buffer->buffer;
     op->size = current_write_buffer->size;
-    op->dealloc = current_write_buffer;
+    op->dealloc = current_write_buffer.release();
     op->cond = NULL;
     op->keepalive = auto_drainer_t::lock_t(drainer.get());
-    current_write_buffer = get_write_buffer();
+    current_write_buffer.init(get_write_buffer());
 
     /* Acquire the write semaphore so the write queue doesn't get too long
     to be released once the write is completed by the coroutine pool */
@@ -333,7 +329,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             /* Wait for a notification from the event queue, or for an order to
             shut down */
-            linux_event_watcher_t::watch_t watch(event_watcher, poll_event_out);
+            linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_out);
             wait_any_t waiter(&watch, &write_closed);
             waiter.wait_lazily_unordered();
 
@@ -525,44 +521,23 @@ void linux_tcp_conn_t::set_keepalive() {
     guarantee_err(res == 0, "setsockopt(SO_KEEPALIVE) failed");
 }
 
-linux_tcp_conn_t::~linux_tcp_conn_t() {
+linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
     assert_thread();
 
     if (is_read_open()) shutdown_read();
     if (is_write_open()) shutdown_write();
-
-    drainer.reset();
-
-    delete event_watcher;
-    event_watcher = NULL;
-
-    while (!unused_write_buffers.empty()) {
-        write_buffer_t *buffer = unused_write_buffers.head();
-        unused_write_buffers.pop_front();
-        delete buffer;
-    }
-
-    while (!unused_write_queue_ops.empty()) {
-        write_queue_op_t *op = unused_write_queue_ops.head();
-        unused_write_queue_ops.pop_front();
-        delete op;
-    }
-
-    delete current_write_buffer;
-    /* scoped_fd_t's destructor will take care of close()ing the socket. */
 }
 
 void linux_tcp_conn_t::rethread(int new_thread) {
     if (home_thread() == get_thread_id() && new_thread == INVALID_THREAD) {
         rassert(!read_in_progress);
         rassert(!write_in_progress);
-        rassert(event_watcher);
-        delete event_watcher;
-        event_watcher = NULL;
+        rassert(event_watcher.has());
+        event_watcher.reset();
 
     } else if (home_thread() == INVALID_THREAD && new_thread == get_thread_id()) {
-        rassert(!event_watcher);
-        event_watcher = new linux_event_watcher_t(sock.get(), this);
+        rassert(!event_watcher.has());
+        event_watcher.init(new linux_event_watcher_t(sock.get(), this));
 
     } else {
         crash("linux_tcp_conn_t can be rethread()ed from no thread to the current thread or "
@@ -659,8 +634,8 @@ linux_nascent_tcp_conn_t::~linux_nascent_tcp_conn_t() {
     rassert(fd_ == -1);
 }
 
-void linux_nascent_tcp_conn_t::ennervate(boost::scoped_ptr<linux_tcp_conn_t>& tcp_conn) {
-    tcp_conn.reset(new linux_tcp_conn_t(fd_));
+void linux_nascent_tcp_conn_t::ennervate(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn) {
+    tcp_conn->init(new linux_tcp_conn_t(fd_));
     fd_ = -1;
 }
 
@@ -699,7 +674,7 @@ void bind_socket(fd_t sock_fd, int port) {
     res = bind(sock_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
     if (res != 0) {
         if (errno == EADDRINUSE) {
-            throw linux_tcp_listener_t::address_in_use_exc_t("localhost", port);
+            throw address_in_use_exc_t("localhost", port);
         } else {
             crash("Could not bind socket at localhost:%i - %s\n", port, strerror(errno));
         }
@@ -707,10 +682,10 @@ void bind_socket(fd_t sock_fd, int port) {
 }
 
 /* Bound socket object, used for constructing a listener in two stages */
-linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
-    sock_fd(socket(AF_INET, SOCK_STREAM, 0)),
-    port(_port)
-{
+linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port)
+    : sock_fd(socket(AF_INET, SOCK_STREAM, 0)),
+      port(_port) {
+
     bind_socket(sock_fd, port);
     if (port == 0) {
         // Determine the port that was assigned
@@ -722,31 +697,26 @@ linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
     }
 }
 
-linux_tcp_bound_socket_t::~linux_tcp_bound_socket_t()
-{
+linux_tcp_bound_socket_t::~linux_tcp_bound_socket_t() {
     if (sock_fd != INVALID_FD)
         close(sock_fd);
 }
 
-fd_t linux_tcp_bound_socket_t::get_fd() {
-    return sock_fd;
-}
-
-int linux_tcp_bound_socket_t::get_port()
-{
-    return port;
-}
-
-void linux_tcp_bound_socket_t::reset()
-{
+fd_t linux_tcp_bound_socket_t::release() {
+    int tmp = sock_fd;
     sock_fd = INVALID_FD;
+    return tmp;
+}
+
+int linux_tcp_bound_socket_t::get_port() const {
+    return port;
 }
 
 /* Network listener object */
 
 linux_tcp_listener_t::linux_tcp_listener_t(
         int port,
-        boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> cb) :
+        boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> cb) :
     sock(socket(AF_INET, SOCK_STREAM, 0)),
     event_watcher(sock.get(), this),
     callback(cb),
@@ -757,16 +727,15 @@ linux_tcp_listener_t::linux_tcp_listener_t(
     logINF("Listening on port %d", port);
 }
 
-linux_tcp_listener_t::linux_tcp_listener_t(linux_tcp_bound_socket_t& bound_socket,
-                                           boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> cb) :
-    sock(bound_socket.get_fd()),
+linux_tcp_listener_t::linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
+                                           boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> cb) :
+    sock(bound_socket->release()),
     event_watcher(sock.get(), this),
     callback(cb),
     log_next_error(true)
 {
-    bound_socket.reset();
     initialize_internal();
-    logINF("Listening on port %d", bound_socket.get_port());
+    logINF("Listening on port %d", bound_socket->get_port());
 }
 
 void linux_tcp_listener_t::initialize_internal() {
@@ -780,7 +749,7 @@ void linux_tcp_listener_t::initialize_internal() {
     guarantee_err(res == 0, "Could not make socket non-blocking");
 
     // Start the accept loop
-    accept_loop_drainer.reset(new auto_drainer_t);
+    accept_loop_drainer.init(new auto_drainer_t);
     coro_t::spawn_sometime(boost::bind(
         &linux_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())
         ));
@@ -795,7 +764,7 @@ void linux_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) {
         fd_t new_sock = accept(sock.get(), NULL, NULL);
 
         if (new_sock != INVALID_FD) {
-            coro_t::spawn_now_deprecated(boost::bind(&linux_tcp_listener_t::handle, this, new_sock));
+            coro_t::spawn_now(boost::bind(&linux_tcp_listener_t::handle, this, new_sock));
 
             /* If we backed off before, un-backoff now that the problem seems to be
             resolved. */
@@ -836,7 +805,7 @@ void linux_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) {
 }
 
 void linux_tcp_listener_t::handle(fd_t socket) {
-    boost::scoped_ptr<linux_nascent_tcp_conn_t> nconn(new linux_nascent_tcp_conn_t(socket));
+    scoped_ptr_t<linux_nascent_tcp_conn_t> nconn(new linux_nascent_tcp_conn_t(socket));
     callback(nconn);
 }
 

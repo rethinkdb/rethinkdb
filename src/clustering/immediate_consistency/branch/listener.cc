@@ -1,8 +1,5 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 
-#include "errors.hpp"
-#include <boost/scoped_array.hpp>
-
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
@@ -37,7 +34,8 @@ private:
 #endif // NDEBUG
 
 template <class protocol_t>
-listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
+listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
+                                   mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
                                    branch_history_manager_t<protocol_t> *bhm,
                                    multistore_ptr_t<protocol_t> *_svs,
@@ -47,13 +45,14 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
                                    signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
+    /* TODO: Put the file in the data directory, not here */
     mailbox_manager(mm),
     branch_history_manager(bhm),
     svs(_svs),
     uuid(generate_uuid()),
-    perfmon_collection("backfill-serialization-" + uuid_to_str(uuid), backfill_stats_parent, true, true),
-    /* TODO: Put the file in the data directory, not here */
-    write_queue("backfill-serialization-" + uuid_to_str(uuid), &perfmon_collection),
+    perfmon_collection(),
+    perfmon_collection_membership(backfill_stats_parent, &perfmon_collection, "backfill-serialization-" + uuid_to_str(uuid)),
+    write_queue(io_backender, "backfill-serialization-" + uuid_to_str(uuid), &perfmon_collection),
     write_queue_semaphore(SEMAPHORE_NO_LIMIT),
     write_mailbox(mailbox_manager,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
@@ -78,8 +77,6 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     branch_id = business_card.get().get().branch_id;
     branch_history_manager->import_branch_history(business_card.get().get().branch_id_associated_branch_history, interruptor);
 
-    const int num_stores = svs->num_stores();
-
 #ifndef NDEBUG
     /* Sanity-check to make sure we're on the same timeline as the thing
        we're trying to join. The backfiller will perform an equivalent check,
@@ -89,9 +86,9 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager->get_branch(branch_id);
     guarantee(region_is_superset(this_branch_history.region, svs->get_multistore_joined_region()));
 
-    boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-    svs->new_read_tokens(read_tokens.get(), num_stores);
-    region_map_t<protocol_t, version_range_t> start_point = svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    svs->new_read_token(&read_token);
+    region_map_t<protocol_t, version_range_t> start_point = svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor);
 
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
          it != start_point.end();
@@ -146,10 +143,10 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
         throw backfiller_lost_exc_t();
     }
 
-    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens2(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-    svs->new_read_tokens(read_tokens2.get(), num_stores);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token2;
+    svs->new_read_token(&read_token2);
 
-    region_map_t<protocol_t, version_range_t> backfill_end_point = svs->get_all_metainfos(order_token_t::ignore, read_tokens2.get(), num_stores, interruptor);
+    region_map_t<protocol_t, version_range_t> backfill_end_point = svs->get_all_metainfos(order_token_t::ignore, &read_token2, interruptor);
 
     /* Sanity checking. */
 
@@ -167,11 +164,11 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     guarantee(backfill_end_timestamp >= streaming_begin_point);
 
     current_timestamp = backfill_end_timestamp;
-    write_queue_coro_pool_callback.reset(
+    write_queue_coro_pool_callback.init(
         new typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t(
             boost::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, backfill_end_timestamp, _2)
         ));
-    write_queue_coro_pool.reset(
+    write_queue_coro_pool.init(
         new coro_pool_t<write_queue_entry_t>(
             OPERATION_CORO_POOL_SIZE, &write_queue, write_queue_coro_pool_callback.get()
         ));
@@ -186,7 +183,8 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 
 
 template <class protocol_t>
-listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
+listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
+                                   mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
                                    branch_history_manager_t<protocol_t> *bhm,
                                    broadcaster_t<protocol_t> *broadcaster,
@@ -196,9 +194,10 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     branch_history_manager(bhm),
     branch_id(broadcaster->branch_id),
     uuid(generate_uuid()),
-    perfmon_collection("backfill-serialization-" + uuid_to_str(uuid), backfill_stats_parent, true, true),
+    perfmon_collection(),
+    perfmon_collection_membership(backfill_stats_parent, &perfmon_collection, "backfill-serialization-" + uuid_to_str(uuid)),
     /* TODO: Put the file in the data directory, not here */
-    write_queue("backfill-serialization-" + uuid_to_str(uuid), &perfmon_collection),
+    write_queue(io_backender, "backfill-serialization-" + uuid_to_str(uuid), &perfmon_collection),
     write_queue_semaphore(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY),
     write_mailbox(mailbox_manager,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
@@ -221,8 +220,6 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     broadcaster->bootstrap_svs = NULL;
 
 #ifndef NDEBUG
-    const int num_stores = svs->num_stores();
-
     /* Confirm that `broadcaster_metadata` corresponds to `broadcaster` */
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
         broadcaster_metadata->get();
@@ -237,9 +234,9 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     rassert(svs->get_multistore_joined_region() == this_branch_history.region);
 
     /* Snapshot the metainfo before we start receiving writes */
-    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-    svs->new_read_tokens(read_tokens.get(), num_stores);
-    region_map_t<protocol_t, version_range_t> initial_metainfo = svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    svs->new_read_token(&read_token);
+    region_map_t<protocol_t, version_range_t> initial_metainfo = svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor);
 #endif
 
     /* Attempt to register for writes */
@@ -256,11 +253,11 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 
     /* Start streaming, just like we do after we finish a backfill */
     current_timestamp = registration_done_cond.get_value().broadcaster_begin_timestamp;
-    write_queue_coro_pool_callback.reset(
+    write_queue_coro_pool_callback.init(
         new typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t(
             boost::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, current_timestamp, _2)
         ));
-    write_queue_coro_pool.reset(
+    write_queue_coro_pool.init(
         new coro_pool_t<write_queue_entry_t>(
             OPERATION_CORO_POOL_SIZE, &write_queue, write_queue_coro_pool_callback.get()
         ));
@@ -326,7 +323,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
                       boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1, _2, _3));
 
     try {
-        registrant.reset(new registrant_t<listener_business_card_t<protocol_t> >(
+        registrant.init(new registrant_t<listener_business_card_t<protocol_t> >(
             mailbox_manager,
             broadcaster->subview(&listener_t<protocol_t>::get_registrar_from_broadcaster_bcard),
             listener_business_card_t<protocol_t>(intro_mailbox.get_address(), write_mailbox.get_address())
@@ -371,7 +368,7 @@ void listener_t<protocol_t>::enqueue_write(typename protocol_t::write_t write,
     try {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&write_queue_entrance_sink, fifo_token);
         wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
-        write_queue_semaphore.co_lock();
+        write_queue_semaphore.co_lock_interruptible(keepalive.get_drain_signal());
         write_queue.push(write_queue_entry_t(write, transition_timestamp, order_token, fifo_token));
         send(mailbox_manager, ack_addr);
     } catch (interrupted_exc_t) {
@@ -388,8 +385,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         write_queue_has_drained.pulse_if_not_already_pulsed();
     }
 
-    const int num_stores = svs->num_stores();
-    boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink, qe.fifo_token);
         if (qe.transition_timestamp.timestamp_before() < backfill_end_timestamp) {
@@ -397,7 +393,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         }
         wait_interruptible(&fifo_exit, interruptor);
         advance_current_timestamp_and_pulse_waiters(qe.transition_timestamp);
-        svs->new_write_tokens(write_tokens.get(), num_stores);
+        svs->new_write_token(&write_token);
     }
 
 #ifndef NDEBUG
@@ -412,8 +408,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         qe.write.shard(region_intersection(qe.write.get_region(), svs->get_multistore_joined_region())),
         qe.transition_timestamp,
         qe.order_token,
-        write_tokens.get(),
-        num_stores,
+        &write_token,
         interruptor);
 }
 
@@ -445,8 +440,7 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
         THROWS_NOTHING
 {
     try {
-        const int num_stores = svs->num_stores();
-        boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink` in case we
@@ -459,7 +453,7 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
 
             advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
-            svs->new_write_tokens(write_tokens.get(), num_stores);
+            svs->new_write_token(&write_token);
         }
 
         // Make sure we can serve the entire operation without masking it.
@@ -481,8 +475,7 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
                          write,
                          transition_timestamp,
                          order_token,
-                         write_tokens.get(),
-                         num_stores,
+                         &write_token,
                          keepalive.get_drain_signal());
 
         send(mailbox_manager, ack_addr, response);
@@ -518,8 +511,7 @@ void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING
 {
     try {
-        const int num_stores = svs->num_stores();
-        boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink` in case we
@@ -532,7 +524,7 @@ void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
 
             rassert(current_timestamp == expected_timestamp);
 
-            svs->new_read_tokens(read_tokens.get(), num_stores);
+            svs->new_read_token(&read_token);
         }
 
 #ifndef NDEBUG
@@ -545,8 +537,7 @@ void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
             DEBUG_ONLY(metainfo_checker, )
             read,
             order_token,
-            read_tokens.get(),
-            num_stores,
+            &read_token,
             keepalive.get_drain_signal());
 
         send(mailbox_manager, ack_addr, response);

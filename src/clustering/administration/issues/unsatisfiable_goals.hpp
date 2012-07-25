@@ -1,6 +1,10 @@
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_UNSATISFIABLE_GOALS_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_UNSATISFIABLE_GOALS_HPP_
 
+#include <list>
+#include <map>
+#include <string>
+
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/json.hpp"
 #include "clustering/administration/metadata.hpp"

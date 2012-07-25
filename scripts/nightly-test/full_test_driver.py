@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Usage: ./full_test_driver.sh [--just-tests] [--git-branch <branch-name>] [--build-mode (two|all)]
+# Usage: ./full_test_driver.sh [--just-tests] [--git-branch <branch-name>] [--build-mode (two|all)] [--test-dir <directory location, to be appended to rethinkdb/>]
 # Environment variables: SLURM_CONF
 #
 # Check out the given RethinkDB branch from GitHub and run a full test against
@@ -16,12 +16,14 @@ if __name__ != "__main__":
     raise ImportError("It doesn't make any sense to import this as a module")
 
 parser = optparse.OptionParser()
-parser.add_option("--build-mode", action = "store", choices = ["minimal", "all"], dest = "build_mode")
+parser.add_option("--build-mode", action = "store", choices = ["minimal", "minimal-with-os", "all"], dest = "build_mode")
 parser.add_option("--git-branch", action = "store", dest = "git_branch")
 parser.add_option("--just-tests", action = "store_true", dest = "just_tests")
-parser.set_defaults(build_mode = "all", git_branch = "master")
+parser.add_option("--test-dir", action="store", dest = "test_dir")
+parser.set_defaults(build_mode = "all", git_branch = "master", test_dir = "test/full_test/")
 (options, args) = parser.parse_args()
 assert not args
+assert not os.path.isabs(options.test_dir)
 
 # We want to flush output aggressively so that we can report the most up-to-date
 # information possible to anyone following this build. The easiest way to do
@@ -172,13 +174,16 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                             config_name + config_name_part)
                 else:
                     build_path = "rethinkdb/build/%s" % config_name
+                    products = [build_path + "/rethinkdb", build_path + "/web/"]
+                    if "DEBUG=0" not in make_flags:
+                        products = products + [build_path + "/rethinkdb-unittest"]
                     builds[config_name] = {
                         "command_line": "cd rethinkdb/src; make -j12 " + " ".join(make_flags),
-                        "products": [build_path + "/rethinkdb", build_path + "/rethinkdb-unittest", build_path + "/web/"]
+                        "products": products
                         }
             generate_configs(config_bits, [], "")
 
-        elif options.build_mode == "minimal":
+        elif options.build_mode == "minimal" or options.build_mode == "minimal-with-os":
             builds["stress-client"] = {
                 "command_line": "cd rethinkdb/bench/stress-client; make -j12",
                 "products": ["rethinkdb/bench/stress-client/stress", "rethinkdb/bench/stress-client/libstress.so"]
@@ -192,6 +197,38 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                 "products": ["rethinkdb/build/release/rethinkdb"]
                 }
 
+        if options.build_mode == "all" or options.build_mode == "minimal-with-os": # do the operating system builds
+            builds["ubuntu"] = {
+                "command_line": "cd rethinkdb/src && make deb PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 && mv ../build/packages ../build/ubuntu",
+                "products": ["rethinkdb/build/ubuntu"],
+                "target_os": "ubuntu"
+                }
+            builds["redhat5_1"] = {
+                "command_line": "cd rethinkdb/src && make rpm PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/redhat5_1",
+                "products": ["rethinkdb/build/redhat5_1"],
+                "target_os": "redhat5_1"
+                }
+            builds["debian"] = {
+                "command_line": "cd rethinkdb/src && make deb PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 NO_EVENTFD=1 LEGACY_LINUX=1 && mv ../build/packages ../build/debian",
+                "products": ["rethinkdb/build/debian"],
+                "target_os": "debian"
+                }
+            builds["centos5_5"] = {
+                "command_line": "cd rethinkdb/src && make rpm PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_GCC=1 LEGACY_LINUX=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/centos5_5",
+                "products": ["rethinkdb/build/centos5_5"],
+                "target_os": "centos5_5"
+                }
+            builds["suse"] = {
+                "command_line": "cd rethinkdb/src && make rpm PACKAGING=1 PACKAGE_FOR_SUSE_10=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/suse",
+                "products": ["rethinkdb/build/suse"],
+                "target_os": "suse"
+                }
+            builds["centos6"] = {
+                "command_line": "cd rethinkdb/src && make rpm PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_GCC=1 LEGACY_LINUX=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/centos6",
+                "products": ["rethinkdb/build/centos6"],
+                "target_os": "centos6"
+                }
+
         # Run builds
 
         subprocess32.check_call(["tar", "--create", "--gzip", "--file=rethinkdb.tar.gz", "--", "rethinkdb"])
@@ -201,11 +238,16 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
             try:
                 with open("builds/%s.txt" % name, "w") as output:
                     try:
+                        prepend = ""
+                        append = ""
+                        if "target_os" in build:
+                            prepend = "./rethinkdb/scripts/VirtuaBuild/vm_access.py --vm-name %s --command \"" % build["target_os"]
+                            append = "\""
                         remotely.run(
                             command_line = """
 tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
 (%(command_line)s) 2>&1
-""" % { "command_line": build["command_line"] },
+""" % { "command_line": prepend + build["command_line"] + append},
                             stdout = output,
                             inputs = ["rethinkdb.tar.gz"],
                             outputs = build["products"],
@@ -236,7 +278,7 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
             "repeat": repeat
             })
 
-    for (dirpath, dirname, filenames) in os.walk("rethinkdb/test/full_test/"):
+    for (dirpath, dirname, filenames) in os.walk(os.path.join("rethinkdb", options.test_dir)):
         for filename in filenames:
             full_path = os.path.join(dirpath, filename)
             print "Reading specification file %r" % full_path
@@ -287,4 +329,3 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
     run_in_threads(funs)
 
     print "Done."
-

@@ -180,8 +180,7 @@ private:
     void start_concurrent_flush();
     void do_concurrent_flush();
     void flush_prepare_patches();
-    void flush_acquire_bufs(transaction_t *transaction, flush_state_t &state);
-    void flush_update_block_sequence_ids(flush_state_t &state);
+    void flush_acquire_bufs(transaction_t *transaction, flush_state_t *state);
 };
 
 #endif // BUFFER_CACHE_MIRRORED_WRITEBACK_HPP_

@@ -447,7 +447,8 @@ class ClusterAccess(object):
         getattr(self, "%s_namespaces" % protocol)[namespace.uuid] = namespace
         self.update_cluster_data(10)
         if check:
-            self._wait_for_namespace(namespace, 30)
+            self._wait_for_namespace(namespace, 90)
+            print "Namespace available"
         return namespace
 
     def _wait_for_namespace(self, namespace, timeout):

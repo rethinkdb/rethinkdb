@@ -1,5 +1,7 @@
 #include "rpc/directory/read_manager.hpp"
 
+#include <map>
+
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/archive.hpp"
 
@@ -7,11 +9,7 @@ template<class metadata_t>
 directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_service_t *conn_serv) THROWS_NOTHING :
     connectivity_service(conn_serv),
     variable(std::map<peer_id_t, metadata_t>()),
-    connectivity_subscription(
-        boost::bind(&directory_read_manager_t::on_connect, this, _1),
-        boost::bind(&directory_read_manager_t::on_disconnect, this, _1)
-        )
-{
+    connectivity_subscription(this) {
     connectivity_service_t::peers_list_freeze_t freeze(connectivity_service);
     rassert(connectivity_service->get_peers_list().empty());
     connectivity_subscription.reset(connectivity_service, &freeze);
@@ -154,7 +152,10 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
 
     /* Create a metadata FIFO sink and pulse the `got_initial_message` cond so
     that instances of `propagate_update()` can proceed */
-    session->metadata_fifo_sink.reset(new fifo_enforcer_sink_t(metadata_fifo_state));
+    // TODO: Do we want this .reset() here?  It is not easily provable
+    // that it'll be initialized only once.
+    session->metadata_fifo_sink.reset();
+    session->metadata_fifo_sink.init(new fifo_enforcer_sink_t(metadata_fifo_state));
     session->got_initial_message.pulse();
 }
 

@@ -5,11 +5,12 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "utils.hpp"
 #include <boost/function.hpp>
 
-#include "arch/io/io_utils.hpp"
+#include "backfill_progress.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "protocol_api.hpp"
@@ -18,6 +19,7 @@
 #include "perfmon/types.hpp"
 
 class signal_t;
+class io_backender_t;
 
 namespace mock {
 
@@ -94,9 +96,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_3(key, value, timestamp);
     };
 
-    struct backfill_progress_t {
-        std::pair<int, int> guess_completion() {
-            return std::make_pair(-1, -1);
+    struct backfill_progress_t : public traversal_progress_t {
+        explicit backfill_progress_t(int specified_home_thread) : traversal_progress_t(specified_home_thread) { }
+        progress_completion_fraction_t guess_completion() const {
+            return progress_completion_fraction_t::make_invalid();
         }
     };
 
@@ -108,25 +111,25 @@ public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
         store_t();
-        store_t(io_backend_t io_backend, const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
+        store_t(io_backender_t *io_backender, const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
         ~store_t();
 
-        void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) THROWS_NOTHING;
-        void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) THROWS_NOTHING;
+        void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;
+        void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out) THROWS_NOTHING;
 
-        metainfo_t get_metainfo(order_token_t order_token,
-                                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        metainfo_t do_get_metainfo(order_token_t order_token,
+                                   scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void set_metainfo(const metainfo_t &new_metainfo,
                           order_token_t order_token,
-                          boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                          scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                           signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         dummy_protocol_t::read_response_t read(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
                                                const dummy_protocol_t::read_t &read,
                                                order_token_t order_token,
-                                               boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                                               scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         dummy_protocol_t::write_response_t write(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
@@ -134,23 +137,23 @@ public:
                                                  const dummy_protocol_t::write_t &write,
                                                  transition_timestamp_t timestamp,
                                                  order_token_t order_token,
-                                                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                                                 scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                                                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         bool send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
                            const boost::function<bool(const metainfo_t&)> &should_backfill,
                            const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun,
                            backfill_progress_t *progress,
-                           boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                           scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk,
-                              boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                              scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void reset_data(const dummy_protocol_t::region_t &subregion,
                         const metainfo_t &new_metainfo,
-                        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         std::map<std::string, std::string> values;

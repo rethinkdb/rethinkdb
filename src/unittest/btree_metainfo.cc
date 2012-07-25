@@ -1,8 +1,9 @@
 #include "unittest/gtest.hpp"
 
+#include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
+#include "mock/unittest_utils.hpp"
 #include "serializer/log/log_serializer.hpp"
-#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -34,10 +35,14 @@ std::string vector_to_string(const std::vector<char> &v) {
 }
 
 void run_metainfo_test() {
-    temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+    mock::temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+
+    scoped_ptr_t<io_backender_t> io_backender;
+    make_io_backender(aio_default, &io_backender);
 
     standard_serializer_t::create(
         standard_serializer_t::dynamic_config_t(),
+        io_backender.get(),
         standard_serializer_t::private_dynamic_config_t(temp_file.name()),
         standard_serializer_t::static_config_t(),
         &get_global_perfmon_collection()
@@ -45,6 +50,7 @@ void run_metainfo_test() {
 
     standard_serializer_t serializer(
         standard_serializer_t::dynamic_config_t(),
+        io_backender.get(),
         standard_serializer_t::private_dynamic_config_t(temp_file.name()),
         &get_global_perfmon_collection()
         );
@@ -66,9 +72,9 @@ void run_metainfo_test() {
     for (int i = 0; i < 1000; i++) {
 
         order_token_t otok = order_source.check_in("metainfo unittest");
-        boost::scoped_ptr<transaction_t> txn;
-        boost::scoped_ptr<real_superblock_t> superblock;
-        get_btree_superblock(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, txn);
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> superblock;
+        get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
         buf_lock_t *sb_buf = superblock->get();
 
         int op = random() % 100;
@@ -84,7 +90,7 @@ void run_metainfo_test() {
             }
             std::string key = random_existing_key(mirror);
             std::vector<char> value_out;
-            bool found = get_superblock_metainfo(txn.get(), sb_buf, string_to_vector(key), value_out);
+            bool found = get_superblock_metainfo(txn.get(), sb_buf, string_to_vector(key), &value_out);
             EXPECT_TRUE(found);
             if (found) {
                 EXPECT_EQ(mirror[key], vector_to_string(value_out));
@@ -99,7 +105,7 @@ void run_metainfo_test() {
                 continue;
             }
             std::vector<char> value_out;
-            bool found = get_superblock_metainfo(txn.get(), sb_buf, string_to_vector(key), value_out);
+            bool found = get_superblock_metainfo(txn.get(), sb_buf, string_to_vector(key), &value_out);
             EXPECT_FALSE(found);
             if (found) {
                 EXPECT_EQ(mirror[key], vector_to_string(value_out));
@@ -142,7 +148,7 @@ void run_metainfo_test() {
             }
         } else {
             std::vector<std::pair<std::vector<char>, std::vector<char> > > pairs;
-            get_superblock_metainfo(txn.get(), sb_buf, pairs);
+            get_superblock_metainfo(txn.get(), sb_buf, &pairs);
             std::map<std::string, std::string> mirror_copy = mirror;
             if (print_log_messages) {
                 puts("scan...");
@@ -173,7 +179,7 @@ void run_metainfo_test() {
 }
 
 TEST(BtreeMetainfo, MetainfoTest) {
-    run_in_thread_pool(&run_metainfo_test);
+    mock::run_in_thread_pool(&run_metainfo_test);
 }
 
 }   /* namespace unittest */

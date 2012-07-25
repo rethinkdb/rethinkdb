@@ -10,12 +10,13 @@
 
 #include <vector>
 #include <stdexcept>
+#include <string>
 
 #include "utils.hpp"
 #include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
 
 #include "config/args.hpp"
+#include "containers/scoped.hpp"
 #include "arch/address.hpp"
 #include "arch/io/event_watcher.hpp"
 #include "arch/io/io_utils.hpp"
@@ -130,9 +131,7 @@ public:
     transmitted over the network. */
     perfmon_rate_monitor_t *write_perfmon;
 
-    /* Note that is_read_open() and is_write_open() must both be false before the socket is
-    destroyed. */
-    ~linux_tcp_conn_t();
+    ~linux_tcp_conn_t() THROWS_NOTHING;
 
 public:
 
@@ -155,7 +154,7 @@ private:
 
     /* Object that we use to watch for events. It's NULL when we are not registered on any
     thread, and otherwise is an object that's valid for the current thread. */
-    linux_event_watcher_t *event_watcher;
+    scoped_ptr_t<linux_event_watcher_t> event_watcher;
 
     /* True if there is a pending read or write */
     bool read_in_progress, write_in_progress;
@@ -196,10 +195,21 @@ private:
         void coro_pool_callback(write_queue_op_t *operation, signal_t *interruptor);
     } write_handler;
 
+    template <class T>
+    class deleting_intrusive_list_t : public intrusive_list_t<T> {
+    public:
+        ~deleting_intrusive_list_t() {
+            while (T *x = this->head()) {
+                this->pop_front();
+                delete x;
+            }
+        }
+    };
+
     /* Lists of unused buffers, new buffers will be put on this list until needed again, reducing
        the use of dynamic memory.  TODO: decay over time? */
-    intrusive_list_t<write_buffer_t> unused_write_buffers;
-    intrusive_list_t<write_queue_op_t> unused_write_queue_ops;
+    deleting_intrusive_list_t<write_buffer_t> unused_write_buffers;
+    deleting_intrusive_list_t<write_queue_op_t> unused_write_queue_ops;
 
     write_buffer_t * get_write_buffer();
     write_queue_op_t * get_write_queue_op();
@@ -225,7 +235,7 @@ private:
 
     /* Buffer we are currently filling up with data that we want to write. When it reaches a
     certain size, we push it onto `write_queue`. */
-    write_buffer_t* current_write_buffer;
+    scoped_ptr_t<write_buffer_t> current_write_buffer;
 
     /* Used to actually perform a write. If the write end of the connection is open, then writes
     `size` bytes from `buffer` to the socket. */
@@ -244,16 +254,14 @@ private:
     static const size_t POP_THRESHOLD = 1024;
     size_t popped_bytes;
 
-    boost::scoped_ptr<auto_drainer_t> drainer;
+    scoped_ptr_t<auto_drainer_t> drainer;
 };
 
 class linux_nascent_tcp_conn_t {
 public:
     ~linux_nascent_tcp_conn_t();
 
-    // Must get called exactly once during lifetime of this object.
-    // Call it on the thread you'll use the connection on.
-    void ennervate(boost::scoped_ptr<linux_tcp_conn_t>& tcp_conn);
+    void ennervate(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn);
 
     // Must get called exactly once during lifetime of this object.
     // Call it on the thread you'll use the connection on.
@@ -274,9 +282,8 @@ class linux_tcp_bound_socket_t {
 public:
     explicit linux_tcp_bound_socket_t(int _port);
     ~linux_tcp_bound_socket_t();
-    int get_port();
-    fd_t get_fd();
-    void reset();
+    int get_port() const;
+    MUST_USE fd_t release();
 private:
     fd_t sock_fd;
     int port;
@@ -289,25 +296,10 @@ the provided callback will be called in a new coroutine every time something con
 class linux_tcp_listener_t : public linux_event_callback_t {
 public:
     linux_tcp_listener_t(int port,
-                         boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
-    linux_tcp_listener_t(linux_tcp_bound_socket_t& bound_socket,
-                         boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
+                         boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback);
+    linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
+                         boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback);
     ~linux_tcp_listener_t();
-
-    // The constructor can throw this exception
-    struct address_in_use_exc_t :
-        public std::exception
-    {
-        address_in_use_exc_t(const char* hostname, int port) throw () :
-            info(strprintf("The address at %s:%d is already in use", hostname, port)) { }
-        ~address_in_use_exc_t() throw () { }
-
-        const char *what() const throw () {
-            return info.c_str();
-        }
-    private:
-        std::string info;
-    };
 
 private:
     void initialize_internal();
@@ -319,13 +311,13 @@ private:
     linux_event_watcher_t event_watcher;
 
     // The callback to call when we get a connection
-    boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback;
+    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback;
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
     new connections; when accept() blocks, then it waits for events from the
     event loop. */
     void accept_loop(auto_drainer_t::lock_t);
-    boost::scoped_ptr<auto_drainer_t> accept_loop_drainer;
+    scoped_ptr_t<auto_drainer_t> accept_loop_drainer;
 
     void handle(fd_t sock);
 

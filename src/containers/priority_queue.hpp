@@ -38,7 +38,7 @@ private:
     inline unsigned int parent(unsigned int);
     inline unsigned int left(unsigned int);
     inline unsigned int right(unsigned int);
-    inline void swap(unsigned int, unsigned int);
+    inline void swap_entries(unsigned int, unsigned int);
     inline void bubble_up(int *);
     inline void bubble_up(int);
     inline void bubble_down(int *);

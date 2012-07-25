@@ -3,6 +3,8 @@
 
 #include "clustering/administration/parser_maker.hpp"
 
+#include <string>
+
 template<class protocol_t, class parser_t>
 parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox_manager,
                                boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_semilattice_metadata,
@@ -86,7 +88,7 @@ void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name, na
 
         wait_any_t interruptor(&namespaces_being_handled.find(ns)->second->stopper, keepalive.get_drain_signal());
         typename namespace_repo_t<protocol_t>::access_t access(repo, ns, &interruptor);
-        parser_t parser(port, access.get_namespace_if(), perfmon_collection_repo->get_perfmon_collection_for_namespace(ns));
+        parser_t parser(port, access.get_namespace_if(), &perfmon_collection_repo->get_perfmon_collections_for_namespace(ns)->namespace_collection);
         interruptor.wait_lazily_unordered();
 
         printf("Stopping serving queries for the namespace '%s' %s on port %d...\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);

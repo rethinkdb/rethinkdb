@@ -1,11 +1,13 @@
 #ifndef CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_
 #define CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_
 
+#include <map>
+
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 
-#include "clustering/immediate_consistency/query/namespace_interface.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/reactor/namespace_interface.hpp"
 
 /* `namespace_repo_t` is responsible for constructing and caching
 `cluster_namespace_interface_t` objects for all of the namespaces in the cluster

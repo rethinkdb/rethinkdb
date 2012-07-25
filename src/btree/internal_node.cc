@@ -64,14 +64,6 @@ void init(block_size_t block_size, internal_node_t *node, const internal_node_t 
     rassert(get_pair_by_index(node, node->npairs-1)->key.size == 0);
 }
 
-void get_children_ids(const internal_node_t *node, boost::scoped_array<block_id_t>& ids_out, size_t *num_children) {
-    ids_out.reset(new block_id_t[node->npairs]);
-    *num_children = node->npairs;
-    for (int i = 0, n = node->npairs; i < n; ++i) {
-        ids_out[i] = get_pair_by_index(node, i)->lnode;
-    }
-}
-
 block_id_t lookup(const internal_node_t *node, const btree_key_t *key) {
     int index = get_offset_index(node, key);
     return get_pair_by_index(node, index)->lnode;
@@ -427,14 +419,16 @@ void delete_pair(buf_lock_t *node_buf, uint16_t offset) {
 
     uint16_t frontmost_offset = node->frontmost_offset + shift;
     node_buf->set_data(const_cast<uint16_t *>(&node->frontmost_offset), &frontmost_offset, sizeof(frontmost_offset));
-    uint16_t* new_pair_offsets = new uint16_t[node->npairs];
-    memcpy(new_pair_offsets, node->pair_offsets, sizeof(uint16_t) * node->npairs);
+
+    scoped_array_t<uint16_t> new_pair_offsets(node->npairs);
+    memcpy(new_pair_offsets.data(), node->pair_offsets, sizeof(uint16_t) * node->npairs);
+
     for (int i = 0; i < node->npairs; i++) {
         if (new_pair_offsets[i] < offset)
             new_pair_offsets[i] += shift;
     }
-    node_buf->set_data(const_cast<uint16_t *>(node->pair_offsets), new_pair_offsets, sizeof(uint16_t) * node->npairs);
-    delete[] new_pair_offsets;
+
+    node_buf->set_data(const_cast<uint16_t *>(node->pair_offsets), new_pair_offsets.data(), sizeof(uint16_t) * node->npairs);
 }
 
 uint16_t insert_pair(ibuf_t *node_buf, const btree_internal_pair *pair) {
@@ -454,8 +448,8 @@ uint16_t insert_pair(buf_lock_t *node_buf, block_id_t lnode, const btree_key_t *
     const btree_internal_pair *new_pair = get_pair(node, frontmost_offset);
 
     // Use a buffer to prepare the key/value pair which we can then use to generate a patch
-    char *pair_buf = new char[pair_size_with_key(key)];
-    btree_internal_pair *new_buf_pair = reinterpret_cast<btree_internal_pair *>(pair_buf);
+    scoped_array_t<char> pair_buf(pair_size_with_key(key));
+    btree_internal_pair *new_buf_pair = reinterpret_cast<btree_internal_pair *>(pair_buf.data());
 
     // insert contents
     new_buf_pair->lnode = lnode;
@@ -463,7 +457,6 @@ uint16_t insert_pair(buf_lock_t *node_buf, block_id_t lnode, const btree_key_t *
 
     // Patch the new pair into node_buf
     node_buf->set_data(const_cast<btree_internal_pair *>(new_pair), new_buf_pair, pair_size_with_key(key));
-    delete[] pair_buf;
 
     return frontmost_offset;
 }

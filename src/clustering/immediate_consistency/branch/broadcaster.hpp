@@ -1,9 +1,11 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
 
+#include <list>
+#include <map>
+
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/ptr_container/ptr_map.hpp>
 
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
@@ -119,6 +121,7 @@ private:
     registrar_t<listener_business_card_t<protocol_t>, broadcaster_t *, dispatchee_t> registrar;
 
     perfmon_collection_t broadcaster_collection;
+    perfmon_membership_t broadcaster_membership;
 
     DISABLE_COPYING(broadcaster_t);
 };

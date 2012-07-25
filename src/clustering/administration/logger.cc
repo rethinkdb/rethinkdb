@@ -4,12 +4,10 @@
 #include <stdarg.h>
 #include <sys/stat.h>
 
-#include "errors.hpp"
-#include <boost/scoped_array.hpp>
-
 #include "arch/runtime/thread_pool.hpp"   /* for `run_in_blocker_pool()` */
 #include "clustering/administration/persist.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/scoped.hpp"
 #include "thread_local.hpp"
 
 std::string format_log_level(log_level_t l) {
@@ -110,7 +108,7 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
         }
 
         // TODO: Seriously?  We assume three decimal places?
-        uptime.tv_nsec = 1e3 * tv_nsec;
+        uptime.tv_nsec = 1000 * tv_nsec;
     }
 
     log_level_t level = parse_log_level(std::string(start_level, end_level - start_level));
@@ -129,15 +127,24 @@ class file_reverse_reader_t {
 public:
     explicit file_reverse_reader_t(const std::string &filename) :
             fd(open(filename.c_str(), O_RDONLY)),
-            current_chunk(new char[chunk_size]) {
+            current_chunk(chunk_size) {
         throw_unless(fd.get() != -1, strprintf("could not open '%s' for reading.", filename.c_str()));
         struct stat64 stat;
         int res = fstat64(fd.get(), &stat);
         throw_unless(res == 0, "could not determine size of log file");
-        remaining_in_current_chunk = stat.st_size % chunk_size;
-        current_chunk_start = stat.st_size - remaining_in_current_chunk;
-        res = pread(fd.get(), current_chunk.get(), remaining_in_current_chunk, current_chunk_start);
-        throw_unless(res == remaining_in_current_chunk, "could not read from file");
+        if (stat.st_size == 0) {
+            remaining_in_current_chunk = current_chunk_start = 0;
+        } else {
+            remaining_in_current_chunk = stat.st_size % chunk_size;
+            if (remaining_in_current_chunk == 0) {
+                /* We landed right on a chunk boundary; set ourself to read the
+                previous whole chunk. */
+                remaining_in_current_chunk = chunk_size;
+            }
+            current_chunk_start = stat.st_size - remaining_in_current_chunk;
+            res = pread(fd.get(), current_chunk.data(), remaining_in_current_chunk, current_chunk_start);
+            throw_unless(res == remaining_in_current_chunk, "could not read from file");
+        }
     }
 
     bool get_next(std::string *out) {
@@ -152,10 +159,10 @@ public:
                 p--;
             }
             if (p == 0) {
-                *out = std::string(current_chunk.get(), remaining_in_current_chunk) + *out;
+                *out = std::string(current_chunk.data(), remaining_in_current_chunk) + *out;
                 if (current_chunk_start != 0) {
                     current_chunk_start -= chunk_size;
-                    int res = pread(fd.get(), current_chunk.get(), chunk_size, current_chunk_start);
+                    int res = pread(fd.get(), current_chunk.data(), chunk_size, current_chunk_start);
                     throw_unless(res == chunk_size, "could not read from file");
                     remaining_in_current_chunk = chunk_size;
                 } else {
@@ -163,7 +170,7 @@ public:
                     return true;
                 }
             } else {
-                *out = std::string(current_chunk.get() + p, remaining_in_current_chunk - p) + *out;
+                *out = std::string(current_chunk.data() + p, remaining_in_current_chunk - p) + *out;
                 remaining_in_current_chunk = p;
                 return true;
             }
@@ -173,9 +180,11 @@ public:
 private:
     static const int chunk_size = 4096;
     scoped_fd_t fd;
-    boost::scoped_array<char> current_chunk;
+    scoped_array_t<char> current_chunk;
     int remaining_in_current_chunk;
     off64_t current_chunk_start;
+
+    DISABLE_COPYING(file_reverse_reader_t);
 };
 
 TLS_with_init(log_writer_t *, global_log_writer, NULL);
@@ -245,8 +254,8 @@ void log_writer_t::write(const log_message_t &lm) {
     if (ok) {
         issue.reset();
     } else {
-        if (!issue) {
-            issue.reset(new local_issue_tracker_t::entry_t(
+        if (!issue.has()) {
+            issue.init(new local_issue_tracker_t::entry_t(
                 issue_tracker,
                 local_issue_t("LOGFILE_WRITE_ERROR", true, error_message)
                 ));
@@ -305,7 +314,7 @@ void log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, s
         }
         *ok_out = true;
         return;
-    } catch (std::runtime_error &e) {
+    } catch (const std::runtime_error &e) {
         *error_out = e.what();
         *ok_out = false;
         return;

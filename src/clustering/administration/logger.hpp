@@ -6,11 +6,9 @@
 #include <string>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/circular_buffer.hpp>
-
 #include "arch/io/io_utils.hpp"
 #include "clustering/administration/issues/local.hpp"
+#include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "utils.hpp"
@@ -56,7 +54,7 @@ private:
     mutex_t write_mutex;
     scoped_fd_t fd;
     local_issue_tracker_t *issue_tracker;
-    boost::scoped_ptr<local_issue_tracker_t::entry_t> issue;
+    scoped_ptr_t<local_issue_tracker_t::entry_t> issue;
 
     DISABLE_COPYING(log_writer_t);
 };

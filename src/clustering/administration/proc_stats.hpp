@@ -11,10 +11,10 @@ public:
 private:
     class instantaneous_stats_collector_t : public perfmon_t {
     public:
-        explicit instantaneous_stats_collector_t(perfmon_collection_t *stats);
+        instantaneous_stats_collector_t();
         void *begin_stats();
         void visit_stats(void *);
-        void end_stats(void *, perfmon_result_t *);
+        perfmon_result_t *end_stats(void *);
     private:
         ticks_t start_time;
     };
@@ -33,6 +33,8 @@ private:
         memory_faults;
 
     auto_drainer_t drainer;
+
+    perfmon_multi_membership_t stats_membership;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_PROC_STATS_HPP_ */

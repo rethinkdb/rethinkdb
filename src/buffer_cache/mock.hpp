@@ -1,9 +1,7 @@
 #ifndef BUFFER_CACHE_MOCK_HPP_
 #define BUFFER_CACHE_MOCK_HPP_
 
-#include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
-#include <boost/shared_ptr.hpp>
+#include <algorithm>
 
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/config.hpp"
@@ -13,6 +11,7 @@
 #include "concurrency/coro_fifo.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
+#include "containers/scoped.hpp"
 #include "containers/segmented_vector.hpp"
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
@@ -71,7 +70,7 @@ public:
         return ZERO_EVICTION_PRIORITY;
     }
 
-    void set_eviction_priority(eviction_priority_t __attribute__ ((unused)) val) {
+    void set_eviction_priority(UNUSED eviction_priority_t val) {
         // Mock cache does not implement eviction priorities
     }
 
@@ -97,7 +96,7 @@ public:
 
     void snapshot() { }
 
-    void set_account(UNUSED const boost::shared_ptr<mock_cache_account_t>& cache_account) { }
+    void set_account(UNUSED mock_cache_account_t *cache_account) { }
 
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb);
 
@@ -120,15 +119,16 @@ private:
 /* Cache */
 
 class mock_cache_account_t {
+    friend class mock_cache_t;
     mock_cache_account_t() { }
     DISABLE_COPYING(mock_cache_account_t);
 };
 
 class mock_cache_t : public home_thread_mixin_t, public serializer_read_ahead_callback_t {
 public:
-    typedef mock_buf_lock_t buf_lock_t;
-    typedef mock_transaction_t transaction_t;
-    typedef mock_cache_account_t cache_account_t;
+    typedef mock_buf_lock_t buf_lock_type;
+    typedef mock_transaction_t transaction_type;
+    typedef mock_cache_account_t cache_account_type;
 
     static void create(serializer_t *serializer, mirrored_cache_static_config_t *static_config);
     mock_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *parent);
@@ -136,7 +136,9 @@ public:
 
     block_size_t get_block_size();
 
-    boost::shared_ptr<cache_account_t> create_account(UNUSED int priority) { return boost::shared_ptr<cache_account_t>(); }
+    void create_cache_account(UNUSED int priority, scoped_ptr_t<mock_cache_account_t> *out) {
+        out->init(new mock_cache_account_t());
+    }
 
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 
@@ -148,14 +150,14 @@ private:
     friend class internal_buf_t;
 
     serializer_t *serializer;
-    boost::scoped_ptr<auto_drainer_t> transaction_counter;
+    scoped_ptr_t<auto_drainer_t> transaction_counter;
     block_size_t block_size;
 
     // Makes sure that write operations do not get reordered, which
     // throttling is supposed to do in the real buffer cache.
     coro_fifo_t write_operation_random_delay_fifo;
 
-    boost::scoped_ptr< segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> > bufs;
+    scoped_ptr_t< segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> > bufs;
 
     coro_fifo_t transaction_constructor_coro_fifo_;
 };

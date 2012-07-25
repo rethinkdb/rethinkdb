@@ -13,10 +13,11 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
     files = driver.Files(metacluster, executable_path = executable_path, command_prefix = command_prefix)
-    process = driver.Process(cluster, files, executable_path = executable_path, command_prefix = command_prefix)
+    process = driver.Process(cluster, files,
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     process.wait_until_started_up()
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", process.http_port)])
@@ -24,12 +25,13 @@ with driver.Metacluster() as metacluster:
     http.move_server_to_datacenter(http.machines.keys()[0], dc)
     ns = http.add_namespace(protocol = "memcached", primary = dc)
     http.wait_until_blueprint_satisfied(ns)
-    host, port = driver.get_namespace_host(ns.port, [process])
-    workload_runner.run(opts["workload1"], host, port, opts["timeout"])
+    worlkkoad_ports = scenario_common.get_workload_ports(ns.port, [process])
+    workload_runner.run(opts["workload1"], workload_ports, opts["timeout"])
     print "Restarting server..."
     process.check_and_stop()
-    process2 = driver.Process(cluster, files)
+    process2 = driver.Process(cluster, files,
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     process2.wait_until_started_up()
     http.wait_until_blueprint_satisfied(ns)
-    workload_runner.run(opts["workload2"], host, port, opts["timeout"])
+    workload_runner.run(opts["workload2"], workload_ports, opts["timeout"])
     cluster.check_and_stop()

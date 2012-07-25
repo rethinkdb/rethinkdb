@@ -1,15 +1,19 @@
+#include "clustering/administration/main/command_line.hpp"
+
+#include <signal.h>             // sigaction
+
 #include "utils.hpp"
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
 
 #include "arch/arch.hpp"
-#include "arch/runtime/starter.hpp"
 #include "arch/os_signal.hpp"
-#include "clustering/administration/main/command_line.hpp"
-#include "clustering/administration/main/serve.hpp"
+#include "arch/runtime/starter.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
+#include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
+#include "extproc/spawner.hpp"
 #include "mock/dummy_protocol.hpp"
 
 namespace po = boost::program_options;
@@ -37,7 +41,7 @@ bool check_existence(const std::string& file_path) {
     return 0 == access(file_path.c_str(), F_OK);
 }
 
-void run_rethinkdb_create(const std::string &filepath, std::string &machine_name, const io_backend_t io_backend, bool *result_out) {
+void run_rethinkdb_create(const std::string &filepath, const std::string &machine_name, const io_backend_t io_backend, bool *result_out) {
     if (check_existence(filepath)) {
         printf("ERROR: The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
         *result_out = false;
@@ -59,8 +63,12 @@ void run_rethinkdb_create(const std::string &filepath, std::string &machine_name
         return;
     }
 
-    perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
-    metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, metadata);
+    scoped_ptr_t<io_backender_t> io_backender;
+    make_io_backender(io_backend, &io_backender);
+
+    perfmon_collection_t metadata_perfmon_collection;
+    perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
+    metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, metadata);
 
     printf("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
 
@@ -90,16 +98,16 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
             admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).run_completion(command_args);
         else
             admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).parse_and_run_command(command_args);
-    } catch (admin_no_connection_exc_t& ex) {
+    } catch (const admin_no_connection_exc_t& ex) {
         fprintf(stderr, "%s\n", ex.what());
         fprintf(stderr, "valid --join option required to handle command, run 'rethinkdb admin help' for more information\n");
-    } catch (std::exception& ex) {
+    } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
         *result_out = false;
     }
 }
 
-void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     if (!check_existence(filepath)) {
@@ -108,10 +116,15 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
         return;
     }
 
-    perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
-    metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
+    scoped_ptr_t<io_backender_t> io_backender;
+    make_io_backender(io_backend, &io_backender);
 
-    *result_out = serve(io_backend,
+    perfmon_collection_t metadata_perfmon_collection;
+    perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
+    metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
+
+    *result_out = serve(spawner_info,
+                        io_backender.get(),
                         filepath, &store,
                         look_up_peers_addresses(joins),
                         ports,
@@ -121,17 +134,22 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
                         &sigint_cond);
 }
 
-void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     printf("Checking if directory '%s' already exists...\n", filepath.c_str());
     if (check_existence(filepath)) {
         printf("It already exists.  Loading data...\n");
 
-        perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
-        metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
+        scoped_ptr_t<io_backender_t> io_backender;
+        make_io_backender(io_backend, &io_backender);
 
-        *result_out = serve(io_backend,
+        perfmon_collection_t metadata_perfmon_collection;
+        perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
+        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
+
+        *result_out = serve(spawner_info,
+                            io_backender.get(),
                             filepath, &store,
                             look_up_peers_addresses(joins),
                             ports,
@@ -204,18 +222,30 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             shards.insert(hash_region_t<key_range_t>::universe());
             namespace_metadata.shards = vclock_t<std::set<hash_region_t<key_range_t> > >(shards, our_machine_id);
 
+            region_map_t<memcached_protocol_t, machine_id_t> primary_pinnings(hash_region_t<key_range_t>::universe(), nil_uuid());
+            namespace_metadata.primary_pinnings = vclock_t<region_map_t<memcached_protocol_t, machine_id_t> >(primary_pinnings, our_machine_id);
+
+            region_map_t<memcached_protocol_t, std::set<machine_id_t> > secondary_pinnings(hash_region_t<key_range_t>::universe(), std::set<machine_id_t>());
+            namespace_metadata.secondary_pinnings = vclock_t<region_map_t<memcached_protocol_t, std::set<machine_id_t> > >(secondary_pinnings, our_machine_id);
+
             semilattice_metadata.memcached_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
 
         } else {
             machine_semilattice_metadata_t our_machine_metadata;
             our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
+            our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
             semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
         }
 
-        perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
-        metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
+        scoped_ptr_t<io_backender_t> io_backender;
+        make_io_backender(io_backend, &io_backender);
 
-        *result_out = serve(io_backend,
+        perfmon_collection_t metadata_perfmon_collection;
+        perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
+        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
+
+        *result_out = serve(spawner_info,
+                            io_backender.get(),
                             filepath, &store,
                             look_up_peers_addresses(joins),
                             ports,
@@ -225,11 +255,15 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
     }
 }
 
-void run_rethinkdb_proxy(const std::string &logfilepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::string &logfilepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
     rassert(!joins.empty());
 
-    *result_out = serve_proxy(io_backend,
+    scoped_ptr_t<io_backender_t> io_backender;
+    make_io_backender(io_backend, &io_backender);
+
+    *result_out = serve_proxy(spawner_info,
+                              io_backender.get(),
                               logfilepath,
                               look_up_peers_addresses(joins),
                               ports,
@@ -287,7 +321,7 @@ po::options_description get_network_options() {
 po::options_description get_disk_options() {
     po::options_description desc("Disk I/O options");
     desc.add_options()
-        ("io-backend", po::value<std::string>()->default_value("pool"), "event backend to use: native or pool.  Defaults to pool.");
+        ("io-backend", po::value<std::string>()->default_value("native"), "event backend to use: native or pool.  Defaults to native.");
     return desc;
 }
 
@@ -337,7 +371,7 @@ po::options_description get_rethinkdb_porcelain_options() {
 }
 
 // Returns true upon success.
-MUST_USE bool pull_io_backend_option(po::variables_map& vm, io_backend_t *out) {
+MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *out) {
     std::string io_backend = vm["io-backend"].as<std::string>();
     if (io_backend == "pool") {
         *out = aio_pool;
@@ -355,7 +389,7 @@ int parse_commands(int argc, char *argv[], po::variables_map *vm, const po::opti
         po::store(po::parse_command_line(argc, argv, options), *vm);
         po::notify(*vm);
         return 0;
-    } catch (po::unknown_option& ex) {
+    } catch (const po::unknown_option& ex) {
         fprintf(stderr, "%s\n", ex.what());
         return 1;
     }
@@ -415,10 +449,13 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_t::create(&spawner_info);
+
     const int num_workers = get_cpu_count();
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, &spawner_info, filepath, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())
                                    ),
                                    io_backend,
@@ -466,7 +503,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, exit_on_failure, &result),
                            num_workers);
 
-    } catch (std::exception& ex) {
+    } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
         result = false;
     }
@@ -507,10 +544,13 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_t::create(&spawner_info);
+
     const int num_workers = get_cpu_count();
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, logfilepath, joins,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, logfilepath, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
                                    io_backend,
                                    &result, render_as_path(web_path)),
@@ -550,10 +590,13 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_t::create(&spawner_info);
+
     const int num_workers = get_cpu_count();
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, joins,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, &spawner_info, filepath, machine_name, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
                                    io_backend,
                                    &result, render_as_path(web_path)),

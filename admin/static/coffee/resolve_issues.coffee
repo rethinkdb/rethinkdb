@@ -6,6 +6,10 @@ module 'ResolveIssuesView', ->
         template_outer: Handlebars.compile $('#resolve_issues-container-outer-template').html()
         template_inner: Handlebars.compile $('#resolve_issues-container-inner-template').html()
 
+
+        events:
+            'click .close': 'remove_parent_alert'
+
         initialize: =>
             log_initial '(initializing) resolve issues view: container'
             issues.on 'all', (model, collection) => @render_issues()
@@ -15,6 +19,12 @@ module 'ResolveIssuesView', ->
             @render_issues()
 
             return @
+
+        remove_parent_alert: (event) ->
+            event.preventDefault()
+            element = $(event.target).parent()
+            element.slideUp 'fast', -> element.remove()
+
 
         # we're adding an inner render function to avoid rerendering
         # everything (for example we need to not render the alert,
@@ -65,6 +75,7 @@ module 'ResolveIssuesView', ->
         on_submit: ->
             super
 
+            ###
             data = 
                 semilattice:
                     machines: {}
@@ -77,26 +88,14 @@ module 'ResolveIssuesView', ->
                 data: JSON.stringify(data)
                 success: @on_success
                 error: @on_error
- 
-            ###
-            data = null
-            $.ajax
-                url: "/ajax/semilattice/machines/"+@machine_to_kill.get('id')
-                type: 'POST'
-                contentType: 'application/json'
-                data: JSON.stringify(data)
-                success: @on_success
             ###
  
-            ###
             $.ajax
                 url: "/ajax/semilattice/machines/#{@machine_to_kill.id}"
                 type: 'DELETE'
                 contentType: 'application/json'
-                data: JSON.stringify(data)
                 success: @on_success
-            ###
-            #
+                error: @on_error
  
         on_success_with_error: =>
             @.$('.error_answer').html @template_issue_error
@@ -119,6 +118,7 @@ module 'ResolveIssuesView', ->
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: '/ajax/issues'
+                contentType: 'application/json'
                 success: set_issues
                 async: false
             
@@ -174,6 +174,7 @@ module 'ResolveIssuesView', ->
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: '/ajax/issues'
+                contentType: 'application/json'
                 success: set_issues
                 async: false
 
@@ -221,6 +222,7 @@ module 'ResolveIssuesView', ->
             $.ajax
                 processData: false
                 url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
+                contentType: 'application/json'
                 type: 'POST'
                 data: JSON.stringify
                     replica_affinities: replica_affinities_to_send
@@ -319,6 +321,7 @@ module 'ResolveIssuesView', ->
                         # Grab the new set of issues (so we don't have to wait)
                         $.ajax
                             url: '/ajax/issues'
+                            contentType: 'application/json'
                             success: set_issues
                             async: false
 

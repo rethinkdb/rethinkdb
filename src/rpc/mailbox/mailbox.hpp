@@ -1,6 +1,12 @@
 #ifndef RPC_MAILBOX_MAILBOX_HPP_
 #define RPC_MAILBOX_MAILBOX_HPP_
 
+#include <map>
+#include <string>
+
+#include "errors.hpp"
+#include <boost/function.hpp>
+
 #include "containers/archive/archive.hpp"
 #include "rpc/connectivity/cluster.hpp"
 
@@ -10,6 +16,11 @@ struct mailbox_manager_t;
 to handle messages it receives. To send messages to the mailbox, call the
 `get_address()` method and then call `send()` on the address it returns. */
 
+enum mailbox_thread_mode_t {
+    mailbox_home_thread,
+    mailbox_any_thread
+};
+
 struct raw_mailbox_t :
     public home_thread_mixin_t
 {
@@ -17,9 +28,10 @@ private:
     friend struct mailbox_manager_t;
 
     mailbox_manager_t *manager;
+    const mailbox_thread_mode_t thread_mode;
 
-    typedef int id_t;
-    id_t mailbox_id;
+    typedef uint64_t id_t;
+    const id_t mailbox_id;
 
     boost::function<void(read_stream_t *)> callback;
 
@@ -56,13 +68,14 @@ public:
         peer_id_t peer;
 
         /* The thread on `peer` that the mailbox lives on */
+        static const int ANY_THREAD;
         int thread;
 
         /* The ID of the mailbox */
         id_t mailbox_id;
     };
 
-    raw_mailbox_t(mailbox_manager_t *, const boost::function<void(read_stream_t *)> &);
+    raw_mailbox_t(mailbox_manager_t *, mailbox_thread_mode_t tm, const boost::function<void(read_stream_t *)> &);
     ~raw_mailbox_t();
 
     address_t get_address();
@@ -103,11 +116,24 @@ private:
     struct mailbox_table_t {
         mailbox_table_t();
         ~mailbox_table_t();
-        raw_mailbox_t::id_t next_mailbox_id;
+        raw_mailbox_t::id_t next_local_mailbox_id;
+        raw_mailbox_t::id_t next_global_mailbox_id;
         std::map<raw_mailbox_t::id_t, raw_mailbox_t *> mailboxes;
         raw_mailbox_t *find_mailbox(raw_mailbox_t::id_t);
     };
     one_per_thread_t<mailbox_table_t> mailbox_tables;
+
+    raw_mailbox_t::id_t generate_local_id();
+    raw_mailbox_t::id_t generate_global_id();
+
+    raw_mailbox_t::id_t register_mailbox_one_thread(raw_mailbox_t *mb);
+    raw_mailbox_t::id_t register_mailbox_all_threads(raw_mailbox_t *mb);
+    void register_mailbox_internal(raw_mailbox_t *mb, raw_mailbox_t::id_t id);
+    void register_mailbox_wrapper(raw_mailbox_t *mb, raw_mailbox_t::id_t id, int thread);
+
+    void unregister_mailbox(raw_mailbox_t::id_t id);
+    void unregister_mailbox_wrapper(raw_mailbox_t::id_t id, int thread);
+    void unregister_mailbox_internal(raw_mailbox_t::id_t id);
 
     static void write_mailbox_message(write_stream_t *stream, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, boost::function<void(write_stream_t *)> writer);
     void on_message(peer_id_t, read_stream_t *stream);

@@ -1,6 +1,3 @@
-#include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
-
 #include "btree/erase_range.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
@@ -43,7 +40,7 @@ public:
             }
         }
 
-        scoped_malloc<char> value(sizer_->max_possible_size());
+        scoped_malloc_t<char> value(sizer_->max_possible_size());
 
         for (int i = 0, e = keys_to_delete.size(); i < e; ++i) {
             if (leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(), value.get())) {

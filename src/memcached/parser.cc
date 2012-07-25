@@ -1,18 +1,21 @@
 #include "memcached/parser.hpp"
 
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
+
 #include <inttypes.h>
-#include <stdexcept>
 #include <stdarg.h>
 #include <unistd.h>
+
+#include <set>
+#include <stdexcept>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
-
-#include <vector>
-#include <set>
 
 #include "concurrency/coro_fifo.hpp"
 #include "concurrency/mutex.hpp"
@@ -24,6 +27,7 @@
 #include "containers/buffer_group.hpp"
 #include "containers/iterators.hpp"
 #include "containers/printf_buffer.hpp"
+#include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "arch/os_signal.hpp"
 #include "perfmon/collect.hpp"
@@ -559,7 +563,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
                          bool noreply,
                          order_token_t token) {
 
-    boost::scoped_ptr<pipeliner_acq_t> pipeliner_acq(pipeliner_acq_raw);
+    scoped_ptr_t<pipeliner_acq_t> pipeliner_acq(pipeliner_acq_raw);
 
     block_pm_duration set_timer(&rh->stats->pm_cmd_set);
 
@@ -590,7 +594,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
             unreachable();
         }
 
-        set_result_t res;
+        set_result_t res = set_result_t(-1);
         std::string error_message;
         bool ok;
 
@@ -644,7 +648,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
         }
 
     } else {
-        append_prepend_result_t res;
+        append_prepend_result_t res = append_prepend_result_t(-1);
         std::string error_message;
         bool ok;
 
@@ -690,7 +694,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
 void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_command_t sc, int argc, char **argv, order_token_t token) {
     // This is _not_ spawned yet.
 
-    pipeliner_acq_t *pipeliner_acq = new pipeliner_acq_t(pipeliner);
+    scoped_ptr_t<pipeliner_acq_t> pipeliner_acq(new pipeliner_acq_t(pipeliner));
     pipeliner_acq->begin_operation();
 
     const char *invalid_char;
@@ -703,7 +707,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->error();
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
 
@@ -714,7 +717,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
     rh->stats->pm_storage_key_size.record((float) key.size());
@@ -726,7 +728,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
 
@@ -737,7 +738,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
 
@@ -767,7 +767,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
     rh->stats->pm_storage_value_size.record((float) value_size);
@@ -781,7 +780,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
             pipeliner_acq->begin_write();
             rh->client_error_bad_command_line_format();
             pipeliner_acq->end_write();
-            delete pipeliner_acq;
             return;
         }
     }
@@ -812,7 +810,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->client_error_bad_data();
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
 
@@ -821,7 +818,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->client_error("bad data chunk\r\n");
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
 
@@ -831,7 +827,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
 
     pipeliner_acq->done_argparsing();
 
-    coro_t::spawn_now_deprecated(boost::bind(&run_storage_command, rh, pipeliner_acq, sc, key, dp, metadata, noreply, token));
+    coro_t::spawn_now(boost::bind(&run_storage_command, rh, pipeliner_acq.release(), sc, key, dp, metadata, noreply, token));
 }
 
 /* "incr" and "decr" commands */
@@ -939,7 +935,7 @@ void run_delete(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, sto
 
     block_pm_duration set_timer(&rh->stats->pm_cmd_set);
 
-    delete_result_t res;
+    delete_result_t res = delete_result_t(-1);
     std::string error_message;
     bool ok;
 
@@ -1032,7 +1028,7 @@ void do_delete(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, ch
 
 /* "stats" command */
 
-void format_stats(const perfmon_result_t *stats, const std::string& name, const std::set<std::string>& names_to_match, std::vector<std::string>& result) {
+void format_stats(const perfmon_result_t *stats, const std::string& name, const std::set<std::string>& names_to_match, std::vector<std::string> *result) {
     // `switch` is used instead of `if` with `is_map` and `is_string` checks
     // because that way the compiler guarantees us an error message if someone
     // adds another type of `perfmon_results_t` and forgets to change this code
@@ -1041,7 +1037,7 @@ void format_stats(const perfmon_result_t *stats, const std::string& name, const 
              // This is not super-efficient (better to only scan for the stats
              // that match the name), but we don't care right now
             if (names_to_match.empty() || names_to_match.count(name) != 0) {
-                result.push_back(strprintf("STAT %s %s\r\n", name.c_str(), stats->get_string()->c_str()));
+                result->push_back(strprintf("STAT %s %s\r\n", name.c_str(), stats->get_string()->c_str()));
             }
             break;
         case perfmon_result_t::type_map:
@@ -1055,7 +1051,7 @@ void format_stats(const perfmon_result_t *stats, const std::string& name, const 
     }
 }
 
-void memcached_stats(int argc, char **argv, std::vector<std::string>& stat_response_lines) {
+void memcached_stats(int argc, char **argv, std::vector<std::string> *stat_response_lines) {
     static const std::string end_marker("END\r\n");
 
     // parse args, if any
@@ -1064,11 +1060,9 @@ void memcached_stats(int argc, char **argv, std::vector<std::string>& stat_respo
         names_to_match.insert(argv[i]);
     }
 
-    perfmon_result_t stats(perfmon_result_t::make_map());
-    perfmon_get_stats(&stats);
-
-    format_stats(&stats, std::string(), names_to_match, stat_response_lines);
-    stat_response_lines.push_back(end_marker);
+    scoped_ptr_t<perfmon_result_t> stats(perfmon_get_stats());
+    format_stats(stats.get(), std::string(), names_to_match, stat_response_lines);
+    stat_response_lines->push_back(end_marker);
 }
 
 /* Handle memcached, takes a txt_memcached_handler_t and handles the memcached commands that come in on it */
@@ -1123,11 +1117,11 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
         /* Dispatch to the appropriate subclass */
         order_token_t token = order_source.check_in(std::string("handle_memcache+") + args[0]);
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
-            coro_t::spawn_now_deprecated(boost::bind(do_get, &rh, &pipeliner, false, args.size(), args.data(), token.with_read_mode()));
+            coro_t::spawn_now(boost::bind(do_get, &rh, &pipeliner, false, args.size(), args.data(), token.with_read_mode()));
         } else if (!strcmp(args[0], "gets")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_get, &rh, &pipeliner, true, args.size(), args.data(), token));
+            coro_t::spawn_now(boost::bind(do_get, &rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "rget")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_rget, &rh, &pipeliner, args.size(), args.data()));
+            coro_t::spawn_now(boost::bind(do_rget, &rh, &pipeliner, args.size(), args.data()));
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
             do_storage(&rh, &pipeliner, set_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "add")) {
@@ -1141,11 +1135,11 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
         } else if (!strcmp(args[0], "cas")) {
             do_storage(&rh, &pipeliner, cas_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "delete")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_delete, &rh, &pipeliner, args.size(), args.data(), token));
+            coro_t::spawn_now(boost::bind(do_delete, &rh, &pipeliner, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "incr")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_incr_decr, &rh, &pipeliner, true, args.size(), args.data(), token));
+            coro_t::spawn_now(boost::bind(do_incr_decr, &rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "decr")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_incr_decr, &rh, &pipeliner, false, args.size(), args.data(), token));
+            coro_t::spawn_now(boost::bind(do_incr_decr, &rh, &pipeliner, false, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "quit")) {
             // Make sure there's no more tokens (the kind in args, not
             // order tokens)
@@ -1165,7 +1159,7 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
             pipeliner_acq.begin_operation();
 
             std::vector<std::string> stat_response_lines;
-            memcached_stats(args.size(), args.data(), stat_response_lines);
+            memcached_stats(args.size(), args.data(), &stat_response_lines);
 
             // We block everybody before writing.  I don't think we care.
             pipeliner_acq.done_argparsing();

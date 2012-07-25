@@ -3,6 +3,8 @@
 
 #include "clustering/reactor/directory_echo.hpp"
 
+#include <map>
+
 template<class internal_t>
 directory_echo_writer_t<internal_t>::our_value_change_t::our_value_change_t(directory_echo_writer_t *p) :
         parent(p), lock_acq(&parent->value_lock), buffer(parent->value_watchable.get_watchable()->get().internal) { }
@@ -33,7 +35,7 @@ directory_echo_writer_t<internal_t>::ack_waiter_t::ack_waiter_t(directory_echo_w
     if (it2 == parent->waiters.end()) {
         it2 = parent->waiters.insert(std::make_pair(peer, std::multimap<directory_echo_version_t, ack_waiter_t *>())).first;
     }
-    map_entry.reset(
+    map_entry.init(
         new multimap_insertion_sentry_t<directory_echo_version_t, ack_waiter_t *>(
             &(*it2).second, version, this
             )

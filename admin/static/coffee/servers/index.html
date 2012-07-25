@@ -138,7 +138,7 @@
       <div class="clearfix">
         <label for="name">Name</label>
         <div class="input">
-          <input class="xlarge" name="name" size="30" type="text" />
+          <input class="xlarge focus_new_name" name="name" size="30" type="text" />
         </div>
       </div>
     </fieldset>
@@ -150,6 +150,10 @@
     <a class="close" href="#">&times;</a>
     <p>You added datacenter <span class="name">{{name}}</span>. You can now <a href="#datacenters/{{uuid}}">configure</a> it further.</p>
   </div>
+</script>
+
+<script id="fail_delete_datacenter-template" type="text/x-handlebars-template">
+    Sorry, something went wrong. The datacenter might not be up to date, please refresh.
 </script>
 
 <script id="remove_datacenter-modal-template" type="text/x-handlebars-template">

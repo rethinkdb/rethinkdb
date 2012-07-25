@@ -1,12 +1,14 @@
-#include <algorithm>
-#include <fcntl.h>
+#include "arch/io/disk/aio.hpp"
+
 #include <linux/fs.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include "arch/io/disk/aio.hpp"
+
+#include <algorithm>
+
 #include "arch/io/disk/aio/getevents_eventfd.hpp"
 #include "arch/io/disk/aio/getevents_noeventfd.hpp"
 #include "arch/io/disk/aio/submit_sync.hpp"
@@ -36,15 +38,15 @@ linux_diskmgr_aio_t::linux_diskmgr_aio_t(
       queue(_queue),
       source(_source),
       aio_context(MAX_CONCURRENT_IO_REQUESTS) {
-    submitter.reset(new linux_aio_submit_sync_t(
+    submitter.init(new linux_aio_submit_sync_t(
         &aio_context,
         static_cast<passive_producer_t<iocb *>*>(this)
         ));
 
 #ifdef NO_EVENTFD
-    getter.reset(new linux_aio_getevents_noeventfd_t(this));
+    getter.init(new linux_aio_getevents_noeventfd_t(this));
 #else
-    getter.reset(new linux_aio_getevents_eventfd_t(this));
+    getter.init(new linux_aio_getevents_eventfd_t(this));
 #endif
 }
 

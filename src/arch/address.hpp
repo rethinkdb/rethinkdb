@@ -27,7 +27,7 @@ public:
 
 private:
     friend class write_message_t;
-    void rdb_serialize(write_message_t &msg) const {
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const {
         msg.append(&addr, sizeof(addr));
     }
 

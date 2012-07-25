@@ -3,7 +3,7 @@
 
 #include "clustering/administration/persistable_blueprint.hpp"
 
-#include "errors.hpp"
+#include <string>
 
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"

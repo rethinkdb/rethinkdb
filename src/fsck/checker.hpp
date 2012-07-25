@@ -1,8 +1,10 @@
 #ifndef FSCK_CHECKER_HPP_
 #define FSCK_CHECKER_HPP_
 
+#include <string>
 #include <vector>
 
+#include "arch/io/io_utils.hpp"
 #include "utils.hpp"
 
 namespace fsck {
@@ -52,8 +54,9 @@ struct config_t {
 
     bool print_command_line;
     bool print_file_version;
+    io_backend_t io_backend;
 
-    config_t() : ignore_diff_log(false), print_command_line(false), print_file_version(false) {}
+    config_t() : ignore_diff_log(false), print_command_line(false), print_file_version(false), io_backend(aio_native) {}
 };
 
 bool check_files(const config_t *config);

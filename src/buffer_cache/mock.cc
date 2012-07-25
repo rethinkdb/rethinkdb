@@ -251,7 +251,7 @@ mock_cache_t::~mock_cache_t() {
     }
 
     for (block_id_t i = 0; i < bufs->get_size(); i++) {
-        if (bufs->get(i)) delete bufs->get(i);
+        delete bufs->get(i);
     }
 }
 

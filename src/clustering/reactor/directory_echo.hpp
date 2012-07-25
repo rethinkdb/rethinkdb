@@ -1,12 +1,12 @@
 #ifndef CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP_
 #define CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP_
 
-#include "utils.hpp"
-#include <boost/optional.hpp>
-#include <boost/ptr_container/ptr_map.hpp>
+#include <map>
 
 #include "concurrency/watchable.hpp"
+#include "containers/scoped.hpp"
 #include "rpc/mailbox/typed.hpp"
+#include "utils.hpp"
 
 typedef int directory_echo_version_t;
 
@@ -52,7 +52,7 @@ public:
         ack_waiter_t(directory_echo_writer_t *parent, peer_id_t peer, directory_echo_version_t version);
     private:
         friend class directory_echo_writer_t;
-        boost::scoped_ptr<multimap_insertion_sentry_t<directory_echo_version_t, ack_waiter_t *> > map_entry;
+        scoped_ptr_t<multimap_insertion_sentry_t<directory_echo_version_t, ack_waiter_t *> > map_entry;
 
         DISABLE_COPYING(ack_waiter_t);
     };

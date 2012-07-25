@@ -13,9 +13,9 @@ directory_http_app_t::directory_http_app_t(const clone_ptr_t<watchable_t<std::ma
 
 static const char *any_machine_id_wildcard = "_";
 
-cJSON *directory_http_app_t::get_metadata_json(cluster_directory_metadata_t& metadata, http_req_t::resource_t::iterator path_begin, http_req_t::resource_t::iterator path_end) THROWS_ONLY(schema_mismatch_exc_t) {
-    boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_read_only_adapter_t<cluster_directory_metadata_t, namespace_metadata_ctx_t>(&metadata));
-    namespace_metadata_ctx_t json_ctx(metadata.machine_id);
+cJSON *directory_http_app_t::get_metadata_json(cluster_directory_metadata_t *metadata, http_req_t::resource_t::iterator path_begin, http_req_t::resource_t::iterator path_end) THROWS_ONLY(schema_mismatch_exc_t) {
+    boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_read_only_adapter_t<cluster_directory_metadata_t, namespace_metadata_ctx_t>(metadata));
+    namespace_metadata_ctx_t json_ctx(metadata->machine_id);
 
     // Traverse through the subfields until we're done with the url
     for (http_req_t::resource_t::iterator it = path_begin; it != path_end; ++it) {
@@ -77,7 +77,7 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
             for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = md.begin(); i != md.end(); ++i) {
                 cluster_directory_metadata_t metadata = i->second;
                 std::string machine_id = uuid_to_str(metadata.machine_id);
-                cJSON_AddItemToObject(body.get(), machine_id.c_str(), get_metadata_json(metadata, it, req.resource.end()));
+                cJSON_AddItemToObject(body.get(), machine_id.c_str(), get_metadata_json(&metadata, it, req.resource.end()));
             }
             http_res_t res(200);
             res.set_body("application/json", cJSON_print_std_string(body.get()));
@@ -87,7 +87,7 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
                 cluster_directory_metadata_t metadata = i->second;
                 std::string machine_id = uuid_to_str(metadata.machine_id);
                 if (*requested_machine_id == machine_id) {
-                    scoped_cJSON_t machine_json = scoped_cJSON_t(get_metadata_json(metadata, it, req.resource.end()));
+                    scoped_cJSON_t machine_json = scoped_cJSON_t(get_metadata_json(&metadata, it, req.resource.end()));
                     http_res_t res(200);
                     res.set_body("application/json", cJSON_print_std_string(machine_json.get()));
                     return res;
@@ -98,12 +98,12 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
             return res;
         }
         unreachable();
-    } catch (schema_mismatch_exc_t &e) {
+    } catch (const schema_mismatch_exc_t &e) {
         http_res_t res(404);
         logINF("HTTP request threw a schema_mismatch_exc_t with what = %s", e.what());
         res.set_body("application/text", e.what());
         return res;
-    } catch (permission_denied_exc_t &e) {
+    } catch (const permission_denied_exc_t &e) {
         http_res_t res(403); // TODO: should that be 405 Method Not Allowed?
         logINF("HTTP request threw a permission_denied_exc_t with what = %s", e.what());
         res.set_body("application/text", e.what());

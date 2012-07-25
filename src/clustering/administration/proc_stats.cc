@@ -69,7 +69,12 @@ private:
 
         buffer[res] = '\0';
 
+#ifndef LEGACY_PROC_STAT
         const int items_to_parse = 44;
+#else
+        const int items_to_parse = 42;
+#endif
+
         int res2 = sscanf(buffer, "%d %s %c %d %d %d %d %d %u"
                           " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
                           " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64
@@ -78,9 +83,13 @@ private:
                           " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
                           " %d %d"
                           " %u %u"
+#ifndef LEGACY_PROC_STAT
                           " %" SCNu64
                           " %" SCNu64
                           " %" SCNd64,
+#else
+                          " %" SCNu64,
+#endif
                           &pid,
                           name,
                           &state,
@@ -95,9 +104,14 @@ private:
                           &sigignore, &sigcatch, &wchan, &nswap, &cnswap,
                           &exit_signal, &processor,
                           &rt_priority, &policy,
+#ifndef LEGACY_PROC_STAT
                           &delayacct_blkio_ticks,
                           &guest_time,
-                          &cguest_time);
+                          &cguest_time
+#else
+                          &delayacct_blkio_ticks
+#endif
+                          );
         if (res2 != items_to_parse) {
             throw std::runtime_error(strprintf("Could not parse '%s': expected "
                 "to parse %d items, parsed %d. Buffer contents: %s", path,
@@ -222,21 +236,29 @@ public:
 };
 
 proc_stats_collector_t::proc_stats_collector_t(perfmon_collection_t *stats) :
-    instantaneous_stats_collector(stats),
-    cpu_thread_user("cpu_user", secs_to_ticks(5), false, stats),
-    cpu_thread_system("cpu_system", secs_to_ticks(5), false, stats),
-    cpu_thread_combined("cpu_combined", secs_to_ticks(5), false, stats),
-    cpu_global_combined("global_cpu_util", secs_to_ticks(5), false, stats),
-    net_global_received("global_net_recv_persec", secs_to_ticks(5), false, stats),
-    net_global_sent("global_net_sent_persec", secs_to_ticks(5), false, stats),
-    memory_faults("memory_faults_persec", secs_to_ticks(5), false, stats)
+    instantaneous_stats_collector(),
+    cpu_thread_user(secs_to_ticks(5), false),
+    cpu_thread_system(secs_to_ticks(5), false),
+    cpu_thread_combined(secs_to_ticks(5), false),
+    cpu_global_combined(secs_to_ticks(5), false),
+    net_global_received(secs_to_ticks(5), false),
+    net_global_sent(secs_to_ticks(5), false),
+    memory_faults(secs_to_ticks(5), false),
+    stats_membership(stats,
+        &instantaneous_stats_collector, NULL,
+        &cpu_thread_user, "cpu_user",
+        &cpu_thread_system, "cpu_system",
+        &cpu_thread_combined, "cpu_combined",
+        &cpu_global_combined, "global_cpu_util",
+        &net_global_received, "global_net_recv_persec",
+        &net_global_sent, "global_net_sent_persec",
+        &memory_faults, "memory_faults_persec",
+        NULL)
 {
     coro_t::spawn_sometime(boost::bind(&proc_stats_collector_t::collect_periodically, this, auto_drainer_t::lock_t(&drainer)));
 }
 
-proc_stats_collector_t::instantaneous_stats_collector_t::instantaneous_stats_collector_t(perfmon_collection_t *stats) :
-    perfmon_t(stats, true)
-{
+proc_stats_collector_t::instantaneous_stats_collector_t::instantaneous_stats_collector_t() {
     // Whoever you are, please don't change this to start_time =
     // time(NULL) it results in a negative uptime stat.
     struct timespec now;
@@ -253,28 +275,33 @@ void proc_stats_collector_t::instantaneous_stats_collector_t::visit_stats(void *
     /* Do nothing; the things we need to get can be gotten on any thread */
 }
 
-void proc_stats_collector_t::instantaneous_stats_collector_t::end_stats(void *, perfmon_result_t *dest) { 
+perfmon_result_t *proc_stats_collector_t::instantaneous_stats_collector_t::end_stats(void *) {
+    perfmon_result_t *result;
+    perfmon_result_t::alloc_map_result(&result);
+
     // Basic process stats (version, pid, uptime)
     struct timespec now;
     int res = clock_gettime(CLOCK_MONOTONIC, &now);
     guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
-    dest->insert("uptime", new perfmon_result_t(strprintf("%ld", now.tv_sec - start_time)));
-    dest->insert("timestamp", new perfmon_result_t(format_time(now)));
 
-    dest->insert("version", new perfmon_result_t(std::string(RETHINKDB_VERSION)));
-    dest->insert("pid", new perfmon_result_t(strprintf("%d", getpid())));
+    result->insert("uptime", new perfmon_result_t(strprintf("%ld", now.tv_sec - start_time)));
+    result->insert("timestamp", new perfmon_result_t(format_time(now)));
+
+    result->insert("version", new perfmon_result_t(std::string(RETHINKDB_VERSION)));
+    result->insert("pid", new perfmon_result_t(strprintf("%d", getpid())));
 
     try {
         proc_pid_stat_t pid_stat = proc_pid_stat_t::for_pid(getpid());
-        dest->insert("memory_virtual", new perfmon_result_t(strprintf("%lu", pid_stat.vsize)));
-        dest->insert("memory_real", new perfmon_result_t(strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE))));
+        result->insert("memory_virtual", new perfmon_result_t(strprintf("%lu", pid_stat.vsize)));
+        result->insert("memory_real", new perfmon_result_t(strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE))));
 
         global_sys_stat_t global_stat = global_sys_stat_t::read_global_stats();
-        dest->insert("global_mem_total", new perfmon_result_t(strprintf("%ld", global_stat.mem_total)));
-        dest->insert("global_mem_used", new perfmon_result_t(strprintf("%ld", global_stat.mem_total - global_stat.mem_free)));
+        result->insert("global_mem_total", new perfmon_result_t(strprintf("%ld", global_stat.mem_total)));
+        result->insert("global_mem_used", new perfmon_result_t(strprintf("%ld", global_stat.mem_total - global_stat.mem_free)));
     } catch (const std::runtime_error &e) {
         logWRN("Error in collecting system stats (on demand): %s", e.what());
     }
+    return result;
 }
 
 static void fetch_tid(int thread, pid_t *out) {
@@ -284,11 +311,11 @@ static void fetch_tid(int thread, pid_t *out) {
 
 void proc_stats_collector_t::collect_periodically(auto_drainer_t::lock_t keepalive) {
     try {
-        boost::scoped_array<pid_t> tids(new pid_t[get_num_threads()]);
-        pmap(get_num_threads(), boost::bind(&fetch_tid, _1, tids.get()));
+        scoped_array_t<pid_t> tids(get_num_threads());
+        pmap(get_num_threads(), boost::bind(&fetch_tid, _1, tids.data()));
 
         ticks_t last_ticks = get_ticks();
-        boost::scoped_array<proc_pid_stat_t> last_per_thread(new proc_pid_stat_t[get_num_threads()]);
+        scoped_array_t<proc_pid_stat_t> last_per_thread(get_num_threads());
         for (int i = 0; i < get_num_threads(); i++) {
             last_per_thread[i] = proc_pid_stat_t::for_pid_and_tid(getpid(), tids[i]);
         }
@@ -300,7 +327,7 @@ void proc_stats_collector_t::collect_periodically(auto_drainer_t::lock_t keepali
                 wait_interruptible(&timer, keepalive.get_drain_signal());
 
                 ticks_t current_ticks = get_ticks();
-                boost::scoped_array<proc_pid_stat_t> current_per_thread(new proc_pid_stat_t[get_num_threads()]);
+                scoped_array_t<proc_pid_stat_t> current_per_thread(get_num_threads());
                 for (int i = 0; i < get_num_threads(); i++) {
                     current_per_thread[i] = proc_pid_stat_t::for_pid_and_tid(getpid(), tids[i]);
                 }
@@ -330,7 +357,7 @@ void proc_stats_collector_t::collect_periodically(auto_drainer_t::lock_t keepali
                     (current_global.bytes_sent - last_global.bytes_sent) / elapsed_secs);
 
                 last_ticks = current_ticks;
-                swap(last_per_thread, current_per_thread);
+                last_per_thread.swap(current_per_thread);
                 last_global = current_global;
             }
         } catch (interrupted_exc_t) {

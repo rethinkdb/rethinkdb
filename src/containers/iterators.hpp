@@ -6,11 +6,14 @@
 #include <queue>
 #include <set>
 #include <vector>
+#include <utility>
 
 #include "utils.hpp"
 #include <boost/function.hpp>
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
+
+#include "containers/scoped.hpp"
 
 
 template <typename T>
@@ -25,9 +28,8 @@ struct one_way_iterator_t {
 template <class T, class U>
 struct transform_iterator_t : public one_way_iterator_t<U> {
     transform_iterator_t(const boost::function<U(T&)>& _func, one_way_iterator_t<T> *_ownee) : func(_func), ownee(_ownee) { }
-    virtual ~transform_iterator_t() {
-        delete ownee;
-    }
+    virtual ~transform_iterator_t() { }
+
     virtual typename boost::optional<U> next() {
         boost::optional<T> value = ownee->next();
         if (!value) {
@@ -41,15 +43,14 @@ struct transform_iterator_t : public one_way_iterator_t<U> {
     }
 
     boost::function<U(T&)> func;
-    one_way_iterator_t<T> *ownee;
+    scoped_ptr_t<one_way_iterator_t<T> > ownee;
 };
 
 template <class T>
 struct filter_iterator_t : public one_way_iterator_t<T> {
     filter_iterator_t(const boost::function<bool(T&)>& _predicate, one_way_iterator_t<T> *_ownee) : predicate(_predicate), ownee(_ownee) { }
-    virtual ~filter_iterator_t() {
-        delete ownee;
-    }
+    virtual ~filter_iterator_t() { }
+
     virtual typename boost::optional<T> next() {
         for (;;) {
             boost::optional<T> value = ownee->next();
@@ -73,7 +74,7 @@ struct filter_iterator_t : public one_way_iterator_t<T> {
     }
 
     boost::function<bool(T&)> predicate;
-    one_way_iterator_t<T> *ownee;
+    scoped_ptr_t<one_way_iterator_t<T> > ownee;
 };
 
 template <typename F, typename S, typename Cmp = std::less<F> >
@@ -199,7 +200,7 @@ public:
 
 private:
     boost::optional<T> previous;
-    one_way_iterator_t<T> *ownee;
+    scoped_ptr_t<one_way_iterator_t<T> > ownee;
 };
 
 /* repetition_filter_iterator_t produces an element whenever it was repeated
@@ -217,9 +218,8 @@ public:
     repetition_filter_iterator_t(one_way_iterator_t<T> *_ownee, int _n_repetitions) : previous(boost::none), previous_repetitions(0), ownee(_ownee), n_repetitions(_n_repetitions) {
         rassert(n_repetitions > 0);
     }
-    virtual ~repetition_filter_iterator_t() {
-        delete ownee;
-    }
+    virtual ~repetition_filter_iterator_t() { }
+
     virtual typename boost::optional<T> next() {
         for (;;) {
             boost::optional<T> value = ownee->next();
@@ -256,64 +256,9 @@ public:
 private:
     boost::optional<T> previous;
     int previous_repetitions;
-    one_way_iterator_t<T> *ownee;
+    scoped_ptr_t<one_way_iterator_t<T> > ownee;
     int n_repetitions;
 };
 
-/*
- diff_filter_iterator_t implements set difference semantics. It's output
- are all the keys from ownee_left that are not in ownee_right, assuming
- that they are both sorted. T has to implement operator==() and operator<().
-*/
-// TODO / WARNING: As of Jul 28th, this has not been thoroughly
-// tested. (daniel) If you use this and stuff fails, consider
-// diff_filter_iterator_t to be potentially faulty.
-template <class T>
-class diff_filter_iterator_t : public one_way_iterator_t<T> {
-public:
-    diff_filter_iterator_t(one_way_iterator_t<T> *_ownee_left, one_way_iterator_t<T> *_ownee_right) : ownee_left(_ownee_left), ownee_right(_ownee_right), prefetched_right(boost::none) { }
-    virtual ~diff_filter_iterator_t() {
-        delete ownee_left;
-        delete ownee_right;
-    }
-    virtual typename boost::optional<T> next() {
-        for (;;) {
-            boost::optional<T> value = ownee_left->next();
-            if (!value) {
-                return boost::none;
-            } else {
-                // Is this element the same as prefetched_right?
-                if (prefetched_right && prefetched_right.get() == value.get()) {
-                    // It is, skip value.
-                } else {
-                    // Fetch new elements from ownee_right until they pass value
-                    if (!prefetched_right || prefetched_right.get() < value.get()) {
-                        do {
-                            prefetched_right = ownee_right->next();
-                        } while (prefetched_right && prefetched_right.get() < value.get());
-                    }
-
-                    // Now check again...
-                    if (prefetched_right && prefetched_right.get() == value.get()) {
-                        // Ok, it's the same as value. Skip value.
-                    } else {
-                        // no element like value in prefetched_right, return value
-                        return value;
-                    }
-                }
-            }
-        }
-    }
-    void prefetch() {
-        // TODO: Should we implement this?
-        ownee_left->prefetch();
-        ownee_right->prefetch();
-    }
-
-private:
-    one_way_iterator_t<T> *ownee_left;
-    one_way_iterator_t<T> *ownee_right;
-    boost::optional<T> prefetched_right;
-};
 
 #endif /* CONTAINERS_ITERATORS_HPP_ */

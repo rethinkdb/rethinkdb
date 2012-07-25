@@ -1,17 +1,17 @@
 #ifndef SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP_
 #define SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP_
 
-#include "utils.hpp"
-#include <boost/scoped_ptr.hpp>
+#include <vector>
 
 #include "arch/types.hpp"
-#include "serializer/log/config.hpp"
+#include "containers/bitset.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
-#include "containers/bitset.hpp"
+#include "containers/scoped.hpp"
+#include "perfmon/types.hpp"
+#include "serializer/log/config.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/types.hpp"
-#include "perfmon/types.hpp"
 
 class log_serializer_t;
 
@@ -188,8 +188,8 @@ private:
     log_serializer_t *serializer;
 
     direct_file_t* dbfile;
-    boost::scoped_ptr<file_account_t> gc_io_account_nice;
-    boost::scoped_ptr<file_account_t> gc_io_account_high;
+    scoped_ptr_t<file_account_t> gc_io_account_nice;
+    scoped_ptr_t<file_account_t> gc_io_account_high;
     file_account_t *choose_gc_io_account();
 
     off64_t gimme_a_new_offset();

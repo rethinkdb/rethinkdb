@@ -1,16 +1,18 @@
 #include "rpc/connectivity/cluster.hpp"
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "arch/io/network.hpp"
 
 #ifndef NDEBUG
 #include "arch/timing.hpp"
-#endif  // NDEBUG
+#endif
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/uuid.hpp"
-#include "do_on_thread.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
 
@@ -20,13 +22,14 @@ const char *const cluster_proto_header = CLUSTER_PROTO_HEADER;
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int port,
         message_handler_t *mh,
-        int client_port) THROWS_NOTHING :
+        int client_port) THROWS_ONLY(address_in_use_exc_t) :
     parent(p), message_handler(mh),
 
     /* The local port to use when connecting to the cluster port of peers */
     cluster_client_port(client_port),
 
     /* Create the socket to use when listening for connections from peers */
+    cluster_listener_port(port),
     cluster_listener_socket(new tcp_bound_socket_t(port)),
 
     /* This sets `parent->current_run` to `this`. It's necessary to do it in the
@@ -39,7 +42,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
 
     /* This constructor makes an entry for us in `routing_table`. The destructor
     will remove the entry. */
-    routing_table_entry_for_ourself(&routing_table, parent->me, peer_address_t(ip_address_t::us(), cluster_listener_socket->get_port())),
+    routing_table_entry_for_ourself(&routing_table, parent->me, peer_address_t(ip_address_t::us(), port)),
 
     /* The `connection_entry_t` constructor takes care of putting itself in the
     `connection_map` on each thread and notifying any listeners that we're now
@@ -47,26 +50,23 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     `connection_map` and again notify any listeners. */
     connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
 
-    listener(new tcp_listener_t(*cluster_listener_socket, boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
-                                                                      this,
-                                                                      _1,
-                                                                      auto_drainer_t::lock_t(&drainer))))
+    listener(new tcp_listener_t(cluster_listener_socket.get(), boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
+                                                                           this,
+                                                                           _1,
+                                                                           auto_drainer_t::lock_t(&drainer))))
 {
     parent->assert_thread();
 }
 
-connectivity_cluster_t::run_t::~run_t() {
-    delete cluster_listener_socket;
-    delete listener;
-}
+connectivity_cluster_t::run_t::~run_t() { }
 
 int connectivity_cluster_t::run_t::get_port() {
-    return cluster_listener_socket->get_port();
+    return cluster_listener_port;
 }
 
 void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING {
     parent->assert_thread();
-    coro_t::spawn_now_deprecated(boost::bind(
+    coro_t::spawn_now(boost::bind(
         &connectivity_cluster_t::run_t::join_blocking,
         this,
         address,
@@ -78,73 +78,64 @@ void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING 
 
 connectivity_cluster_t::run_t::connection_entry_t::connection_entry_t(run_t *p, peer_id_t id, tcp_conn_stream_t *c, peer_address_t a) THROWS_NOTHING :
     conn(c), address(a), session_id(generate_uuid()),
-    pm_collection(uuid_to_str(id.get_uuid()), &p->parent->connectivity_collection, true, true),
-    pm_bytes_sent("bytes_sent", secs_to_ticks(1), true, &pm_collection),
+    pm_collection(),
+    pm_bytes_sent(secs_to_ticks(1), true),
+    pm_collection_membership(&p->parent->connectivity_collection, &pm_collection, uuid_to_str(id.get_uuid())),
+    pm_bytes_sent_membership(&pm_collection, &pm_bytes_sent, "bytes_sent"),
     parent(p), peer(id),
-    drainers(new boost::scoped_ptr<auto_drainer_t>[get_num_threads()])
-{
-    /* This can be created and destroyed on any thread. */
-    pmap(get_num_threads(),
-        boost::bind(&connectivity_cluster_t::run_t::connection_entry_t::install_this, this, _1));
+    entries(new one_per_thread_t<entry_installation_t>(this)) {
+
 }
 
 connectivity_cluster_t::run_t::connection_entry_t::~connection_entry_t() THROWS_NOTHING {
-    pmap(get_num_threads(),
-        boost::bind(&connectivity_cluster_t::run_t::connection_entry_t::uninstall_this, this, _1));
+    // Delete entries early just so we can make the assertion below.
+    entries.reset();
 
-    /* `uninstall_this()` destroys the `auto_drainer_t`, so nothing can be
-    holding the `send_mutex`. */
+    /* `~entry_installation_t` destroys the `auto_drainer_t`'s in entries,
+    so nothing can be holding the `send_mutex`. */
     rassert(!send_mutex.is_locked());
 }
 
-static void ping_connection_watcher(peer_id_t peer,
-        const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb) THROWS_NOTHING {
-    if (connect_cb_and_disconnect_cb.first) {
-        connect_cb_and_disconnect_cb.first(peer);
-    }
+static void ping_connection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
+    rassert(connect_disconnect_cb != NULL);
+    connect_disconnect_cb->on_connect(peer);
 }
 
-void connectivity_cluster_t::run_t::connection_entry_t::install_this(int target_thread) THROWS_NOTHING {
-    on_thread_t switcher(target_thread);
-    thread_info_t *ti = parent->parent->thread_info.get();
-    drainers[get_thread_id()].reset(new auto_drainer_t);
+static void ping_disconnection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
+    rassert(connect_disconnect_cb != NULL);
+    connect_disconnect_cb->on_disconnect(peer);
+}
+
+connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::entry_installation_t(connection_entry_t *that) : that_(that) {
+    thread_info_t *ti = that_->parent->parent->thread_info.get();
     {
         ASSERT_FINITE_CORO_WAITING;
         rwi_lock_assertion_t::write_acq_t acq(&ti->lock);
-        rassert(ti->connection_map.find(peer) == ti->connection_map.end());
-        ti->connection_map[peer] =
-            std::make_pair(this, auto_drainer_t::lock_t(drainers[get_thread_id()].get()));
-        ti->publisher.publish(boost::bind(&ping_connection_watcher, peer, _1));
+        rassert(ti->connection_map.find(that_->peer) == ti->connection_map.end());
+        ti->connection_map[that_->peer] =
+            std::make_pair(that_, auto_drainer_t::lock_t(&drainer_));
+        ti->publisher.publish(boost::bind(&ping_connection_watcher, that_->peer, _1));
     }
 }
 
-static void ping_disconnection_watcher(peer_id_t peer,
-        const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb) THROWS_NOTHING {
-    if (connect_cb_and_disconnect_cb.second) {
-        connect_cb_and_disconnect_cb.second(peer);
-    }
-}
-
-void connectivity_cluster_t::run_t::connection_entry_t::uninstall_this(int target_thread) THROWS_NOTHING {
-    on_thread_t switcher(target_thread);
-    thread_info_t *ti = parent->parent->thread_info.get();
+connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::~entry_installation_t() {
+    thread_info_t *ti = that_->parent->parent->thread_info.get();
     {
         ASSERT_FINITE_CORO_WAITING;
         rwi_lock_assertion_t::write_acq_t acq(&ti->lock);
-        rassert(ti->connection_map[peer].first == this);
-        ti->connection_map.erase(peer);
-        ti->publisher.publish(boost::bind(&ping_disconnection_watcher, peer, _1));
+        rassert(ti->connection_map[that_->peer].first == that_);
+        ti->connection_map.erase(that_->peer);
+        ti->publisher.publish(boost::bind(&ping_disconnection_watcher, that_->peer, _1));
     }
-    drainers[get_thread_id()].reset();
 }
 
-void connectivity_cluster_t::run_t::on_new_connection(boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
+void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
     parent->assert_thread();
 
     // conn gets owned by the tcp_conn_stream_t.
     tcp_conn_t *conn;
     nconn->ennervate(&conn);
-    boost::scoped_ptr<tcp_conn_stream_t> conn_stream(new tcp_conn_stream_t(conn));
+    scoped_ptr_t<tcp_conn_stream_t> conn_stream(new tcp_conn_stream_t(conn));
 
     handle(conn_stream.get(), boost::none, boost::none, lock);
 }
@@ -153,6 +144,7 @@ void connectivity_cluster_t::run_t::join_blocking(
         peer_address_t address,
         boost::optional<peer_id_t> expected_id,
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
+    drainer_lock.assert_is_holding(&parent->current_run->drainer);
     parent->assert_thread();
     {
         mutex_assertion_t::acq_t acq(&attempt_table_mutex);
@@ -313,7 +305,7 @@ void connectivity_cluster_t::run_t::handle(
     established. When there are multiple connections trying to be established,
     this is referred to as a "conflict". */
 
-    boost::scoped_ptr<map_insertion_sentry_t<peer_id_t, peer_address_t> >
+    scoped_ptr_t<map_insertion_sentry_t<peer_id_t, peer_address_t> >
         routing_table_entry_sentry;
 
     /* We pick one side of the connection to be the "leader" and the other side
@@ -354,7 +346,7 @@ void connectivity_cluster_t::run_t::handle(
 
             /* Register ourselves while in the critical section, so that whoever
             comes next will see us */
-            routing_table_entry_sentry.reset(
+            routing_table_entry_sentry.init(
                 new map_insertion_sentry_t<peer_id_t, peer_address_t>(
                     &routing_table, other_id, other_address
                     ));
@@ -399,7 +391,7 @@ void connectivity_cluster_t::run_t::handle(
 
             /* Register ourselves while in the critical section, so that whoever
             comes next will see us */
-            routing_table_entry_sentry.reset(
+            routing_table_entry_sentry.init(
                 new map_insertion_sentry_t<peer_id_t, peer_address_t>(
                     &routing_table, other_id, other_address
                     ));
@@ -426,7 +418,7 @@ void connectivity_cluster_t::run_t::handle(
             if (routing_table.find(it->first) == routing_table.end()) {
                 /* `it->first` is the ID of a peer that our peer is connected
                 to, but we aren't connected to. */
-                coro_t::spawn_now_deprecated(boost::bind(
+                coro_t::spawn_now(boost::bind(
                     &connectivity_cluster_t::run_t::join_blocking, this,
                     it->second,
                     boost::optional<peer_id_t>(it->first),
@@ -497,7 +489,8 @@ void connectivity_cluster_t::run_t::handle(
 connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     me(peer_id_t(generate_uuid())),
     current_run(NULL),
-    connectivity_collection("connectivity", &get_global_perfmon_collection(), true, true)
+    connectivity_collection(),
+    stats_membership(&get_global_perfmon_collection(), &connectivity_collection, "connectivity")
     { }
 
 connectivity_cluster_t::~connectivity_cluster_t() THROWS_NOTHING {
@@ -634,9 +627,6 @@ rwi_lock_assertion_t *connectivity_cluster_t::get_peers_list_lock() THROWS_NOTHI
     return &thread_info.get()->lock;
 }
 
-publisher_t< std::pair<
-        boost::function<void(peer_id_t)>,
-        boost::function<void(peer_id_t)>
-        > > *connectivity_cluster_t::get_peers_list_publisher() THROWS_NOTHING {
+publisher_t<peers_list_callback_t *> *connectivity_cluster_t::get_peers_list_publisher() THROWS_NOTHING {
     return thread_info.get()->publisher.get_publisher();
 }
