@@ -209,6 +209,9 @@ class Stream(Common):
     def limit(self, count):
         return limit(self, count)
 
+    def skip(self, offset):
+        return skip(self, offset)
+
     def count(self):
         return count(self)
 
@@ -824,5 +827,6 @@ def _make_stream_builtin(name, builtin, *args, **kwargs):
 
 distinct = _make_stream_builtin("distinct", p.Builtin.DISTINCT, "stream")
 limit = _make_stream_builtin("limit", p.Builtin.LIMIT, "stream", "count", view=True)
+skip = _make_stream_builtin("skip", p.Builtin.SKIP, "stream", "offset", view=True)
 union = _make_stream_builtin("union", p.Builtin.UNION, "a", "b")
 stream = _make_stream_builtin("stream", p.Builtin.ARRAYTOSTREAM, "array")

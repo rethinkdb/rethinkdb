@@ -233,11 +233,19 @@ class RDBTest(unittest.TestCase):
         def limit(arr, count):
             return r.array(r.stream(arr).limit(count))
 
+        def skip(arr, offset):
+            return r.array(r.stream(arr).skip(offset))
+
         expect(limit([], 0), [])
         expect(limit([1, 2], 0), [])
         expect(limit([1, 2], 1), [1])
         expect(limit([1, 2], 5), [1, 2])
         fail(limit([], -1), "nonnegative")
+
+        expect(skip([], 0), [])
+        expect(skip([1, 2], 5), [])
+        expect(skip([1, 2], 0), [1, 2])
+        expect(skip([1, 2], 1), [2])
 
         # TODO: fix distinct
         return
@@ -389,8 +397,6 @@ class RDBTest(unittest.TestCase):
         expect(t(d)['a'], d['a'])
         expect(t(d)['b'], d['b'])
         fail(t(d)['c'], 'missing attribute')
-
-
 
     # def test_huge(self):
     #     self.clear_table()
