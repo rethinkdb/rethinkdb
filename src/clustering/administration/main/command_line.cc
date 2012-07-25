@@ -43,13 +43,13 @@ bool check_existence(const std::string& file_path) {
 
 void run_rethinkdb_create(const std::string &filepath, const std::string &machine_name, const io_backend_t io_backend, bool *result_out) {
     if (check_existence(filepath)) {
-        printf("ERROR: The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
+        logSTDOUT("ERROR: The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
         *result_out = false;
         return;
     }
 
     machine_id_t our_machine_id = generate_uuid();
-    printf("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
+    logSTDOUT("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
 
     cluster_semilattice_metadata_t metadata;
 
@@ -59,7 +59,7 @@ void run_rethinkdb_create(const std::string &filepath, const std::string &machin
 
     int res = mkdir(filepath.c_str(), 0755);
     if (res != 0) {
-        printf("Could not create directory: %s\n", errno_to_string(errno).c_str());
+        logSTDOUT("Could not create directory: %s\n", errno_to_string(errno).c_str());
         return;
     }
 
@@ -70,7 +70,7 @@ void run_rethinkdb_create(const std::string &filepath, const std::string &machin
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
     metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, metadata);
 
-    printf("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
+    logSTDOUT("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
 
     *result_out = true;
 }
@@ -99,10 +99,10 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
         else
             admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).parse_and_run_command(command_args);
     } catch (const admin_no_connection_exc_t& ex) {
-        fprintf(stderr, "%s\n", ex.what());
-        fprintf(stderr, "valid --join option required to handle command, run 'rethinkdb admin help' for more information\n");
+        logSTDERR("%s\n", ex.what());
+        logSTDERR("valid --join option required to handle command, run 'rethinkdb admin help' for more information\n");
     } catch (const std::exception& ex) {
-        fprintf(stderr, "%s\n", ex.what());
+        logSTDERR("%s\n", ex.what());
         *result_out = false;
     }
 }
@@ -111,7 +111,7 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
     os_signal_cond_t sigint_cond;
 
     if (!check_existence(filepath)) {
-        printf("ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
+        logSTDOUT("ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
         *result_out = false;
         return;
     }
@@ -137,9 +137,9 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
 void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
-    printf("Checking if directory '%s' already exists...\n", filepath.c_str());
+    logSTDOUT("Checking if directory '%s' already exists...\n", filepath.c_str());
     if (check_existence(filepath)) {
-        printf("It already exists.  Loading data...\n");
+        logSTDOUT("It already exists.  Loading data...\n");
 
         scoped_ptr_t<io_backender_t> io_backender;
         make_io_backender(io_backend, &io_backender);
@@ -158,11 +158,11 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                             &sigint_cond);
 
     } else {
-        printf("It does not already exist. Creating it...\n");
+        logSTDOUT("It does not already exist. Creating it...\n");
 
         int res = mkdir(filepath.c_str(), 0755);
         if (res != 0) {
-            printf("Could not create directory: %s\n", errno_to_string(errno).c_str());
+            logSTDOUT("Could not create directory: %s\n", errno_to_string(errno).c_str());
             return;
         }
 
@@ -171,7 +171,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
         cluster_semilattice_metadata_t semilattice_metadata;
 
         if (joins.empty()) {
-            printf("Creating a default namespace and default data center "
+            logSTDOUT("Creating a default namespace and default data center "
                    "for your convenience. (This is because you ran 'rethinkdb' "
                    "without 'create', 'serve', or '--join', and the directory '%s' did not already exist.)\n",
                    filepath.c_str());
@@ -390,7 +390,7 @@ int parse_commands(int argc, char *argv[], po::variables_map *vm, const po::opti
         po::notify(*vm);
         return 0;
     } catch (const po::unknown_option& ex) {
-        fprintf(stderr, "%s\n", ex.what());
+        logSTDERR("%s\n", ex.what());
         return 1;
     }
 }
@@ -504,7 +504,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
                            num_workers);
 
     } catch (const std::exception& ex) {
-        fprintf(stderr, "%s\n", ex.what());
+        logSTDERR("%s\n", ex.what());
         result = false;
     }
 
@@ -519,7 +519,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     }
 
     if (!vm.count("join")) {
-        printf("No --join option(s) given. A proxy needs to connect to something!\n"
+        logSTDOUT("No --join option(s) given. A proxy needs to connect to something!\n"
                "Run 'rethinkdb proxy help' for more information.\n");
         return 1;
      }
@@ -606,23 +606,23 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 }
 
 void help_rethinkdb_create() {
-    printf("'rethinkdb create' is used to prepare a directory to act "
+    logSTDOUT("'rethinkdb create' is used to prepare a directory to act "
            "as the storage location for a RethinkDB cluster node.\n");
     std::stringstream sstream;
     sstream << get_rethinkdb_create_options();
-    printf("%s\n", sstream.str().c_str());
+    logSTDOUT("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_serve() {
-    printf("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
+    logSTDOUT("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
     std::stringstream sstream;
     sstream << get_rethinkdb_serve_options();
-    printf("%s\n", sstream.str().c_str());
+    logSTDOUT("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_proxy() {
-    printf("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
+    logSTDOUT("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
     std::stringstream sstream;
     sstream << get_rethinkdb_proxy_options();
-    printf("%s\n", sstream.str().c_str());
+    logSTDOUT("%s\n", sstream.str().c_str());
 }
