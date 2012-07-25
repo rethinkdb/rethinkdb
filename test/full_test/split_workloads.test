@@ -28,6 +28,7 @@ two_phase_scenarios = [
 
 n_phase_scenarios = [
     "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 2+1-1+1-1+1-1+1-1+1-1 --workload-before '%(before)s' --workload-after '%(after)s' --workload-between '%(between)s'",
+    "$RETHINKDB/test/scenarios/rebalance.py --sequence 2,++,--,+-,+-,+++,--+,---- --workload-before '%(before)s' --workload-after '%(after)s' --workload-between '%(between)s'",
     ]
 
 for scenario in two_phase_scenarios:
