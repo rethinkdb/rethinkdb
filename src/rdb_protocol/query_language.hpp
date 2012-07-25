@@ -10,8 +10,10 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
+#include "extproc/pool.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.pb.h"
 
@@ -115,6 +117,18 @@ public:
 
     void pop() {
         scopes.pop_front();
+    }
+
+    // TODO (rntz): find a better way to do this.
+    void dump(std::map<std::string, T> *map) {
+        map->clear();
+        for (typename std::deque<std::map<std::string, T> >::iterator sit = scopes.begin(); sit != scopes.end(); ++sit) {
+            for (typename std::map<std::string, T>::iterator it = sit->begin(); it != sit->end(); ++it) {
+                // Earlier bindings take precedence over later ones.
+                if (!map->count(it->first))
+                    map->insert(*it);
+            }
+        }
     }
 
     struct new_scope_t {
@@ -528,10 +542,16 @@ typedef variable_stream_scope_t::new_scope_t new_stream_scope_t;
 
 class runtime_environment_t {
 public:
-    runtime_environment_t(namespace_repo_t<rdb_protocol_t> *_ns_repo,
+    runtime_environment_t(extproc::pool_group_t *_pool_group,
+                          namespace_repo_t<rdb_protocol_t> *_ns_repo,
                           boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+                          boost::shared_ptr<js::runner_t> _js_runner,
                           signal_t *_interruptor)
-        : ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata), interruptor(_interruptor)
+        : pool(_pool_group->get()),
+          ns_repo(_ns_repo),
+          semilattice_metadata(_semilattice_metadata),
+          js_runner(_js_runner),
+          interruptor(_interruptor)
     { }
 
     variable_val_scope_t scope;
@@ -540,10 +560,31 @@ public:
 
     implicit_value_t<boost::shared_ptr<scoped_cJSON_t> > implicit_attribute_value;
 
+    extproc::pool_t *pool;      // for running external JS jobs
     namespace_repo_t<rdb_protocol_t> *ns_repo;
     //TODO this should really just be the namespace metadata... but
     //constructing views is too hard :-/
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+
+  private:
+    // Ideally this would be a scoped_ptr_t<js::runner_t>, but unfortunately we
+    // copy runtime_environment_ts to capture scope.
+    //
+    // Note that js_runner is "lazily initialized": we only call
+    // js_runner->begin() once we know we need to evaluate javascript. This
+    // means we only allocate a worker process to queries that actually need
+    // javascript execution.
+    //
+    // In the future we might want to be even finer-grained than this, and
+    // release worker jobs once we know we no longer need JS execution, or
+    // multiplex queries onto worker processes.
+    boost::shared_ptr<js::runner_t> js_runner;
+
+  public:
+    // Returns js_runner, but first calls js_runner->begin() if it hasn't
+    // already been called.
+    boost::shared_ptr<js::runner_t> get_js_runner();
+
     signal_t *interruptor;
 };
 
@@ -551,21 +592,21 @@ typedef implicit_value_t<boost::shared_ptr<scoped_cJSON_t> >::impliciter_t impli
 
 //TODO most of these functions that are supposed to only throw runtime exceptions
 
-void execute(const Query &q, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(Query *q, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-void execute(const ReadQuery &r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(ReadQuery *r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-void execute(const WriteQuery &r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(WriteQuery *r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+namespace_repo_t<rdb_protocol_t>::access_t eval(TableRef *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
 class view_t {
 public:
@@ -577,11 +618,11 @@ public:
     boost::shared_ptr<json_stream_t> stream;
 };
 
-view_t eval_view(const Term &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+view_t eval_view(Term *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-view_t eval_view(const Term::Call &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+view_t eval_view(Term::Call *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-view_t eval_view(const Term::Table &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+view_t eval_view(Term::Table *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
 } //namespace query_language
 

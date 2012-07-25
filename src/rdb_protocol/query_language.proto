@@ -24,6 +24,7 @@ message Term {
         OBJECT = 11;
         GETBYKEY = 12;
         TABLE = 13;
+        JAVASCRIPT = 14;
     };
 
     required TermType type = 1;
@@ -79,6 +80,8 @@ message Term {
 
     optional Table table = 15;
 
+    optional string javascript = 16;
+
     // reserved for RethinkDB internal use.
     extensions 1000 to 1099;
 };
@@ -117,8 +120,6 @@ message Builtin {
         ARRAYTOSTREAM = 30;
         REDUCE = 31;
         GROUPEDMAPREDUCE = 32;
-        JAVASCRIPT = 33;
-        JAVASCRIPTRETURNINGSTREAM = 34;
         ANY = 35;
         ALL = 36;
         RANGE = 37;

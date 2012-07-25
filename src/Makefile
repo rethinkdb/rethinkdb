@@ -33,8 +33,8 @@ SERVER_UNIT_TEST_NAME:=$(SERVER_EXEC_NAME)-unittest
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
-CTAGS:=ctags
-ETAGS:=$(CTAGS) -e
+CTAGSPROG:=ctags
+ETAGSPROG:=$(CTAGSPROG) -e
 TAGSFILE:=.tags
 ETAGSFILE:=TAGS
 CSCOPE_XREF:=.cscope
@@ -767,11 +767,11 @@ endif
 
 TAGFLAGS:=-R --c++-kinds=+p --fields=+iaS --extra=+q --langmap="c++:.cc.tcc.hpp"
 tags:
-	$(QUIET) $(CTAGS) $(TAGFLAGS) -f $(TAGSFILE)
+	$(QUIET) $(CTAGSPROG) $(TAGFLAGS) -f $(TAGSFILE)
 
 etags:
 	$(QUIET) rm -f $(ETAGSFILE)
-	$(QUIET) $(ETAGS) $(TAGFLAGS) -f $(ETAGSFILE)
+	$(QUIET) $(ETAGSPROG) $(TAGFLAGS) -f $(ETAGSFILE)
 
 cscope:
 	$(QUIET) cscope -bR -f $(CSCOPE_XREF)

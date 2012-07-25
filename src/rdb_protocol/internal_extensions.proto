@@ -5,4 +5,5 @@ import "rdb_protocol/query_language.proto";
 
 extend Term {
     optional int32 inferred_type = 1000;
+    optional int32 js_id = 1001;
 };
