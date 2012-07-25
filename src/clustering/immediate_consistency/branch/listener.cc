@@ -368,7 +368,7 @@ void listener_t<protocol_t>::enqueue_write(typename protocol_t::write_t write,
     try {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&write_queue_entrance_sink, fifo_token);
         wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
-        write_queue_semaphore.co_lock();
+        write_queue_semaphore.co_lock_interruptible(keepalive.get_drain_signal());
         write_queue.push(write_queue_entry_t(write, transition_timestamp, order_token, fifo_token));
         send(mailbox_manager, ack_addr);
     } catch (interrupted_exc_t) {
