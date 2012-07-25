@@ -1,8 +1,6 @@
 #ifndef RDB_PROTOCOL_JSIMPL_HPP_
 #define RDB_PROTOCOL_JSIMPL_HPP_
 
-#include "rdb_protocol/js.hpp"
-
 #include <v8.h>
 
 #include <map>
@@ -14,6 +12,7 @@
 
 #include "containers/archive/boost_types.hpp"
 #include "http/json.hpp"
+#include "rdb_protocol/js.hpp"
 #include "rpc/serialize_macros.hpp"
 
 namespace js {
@@ -70,7 +69,7 @@ class env_t {
 // Puts us into a fresh v8 context.
 // By default each task gets its own context.
 struct context_t {
-    context_t(UNUSED env_t *env) : cx(v8::Context::New()), scope(cx) {}
+    explicit context_t(UNUSED env_t *env) : cx(v8::Context::New()), scope(cx) {}
     ~context_t() { cx.Dispose(); }
     v8::Persistent<v8::Context> cx;
     v8::Context::Scope scope;
@@ -103,7 +102,7 @@ typedef boost::variant<boost::shared_ptr<scoped_cJSON_t>, std::string> json_resu
 // Visitors to extract values from results.
 struct id_visitor_t {
     typedef bool result_type;
-    id_visitor_t(std::string *errmsg) : errmsg_(errmsg) {}
+    explicit id_visitor_t(std::string *errmsg) : errmsg_(errmsg) {}
     id_t id_;
     std::string *errmsg_;
     bool operator()(const id_t &id) { id_ = id; return true; }
@@ -112,7 +111,7 @@ struct id_visitor_t {
 
 struct json_visitor_t {
     typedef boost::shared_ptr<scoped_cJSON_t> result_type;
-    json_visitor_t(std::string *errmsg) : errmsg_(errmsg) {}
+    explicit json_visitor_t(std::string *errmsg) : errmsg_(errmsg) {}
     std::string *errmsg_;
     result_type operator()(const result_type &r) { return r; }
     result_type operator()(const std::string &msg) { *errmsg_ = msg; return result_type(); }

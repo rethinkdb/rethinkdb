@@ -2,10 +2,10 @@
 #include <stdint.h>
 #define MAX_ID UINT32_MAX
 
-#include "rdb_protocol/jsimpl.hpp"
-
 #include "utils.hpp"
 #include <boost/make_shared.hpp>
+
+#include "rdb_protocol/jsimpl.hpp"
 
 namespace js {
 

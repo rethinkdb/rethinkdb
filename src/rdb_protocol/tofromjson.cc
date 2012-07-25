@@ -1,8 +1,8 @@
-#include "rdb_protocol/jsimpl.hpp"
-
 #include "errors.hpp"
 #include <boost/scoped_array.hpp>
 #include <boost/make_shared.hpp>
+
+#include "rdb_protocol/jsimpl.hpp"
 
 namespace js {
 
