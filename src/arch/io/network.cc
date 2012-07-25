@@ -805,8 +805,10 @@ void linux_nonthrowing_tcp_listener_t::on_event(int events) {
     }
 }
 
+void noop_fun(scoped_ptr_t<linux_nascent_tcp_conn_t>& arg) {(void)arg;}
+
 linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
-        listener(new linux_nonthrowing_tcp_listener_t(_port, noop))
+        listener(new linux_nonthrowing_tcp_listener_t(_port, noop_fun))
 {
     if(!listener->bind_socket()) {
         throw address_in_use_exc_t("localhost", listener->port);
