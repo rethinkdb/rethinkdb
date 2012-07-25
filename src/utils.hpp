@@ -111,7 +111,7 @@ void debugf_print(const char *msg, const T& obj) {
 
 class debugf_in_dtor_t {
 public:
-    debugf_in_dtor_t(const char *msg, ...);
+    explicit debugf_in_dtor_t(const char *msg, ...);
     ~debugf_in_dtor_t();
 private:
     std::string message;
