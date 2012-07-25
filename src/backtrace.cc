@@ -202,48 +202,48 @@ void print_backtrace(FILE *out, bool use_addr2line) {
     char **symbols = backtrace_symbols(stack_frames, size);
 
     if (symbols) {
-        char buffer[255] = {0};
-        std::string output("");
+        char buffer[1024] = {0}; // Increase 1024 if we expect the size of any backtrace line to exceed it.
+        std::string output;
         for (int i = 0; i < size; i ++) {
             // Parse each line of the backtrace
             scoped_malloc_t<char> line(symbols[i], symbols[i] + (strlen(symbols[i]) + 1));
             char *executable, *function, *offset, *address;
 
             sprintf(buffer, "%d: ", i+1);
-            output += std::string(buffer);
+            output.append(buffer);
 
             if (!parse_backtrace_line(line.get(), &executable, &function, &offset, &address)) {
                 sprintf(buffer, "%s\n", symbols[i]);
-                output += std::string(buffer);
+                output.append(buffer);
             } else {
                 if (function) {
                     try {
                         std::string demangled = demangle_cpp_name(function);
                         sprintf(buffer, "%s", demangled.c_str());
-                        output += std::string(buffer);
+                        output.append(buffer);
                     } catch (demangle_failed_exc_t) {
                         sprintf(buffer, "%s+%s", function, offset);
-                        output += std::string(buffer);
+                        output.append(buffer);
                     }
                 } else {
                     sprintf(buffer, "?");
-                    output += std::string(buffer);
+                    output.append(buffer);
                 }
 
                 sprintf(buffer, " at ");
-                output += std::string(buffer);
+                output.append(buffer);
 
                 char line[255] = {0};
                 if (use_addr2line && run_addr2line(&procs, executable, address, line, sizeof(line))) {
                     sprintf(buffer, "%s", line);
-                    output += std::string(buffer);
+                    output.append(buffer);
                 } else {
                     sprintf(buffer, "%s (%s)", address, executable);
-                    output += std::string(buffer);
+                    output.append(buffer);
                 }
 
                 sprintf(buffer, "\n");
-                output += std::string(buffer);
+                output.append(buffer);
             }
         }
 
