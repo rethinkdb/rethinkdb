@@ -89,7 +89,7 @@ struct tester_t :
     ticks_t last_time;
     unsigned txns_last_sec;
     unsigned secs_so_far;
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     
     
     struct interrupt_msg_t :
@@ -233,7 +233,7 @@ struct tester_t :
     
     void on_serializer_shutdown() {
         fprintf(stderr, "Done.\n");
-        pool->shutdown();
+        pool->shutdown_thread_pool();
     }
 };
 
@@ -317,7 +317,7 @@ int main(int argc, char *argv[]) {
     
     thread_pool_t thread_pool(1, true);
     tester_t tester(&config, &thread_pool);
-    thread_pool.run(&tester);
+    thread_pool.run_thread_pool(&tester);
     
     return 0;
 }

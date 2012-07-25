@@ -54,8 +54,8 @@ class mailbox_t< void() > {
 public:
     typedef mailbox_addr_t< void() > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void() > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void() > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -111,8 +111,8 @@ class mailbox_t< void(arg0_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -173,8 +173,8 @@ class mailbox_t< void(arg0_t, arg1_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -239,8 +239,8 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -309,8 +309,8 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -383,8 +383,8 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -461,8 +461,8 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -543,8 +543,8 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -629,8 +629,8 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -719,8 +719,8 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -813,8 +813,8 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -911,8 +911,8 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -1013,8 +1013,8 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -1119,8 +1119,8 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {
@@ -1229,8 +1229,8 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
+        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
     address_t get_address() {

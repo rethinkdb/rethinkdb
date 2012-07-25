@@ -120,7 +120,7 @@ module 'NamespaceView', ->
         on_success: (response) =>
             super
             namespaces.get(@namespace.id).set(response)
-            $('#user-alert-space').append (@alert_tmpl {})
+            $('#user-alert-space').html @alert_tmpl {}
 
     # Modifying master machines
     class @EditMasterMachineModal extends UIComponents.AbstractModal
@@ -210,5 +210,5 @@ module 'NamespaceView', ->
         on_success: (response) =>
             super
             namespaces.get(@namespace.id).set(response)
-            $('#user-alert-space').append (@alert_tmpl {})
+            $('#user-alert-space').html @alert_tmpl {}
 

@@ -31,8 +31,8 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     http.check_no_issues()
 
-    host, port = driver.get_namespace_host(ns.port, [access_machine])
-    with workload_runner.ContinuousWorkload(opts["workload"], host, port) as workload:
+    workload_ports = scenario_common.get_workload_ports(ns.port, [access_machine])
+    with workload_runner.ContinuousWorkload(opts["workload"], workload_ports) as workload:
         workload.start()
         print "Running workload for 10 seconds..."
         time.sleep(10)

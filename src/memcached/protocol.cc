@@ -564,9 +564,9 @@ void memcached_protocol_t::store_t::acquire_superblock_for_write(
 }
 
 memcached_protocol_t::store_t::metainfo_t
-memcached_protocol_t::store_t::get_metainfo(UNUSED order_token_t order_token,  // TODO
-                                            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+memcached_protocol_t::store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
+                                               scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor);
