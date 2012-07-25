@@ -171,9 +171,25 @@ class Stream(Common):
         view = self
         while view:
             if view.read_only:
-                raise ValueError
+                raise TypeError("write operations can only be performed on views")
             else:
                 view = view.parent_view
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            if index.step is not None:
+                raise ValueError("slice stepping is unsupported")
+            if index.start is None:
+                if index.stop is None:
+                    return self                 # [:]
+                return limit(self, index.stop)  # [:x]
+            if index.stop is None:
+                return skip(self, index.start)  # [x:]
+            return skip(limit(self, index.stop), index.start) # [x:y]
+        elif isinstance(index, int):
+            return nth(self, index)
+        else:
+            raise TypeError("stream indices must be integers, not " + index.__class__.__name__)
 
     def filter(self, selector, row=DEFAULT_ROW_BINDING):
         return Filter(self, selector, row)
@@ -208,6 +224,9 @@ class Stream(Common):
 
     def limit(self, count):
         return limit(self, count)
+
+    def skip(self, offset):
+        return skip(self, offset)
 
     def count(self):
         return count(self)
@@ -466,6 +485,57 @@ class Term(Common):
         root.type = p.Query.READ
         self._write_ast(root.read_query.term)
 
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            if index.step is not None:
+                raise ValueError, "slice steps are not supported"
+            return slice_(self, index.start, index.stop)
+        elif isinstance(index, int):
+            return element(self, index)
+        else:
+            return attr(self, index)
+
+    def __lt__(self, other):
+        return lt(self, other)
+    def __le__(self, other):
+        return le(self, other)
+    def __eq__(self, other):
+        return eq(self, other)
+    def __ne__(self, other):
+        return ne(self, other)
+    def __gt__(self, other):
+        return gt(self, other)
+    def __ge__(self, other):
+        return ge(self, other)
+
+    def __add__(self, other):
+        return add(self, other)
+    def __sub__(self, other):
+        return sub(self, other)
+    def __mul__(self, other):
+        return mul(self, other)
+    def __div__(self, other):
+        return div(self, other)
+    def __mod__(self, other):
+        return mod(self, other)
+
+    def __radd__(self, other):
+        return add(other, self)
+    def __rsub__(self, other):
+        return sub(other, self)
+    def __rmul__(self, other):
+        return mul(other, self)
+    def __rdiv__(self, other):
+        return div(other, self)
+    def __rmod__(self, other):
+        return mod(other, self)
+
+    def __neg__(self):
+        return sub(self)
+    def __pos__(self):
+        return self
+
+
 class Find(Term):
     pretty = "{table:table_ref}.find({value:key}, key={key:attrname})"
     def __init__(self, table, key, value):
@@ -665,6 +735,26 @@ class let(Term):
         parts = ["(%r, %s)" % (var, printer(value, "bind:%s" % var)) for var, value in self.pairs]
         return "r.let(%s, %s)" % (", ".join(parts), printer(self.expr, "expr"))
 
+class js(Term):
+    def __init__(self, expr = None, body = None):
+        self.expr = expr
+        if body is not None:
+            assert expr is None
+            self.body = unicode(body)
+        else:
+            assert expr is not None
+            self.body = u'return (%s);' % expr
+
+    def _write_ast(self, parent):
+        parent.type = p.Term.JAVASCRIPT
+        parent.javascript = self.body
+
+    def _pretty_print(self, printer):
+        if self.expr is not None:
+            return "r.js(%r)" % self.expr
+        else:
+            return "r.js(body=%r)" % self.body
+
 def toTerm(value):
     if isinstance(value, (bool, int, float, dict, list, str, unicode)):
         return val(value)
@@ -744,7 +834,7 @@ element = _make_builtin("element", p.Builtin.ARRAYNTH, "array", "index")
 size = _make_builtin("size", p.Builtin.ARRAYLENGTH, "array")
 append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
 concat = _make_builtin("concat", p.Builtin.ARRAYCONCAT, "array1", "array2")
-slice = _make_builtin("slice", p.Builtin.ARRAYSLICE, "array", "start", "end")
+slice_ = _make_builtin("slice_", p.Builtin.ARRAYSLICE, "array", "start", "end")
 array = _make_builtin("array", p.Builtin.STREAMTOARRAY, "stream")
 count = _make_builtin("count", p.Builtin.LENGTH, "stream")
 nth = _make_builtin("nth", p.Builtin.NTH, "stream", "index")
@@ -773,5 +863,6 @@ def _make_stream_builtin(name, builtin, *args, **kwargs):
 
 distinct = _make_stream_builtin("distinct", p.Builtin.DISTINCT, "stream")
 limit = _make_stream_builtin("limit", p.Builtin.LIMIT, "stream", "count", view=True)
+skip = _make_stream_builtin("skip", p.Builtin.SKIP, "stream", "offset", view=True)
 union = _make_stream_builtin("union", p.Builtin.UNION, "a", "b")
 stream = _make_stream_builtin("stream", p.Builtin.ARRAYTOSTREAM, "array")

@@ -247,7 +247,7 @@ store_t::store_t(io_backender_t *io_backend,
                  const std::string& filename,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection) :
-    btree_store_t(io_backend, filename, create, parent_perfmon_collection) { }
+    btree_store_t<rdb_protocol_t>(io_backend, filename, create, parent_perfmon_collection) { }
 
 store_t::~store_t() {
     assert_thread();

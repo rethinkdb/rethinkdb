@@ -12,7 +12,7 @@ import traceback
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'drivers', 'python')))
 
-import rethinkdb as r
+from rethinkdb.abbrev import *
 
 class RDBTest(unittest.TestCase):
     @classmethod
@@ -186,15 +186,20 @@ class RDBTest(unittest.TestCase):
         fail(r.concat([1], 1), "array")
 
         arr = range(10)
-        expect(r.slice(arr, 0, 3), arr[0: 3])
-        expect(r.slice(arr, 0, 0), arr[0: 0])
-        expect(r.slice(arr, 5, 15), arr[5: 15])
-        expect(r.slice(arr, 5, -3), arr[5: -3])
-        expect(r.slice(arr, -5, -3), arr[-5: -3])
-        fail(r.slice(1, 0, 0), "array")
-        fail(r.slice(arr, .5, 0), "integer")
-        fail(r.slice(arr, 0, 1.01), "integer")
-        fail(r.slice(arr, 5, 3), "greater")
+        expect(r.slice_(arr, 0, 3), arr[0: 3])
+        expect(r.slice_(arr, 0, 0), arr[0: 0])
+        expect(r.slice_(arr, 5, 15), arr[5: 15])
+        expect(r.slice_(arr, 5, -3), arr[5: -3])
+        expect(r.slice_(arr, -5, -3), arr[-5: -3])
+        fail(r.slice_(1, 0, 0), "array")
+        fail(r.slice_(arr, .5, 0), "integer")
+        fail(r.slice_(arr, 0, 1.01), "integer")
+        fail(r.slice_(arr, 5, 3), "greater")
+        expect(r.slice_(arr, 5, None), arr[5:])
+        expect(r.slice_(arr, None, 7), arr[:7])
+        expect(r.slice_(arr, None, -2), arr[:-2])
+        expect(r.slice_(arr, -2, None), arr[-2:])
+        expect(r.slice_(arr, None, None), arr[:])
 
         expect(r.element(arr, 3), 3)
         expect(r.element(arr, -1), 9)
@@ -228,11 +233,19 @@ class RDBTest(unittest.TestCase):
         def limit(arr, count):
             return r.array(r.stream(arr).limit(count))
 
+        def skip(arr, offset):
+            return r.array(r.stream(arr).skip(offset))
+
         expect(limit([], 0), [])
         expect(limit([1, 2], 0), [])
         expect(limit([1, 2], 1), [1])
         expect(limit([1, 2], 5), [1, 2])
         fail(limit([], -1), "nonnegative")
+
+        expect(skip([], 0), [])
+        expect(skip([1, 2], 5), [])
+        expect(skip([1, 2], 0), [1, 2])
+        expect(skip([1, 2], 1), [2])
 
         # TODO: fix distinct
         return
@@ -315,6 +328,87 @@ class RDBTest(unittest.TestCase):
 
         for doc in docs:
             self.expect(self.table.find(doc['id']), doc)
+
+    def test_overload(self):
+
+        self.clear_table()
+
+        docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(10)]
+        self.do_insert(docs)
+
+        def filt(exp, fn):
+            self.expect(self.table.filter(exp).orderby(id=1), *filter(fn, docs))
+
+        filt(r['a'] == 5, lambda r: r['a'] == 5)
+        filt(r['a'] != 5, lambda r: r['a'] != 5)
+        filt(r['a'] < 5, lambda r: r['a'] < 5)
+        filt(r['a'] <= 5, lambda r: r['a'] <= 5)
+        filt(r['a'] > 5, lambda r: r['a'] > 5)
+        filt(r['a'] >= 5, lambda r: r['a'] >= 5)
+
+        filt(5 == r['a'], lambda r: 5 == r['a'])
+        filt(5 != r['a'], lambda r: 5 != r['a'])
+        filt(5 < r['a'], lambda r: 5 < r['a'])
+        filt(5 <= r['a'], lambda r: 5 <= r['a'])
+        filt(5 > r['a'], lambda r: 5 > r['a'])
+        filt(5 >= r['a'], lambda r: 5 >= r['a'])
+
+        filt(r['a'] == r['b'], lambda r: r['a'] == r['b'])
+        filt(r['a'] == r['b'] + 1, lambda r: r['a'] == r['b'] + 1)
+        filt(r['a'] == r['b'] + 1, lambda r: r['a'] == r['b'] + 1)
+
+        expect = self.expect
+        t = r.toTerm
+
+        expect(-t(3), -3)
+        expect(+t(3), 3)
+
+        expect(t(3) + 4, 7)
+        expect(t(3) - 4, -1)
+        expect(t(3) * 4, 12)
+        expect(t(3) / 4, 3./4)
+        expect(t(3) % 2, 3 % 2)
+
+        expect(3 + t(4), 7)
+        expect(3 - t(4), -1)
+        expect(3 * t(4), 12)
+        expect(3 / t(4), 3./4)
+        expect(3 % t(2), 3 % 2)
+
+        expect((t(3) + 4) * -t(6) * (t(-5) + 3), 84)
+
+    def test_getitem(self):
+        expect = self.expect
+        fail = self.error_exec
+        t = r.toTerm
+
+        arr = range(10)
+        expect(t(arr)[:], arr[:])
+        expect(t(arr)[2:], arr[2:])
+        expect(t(arr)[:2], arr[:2])
+        expect(t(arr)[-1:], arr[-1:])
+        expect(t(arr)[:-1], arr[:-1])
+        expect(t(arr)[3:5], arr[3:5])
+
+        expect(t(arr)[3], arr[3])
+        expect(t(arr)[-1], arr[-1])
+
+        d = {'a': 3, 'b': 4}
+        expect(t(d)['a'], d['a'])
+        expect(t(d)['b'], d['b'])
+        fail(t(d)['c'], 'missing attribute')
+
+    def test_stream_getitem(self):
+        arr = range(10)
+        s = r.stream(arr)
+
+        self.expect(s[:], *arr[:])
+        self.expect(s[3:], *arr[3:])
+        self.expect(s[:3], *arr[:3])
+        self.expect(s[4:6], *arr[4:6])
+
+        self.error_exec(s[4:'a'], "integer")
+
 
     # def test_huge(self):
     #     self.clear_table()

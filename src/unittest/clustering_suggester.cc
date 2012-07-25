@@ -44,7 +44,7 @@ TEST(ClusteringSuggester, NewNamespace) {
         affinities,
         shards,
         machine_data_centers,
-        region_map_t<dummy_protocol_t, machine_id_t>(),
+        region_map_t<dummy_protocol_t, machine_id_t>(dummy_protocol_t::region_t::universe(), nil_uuid()),
         region_map_t<dummy_protocol_t, std::set<machine_id_t> >());
 
     EXPECT_EQ(machines.size(), blueprint.machines_roles.size());
