@@ -284,6 +284,8 @@ public:
     bool is_bound();
 
 protected:
+    friend class linux_tcp_listener_t;
+    friend class linux_tcp_bound_socket_t;
 
     void init_socket();
     bool bind_socket();
@@ -322,18 +324,23 @@ protected:
 class linux_tcp_bound_socket_t {
 public:
     explicit linux_tcp_bound_socket_t(int _port);
-    int get_port() const;
 private:
-    int port;
+    friend class linux_tcp_listener_t;
+
+    scoped_ptr_t<linux_nonthrowing_tcp_listener_t> listener;
+    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> noop;
 };
 
 /* Replicates old constructor-exception-throwing style for backwards compaitbility */
-class linux_tcp_listener_t : public linux_nonthrowing_tcp_listener_t {
+class linux_tcp_listener_t {
 public:
     linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
                     boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback);
     linux_tcp_listener_t(int port,
                     boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback);
+
+private:
+    scoped_ptr_t<linux_nonthrowing_tcp_listener_t> listener;
 };
 
 /* Like a linux tcp listener but repeatedly tries to bind to its port until successful */
@@ -341,14 +348,14 @@ class linux_repeated_nonthrowing_tcp_listener_t : public linux_nonthrowing_tcp_l
 public:
     linux_repeated_nonthrowing_tcp_listener_t(int port,
                     boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback);
-    ~linux_repeated_nonthrowing_tcp_listener_t();
     signal_t *begin_listening();
+    signal_t *get_bound_signal();
 
 private:
     void retry_loop();
 
     cond_t bound_cond;
-    cond_t interrupted_cond;
+    auto_drainer_t drainer;
 };
 
 std::vector<std::string> get_ips();

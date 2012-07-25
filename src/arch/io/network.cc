@@ -803,11 +803,15 @@ void linux_nonthrowing_tcp_listener_t::handle(fd_t socket) {
 }
 
 linux_nonthrowing_tcp_listener_t::~linux_nonthrowing_tcp_listener_t() {
-    /* Interrupt the accept loop */
-    accept_loop_drainer.reset();
+    if(bound) {
 
-    int res = shutdown(sock.get(), SHUT_RDWR);
-    guarantee_err(res == 0, "Could not shutdown main socket");
+        /* Interrupt the accept loop */
+        accept_loop_drainer.reset();
+
+        int res = shutdown(sock.get(), SHUT_RDWR);
+        guarantee_err(res == 0, "Could not shutdown main socket");
+
+    }
 
     // scoped_fd_t destructor will close() the socket
 }
@@ -823,18 +827,18 @@ void linux_nonthrowing_tcp_listener_t::on_event(int events) {
 }
 
 linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
-        port(_port)
-{ }
-
-int linux_tcp_bound_socket_t::get_port() const {
-    return port;
+        listener(new linux_nonthrowing_tcp_listener_t(_port, noop))
+{
+    if(!listener->bind_socket()) {
+        throw address_in_use_exc_t("localhost", listener->port);
+    }
 }
 
 linux_tcp_listener_t::linux_tcp_listener_t(int port,
                     boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback) :
-        linux_nonthrowing_tcp_listener_t(port, callback)
+        listener(new linux_nonthrowing_tcp_listener_t(port, callback))
 {
-    if(!begin_listening()) {
+    if(!listener->begin_listening()) {
         throw address_in_use_exc_t("localhost", port);
     }
 }
@@ -842,10 +846,11 @@ linux_tcp_listener_t::linux_tcp_listener_t(int port,
 linux_tcp_listener_t::linux_tcp_listener_t(
                     linux_tcp_bound_socket_t *bound_socket,
                     boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback) :
-    linux_nonthrowing_tcp_listener_t(bound_socket->get_port(), callback)
+    listener(bound_socket->listener.release())
 {
-    if(!begin_listening()) {
-        throw address_in_use_exc_t("localhost", port);
+    listener->callback = callback;
+    if(!listener->begin_listening()) {
+        throw address_in_use_exc_t("localhost", listener->port);
     }
 }
 
@@ -854,10 +859,6 @@ linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listen
     linux_nonthrowing_tcp_listener_t(port, callback)
 { }
 
-linux_repeated_nonthrowing_tcp_listener_t::~linux_repeated_nonthrowing_tcp_listener_t() {
-    interrupted_cond.pulse();
-}
-
 signal_t *linux_repeated_nonthrowing_tcp_listener_t::begin_listening() {
     coro_t::spawn_sometime(boost::bind(&linux_repeated_nonthrowing_tcp_listener_t::retry_loop, this));
     return &bound_cond;
@@ -865,18 +866,24 @@ signal_t *linux_repeated_nonthrowing_tcp_listener_t::begin_listening() {
 
 void linux_repeated_nonthrowing_tcp_listener_t::retry_loop() {
     try {
-        begin_listening();
+        linux_nonthrowing_tcp_listener_t::begin_listening();
 
-        for(int retry_interval = 1; !is_bound(); retry_interval *= 2) {
-            printf("Could not bind to port %d, retrying in %d seconds.\n", port, retry_interval);
-            nap(retry_interval * 1000, &interrupted_cond);
-            begin_listening();
+        auto_drainer_t::lock_t l(&drainer);
+        for(int retry_interval = 1; !is_bound();
+                retry_interval = 10 < retry_interval + 2 ? 10 : retry_interval + 2) {
+            //log("Could not bind to port %d, retrying in %d seconds.\n", port, retry_interval);
+            nap(retry_interval * 1000, l.get_drain_signal());
+            linux_nonthrowing_tcp_listener_t::begin_listening();
         }
 
         bound_cond.pulse();
     } catch (interrupted_exc_t e) {
         // ignore
     }
+}
+
+signal_t *linux_repeated_nonthrowing_tcp_listener_t::get_bound_signal() {
+    return &bound_cond;
 }
 
 std::vector<std::string> get_ips() {
