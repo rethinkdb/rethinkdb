@@ -19,8 +19,6 @@ struct memcache_listener_t : public home_thread_mixin_t {
     memcache_listener_t(int port, namespace_interface_t<memcached_protocol_t> *namespace_if, perfmon_collection_t *parent);
     ~memcache_listener_t();
 
-    signal_t *get_bound_signal();
-
     int port;
 
 private:
@@ -36,7 +34,7 @@ private:
     `memcached_listener_t` is destroyed. */
     auto_drainer_t drainer;
 
-    scoped_ptr_t<repeated_nonthrowing_tcp_listener_t> tcp_listener;
+    scoped_ptr_t<tcp_listener_t> tcp_listener;
 
     void handle(auto_drainer_t::lock_t keepalive, const scoped_ptr_t<nascent_tcp_conn_t>& conn);
 };

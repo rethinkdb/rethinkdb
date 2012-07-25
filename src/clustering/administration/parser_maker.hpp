@@ -13,7 +13,6 @@ public:
                             boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > >,
                             DEBUG_ONLY(int port_offset, )
                             namespace_repo_t<protocol_t> *repo,
-                            local_issue_tracker_t *_local_issue_tracker,
                             perfmon_collection_repo_t *_perfmon_collection_repo);
 
 private:
@@ -40,9 +39,6 @@ private:
 
     typename semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> >::subscription_t namespaces_subscription;
     perfmon_collection_repo_t *perfmon_collection_repo;
-
-    local_issue_tracker_t *local_issue_tracker;
-    signal_t::callback_subscription_t bound_subscription;
 };
 
 #include "clustering/administration/parser_maker.tcc"

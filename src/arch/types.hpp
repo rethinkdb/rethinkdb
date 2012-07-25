@@ -51,14 +51,8 @@ typedef linux_iocallback_t iocallback_t;
 class linux_tcp_bound_socket_t;
 typedef linux_tcp_bound_socket_t tcp_bound_socket_t;
 
-class linux_nonthrowing_tcp_listener_t;
-typedef linux_nonthrowing_tcp_listener_t non_throwing_tcp_listener_t;
-
 class linux_tcp_listener_t;
 typedef linux_tcp_listener_t tcp_listener_t;
-
-class linux_repeated_nonthrowing_tcp_listener_t;
-typedef linux_repeated_nonthrowing_tcp_listener_t repeated_nonthrowing_tcp_listener_t;
 
 class linux_nascent_tcp_conn_t;
 typedef linux_nascent_tcp_conn_t nascent_tcp_conn_t;

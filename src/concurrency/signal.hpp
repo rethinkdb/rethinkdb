@@ -3,7 +3,6 @@
 
 #include "concurrency/pubsub.hpp"
 #include "utils.hpp"
-#include <boost/function.hpp>
 
 /* A `signal_t` is a boolean variable, combined with a way to be notified if
 that boolean variable becomes true. Typically you will construct a concrete
@@ -59,20 +58,6 @@ public:
     private:
         publisher_t<subscription_t *>::subscription_t subs;
         DISABLE_COPYING(subscription_t);
-    };
-
-    class callback_subscription_t : public subscription_t {
-    public:
-        void reset(boost::function<void()> _callback, signal_t *s) {
-            callback = _callback;
-            subscription_t::reset(s);
-        }
-
-        void run() {
-            callback();
-        }
-    private:
-        boost::function<void()> callback;
     };
 
     /* The coro that calls `wait_lazily_ordered()` will be pushed onto the event
