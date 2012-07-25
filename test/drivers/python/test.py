@@ -398,6 +398,18 @@ class RDBTest(unittest.TestCase):
         expect(t(d)['b'], d['b'])
         fail(t(d)['c'], 'missing attribute')
 
+    def test_stream_getitem(self):
+        arr = range(10)
+        s = r.stream(arr)
+
+        self.expect(s[:], *arr[:])
+        self.expect(s[3:], *arr[3:])
+        self.expect(s[:3], *arr[:3])
+        self.expect(s[4:6], *arr[4:6])
+
+        self.error_exec(s[4:'a'], "integer")
+
+
     # def test_huge(self):
     #     self.clear_table()
     #     self.do_insert([{"id": 1}])

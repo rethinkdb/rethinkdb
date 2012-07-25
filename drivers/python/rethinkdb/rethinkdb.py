@@ -171,9 +171,25 @@ class Stream(Common):
         view = self
         while view:
             if view.read_only:
-                raise ValueError
+                raise TypeError("write operations can only be performed on views")
             else:
                 view = view.parent_view
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            if index.step is not None:
+                raise ValueError("slice stepping is unsupported")
+            if index.start is None:
+                if index.stop is None:
+                    return self                 # [:]
+                return limit(self, index.stop)  # [:x]
+            if index.stop is None:
+                return skip(self, index.start)  # [x:]
+            return skip(limit(self, index.stop), index.start) # [x:y]
+        elif isinstance(index, int):
+            return nth(self, index)
+        else:
+            raise TypeError("stream indices must be integers, not " + index.__class__.__name__)
 
     def filter(self, selector, row=DEFAULT_ROW_BINDING):
         return Filter(self, selector, row)
