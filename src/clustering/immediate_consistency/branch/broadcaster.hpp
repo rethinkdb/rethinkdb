@@ -20,8 +20,6 @@ template <class> class semilattice_readwrite_view_t;
 template <class> class multistore_ptr_t;
 struct mailbox_manager_t;
 
-template <class> class background_writer_t;
-
 template<class protocol_t>
 class broadcaster_t : public home_thread_mixin_t {
 private:
