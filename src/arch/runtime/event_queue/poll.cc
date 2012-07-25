@@ -51,7 +51,7 @@ void poll_event_queue_t::run() {
     int res;
 
 #ifdef LEGACY_LINUX
-    // Create an restricted sigmask for ppoll
+    // Create a restricted sigmask for ppoll:
     // In the upcoming loop, we want to continue blocking signals
     // (especially SIGINT and SIGTERM, which the main thread
     // has interrupt handlers for). However, LEGACY_LINUX
@@ -115,12 +115,6 @@ void poll_event_queue_t::run() {
 
         parent->pump();
     }
-
-#ifdef LEGACY_LINUX
-    // Unblock all signals
-    res = pthread_sigmask(SIG_SETMASK, &sigmask_restricted, NULL);
-    guarantee_err(res == 0, "Could not unblock signals");
-#endif
 }
 
 poll_event_queue_t::~poll_event_queue_t() {
