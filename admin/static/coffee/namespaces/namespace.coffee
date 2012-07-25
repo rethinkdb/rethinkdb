@@ -213,6 +213,11 @@ module 'NamespaceView', ->
             else
                 json.reachability = false
 
+            #Compute the total number of keys
+            json.total_keys = 0
+            for key of @model.get('key_distr')
+                json.total_keys += @model.get('key_distr')[key]
+
             @.$el.html @template json
 
             return @
@@ -315,11 +320,13 @@ module 'NamespaceView', ->
         render_data_repartition: (force_render) =>
             $('.tooltip').remove()
             shards = []
+            total_keys = 0
             for shard in namespaces.models[0].get('computed_shards').models
                 new_shard =
                     boundaries: shard.get('shard_boundaries')
                     num_keys: parseInt @model.compute_shard_rows_approximation shard.get 'shard_boundaries'
                 shards.push new_shard
+                total_keys += new_shard.num_keys
 
             # We could probably use apply for a cleaner code, but d3.max has a strange behavior.
             max_keys = d3.max shards, (d) -> return d.num_keys
@@ -328,6 +335,7 @@ module 'NamespaceView', ->
                 max_keys: max_keys
                 min_keys: min_keys
                 shards_length: shards.length
+                total_jeys: total_keys
 
             if shards.length > 1
                 json.has_shards = true
