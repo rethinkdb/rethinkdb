@@ -604,7 +604,7 @@ drivers: rdb_protocol/query_language.proto
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC $@"
 endif
-	$(QUIET) protoc $(PROTOCFLAGS) --python_out ../drivers/python/ rdb_protocol/query_language.proto
+	$(QUIET) protoc $(PROTOCFLAGS) --python_out ../drivers/python/rethinkdb/ rdb_protocol/query_language.proto
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
 rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py

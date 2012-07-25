@@ -495,6 +495,27 @@ private:
     int limit;
 };
 
+class skip_stream_t : public json_stream_t {
+public:
+    skip_stream_t(boost::shared_ptr<json_stream_t> _stream, int _offset)
+        : stream(_stream), offset(_offset)
+    {
+        guarantee(offset >= 0);
+    }
+
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        while (offset) {
+            offset--;
+            stream->next();
+        }
+        return stream->next();
+    }
+
+private:
+    boost::shared_ptr<json_stream_t> stream;
+    int offset;
+};
+
 //Scopes for single pieces of json
 typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_t;
 
