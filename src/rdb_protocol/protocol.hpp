@@ -74,7 +74,7 @@ struct rdb_protocol_t {
         bool truncated;
 
         rget_read_response_t() { }
-        explicit rget_read_response_t(const key_range_t &_key_range, std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > _data, bool _truncated)
+        rget_read_response_t(const key_range_t &_key_range, std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > _data, bool _truncated)
             : key_range(_key_range), data(_data), truncated(_truncated)
         { }
 
@@ -106,7 +106,7 @@ struct rdb_protocol_t {
     class rget_read_t {
     public:
         rget_read_t() { }
-        explicit rget_read_t(const key_range_t &_key_range, int _maximum)
+        rget_read_t(const key_range_t &_key_range, int _maximum)
             : key_range(_key_range), maximum(_maximum) { }
 
         key_range_t key_range;
@@ -180,7 +180,7 @@ struct rdb_protocol_t {
     class point_delete_t {
     public:
         point_delete_t() { }
-        point_delete_t(const store_key_t& key_)
+        explicit point_delete_t(const store_key_t& key_)
             : key(key_) { }
 
         store_key_t key;

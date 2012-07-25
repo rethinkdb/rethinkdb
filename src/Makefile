@@ -163,6 +163,8 @@ else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
 CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
+# TODO: remove this once memcached is added back in the release (disables memcached from showing up in the admin CLI help or tab-completion)
+CXXFLAGS+=-DNO_MEMCACHE
 endif
 
 ifneq ($(TRIAL),0)
@@ -602,7 +604,7 @@ drivers: rdb_protocol/query_language.proto
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC $@"
 endif
-	$(QUIET) protoc $(PROTOCFLAGS) --python_out ../drivers/python/ rdb_protocol/query_language.proto
+	$(QUIET) protoc $(PROTOCFLAGS) --python_out ../drivers/python/rethinkdb/ rdb_protocol/query_language.proto
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
 rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py

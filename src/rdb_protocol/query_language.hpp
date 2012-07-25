@@ -39,7 +39,7 @@ and `bad_protobuf_exc_t` is that `bad_protobuf_exc_t` is the client's fault and
 
 class bad_query_exc_t : public std::exception {
 public:
-    explicit bad_query_exc_t(const std::string &s, const backtrace_t &bt) : message(s), backtrace(bt) { }
+    bad_query_exc_t(const std::string &s, const backtrace_t &bt) : message(s), backtrace(bt) { }
 
     ~bad_query_exc_t() throw () { }
 
@@ -247,13 +247,13 @@ public:
         : data(begin, end)
     { }
 
-    in_memory_stream_t(json_array_iterator_t it) {
+    explicit in_memory_stream_t(json_array_iterator_t it) {
         while (cJSON *json = it.next()) {
             data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
         }
     }
 
-    in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
+    explicit in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             data.push_back(json);
         }
@@ -348,7 +348,7 @@ public:
 
     class stream_t : public json_stream_t {
     public:
-        stream_t(boost::shared_ptr<stream_multiplexer_t> _parent)
+        explicit stream_t(boost::shared_ptr<stream_multiplexer_t> _parent)
             : parent(_parent), index(0)
         {
             rassert(parent->stream);
@@ -390,7 +390,7 @@ class union_stream_t : public json_stream_t {
 public:
     typedef std::list<boost::shared_ptr<json_stream_t> > stream_list_t;
 
-    union_stream_t(const stream_list_t &_streams)
+    explicit union_stream_t(const stream_list_t &_streams)
         : streams(_streams), hd(streams.begin())
     { }
 
@@ -507,6 +507,27 @@ public:
 private:
     boost::shared_ptr<json_stream_t> stream;
     int limit;
+};
+
+class skip_stream_t : public json_stream_t {
+public:
+    skip_stream_t(boost::shared_ptr<json_stream_t> _stream, int _offset)
+        : stream(_stream), offset(_offset)
+    {
+        guarantee(offset >= 0);
+    }
+
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        while (offset) {
+            offset--;
+            stream->next();
+        }
+        return stream->next();
+    }
+
+private:
+    boost::shared_ptr<json_stream_t> stream;
+    int offset;
 };
 
 //Scopes for single pieces of json

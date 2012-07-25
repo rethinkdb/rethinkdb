@@ -25,7 +25,7 @@ public:
                   const std::string& filename,
                   bool create,
                   perfmon_collection_t *parent_perfmon_collection);
-    ~btree_store_t();
+    virtual ~btree_store_t();
 
     /* store_view_t interface */
     void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out);

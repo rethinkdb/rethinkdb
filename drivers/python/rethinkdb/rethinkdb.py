@@ -171,9 +171,25 @@ class Stream(Common):
         view = self
         while view:
             if view.read_only:
-                raise ValueError
+                raise TypeError("write operations can only be performed on views")
             else:
                 view = view.parent_view
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            if index.step is not None:
+                raise ValueError("slice stepping is unsupported")
+            if index.start is None:
+                if index.stop is None:
+                    return self                 # [:]
+                return limit(self, index.stop)  # [:x]
+            if index.stop is None:
+                return skip(self, index.start)  # [x:]
+            return skip(limit(self, index.stop), index.start) # [x:y]
+        elif isinstance(index, int):
+            return nth(self, index)
+        else:
+            raise TypeError("stream indices must be integers, not " + index.__class__.__name__)
 
     def filter(self, selector, row=DEFAULT_ROW_BINDING):
         return Filter(self, selector, row)
@@ -208,6 +224,9 @@ class Stream(Common):
 
     def limit(self, count):
         return limit(self, count)
+
+    def skip(self, offset):
+        return skip(self, offset)
 
     def count(self):
         return count(self)
@@ -844,5 +863,6 @@ def _make_stream_builtin(name, builtin, *args, **kwargs):
 
 distinct = _make_stream_builtin("distinct", p.Builtin.DISTINCT, "stream")
 limit = _make_stream_builtin("limit", p.Builtin.LIMIT, "stream", "count", view=True)
+skip = _make_stream_builtin("skip", p.Builtin.SKIP, "stream", "offset", view=True)
 union = _make_stream_builtin("union", p.Builtin.UNION, "a", "b")
 stream = _make_stream_builtin("stream", p.Builtin.ARRAYTOSTREAM, "array")

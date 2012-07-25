@@ -255,6 +255,7 @@ term_type_t get_function_type(const Term::Call &c, type_checking_environment_t *
     case Builtin::MODULO:
     case Builtin::DISTINCT:
     case Builtin::LIMIT:
+    case Builtin::SKIP:
     case Builtin::LENGTH:
     case Builtin::UNION:
     case Builtin::NTH:
@@ -381,6 +382,7 @@ term_type_t get_function_type(const Term::Call &c, type_checking_environment_t *
             return get_term_type(c.args(0), env, backtrace);
             break;
         case Builtin::LIMIT:
+        case Builtin::SKIP:
             check_function_args(c, TERM_TYPE_STREAM, TERM_TYPE_JSON, env, backtrace);
             // polymorphic: view -> view, stream -> stream
             return get_term_type(c.args(0), env, backtrace);
@@ -603,7 +605,7 @@ int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace) {
 
 class shared_scoped_less {
 public:
-    shared_scoped_less(const backtrace_t &bt) : backtrace(bt) { }
+    explicit shared_scoped_less(const backtrace_t &bt) : backtrace(bt) { }
     bool operator()(const boost::shared_ptr<scoped_cJSON_t> &a,
                       const boost::shared_ptr<scoped_cJSON_t> &b) {
         if (a->type() == b->type()) {
@@ -1497,6 +1499,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
         case Builtin::ORDERBY:
         case Builtin::DISTINCT:
         case Builtin::LIMIT:
+        case Builtin::SKIP:
         case Builtin::ARRAYTOSTREAM:
         case Builtin::GROUPEDMAPREDUCE:
         case Builtin::UNION:
@@ -1830,7 +1833,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 
                 // Check second arg type
-                boost::shared_ptr<scoped_cJSON_t> limit_json  = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
+                boost::shared_ptr<scoped_cJSON_t> limit_json = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
                 if (limit_json->type() != cJSON_Number) {
                     throw runtime_exc_t("The limit must be a nonnegative integer.", backtrace.with("arg:1"));
                 }
@@ -1841,6 +1844,24 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                 }
 
                 return boost::shared_ptr<json_stream_t>(new limit_stream_t(stream, limit));
+            }
+            break;
+        case Builtin::SKIP:
+            {
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
+
+                // Check second arg type
+                boost::shared_ptr<scoped_cJSON_t> offset_json = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
+                if (offset_json->type() != cJSON_Number) {
+                    throw runtime_exc_t("The offset must be a nonnegative integer.", backtrace.with("arg:1"));
+                }
+                float offset_float = offset_json->get()->valuedouble;
+                int offset = (int)offset_float;
+                if (offset_float != offset || offset < 0) {
+                    throw runtime_exc_t("The offset must be a nonnegative integer.", backtrace.with("arg:1"));
+                }
+
+                return boost::shared_ptr<json_stream_t>(new skip_stream_t(stream, offset));
             }
             break;
         case Builtin::UNION:
@@ -1942,7 +1963,7 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
                 view_t pview = eval_view(c->mutable_args(0), env, backtrace.with("arg:0"));
 
                 // Check second arg type
-                boost::shared_ptr<scoped_cJSON_t> limit_json  = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
+                boost::shared_ptr<scoped_cJSON_t> limit_json = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
                 if (limit_json->type() != cJSON_Number) {
                     throw runtime_exc_t("The limit must be a nonnegative integer.", backtrace.with("arg:1"));
                 }
@@ -1954,7 +1975,24 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
 
                 return view_t(pview.access, boost::shared_ptr<json_stream_t>(new limit_stream_t(pview.stream, limit)));
             }
-            throw runtime_exc_t("Unimplemented: Builtin::LIMIT", backtrace);
+            break;
+        case Builtin::SKIP:
+            {
+                view_t pview = eval_view(c->mutable_args(0), env, backtrace.with("arg:0"));
+
+                // Check second arg type
+                boost::shared_ptr<scoped_cJSON_t> offset_json = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
+                if (offset_json->type() != cJSON_Number) {
+                    throw runtime_exc_t("The offset must be a nonnegative integer.", backtrace.with("arg:1"));
+                }
+                float offset_float = offset_json->get()->valuedouble;
+                int offset = (int)offset_float;
+                if (offset_float != offset || offset < 0) {
+                    throw runtime_exc_t("The offset must be a nonnegative integer.", backtrace.with("arg:1"));
+                }
+
+                return view_t(pview.access, boost::shared_ptr<json_stream_t>(new skip_stream_t(pview.stream, offset)));
+            }
             break;
         case Builtin::RANGE:
             throw runtime_exc_t("Unimplemented: Builtin::RANGE", backtrace);

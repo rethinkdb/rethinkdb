@@ -123,6 +123,7 @@ message Builtin {
         ANY = 35;
         ALL = 36;
         RANGE = 37;
+        SKIP = 38;
     };
 
     enum Comparison {
