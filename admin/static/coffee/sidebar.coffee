@@ -200,6 +200,9 @@ module 'Sidebar', ->
             $popover.on 'clickoutside', (e) ->
                 if e.target isnt event.target  # so we don't remove the popover when we click on the link
                     $(e.currentTarget).remove()
+            $('.popover_close').on 'click', (e) ->
+                $(e.target).parent().parent().remove()
+
 
         render: =>
             json = _.extend @model.toJSON(), @model.get_formatted_message()

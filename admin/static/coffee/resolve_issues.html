@@ -198,6 +198,20 @@
   </div>
 </script>
 
+<script id="resolve_issues-port_conflict-template" type="text/x-handlebars-template">
+    <div class="issue {{#if critical }}critical{{/if}}">
+        <div class="header">
+            <h3 class="title">Could not bind to port</h3>
+            {{#if datetime}}
+            <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+        {{/if}}
+        </div>
+        <hr />
+        <h4>A necessary port is already in use on this machine</h4>
+        <p class="description">Machine <a href="#machines/{{machine_id}}">{{machine_name}}</a> {{description}}.<br/>
+        Some other process is likely using this port. Kill it or instruct it to release the port in order to resolve this issue.</p>
+  </div>
+</script>
 
 
 <script id="resolve_issues-unknown-template" type="text/x-handlebars-template">
