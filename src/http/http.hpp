@@ -146,12 +146,11 @@ class http_server_t {
 public:
     http_server_t(int port, http_app_t *application);
     ~http_server_t();
-    signal_t *get_bound_signal();
 private:
     void handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &conn, auto_drainer_t::lock_t);
     http_app_t *application;
     auto_drainer_t auto_drainer;
-    scoped_ptr_t<repeated_nonthrowing_tcp_listener_t> tcp_listener;
+    scoped_ptr_t<tcp_listener_t> tcp_listener;
 };
 
 std::string percent_escaped_string(const std::string &s);
