@@ -3,14 +3,17 @@ class Namespace extends Backbone.Model
     initialize: ->
         # Add a computed shards property for convenience and metadata
         @compute_shards()
+        @load_key_distr()
     compute_shards: =>
         @.set 'computed_shards', new DataUtils.Shards [],@
 
+    interval: 5000
     set_interval_key_distr: =>
-        @set_interval = setInterval @load_key_distr, 5000
+        @set_interval = setInterval @load_key_distr, @interval
 
     clear_interval_key_distr: ->
-        clearInterval @set_interval
+        if @set_interval?
+            clearInterval @set_interval
 
     # Cache key distribution info.
     load_key_distr: =>
@@ -29,8 +32,17 @@ class Namespace extends Backbone.Model
 
                 @set('key_distr', distr_data)
                 @set('key_distr_sorted', distr_keys)
-            error: ->
-                window.issues_redundancy.compute_redundancy_errors() # In case a master is down, we have redundancy error
+                if @interval isnt 5000
+                    @clear_interval_key_distr()
+                    @interval = 5000
+                    @set_interval_key_distr()
+
+            error: =>
+                if @interval isnt 1000
+                    @clear_interval_key_distr()
+                    @interval = 1000
+                    @set_interval_key_distr()
+
 
     # Some shard helpers
     compute_shard_rows_approximation: (shard) =>
