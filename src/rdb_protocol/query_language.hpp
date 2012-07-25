@@ -10,8 +10,10 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
+#include "extproc/pool.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.pb.h"
 
@@ -37,7 +39,7 @@ and `bad_protobuf_exc_t` is that `bad_protobuf_exc_t` is the client's fault and
 
 class bad_query_exc_t : public std::exception {
 public:
-    explicit bad_query_exc_t(const std::string &s, const backtrace_t &bt) : message(s), backtrace(bt) { }
+    bad_query_exc_t(const std::string &s, const backtrace_t &bt) : message(s), backtrace(bt) { }
 
     ~bad_query_exc_t() throw () { }
 
@@ -72,6 +74,18 @@ enum term_type_t {
     `Error` term can be either a stream or an object. It is a subtype of every
     type. */
     TERM_TYPE_ARBITRARY
+};
+
+
+class term_info_t {
+public:
+    term_info_t() { }
+    term_info_t(term_type_t _type, bool _deterministic)
+        : type(_type), deterministic(_deterministic)
+    { }
+
+    term_type_t type;
+    bool deterministic;
 };
 
 template <class T>
@@ -117,6 +131,18 @@ public:
         scopes.pop_front();
     }
 
+    // TODO (rntz): find a better way to do this.
+    void dump(std::map<std::string, T> *map) {
+        map->clear();
+        for (typename std::deque<std::map<std::string, T> >::iterator sit = scopes.begin(); sit != scopes.end(); ++sit) {
+            for (typename std::map<std::string, T>::iterator it = sit->begin(); it != sit->end(); ++it) {
+                // Earlier bindings take precedence over later ones.
+                if (!map->count(it->first))
+                    map->insert(*it);
+            }
+        }
+    }
+
     struct new_scope_t {
         explicit new_scope_t(variable_scope_t<T> *_parent)
             : parent(_parent)
@@ -134,7 +160,7 @@ private:
     scopes_t scopes;
 };
 
-typedef variable_scope_t<term_type_t> variable_type_scope_t;
+typedef variable_scope_t<term_info_t> variable_type_scope_t;
 
 typedef variable_type_scope_t::new_scope_t new_scope_t;
 
@@ -196,7 +222,7 @@ private:
     scopes_t scopes;
 };
 
-typedef implicit_value_t<term_type_t> implicit_type_t;
+typedef implicit_value_t<term_info_t> implicit_type_t;
 
 struct type_checking_environment_t {
     variable_type_scope_t scope;
@@ -206,15 +232,15 @@ struct type_checking_environment_t {
 /* These functions throw exceptions if their inputs aren't well defined or
 fail type-checking. (A well-defined input has the correct fields filled in.) */
 
-term_type_t get_term_type(const Term &t, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_term_type(const Term &t, term_type_t expected, type_checking_environment_t *env, const backtrace_t &backtrace);
-term_type_t get_function_type(const Term::Call &c, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_reduction_type(const Reduction &m, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_mapping_type(const Mapping &m, term_type_t return_type, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_predicate_type(const Predicate &m, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_read_query_type(const ReadQuery &rq, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_write_query_type(const WriteQuery &wq, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_query_type(const Query &q, type_checking_environment_t *env, const backtrace_t &backtrace);
+term_info_t get_term_type(const Term &t, type_checking_environment_t *env, const backtrace_t &backtrace);
+void check_term_type(const Term &t, term_type_t expected, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
+term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *env, const backtrace_t &backtrace);
+void check_reduction_type(const Reduction &m, type_checking_environment_t *env, bool *is_det_out, bool args_are_det, const backtrace_t &backtrace);
+void check_mapping_type(const Mapping &m, term_type_t return_type, type_checking_environment_t *env, bool *is_det_out, bool args_are_det, const backtrace_t &backtrace);
+void check_predicate_type(const Predicate &m, type_checking_environment_t *env, bool *is_det_out, bool args_are_det, const backtrace_t &backtrace);
+void check_read_query_type(const ReadQuery &rq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
+void check_write_query_type(const WriteQuery &wq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
+void check_query_type(const Query &q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 
 /* functions to evaluate the queries */
 
@@ -233,13 +259,13 @@ public:
         : data(begin, end)
     { }
 
-    in_memory_stream_t(json_array_iterator_t it) {
+    explicit in_memory_stream_t(json_array_iterator_t it) {
         while (cJSON *json = it.next()) {
             data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
         }
     }
 
-    in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
+    explicit in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             data.push_back(json);
         }
@@ -334,7 +360,7 @@ public:
 
     class stream_t : public json_stream_t {
     public:
-        stream_t(boost::shared_ptr<stream_multiplexer_t> _parent)
+        explicit stream_t(boost::shared_ptr<stream_multiplexer_t> _parent)
             : parent(_parent), index(0)
         {
             rassert(parent->stream);
@@ -376,7 +402,7 @@ class union_stream_t : public json_stream_t {
 public:
     typedef std::list<boost::shared_ptr<json_stream_t> > stream_list_t;
 
-    union_stream_t(const stream_list_t &_streams)
+    explicit union_stream_t(const stream_list_t &_streams)
         : streams(_streams), hd(streams.begin())
     { }
 
@@ -495,6 +521,27 @@ private:
     int limit;
 };
 
+class skip_stream_t : public json_stream_t {
+public:
+    skip_stream_t(boost::shared_ptr<json_stream_t> _stream, int _offset)
+        : stream(_stream), offset(_offset)
+    {
+        guarantee(offset >= 0);
+    }
+
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        while (offset) {
+            offset--;
+            stream->next();
+        }
+        return stream->next();
+    }
+
+private:
+    boost::shared_ptr<json_stream_t> stream;
+    int offset;
+};
+
 //Scopes for single pieces of json
 typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_t;
 
@@ -507,10 +554,16 @@ typedef variable_stream_scope_t::new_scope_t new_stream_scope_t;
 
 class runtime_environment_t {
 public:
-    runtime_environment_t(namespace_repo_t<rdb_protocol_t> *_ns_repo,
+    runtime_environment_t(extproc::pool_group_t *_pool_group,
+                          namespace_repo_t<rdb_protocol_t> *_ns_repo,
                           boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+                          boost::shared_ptr<js::runner_t> _js_runner,
                           signal_t *_interruptor)
-        : ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata), interruptor(_interruptor)
+        : pool(_pool_group->get()),
+          ns_repo(_ns_repo),
+          semilattice_metadata(_semilattice_metadata),
+          js_runner(_js_runner),
+          interruptor(_interruptor)
     { }
 
     variable_val_scope_t scope;
@@ -519,10 +572,31 @@ public:
 
     implicit_value_t<boost::shared_ptr<scoped_cJSON_t> > implicit_attribute_value;
 
+    extproc::pool_t *pool;      // for running external JS jobs
     namespace_repo_t<rdb_protocol_t> *ns_repo;
     //TODO this should really just be the namespace metadata... but
     //constructing views is too hard :-/
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+
+  private:
+    // Ideally this would be a scoped_ptr_t<js::runner_t>, but unfortunately we
+    // copy runtime_environment_ts to capture scope.
+    //
+    // Note that js_runner is "lazily initialized": we only call
+    // js_runner->begin() once we know we need to evaluate javascript. This
+    // means we only allocate a worker process to queries that actually need
+    // javascript execution.
+    //
+    // In the future we might want to be even finer-grained than this, and
+    // release worker jobs once we know we no longer need JS execution, or
+    // multiplex queries onto worker processes.
+    boost::shared_ptr<js::runner_t> js_runner;
+
+  public:
+    // Returns js_runner, but first calls js_runner->begin() if it hasn't
+    // already been called.
+    boost::shared_ptr<js::runner_t> get_js_runner();
+
     signal_t *interruptor;
 };
 
@@ -530,21 +604,21 @@ typedef implicit_value_t<boost::shared_ptr<scoped_cJSON_t> >::impliciter_t impli
 
 //TODO most of these functions that are supposed to only throw runtime exceptions
 
-void execute(const Query &q, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(Query *q, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-void execute(const ReadQuery &r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(ReadQuery *r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-void execute(const WriteQuery &r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(WriteQuery *r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+namespace_repo_t<rdb_protocol_t>::access_t eval(TableRef *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
 class view_t {
 public:
@@ -556,11 +630,11 @@ public:
     boost::shared_ptr<json_stream_t> stream;
 };
 
-view_t eval_view(const Term &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+view_t eval_view(Term *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-view_t eval_view(const Term::Call &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+view_t eval_view(Term::Call *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-view_t eval_view(const Term::Table &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+view_t eval_view(Term::Table *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
 } //namespace query_language
 

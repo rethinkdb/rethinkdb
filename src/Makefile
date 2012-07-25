@@ -33,8 +33,8 @@ SERVER_UNIT_TEST_NAME:=$(SERVER_EXEC_NAME)-unittest
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
-CTAGS:=ctags
-ETAGS:=$(CTAGS) -e
+CTAGSPROG:=ctags
+ETAGSPROG:=$(CTAGSPROG) -e
 TAGSFILE:=.tags
 ETAGSFILE:=TAGS
 CSCOPE_XREF:=.cscope
@@ -163,6 +163,8 @@ else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
 CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
+# TODO: remove this once memcached is added back in the release (disables memcached from showing up in the admin CLI help or tab-completion)
+CXXFLAGS+=-DNO_MEMCACHE
 endif
 
 ifneq ($(TRIAL),0)
@@ -309,6 +311,7 @@ PROTO_HEADERS:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(PROTO_SOUR
 PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(PROTO_SOURCES))
 PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(PROTO_CODE))
 PROTO_OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(PROTO_NAMES))
+PROTOCFLAGS:= -I $(SOURCE_DIR)
 
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
@@ -368,7 +371,7 @@ CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 
 ##### Build targets
-.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean driver gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags etags unit valgrind web-assets coffeelint
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint
 
 # High level build targets
 
@@ -597,12 +600,11 @@ rpm-suse10:
 endif
 
 # Build rules
-
-drivers:
+drivers: rdb_protocol/query_language.proto
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC $@"
 endif
-	$(QUIET) protoc --python_out ../drivers/python/ rdb_protocol/query_language.proto
+	$(QUIET) protoc $(PROTOCFLAGS) --python_out ../drivers/python/rethinkdb/ rdb_protocol/query_language.proto
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
 rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py
@@ -664,12 +666,16 @@ endif
 	$(QUIET) cp -P $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 
 # Special recipe for the proto buffer generated code
-$(PROTO_DIR)/%.pb.h: $(SOURCE_DIR)/%.proto
+# Need to use a dummy file to avoid calling protoc once for each input file.
+$(PROTO_DIR)/dummy: $(PROTO_SOURCES)
 	$(QUIET) mkdir -p $(PROTO_DIR)
 ifeq ($(VERBOSE),0)
-	@echo "    protoc --cpp_out $(PROTO_DIR) $<"
+	@echo "    PROTOC $^"
 endif
-	$(QUIET) protoc --cpp_out $(PROTO_DIR) $<
+	$(QUIET) protoc $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $^
+	$(QUIET) touch $@
+
+$(PROTO_HEADERS) $(PROTO_CODE): $(PROTO_DIR)/dummy
 
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
@@ -761,11 +767,11 @@ endif
 
 TAGFLAGS:=-R --c++-kinds=+p --fields=+iaS --extra=+q --langmap="c++:.cc.tcc.hpp"
 tags:
-	$(QUIET) $(CTAGS) $(TAGFLAGS) -f $(TAGSFILE)
+	$(QUIET) $(CTAGSPROG) $(TAGFLAGS) -f $(TAGSFILE)
 
 etags:
 	$(QUIET) rm -f $(ETAGSFILE)
-	$(QUIET) $(ETAGS) $(TAGFLAGS) -f $(ETAGSFILE)
+	$(QUIET) $(ETAGSPROG) $(TAGFLAGS) -f $(ETAGSFILE)
 
 cscope:
 	$(QUIET) cscope -bR -f $(CSCOPE_XREF)

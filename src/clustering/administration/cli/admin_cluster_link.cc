@@ -97,7 +97,7 @@ void admin_cluster_link_t::admin_stats_to_table(const std::string& machine,
     }
 }
 
-std::string admin_value_to_string(const memcached_protocol_t::region_t& region) {
+std::string admin_value_to_string(const hash_region_t<key_range_t>& region) {
     // TODO(sam): I don't know what is the appropriate sort of thing for an admin_value_to_string call.
     return strprintf("%" PRIu64 ":%" PRIu64 ":%s", region.beg, region.end, key_range_to_cli_str(region.inner).c_str());
 }
@@ -141,7 +141,7 @@ std::string admin_value_to_string(const std::set<mock::dummy_protocol_t::region_
 std::string admin_value_to_string(const std::set<hash_region_t<key_range_t> >& value) {
     std::string result;
     size_t count = 0;
-    for (std::set<hash_region_t<key_range_t> >::const_iterator i = value.begin(); i != value.end(); ++i) {
+    for (std::set<memcached_protocol_t::region_t>::const_iterator i = value.begin(); i != value.end(); ++i) {
         ++count;
         result += strprintf("%s%s", admin_value_to_string(*i).c_str(), count == value.size() ? "" : ", ");
     }
@@ -270,6 +270,7 @@ void admin_cluster_link_t::update_metadata_maps() {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     add_subset_to_maps("machines", cluster_metadata.machines.machines);
     add_subset_to_maps("datacenters", cluster_metadata.datacenters.datacenters);
+    add_subset_to_maps("rdb_namespaces", cluster_metadata.rdb_namespaces.namespaces);
     add_subset_to_maps("dummy_namespaces", cluster_metadata.dummy_namespaces.namespaces);
     add_subset_to_maps("memcached_namespaces", cluster_metadata.memcached_namespaces.namespaces);
 }
@@ -313,7 +314,7 @@ void admin_cluster_link_t::sync_from() {
         if (sync_peer_id.is_nil() || directory.count(sync_peer_id) == 0) {
             choose_sync_peer();
         }
-        
+
         semilattice_metadata->sync_from(sync_peer_id, &interruptor);
     } catch (const sync_failed_exc_t& ex) {
         throw admin_no_connection_exc_t("connection lost to cluster");
@@ -356,8 +357,10 @@ std::vector<std::string> admin_cluster_link_t::get_machine_ids(const std::string
 }
 
 std::vector<std::string> admin_cluster_link_t::get_namespace_ids(const std::string& base) {
-    std::vector<std::string> namespaces = get_ids_internal(base, "dummy_namespaces");
+    std::vector<std::string> namespaces = get_ids_internal(base, "rdb_namespaces");
     std::vector<std::string> delta = get_ids_internal(base, "memcached_namespaces");
+    std::copy(delta.begin(), delta.end(), std::back_inserter(namespaces));
+    delta = get_ids_internal(base, "dummy_namespaces");
     std::copy(delta.begin(), delta.end(), std::back_inserter(namespaces));
     return namespaces;
 }
@@ -419,6 +422,8 @@ admin_cluster_link_t::metadata_info_t *admin_cluster_link_t::get_info_from_id(co
              item != name_map.end() && item->first == id; ++item) {
             if (item->second->path[0] == "datacenters") {
                 exception_info += strprintf("\ndatacenter    %s", uuid_to_str(item->second->uuid).substr(0, uuid_output_length).c_str());
+            } else if (item->second->path[0] == "rdb_namespaces") {
+                exception_info += strprintf("\nnamespace (r) %s", uuid_to_str(item->second->uuid).substr(0, uuid_output_length).c_str());
             } else if (item->second->path[0] == "dummy_namespaces") {
                 exception_info += strprintf("\nnamespace (d) %s", uuid_to_str(item->second->uuid).substr(0, uuid_output_length).c_str());
             } else if (item->second->path[0] == "memcached_namespaces") {
@@ -465,7 +470,7 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
 
     if (ns_path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("pinning not supported for dummy namespaces");
-    } else if (ns_path[0] != "memcached_namespaces") {
+    } else if (ns_path[0] != "memcached_namespaces" && ns_path[0] != "rdb_namespaces") {
         throw admin_parse_exc_t("object is not a namespace: " + ns);
     }
 
@@ -512,7 +517,19 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
         shard_in.right.exists = false;
     }
 
-    if (ns_path[0] == "memcached_namespaces") {
+    if (ns_path[0] == "rdb_namespaces") {
+        namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::iterator i = cluster_metadata.rdb_namespaces.namespaces.find(str_to_uuid(ns_path[1]));
+        if (i == cluster_metadata.rdb_namespaces.namespaces.end() || i->second.is_deleted()) {
+            throw admin_cluster_exc_t("unexpected error, could not find namespace: " + ns);
+        }
+
+        // If no primaries or secondaries are given, we list the current machine assignments
+        if (primary.empty() && secondaries.empty()) {
+            list_pinnings(i->second.get_mutable(), shard_in, cluster_metadata);
+        } else {
+            do_admin_pin_shard_internal(shard_in, primary, secondaries, cluster_metadata, &i->second.get_mutable());
+        }
+    } else if (ns_path[0] == "memcached_namespaces") {
         namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = cluster_metadata.memcached_namespaces.namespaces.find(str_to_uuid(ns_path[1]));
         if (i == cluster_metadata.memcached_namespaces.namespaces.end() || i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected error, could not find namespace: " + ns);
@@ -736,81 +753,14 @@ void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::co
     const std::vector<std::string> split_points = guarantee_param_vec(data.params, "split-points");
     std::string error;
 
-    if (ns_path[0] == "memcached_namespaces") {
-        namespace_id_t ns_id(str_to_uuid(ns_path[1]));
-        namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator ns_it =
-            cluster_metadata.memcached_namespaces.namespaces.find(ns_id);
-
-        if (ns_it == cluster_metadata.memcached_namespaces.namespaces.end() || ns_it->second.is_deleted()) {
-            throw admin_cluster_exc_t("unexpected error when looking up namespace: " + ns_path[1]);
-        }
-
-        namespace_semilattice_metadata_t<memcached_protocol_t>& ns = ns_it->second.get_mutable();
-
-        if (ns.shards.in_conflict()) {
-            throw admin_cluster_exc_t("namespace shards are in conflict, run 'help resolve' for more information");
-        }
-
-        for (size_t i = 0; i < split_points.size(); ++i) {
-            try {
-                store_key_t key;
-                if (!cli_str_to_key(split_points[i], &key)) {
-                    throw admin_cluster_exc_t("split point could not be parsed: " + split_points[i]);
-                }
-
-                if (ns.shards.get().empty()) {
-                    // this should never happen, but try to handle it anyway
-                    key_range_t left(key_range_t::none, store_key_t(), key_range_t::open, store_key_t(key));
-                    key_range_t right(key_range_t::closed, store_key_t(key), key_range_t::none, store_key_t());
-                    ns.shards.get_mutable().insert(hash_region_t<key_range_t>(left));
-                    ns.shards.get_mutable().insert(hash_region_t<key_range_t>(right));
-                } else {
-                    // TODO: use a better search than linear
-                    std::set< hash_region_t<key_range_t> >::iterator shard = ns.shards.get_mutable().begin();
-                    while (true) {
-                        // TODO: This assertion is too low-level, there should be a function for hash_region_t that computes the expression.
-                        guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
-
-                        if (shard == ns.shards.get_mutable().end()) {
-                            throw admin_cluster_exc_t("split point could not be placed: " + split_points[i]);
-                        } else if (shard->inner.contains_key(key)) {
-                            break;
-                        }
-                        ++shard;
-                    }
-
-                    // Don't split if this key is already the split point
-                    if (shard->inner.left == key) {
-                        throw admin_cluster_exc_t("split point already exists: " + split_points[i]);
-                    }
-
-                    // Create the two new shards to be inserted
-                    key_range_t left;
-                    left.left = shard->inner.left;
-                    left.right = key_range_t::right_bound_t(key);
-                    key_range_t right;
-                    right.left = key;
-                    right.right = shard->inner.right;
-
-                    ns.shards.get_mutable().erase(shard);
-                    ns.shards.get_mutable().insert(hash_region_t<key_range_t>(left));
-                    ns.shards.get_mutable().insert(hash_region_t<key_range_t>(right));
-                }
-                ns.shards.upgrade_version(change_request_id);
-            } catch (const std::exception& ex) {
-                error += ex.what();
-                error += "\n";
-            }
-        }
-
-        // Any time shards are changed, we destroy existing pinnings
-        // Use 'resolve' because they should be cleared even if in conflict
-        // ID sent to the vector clock doesn't matter here since we're setting the metadata through HTTP (TODO: change this if that is no longer true)
-        region_map_t<memcached_protocol_t, machine_id_t> new_primaries(memcached_protocol_t::region_t::universe(), nil_uuid());
-        region_map_t<memcached_protocol_t, std::set<machine_id_t> > new_secondaries(memcached_protocol_t::region_t::universe(), std::set<machine_id_t>());
-
-        ns.primary_pinnings = ns.primary_pinnings.make_resolving_version(new_primaries, change_request_id);
-        ns.secondary_pinnings = ns.secondary_pinnings.make_resolving_version(new_secondaries, change_request_id);
+    if (ns_path[0] == "rdb_namespaces") {
+        error = admin_split_shard_internal(&cluster_metadata.rdb_namespaces,
+                                           str_to_uuid(ns_path[1]),
+                                           split_points);
+    } else if (ns_path[0] == "memcached_namespaces") {
+        error = admin_split_shard_internal(&cluster_metadata.memcached_namespaces,
+                                           str_to_uuid(ns_path[1]),
+                                           split_points);
     } else if (ns_path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("splitting not supported for dummy namespaces");
     } else {
@@ -831,89 +781,109 @@ void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::co
     }
 }
 
+template <class protocol_t>
+std::string admin_cluster_link_t::admin_split_shard_internal(namespaces_semilattice_metadata_t<protocol_t> *ns_map,
+                                                             const namespace_id_t &ns_id,
+                                                             const std::vector<std::string> &split_points) {
+    std::string error;
+    typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::iterator ns_it = ns_map->namespaces.find(ns_id);
+
+    if (ns_it == ns_map->namespaces.end() || ns_it->second.is_deleted()) {
+        throw admin_cluster_exc_t("unexpected error when looking up namespace: " + uuid_to_str(ns_id));
+    }
+
+    namespace_semilattice_metadata_t<protocol_t>& ns = ns_it->second.get_mutable();
+
+    if (ns.shards.in_conflict()) {
+        throw admin_cluster_exc_t("namespace shards are in conflict, run 'help resolve' for more information");
+    }
+
+    error = split_shards(&ns.shards, split_points);
+
+    // Any time shards are changed, we destroy existing pinnings
+    // Use 'resolve' because they should be cleared even if in conflict
+    // ID sent to the vector clock doesn't matter here since we're setting the metadata through HTTP (TODO: change this if that is no longer true)
+    region_map_t<protocol_t, machine_id_t> new_primaries(protocol_t::region_t::universe(), nil_uuid());
+    region_map_t<protocol_t, std::set<machine_id_t> > new_secondaries(protocol_t::region_t::universe(), std::set<machine_id_t>());
+
+    ns.primary_pinnings = ns.primary_pinnings.make_resolving_version(new_primaries, change_request_id);
+    ns.secondary_pinnings = ns.secondary_pinnings.make_resolving_version(new_secondaries, change_request_id);
+
+    return error;
+}
+
+std::string admin_cluster_link_t::split_shards(vclock_t<std::set<hash_region_t<key_range_t> > > *shards_vclock,
+                                               const std::vector<std::string> &split_points) {
+    std::set<hash_region_t<key_range_t> > &shards = shards_vclock->get_mutable();
+    std::string error;
+
+    for (size_t i = 0; i < split_points.size(); ++i) {
+        try {
+            store_key_t key;
+            if (!cli_str_to_key(split_points[i], &key)) {
+                throw admin_cluster_exc_t("split point could not be parsed: " + split_points[i]);
+            }
+
+            if (shards.empty()) {
+                // this should never happen, but try to handle it anyway
+                key_range_t left(key_range_t::none, store_key_t(), key_range_t::open, store_key_t(key));
+                key_range_t right(key_range_t::closed, store_key_t(key), key_range_t::none, store_key_t());
+                shards.insert(hash_region_t<key_range_t>(left));
+                shards.insert(hash_region_t<key_range_t>(right));
+            } else {
+                // TODO: use a better search than linear
+                std::set<hash_region_t<key_range_t> >::iterator shard = shards.begin();
+                while (true) {
+                    // TODO: This assertion is too low-level, there should be a function for hash_region_t that computes the expression.
+                    guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
+
+                    if (shard == shards.end()) {
+                        throw admin_cluster_exc_t("split point could not be placed: " + split_points[i]);
+                    } else if (shard->inner.contains_key(key)) {
+                        break;
+                    }
+                    ++shard;
+                }
+
+                // Don't split if this key is already the split point
+                if (shard->inner.left == key) {
+                    throw admin_cluster_exc_t("split point already exists: " + split_points[i]);
+                }
+
+                // Create the two new shards to be inserted
+                key_range_t left;
+                left.left = shard->inner.left;
+                left.right = key_range_t::right_bound_t(key);
+                key_range_t right;
+                right.left = key;
+                right.right = shard->inner.right;
+
+                shards.erase(shard);
+                shards.insert(hash_region_t<key_range_t>(left));
+                shards.insert(hash_region_t<key_range_t>(right));
+            }
+            shards_vclock->upgrade_version(change_request_id);
+        } catch (const std::exception& ex) {
+            error += ex.what();
+            error += "\n";
+        }
+    }
+    return error;
+}
+
 void admin_cluster_link_t::do_admin_merge_shard(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    const std::vector<std::string> ns_path(get_info_from_id(guarantee_param_0(data.params, "namespace"))->path);
+    metadata_info_t *info = get_info_from_id(guarantee_param_0(data.params, "namespace"));
     const std::vector<std::string> split_points(guarantee_param_vec(data.params, "split-points"));
     std::string error;
 
-    if (ns_path[0] == "memcached_namespaces") {
-        namespace_id_t ns_id(str_to_uuid(ns_path[1]));
-        namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator ns_it =
-            cluster_metadata.memcached_namespaces.namespaces.find(ns_id);
-
-        if (ns_it == cluster_metadata.memcached_namespaces.namespaces.end() || ns_it->second.is_deleted()) {
-            throw admin_cluster_exc_t("unexpected error when looking up namespace: " + ns_path[1]);
-        }
-
-        namespace_semilattice_metadata_t<memcached_protocol_t>& ns = ns_it->second.get_mutable();
-
-        if (ns.shards.in_conflict()) {
-            throw admin_cluster_exc_t("namespace shards are in conflict, run 'help resolve' for more information");
-        }
-
-        for (size_t i = 0; i < split_points.size(); ++i) {
-            try {
-                store_key_t key;
-                if (!cli_str_to_key(split_points[i], &key)) {
-                    throw admin_cluster_exc_t("split point could not be parsed: " + split_points[i]);
-                }
-
-                // TODO: use a better search than linear
-                std::set< hash_region_t<key_range_t> >::iterator shard = ns.shards.get_mutable().begin();
-
-                if (shard == ns.shards.get_mutable().end()) {
-                    throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
-                }
-
-                std::set< hash_region_t<key_range_t> >::iterator prev = shard;
-                // TODO: This assertion's expression is too low-level, there should be a function for it.
-                guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
-
-                ++shard;
-                while (true) {
-                    // TODO: This assertion's expression is too low-level, there should be a function for it.
-                    guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
-
-                    if (shard == ns.shards.get_mutable().end()) {
-                        throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
-                    } else if (shard->inner.contains_key(key)) {
-                        break;
-                    }
-                    prev = shard;
-                    ++shard;
-                }
-
-                if (shard->inner.left != store_key_t(key)) {
-                    throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
-                }
-
-                // Create the new shard to be inserted
-                key_range_t merged;
-                merged.left = prev->inner.left;
-                merged.right = shard->inner.right;
-
-                ns.shards.get_mutable().erase(shard);
-                ns.shards.get_mutable().erase(prev);
-                ns.shards.get_mutable().insert(hash_region_t<key_range_t>(merged));
-                ns.shards.upgrade_version(change_request_id);
-            } catch (const std::exception& ex) {
-                error += ex.what();
-                error += "\n";
-            }
-        }
-
-        // Any time shards are changed, we destroy existing pinnings
-        // Use 'resolve' because they should be cleared even if in conflict
-        // ID sent to the vector clock doesn't matter here since we're setting the metadata through HTTP (TODO: change this if that is no longer true)
-        region_map_t<memcached_protocol_t, machine_id_t> new_primaries(memcached_protocol_t::region_t::universe(), nil_uuid());
-        region_map_t<memcached_protocol_t, std::set<machine_id_t> > new_secondaries(memcached_protocol_t::region_t::universe(), std::set<machine_id_t>());
-
-        ns.primary_pinnings = ns.primary_pinnings.make_resolving_version(new_primaries, change_request_id);
-        ns.secondary_pinnings = ns.secondary_pinnings.make_resolving_version(new_secondaries, change_request_id);
-    } else if (ns_path[0] == "dummy_namespaces") {
+    if (info->path[0] == "rdb_namespaces") {
+        admin_merge_shard_internal(&cluster_metadata.rdb_namespaces, str_to_uuid(info->path[1]), split_points);
+    } else if (info->path[0] == "memcached_namespaces") {
+        admin_merge_shard_internal(&cluster_metadata.memcached_namespaces, str_to_uuid(info->path[1]), split_points);
+    } else if (info->path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("merging not supported for dummy namespaces");
     } else {
         throw admin_cluster_exc_t("invalid object type");
@@ -933,6 +903,93 @@ void admin_cluster_link_t::do_admin_merge_shard(const admin_command_parser_t::co
     }
 }
 
+template <class protocol_t>
+std::string admin_cluster_link_t::admin_merge_shard_internal(namespaces_semilattice_metadata_t<protocol_t> *ns_map,
+                                                             const namespace_id_t &ns_id,
+                                                             const std::vector<std::string> &split_points) {
+    std::string error;
+    typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::iterator ns_it =
+        ns_map->namespaces.find(ns_id);
+
+    if (ns_it == ns_map->namespaces.end() || ns_it->second.is_deleted()) {
+        throw admin_cluster_exc_t("unexpected error when looking up namespace: " + uuid_to_str(ns_id));
+    }
+
+    namespace_semilattice_metadata_t<protocol_t>& ns = ns_it->second.get_mutable();
+
+    if (ns.shards.in_conflict()) {
+        throw admin_cluster_exc_t("namespace shards are in conflict, run 'help resolve' for more information");
+    }
+
+    error = merge_shards(&ns.shards, split_points);
+
+    // Any time shards are changed, we destroy existing pinnings
+    // Use 'resolve' because they should be cleared even if in conflict
+    // ID sent to the vector clock doesn't matter here since we're setting the metadata through HTTP (TODO: change this if that is no longer true)
+    region_map_t<protocol_t, machine_id_t> new_primaries(protocol_t::region_t::universe(), nil_uuid());
+    region_map_t<protocol_t, std::set<machine_id_t> > new_secondaries(protocol_t::region_t::universe(), std::set<machine_id_t>());
+
+    ns.primary_pinnings = ns.primary_pinnings.make_resolving_version(new_primaries, change_request_id);
+    ns.secondary_pinnings = ns.secondary_pinnings.make_resolving_version(new_secondaries, change_request_id);
+
+    return error;
+}
+
+std::string admin_cluster_link_t::merge_shards(vclock_t<std::set<hash_region_t<key_range_t> > > *shards_vclock,
+                                               const std::vector<std::string> &split_points) {
+    std::set<hash_region_t<key_range_t> > &shards = shards_vclock->get_mutable();
+    std::string error;
+    for (size_t i = 0; i < split_points.size(); ++i) {
+        try {
+            store_key_t key;
+            if (!cli_str_to_key(split_points[i], &key)) {
+                throw admin_cluster_exc_t("split point could not be parsed: " + split_points[i]);
+            }
+
+            std::set< hash_region_t<key_range_t> >::iterator shard = shards.begin();
+            if (shard == shards.end()) {
+                throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
+            }
+
+            std::set< hash_region_t<key_range_t> >::iterator prev = shard;
+            // TODO: This assertion's expression is too low-level, there should be a function for it.
+            guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
+
+            ++shard;
+            while (true) {
+                // TODO: This assertion's expression is too low-level, there should be a function for it.
+                guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
+
+                if (shard == shards.end()) {
+                    throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
+                } else if (shard->inner.contains_key(key)) {
+                    break;
+                }
+                prev = shard;
+                ++shard;
+            }
+
+            if (shard->inner.left != store_key_t(key)) {
+                throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
+            }
+
+            // Create the new shard to be inserted
+            key_range_t merged;
+            merged.left = prev->inner.left;
+            merged.right = shard->inner.right;
+
+            shards.erase(shard);
+            shards.erase(prev);
+            shards.insert(hash_region_t<key_range_t>(merged));
+            shards_vclock->upgrade_version(change_request_id);
+        } catch (const std::exception& ex) {
+            error += ex.what();
+            error += "\n";
+        }
+    }
+    return error;
+}
+
 void admin_cluster_link_t::do_admin_list(const admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     std::map<std::string, std::vector<std::string> >::const_iterator obj_it = data.params.find("object");
@@ -950,6 +1007,12 @@ void admin_cluster_link_t::do_admin_list(const admin_command_parser_t::command_d
                 throw admin_cluster_exc_t("object not found: " + obj_str);
             }
             list_single_datacenter(obj_id, i->second.get_mutable(), cluster_metadata);
+        } else if (info->path[0] == "rdb_namespaces") {
+            namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::iterator i = cluster_metadata.rdb_namespaces.namespaces.find(obj_id);
+            if (i == cluster_metadata.rdb_namespaces.namespaces.end() || i->second.is_deleted()) {
+                throw admin_cluster_exc_t("object not found: " + obj_str);
+            }
+            list_single_namespace(obj_id, i->second.get_mutable(), cluster_metadata, "rdb");
         } else if (info->path[0] == "dummy_namespaces") {
             namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = cluster_metadata.dummy_namespaces.namespaces.find(obj_id);
             if (i == cluster_metadata.dummy_namespaces.namespaces.end() || i->second.is_deleted()) {
@@ -1280,6 +1343,7 @@ void admin_cluster_link_t::list_all(bool long_format, const cluster_semilattice_
     list_all_internal("machine", long_format, cluster_metadata.machines.machines, &table);
     list_all_internal("datacenter", long_format, cluster_metadata.datacenters.datacenters, &table);
     // TODO: better differentiation between namespace types
+    list_all_internal("namespace (r)", long_format, cluster_metadata.rdb_namespaces.namespaces, &table);
     list_all_internal("namespace (d)", long_format, cluster_metadata.dummy_namespaces.namespaces, &table);
     list_all_internal("namespace (m)", long_format, cluster_metadata.memcached_namespaces.namespaces, &table);
 
@@ -1308,6 +1372,7 @@ std::map<datacenter_id_t, admin_cluster_link_t::datacenter_info_t> admin_cluster
     }
 
     // TODO: this will list affinities, but not actual state (in case of impossible requirements)
+    add_datacenter_affinities(cluster_metadata.rdb_namespaces.namespaces, &results);
     add_datacenter_affinities(cluster_metadata.dummy_namespaces.namespaces, &results);
     add_datacenter_affinities(cluster_metadata.memcached_namespaces.namespaces, &results);
 
@@ -1461,10 +1526,15 @@ void admin_cluster_link_t::do_admin_list_namespaces(const admin_command_parser_t
     table.push_back(header);
 
     if (type.empty()) {
+        add_namespaces("rdb", long_format, cluster_metadata.rdb_namespaces.namespaces, &table);
         add_namespaces("dummy", long_format, cluster_metadata.dummy_namespaces.namespaces, &table);
         add_namespaces("memcached", long_format, cluster_metadata.memcached_namespaces.namespaces, &table);
+    } else if (type == "rdb") {
+        add_namespaces(type, long_format, cluster_metadata.rdb_namespaces.namespaces, &table);
+#ifndef NO_DUMMY
     } else if (type == "dummy") {
         add_namespaces(type, long_format, cluster_metadata.dummy_namespaces.namespaces, &table);
+#endif
     } else if (type == "memcached") {
         add_namespaces(type, long_format, cluster_metadata.memcached_namespaces.namespaces, &table);
     } else {
@@ -1545,6 +1615,7 @@ std::map<machine_id_t, admin_cluster_link_t::machine_info_t> admin_cluster_link_
     }
 
     // Go through namespaces
+    build_machine_info_internal(cluster_metadata.rdb_namespaces.namespaces, &results);
     build_machine_info_internal(cluster_metadata.dummy_namespaces.namespaces, &results);
     build_machine_info_internal(cluster_metadata.memcached_namespaces.namespaces, &results);
 
@@ -1710,10 +1781,14 @@ void admin_cluster_link_t::do_admin_create_namespace(const admin_command_parser_
         throw admin_cluster_exc_t("primary datacenter must have at least one machine, run 'help set datacenter' for more information");
     }
 
-    if (protocol == "memcached") {
+    if (protocol == "rdb") {
+        new_id = do_admin_create_namespace_internal(name, port, primary, &cluster_metadata.rdb_namespaces);
+    } else if (protocol == "memcached") {
         new_id = do_admin_create_namespace_internal(name, port, primary, &cluster_metadata.memcached_namespaces);
+#ifndef NO_DUMMY
     } else if (protocol == "dummy") {
         new_id = do_admin_create_namespace_internal(name, port, primary, &cluster_metadata.dummy_namespaces);
+#endif
     } else {
         throw admin_parse_exc_t("unrecognized protocol: " + protocol);
     }
@@ -1779,10 +1854,12 @@ void admin_cluster_link_t::do_admin_set_primary(const admin_command_parser_t::co
         throw admin_cluster_exc_t("insufficient machines in the selected datacenter to host the namespace");
     }
 
-    if (obj_info->path[0] == "memcached_namespaces") {
+    if (obj_info->path[0] == "rdb_namespaces") {
+        do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &cluster_metadata.rdb_namespaces.namespaces);
+    } else if (obj_info->path[0] == "memcached_namespaces") {
         do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &cluster_metadata.memcached_namespaces.namespaces);
     } else if (obj_info->path[0] == "dummy_namespaces") {
-        do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &cluster_metadata.memcached_namespaces.namespaces);
+        do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &cluster_metadata.dummy_namespaces.namespaces);
     } else {
         throw admin_cluster_exc_t("target object is not a namespace");
     }
@@ -1852,6 +1929,7 @@ void admin_cluster_link_t::do_admin_set_datacenter_machine(const uuid_t obj_uuid
 
     // If the datacenter has changed (or we couldn't determine the old datacenter uuid), clear pinnings
     if (old_datacenter != dc) {
+        remove_machine_pinnings(obj_uuid, &cluster_metadata->rdb_namespaces.namespaces);
         remove_machine_pinnings(obj_uuid, &cluster_metadata->memcached_namespaces.namespaces);
         remove_machine_pinnings(obj_uuid, &cluster_metadata->dummy_namespaces.namespaces);
     }
@@ -1918,6 +1996,8 @@ void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::comma
         do_admin_set_name_internal(info->uuid, name, &cluster_metadata.machines.machines);
     } else if (info->path[0] == "datacenters") {
         do_admin_set_name_internal(info->uuid, name, &cluster_metadata.datacenters.datacenters);
+    } else if (info->path[0] == "rdb_namespaces") {
+        do_admin_set_name_internal(info->uuid, name, &cluster_metadata.rdb_namespaces.namespaces);
     } else if (info->path[0] == "dummy_namespaces") {
         do_admin_set_name_internal(info->uuid, name, &cluster_metadata.dummy_namespaces.namespaces);
     } else if (info->path[0] == "memcached_namespaces") {
@@ -1936,9 +2016,11 @@ template <class map_type>
 void admin_cluster_link_t::do_admin_set_name_internal(const uuid_t& id, const std::string& name, map_type *obj_map) {
     // TODO: How do we know i != obj_map->end()?
     typename map_type::iterator i = obj_map->find(id);
-    if (!i->second.is_deleted() && !i->second.get().name.in_conflict()) {
+    if (i != obj_map->end() && !i->second.is_deleted() && !i->second.get().name.in_conflict()) {
         i->second.get_mutable().name.get_mutable() = name;
         i->second.get_mutable().name.upgrade_version(change_request_id);
+    } else {
+        throw admin_cluster_exc_t("unexpected error, object not found: " + uuid_to_str(id));
     }
 }
 
@@ -1960,7 +2042,16 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         throw admin_parse_exc_t(guarantee_param_0(data.params, "datacenter") + " is not a datacenter");
     }
 
-    if (ns_info->path[0] == "dummy_namespaces") {
+    if (ns_info->path[0] == "rdb_namespaces") {
+        namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::iterator i = cluster_metadata.rdb_namespaces.namespaces.find(ns_info->uuid);
+        if (i == cluster_metadata.rdb_namespaces.namespaces.end()) {
+            throw admin_parse_exc_t("unexpected error, namespace not found");
+        } else if (i->second.is_deleted()) {
+            throw admin_cluster_exc_t("unexpected error, namespace has been deleted");
+        }
+        do_admin_set_acks_internal(dc_info->uuid, acks_num, &i->second.get_mutable());
+
+    } else if (ns_info->path[0] == "dummy_namespaces") {
         namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = cluster_metadata.dummy_namespaces.namespaces.find(ns_info->uuid);
         if (i == cluster_metadata.dummy_namespaces.namespaces.end()) {
             throw admin_parse_exc_t("unexpected error, namespace not found");
@@ -2039,7 +2130,16 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
         throw admin_cluster_exc_t("the number of replicas cannot be more than the number of machines in the datacenter");
     }
 
-    if (ns_info->path[0] == "dummy_namespaces") {
+    if (ns_info->path[0] == "rdb_namespaces") {
+        namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::iterator i = cluster_metadata.rdb_namespaces.namespaces.find(ns_info->uuid);
+        if (i == cluster_metadata.rdb_namespaces.namespaces.end()) {
+            throw admin_parse_exc_t("unexpected error, namespace not found");
+        } else if (i->second.is_deleted()) {
+            throw admin_cluster_exc_t("unexpected error, namespace has been deleted");
+        }
+        do_admin_set_replicas_internal(datacenter, num_replicas, &i->second.get_mutable());
+
+    } else if (ns_info->path[0] == "dummy_namespaces") {
         namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = cluster_metadata.dummy_namespaces.namespaces.find(ns_info->uuid);
         if (i == cluster_metadata.dummy_namespaces.namespaces.end()) {
             throw admin_parse_exc_t("unexpected error, namespace not found");
@@ -2130,6 +2230,8 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
                 do_admin_remove_internal_internal(obj_info->uuid, &cluster_metadata.machines.machines);
             } else if (obj_info->path[0] == "datacenters" && obj_type == "datacenters") {
                 do_admin_remove_internal_internal(obj_info->uuid, &cluster_metadata.datacenters.datacenters);
+            } else if (obj_info->path[0] == "rdb_namespaces" && obj_type == "namespaces") {
+                do_admin_remove_internal_internal(obj_info->uuid, &cluster_metadata.rdb_namespaces.namespaces);
             } else if (obj_info->path[0] == "dummy_namespaces" && obj_type == "namespaces") {
                 do_admin_remove_internal_internal(obj_info->uuid, &cluster_metadata.dummy_namespaces.namespaces);
             } else if (obj_info->path[0] == "memcached_namespaces" && obj_type == "namespaces") {
@@ -2145,6 +2247,7 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
                 machine_id_t machine(obj_info->uuid);
                 remove_machine_pinnings(machine, &cluster_metadata.memcached_namespaces.namespaces);
                 remove_machine_pinnings(machine, &cluster_metadata.dummy_namespaces.namespaces);
+                remove_machine_pinnings(machine, &cluster_metadata.rdb_namespaces.namespaces);
             } else if (obj_info->path[0] == "datacenters") {
                 datacenter_id_t datacenter(obj_info->uuid);
                 remove_datacenter_references(datacenter, &cluster_metadata);
@@ -2199,6 +2302,7 @@ void admin_cluster_link_t::remove_datacenter_references(const datacenter_id_t& d
 
     remove_datacenter_references_from_namespaces(datacenter, &cluster_metadata->memcached_namespaces.namespaces);
     remove_datacenter_references_from_namespaces(datacenter, &cluster_metadata->dummy_namespaces.namespaces);
+    remove_datacenter_references_from_namespaces(datacenter, &cluster_metadata->rdb_namespaces.namespaces);
 }
 
 template <class protocol_t>
@@ -2472,6 +2576,7 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
         table.push_back(delta);
     }
 
+    add_single_datacenter_affinities(dc_id, cluster_metadata.rdb_namespaces.namespaces, "rdb", &table);
     add_single_datacenter_affinities(dc_id, cluster_metadata.dummy_namespaces.namespaces, "dummy", &table);
     add_single_datacenter_affinities(dc_id, cluster_metadata.memcached_namespaces.namespaces, "memcached", &table);
 
@@ -2557,6 +2662,7 @@ void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
     table.push_back(header);
 
     size_t namespace_count = 0;
+    namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.rdb_namespaces.namespaces, &table);
     namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.dummy_namespaces.namespaces, &table);
     namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.memcached_namespaces.namespaces, &table);
 
@@ -2646,6 +2752,12 @@ void admin_cluster_link_t::do_admin_resolve(const admin_command_parser_t::comman
             throw admin_cluster_exc_t("unexpected exception when looking up object: " + obj_id);
         }
         resolve_datacenter_value(&i->second.get_mutable(), field);
+    } else if (obj_info->path[0] == "rdb_namespaces") {
+        namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::iterator i = cluster_metadata.rdb_namespaces.namespaces.find(obj_info->uuid);
+        if (i == cluster_metadata.rdb_namespaces.namespaces.end() || i->second.is_deleted()) {
+            throw admin_cluster_exc_t("unexpected exception when looking up object: " + obj_id);
+        }
+        resolve_namespace_value(&i->second.get_mutable(), field);
     } else if (obj_info->path[0] == "dummy_namespaces") {
         namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = cluster_metadata.dummy_namespaces.namespaces.find(obj_info->uuid);
         if (i == cluster_metadata.dummy_namespaces.namespaces.end() || i->second.is_deleted()) {
