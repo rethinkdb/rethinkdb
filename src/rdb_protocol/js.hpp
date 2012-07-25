@@ -27,11 +27,23 @@ class handle_t {
 
   public:
     handle_t() : parent_(NULL) {}
+    handle_t(runner_t *parent, id_t id) : parent_(parent), id_(id) {}
     virtual ~handle_t();
 
     // returns true iff we hold no ref
     bool empty() const { return parent_ == NULL; }
-    void release();         // precond: we hold a ref; postcond: we do not
+
+    id_t get();
+
+    // releases an id without destroying its referent
+    // PRECOND: we hold a ref
+    // POSTCOND: we do not, but our previous id still has a referent
+    id_t release();
+
+    // destroys our referent
+    // PRECOND: we hold a ref
+    // POSTCOND: we do not, and our previous id has no referent
+    void reset();
 
   private:
     runner_t *parent_;
@@ -41,16 +53,21 @@ class handle_t {
 };
 
 // Subclasses of handle_t are functionally identical, and differ only for C++
-// type-checking purposes.
+// type-checking purposes. Currently we never manipulate handle_ts that are not
+// js_handle_ts or a subtype thereof.
 
 // Handle to a JS object.
-struct js_handle_t : handle_t { js_handle_t() {} };
+struct js_handle_t : handle_t {
+    js_handle_t() {}
+    js_handle_t(runner_t *parent, id_t id) : handle_t(parent, id) {}
+};
 
-// Handle to a JS function.
-struct function_handle_t : js_handle_t { function_handle_t() {} };
-
-// Handle to a "template" that can be used to manufacture objects.
-struct template_handle_t : handle_t { template_handle_t() {} };
+// Handle to a JS "method": a function and associated receiver object "template"
+// (set of properties).
+struct method_handle_t : handle_t {
+    method_handle_t() {}
+    method_handle_t(runner_t *parent, id_t id) : handle_t(parent, id) {}
+};
 
 
 // A handle to a running "javascript evaluator" job.
@@ -76,7 +93,6 @@ class runner_t :
     void finish();
     void interrupt();
 
-    // FIXME: this is useless.
     // Generic per-request options. A pointer to one of these is passed to all
     // requests. If NULL, the default configuration is used.
     struct req_config_t {
@@ -84,7 +100,22 @@ class runner_t :
         long timeout;           // FIXME: wrong type.
     };
 
-    // FIXME these are legacy methods, remove them.
+    // Returns false on error.
+    MUST_USE bool compile(
+        method_handle_t *out,
+        // Source for the body of the function
+        const char *body_src, size_t len,
+        std::string *errmsg,
+        req_config_t *config = NULL);
+
+    // Calls a previously compiled function.
+    boost::shared_ptr<scoped_cJSON_t> call(
+        method_handle_t *handle,
+        const std::map<std::string, boost::shared_ptr<scoped_cJSON_t> > &bound_vars,
+        std::string *errmsg,
+        req_config_t *config = NULL);
+
+    // FIXME legacy method, remove
     MUST_USE boost::shared_ptr<scoped_cJSON_t> eval(
         const char *src,
         size_t len,

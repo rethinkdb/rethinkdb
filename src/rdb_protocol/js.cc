@@ -46,7 +46,18 @@ handle_t::~handle_t() {
     if (!empty()) release();
 }
 
-void handle_t::release() {
+id_t handle_t::get() {
+    guarantee(!empty());
+    return id_;
+}
+
+id_t handle_t::release() {
+    guarantee(!empty());
+    parent_ = NULL;
+    return id_;
+}
+
+void handle_t::reset() {
     guarantee(!empty());
     parent_->release_id(id_);
     parent_ = NULL;
@@ -69,11 +80,6 @@ env_t::~env_t() {
          it != values_.end();
          ++it)
         it->second.Dispose();
-
-    for (std::map<id_t, v8::Persistent<v8::ObjectTemplate> >::iterator it = templates_.begin();
-         it != templates_.end();
-         ++it)
-        it->second.Dispose();
 }
 
 void env_t::run() {
@@ -90,21 +96,9 @@ id_t env_t::rememberValue(v8::Handle<v8::Value> value) {
     return id;
 }
 
-id_t env_t::rememberTemplate(v8::Handle<v8::ObjectTemplate> templ) {
-    id_t id = new_id();
-    templates_.insert(std::make_pair(id, v8::Persistent<v8::ObjectTemplate>::New(templ)));
-    return id;
-}
-
 v8::Handle<v8::Value> env_t::findValue(id_t id) {
     std::map<id_t, v8::Persistent<v8::Value> >::iterator it = values_.find(id);
     guarantee(it != values_.end());
-    return it->second;
-}
-
-v8::Handle<v8::ObjectTemplate> env_t::findTemplate(id_t id) {
-    std::map<id_t, v8::Persistent<v8::ObjectTemplate> >::iterator it = templates_.find(id);
-    guarantee(it != templates_.end());
     return it->second;
 }
 
@@ -115,7 +109,7 @@ id_t env_t::new_id() {
 
 void env_t::forget(id_t id) {
     guarantee(id < next_id_);
-    guarantee(1 == values_.erase(id) + templates_.erase(id));
+    guarantee(1 == values_.erase(id));
 }
 
 
@@ -124,8 +118,12 @@ runner_t::runner_t()
     : DEBUG_ONLY(running_task_(false))
 {}
 
-// TODO (rntz): should we check that we have no used ids? (ie. no remaining
+// TODO(rntz): should we check that we have no used ids? (ie. no remaining
 // handles?)
+//
+// For now, no, because we don't actually use handles to manage id lifetimes at
+// the moment. Instead we tag them onto terms and keep them around for the
+// entire query.
 runner_t::~runner_t() {}
 
 void runner_t::begin(extproc::pool_t *pool) {
@@ -203,11 +201,189 @@ void runner_t::release_id(id_t id) {
     DEBUG_ONLY_CODE(used_ids_.erase(id));
 }
 
+// ----- compile() -----
+struct compile_task_t : auto_task_t<compile_task_t> {
+    compile_task_t() {}
+    compile_task_t(const std::string &src)
+        : src_(src) {}
+
+    std::string src_;
+    RDB_MAKE_ME_SERIALIZABLE_1(src_);
+
+    v8::Handle<v8::Function> mkFunc(std::string *errmsg) {
+        v8::Handle<v8::Function> result; // initially empty
+
+        // Compile & run script to get a function.
+        // TODO(rntz): should we do this mangling engine-side?
+        std::string func_src_ = strprintf("(function(){%s})", src_.c_str());
+        // TODO(rntz): use an "external resource" to avoid copy
+        v8::Handle<v8::String> src = v8::String::New(func_src_.c_str());
+
+        v8::TryCatch try_catch;
+
+        v8::Handle<v8::Script> script = v8::Script::Compile(src);
+        if (script.IsEmpty()) {
+            // TODO (rntz): use try_catch for error message
+            *errmsg = "compiling function definition failed";
+            return result;
+        }
+
+        v8::Handle<v8::Value> funcv = script->Run();
+        if (funcv.IsEmpty()) {
+            // TODO (rntz): use try_catch for error message
+            *errmsg = "evaluating function definition failed";
+            return result;
+        }
+        if (!funcv->IsFunction()) {
+            *errmsg = "evaluating function definition did not produce function";
+            return result;
+        }
+        result = v8::Handle<v8::Function>::Cast(funcv);
+        rassert(!result.IsEmpty());
+        return result;
+    }
+
+    void run(env_t *env) {
+        id_result_t result("");
+        std::string *errmsg = boost::get<std::string>(&result);
+
+        v8::HandleScope handle_scope;
+        // Evaluate the function definition.
+        v8::Handle<v8::Function> func = mkFunc(errmsg);
+        if (!func.IsEmpty()) {
+            result = env->rememberValue(func);
+        }
+
+        write_message_t msg;
+        msg << result;
+        guarantee(0 == send_write_message(env->control(), &msg));
+    }
+};
+
+bool runner_t::compile(
+    method_handle_t *out,
+    const char *src, size_t len,
+    std::string *errmsg,
+    UNUSED req_config_t *config)
+{
+    // TODO (rntz): use config
+    id_result_t result;
+
+    {
+        run_task_t run(this, compile_task_t(std::string(src, len)));
+        guarantee(ARCHIVE_SUCCESS == deserialize(this, &result));
+    }
+
+    id_visitor_t v(errmsg);
+    if (!boost::apply_visitor(v, result))
+        return false;
+
+    create_handle(out, v.id_);
+    return true;
+}
+
+// ----- call() -----
+struct call_task_t : auto_task_t<call_task_t> {
+    call_task_t() {}
+    call_task_t(id_t id, const std::map<std::string, boost::shared_ptr<scoped_cJSON_t> > &env)
+        : method_id_(id), env_(env) {}
+
+    id_t method_id_;
+    std::map<std::string, boost::shared_ptr<scoped_cJSON_t> > env_;
+    RDB_MAKE_ME_SERIALIZABLE_2(method_id_, env_);
+
+    v8::Handle<v8::Value> eval(v8::Handle<v8::Function> func, std::string *errmsg) {
+        v8::TryCatch try_catch;
+        v8::HandleScope scope;
+
+        // Construct environment.
+        v8::Handle<v8::Object> obj = v8::Object::New();
+        for (std::map<std::string, boost::shared_ptr<scoped_cJSON_t> >::iterator it = env_.begin();
+             it != env_.end();
+             ++it)
+        {
+            v8::HandleScope scope2;
+
+            // TODO(rntz): use an "external resource" to avoid copy
+            v8::Handle<v8::Value> key = v8::String::New(it->first.c_str());
+            v8::Handle<v8::Value> val = fromJSON(*it->second.get()->get());
+            rassert(!key.IsEmpty() && !val.IsEmpty());
+
+            // TODO(rntz): figure out what the difference between Set() and
+            // ForceSet() is.
+            obj->Set(key, val);
+            // FIXME: check try_catch?
+        }
+
+        // Call function with environment as its receiver.
+        v8::Handle<v8::Value> result = func->Call(obj, 0, NULL);
+        if (result.IsEmpty()) {
+            *errmsg = "calling function failed";
+            if (try_catch.HasCaught()) {
+                v8::Handle<v8::String> msg = try_catch.Message()->Get();
+
+                // FIXME TODO (rntz): stack overflow problem if len too large.
+                size_t len = msg->Utf8Length();
+                char buf[len];
+                msg->WriteUtf8(buf);
+
+                errmsg->append(":\n");
+                errmsg->append(buf, len);
+            }
+        }
+        return scope.Close(result);
+    }
+
+    void run(env_t *env) {
+        // TODO(rntz): This is very similar to compile_task_t::run() and
+        // eval_task_t::run(). Refactor?
+        json_result_t result("");
+        std::string *errmsg = boost::get<std::string>(&result);
+
+        v8::HandleScope handle_scope;
+        v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(env->findValue(method_id_));
+        rassert(!func.IsEmpty());
+
+        v8::Handle<v8::Value> value = eval(func, errmsg);
+        if (!value.IsEmpty()) {
+            // JSONify result.
+            boost::shared_ptr<scoped_cJSON_t> json = toJSON(value, errmsg);
+            if (json) {
+                result = json;
+            }
+        }
+
+        write_message_t msg;
+        msg << result;
+        guarantee(0 == send_write_message(env->control(), &msg));
+    }
+};
+
+boost::shared_ptr<scoped_cJSON_t> runner_t::call(
+    method_handle_t *handle,
+    const std::map<std::string, boost::shared_ptr<scoped_cJSON_t> > &bound_vars,
+    std::string *errmsg,
+    UNUSED req_config_t *config)
+{
+    rassert(handle->parent_ == this);
+
+    // TODO (rntz): use config
+    json_result_t result;
+
+    {
+        run_task_t run(this, call_task_t(handle->get(), bound_vars));
+        guarantee(ARCHIVE_SUCCESS == deserialize(this, &result));
+    }
+
+    json_visitor_t v(errmsg);
+    return boost::apply_visitor(v, result);
+}
+
 // ----- eval() -----
 struct eval_task_t : auto_task_t<eval_task_t> {
     eval_task_t() {}
     eval_task_t(const std::map<std::string, boost::shared_ptr<scoped_cJSON_t> > &env,
-                const std::string src)
+                const std::string &src)
         : env_(env), src_(src) {}
 
     std::map<std::string, boost::shared_ptr<scoped_cJSON_t> > env_;

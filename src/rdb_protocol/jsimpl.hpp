@@ -43,10 +43,8 @@ class env_t {
     extproc::job_t::control_t *control() { return control_; }
 
     id_t rememberValue(v8::Handle<v8::Value> value);
-    id_t rememberTemplate(v8::Handle<v8::ObjectTemplate> templ);
 
     v8::Handle<v8::Value> findValue(id_t id);
-    v8::Handle<v8::ObjectTemplate> findTemplate(id_t id);
 
     void forget(id_t id);
 
@@ -62,7 +60,6 @@ class env_t {
     bool should_quit_;
     id_t next_id_;
     std::map<id_t, v8::Persistent<v8::Value> > values_;
-    std::map<id_t, v8::Persistent<v8::ObjectTemplate> > templates_;
 };
 
 

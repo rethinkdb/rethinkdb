@@ -621,6 +621,7 @@ private:
 boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     if (!js_runner->begun()) {
         pool->assert_thread();
+        //debugf("creating javascript worker\n");
         js_runner->begin(pool);
     }
     return js_runner;
@@ -976,26 +977,35 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             std::string errmsg;
             boost::shared_ptr<scoped_cJSON_t> result;
 
-            // // Check whether the function has been compiled.
-            // js::id_t id;
-            // (void) id;          // FIXME
-            // if (!t->HasExtension(extension::js_id)) {
-            //     // Not compiled yet. Compile it and add the extension.
-            //     // FIXME
-            //     guarantee(0 && "unimplemented");
-            // }
-
             // TODO(rntz): set up a js::runner_t::req_config_t with an
             // appropriately-chosen timeout.
+
+            // Check whether the function has been compiled.
+            js::id_t id;
+            if (!t->HasExtension(extension::js_id)) {
+                //debugf("compiling\n");
+                // Not compiled yet. Compile it and add the extension.
+                js::method_handle_t handle;
+                if (!js->compile(&handle, t->javascript().data(), t->javascript().size(), &errmsg)) {
+                    throw runtime_exc_t("failed to compile javascript: " + errmsg, backtrace);
+                }
+                id = handle.release();
+                t->SetExtension(extension::js_id, (int32_t) id);
+            } else {
+                id = t->GetExtension(extension::js_id);
+            }
+
             {
+                //debugf("calling\n");
                 // Construct an environment mapping.
                 // TODO (rntz): making a new map for this is wasteful.
                 std::map<std::string, boost::shared_ptr<scoped_cJSON_t> > context;
                 env->scope.dump(&context);
 
                 // Evaluate the source.
-                rassert(t->has_javascript());
-                result = js->eval(t->javascript().c_str(), t->javascript().size(), context, &errmsg);
+                js::method_handle_t handle(js.get(), id);
+                result = js->call(&handle, context, &errmsg);
+                handle.release();
             }
 
             if (!result) {
