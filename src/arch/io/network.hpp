@@ -337,6 +337,7 @@ private:
     friend class linux_tcp_listener_t;
 
     scoped_ptr_t<linux_nonthrowing_tcp_listener_t> listener;
+    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> noop;
 };
 
 /* Replicates old constructor-exception-throwing style for backwards compaitbility */
