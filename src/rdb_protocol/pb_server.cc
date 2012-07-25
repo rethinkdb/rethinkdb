@@ -15,16 +15,16 @@ static void put_backtrace(const query_language::backtrace_t &bt, Response *res_o
     }
 }
 
-Response query_server_t::handle(const Query &q) {
+Response query_server_t::handle(Query *q) {
     Response res;
-    res.set_token(q.token());
+    res.set_token(q->token());
 
     query_language::type_checking_environment_t type_environment;
 
     query_language::backtrace_t root_backtrace;
 
     try {
-        query_language::check_query_type(q, &type_environment, root_backtrace);
+        query_language::check_query_type(*q, &type_environment, root_backtrace);
     } catch (query_language::bad_protobuf_exc_t &e) {
         res.set_status_code(Response::BAD_PROTOBUF);
         res.set_error_message("bad protocol buffer; client is buggy.");

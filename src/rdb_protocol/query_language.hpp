@@ -571,21 +571,21 @@ typedef implicit_value_t<boost::shared_ptr<scoped_cJSON_t> >::impliciter_t impli
 
 //TODO most of these functions that are supposed to only throw runtime exceptions
 
-void execute(const Query &q, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(Query *q, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-void execute(const ReadQuery &r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(ReadQuery *r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-void execute(const WriteQuery &r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(WriteQuery *r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+namespace_repo_t<rdb_protocol_t>::access_t eval(TableRef *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
 class view_t {
 public:
@@ -597,11 +597,11 @@ public:
     boost::shared_ptr<json_stream_t> stream;
 };
 
-view_t eval_view(const Term &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+view_t eval_view(Term *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-view_t eval_view(const Term::Call &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+view_t eval_view(Term::Call *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-view_t eval_view(const Term::Table &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+view_t eval_view(Term::Table *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
 } //namespace query_language
 
