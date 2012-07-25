@@ -345,7 +345,7 @@ module 'NamespaceView', ->
 
             if need_update or force_render is true or @.$('.data_repartition-diagram').children().length is 1
 
-                @.$('.data_repartition-container').html @data_repartition_template @json_repartition
+                @.$('.data_repartition-container').html @data_repartition_template json
 
                 if $('.data_repartition-diagram').length>0 #We need the dom tree to be fully available for d3
                     #TODO Replace this hack with a proper callback/listener
@@ -419,7 +419,7 @@ module 'NamespaceView', ->
                     axe_legend.push
                         x: Math.floor(svg_width/2)
                         y: svg_height
-                        string: 'Shards'
+                        string: if json.shards_length > 1 then 'Shards' else 'Data'
                         anchor: 'middle'
 
                     svg.selectAll('.legend')
