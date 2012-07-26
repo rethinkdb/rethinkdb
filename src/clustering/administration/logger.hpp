@@ -46,6 +46,7 @@ public:
 private:
     friend void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t lock);
     friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
+    friend void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
     void install_on_thread(int i);
     void uninstall_on_thread(int i);
     void write(const log_message_t &msg);
