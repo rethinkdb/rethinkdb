@@ -17,7 +17,7 @@ public:
         if (is_set) regfree(&r);
     }
 
-    int set(const std::string &pat, int flags=(REG_EXTENDED|REG_NOSUB)) {
+    int set(const std::string &pat, int flags=default_flags) {
         rassert(!is_set);
         int retval = regcomp(&r, pat.c_str(), flags);
         if (!retval) is_set = true;
