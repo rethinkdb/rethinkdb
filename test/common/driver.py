@@ -38,8 +38,8 @@ def find_subpath(subpath):
 def find_rethinkdb_executable(mode = "debug"):
     return find_subpath("build/%s/rethinkdb" % mode)
 
-def get_namespace_host(port, processes):
-    return 'localhost', port + random.choice(processes).port_offset
+def get_namespace_host(namespace_port, processes):
+    return ("localhost", namespace_port + random.choice(processes).port_offset)
 
 class Metacluster(object):
     """A `Metacluster` is a group of clusters. It's responsible for maintaining

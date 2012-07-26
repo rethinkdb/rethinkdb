@@ -277,14 +277,15 @@ void btree_store_t<protocol_t>::update_metainfo(const metainfo_t &old_metainfo, 
 }
 
 template <class protocol_t>
-typename btree_store_t<protocol_t>::metainfo_t btree_store_t<protocol_t>::get_metainfo(UNUSED order_token_t order_token,  // TODO
-                                                                                       scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                                                                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void btree_store_t<protocol_t>::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
+                                                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                                signal_t *interruptor,
+                                                metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor);
 
-    return get_metainfo_internal(txn.get(), superblock->get());
+    *out = get_metainfo_internal(txn.get(), superblock->get());
 }
 
 template <class protocol_t>

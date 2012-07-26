@@ -1041,31 +1041,34 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             // TODO(rntz): set up a js::runner_t::req_config_t with an
             // appropriately-chosen timeout.
 
-            // Check whether the function has been compiled.
+            // Check whether the function has been compiled already.
+            bool compiled = t->HasExtension(extension::js_id);
+
+            // We give all values in scope as arguments.
+            // TODO(rntz): this is wasteful double-copying.
+            std::vector<std::string> argnames; // only used if (!compiled)
+            std::vector<boost::shared_ptr<scoped_cJSON_t> > argvals;
+            env->scope.dump(compiled ? NULL : &argnames, &argvals);
+
             js::id_t id;
-            if (!t->HasExtension(extension::js_id)) {
+            if (compiled) {
+                id = t->GetExtension(extension::js_id);
+            } else {
                 //debugf("compiling\n");
                 // Not compiled yet. Compile it and add the extension.
                 js::method_handle_t handle;
-                if (!js->compile(&handle, t->javascript().data(), t->javascript().size(), &errmsg)) {
+                if (!js->compile(&handle, argnames, t->javascript(), &errmsg)) {
                     throw runtime_exc_t("failed to compile javascript: " + errmsg, backtrace);
                 }
                 id = handle.release();
                 t->SetExtension(extension::js_id, (int32_t) id);
-            } else {
-                id = t->GetExtension(extension::js_id);
             }
 
             {
                 //debugf("calling\n");
-                // Construct an environment mapping.
-                // TODO (rntz): making a new map for this is wasteful.
-                std::map<std::string, boost::shared_ptr<scoped_cJSON_t> > context;
-                env->scope.dump(&context);
-
                 // Evaluate the source.
                 js::method_handle_t handle(js.get(), id);
-                result = js->call(&handle, context, &errmsg);
+                result = js->call(&handle, argvals, &errmsg);
                 handle.release();
             }
 
@@ -1294,8 +1297,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
             break;
         case Builtin::ARRAYSLICE:
             {
-                int start, stop, length;
-                bool start_unbounded = false, stop_unbounded = false;
+                int start, stop;
 
                 // Check first arg type
                 boost::shared_ptr<scoped_cJSON_t> array = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
@@ -1303,11 +1305,13 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     throw runtime_exc_t("The first argument must be an array.", backtrace.with("arg:0"));
                 }
 
+                int length = array->GetArraySize();
+
                 // Check second arg type
                 {
                     boost::shared_ptr<scoped_cJSON_t> start_json  = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
                     if (start_json->type() == cJSON_NULL) {
-                        start_unbounded = true;
+                        start = 0;
                     } else {
                         if (start_json->type() != cJSON_Number) {
                             throw runtime_exc_t("The second argument must be null or an integer.", backtrace.with("arg:1"));
@@ -1325,7 +1329,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 {
                     boost::shared_ptr<scoped_cJSON_t> stop_json  = eval(c->mutable_args(2), env, backtrace.with("arg:2"));
                     if (stop_json->type() == cJSON_NULL) {
-                        stop_unbounded = true;
+                        stop = length;
                     } else {
                         if (stop_json->type() != cJSON_Number) {
                             throw runtime_exc_t("The third argument must be null or an integer.", backtrace.with("arg:2"));
@@ -1337,19 +1341,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                             throw runtime_exc_t("The third argument must be null or an integer.", backtrace.with("arg:2"));
                         }
                     }
-                }
-
-                if (start_unbounded && stop_unbounded) {
-                    return array;   // nothing to do
-                }
-
-                length = array->GetArraySize();
-
-                if (start_unbounded) {
-                    start = 0;
-                }
-                if (stop_unbounded) {
-                    stop = length;
                 }
 
                 if (start < 0) {
@@ -1364,6 +1355,10 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 }
                 if (stop > length) {
                     stop = length;
+                }
+
+                if (start == 0 && stop == length) {
+                    return array;   // nothing to do
                 }
 
                 // Create a new array and slice the elements into it
@@ -1955,6 +1950,36 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
             }
             break;
         case Builtin::RANGE:
+            {
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
+
+                boost::shared_ptr<scoped_cJSON_t> lowerbound, upperbound;
+
+                Builtin::Range *r = c->mutable_builtin()->mutable_range();
+
+                key_range_t range;
+
+                if (r->has_lowerbound()) {
+                    lowerbound = eval(r->mutable_lowerbound(), env, backtrace.with("lowerbound"));
+                }
+
+                if (r->has_upperbound()) {
+                    upperbound = eval(r->mutable_upperbound(), env, backtrace.with("upperbound"));
+                }
+
+                if (lowerbound && upperbound) {
+                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->Print()),
+                                        key_range_t::closed, store_key_t(upperbound->Print()));
+                } else if (lowerbound) {
+                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->Print()),
+                                        key_range_t::none, store_key_t());
+                } else if (upperbound) {
+                    range = key_range_t(key_range_t::none, store_key_t(),
+                                        key_range_t::closed, store_key_t(upperbound->Print()));
+                }
+
+                return boost::shared_ptr<json_stream_t>(new range_stream_t(stream, range, r->attrname()));
+            }
             throw runtime_exc_t("Unimplemented: Builtin::RANGE", backtrace);
             break;
         default:

@@ -1,7 +1,6 @@
 <script id="namespace_view-container-template" type="text/x-handlebars-template">
     <div class="full_profile">
         <div class="main_title"></div>
-        <dIv id="user-alert-space">{{print_safe old_alert_html}}</div>
         <div class="two-panel-section section">
             <div class="panel-left-unbalanced profile">
         </div>
@@ -14,10 +13,12 @@
     <ul class="nav nav-tabs">
         <li class="active"><a href="#namespace-overview" data-toggle="tab">Overview</a></li>
         <li><a href="#namespace-replication" class="namespace_replication-link" data-toggle="tab">Replication</a></li>
-        <li><a href="#namespace-sharding" class="namespace_sharding-link" data-toggle="tab">Sharding</a></li>
-        <li><a href="#namespace-pinning" class="namespace_pinning-link" data-toggle="tab">Pinning</a></li>
-        <li><a href="#namespace-other" class="namespace_other-link" data-toggle="tab">Other</a></li>
+        <li><a href="#namespace-sharding" class="namespace_sharding-link" data-toggle="tab">Shards</a></li>
+        <li><a href="#namespace-pinning" class="namespace_pinning-link" data-toggle="tab">Machine assignments</a></li>
+        <li><a href="#namespace-other" class="namespace_other-link" data-toggle="tab">Other operations</a></li>
     </ul>
+
+    <div id="user-alert-space">{{print_safe old_alert_html}}</div>
     <div class="tab-content">  
         <div class="tab-pane active" id="namespace-overview">
             <div class="section namespace-overview-container"></div>
@@ -54,8 +55,10 @@
 
     <div class="section summary">
         <p>Status: {{humanize_namespace_reachability reachability}}</p>
+        <p>Shards: {{nshards}}</p>
         <p>Masters: {{nashards}} of {{nshards}} reachable</p>
         <p>Replicas: {{nareplicas}} of {{nreplicas}} reachable</p>
+        <p>Data: {{total_keys}} documents</p>
         <p>Replication: {{> backfill_progress_summary}}</p>
     </div>
 </script>
@@ -105,6 +108,9 @@
                     <li class="title-legend"><h4>More statistics</h4></li>
 
                     <li class="more_statistics">
+                        This namespace has {{shards_length}} {{pluralize_noun "shard" shards_length}} and contains {{total_keys}} keys.
+                    </li>
+                    <li class="more_statistics">
                         {{#if max_keys}}
                         Biggest shard has {{max_keys}} keys
                         {{else}}
@@ -138,6 +144,10 @@
                 <ul class="legend">
                     <li class="title-legend"><h4>More statistics</h4></li>
 
+
+                    <li class="more_statistics">
+                        This namespace has {{shards_length}} {{pluralize_noun "shard" shards_length}} and contains {{total_keys}} keys.
+                    </li>
                     <li class="more_statistics">
                         {{#if max_keys}}
                         Biggest shard has {{max_keys}} keys
@@ -156,14 +166,37 @@
                 </ul>
                 <ul class="legend">
                     <li class="title-legend"><h4>Operations on shards</h4></li>
-                    <li class="more_statistics"><a href="#" class="rebalance_shards-link">Rebalance shards</a></li>
                     <li class="more_statistics"><a href="#" class="change_shards-link" >Add/Modify/Remove shards</a></li>
+                    <li class="more_statistics"><a href="#" class="rebalance_shards-link">Rebalance shards</a></li>
                 </ul>
             </div>
         </div>
         {{/if}}
     {{else}}
-        <p class="no-shard">You do not have shards for this namespace.</p>    
+        <div class="two-panel-section">
+            <div class="data_repartition-graph panel-left">
+                <svg class="data_repartition-diagram" width="270" height="270">
+                    <text x="100" y="135" class="loading_text-diagram">Loading data...</text>
+                </svg>
+            </div>
+            <div class="data_repartition-legend panel-right">
+                <ul class="legend">
+                    <li class="title-legend"><h4>More statistics</h4></li>
+
+                    <li class="more_statistics">
+                    This namespace has one shard and contains {{total_keys}} keys.
+                    </li>                   <li class="more_statistics">
+                        Biggest shard has {{max_keys}} keys
+                    </li>
+                </ul>
+                <ul class="legend">
+                    <li class="title-legend"><h4>Operations on shards</h4></li>
+                    <li class="more_statistics"><a href="#" class="change_shards-link" >Add/Modify/Remove shards</a></li>
+                    <li class="more_statistics">Rebalance shards (needs at least 2 shards)</li>
+                </ul>
+            </div>
+        </div>
+        <p class="no-shard"></p>    
     {{/if}}
 </script>
 

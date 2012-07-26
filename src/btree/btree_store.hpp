@@ -33,10 +33,11 @@ public:
 
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
-    metainfo_t get_metainfo(
+    void do_get_metainfo(
             order_token_t order_token,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-            signal_t *interruptor)
+            signal_t *interruptor,
+            metainfo_t *out)
         THROWS_ONLY(interrupted_exc_t);
 
     void set_metainfo(

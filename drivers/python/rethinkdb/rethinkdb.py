@@ -246,6 +246,9 @@ class Stream(Common):
     def array(self):
         return array(self)
 
+    def range(self, lower=None, upper=None, attr='id'):
+        return Range(self, lower, upper, attr)
+
 class Table(Stream):
     pretty = "r.db({db.name}).{name:s}"
     def __init__(self, db, name):
@@ -316,25 +319,6 @@ class InsertStream(WriteQuery):
         self.table._write_ref_ast(parent.insert_stream.table_ref)
         self.stream._write_ast(parent.insert_stream.stream)
 
-class Filter(Stream):
-    pretty = "{parent_view:arg:0}.filter({selector:predicate}, row={row})"
-    def __init__(self, parent_view, selector, row):
-        super(Filter, self).__init__()
-        if type(selector) is dict:
-            self.selector = and_(*(eq(ImplicitAttr(k), v) for k, v in selector.iteritems()))
-        else:
-            self.selector = toTerm(selector)
-        self.row = row # don't do to term so we can compare in self.filter without overriding bs
-        self.parent_view = parent_view
-
-    def _write_ast(self, parent):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.FILTER
-        predicate = parent.call.builtin.filter.predicate
-        predicate.arg = self.row
-        self.selector._write_ast(predicate.body)
-        self.parent_view._write_ast(parent.call.args.add())
-
 class Delete(WriteQuery):
     pretty = "{parent_view:view}.delete()"
     def __init__(self, parent_view):
@@ -377,6 +361,40 @@ class Set(WriteQuery):
         parent.point_update.mapping.arg = self.row
         body = parent.point_update.mapping.body
         self.updater._write_ast(body)
+
+class Range(Stream):
+    pretty = "{parent_view:arg:0}.range({lower:lowerbound}, {upper:upperbound}, attr={attr})"
+    def __init__(self, parent_view, lower, upper, attr):
+        super(Range, self).__init__()
+        self.parent_view = parent_view
+        self.lower = lower
+        self.upper = upper
+        self.attr = attr
+
+    def _write_ast(self, parent):
+        self._write_call(parent, p.Builtin.RANGE, self.parent_view)
+        if self.lower is not None:
+            toTerm(self.lower)._write_ast(parent.call.builtin.range.lowerbound)
+        if self.upper is not None:
+            toTerm(self.upper)._write_ast(parent.call.builtin.range.upperbound)
+        parent.call.builtin.range.attrname = self.attr
+
+class Filter(Stream):
+    pretty = "{parent_view:arg:0}.filter({selector:predicate}, row={row})"
+    def __init__(self, parent_view, selector, row):
+        super(Filter, self).__init__()
+        if type(selector) is dict:
+            self.selector = and_(*(eq(ImplicitAttr(k), v) for k, v in selector.iteritems()))
+        else:
+            self.selector = toTerm(selector)
+        self.row = row # don't do to term so we can compare in self.filter without overriding bs
+        self.parent_view = parent_view
+
+    def _write_ast(self, parent):
+        self._write_call(parent, p.Builtin.FILTER, self.parent_view)
+        predicate = parent.call.builtin.filter.predicate
+        predicate.arg = self.row
+        self.selector._write_ast(predicate.body)
 
 class Map(Stream):
     pretty = "{parent_view:arg:0}.map({mapping:mapping}, row={row})"

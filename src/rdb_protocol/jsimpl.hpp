@@ -81,7 +81,7 @@ class task_t :
   public:
     virtual void run(env_t *env) = 0;
 
-    void run_job(control_t *control, void *extra) {
+    void run_job(UNUSED control_t *control, void *extra) {
         env_t *env = static_cast<env_t *>(extra);
         rassert(control == env->control());
         context_t cx(env);
