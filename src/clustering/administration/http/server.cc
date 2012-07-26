@@ -42,7 +42,10 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         local_issue_tracker_t *_local_issue_tracker,
         uuid_t _us,
         std::string path) :
-            bound_issue("PORT_CONFLICT", true, strprintf("could not bind to administrative http server port at %d", port))
+            bound_issue("PORT_CONFLICT",
+                        true,
+                        strprintf("could not bind to administrative http server port at %d", port)),
+            bound_subscription(&bound_issue_tracker_entry)
 {
     std::set<std::string> white_list;
     white_list.insert("/cluster.css");
@@ -147,7 +150,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     signal_t *is_bound = server->get_bound_signal();
 
     // Only bother to create the issue if it hasn't already been able to bind to the port
-    if(!is_bound->is_pulsed()) {
+    if (!is_bound->is_pulsed()) {
 
         // Creating the new entry will insert the issue into the issue tracker
         bound_issue_tracker_entry.init(
@@ -155,10 +158,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
 
         // As soon as the tcp listener connects this reset will be triggered and the issue will
         // be removed from the issue tracker
-        bound_subscription.reset(boost::bind(
-                    &scoped_ptr_t<local_issue_tracker_t::entry_t>::reset,
-                    &bound_issue_tracker_entry),
-                    is_bound);
+        bound_subscription.reset(is_bound);
     }
 }
 

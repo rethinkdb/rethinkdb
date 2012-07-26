@@ -5,6 +5,7 @@
 
 #include "errors.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
+#include "clustering/administration/issue_subscription.hpp"
 
 template<class protocol_t, class parser_t>
 class parser_maker_t {
@@ -42,7 +43,6 @@ private:
     perfmon_collection_repo_t *perfmon_collection_repo;
 
     local_issue_tracker_t *local_issue_tracker;
-    signal_t::callback_subscription_t bound_subscription;
 };
 
 #include "clustering/administration/parser_maker.tcc"

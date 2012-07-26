@@ -95,21 +95,18 @@ void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name, na
         signal_t *is_bound = parser.get_bound_signal();
 
         scoped_ptr_t<local_issue_tracker_t::entry_t> bound_issue_tracker_entry;
-        signal_t::callback_subscription_t bound_subscription;
+        issue_subscription_t bound_subscription(&bound_issue_tracker_entry);
         local_issue_t bound_issue("PORT_CONFLICT", true, strprintf("cannot bind to port %d to serve namespace %s", port, ns_name.c_str()));
 
         // Don't bother propogating the issue unless we don't immediately connect
-        if(!is_bound->is_pulsed()) {
+        if (!is_bound->is_pulsed()) {
 
             // Propogates the issue through the cluster
             bound_issue_tracker_entry.init(
                     new local_issue_tracker_t::entry_t(local_issue_tracker, bound_issue));
 
             // Clears the issue from the cluster when 'is_bound' is pulsed
-            bound_subscription.reset(boost::bind(
-                    &scoped_ptr_t<local_issue_tracker_t::entry_t>::reset,
-                    &bound_issue_tracker_entry),
-                    is_bound);
+            bound_subscription.reset(is_bound);
         }
 
         // Because we block here, the local issue related variables will live

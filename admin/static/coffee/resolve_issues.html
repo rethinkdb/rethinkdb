@@ -204,13 +204,13 @@
             <h3 class="title">Could not bind to port</h3>
             {{#if datetime}}
             <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
-        {{/if}}
+            {{/if}}
         </div>
         <hr />
         <h4>A necessary port is already in use on this machine</h4>
         <p class="description">Machine <a href="#machines/{{machine_id}}">{{machine_name}}</a> {{description}}.<br/>
         Some other process is likely using this port. Kill it or instruct it to release the port in order to resolve this issue.</p>
-  </div>
+    </div>
 </script>
 
 

@@ -284,12 +284,12 @@ the provided callback will be called in a new coroutine every time something con
 
 class linux_nonthrowing_tcp_listener_t : private linux_event_callback_t {
 public:
-    linux_nonthrowing_tcp_listener_t(int port,
-                         boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback);
+    linux_nonthrowing_tcp_listener_t(int _port,
+        const boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> &callback);
 
     ~linux_nonthrowing_tcp_listener_t();
 
-    bool begin_listening();
+    MUST_USE bool begin_listening();
     bool is_bound();
 
 protected:
@@ -297,7 +297,7 @@ protected:
     friend class linux_tcp_bound_socket_t;
 
     void init_socket();
-    bool bind_socket();
+    MUST_USE bool bind_socket();
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
     new connections; when accept() blocks, then it waits for events from the
@@ -343,25 +343,26 @@ private:
 class linux_tcp_listener_t {
 public:
     linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
-                    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback);
+        const boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> &callback);
     linux_tcp_listener_t(int port,
-                    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback);
+        const boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> &callback);
 
 private:
     scoped_ptr_t<linux_nonthrowing_tcp_listener_t> listener;
 };
 
 /* Like a linux tcp listener but repeatedly tries to bind to its port until successful */
-class linux_repeated_nonthrowing_tcp_listener_t : public linux_nonthrowing_tcp_listener_t {
+class linux_repeated_nonthrowing_tcp_listener_t {
 public:
     linux_repeated_nonthrowing_tcp_listener_t(int port,
-                    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback);
-    signal_t *begin_listening();
+        const boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> &callback);
+    void begin_repeated_listening_attempts();
     signal_t *get_bound_signal();
 
 private:
-    void retry_loop();
+    void retry_loop(auto_drainer_t::lock_t lock);
 
+    linux_nonthrowing_tcp_listener_t listener;
     cond_t bound_cond;
     auto_drainer_t drainer;
 };

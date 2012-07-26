@@ -8,6 +8,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/metadata_change_handler.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
+#include "clustering/administration/issue_subscription.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class http_server_t;
@@ -42,6 +43,7 @@ public:
     ~administrative_http_server_manager_t();
 
 private:
+
     scoped_ptr_t<file_http_app_t> file_app;
     scoped_ptr_t<semilattice_http_app_t> semilattice_app;
     scoped_ptr_t<directory_http_app_t> directory_app;
@@ -61,7 +63,7 @@ private:
 
     local_issue_t bound_issue;
     scoped_ptr_t<local_issue_tracker_t::entry_t> bound_issue_tracker_entry;
-    signal_t::callback_subscription_t bound_subscription;
+    issue_subscription_t bound_subscription;
 
     DISABLE_COPYING(administrative_http_server_manager_t);  // kind of redundant with the scoped_ptrs but too bad.
 };
