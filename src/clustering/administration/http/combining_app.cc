@@ -7,6 +7,10 @@ combining_http_app_t::combining_http_app_t(std::map<std::string, http_json_app_t
 	: components(components_) { }
 
 http_res_t combining_http_app_t::handle(const http_req_t &req) {
+    if (req.method != GET && req.method != POST) {
+        return http_res_t(405);
+    }
+
     typedef std::map<std::string, http_json_app_t *>::const_iterator components_iterator;
 
     std::string resource = req.resource.as_string();

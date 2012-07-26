@@ -92,6 +92,10 @@ cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &no
 }
 
 http_res_t stat_http_app_t::handle(const http_req_t &req) {
+    if (req.method != GET) {
+        return http_res_t(405);
+    }
+
     scoped_cJSON_t body(cJSON_CreateObject());
 
     peers_to_metadata_t peers_to_metadata = directory->get();
