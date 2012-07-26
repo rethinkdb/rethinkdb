@@ -100,9 +100,9 @@ void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> store_token;
             switch_inner_read_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
-            const region_map_t<protocol_t, binary_blob_t>& metainfo
-                = store_views_[i]->get_metainfo(order_token, &store_token, &ct_interruptor);
-            const region_map_t<protocol_t, binary_blob_t>& masked_metainfo
+            region_map_t<protocol_t, binary_blob_t> metainfo;
+            store_views_[i]->do_get_metainfo(order_token, &store_token, &ct_interruptor, &metainfo);
+            region_map_t<protocol_t, binary_blob_t> masked_metainfo
                 = metainfo.mask(get_region(i));
 
             transformed
