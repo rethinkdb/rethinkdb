@@ -96,8 +96,9 @@ cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &no
 void parse_query_params(const http_req_t &req,
                         std::set<std::string> *filter_paths,
                         std::set<std::string> *machine_whitelist) {
-    boost::escaped_list_separator<char> by_commas("\\",",","");
-    typedef boost::tokenizer<boost::escaped_list_separator<char> > tokenizer;
+    typedef boost::escaped_list_separator<char> separator_t;
+    typedef boost::tokenizer<separator_t> tokenizer_t;
+    separator_t commas("\\",",","");
 
     /* We allow users to filter for the stats they want by providing "paths",
        i.e. ERE regular expressions separated by slashes.  We treat these sort
@@ -105,11 +106,12 @@ void parse_query_params(const http_req_t &req,
     for (std::vector<query_parameter_t>::const_iterator it = req.query_params.begin();
          it != req.query_params.end(); ++it) {
         try {
-            BOOST_FOREACH(std::string s, tokenizer(it->val, by_commas)) {
+            tokenizer_t t(it->val, commas);
+            for (tokenizer_t::const_iterator s = t.begin(); s != t.end(); ++s) {
                 if (it->key == "filter") {
-                    filter_paths->insert(s);
+                    filter_paths->insert(*s);
                 } else if (it->key == "machine_whitelist") {
-                    machine_whitelist->insert(s);
+                    machine_whitelist->insert(*s);
                 } else {
                     logINF("Parameter parsing error: %s -> %s",
                            sanitize_for_logger(it->key).c_str(),

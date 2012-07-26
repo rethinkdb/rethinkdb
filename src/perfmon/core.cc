@@ -286,27 +286,33 @@ void perfmon_result_t::splice_into(perfmon_result_t *map) {
 }
 
 perfmon_filter_t::perfmon_filter_t(const std::set<std::string> &paths) {
-    boost::escaped_list_separator<char> by_slashes("\\","/","");
-    BOOST_FOREACH(std::string str, paths) {
+    typedef boost::escaped_list_separator<char> separator_t;
+    typedef boost::tokenizer<separator_t> tokenizer_t;
+    separator_t slashes("\\","/","");
+
+    for (std::set<std::string>::const_iterator
+             str = paths.begin(); str != paths.end(); ++str) {
         regexps.push_back(std::vector<scoped_regex_t *>());
         std::vector<scoped_regex_t *> *path = &regexps.back();
         try {
-            boost::tokenizer<boost::escaped_list_separator<char> > t(str, by_slashes);
-            BOOST_FOREACH(std::string regex_string, t) {
-                path->push_back(new scoped_regex_t("^"+regex_string+"$"));
+            tokenizer_t t(*str, slashes);
+            for (tokenizer_t::const_iterator it = t.begin(); it != t.end(); ++it) {
+                path->push_back(new scoped_regex_t("^"+(*it)+"$"));
             }
         } catch (boost::escaped_list_error &e) {
             logINF("Error: Could not parse %s (%s), skipping.",
-                   sanitize_for_logger(str).c_str(), e.what());
+                   sanitize_for_logger(*str).c_str(), e.what());
             continue; //Skip this path
         }
     }
 }
 
 perfmon_filter_t::~perfmon_filter_t() {
-    BOOST_FOREACH(std::vector<scoped_regex_t *> per_path_regexps, regexps) {
-        BOOST_FOREACH(scoped_regex_t *regexp, per_path_regexps) {
-            delete regexp;
+    for (std::vector<std::vector<scoped_regex_t *> >::const_iterator
+             it = regexps.begin(); it != regexps.end(); ++it) {
+        for (std::vector<scoped_regex_t *>::const_iterator
+                 regexp = it->begin(); regexp != it->end(); ++it) {
+            delete *regexp;
         }
     }
 }
@@ -338,7 +344,10 @@ perfmon_result_t *perfmon_filter_t::subfilter
         if (some_subpath) it->second = subfilter(it->second, depth+1, subactive);
         if (!some_subpath || !it->second) to_delete.push_back(it);
     }
-    BOOST_FOREACH(perfmon_result_t::iterator it, to_delete) p->erase(it);
+    for (std::list<perfmon_result_t::iterator>::const_iterator
+             it = to_delete.begin(); it != to_delete.end(); ++it) {
+        p->erase(*it);
+    }
     if (p->get_map()->empty() && depth > 0) { //Never delete top node
         delete p;
         return 0;
