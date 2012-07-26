@@ -432,5 +432,8 @@ void vlog_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t
 
         coro_t::spawn_sometime(boost::bind(&log_coro, writer, level, message, lock));
 
+    } else {
+        fprintf(stderr, "ERROR: Failed to log message. Printing to stderr instead.\n");
+        vfprintf(stderr, format, args);
     }
 }
