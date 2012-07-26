@@ -9,6 +9,7 @@
 
 #include <typeinfo>
 
+#include "logger.hpp"
 #include "utils.hpp"
 #include "backtrace.hpp"
 
@@ -17,9 +18,9 @@ void report_user_error(const char *msg, ...) {
 
     va_list args;
     va_start(args, msg);
-    //fprintf(stderr, "\nError: ");
-    vfprintf(stderr, msg, args);
-    fprintf(stderr, "\n");
+    //logSTDERR("\nError: ");
+    vlogSTDERR(msg, args);
+    logSTDERR("\n");
     va_end(args);
 
     funlockfile(stderr);
@@ -30,19 +31,19 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 
     va_list args;
     va_start(args, msg);
-    fprintf(stderr, "\nError in %s at line %d:\n", file, line);
-    vfprintf(stderr, msg, args);
-    fprintf(stderr, "\n");
+    logSTDERR("\nError in %s at line %d:\n", file, line);
+    vlogSTDERR(msg, args);
+    logSTDERR("\n");
     va_end(args);
 
     /* Don't print backtraces in valgrind mode because valgrind issues lots of spurious
     warnings when print_backtrace() is run. */
 #if !defined(VALGRIND)
-    fprintf(stderr, "\nBacktrace:\n");
+    logSTDERR("\nBacktrace:\n");
     print_backtrace();
 #endif
 
-    fprintf(stderr, "\nExiting.\n\n");
+    logSTDERR("\nExiting.\n\n");
 
     funlockfile(stderr);
 }
