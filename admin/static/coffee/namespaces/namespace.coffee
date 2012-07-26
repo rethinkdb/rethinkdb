@@ -23,9 +23,6 @@ module 'NamespaceView', ->
         initialize: ->
             log_initial '(initializing) namespace view: container'
 
-            @model.load_key_distr()
-            @model.set_interval_key_distr()
-        
             # Panels for namespace view
             @title = new NamespaceView.Title(model: @model)
             @profile = new NamespaceView.Profile(model: @model)
