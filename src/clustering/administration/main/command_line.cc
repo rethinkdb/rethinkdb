@@ -519,7 +519,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     }
 
     if (!vm.count("join")) {
-        logINF("No --join option(s) given. A proxy needs to connect to something!\n"
+        printf("No --join option(s) given. A proxy needs to connect to something!\n"
                "Run 'rethinkdb proxy help' for more information.\n");
         return 1;
      }
@@ -606,23 +606,23 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 }
 
 void help_rethinkdb_create() {
-    logINF("'rethinkdb create' is used to prepare a directory to act "
+    printf("'rethinkdb create' is used to prepare a directory to act "
            "as the storage location for a RethinkDB cluster node.\n");
     std::stringstream sstream;
     sstream << get_rethinkdb_create_options();
-    logINF("%s\n", sstream.str().c_str());
+    printf("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_serve() {
-    logINF("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
+    printf("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
     std::stringstream sstream;
     sstream << get_rethinkdb_serve_options();
-    logINF("%s\n", sstream.str().c_str());
+    printf("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_proxy() {
-    logINF("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
+    printf("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
     std::stringstream sstream;
     sstream << get_rethinkdb_proxy_options();
-    logINF("%s\n", sstream.str().c_str());
+    printf("%s\n", sstream.str().c_str());
 }
