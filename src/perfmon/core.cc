@@ -339,7 +339,7 @@ perfmon_result_t *perfmon_filter_t::subfilter
         if (!some_subpath || !it->second) to_delete.push_back(it);
     }
     BOOST_FOREACH(perfmon_result_t::iterator it, to_delete) p->erase(it);
-    if (p->get_map()->empty()) {
+    if (p->get_map()->empty() && depth > 0) { //Never delete top node
         delete p;
         return 0;
     }
