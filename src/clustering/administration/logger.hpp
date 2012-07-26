@@ -13,6 +13,8 @@
 #include "rpc/mailbox/typed.hpp"
 #include "utils.hpp"
 
+#define LOGGER_NEWLINE "[[newline]]"
+
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(log_level_t, int, log_level_debug, log_level_error);
 RDB_MAKE_SERIALIZABLE_2(struct timespec, tv_sec, tv_nsec);
 

@@ -43,15 +43,22 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
 std::string format_log_message(const log_message_t &m) {
 
     std::string message = m.message;
+    std::string message_reformatted;
     for (int i = 0; i < int(message.length()); i++) {
-        if (message[i] < ' ' || message[i] > '~') {
+        if (message[i] == '\n') {
+            if (i != int(message.length()) - 1) { // Don't append the final newline
+                message_reformatted.append(LOGGER_NEWLINE);
+            }
+        } else if (message[i] < ' ' || message[i] > '~') {
 #ifndef NDEBUG
             crash("We can't have newlines, tabs or special characters in log "
                 "messages because then it would be difficult to parse the log "
                 "file. Message: %s", message.c_str());
 #else
-            message[i] = '?';
+            message_reformatted.push_back("?");
 #endif
+        } else {
+            message_reformatted.push_back(message[i]);
         }
     }
     return strprintf("%s %d.%06ds %s: %s\n",
@@ -59,9 +66,43 @@ std::string format_log_message(const log_message_t &m) {
         int(m.uptime.tv_sec),
         int(m.uptime.tv_nsec / 1000),
         format_log_level(m.level).c_str(),
-        message.c_str()
+        message_reformatted.c_str()
         );
 }
+
+std::string format_log_message_for_console(const log_message_t &m) {
+
+    std::string message = m.message;
+    std::string message_reformatted;
+
+    int prepend_length = format_time(m.timestamp).length() + 14 + format_log_level(m.level).length();
+
+    for (int i = 0; i < int(message.length()); i++) {
+        if (message[i] == '\n') {
+            message_reformatted.push_back('\n');
+            message_reformatted.append(prepend_length, ' ');
+        } else if (message[i] < ' ' || message[i] > '~') {
+#ifndef NDEBUG
+            crash("We can't have newlines, tabs or special characters in log "
+                "messages because then it would be difficult to parse the log "
+                "file. Message: %s", message.c_str());
+#else
+            message_reformatted.push_back('?');
+#endif
+        } else {
+            message_reformatted.push_back(message[i]);
+        }
+    }
+    return strprintf("%s %d.%06ds %s: %s\n",
+        format_time(m.timestamp).c_str(),
+        int(m.uptime.tv_sec),
+        int(m.uptime.tv_nsec / 1000),
+        format_log_level(m.level).c_str(),
+        message_reformatted.c_str()
+        );
+}
+
+
 
 log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_error) {
     const char *p = s.c_str();
@@ -273,7 +314,7 @@ void log_writer_t::write(const log_message_t &lm) {
 void log_writer_t::write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out) {
     int res, output_fileno;
     std::string formatted = format_log_message(msg);
-    std::string console_formatted = "[LOGGER] " + formatted;
+    std::string console_formatted = format_log_message_for_console(msg);
 
     // Print the log message to stderr or stdout.
     if(msg.level == log_level_stdout) {
@@ -377,6 +418,17 @@ void log_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t 
         va_start(args, format);
         std::string message = vstrprintf(format, args);
         va_end(args);
+
+        coro_t::spawn_sometime(boost::bind(&log_coro, writer, level, message, lock));
+
+    }
+}
+
+void vlog_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t level, const char *format, va_list args) {
+    if (log_writer_t *writer = TLS_get_global_log_writer()) {
+        auto_drainer_t::lock_t lock(TLS_get_global_log_drainer());
+
+        std::string message = vstrprintf(format, args);
 
         coro_t::spawn_sometime(boost::bind(&log_coro, writer, level, message, lock));
 
