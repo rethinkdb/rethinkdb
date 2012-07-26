@@ -1,0 +1,26 @@
+#!/bin/sh
+
+#smoke_test is designed to be a dead simple test that people run before they
+#commit their #changes, Obviously there's a lot of room for improvement such as
+#building the executables automatically but for the love of god if you improve
+#this script do not ever make it so that you have to do more than run
+#./smoke_test to get an idea of if the changes you made break things.
+
+run_in_dir_and_remove() {
+    rm -rf scratch
+    mkdir scratch
+    cd scratch
+    echo "Running: " "$1"
+    eval $1
+    cd ..
+    rm -r scratch
+}
+
+run_in_dir_and_remove "../scenarios/static_cluster.py '../workloads/multi_serial_mix.py \$HOST:\$PORT'"
+
+run_in_dir_and_remove "../scenarios/static_cluster.py --valgrind --mode debug-valgrind '../workloads/multi_serial_mix.py \$HOST:\$PORT'"
+
+run_in_dir_and_remove "../scenarios/relocate_namespace.py --workload-before '../workloads/multi_serial_mix.py \$HOST:\$PORT' --workload-after '../workloads/multi_serial_mix.py \$HOST:\$PORT'"
+
+run_in_dir_and_remove "../scenarios/relocate_namespace.py --valgrind --mode debug-valgrind --workload-before '../workloads/multi_serial_mix.py \$HOST:\$PORT' --workload-after '../workloads/multi_serial_mix.py \$HOST:\$PORT'"
+

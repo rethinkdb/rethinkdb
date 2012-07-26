@@ -43,6 +43,10 @@ static bool scan_timespec(const char *string, struct timespec *out) {
 }
 
 http_res_t log_http_app_t::handle(const http_req_t &req) {
+    if (req.method != GET) {
+        return http_res_t(405);
+    }
+
     http_req_t::resource_t::iterator it = req.resource.begin();
     if (it == req.resource.end()) {
         return http_res_t(404);

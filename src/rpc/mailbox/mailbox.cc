@@ -15,7 +15,7 @@
 const int raw_mailbox_t::address_t::ANY_THREAD = -1;
 
 raw_mailbox_t::address_t::address_t() :
-    peer(peer_id_t()), thread(ANY_THREAD), mailbox_id(-1) { }
+    peer(peer_id_t()), thread(ANY_THREAD), mailbox_id(0) { }
 
 raw_mailbox_t::address_t::address_t(const address_t &a) :
     peer(a.peer), thread(a.thread), mailbox_id(a.mailbox_id) { }

@@ -120,7 +120,7 @@ void run_simplejob_test(extproc::pool_t *pool) {
     handle.release();
 }
 
-TEST(ExtProc, simpleJob) { main_extproc_test(run_simplejob_test); }
+TEST(ExtProc, SimpleJob) { main_extproc_test(run_simplejob_test); }
 
 void run_talkativejob_test(extproc::pool_t *pool) {
     int n = 78;                 // takes 35 iterations to reach 1
@@ -143,7 +143,7 @@ void run_talkativejob_test(extproc::pool_t *pool) {
     handle.release();
 }
 
-TEST(ExtProc, talkativeJob) { main_extproc_test(run_talkativejob_test); }
+TEST(ExtProc, TalkativeJob) { main_extproc_test(run_talkativejob_test); }
 
 void run_serialjob_test(extproc::pool_t *pool) {
     extproc::job_handle_t handle;
@@ -182,7 +182,7 @@ void run_serialjob_test(extproc::pool_t *pool) {
     handle.release();
 }
 
-TEST(ExtProc, serialJob) { main_extproc_test(run_serialjob_test); }
+TEST(ExtProc, SerialJob) { main_extproc_test(run_serialjob_test); }
 
 void run_interruptjob_test(extproc::pool_t *pool) {
     const int n = 78;           // takes 35 iterations to reach 1
@@ -208,7 +208,7 @@ void run_interruptjob_test(extproc::pool_t *pool) {
     }
 }
 
-TEST(ExtProc, interruptJob) { main_extproc_test(run_interruptjob_test); }
+TEST(ExtProc, InterruptJob) { main_extproc_test(run_interruptjob_test); }
 
 void run_multijob_test(extproc::spawner_t::info_t *spawner_info) {
     extproc::pool_group_t::config_t config;
@@ -238,7 +238,7 @@ void run_multijob_test(extproc::spawner_t::info_t *spawner_info) {
     }
 }
 
-TEST(ExtProc, multiJob) {
+TEST(ExtProc, MultiJob) {
     extproc::spawner_t::info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
     mock::run_in_thread_pool(boost::bind(run_multijob_test, &spawner_info));

@@ -563,18 +563,19 @@ void memcached_protocol_t::store_t::acquire_superblock_for_write(
     get_btree_superblock_and_txn(btree.get(), access, expected_change_count, repli_timestamp_t::invalid, order_token, sb_out, txn_out);
 }
 
-memcached_protocol_t::store_t::metainfo_t
-memcached_protocol_t::store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
-                                               scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void memcached_protocol_t::store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
+                                                    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                                    signal_t *interruptor,
+                                                    metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor);
 
-    return get_metainfo_internal(txn.get(), superblock->get());
+    get_metainfo_internal(txn.get(), superblock->get(), out);
 }
 
-region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf) const THROWS_NOTHING {
+void memcached_protocol_t::store_t::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf,
+                                                          region_map_t<memcached_protocol_t, binary_blob_t> *out) const THROWS_NOTHING {
     std::vector<std::pair<std::vector<char>, std::vector<char> > > kv_pairs;
     get_superblock_metainfo(txn, sb_buf, &kv_pairs);   // FIXME: this is inefficient, cut out the middleman (vector)
 
@@ -597,7 +598,7 @@ region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t:
     region_map_t<memcached_protocol_t, binary_blob_t> res(result.begin(), result.end());
     // TODO: What?  Why is res.get_domain() equal to universe?
     rassert(res.get_domain() == hash_region_t<key_range_t>::universe());
-    return res;
+    *out = res;
 }
 
 void memcached_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
@@ -608,7 +609,8 @@ void memcached_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_write(rwi_write, 1, token, &txn, &superblock, interruptor);
 
-    region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock->get());
+    region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo;
+    get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
 }
 
@@ -819,7 +821,9 @@ bool memcached_protocol_t::store_t::send_backfill(
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_backfill(token, &txn, &superblock, interruptor);
 
-    metainfo_t metainfo = get_metainfo_internal(txn.get(), superblock->get()).mask(start_point.get_domain());
+    metainfo_t unmasked_metainfo;
+    get_metainfo_internal(txn.get(), superblock->get(), &unmasked_metainfo);
+    metainfo_t metainfo = unmasked_metainfo.mask(start_point.get_domain());
     if (should_backfill(metainfo)) {
         std::vector<std::pair<hash_region_t<key_range_t>, state_timestamp_t> > regions(start_point.begin(), start_point.end());
 
@@ -930,7 +934,8 @@ void memcached_protocol_t::store_t::reset_data(
     const int expected_change_count = 2;
     acquire_superblock_for_write(rwi_write, expected_change_count, token, &txn, &superblock, interruptor);
 
-    region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock->get());
+    region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo;
+    get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
 
     hash_key_tester_t key_tester(subregion.beg, subregion.end);
@@ -954,7 +959,8 @@ memcached_protocol_t::store_t::metainfo_t memcached_protocol_t::store_t::check_m
         real_superblock_t *superblock) const
         THROWS_NOTHING {
 
-    region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn, superblock->get());
+    region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo;
+    get_metainfo_internal(txn, superblock->get(), &old_metainfo);
 #ifndef NDEBUG
     metainfo_checker.check_metainfo(old_metainfo.mask(metainfo_checker.get_domain()));
 #endif

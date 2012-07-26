@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "clustering/administration/datacenter_metadata.hpp"
+#include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/log_transfer.hpp"
 #include "clustering/administration/machine_metadata.hpp"
@@ -29,12 +30,13 @@ public:
     namespaces_semilattice_metadata_t<memcached_protocol_t> memcached_namespaces;
     machines_semilattice_metadata_t machines;
     datacenters_semilattice_metadata_t datacenters;
+    databases_semilattice_metadata_t databases;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(dummy_namespaces, memcached_namespaces, machines, datacenters);
+    RDB_MAKE_ME_SERIALIZABLE_5(dummy_namespaces, memcached_namespaces, machines, datacenters, databases);
 };
 
-RDB_MAKE_SEMILATTICE_JOINABLE_4(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, machines, datacenters);
-RDB_MAKE_EQUALITY_COMPARABLE_4(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, machines, datacenters);
+RDB_MAKE_SEMILATTICE_JOINABLE_5(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, machines, datacenters, databases);
+RDB_MAKE_EQUALITY_COMPARABLE_5(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, machines, datacenters, databases);
 
 //json adapter concept for cluster_semilattice_metadata_t
 template <class ctx_t>
@@ -44,6 +46,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster
     res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces));
     res["machines"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machines_semilattice_metadata_t, ctx_t>(&target->machines));
     res["datacenters"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<datacenters_semilattice_metadata_t, ctx_t>(&target->datacenters));
+    res["databases"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<databases_semilattice_metadata_t, ctx_t>(&target->databases));
     res["me"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<uuid_t, ctx_t>(ctx.us));
     return res;
 }
