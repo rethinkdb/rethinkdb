@@ -330,7 +330,6 @@ class RDBTest(unittest.TestCase):
             self.expect(self.table.find(doc['id']), doc)
 
     def test_overload(self):
-
         self.clear_table()
 
         docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(10)]
@@ -409,6 +408,13 @@ class RDBTest(unittest.TestCase):
 
         self.error_exec(s[4:'a'], "integer")
 
+    def test_range(self):
+        self.clear_table()
+
+        docs = [{"id": n, "a": -n} for n in range(10)]
+        self.do_insert(docs)
+
+        self.expect(self.table.range(2, 3), *docs[2:4])
 
     # def test_huge(self):
     #     self.clear_table()

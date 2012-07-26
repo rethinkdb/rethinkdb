@@ -550,6 +550,33 @@ private:
     int offset;
 };
 
+class range_stream_t : public json_stream_t {
+public:
+    range_stream_t(boost::shared_ptr<json_stream_t> _stream, const key_range_t &_range, const std::string &_attrname)
+        : stream(_stream), range(_range), attrname(_attrname)
+    { }
+
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        // TODO: error handling
+        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+            if (json->type() != cJSON_Object) {
+                continue;
+            }
+            cJSON* val = json->GetObjectItem(attrname.c_str());
+            if (val && range.contains_key(store_key_t(cJSON_print_std_string(val)))) {
+                return json;
+            }
+        }
+        return boost::shared_ptr<scoped_cJSON_t>();
+    }
+
+private:
+    boost::shared_ptr<json_stream_t> stream;
+    key_range_t range;
+    std::string attrname;
+};
+
+
 //Scopes for single pieces of json
 typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_t;
 

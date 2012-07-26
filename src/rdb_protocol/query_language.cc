@@ -1950,6 +1950,36 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
             }
             break;
         case Builtin::RANGE:
+            {
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
+
+                boost::shared_ptr<scoped_cJSON_t> lowerbound, upperbound;
+
+                Builtin::Range *r = c->mutable_builtin()->mutable_range();
+
+                key_range_t range;
+
+                if (r->has_lowerbound()) {
+                    lowerbound = eval(r->mutable_lowerbound(), env, backtrace.with("lowerbound"));
+                }
+
+                if (r->has_upperbound()) {
+                    upperbound = eval(r->mutable_upperbound(), env, backtrace.with("upperbound"));
+                }
+
+                if (lowerbound && upperbound) {
+                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->Print()),
+                                        key_range_t::closed, store_key_t(upperbound->Print()));
+                } else if (lowerbound) {
+                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->Print()),
+                                        key_range_t::none, store_key_t());
+                } else if (upperbound) {
+                    range = key_range_t(key_range_t::none, store_key_t(),
+                                        key_range_t::closed, store_key_t(upperbound->Print()));
+                }
+
+                return boost::shared_ptr<json_stream_t>(new range_stream_t(stream, range, r->attrname()));
+            }
             throw runtime_exc_t("Unimplemented: Builtin::RANGE", backtrace);
             break;
         default:
