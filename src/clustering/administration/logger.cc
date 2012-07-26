@@ -44,11 +44,17 @@ std::string format_log_message(const log_message_t &m) {
 
     std::string message = m.message;
     std::string message_reformatted;
-    for (int i = 0; i < int(message.length()); i++) {
+
+    int start = 0, end = int(message.length()) - 1;
+    while (start < int(message.length()) && message[start] == '\n') {
+        start++;
+    }
+    while (end >= 0 && message[end] == '\n') {
+        end--;
+    }
+    for (int i = start; i <= end; i++) {
         if (message[i] == '\n') {
-            if (i != int(message.length()) - 1) { // Don't append the final newline
-                message_reformatted.append(LOGGER_NEWLINE);
-            }
+            message_reformatted.append(LOGGER_NEWLINE);
         } else if (message[i] < ' ' || message[i] > '~') {
 #ifndef NDEBUG
             crash("We can't have newlines, tabs or special characters in log "
@@ -77,7 +83,14 @@ std::string format_log_message_for_console(const log_message_t &m) {
 
     int prepend_length = format_time(m.timestamp).length() + 14 + format_log_level(m.level).length();
 
-    for (int i = 0; i < int(message.length()); i++) {
+    int start = 0, end = int(message.length()) - 1;
+    while (start < int(message.length()) && message[start] == '\n') {
+        start++;
+    }
+    while (end >= 0 && message[end] == '\n') {
+        end--;
+    }
+    for (int i = start; i <= end; i++) {
         if (message[i] == '\n') {
             message_reformatted.push_back('\n');
             message_reformatted.append(prepend_length, ' ');
