@@ -132,13 +132,21 @@ public:
     }
 
     // TODO (rntz): find a better way to do this.
-    void dump(std::map<std::string, T> *map) {
-        map->clear();
+    void dump(std::vector<std::string> *argnames, std::vector<T> *argvals) {
+        std::set<std::string> seen;
+
+        if (argnames) argnames->clear();
+        argvals->clear();
+
+        // Most recent scope is at front of deque, so we iterate in-order.
         for (typename std::deque<std::map<std::string, T> >::iterator sit = scopes.begin(); sit != scopes.end(); ++sit) {
             for (typename std::map<std::string, T>::iterator it = sit->begin(); it != sit->end(); ++it) {
                 // Earlier bindings take precedence over later ones.
-                if (!map->count(it->first))
-                    map->insert(*it);
+                if (seen.count(it->first)) continue;
+
+                seen.insert(it->first);
+                if (argnames) argnames->push_back(it->first);
+                argvals->push_back(it->second);
             }
         }
     }

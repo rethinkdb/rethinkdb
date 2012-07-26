@@ -1041,31 +1041,34 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             // TODO(rntz): set up a js::runner_t::req_config_t with an
             // appropriately-chosen timeout.
 
-            // Check whether the function has been compiled.
+            // Check whether the function has been compiled already.
+            bool compiled = t->HasExtension(extension::js_id);
+
+            // We give all values in scope as arguments.
+            // TODO(rntz): this is wasteful double-copying.
+            std::vector<std::string> argnames; // only used if (!compiled)
+            std::vector<boost::shared_ptr<scoped_cJSON_t> > argvals;
+            env->scope.dump(compiled ? NULL : &argnames, &argvals);
+
             js::id_t id;
-            if (!t->HasExtension(extension::js_id)) {
+            if (compiled) {
+                id = t->GetExtension(extension::js_id);
+            } else {
                 //debugf("compiling\n");
                 // Not compiled yet. Compile it and add the extension.
                 js::method_handle_t handle;
-                if (!js->compile(&handle, t->javascript().data(), t->javascript().size(), &errmsg)) {
+                if (!js->compile(&handle, argnames, t->javascript(), &errmsg)) {
                     throw runtime_exc_t("failed to compile javascript: " + errmsg, backtrace);
                 }
                 id = handle.release();
                 t->SetExtension(extension::js_id, (int32_t) id);
-            } else {
-                id = t->GetExtension(extension::js_id);
             }
 
             {
                 //debugf("calling\n");
-                // Construct an environment mapping.
-                // TODO (rntz): making a new map for this is wasteful.
-                std::map<std::string, boost::shared_ptr<scoped_cJSON_t> > context;
-                env->scope.dump(&context);
-
                 // Evaluate the source.
                 js::method_handle_t handle(js.get(), id);
-                result = js->call(&handle, context, &errmsg);
+                result = js->call(&handle, argvals, &errmsg);
                 handle.release();
             }
 

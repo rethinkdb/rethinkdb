@@ -33,7 +33,7 @@ class handle_t {
     // returns true iff we hold no ref
     bool empty() const { return parent_ == NULL; }
 
-    id_t get();
+    id_t get() const;
 
     // releases an id without destroying its referent
     // PRECOND: we hold a ref
@@ -103,23 +103,19 @@ class runner_t :
     // Returns false on error.
     MUST_USE bool compile(
         method_handle_t *out,
-        // Source for the body of the function
-        const char *body_src, size_t len,
+        // Argument names
+        const std::vector<std::string> &args,
+        // Source for the body of the function, _not_ including opening
+        // "function(...) {" and closing "}".
+        const std::string &source,
         std::string *errmsg,
         req_config_t *config = NULL);
 
     // Calls a previously compiled function.
+    // TODO: receiver object.
     boost::shared_ptr<scoped_cJSON_t> call(
-        method_handle_t *handle,
-        const std::map<std::string, boost::shared_ptr<scoped_cJSON_t> > &bound_vars,
-        std::string *errmsg,
-        req_config_t *config = NULL);
-
-    // FIXME legacy method, remove
-    MUST_USE boost::shared_ptr<scoped_cJSON_t> eval(
-        const char *src,
-        size_t len,
-        const std::map<std::string, boost::shared_ptr<scoped_cJSON_t> > &env,
+        const method_handle_t *handle,
+        const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
         std::string *errmsg,
         req_config_t *config = NULL);
 
