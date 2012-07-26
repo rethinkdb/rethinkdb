@@ -279,6 +279,17 @@ void debug_print(append_only_printf_buffer_t *buf, const std::string& s) {
     debug_print_quoted_string(buf, reinterpret_cast<const uint8_t *>(data), s.size());
 }
 
+debugf_in_dtor_t::debugf_in_dtor_t(const char *msg, ...) {
+    va_list arguments;
+    va_start(arguments, msg);
+    message = vstrprintf(msg, arguments);
+    va_end(arguments);
+}
+
+debugf_in_dtor_t::~debugf_in_dtor_t() {
+    debugf("%s", message.c_str());
+}
+
 rng_t::rng_t( UNUSED int seed) {
     memset(&buffer_, 0, sizeof(buffer_));
 #ifndef NDEBUG

@@ -4,7 +4,7 @@ rethinkdb_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path
 sys.path.append(os.path.join(rethinkdb_root, "test", "common"))
 import http_admin, driver
 sys.path.append(os.path.join(rethinkdb_root, "test", "scenarios"))
-import workload_runner
+import workload_runner, scenario_common
 from vcoptparse import *
 
 op = OptParser()
@@ -35,8 +35,8 @@ with driver.Metacluster() as metacluster:
     host, port = driver.get_namespace_host(ns.port, processes)
     cluster.check()
 
-    host, port = driver.get_namespace_host(ns.port, processes)
-    workload_runner.run(opts["workload"], host, port, opts["timeout"])
+    workload_ports = scenario_common.get_workload_ports(ns.port, processes)
+    workload_runner.run(opts["workload"], workload_ports, opts["timeout"])
     cluster.check()
 
     print "Splitting into two shards..."

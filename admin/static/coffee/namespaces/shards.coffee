@@ -290,7 +290,7 @@ module 'NamespaceView', ->
         on_success: (response) =>
             @.$('.btn-primary').button('reset')
             @namespace.set(response)
-            $('#user-alert-space').append(@alert_tmpl({}))
+            $('#user-alert-space').html @alert_tmpl({})
             @suggest_shards_view = false
             @original_shard_set = @shard_set
             @render()

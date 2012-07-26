@@ -267,7 +267,7 @@ module 'NamespaceView', ->
                     $link.text $link.data('loading-text')
 
                     clear_modals()
-                    $('#user-alert-space').append (@alert_tmpl {})
+                    $('#user-alert-space').html @alert_tmpl {}
                     
                     # Trigger a manual refresh of the data
                     collect_server_data_once(false)

@@ -13,35 +13,41 @@ for more information.
 Workloads
 ---------
 
-A workload is a command that runs queries against a database server at some
-host:port address. Workloads are specified as a command which, when executed
-in `bash` with environment variables `HOST` and `PORT` set appropriately, will
-open some connections to `$HOST:$PORT` and run queries. "Continuous" workloads
-are workloads that run until they receive `SIGINT`; "discrete" workloads will
-stop on their own. A workload is considered to have succeeded if it returns 0.
+A workload is a command that runs queries against a RethinkDB server at some
+host and ports. Workloads are specified as a command which, when executed in
+`bash` with environment variables `HOST`, `HTTP_PORT`, and `MC_PORT` set
+appropriately, will open some connections to the database and run queries.
+`HTTP_PORT` is a RethinkDB administrative HTTP server; the workload mustn't
+change the server's configuration. `MC_PORT` is a memcached server. `PORT` is an
+alias for `MC_PORT`. There are two types of workloads: "continuous" workloads
+are workloads that run until they receive `SIGINT`, but "discrete" workloads
+will stop on their own. A workload is considered to have succeeded if it returns
+0.
 
 Here are some examples:
 * A trivial discrete workload: 
     `true`
 * A discrete workload using the stress client:
-    `rethinkdb/bench/stress-client/stress -s $HOST:$PORT`
+    `rethinkdb/bench/stress-client/stress -s $HOST:$MC_PORT`
 * A continuous workload using the stress client:
-    `rethinkdb/bench/stress-client/stress -s $HOST:$PORT --duration infinity`
+    `rethinkdb/bench/stress-client/stress -s $HOST:$MC_PORT --duration infinity`
 
 In the `rethinkdb/test/workloads/` directory, there are many workload scripts
 written in Python. For example:
 * A discrete workload that tests append and prepend operations:
-    `rethinkdb/test/workloads/append_prepend.py $HOST:$PORT`
+    `rethinkdb/test/workloads/append_prepend.py $HOST:$MC_PORT`
 * A continuous workload that sends a variety of operations:
-    `rethinkdb/test/workloads/serial_mix.py $HOST:$PORT --duration forever`
+    `rethinkdb/test/workloads/serial_mix.py $HOST:$MC_PORT --duration forever`
 
 A workload may create files in its current directory. The main purpose of this
-is when several workloads are meant to be run in series. The first one can
-put some data in the database and then record what it wrote to a file; the
-second one can open the file and verify that the data is still present in the
-database. `rethinkdb/test/workloads/serial_mix.py $HOST:$PORT --save data_file`
-and `rethinkdb/test/workloads/serial_mix.py $HOST:$PORT --load data_file` are
-such a pair of workloads. Sometimes this construct is called a "split workload".
+is when several workloads are meant to be run in series. The first one can put
+some data in the database and then record what it wrote to a file; the second
+one can open the file and verify that the data is still present in the database.
+`rethinkdb/test/workloads/serial_mix.py $HOST:$MC_PORT --save data_file` and
+`rethinkdb/test/workloads/serial_mix.py $HOST:$MC_PORT --load data_file` are
+such a pair of workloads. Sometimes this construct is called a "split workload"
+or "two-phase workload". Workloads that can be run an arbitrary number of times
+against the same server, saving data in between, are called "n-phase workloads".
 
 Scenarios
 ---------
@@ -51,20 +57,20 @@ runs a workload or workloads against them. The scenarios live in
 `rethinkdb/test/scenarios/`.
 
 Here are some examples:
-* `scenarios/static_cluster.py <DISCRETE WORKLOAD>` starts a cluster of three RethinkDB
-    instances, runs the workload against one of the instances in the cluster,
-    and then shuts down the cluster.
+* `scenarios/static_cluster.py <DISCRETE WORKLOAD>` starts a cluster of three
+    RethinkDB instances, runs the workload against one of the instances in the
+    cluster, and then shuts down the cluster.
 * `restart.py <DISCRETE WORKLOAD 1> <DISCRETE WORKLOAD 2>` starts a RethinkDB
     instance; runs the first workload; shuts down and restarts the RethinkDB
     instance; runs the second workload; and then shuts down the RethinkDB
     instance. It's usually used with a split workload, to test that the data is
     correctly persisted to disk when RethinkDB is restarted.
-* `more_or_less_secondaries.py --more --workload-during <CONTINUOUS WORKLOAD>` starts
+* `more_or_less_secondaries.py 1+1 --workload-during <CONTINUOUS WORKLOAD>` starts
     a RethinkDB cluster; starts the workload; increases the number of
     secondaries in the cluster; stops the workload; and stops the cluster. The
     idea is to make sure that RethinkDB doesn't crash if the number of
     secondaries is changed while queries are being sent.
-* `more_or_less_secondaries.py --more --workload-before <DISCRETE WORKLOAD 1> --workload-after <DISCRETE WORKLOAD 2>` is
+* `more_or_less_secondaries.py 1+1 --workload-before <DISCRETE WORKLOAD 1> --workload-after <DISCRETE WORKLOAD 2>` is
     like above except that instead of running one continuous workload the whole
     time, it runs two separate discrete workloads; one before adding the new
     secondary and one after. It can be used to make sure that data is not
@@ -81,7 +87,7 @@ I recommend running tests something like this:
 For example, to run the `static_cluster.py` scenario with the
 `append_prepend.py` workload, you could type:
 
-    ~/rethinkdb/test$ (rm -rf scratch; mkdir scratch; cd scratch; ../scenarios/static_cluster.py '../workloads/append_prepend.py $HOST:$PORT')
+    ~/rethinkdb/test$ (rm -rf scratch; mkdir scratch; cd scratch; ../scenarios/static_cluster.py '../workloads/append_prepend.py $HOST:$MC_PORT')
 
 Interface tests
 ---------------

@@ -23,7 +23,7 @@ private:
     }
 public:
     explicit dummy_mailbox_t(mailbox_manager_t *m) :
-        mailbox(m, boost::bind(&dummy_mailbox_t::on_message, this, _1))
+        mailbox(m, mailbox_home_thread, boost::bind(&dummy_mailbox_t::on_message, this, _1))
         { }
     void expect(int message) {
         EXPECT_EQ(1, inbox.count(message));

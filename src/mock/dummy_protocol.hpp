@@ -117,9 +117,9 @@ public:
         void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;
         void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out) THROWS_NOTHING;
 
-        metainfo_t get_metainfo(order_token_t order_token,
-                                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        metainfo_t do_get_metainfo(order_token_t order_token,
+                                   scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void set_metainfo(const metainfo_t &new_metainfo,
                           order_token_t order_token,

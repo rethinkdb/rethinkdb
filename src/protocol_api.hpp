@@ -307,9 +307,15 @@ public:
     /* Gets the metainfo.
     [Postcondition] return_value.get_domain() == view->get_region()
     [May block] */
-    virtual metainfo_t get_metainfo(order_token_t order_token,
-                                    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual metainfo_t do_get_metainfo(order_token_t order_token,
+                                       scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+
+    metainfo_t get_metainfo(order_token_t order_token,
+                            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        return do_get_metainfo(order_token, token, interruptor);
+    }
 
     /* Replaces the metainfo over the view's entire range with the given metainfo.
     [Precondition] region_is_superset(view->get_region(), new_metainfo.get_domain())
@@ -451,10 +457,10 @@ public:
         store_view->new_write_token(token_out);
     }
 
-    metainfo_t get_metainfo(order_token_t order_token,
-                            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        return store_view->get_metainfo(order_token, token, interruptor).mask(get_region());
+    metainfo_t do_get_metainfo(order_token_t order_token,
+                               scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        return store_view->do_get_metainfo(order_token, token, interruptor).mask(get_region());
     }
 
     void set_metainfo(const metainfo_t &new_metainfo,

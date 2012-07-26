@@ -1,0 +1,20 @@
+#!/bin/sh
+
+run_in_dir_and_remove() {
+    rm -rf scratch
+    mkdir scratch
+    cd scratch
+    echo "Running: " "$1"
+    eval $1
+    cd ..
+    rm -r scratch
+}
+
+run_in_dir_and_remove "../scenarios/static_cluster.py '../workloads/multi_serial_mix.py \$HOST:\$PORT'"
+
+run_in_dir_and_remove "../scenarios/static_cluster.py --valgrind --mode debug-valgrind '../workloads/multi_serial_mix.py \$HOST:\$PORT'"
+
+run_in_dir_and_remove "../scenarios/relocate_namespace.py --workload-before '../workloads/multi_serial_mix.py \$HOST:\$PORT' --workload-after '../workloads/multi_serial_mix.py \$HOST:\$PORT'"
+
+run_in_dir_and_remove "../scenarios/relocate_namespace.py --valgrind --mode debug-valgrind --workload-before '../workloads/multi_serial_mix.py \$HOST:\$PORT' --workload-after '../workloads/multi_serial_mix.py \$HOST:\$PORT'"
+

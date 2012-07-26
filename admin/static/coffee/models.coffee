@@ -3,14 +3,17 @@ class Namespace extends Backbone.Model
     initialize: ->
         # Add a computed shards property for convenience and metadata
         @compute_shards()
+        @load_key_distr()
     compute_shards: =>
         @.set 'computed_shards', new DataUtils.Shards [],@
 
+    interval: 5000
     set_interval_key_distr: =>
-        @set_interval = setInterval @load_key_distr, 5000
+        @set_interval = setInterval @load_key_distr, @interval
 
     clear_interval_key_distr: ->
-        clearInterval @set_interval
+        if @set_interval?
+            clearInterval @set_interval
 
     # Cache key distribution info.
     load_key_distr: =>
@@ -25,12 +28,21 @@ class Namespace extends Backbone.Model
                 distr_keys = []
                 for key, count of distr_data
                     distr_keys.push(key)
-                _.sortBy(distr_keys, _.identity)
+                distr_keys = _.sortBy(distr_keys, _.identity)
 
                 @set('key_distr', distr_data)
                 @set('key_distr_sorted', distr_keys)
-            error: ->
-                window.issues_redundancy.compute_redundancy_errors() # In case a master is down, we have redundancy error
+                if @interval isnt 5000
+                    @clear_interval_key_distr()
+                    @interval = 5000
+                    @set_interval_key_distr()
+
+            error: =>
+                if @interval isnt 1000
+                    @clear_interval_key_distr()
+                    @interval = 1000
+                    @set_interval_key_distr()
+
 
     # Some shard helpers
     compute_shard_rows_approximation: (shard) =>
@@ -43,7 +55,6 @@ class Namespace extends Backbone.Model
         start_key = shard[0]
         end_key = shard[1]
 
-
         # TODO: we should probably support interpolation here, but
         # fuck it for now.
 
@@ -52,11 +63,10 @@ class Namespace extends Backbone.Model
         count = 0
 
         for key in @get('key_distr_sorted')
-            if key >= start_key
-                if @get('key_distr')[key]?
-                    count += @get('key_distr')[key]
-            if end_key? and key >= end_key
-                break
+            if key >= start_key or start_key is null
+                if end_key is null or key < end_key
+                    if @get('key_distr')[key]?
+                        count += @get('key_distr')[key]
 
         return count.toString() # Return string since [] == 0 return true (for Handlebars)
 
