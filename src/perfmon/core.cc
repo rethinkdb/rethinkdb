@@ -296,7 +296,8 @@ perfmon_filter_t::perfmon_filter_t(const std::set<std::string> &paths) {
                 path->push_back(new scoped_regex_t("^"+regex_string+"$"));
             }
         } catch (boost::escaped_list_error &e) {
-            logINF("Error: Could not parse %s (%s), skipping.\n", str.c_str(), e.what());
+            logINF("Error: Could not parse %s (%s), skipping.",
+                   sanitize_for_logger(str).c_str(), e.what());
             continue; //Skip this path
         }
     }

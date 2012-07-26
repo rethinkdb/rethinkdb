@@ -94,6 +94,9 @@ cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &no
 }
 
 http_res_t stat_http_app_t::handle(const http_req_t &req) {
+    /* We allow users to filter for the stats they want by providing "paths",
+       i.e. ERE regular expressions separated by slashes.  We treat these sort
+       of like XPath expressions for filtering out what stats get returned. */
     std::set<std::string> filter_paths;
     for (std::vector<query_parameter_t>::const_iterator it = req.query_params.begin();
          it != req.query_params.end(); ++it) {

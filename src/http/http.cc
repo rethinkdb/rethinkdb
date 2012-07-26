@@ -3,6 +3,7 @@
 #include <exception>
 
 #include "errors.hpp"
+#include "utils.hpp"
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
@@ -119,15 +120,7 @@ bool http_req_t::has_header_line(const std::string& key) const {
 }
 
 std::string http_req_t::get_sanitized_body() const {
-    std::string sanitized = body;
-    for (int i = 0; i < int(sanitized.length()); ++i) {
-        if (sanitized[i] == '\n' || sanitized[i] == '\t') {
-            sanitized[i] = ' ';
-        } else if (sanitized[i] < ' ' || sanitized[i] > '~') {
-            sanitized[i] = '?';
-        }
-    }
-    return sanitized;
+    return sanitize_for_logger(body);
 }
 
 int content_length(http_req_t msg) {
