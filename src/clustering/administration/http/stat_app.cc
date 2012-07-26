@@ -114,16 +114,6 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
         }
     }
     if (filter_paths.empty()) filter_paths.insert(".*"); //no filter = match everything
-    /*
-    http_res_t debug(400);
-    std::string str;
-    for (std::set<std::string>::iterator it = filter_paths.begin();
-         it != filter_paths.end(); ++it) {
-        str += *it+"\n";
-    }
-    debug.set_body("application/text", str);
-    return debug;
-    */
 
     scoped_cJSON_t body(cJSON_CreateObject());
 
@@ -134,7 +124,11 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
 
     // Parse the 'timeout' query parameter
     boost::optional<std::string> timeout_param = req.find_query_param(STAT_REQ_TIMEOUT_PARAM);
+#ifndef VALGRIND
     uint64_t timeout = DEFAULT_STAT_REQ_TIMEOUT_MS;
+#else
+    uint64_t timeout = DEFAULT_STAT_REQ_TIMEOUT_MS*10;
+#endif
     if (timeout_param) {
         if (!strtou64_strict(timeout_param.get(), 10, &timeout) || timeout == 0 || timeout > MAX_STAT_REQ_TIMEOUT_MS) {
             http_res_t res(400);
