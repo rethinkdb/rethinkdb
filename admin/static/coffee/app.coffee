@@ -155,14 +155,19 @@ set_stats = (stat_data) ->
         if machines.get(machine_id)? #if the machines are not ready, we just skip the current stats
             machines.get(machine_id).set('stats', data)
         else if machine_id is 'machines' # It would be nice if the back end could update that.
-            for mid in data.dead
-                machines.get(machine_id)?.set('stats_up_to_date', false)
-            for mid in data.ghosts
-                machines.get(machine_id)?.set('stats_up_to_date', false)
-            for mid in data.timed_out
-                machines.get(machine_id)?.set('stats_up_to_date', false)
             for mid in data.known
-                machines.get(machine_id)?.set('stats_up_to_date', true)
+                machines.get(mid)?.set('stats_up_to_date', true)
+            ###
+            # Ignore these cases for the time being. When we'll consider these, 
+            # we might need an integer instead of a boolean
+            for mid in data.dead
+                machines.get(mid)?.set('stats_up_to_date', false)
+            for mid in data.ghosts
+                machines.get(mid)?.set('stats_up_to_date', false)
+            ###
+            for mid in data.timed_out
+                machines.get(mid)?.set('stats_up_to_date', false)
+
 
 
 

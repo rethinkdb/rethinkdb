@@ -130,6 +130,7 @@ module 'MachineView', ->
                 global_net_sent: if @model.get_stats().proc.global_net_sent_persec? then human_readable_units(@model.get_stats().proc.global_net_sent_persec.avg, units_space) else 0
                 global_net_recv: if @model.get_stats().proc.global_net_recv_persec? then human_readable_units(@model.get_stats().proc.global_net_recv_persec.avg, units_space) else 0
                 machine_disk_space: human_readable_units(@model.get_used_disk_space(), units_space)
+                stats_up_to_date: @model.get('stats_up_to_date')
             
             # If the machine is assigned to a datacenter, add relevant json
             if datacenter_uuid?

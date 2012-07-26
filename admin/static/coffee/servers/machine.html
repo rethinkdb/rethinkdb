@@ -49,6 +49,10 @@
     <p>Status: {{humanize_machine_reachability status}}</p>
     <p>IP {{pluralize_noun "address" nips}}: {{#if ips}} {{html_list ips}} {{else}} N/A {{/if}}</p>
     <p class="uptime">Uptime: {{uptime}}</p>
+    {{#unless stats_up_to_date}}
+    <p>The stats displayed might not be up to date<br />
+        (the server might be overload with queries).</p>
+    {{/unless}}
   </div>
 </script>
 
