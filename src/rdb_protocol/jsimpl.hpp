@@ -100,10 +100,9 @@ typedef boost::variant<boost::shared_ptr<scoped_cJSON_t>, std::string> json_resu
 struct id_visitor_t {
     typedef bool result_type;
     explicit id_visitor_t(std::string *errmsg) : errmsg_(errmsg) {}
-    id_t id_;
     std::string *errmsg_;
-    bool operator()(const id_t &id) { id_ = id; return true; }
-    bool operator()(const std::string &msg) { *errmsg_ = msg; return false; }
+    id_t operator()(const id_t &id) { rassert(id != INVALID_ID); return id; }
+    id_t operator()(const std::string &msg) { *errmsg_ = msg; return INVALID_ID; }
 };
 
 struct json_visitor_t {
