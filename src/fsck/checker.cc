@@ -324,13 +324,13 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
     uint64_t extent_size = static_cfg->extent_size();
     uint64_t file_size = *knog->filesize;
 
-    printf("Pre-scanning file %s:\n", knog->filename.c_str());
-    printf("static_header software_name: %.*s\n", int(sizeof(SOFTWARE_NAME_STRING)), buf->software_name);
-    printf("static_header version: %.*s\n", int(sizeof(VERSION_STRING)), buf->version);
-    printf("              DEVICE_BLOCK_SIZE: %lu\n", DEVICE_BLOCK_SIZE);
-    printf("static_header block_size: %u\n", block_size.ser_value());
-    printf("static_header extent_size: %lu\n", extent_size);
-    printf("              file_size: %lu\n", file_size);
+    logSTDOUT("Pre-scanning file %s:\n", knog->filename.c_str());
+    logSTDOUT("static_header software_name: %.*s\n", int(sizeof(SOFTWARE_NAME_STRING)), buf->software_name);
+    logSTDOUT("static_header version: %.*s\n", int(sizeof(VERSION_STRING)), buf->version);
+    logSTDOUT("              DEVICE_BLOCK_SIZE: %lu\n", DEVICE_BLOCK_SIZE);
+    logSTDOUT("static_header block_size: %u\n", block_size.ser_value());
+    logSTDOUT("static_header extent_size: %lu\n", extent_size);
+    logSTDOUT("              file_size: %lu\n", file_size);
 
     if (0 != strcmp(buf->software_name, SOFTWARE_NAME_STRING)) {
         *err = bad_software_name;
@@ -349,7 +349,7 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
     }
     if (!(file_size % extent_size == 0)) {
         // It's a bit of a HACK to put this here.
-        printf("WARNING file_size is not a multiple of extent_size\n");
+        logSTDOUT("WARNING file_size is not a multiple of extent_size\n");
     }
 
     knog->static_config = *static_cfg;
@@ -1230,33 +1230,33 @@ void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread
 void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
     const static_config_error *sc = NULL;
     if (errs.static_config_err.is_known(&sc) && *sc != static_config_none) {
-        printf("ERROR %s static header: %s\n", state, static_config_errstring[*sc]);
+        logSTDOUT("ERROR %s static header: %s\n", state, static_config_errstring[*sc]);
     }
     const metablock_errors *mb = NULL;
     if (errs.metablock_errs.is_known(&mb)) {
         if (mb->unloadable_count > 0) {
-            printf("ERROR %s %d of %d metablocks were unloadable\n", state, mb->unloadable_count, mb->total_count);
+            logSTDOUT("ERROR %s %d of %d metablocks were unloadable\n", state, mb->unloadable_count, mb->total_count);
         }
         if (mb->bad_crc_count > 0) {
-            printf("WARNING %s %d of %d metablocks have bad CRC\n", state, mb->bad_crc_count, mb->total_count);
+            logSTDOUT("WARNING %s %d of %d metablocks have bad CRC\n", state, mb->bad_crc_count, mb->total_count);
         }
         if (mb->bad_markers_count > 0) {
-            printf("ERROR %s %d of %d metablocks have bad markers\n", state, mb->bad_markers_count, mb->total_count);
+            logSTDOUT("ERROR %s %d of %d metablocks have bad markers\n", state, mb->bad_markers_count, mb->total_count);
         }
         if (mb->bad_content_count > 0) {
-            printf("ERROR %s %d of %d metablocks have bad content\n", state, mb->bad_content_count, mb->total_count);
+            logSTDOUT("ERROR %s %d of %d metablocks have bad content\n", state, mb->bad_content_count, mb->total_count);
         }
         if (mb->zeroed_count > 0) {
-            printf("INFO %s %d of %d metablocks uninitialized (maybe this is a new database?)\n", state, mb->zeroed_count, mb->total_count);
+            logSTDOUT("INFO %s %d of %d metablocks uninitialized (maybe this is a new database?)\n", state, mb->zeroed_count, mb->total_count);
         }
         if (mb->not_monotonic) {
-            printf("WARNING %s metablock versions not monotonic\n", state);
+            logSTDOUT("WARNING %s metablock versions not monotonic\n", state);
         }
         if (mb->no_valid_metablocks) {
-            printf("ERROR %s no valid metablocks\n", state);
+            logSTDOUT("ERROR %s no valid metablocks\n", state);
         }
         if (mb->implausible_block_failure) {
-            printf("ERROR %s a metablock we once loaded became unloadable (your computer is broken)\n", state);
+            logSTDOUT("ERROR %s a metablock we once loaded became unloadable (your computer is broken)\n", state);
         }
     }
     const lba_errors *lba = NULL;
@@ -1264,21 +1264,21 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
         for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
             const lba_shard_errors *sherr = &lba->shard_errors[i];
             if (sherr->code == lba_shard_errors::bad_lba_superblock_entries_count) {
-                printf("ERROR %s lba shard %d has invalid lba_superblock_entries_count\n", state, i);
+                logSTDOUT("ERROR %s lba shard %d has invalid lba_superblock_entries_count\n", state, i);
             } else if (sherr->code == lba_shard_errors::lba_superblock_not_contained_in_single_extent) {
-                printf("ERROR %s lba shard %d has lba superblock offset with lba_superblock_entries_count crossing extent boundary\n", state, i);
+                logSTDOUT("ERROR %s lba shard %d has lba superblock offset with lba_superblock_entries_count crossing extent boundary\n", state, i);
             } else if (sherr->code == lba_shard_errors::bad_lba_superblock_offset) {
-                printf("ERROR %s lba shard %d has invalid lba superblock offset\n", state, i);
+                logSTDOUT("ERROR %s lba shard %d has invalid lba superblock offset\n", state, i);
             } else if (sherr->code == lba_shard_errors::bad_lba_superblock_magic) {
-                printf("ERROR %s lba shard %d has invalid superblock magic\n", state, i);
+                logSTDOUT("ERROR %s lba shard %d has invalid superblock magic\n", state, i);
             } else if (sherr->code == lba_shard_errors::bad_lba_extent) {
-                printf("ERROR %s lba shard %d, extent %d, %s\n",
+                logSTDOUT("ERROR %s lba shard %d, extent %d, %s\n",
                        state, i, sherr->bad_extent_number,
                        sherr->extent_errors.code == lba_extent_errors::bad_extent_offset ? "has bad extent offset"
                        : sherr->extent_errors.code == lba_extent_errors::bad_entries_count ? "has bad entries count"
                        : "was specified invalidly");
             } else if (sherr->extent_errors.bad_block_id_count > 0 || sherr->extent_errors.wrong_shard_count > 0 || sherr->extent_errors.bad_offset_count > 0) {
-                printf("ERROR %s lba shard %d had bad lba entries: %d bad block ids, %d in wrong shard, %d with bad offset, of %d total\n",
+                logSTDOUT("ERROR %s lba shard %d had bad lba entries: %d bad block ids, %d in wrong shard, %d with bad offset, of %d total\n",
                        state, i, sherr->extent_errors.bad_block_id_count,
                        sherr->extent_errors.wrong_shard_count, sherr->extent_errors.bad_offset_count,
                        sherr->extent_errors.total_count);
@@ -1288,17 +1288,17 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
     const config_block_errors *cb;
     if (errs.config_block_errs.is_known(&cb)) {
         if (cb->block_open_code != btree_block_t::none) {
-            printf("ERROR %s config block not found: %s\n", state, btree_block_t::error_name(cb->block_open_code));
+            logSTDOUT("ERROR %s config block not found: %s\n", state, btree_block_t::error_name(cb->block_open_code));
         } else if (cb->bad_magic) {
-            printf("ERROR %s config block had bad magic\n", state);
+            logSTDOUT("ERROR %s config block had bad magic\n", state);
         }
         if (cb->mc_block_open_code != btree_block_t::none) {
-            printf("ERROR %s mirrored cache config block not found: %s\n", state, btree_block_t::error_name(cb->mc_block_open_code));
+            logSTDOUT("ERROR %s mirrored cache config block not found: %s\n", state, btree_block_t::error_name(cb->mc_block_open_code));
         } else if (cb->mc_bad_magic) {
-            printf("ERROR %s mirrored cache config block had bad magic\n", state);
+            logSTDOUT("ERROR %s mirrored cache config block had bad magic\n", state);
         }
         if (cb->mc_inconsistent) {
-            printf("ERROR %s mirrored cache config blocks are inconsistent\n", state);
+            logSTDOUT("ERROR %s mirrored cache config blocks are inconsistent\n", state);
         }
     }
 }
@@ -1320,40 +1320,40 @@ bool check_and_report_to_config_block(nondirect_file_t *file, file_knowledge_t *
 
 void report_interfile_errors(const interfile_errors &errs) {
     if (!errs.all_have_same_num_files) {
-        printf("ERROR config blocks disagree on number of files\n");
+        logSTDOUT("ERROR config blocks disagree on number of files\n");
     } else if (!errs.all_have_correct_num_files) {
-        printf("WARNING wrong number of files specified on command line\n");
+        logSTDOUT("WARNING wrong number of files specified on command line\n");
     }
 
     if (errs.bad_num_slices) {
-        printf("ERROR some config blocks specify an absurd number of slices\n");
+        logSTDOUT("ERROR some config blocks specify an absurd number of slices\n");
     } else if (!errs.all_have_same_num_slices) {
-        printf("ERROR config blocks disagree on number of slices\n");
+        logSTDOUT("ERROR config blocks disagree on number of slices\n");
     }
 
     if (!errs.all_have_same_creation_timestamp) {
-        printf("ERROR config blocks have different database_magic\n");
+        logSTDOUT("ERROR config blocks have different database_magic\n");
     }
 
     if (errs.bad_this_serializer_values) {
-        printf("ERROR some config blocks have absurd this_serializer values\n");
+        logSTDOUT("ERROR some config blocks have absurd this_serializer values\n");
     } else if (errs.reused_serializer_numbers) {
-        printf("ERROR some config blocks specify the same this_serializer value\n");
+        logSTDOUT("ERROR some config blocks specify the same this_serializer value\n");
     } else if (errs.out_of_order_serializers) {
-        printf("WARNING files apparently specified out of order on command line\n");
+        logSTDOUT("WARNING files apparently specified out of order on command line\n");
     }
 }
 
 bool report_subtree_errors(const subtree_errors *errs) {
     if (!errs->node_errors.empty()) {
-        printf("ERROR %s subtree node errors found...\n", state);
+        logSTDOUT("ERROR %s subtree node errors found...\n", state);
         for (int i = 0, n = errs->node_errors.size(); i < n; ++i) {
             const node_error& e = errs->node_errors[i];
-            printf("           %u:", e.block_id);
+            logSTDOUT("           %u:", e.block_id);
             if (e.block_not_found_error != btree_block_t::none) {
-                printf(" block not found: %s\n", btree_block_t::error_name(e.block_not_found_error));
+                logSTDOUT(" block not found: %s\n", btree_block_t::error_name(e.block_not_found_error));
             } else {
-                printf("%s%s%s%s%s%s%s%s\n",
+                logSTDOUT("%s%s%s%s%s%s%s%s\n",
                        e.bad_magic ? " bad_magic" : "",
                        e.noncontiguous_offsets ? " noncontiguous_offsets" : "",
                        e.value_out_of_buf ? " value_out_of_buf" : "",
@@ -1371,11 +1371,11 @@ bool report_subtree_errors(const subtree_errors *errs) {
 }
 
 void report_rogue_block_description(const char *title, const rogue_block_description& desc) {
-    printf("ERROR %s %s (#%u):", state, title, desc.block_id);
+    logSTDOUT("ERROR %s %s (#%u):", state, title, desc.block_id);
     if (desc.loading_error != btree_block_t::none) {
-        printf("could not load: %s\n", btree_block_t::error_name(desc.loading_error));
+        logSTDOUT("could not load: %s\n", btree_block_t::error_name(desc.loading_error));
     } else {
-        printf("magic = '%.*s'\n", int(sizeof(block_magic_t)), desc.magic.bytes);
+        logSTDOUT("magic = '%.*s'\n", int(sizeof(block_magic_t)), desc.magic.bytes);
     }
 }
 
@@ -1388,7 +1388,7 @@ bool report_other_block_errors(const other_block_errors *errs) {
     }
     bool ok = errs->orphan_blocks.empty() && errs->allegedly_deleted_blocks.empty();
     if (errs->contiguity_failure != NULL_BLOCK_ID) {
-        printf("ERROR %s slice block contiguity failure at serializer block id %u\n", state, errs->contiguity_failure);
+        logSTDOUT("ERROR %s slice block contiguity failure at serializer block id %u\n", state, errs->contiguity_failure);
         ok = false;
     }
     return ok;
@@ -1398,19 +1398,19 @@ bool report_diff_log_errors(const diff_log_errors *errs) {
     bool ok = true;
 
     if (errs->deleted_log_block_count > 0) {
-        printf("ERROR %s %d diff log blocks have been deleted\n", state, errs->deleted_log_block_count);
+        logSTDOUT("ERROR %s %d diff log blocks have been deleted\n", state, errs->deleted_log_block_count);
         ok = false;
     }
     if (errs->missing_log_block_count > 0) {
-        printf("ERROR %s %d diff log blocks are missing (maybe n_log_blocks in the config_block is too large?)\n", state, errs->missing_log_block_count);
+        logSTDOUT("ERROR %s %d diff log blocks are missing (maybe n_log_blocks in the config_block is too large?)\n", state, errs->missing_log_block_count);
         ok = false;
     }
     if (errs->non_sequential_logs > 0) {
-        printf("ERROR %s The diff log for %d blocks has non-sequential patch counters\n", state, errs->non_sequential_logs);
+        logSTDOUT("ERROR %s The diff log for %d blocks has non-sequential patch counters\n", state, errs->non_sequential_logs);
         ok = false;
     }
     if (errs->corrupted_patch_blocks > 0) {
-        printf("ERROR %s %d blocks of the diff log contain at least one corrupted patch\n", state, errs->corrupted_patch_blocks);
+        logSTDOUT("ERROR %s %d blocks of the diff log contain at least one corrupted patch\n", state, errs->corrupted_patch_blocks);
         ok = false;
     }
 
@@ -1422,11 +1422,11 @@ bool report_slice_errors(const std::string &slice_name, const slice_errors *errs
     state = s.c_str();
 
     if (errs->superblock_code != btree_block_t::none) {
-        printf("ERROR %s could not find btree superblock: %s\n", state, btree_block_t::error_name(errs->superblock_code));
+        logSTDOUT("ERROR %s could not find btree superblock: %s\n", state, btree_block_t::error_name(errs->superblock_code));
         return false;
     }
     if (errs->superblock_bad_magic) {
-        printf("ERROR %s btree superblock had bad magic\n", state);
+        logSTDOUT("ERROR %s btree superblock had bad magic\n", state);
         return false;
     }
     bool no_diff_log_errors = report_diff_log_errors(&errs->diff_log_errs);
@@ -1449,10 +1449,10 @@ bool report_post_config_block_errors(const all_slices_errors_t& slices_errs) {
 }
 
 void print_interfile_summary(const multiplexer_config_block_t& c, const mc_config_block_t& mcc) {
-    printf("config_block creation_timestamp: %lu\n", c.creation_timestamp);
-    printf("config_block n_files: %d\n", c.n_files);
-    printf("config_block n_proxies: %d\n", c.n_proxies);
-    printf("config_block n_log_blocks: %d\n", mcc.cache.n_patch_log_blocks);
+    logSTDOUT("config_block creation_timestamp: %lu\n", c.creation_timestamp);
+    logSTDOUT("config_block n_files: %d\n", c.n_files);
+    logSTDOUT("config_block n_proxies: %d\n", c.n_proxies);
+    logSTDOUT("config_block n_log_blocks: %d\n", mcc.cache.n_patch_log_blocks);
 }
 
 std::string extract_slices_flags(const multiplexer_config_block_t& c) {
@@ -1499,7 +1499,7 @@ bool check_files(const config_t *cfg) {
 
     /* A few early exits if we want some specific pieces of information */
     if (cfg->print_file_version) {
-        printf("VERSION: %s\n", extract_static_config_version(knog.files[0].get(), knog.file_knog[0].get()).c_str());
+        logSTDOUT("VERSION: %s\n", extract_static_config_version(knog.files[0].get(), knog.file_knog[0].get()).c_str());
         return true;
     }
 
@@ -1526,7 +1526,7 @@ bool check_files(const config_t *cfg) {
         flags.append(extract_static_config_flags(knog.files[0].get(), knog.file_knog[0].get()));
         flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
         flags.append(extract_cache_flags(knog.files[0].get(), *knog.file_knog[0]->config_block, *knog.file_knog[0]->mc_config_block));
-        printf("%s\n", flags.c_str());
+        logSTDOUT("%s\n", flags.c_str());
         return true;
     }
 
