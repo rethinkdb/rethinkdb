@@ -43,11 +43,11 @@ struct http_req_t {
         typedef tokenizer::iterator iterator;
 
         resource_t();
-        explicit resource_t(const std::string &val_);
-        resource_t(const char* val_, size_t size);
+        explicit resource_t(const std::string &_val);
+        resource_t(const char* _val, size_t size);
 
-        void assign(const std::string &val_);
-        void assign(const char* val_, size_t size);
+        void assign(const std::string &_val);
+        void assign(const char* _val, size_t size);
         iterator begin() const;
         iterator end() const;
         std::string as_string(const iterator &from) const;

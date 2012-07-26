@@ -18,22 +18,22 @@ http_req_t::resource_t::resource_t(const http_req_t::resource_t &from, const htt
     : val(from.val), val_size(from.val_size), b(resource_start), e(from.e) {
 }
 
-http_req_t::resource_t::resource_t(const std::string &val_) {
-    assign(val_);
+http_req_t::resource_t::resource_t(const std::string &_val) {
+    assign(_val);
 }
 
-http_req_t::resource_t::resource_t(const char * val_, size_t size) {
-    assign(val_, size);
+http_req_t::resource_t::resource_t(const char * _val, size_t size) {
+    assign(_val, size);
 }
 
-void http_req_t::resource_t::assign(const std::string &val_) {
-    assign(val_.data(), val_.length());
+void http_req_t::resource_t::assign(const std::string &_val) {
+    assign(_val.data(), _val.length());
 }
 
-void http_req_t::resource_t::assign(const char * val_, size_t size) {
-    rassert(size > 0 && val_[0] == resource_parts_sep_char[0], "resource path must start with a '/'");
+void http_req_t::resource_t::assign(const char * _val, size_t size) {
+    rassert(size > 0 && _val[0] == resource_parts_sep_char[0], "resource path must start with a '/'");
     val.reset(new char[size]);
-    memcpy(val.get(), val_, size);
+    memcpy(val.get(), _val, size);
     val_size = size;
 
     // We skip the first '/' when we initialize tokenizer, otherwise we'll get an empty token out of it first.
