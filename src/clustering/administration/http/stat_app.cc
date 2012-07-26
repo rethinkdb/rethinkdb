@@ -3,6 +3,8 @@
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
+#include <boost/tokenizer.hpp>
+#include <boost/foreach.hpp>
 
 #include "stl_utils.hpp"
 #include "arch/timing.hpp"
@@ -92,6 +94,37 @@ cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &no
 }
 
 http_res_t stat_http_app_t::handle(const http_req_t &req) {
+    std::set<std::string> filter_paths;
+    for (std::vector<query_parameter_t>::const_iterator it = req.query_params.begin();
+         it != req.query_params.end(); ++it) {
+        if (it->key != "filter") {
+            http_res_t invalid_param(400);
+            invalid_param.set_body("application/text", "Invalid parameter: "+it->key);
+            return invalid_param;
+        } else {
+            try {
+                boost::tokenizer<boost::escaped_list_separator<char> >
+                    paths(it->val, boost::escaped_list_separator<char>("\\",",",""));
+                BOOST_FOREACH(std::string s, paths) filter_paths.insert(s);
+            } catch (boost::escaped_list_error &e) {
+                http_res_t res(400);
+                res.set_body("application/txt", "Filter Error: "+std::string(e.what()));
+                return res;
+            }
+        }
+    }
+    if (filter_paths.empty()) filter_paths.insert(".*"); //no filter = match everything
+    /*
+    http_res_t debug(400);
+    std::string str;
+    for (std::set<std::string>::iterator it = filter_paths.begin();
+         it != filter_paths.end(); ++it) {
+        str += *it+"\n";
+    }
+    debug.set_body("application/text", str);
+    return debug;
+    */
+
     scoped_cJSON_t body(cJSON_CreateObject());
 
     peers_to_metadata_t peers_to_metadata = directory->get();
@@ -122,7 +155,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
         machine_id_t machine = it->second.machine_id; //due to boost bug with not accepting const keys for insert
         stats_request_record_t *req_record = new stats_request_record_t(mbox_manager);
         stats_promises.insert(machine, req_record);
-        send(mbox_manager, it->second.get_stats_mailbox_address, req_record->response_mailbox.get_address(), std::set<stat_manager_t::stat_id_t>());
+        send(mbox_manager, it->second.get_stats_mailbox_address, req_record->response_mailbox.get_address(), filter_paths);
     }
 
     std::vector<machine_id_t> not_replied;
