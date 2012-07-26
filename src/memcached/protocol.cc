@@ -563,15 +563,15 @@ void memcached_protocol_t::store_t::acquire_superblock_for_write(
     get_btree_superblock_and_txn(btree.get(), access, expected_change_count, repli_timestamp_t::invalid, order_token, sb_out, txn_out);
 }
 
-memcached_protocol_t::store_t::metainfo_t
-memcached_protocol_t::store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
-                                               scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void memcached_protocol_t::store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
+                                                    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                                    signal_t *interruptor,
+                                                    metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor);
 
-    return get_metainfo_internal(txn.get(), superblock->get());
+    *out = get_metainfo_internal(txn.get(), superblock->get());
 }
 
 region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf) const THROWS_NOTHING {

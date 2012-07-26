@@ -307,14 +307,17 @@ public:
     /* Gets the metainfo.
     [Postcondition] return_value.get_domain() == view->get_region()
     [May block] */
-    virtual metainfo_t do_get_metainfo(order_token_t order_token,
-                                       scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void do_get_metainfo(order_token_t order_token,
+                                 scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                 signal_t *interruptor,
+                                 metainfo_t *out) THROWS_ONLY(interrupted_exc_t) = 0;
 
     metainfo_t get_metainfo(order_token_t order_token,
                             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        return do_get_metainfo(order_token, token, interruptor);
+        metainfo_t tmp;
+        do_get_metainfo(order_token, token, interruptor, &tmp);
+        return tmp;
     }
 
     /* Replaces the metainfo over the view's entire range with the given metainfo.
@@ -457,10 +460,13 @@ public:
         store_view->new_write_token(token_out);
     }
 
-    metainfo_t do_get_metainfo(order_token_t order_token,
-                               scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        return store_view->do_get_metainfo(order_token, token, interruptor).mask(get_region());
+    void do_get_metainfo(order_token_t order_token,
+                         scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                         signal_t *interruptor,
+                         metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
+        metainfo_t tmp;
+        store_view->do_get_metainfo(order_token, token, interruptor, &tmp);
+        *out = tmp.mask(get_region());
     }
 
     void set_metainfo(const metainfo_t &new_metainfo,
