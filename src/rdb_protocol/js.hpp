@@ -20,53 +20,34 @@ class task_t;
 
 // Unique ids used to refer to objects on the JS side.
 typedef uint32_t id_t;
+const id_t INVALID_ID = 0;
 
-// Handles to objects in the JS job process.
-class handle_t {
+// Useful for managing ID lifetimes.
+class scoped_id_t {
     friend class runner_t;
 
   public:
-    handle_t() : parent_(NULL) {}
-    handle_t(runner_t *parent, id_t id) : parent_(parent), id_(id) {}
-    virtual ~handle_t();
+    scoped_id_t(runner_t *parent) : parent_(parent), id_(INVALID_ID) {}
+    scoped_id_t(runner_t *parent, id_t id) : parent_(parent), id_(id) {}
+    ~scoped_id_t();
 
-    // returns true iff we hold no ref
-    bool empty() const { return parent_ == NULL; }
+    bool empty() const { return id_ == INVALID_ID; }
 
-    id_t get() const;
+    id_t get() const { return id_; }
 
-    // releases an id without destroying its referent
-    // PRECOND: we hold a ref
-    // POSTCOND: we do not, but our previous id still has a referent
-    id_t release();
+    id_t release() {
+        id_t id = id_;
+        id_ = INVALID_ID;
+        return id;
+    }
 
-    // destroys our referent
-    // PRECOND: we hold a ref
-    // POSTCOND: we do not, and our previous id has no referent
-    void reset();
+    void reset(id_t id = INVALID_ID);
 
   private:
     runner_t *parent_;
     id_t id_;
 
-    DISABLE_COPYING(handle_t);
-};
-
-// Subclasses of handle_t are functionally identical, and differ only for C++
-// type-checking purposes. Currently we never manipulate handle_ts that are not
-// js_handle_ts or a subtype thereof.
-
-// Handle to a JS object.
-struct js_handle_t : handle_t {
-    js_handle_t() {}
-    js_handle_t(runner_t *parent, id_t id) : handle_t(parent, id) {}
-};
-
-// Handle to a JS "method": a function and associated receiver object "template"
-// (set of properties).
-struct method_handle_t : handle_t {
-    method_handle_t() {}
-    method_handle_t(runner_t *parent, id_t id) : handle_t(parent, id) {}
+    DISABLE_COPYING(scoped_id_t);
 };
 
 
@@ -74,7 +55,6 @@ struct method_handle_t : handle_t {
 class runner_t :
     private extproc::job_handle_t
 {
-    friend class handle_t;
     friend class run_task_t;
 
   public:
@@ -93,6 +73,10 @@ class runner_t :
     void finish();
     void interrupt();
 
+    // Invalidates an ID, dereferencing the object it refers to in the
+    // javascript evaluator process.
+    void release_id(id_t id);
+
     // Generic per-request options. A pointer to one of these is passed to all
     // requests. If NULL, the default configuration is used.
     struct req_config_t {
@@ -100,9 +84,9 @@ class runner_t :
         long timeout;           // FIXME: wrong type.
     };
 
-    // Returns false on error.
-    MUST_USE bool compile(
-        method_handle_t *out,
+    // Returns INVALID_ID on error.
+    // Returned id may only be used in `call`.
+    MUST_USE id_t compile(
         // Argument names
         const std::vector<std::string> &args,
         // Source for the body of the function, _not_ including opening
@@ -114,7 +98,7 @@ class runner_t :
     // Calls a previously compiled function.
     // TODO: receiver object.
     boost::shared_ptr<scoped_cJSON_t> call(
-        const method_handle_t *handle,
+        id_t func_id,
         const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
         std::string *errmsg,
         req_config_t *config = NULL);
@@ -147,12 +131,16 @@ class runner_t :
     };
 
   private:
-    void create_handle(handle_t *handle, id_t id);
-
+    id_t new_id(id_t id) {
+        rassert(connected());
 #ifndef NDEBUG
-    void on_new_id(id_t id);
+        rassert(!used_ids_.count(id));
+        if (id != INVALID_ID) {
+            used_ids_.insert(id);
+        }
 #endif
-    void release_id(id_t id);
+        return id;
+    }
 
     // The default req_config_t for this runner_t. May be modified to change
     // defaults.
