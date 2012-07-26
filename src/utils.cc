@@ -3,6 +3,8 @@
 
 #include "utils.hpp"
 
+#include <string>
+
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -48,6 +50,9 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     char ff_sample[16] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
+    std::string output;
+    char buffer[1024];
+
     bool skipped_last = false;
     while (length > 0) {
         bool skip = length >= 16 && (
@@ -56,29 +61,36 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
                     memcmp(buf, ff_sample, 16) == 0
                     );
         if (skip) {
-            if (!skipped_last) fprintf(stderr, "*\n");
+            if (!skipped_last) {
+                sprintf(buffer, "*\n");
+                output.append(buffer);
+            }
         } else {
-            fprintf(stderr, "%.8x  ", (unsigned int)offset);
+            sprintf(buffer, "%.8x  ", (unsigned int)offset);
+            output.append(buffer);
             for (int i = 0; i < 16; i++) {
                 if (i < (int)length) {
-                    fprintf(stderr, "%.2hhx ", buf[i]);
+                    sprintf(buffer, "%.2hhx ", buf[i]);
+                    output.append(buffer);
                 } else {
-                    fprintf(stderr, "   ");
+                    sprintf(buffer, "   ");
+                    output.append(buffer);
                 }
             }
-            fprintf(stderr, "| ");
+            sprintf(buffer, "| ");
+            output.append(buffer);
             for (int i = 0; i < 16; i++) {
                 if (i < (int)length) {
                     if (isprint(buf[i])) {
-                        fputc(buf[i], stderr);
+                        output.push_back(buf[i]);
                     } else {
-                        fputc('.', stderr);
+                        output.push_back('.');
                     }
                 } else {
-                    fputc(' ', stderr);
+                    output.push_back(' ');
                 }
             }
-            fprintf(stderr, "\n");
+            output.push_back('\n');
         }
         skipped_last = skip;
 
@@ -86,6 +98,7 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
         buf += 16;
         length -= 16;
     }
+    logSTDERR("%s", output.c_str());
 
     funlockfile(stderr);
 }
