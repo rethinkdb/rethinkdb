@@ -316,7 +316,8 @@ perfmon_result_t *perfmon_filter_t::subfilter
         std::string *str = p->get_string();
         for (size_t i = 0; i < regexps.size(); ++i) {
             if (!active[i]) continue;
-            if (depth >= regexps[i].size() || regexps[i][depth]->matches(*str)) return p;
+            if (depth >= regexps[i].size()) return p;
+            if (depth == regexps[i].size() && regexps[i][depth]->matches(*str)) return p;
         }
         delete p;
         return 0;
@@ -337,6 +338,10 @@ perfmon_result_t *perfmon_filter_t::subfilter
         if (!some_subpath || !it->second) to_delete.push_back(it);
     }
     BOOST_FOREACH(perfmon_result_t::iterator it, to_delete) p->erase(it);
+    if (p->get_map()->empty()) {
+        delete p;
+        return 0;
+    }
     return p;
 }
 
