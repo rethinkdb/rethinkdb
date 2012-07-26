@@ -1,5 +1,6 @@
 #include "clustering/administration/logger.hpp"
 
+#include <math.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <sys/stat.h>
@@ -81,7 +82,9 @@ std::string format_log_message_for_console(const log_message_t &m) {
     std::string message = m.message;
     std::string message_reformatted;
 
-    int prepend_length = format_time(m.timestamp).length() + 14 + format_log_level(m.level).length();
+    int prepend_length = format_time(m.timestamp).length() + 12;
+    prepend_length += format_log_level(m.level).length();
+    prepend_length += static_cast<int>(log10(int(m.uptime.tv_sec))) + 1;
 
     int start = 0, end = int(message.length()) - 1;
     while (start < int(message.length()) && message[start] == '\n') {
