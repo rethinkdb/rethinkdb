@@ -94,10 +94,7 @@ private:
     for B.  It could be a multimap instead, but that would mean depending on
     properties of multimaps that are not guaranteed by the C++ standard. */
 
-    typedef std::deque<action_t *> chunk_queue_t;
-    typedef std::map<int, chunk_queue_t> chunk_queues_t;
-    typedef std::map<fd_t, chunk_queues_t> all_chunk_queues_t;
-    all_chunk_queues_t all_chunk_queues;
+    std::map<fd_t, std::map<int, std::deque<action_t *> > > all_chunk_queues;
 
     perfmon_sampler_t conflict_sampler;
     perfmon_membership_t conflict_sampler_membership;
