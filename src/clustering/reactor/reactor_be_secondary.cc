@@ -131,7 +131,6 @@ bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t:
     }
 }
 
-
 template<class protocol_t>
 void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {

@@ -37,8 +37,8 @@ with driver.Metacluster() as metacluster:
         http.add_namespace_shard(ns, chr(ord('a') + 26 * i // opts["num-shards"]))
     http.wait_until_blueprint_satisfied(ns)
 
-    host, port = driver.get_namespace_host(ns.port, processes if not opts["use-proxy"] else [proxy_process])
-    workload_runner.run(opts["workload"], host, port, opts["timeout"])
+    workload_ports = scenario_common.get_workload_ports(ns.port, processes if not opts["use-proxy"] else [proxy_process])
+    workload_runner.run(opts["workload"], workload_ports, opts["timeout"])
 
     cluster.check_and_stop()
 
