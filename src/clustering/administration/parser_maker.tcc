@@ -84,14 +84,14 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
 template<class protocol_t, class parser_t>
 void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name, namespace_id_t ns, int port, auto_drainer_t::lock_t keepalive) {
     try {
-        logSTDOUT("Starting to serve queries for the namespace '%s' %s on port %d...\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
+        logINF("Starting to serve queries for the namespace '%s' %s on port %d...\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
 
         wait_any_t interruptor(&namespaces_being_handled.find(ns)->second->stopper, keepalive.get_drain_signal());
         typename namespace_repo_t<protocol_t>::access_t access(repo, ns, &interruptor);
         parser_t parser(port, access.get_namespace_if(), &perfmon_collection_repo->get_perfmon_collections_for_namespace(ns)->namespace_collection);
         interruptor.wait_lazily_unordered();
 
-        logSTDOUT("Stopping serving queries for the namespace '%s' %s on port %d...\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
+        logINF("Stopping serving queries for the namespace '%s' %s on port %d...\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
     } catch (interrupted_exc_t) {
         /* pass */
     }

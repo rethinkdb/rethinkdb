@@ -61,8 +61,8 @@ public:
 
         msg_hd = '\0'; //Null terminate it;
 
-        logSTDERR("%s", msg);
-        if(print_to != stderr) {
+        logINF("%s", msg);
+        if(print_to != stdout) {
             fprintf(print_to, "%s", msg);
         }
 

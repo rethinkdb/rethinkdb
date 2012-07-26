@@ -19,8 +19,8 @@ void report_user_error(const char *msg, ...) {
     va_list args;
     va_start(args, msg);
     //logSTDERR("\nError: ");
-    vlogSTDERR(msg, args);
-    logSTDERR("\n");
+    vlogERR(msg, args);
+    logERR("\n");
     va_end(args);
 
     funlockfile(stderr);
@@ -31,19 +31,19 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 
     va_list args;
     va_start(args, msg);
-    logSTDERR("\nError in %s at line %d:\n", file, line);
-    vlogSTDERR(msg, args);
-    logSTDERR("\n");
+    logERR("\nError in %s at line %d:\n", file, line);
+    vlogERR(msg, args);
+    logERR("\n");
     va_end(args);
 
     /* Don't print backtraces in valgrind mode because valgrind issues lots of spurious
     warnings when print_backtrace() is run. */
 #if !defined(VALGRIND)
-    logSTDERR("\nBacktrace:\n");
+    logERR("\nBacktrace:\n");
     print_backtrace();
 #endif
 
-    logSTDERR("\nExiting.\n\n");
+    logERR("\nExiting.\n\n");
 
     funlockfile(stderr);
 }

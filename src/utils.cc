@@ -98,7 +98,7 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
         buf += 16;
         length -= 16;
     }
-    logSTDERR("%s", output.c_str());
+    logERR("%s", output.c_str());
 
     funlockfile(stderr);
 }

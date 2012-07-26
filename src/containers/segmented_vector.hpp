@@ -77,7 +77,7 @@ public:
 private:
     const element_t &const_get(size_t i) const {
         if (!(i < size)) {
-            logSTDOUT("i is %lu, size is %lu\n", i, size);
+            logERR("i is %lu, size is %lu\n", i, size);
         }
         rassert(i < size);
 

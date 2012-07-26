@@ -18,8 +18,6 @@ std::string format_log_level(log_level_t l) {
         case log_level_info: return "info";
         case log_level_warn: return "warn";
         case log_level_error: return "error";
-        case log_level_stdout: return "stdout";
-        case log_level_stderr: return "stderr";
         default: unreachable();
     }
 }
@@ -33,10 +31,6 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
         return log_level_warn;
     else if (s == "error")
         return log_level_error;
-    else if (s == "stdout")
-        return log_level_stdout;
-    else if (s == "stderr")
-        return log_level_stderr;
     else
         throw std::runtime_error("cannot parse '" + s + "' as log level");
 }
@@ -332,8 +326,8 @@ void log_writer_t::write_blocking(const log_message_t &msg, std::string *error_o
     std::string formatted = format_log_message(msg);
     std::string console_formatted = format_log_message_for_console(msg);
 
-    // Print the log message to stderr or stdout.
-    if(msg.level == log_level_stdout) {
+    // Print the log message to stderr or stdout (stdout only if it's an info log)
+    if(msg.level == log_level_info) {
         output_fileno = STDOUT_FILENO;
     } else {
         output_fileno = STDERR_FILENO;

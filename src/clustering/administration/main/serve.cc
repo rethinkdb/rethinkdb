@@ -101,7 +101,7 @@ try {
     } else {
         rassert(ports.port == connectivity_cluster_run.get_port());
     }
-    logSTDOUT("Listening for intracluster traffic on port %d...\n", ports.port);
+    logINF("Listening for intracluster traffic on port %d...\n", ports.port);
 
     auto_reconnector_t auto_reconnector(
         &connectivity_cluster,
@@ -216,7 +216,7 @@ try {
         // TODO: Pardon me what, but is this how we fail here?
         guarantee(ports.http_port < 65536);
 
-        logSTDOUT("Starting up administrative HTTP server on port %d...\n", ports.http_port);
+        logINF("Starting up administrative HTTP server on port %d...\n", ports.http_port);
         administrative_http_server_manager_t administrative_http_interface(
             ports.http_port,
             &mailbox_manager,
@@ -228,11 +228,11 @@ try {
             machine_id,
             web_assets);
 
-        logSTDOUT("Server started; send SIGINT to stop.\n");
+        logINF("Server started; send SIGINT to stop.\n");
 
         stop_cond->wait_lazily_unordered();
 
-        logSTDOUT("Server got SIGINT; shutting down...\n");
+        logINF("Server got SIGINT; shutting down...\n");
     }
 
     cond_t non_interruptor;
@@ -243,7 +243,7 @@ try {
     return true;
 
 } catch (address_in_use_exc_t e) {
-    logSTDOUT("%s. Cannot bind to cluster port. Exiting.\n", e.what());
+    logINF("%s. Cannot bind to cluster port. Exiting.\n", e.what());
     exit(1);
 }
 

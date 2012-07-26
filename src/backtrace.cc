@@ -250,13 +250,13 @@ void print_backtrace(FILE *out, bool use_addr2line) {
         if (out != stderr) {
             fprintf(out, "%s", output.c_str());
         }
-        logSTDERR("%s", output.c_str());
+        logERR("%s", output.c_str());
 
         free(symbols);
     } else {
         if (out != stderr) {
             fprintf(out, "(too little memory for backtrace)\n");
         }
-        logSTDERR("%s", "(too little memory for backtrace)\n");
+        logERR("%s", "(too little memory for backtrace)\n");
     }
 }
