@@ -33,8 +33,9 @@ template<class payload_t>
 class accounting_diskmgr_t : home_thread_mixin_t {
 public:
 
-    explicit accounting_diskmgr_t(int batch_factor)
+    explicit accounting_diskmgr_t(int batch_factor, linux_disk_manager_t *par)
         : producer(&caster),
+          _par(par),
           queue(batch_factor),
           caster(&queue) { }
 
@@ -110,12 +111,14 @@ public:
             if (!eager_account.has()) {
                 rassert(get_thread_id() == _par->home_thread());
                 eager_account.init(new eager_account_t(_par, _pri, _outstanding_requests_limit));
+                diskmgr_lock.init(new auto_drainer_t::lock_t(_par->_par->auto_drainer));
             }
         }
         accounting_diskmgr_t *_par;
         int _pri;
         int _outstanding_requests_limit;
         scoped_ptr_t<eager_account_t> eager_account;
+        scoped_ptr_t<auto_drainer_t::lock_t> diskmgr_lock;
     };
 
     void submit(action_t *a) {
@@ -130,6 +133,8 @@ public:
         a->account->get_outstanding_requests_limiter().unlock(1);
         done_fun(static_cast<action_t *>(p));
     }
+
+    linux_disk_manager_t *_par;
 
 private:
     accounting_queue_t<action_t *> queue;

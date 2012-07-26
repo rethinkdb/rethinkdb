@@ -46,11 +46,12 @@ public:
     linux_templated_disk_manager_t(linux_event_queue_t *queue, const int batch_factor, perfmon_collection_t *stats) :
         stack_stats(stats, "stack"),
         conflict_resolver(stats),
-        accounter(batch_factor),
+        accounter(batch_factor, this),
         backend_stats(stats, "backend", accounter.producer),
         backend(queue, backend_stats.producer),
         outstanding_txn(0)
     {
+        auto_drainer = new auto_drainer_t; //freed in destructor
         /* Hook up the `submit_fun`s of the parts of the IO stack that are above the
         queue. (The parts below the queue use the `passive_producer_t` interface instead
         of a callback function.) */
@@ -67,6 +68,7 @@ public:
 
     ~linux_templated_disk_manager_t() {
         rassert(outstanding_txn == 0, "Closing a file with outstanding txns\n");
+        delete auto_drainer; //We do this explicitly to make sure it happens last.
     }
 
     void *create_account(int pri, int outstanding_requests_limit) {
@@ -79,7 +81,7 @@ public:
     }
 
     void destroy_account(void *account) {
-        coro_t::spawn_now(boost::bind(&linux_templated_disk_manager_t::delayed_destroy, this, account));
+        coro_t::spawn_sometime(boost::bind(&linux_templated_disk_manager_t::delayed_destroy, this, account));
     }
 
     void submit_action_to_stack_stats(action_t *a) {
