@@ -1244,7 +1244,7 @@ void admin_cluster_link_t::do_admin_list_directory(const admin_command_parser_t:
 void admin_cluster_link_t::do_admin_list_issues(const admin_command_parser_t::command_data& data UNUSED) {
     std::list<clone_ptr_t<global_issue_t> > issues = admin_tracker.issue_aggregator.get_issues();
     for (std::list<clone_ptr_t<global_issue_t> >::iterator i = issues.begin(); i != issues.end(); ++i) {
-        puts((*i)->get_description().c_str());
+        logSTDOUT("%s", (*i)->get_description().c_str());
     }
 }
 
