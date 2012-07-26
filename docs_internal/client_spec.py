@@ -12,7 +12,6 @@ conn = r.connect([('newton', 5151),
 # Get the entire table (the following queries are equivalent)
 q = r.db('foo').table('bar')
 q = r.table('foo.bar')
-q = r.table('foo', 'bar')
 
 # Default database
 conn = r.connect('newton', db='foo')
@@ -570,3 +569,5 @@ q = r.table('foo').update( { 'foo': r['bar'].incr(), 'bar': r['foo'].incr()}) # 
 # Support without along with pluck/pick
 
 # Use table names to disambiguate instead of lambdas
+
+# Primary key types (i.e. sorting ints is different from sorting strings)
