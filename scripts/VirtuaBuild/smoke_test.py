@@ -50,7 +50,7 @@ def purge_installed_packages():
     try:
     	exec_command(uninstall(old_binaries[0]), shell = True)
     except Exception, e:
-	exec_command('rm -f ' + old_binaries[0])
+        exec_command('rm -f ' + old_binaries[0])
     purge_installed_packages()
 
 def exec_command(cmd, bg = False, shell = False):
