@@ -153,14 +153,14 @@ private:
 
 void native_io_backender_t::make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
                                               perfmon_collection_t *stats,
-                                              boost::scoped_ptr<linux_disk_manager_t> *out) {
-    out->reset(new linux_templated_disk_manager_t<linux_diskmgr_aio_t>(queue, batch_factor, stats));
+                                              scoped_ptr_t<linux_disk_manager_t> *out) {
+    out->init(new linux_templated_disk_manager_t<linux_diskmgr_aio_t>(queue, batch_factor, stats));
 }
 
 void pool_io_backender_t::make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
                                             perfmon_collection_t *stats,
-                                            boost::scoped_ptr<linux_disk_manager_t> *out) {
-    out->reset(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue, batch_factor, stats));
+                                            scoped_ptr_t<linux_disk_manager_t> *out) {
+    out->init(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue, batch_factor, stats));
 }
 
 

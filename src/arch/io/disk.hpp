@@ -3,6 +3,7 @@
 
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
+#include <containers/scoped.hpp>
 
 #include "config/args.hpp"
 #include "arch/io/io_utils.hpp"
@@ -42,7 +43,7 @@ class io_backender_t : public home_thread_mixin_t {
 public:
     virtual void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
                                    perfmon_collection_t *stats,
-                                   boost::scoped_ptr<linux_disk_manager_t> *out) = 0;
+                                   scoped_ptr_t<linux_disk_manager_t> *out) = 0;
 
     virtual ~io_backender_t() { }
     linux_disk_manager_t *get_diskmgr_ptr() {return diskmgr.get();}
@@ -54,7 +55,7 @@ protected:
     linux_event_queue_t *queue;
     int batch_factor;
     perfmon_collection_t stats;
-    boost::scoped_ptr<linux_disk_manager_t> diskmgr;
+    scoped_ptr_t<linux_disk_manager_t> diskmgr;
 private:
     DISABLE_COPYING(io_backender_t);
 };
@@ -64,7 +65,7 @@ public:
     native_io_backender_t() { make_disk_manager(queue, batch_factor, &stats, &diskmgr); }
     void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
                            perfmon_collection_t *stats,
-                           boost::scoped_ptr<linux_disk_manager_t> *out);
+                           scoped_ptr_t<linux_disk_manager_t> *out);
 };
 
 class pool_io_backender_t : public io_backender_t {
@@ -72,7 +73,7 @@ public:
     pool_io_backender_t() { make_disk_manager(queue, batch_factor, &stats, &diskmgr); }
     void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
                            perfmon_collection_t *stats,
-                           boost::scoped_ptr<linux_disk_manager_t> *out);
+                           scoped_ptr_t<linux_disk_manager_t> *out);
 };
 
 void make_io_backender(io_backend_t backend, boost::scoped_ptr<io_backender_t> *out);
