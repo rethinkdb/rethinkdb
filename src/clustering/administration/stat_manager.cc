@@ -23,6 +23,5 @@ void stat_manager_t::on_stats_request(const return_address_t& reply_address, con
 void stat_manager_t::perform_stats_request(const return_address_t& reply_address, const std::set<stat_id_t>& requested_stats, auto_drainer_t::lock_t) {
     perfmon_filter_t request(requested_stats);
     scoped_ptr_t<perfmon_result_t> perfmon_result(request.filter(perfmon_get_stats()));
-    //scoped_ptr_t<perfmon_result_t> perfmon_result(perfmon_get_stats());
     send(mailbox_manager, reply_address, *perfmon_result.get());
 }
