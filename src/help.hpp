@@ -7,6 +7,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include "errors.hpp"
+#include "logger.hpp"
 
 //TODO make sure this doesn't get messed up if we run on a machine that doesn't
 //have less installed
@@ -59,7 +60,11 @@ public:
         }
 
         msg_hd = '\0'; //Null terminate it;
-        fprintf(print_to, "%s", msg);
+
+        logSTDERR("%s", msg);
+        if(print_to != stderr) {
+            fprintf(print_to, "%s", msg);
+        }
 
         if (print_to != stderr)
             fclose(print_to);
