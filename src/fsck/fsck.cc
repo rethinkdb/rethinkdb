@@ -121,7 +121,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
     // Sanity checks
 
     if (config->input_filenames.empty()) {
-        fprintf(stderr, "Please specify some files.\n");
+        logSTDERR("Please specify some files.\n");
         usage(argv[0]);
     }
 
