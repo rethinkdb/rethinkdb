@@ -312,14 +312,6 @@ public:
                                  signal_t *interruptor,
                                  metainfo_t *out) THROWS_ONLY(interrupted_exc_t) = 0;
 
-    metainfo_t get_metainfo(order_token_t order_token,
-                            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        metainfo_t tmp;
-        do_get_metainfo(order_token, token, interruptor, &tmp);
-        return tmp;
-    }
-
     /* Replaces the metainfo over the view's entire range with the given metainfo.
     [Precondition] region_is_superset(view->get_region(), new_metainfo.get_domain())
     [Postcondition] this->get_metainfo() == new_metainfo
