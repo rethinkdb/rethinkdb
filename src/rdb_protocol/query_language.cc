@@ -1297,8 +1297,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
             break;
         case Builtin::ARRAYSLICE:
             {
-                int start, stop, length;
-                bool start_unbounded = false, stop_unbounded = false;
+                int start, stop;
 
                 // Check first arg type
                 boost::shared_ptr<scoped_cJSON_t> array = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
@@ -1306,11 +1305,13 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     throw runtime_exc_t("The first argument must be an array.", backtrace.with("arg:0"));
                 }
 
+                int length = array->GetArraySize();
+
                 // Check second arg type
                 {
                     boost::shared_ptr<scoped_cJSON_t> start_json  = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
                     if (start_json->type() == cJSON_NULL) {
-                        start_unbounded = true;
+                        start = 0;
                     } else {
                         if (start_json->type() != cJSON_Number) {
                             throw runtime_exc_t("The second argument must be null or an integer.", backtrace.with("arg:1"));
@@ -1328,7 +1329,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 {
                     boost::shared_ptr<scoped_cJSON_t> stop_json  = eval(c->mutable_args(2), env, backtrace.with("arg:2"));
                     if (stop_json->type() == cJSON_NULL) {
-                        stop_unbounded = true;
+                        stop = length;
                     } else {
                         if (stop_json->type() != cJSON_Number) {
                             throw runtime_exc_t("The third argument must be null or an integer.", backtrace.with("arg:2"));
@@ -1340,19 +1341,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                             throw runtime_exc_t("The third argument must be null or an integer.", backtrace.with("arg:2"));
                         }
                     }
-                }
-
-                if (start_unbounded && stop_unbounded) {
-                    return array;   // nothing to do
-                }
-
-                length = array->GetArraySize();
-
-                if (start_unbounded) {
-                    start = 0;
-                }
-                if (stop_unbounded) {
-                    stop = length;
                 }
 
                 if (start < 0) {
@@ -1367,6 +1355,10 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 }
                 if (stop > length) {
                     stop = length;
+                }
+
+                if (start == 0 && stop == length) {
+                    return array;   // nothing to do
                 }
 
                 // Create a new array and slice the elements into it

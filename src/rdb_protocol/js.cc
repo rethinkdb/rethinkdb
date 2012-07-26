@@ -116,7 +116,7 @@ void env_t::forget(id_t id) {
 
 // ---------- runner_t ----------
 runner_t::runner_t()
-    : DEBUG_ONLY(running_task_(false))
+    DEBUG_ONLY(: running_task_(false))
 {}
 
 // TODO(rntz): should we check that we have no used ids? (ie. no remaining
@@ -151,7 +151,7 @@ void runner_t::create_handle(handle_t *handle, id_t id) {
     rassert(handle->empty());
     handle->parent_ = this;
     handle->id_ = id;
-    on_new_id(id);
+    DEBUG_ONLY_CODE(on_new_id(id));
 }
 
 void runner_t::job_t::run_job(control_t *control, UNUSED void *extra) {
