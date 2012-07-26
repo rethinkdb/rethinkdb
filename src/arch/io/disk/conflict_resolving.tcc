@@ -25,7 +25,7 @@ conflict_resolving_diskmgr_t<payload_t>::~conflict_resolving_diskmgr_t() {
 
 template<class payload_t>
 void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
-    std::map<int, std::deque<action_t *> > &chunk_queues = all_chunk_queues[action->get_fd()];
+    std::map<int, std::deque<action_t *> > *chunk_queues = &all_chunk_queues[action->get_fd()];
     /* Determine the range of file-blocks that this action spans */
     int start, end;
     get_range(action, &start, &end);
@@ -52,8 +52,8 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
         action_t *latest_write = NULL;
 
         typename std::map<int, std::deque<action_t*> >::iterator it;
-        it = chunk_queues.find(start);
-        if (it != chunk_queues.end()) {
+        it = chunk_queues->find(start);
+        if (it != chunk_queues->end()) {
             std::deque<action_t*> &queue = it->second;
 
             /* Locate the latest write on the queue */
@@ -79,8 +79,8 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
         Keep on validating as long as we have a latest_write candidate. */
         for (int block = start; latest_write && block < end; block++) {
 
-            it = chunk_queues.find(start);
-            rassert(it != chunk_queues.end()); // Note: At least latest_write should be there!
+            it = chunk_queues->find(start);
+            rassert(it != chunk_queues->end()); // Note: At least latest_write should be there!
             std::deque<action_t*> &queue = it->second;
 
             /* Locate the latest write on the queue */
@@ -118,17 +118,17 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
     for (int block = start; block < end; block++) {
 
         typename std::map<int, std::deque<action_t*> >::iterator it;
-        it = chunk_queues.find(block);
+        it = chunk_queues->find(block);
 
-        if (it != chunk_queues.end()) {
+        if (it != chunk_queues->end()) {
             /* We conflict on this block. */
             action->conflict_count++;
         }
 
         /* Put ourself on the queue for this chunk */
-        if (it == chunk_queues.end()) {
+        if (it == chunk_queues->end()) {
             /* Start a queue because there isn't one already */
-            it = chunk_queues.insert(it, std::make_pair(block, std::deque<action_t*>()));
+            it = chunk_queues->insert(it, std::make_pair(block, std::deque<action_t*>()));
         }
         rassert(it->first == block);
         it->second.push_back(action);
@@ -150,7 +150,7 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
     /* The only payloads we get back via done() should be payloads that we sent into
     submit_fun(), which means they should actually be action_t objects secretly. */
     action_t *action = static_cast<action_t *>(payload);
-    std::map<int, std::deque<action_t *> > &chunk_queues = all_chunk_queues[action->get_fd()];
+    std::map<int, std::deque<action_t *> > *chunk_queues = &all_chunk_queues[action->get_fd()];
 
     int start, end;
     get_range(action, &start, &end);
@@ -158,11 +158,11 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
     /* Visit every block and see if anything is blocking on us. As we iterate
     over block indices, we iterate through the corresponding entries in the map. */
 
-    typename std::map<int, std::deque<action_t*> >::iterator it = chunk_queues.find(start);
+    typename std::map<int, std::deque<action_t*> >::iterator it = chunk_queues->find(start);
     for (int block = start; block < end; block++) {
 
         /* We can assert this because at lest we must still be on the queue */
-        rassert(it != chunk_queues.end() && it->first == block);
+        rassert(it != chunk_queues->end() && it->first == block);
 
         std::deque<action_t*> &queue = it->second;
 
@@ -215,7 +215,7 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
             }
         } else {
             /* The queue is empty, erase it. */
-            chunk_queues.erase(it++);
+            chunk_queues->erase(it++);
         }
     }
 
