@@ -55,8 +55,10 @@
 
     <div class="section summary">
         <p>Status: {{humanize_namespace_reachability reachability}}</p>
+        <p>Shards: {{nshards}}</p>
         <p>Masters: {{nashards}} of {{nshards}} reachable</p>
         <p>Replicas: {{nareplicas}} of {{nreplicas}} reachable</p>
+        <p>Data: {{total_keys}} documents</p>
         <p>Replication: {{> backfill_progress_summary}}</p>
     </div>
 </script>
@@ -106,7 +108,7 @@
                     <li class="title-legend"><h4>More statistics</h4></li>
 
                     <li class="more_statistics">
-                        This namespace has {{shards_length}} {{pluralize_noun "shard" shards_length}}
+                        This namespace has {{shards_length}} {{pluralize_noun "shard" shards_length}} and contains {{total_keys}} keys.
                     </li>
                     <li class="more_statistics">
                         {{#if max_keys}}
@@ -144,7 +146,7 @@
 
 
                     <li class="more_statistics">
-                        This namespace has {{shards_length}} {{pluralize_noun "shard" shards_length}}
+                        This namespace has {{shards_length}} {{pluralize_noun "shard" shards_length}} and contains {{total_keys}} keys.
                     </li>
                     <li class="more_statistics">
                         {{#if max_keys}}
@@ -182,7 +184,7 @@
                     <li class="title-legend"><h4>More statistics</h4></li>
 
                     <li class="more_statistics">
-                        This namespace has one shard.
+                    This namespace has one shard and contains {{total_keys}} keys.
                     </li>                   <li class="more_statistics">
                         Biggest shard has {{max_keys}} keys
                     </li>
