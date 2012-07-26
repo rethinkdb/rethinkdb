@@ -3,6 +3,8 @@
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
+#include <boost/tokenizer.hpp>
+#include <boost/foreach.hpp>
 
 #include "stl_utils.hpp"
 #include "arch/timing.hpp"
@@ -91,7 +93,44 @@ cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &no
     return machines.release();
 }
 
+void parse_query_params(const http_req_t &req,
+                        std::set<std::string> *filter_paths,
+                        std::set<std::string> *machine_whitelist) {
+    boost::escaped_list_separator<char> by_commas("\\",",","");
+    typedef boost::tokenizer<boost::escaped_list_separator<char> > tokenizer;
+
+    /* We allow users to filter for the stats they want by providing "paths",
+       i.e. ERE regular expressions separated by slashes.  We treat these sort
+       of like XPath expressions for filtering out what stats get returned. */
+    for (std::vector<query_parameter_t>::const_iterator it = req.query_params.begin();
+         it != req.query_params.end(); ++it) {
+        try {
+            BOOST_FOREACH(std::string s, tokenizer(it->val, by_commas)) {
+                if (it->key == "filter") {
+                    filter_paths->insert(s);
+                } else if (it->key == "machine_whitelist") {
+                    machine_whitelist->insert(s);
+                } else {
+                    logINF("Parameter parsing error: %s -> %s",
+                           sanitize_for_logger(it->key).c_str(),
+                           sanitize_for_logger(it->val).c_str());
+                }
+            }
+        } catch (boost::escaped_list_error &e) {
+            logINF("Boost tokenizer error: %s (%s -> %s)",
+                   sanitize_for_logger(e.what()).c_str(),
+                   sanitize_for_logger(it->key).c_str(),
+                   sanitize_for_logger(it->val).c_str());
+        }
+    }
+    if (filter_paths->empty()) filter_paths->insert(".*"); //no filter = match everything
+}
+
 http_res_t stat_http_app_t::handle(const http_req_t &req) {
+    std::set<std::string> filter_paths;
+    std::set<std::string> machine_whitelist;
+    parse_query_params(req, &filter_paths, &machine_whitelist);
+
     scoped_cJSON_t body(cJSON_CreateObject());
 
     peers_to_metadata_t peers_to_metadata = directory->get();
@@ -101,7 +140,11 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
 
     // Parse the 'timeout' query parameter
     boost::optional<std::string> timeout_param = req.find_query_param(STAT_REQ_TIMEOUT_PARAM);
+#ifndef VALGRIND
     uint64_t timeout = DEFAULT_STAT_REQ_TIMEOUT_MS;
+#else
+    uint64_t timeout = DEFAULT_STAT_REQ_TIMEOUT_MS*10;
+#endif
     if (timeout_param) {
         if (!strtou64_strict(timeout_param.get(), 10, &timeout) || timeout == 0 || timeout > MAX_STAT_REQ_TIMEOUT_MS) {
             http_res_t res(400);
@@ -120,9 +163,13 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
                                        it != peers_to_metadata.end();
                                        ++it) {
         machine_id_t machine = it->second.machine_id; //due to boost bug with not accepting const keys for insert
+        if (!machine_whitelist.empty() && // If we have a whitelist, follow it.
+            machine_whitelist.find(uuid_to_str(machine)) == machine_whitelist.end()) {
+            continue;
+        }
         stats_request_record_t *req_record = new stats_request_record_t(mbox_manager);
         stats_promises.insert(machine, req_record);
-        send(mbox_manager, it->second.get_stats_mailbox_address, req_record->response_mailbox.get_address(), std::set<stat_manager_t::stat_id_t>());
+        send(mbox_manager, it->second.get_stats_mailbox_address, req_record->response_mailbox.get_address(), filter_paths);
     }
 
     std::vector<machine_id_t> not_replied;
@@ -135,7 +182,9 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
 
         if (stats_ready->is_pulsed()) {
             perfmon_result_t stats = it->second->stats.wait();
-            cJSON_AddItemToObject(body.get(), uuid_to_str(machine).c_str(), render_as_json(&stats, 0));
+            if (!stats.get_map()->empty()) {
+                cJSON_AddItemToObject(body.get(), uuid_to_str(machine).c_str(), render_as_json(&stats, 0));
+            }
         } else {
             not_replied.push_back(machine);
         }
