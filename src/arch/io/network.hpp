@@ -291,6 +291,7 @@ public:
 
     MUST_USE bool begin_listening();
     bool is_bound();
+    int get_port();
 
 protected:
     friend class linux_tcp_listener_t;

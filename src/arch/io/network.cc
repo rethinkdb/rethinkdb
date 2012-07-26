@@ -686,6 +686,8 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
 
 bool linux_nonthrowing_tcp_listener_t::is_bound() { return bound; }
 
+int linux_nonthrowing_tcp_listener_t::get_port() { return port; }
+
 void linux_nonthrowing_tcp_listener_t::init_socket() {
     int sock_fd = sock.get();
     guarantee_err(sock_fd != INVALID_FD, "Couldn't create socket");
@@ -784,14 +786,13 @@ void linux_nonthrowing_tcp_listener_t::handle(fd_t socket) {
 }
 
 linux_nonthrowing_tcp_listener_t::~linux_nonthrowing_tcp_listener_t() {
+    /* Interrupt the accept loop */
+    accept_loop_drainer.reset();
+
+
     if (bound) {
-
-        /* Interrupt the accept loop */
-        accept_loop_drainer.reset();
-
         int res = shutdown(sock.get(), SHUT_RDWR);
         guarantee_err(res == 0, "Could not shutdown main socket");
-
     }
 
     // scoped_fd_t destructor will close() the socket
@@ -807,7 +808,7 @@ void linux_nonthrowing_tcp_listener_t::on_event(int events) {
     }
 }
 
-void noop_fun(UNUSED scoped_ptr_t<linux_nascent_tcp_conn_t>& arg) { }
+void noop_fun(UNUSED const scoped_ptr_t<linux_nascent_tcp_conn_t>& arg) { }
 
 linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
         listener(new linux_nonthrowing_tcp_listener_t(_port, noop_fun))
@@ -855,7 +856,9 @@ void linux_repeated_nonthrowing_tcp_listener_t::retry_loop(auto_drainer_t::lock_
         for (int retry_interval = 1;
              !bound;
              retry_interval = std::min(10, retry_interval + 2)) {
-            //log("Could not bind to port %d, retrying in %d seconds.\n", port, retry_interval);
+            logINF("Could not bind to port %d, retrying in %d seconds.\n",
+                    listener.get_port(),
+                    retry_interval);
             nap(retry_interval * 1000, lock.get_drain_signal());
             bound = listener.begin_listening();
         }
