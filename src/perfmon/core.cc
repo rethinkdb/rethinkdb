@@ -285,6 +285,9 @@ void perfmon_result_t::splice_into(perfmon_result_t *map) {
     map_.clear();
 }
 
+/* Construct a filter from a set of paths.  Paths are of the form foo/bar/baz,
+   where each of those can be a regular expression.  They act a lot like XPath
+   expressions, but for perfmon_t objects.  */
 perfmon_filter_t::perfmon_filter_t(const std::set<std::string> &paths) {
     typedef boost::escaped_list_separator<char> separator_t;
     typedef boost::tokenizer<separator_t> tokenizer_t;
@@ -317,6 +320,10 @@ perfmon_filter_t::~perfmon_filter_t() {
     }
 }
 
+/* Filter a [perfmon_result_t].  [depth] is how deep we are in the paths that
+   the [perfmon_filter_t] was constructed from, and [active] is the set of paths
+   that are still active (i.e. that haven't failed a match yet).  This should
+   only be called by [filter]. */
 perfmon_result_t *perfmon_filter_t::subfilter
 (perfmon_result_t *p, size_t depth, std::vector<bool> active) const {
     if (p->is_string()) {
@@ -334,7 +341,7 @@ perfmon_result_t *perfmon_filter_t::subfilter
     std::list<perfmon_result_t::iterator> to_delete;
     for (perfmon_result_t::iterator it = p->begin(); it != p->end(); ++it) {
         std::vector<bool> subactive = active;
-        int some_subpath = false;
+        bool some_subpath = false;
         for (size_t i = 0; i < regexps.size(); ++i) {
             if (!active[i]) continue;
             if (depth >= regexps[i].size()) return p;
