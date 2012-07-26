@@ -42,14 +42,14 @@ class VM(object):
         time.sleep(5)
         subprocess.Popen(["ssh %s 'VBoxManage controlvm %s poweroff'" % (self.control, self.uuid)], shell = True).wait()
 
-def sys_exit(message, exit_code, shut_down = False):
+def sys_exit(message, exit_code, shut_down = True):
     print message
     if shut_down:
         target.shut_down()
     sys.exit(exit_code)
 
-suse2 = VM('suse2', '12c1cf78-5dc5-4baa-8e93-ac6fdd1ebf1f', 'root@192.168.0.173', 'rethinkdb@lex-luthor') # this SUSE uses an older version of GLIBC and GCC (where tests happen)
-suse = VM('suse', '7bd61095-36c6-4e98-a2c2-4ce6322de5d7', 'root@192.168.0.173', control_user) # this SUSE uses a new version of GLIBC and GCC (where builds happen)
+suse2 = VM('suse2', '12c1cf78-5dc5-4baa-8e93-ac6fdd1ebf1f', 'root@192.168.0.173', 'rethinkdb@lex-luthor') # this SUSE uses an older version of GCC (where tests happen)
+suse = VM('suse', '7bd61095-36c6-4e98-a2c2-4ce6322de5d7', 'root@192.168.0.173', control_user) # this SUSE uses a new version of GCC (where builds happen)
 redhat5_1 = VM('redhat5_1', '32340f79-cea9-42ca-94d5-2da13d408d02', 'root@192.168.0.159', control_user)
 ubuntu = VM('ubuntu', '1f4521a0-6e74-4d20-b4b9-9ffd8e231423', 'root@192.168.0.172', control_user)
 debian = VM('debian', 'cc76e2a5-92c0-4208-be08-5c02429c2c50', 'root@192.168.0.176', control_user)
@@ -76,20 +76,20 @@ o["shut-down"] = BoolFlag("--shut-down")
 try:
     opts = o.parse(sys.argv)
 except OptError:
-    sys_exit("Argument parsing error", -1)
+    sys_exit("Argument parsing error", -1, False)
 
 if opts["help"]:
     help()
-    sys_exit("", 0)
+    sys_exit("", 0, False)
 
 if not opts["vm-name"]:
-    sys_exit("Error: must specify a VM name.", -1)
+    sys_exit("Error: must specify a VM name.", -1, False)
 
 if not opts["command"] and not opts["shut-down"]:
-    sys_exit("Error: must specify a command or call shut-down.", -1)
+    sys_exit("Error: must specify a command or call shut-down.", -1, False)
 
 if opts["vm-name"] not in vm_list:
-    sys_exit("Error: invalid VM name.", -1)
+    sys_exit("Error: invalid VM name.", -1, False)
 
 target = vm_list[opts["vm-name"]]
 
@@ -132,4 +132,4 @@ subprocess.Popen(" ".join(["tar", "xzf", "tmp.tar.gz"]), shell = True).wait()
 print "***Removing temporary files and shutting down VM..."
 target.shut_down(True)
 
-sys_exit("Done.", 0)
+sys_exit("Done.", 0, False)

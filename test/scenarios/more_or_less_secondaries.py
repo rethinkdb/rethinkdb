@@ -5,10 +5,10 @@ import http_admin, driver, workload_runner, scenario_common
 from vcoptparse import *
 
 class ReplicaSequence(object):
-    def __init__(self, sequence):
-        assert set(sequence) < set("0123456789+-")
-        sequence = sequence.replace("-", "\0-").replace("+", "\0+")
-        parts = sequence.split("\0")
+    def __init__(self, string):
+        assert set(string) < set("0123456789+-")
+        string = string.replace("-", "\0-").replace("+", "\0+")
+        parts = string.split("\0")
         assert set(parts[0]) < set("0123456789")
         self.initial = int(parts[0])
         self.steps = [int(x) for x in parts[1:]]
@@ -56,8 +56,8 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     http.check_no_issues()
 
-    host, port = driver.get_namespace_host(ns.port, [primary_process] + replica_processes)
-    with workload_runner.SplitOrContinuousWorkload(opts, host, port) as workload:
+    workload_ports = scenario_common.get_workload_ports(ns.port, [primary_process] + replica_processes)
+    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
         workload.run_before()
         cluster.check()
         http.check_no_issues()

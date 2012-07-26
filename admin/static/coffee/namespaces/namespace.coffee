@@ -18,6 +18,7 @@ module 'NamespaceView', ->
             'click .close': 'close_alert'
             'click .rebalance_shards-link': 'rebalance_shards'
             'click .change_shards-link': 'change_shards'
+            'click .namespace-pinning-link': 'change_pinning'
 
         initialize: ->
             log_initial '(initializing) namespace view: container'
@@ -76,14 +77,25 @@ module 'NamespaceView', ->
             event.preventDefault()
             @.$('.namespace_sharding-link').tab('show')
 
+        change_pinning: (event) =>
+            event.preventDefault()
+            @.$('.namespace_pinning-link').tab('show')
+            $(event.currentTarget).parent().parent().slideUp('fast', -> $(this).remove())
+
+
         rebalance_shards: (event) =>
             event.preventDefault()
             confirmation_modal = new UIComponents.ConfirmationDialogModal
-            confirmation_modal.render("Are you sure you want to rebalance the shards for the namespace "+@model.get('name')+"?",
+            confirmation_modal.render("Are you sure you want to rebalance the shards for the namespace "+@model.get('name')+"? This operation might take some time.",
                 "",
                 {},
                 undefined)
             confirmation_modal.on_submit = =>
+                debugger
+                # Because Coffeescript doesn't want me to access this and I need _this
+                `this.$('.btn-primary').button('loading');
+                this.$('.cancel').button('loading');`
+
                 # grab the data
                 data = @model.get('key_distr')
                 distr_keys = @model.get 'key_distr_sorted'
@@ -128,7 +140,12 @@ module 'NamespaceView', ->
                     secondary_pinnings: empty_replica_pins
 
                 that = @
-                # TODO detect when there are no changes.
+                @model.set 'key_distr', {}
+                @model.set 'key_distr_sorted', []
+
+                @.$('.loading_text-diagram').css 'display', 'block'
+
+
                 $.ajax
                     processData: false
                     url: "/ajax/semilattice/#{@model.get('protocol')}_namespaces/#{@model.get('id')}"
@@ -136,8 +153,8 @@ module 'NamespaceView', ->
                     contentType: 'application/json'
                     data: JSON.stringify(json)
                     success: (response) =>
-                        that.overview.render_data_repartition(true)
-                        that.$('#user-alert-space').append(@alert_tmpl({}))
+                        that.model.load_key_distr() #This call will fail since we cannot make queries while sharding.
+                        that.$('#user-alert-space').html @alert_tmpl({})
                         clear_modals()
 
 
@@ -196,9 +213,19 @@ module 'NamespaceView', ->
             else
                 json.reachability = false
 
+            #Compute the total number of keys
+            json.total_keys = 0
+            for key of @model.get('key_distr')
+                json.total_keys += @model.get('key_distr')[key]
+
             @.$el.html @template json
 
             return @
+        
+        destroy: =>
+            @model.off 'all', @render
+            directory.off 'all', @render
+            progress_list.off 'all', @render
 
     class @Overview extends Backbone.View
         className: 'namespace-overview'
@@ -240,7 +267,7 @@ module 'NamespaceView', ->
                 json =
                     data_in_memory_percent: Math.floor(data_in_memory/data_total*100).toString()+'%'
                     data_in_memory: human_readable_units(data_in_memory, units_space)
-                    data_not_in_memory: human_readable_units(data_total-data_in_memory, units_space)
+                    data_not_in_memory: if data_total-data_in_memory>=0 then human_readable_units(data_total-data_in_memory, units_space) else human_readable_units(0, units_space)
                     data_total: human_readable_units(data_total, units_space)
             else
                 json =
@@ -255,7 +282,7 @@ module 'NamespaceView', ->
                 if not @json_in_memory[key]? or @json_in_memory[key] != json[key]
                     need_update = true
                     break
-            if need_update or force_render is true or @.$('.pie_chart-data_in_memory').children().length is 0 # Need is true for force_render since Machine is passed as an argument
+            if need_update or force_render is true or @.$('.pie_chart-data_in_memory').children().length is 1 # Need is true for force_render since Machine is passed as an argument
                 @json_in_memory = json
                 @.$('.data_in_memory-container').html @data_in_memory_template @json_in_memory
 
@@ -266,34 +293,40 @@ module 'NamespaceView', ->
                     height = 270
                     color = (i) ->
                         if i is 0
-                            return '#f00'
-                        else
                             return '#1f77b4'
+                        else
+                            return '#f00'
 
-                    data_pie = [data_in_memory, data_total-data_in_memory]
+                    data_pie = [data_total-data_in_memory, data_in_memory]
 
-                    # Remove transition for the time being. We have to use transition with opacity only the first time
-                    # For update, we should just move/extend pieces, too much work for now
-                    #@.$('.loading_text-svg').fadeOut '600', -> $(@).remove() 
-                    @.$('.pie_chart-data_in_memory > g').remove()
-                    @.$('.loading_text-pie_chart').remove()
 
-                    arc = d3.svg.arc().innerRadius(0).outerRadius(r)
-                    svg = d3.select('.pie_chart-data_in_memory').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
-                    arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc)
+                    if $('.pie_chart-data_in_memory').length is 1 #Check dom tree ready for d3. TODO: Replace this hack.
+                        # Remove transition for the time being. We have to use transition with opacity only the first time
+                        # For update, we should just move/extend pieces, too much work for now
+                        #@.$('.loading_text-svg').fadeOut '600', -> $(@).remove() 
+                        @.$('.loading_text-pie_chart').css 'display', 'none'
+    
+                        arc = d3.svg.arc().innerRadius(0).outerRadius(r)
+                        svg = d3.select('.pie_chart-data_in_memory').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
+                        arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc)
+    
+                        # No transition for now
+                        #arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc).style('opacity', 0).transition().duration(600).style('opacity', 1)
+                    else
+                        setTimeout(@render_data_memory, 1000)
 
-                    # No transition for now
-                    #arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc).style('opacity', 0).transition().duration(600).style('opacity', 1)
             return @ # Just to make sure that d3 doesn't return false
 
         render_data_repartition: (force_render) =>
             $('.tooltip').remove()
             shards = []
+            total_keys = 0
             for shard in namespaces.models[0].get('computed_shards').models
                 new_shard =
                     boundaries: shard.get('shard_boundaries')
                     num_keys: parseInt @model.compute_shard_rows_approximation shard.get 'shard_boundaries'
                 shards.push new_shard
+                total_keys += new_shard.num_keys
 
             # We could probably use apply for a cleaner code, but d3.max has a strange behavior.
             max_keys = d3.max shards, (d) -> return d.num_keys
@@ -301,6 +334,8 @@ module 'NamespaceView', ->
             json =
                 max_keys: max_keys
                 min_keys: min_keys
+                shards_length: shards.length
+                total_jeys: total_keys
 
             if shards.length > 1
                 json.has_shards = true
@@ -315,15 +350,21 @@ module 'NamespaceView', ->
                 if not @json_repartition[key]? or @json_repartition[key] != json[key]
                     need_update = true
                     break
- 
-            if need_update or force_render is true
-                @json_repartition = json
-                @.$('.data_repartition-container').html @data_repartition_template @json_repartition
+
+            if need_update or force_render is true or @.$('.data_repartition-diagram').children().length is 1
+
+                @.$('.data_repartition-container').html @data_repartition_template json
+
+                if $('.data_repartition-diagram').length>0 #We need the dom tree to be fully available for d3
+                    #TODO Replace this hack with a proper callback/listener
+                    @.$('.loading_text-diagram').css 'display', 'none'
+                    @json_repartition = json
+                else
+                    setTimeout(@render_data_repartition, 1000)
+
 
                 # Draw histogram
                 if json.max_keys? and not _.isNaN json.max_keys and shards.length isnt 0
-                    @.$('.data_repartition-diagram > g').remove()
-                    @.$('.loading_text-diagram').remove()
                     
                     if json.numerous_shards? and json.numerous_shards
                         svg_width = 700
@@ -334,8 +375,13 @@ module 'NamespaceView', ->
                     margin_width = 20
                     margin_height = 20
 
-                    width = Math.floor((svg_width-margin_width*2)/shards.length*0.7)
-                    x = d3.scale.linear().domain([0, shards.length]).range([margin_width+Math.floor(width/2), svg_width-margin_width*2])
+                    width = Math.floor((svg_width-margin_width*3)/shards.length*0.8)
+                    margin_bar = Math.floor((svg_width-margin_width*3)/shards.length*0.2/2)
+                    if shards.length is 1 # Special hack when there is just one shard
+                        width = Math.floor width/2
+                        margin_bar = Math.floor margin_bar+width/2
+ 
+                    x = d3.scale.linear().domain([0, shards.length-1]).range([margin_width*1.5+margin_bar, svg_width-margin_width*1.5-margin_bar-width])
                     y = d3.scale.linear().domain([0, json.max_keys]).range([1, svg_height-margin_height*2.5])
 
                     svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
@@ -343,14 +389,11 @@ module 'NamespaceView', ->
                         .enter()
                         .append('rect')
                         .attr('x', (d, i) -> return x(i))
-                        .attr('y', (d) -> return svg_height-y(d.num_keys)-margin_height)
+                        .attr('y', (d) -> return svg_height-y(d.num_keys)-margin_height-1) #-1 not to overlap with axe
                         .attr('width', width)
                         .attr( 'height', (d) -> return y(d.num_keys))
                         .attr( 'title', (d) -> return 'Shard:'+d.boundaries+'<br />'+d.num_keys+' keys')
-                        ###
-                        .attr('data-num_keys', (d) -> return d.num_keys)
-                        .attr('data-shard', (d) -> return d.boundaries)
-                        ###
+                
 
                     arrow_width = 4
                     arrow_length = 7
@@ -384,7 +427,7 @@ module 'NamespaceView', ->
                     axe_legend.push
                         x: Math.floor(svg_width/2)
                         y: svg_height
-                        string: 'Shards'
+                        string: if json.shards_length > 1 then 'Shards' else 'Data'
                         anchor: 'middle'
 
                     svg.selectAll('.legend')
@@ -441,20 +484,9 @@ module 'NamespaceView', ->
             #overwrite on_success to add a redirectiona
             namespace_to_delete = @model
         
-            remove_namespace_dialog.on_success = (response) ->
-                # Fix the removal of namespaces
-                if (response)
-                    $('.error_answer').html @template_remove_error
-
-                    if $('.error_answer').css('display') is 'none'
-                        $('.error_answer').slideDown('fast')
-                    else
-                        $('.error_answer').css('display', 'none')
-                        $('.error_answer').fadeIn()
-                    remove_namespace_dialog.reset_buttons()
-                    return
-                namespaces.remove namespace_to_delete
+            remove_namespace_dialog.on_success = (response) =>
                 window.router.navigate '#namespaces', {'trigger': true}
+                namespaces.remove @model.get 'id'
 
             remove_namespace_dialog.render [@model]
 

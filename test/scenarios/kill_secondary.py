@@ -30,8 +30,8 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     http.check_no_issues()
 
-    host, port = driver.get_namespace_host(ns.port, [primary])
-    with workload_runner.SplitOrContinuousWorkload(opts, host, port) as workload:
+    workload_ports = scenario_common.get_workload_ports(ns.port, [primary])
+    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
         workload.run_before()
         cluster.check()
         http.check_no_issues()
