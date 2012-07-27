@@ -25,7 +25,7 @@ struct pmap_runner_one_arg_t {
 
 template <class callable_t, class value_t>
 void spawn_pmap_runner_one_arg(value_t i, const callable_t *c, int *outstanding, cond_t *to_signal) {
-    coro_t::spawn_now_deprecated(pmap_runner_one_arg_t<callable_t, value_t>(i, c, outstanding, to_signal));
+    coro_t::spawn_now_dangerously(pmap_runner_one_arg_t<callable_t, value_t>(i, c, outstanding, to_signal));
 }
 
 template <class callable_t>
@@ -41,7 +41,7 @@ void pmap(int count, const callable_t &c) {
     cond_t cond;
     int outstanding = count - 1;
     for (int i = 0; i < count - 1; i++) {
-        coro_t::spawn_now_deprecated(pmap_runner_one_arg_t<callable_t, int>(i, &c, &outstanding, &cond));
+        coro_t::spawn_now_dangerously(pmap_runner_one_arg_t<callable_t, int>(i, &c, &outstanding, &cond));
     }
     c(count - 1);
     cond.wait();
@@ -84,7 +84,7 @@ class pmap_runner_two_arg_t {
 
 template <class callable_t, class value1_t, class value2_t>
 void spawn_pmap_runner_two_arg(value1_t i, value2_t i2, const callable_t *c, int *outstanding, cond_t *to_signal) {
-    coro_t::spawn_now_deprecated(pmap_runner_two_arg_t<callable_t, value1_t, value2_t>(i, i2, c, outstanding, to_signal));
+    coro_t::spawn_now_dangerously(pmap_runner_two_arg_t<callable_t, value1_t, value2_t>(i, i2, c, outstanding, to_signal));
 }
 
 template <class callable_t, class iterator_t>
