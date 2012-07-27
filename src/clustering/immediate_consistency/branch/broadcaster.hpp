@@ -7,9 +7,9 @@
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "clustering/generic/registrar.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "clustering/registrar.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "protocol_api.hpp"

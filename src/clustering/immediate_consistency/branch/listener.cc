@@ -1,10 +1,10 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 
+#include "clustering/generic/registrant.hpp"
+#include "clustering/generic/resource.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
-#include "clustering/registrant.hpp"
-#include "clustering/resource.hpp"
 #include "protocol_api.hpp"
 
 /* `WRITE_QUEUE_CORO_POOL_SIZE` is the number of coroutines that will be used

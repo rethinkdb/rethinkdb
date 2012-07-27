@@ -1,7 +1,7 @@
 #include "unittest/gtest.hpp"
 
-#include "clustering/registrar.hpp"
-#include "clustering/registrant.hpp"
+#include "clustering/generic/registrar.hpp"
+#include "clustering/generic/registrant.hpp"
 #include "mock/clustering_utils.hpp"
 #include "mock/unittest_utils.hpp"
 
