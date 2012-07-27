@@ -248,7 +248,7 @@ try {
 }
 
 bool serve(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
-    std::string logfilepath = filepath + "/log_file";
+    std::string logfilepath = get_logfilepath(filepath);
     return do_serve(spawner_info, io_backender, true, logfilepath, filepath, persistent_file, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
 

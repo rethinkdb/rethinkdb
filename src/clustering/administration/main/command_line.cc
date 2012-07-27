@@ -12,7 +12,9 @@
 #include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/logger.hpp"
 #include "clustering/administration/persist.hpp"
+#include "logger.hpp"
 #include "extproc/spawner.hpp"
 #include "mock/dummy_protocol.hpp"
 
@@ -408,6 +410,9 @@ int main_rethinkdb_create(int argc, char *argv[]) {
     }
 
     std::string filepath = vm["directory"].as<std::string>();
+    std::string logfilepath = get_logfilepath(filepath);
+    install_primary_log_writer(logfilepath);
+
     std::string machine_name = vm["name"].as<std::string>();
 
     const int num_workers = get_cpu_count();
@@ -427,6 +432,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     }
 
     std::string filepath = vm["directory"].as<std::string>();
+    std::string logfilepath = get_logfilepath(filepath);
+    install_primary_log_writer(logfilepath);
+
     std::vector<host_and_port_t> joins;
     if (vm.count("join") > 0) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
@@ -525,6 +533,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
      }
 
     std::string logfilepath = vm["log-file"].as<std::string>();
+    install_primary_log_writer(logfilepath);
+
     std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
     int port = vm["port"].as<int>();
     int http_port = vm["http-port"].as<int>();
@@ -567,6 +577,9 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     }
 
     std::string filepath = vm["directory"].as<std::string>();
+    std::string logfilepath = get_logfilepath(filepath);
+    install_primary_log_writer(logfilepath);
+
     std::string machine_name = vm["name"].as<std::string>();
     std::vector<host_and_port_t> joins;
     if (vm.count("join") > 0) {
