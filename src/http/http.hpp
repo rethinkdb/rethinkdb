@@ -96,6 +96,7 @@ struct http_res_t {
     explicit http_res_t(int rescode);
     void add_last_modified(int);
 };
+http_res_t new_error_res(const std::string &content);
 
 void test_header_parser();
 

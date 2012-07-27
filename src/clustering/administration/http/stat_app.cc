@@ -93,9 +93,10 @@ cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &no
     return machines.release();
 }
 
-void parse_query_params(const http_req_t &req,
-                        std::set<std::string> *filter_paths,
-                        std::set<std::string> *machine_whitelist) {
+boost::optional<http_res_t> parse_query_params
+(const http_req_t &req,
+ std::set<std::string> *filter_paths,
+ std::set<std::string> *machine_whitelist) {
     typedef boost::escaped_list_separator<char> separator_t;
     typedef boost::tokenizer<separator_t> tokenizer_t;
     separator_t commas("\\",",","");
@@ -113,25 +114,26 @@ void parse_query_params(const http_req_t &req,
                 } else if (it->key == "machine_whitelist") {
                     machine_whitelist->insert(*s);
                 } else {
-                    logINF("Parameter parsing error: %s -> %s",
-                           sanitize_for_logger(it->key).c_str(),
-                           sanitize_for_logger(it->val).c_str());
+                    return boost::optional<http_res_t>(new_error_res(
+                        "Invalid parameter: "+it->key+"="+it->val));
                 }
             }
         } catch (boost::escaped_list_error &e) {
-            logINF("Boost tokenizer error: %s (%s -> %s)",
-                   sanitize_for_logger(e.what()).c_str(),
-                   sanitize_for_logger(it->key).c_str(),
-                   sanitize_for_logger(it->val).c_str());
+            return boost::optional<http_res_t>(new_error_res(
+                "Boost tokenizer error: "+std::string(e.what())
+                +" ("+it->key+"="+it->val+")"));
         }
     }
     if (filter_paths->empty()) filter_paths->insert(".*"); //no filter = match everything
+    return boost::none;
 }
 
 http_res_t stat_http_app_t::handle(const http_req_t &req) {
     std::set<std::string> filter_paths;
     std::set<std::string> machine_whitelist;
-    parse_query_params(req, &filter_paths, &machine_whitelist);
+    boost::optional<http_res_t> maybe_error_res =
+        parse_query_params(req, &filter_paths, &machine_whitelist);
+    if (maybe_error_res) return *maybe_error_res;
 
     scoped_cJSON_t body(cJSON_CreateObject());
 

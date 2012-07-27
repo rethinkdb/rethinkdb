@@ -9,6 +9,9 @@
 #include "arch/arch.hpp"
 #include "logger.hpp"
 
+#include <stdarg.h>
+#include <stdio.h>
+
 static const char *resource_parts_sep_char = "/";
 static boost::char_separator<char> resource_parts_sep(resource_parts_sep_char, "", boost::keep_empty_tokens);
 
@@ -161,6 +164,12 @@ void http_res_t::set_body(const std::string& content_type, const std::string& co
     add_header_line("Content-Length", strprintf("%zu", content.size()));
 
     body = content;
+}
+
+http_res_t new_error_res(const std::string &content) {
+    http_res_t res(400);
+    res.set_body("application/text", content);
+    return res;
 }
 
 void test_header_parser() {
