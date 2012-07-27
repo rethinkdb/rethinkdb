@@ -221,7 +221,7 @@ public:
     repli_timestamp_t NextTimestamp() {
         ++tstamp_counter_;
         repli_timestamp_t ret;
-        ret.time = tstamp_counter_;
+        ret.longtime = tstamp_counter_;
         return ret;
     }
 
@@ -426,23 +426,23 @@ TEST(LeafNodeTest, SimpleMerging) {
 
     // We use the largest value that will underflow.
     //
-    // key_cost = 251, max_possible_size() = 256, sizeof(uint16_t) = 2, sizeof(repli_timestamp) = 4.
+    // key_cost = 251, max_possible_size() = 256, sizeof(uint16_t) = 2, sizeof(repli_timestamp) = 8.
     //
     // 4084 - 12 = 4072.  4072 / 2 = 2036.  2036 - (251 + 256 + 2
-    // + 4) = 2036 - 513 = 1523.  So 1522 is the max possible
+    // + 8) = 2036 - 517 = 1519.  So 1518 is the max possible
     // mandatory_cost.  (See the is_underfull implementation.)
     //
-    // With 5*4 mandatory timestamp bytes and 12 bytes per entry,
-    // that gives us 1502 / 12 as the loop boundary value that
+    // With 5*8 mandatory timestamp bytes and 12 bytes per entry,
+    // that gives us 1478 / 12 as the loop boundary value that
     // will underflow.  We get 12 byte entries if entries run from
     // a000 to a999.  But if we allow two-digit entries, that
-    // frees up 2 bytes per entry, so add 200, giving 1702.  If we
+    // frees up 2 bytes per entry, so add 200, giving 1678.  If we
     // allow one-digit entries, that gives us 20 more bytes to
-    // use, giving 1722 / 12 as the loop boundary.  That's an odd
+    // use, giving 1698 / 12 as the loop boundary.  That's an odd
     // way to look at the arithmetic, but if you don't like that,
     // you can go cry to your mommy.
 
-    for (int i = 0; i < 1722 / 12; ++i) {
+    for (int i = 0; i < 1698 / 12; ++i) {
         left.Insert(store_key_t(strprintf("a%d", i)), strprintf("A%d", i));
         right.Insert(store_key_t(strprintf("b%d", i)), strprintf("B%d", i));
     }
@@ -454,7 +454,7 @@ TEST(LeafNodeTest, MergingWithRemoves) {
     LeafNodeTracker left;
     LeafNodeTracker right;
 
-    for (int i = 0; i < (1722 * 5 / 6) / 12; ++i) {
+    for (int i = 0; i < (1698 * 5 / 6) / 12; ++i) {
         left.Insert(store_key_t(strprintf("a%d", i)), strprintf("A%d", i));
         right.Insert(store_key_t(strprintf("b%d", i)), strprintf("B%d", i));
         if (i % 5 == 0) {

@@ -149,7 +149,7 @@ private:
         // TODO: We probably shouldn't have to pass in this perfmon collection.
         svs_by_namespace->get_svs(serializers_collection, namespace_id, &stores_lifetimer, &svs);
 
-        reactor.reset(new reactor_t<protocol_t>(
+        reactor.init(new reactor_t<protocol_t>(
             io_backender,
             parent->mbox_manager,
             this,
@@ -160,7 +160,7 @@ private:
 
         {
             typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::freeze_t reactor_directory_freeze(reactor->get_reactor_directory());
-            reactor_directory_subscription.reset(
+            reactor_directory_subscription.init(
                 new typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t(
                     boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
                     reactor->get_reactor_directory(), &reactor_directory_freeze
@@ -182,10 +182,10 @@ private:
     svs_by_namespace_t<protocol_t> *const svs_by_namespace;
 
     stores_lifetimer_t<protocol_t> stores_lifetimer;
-    boost::scoped_ptr<multistore_ptr_t<protocol_t> > svs;
-    boost::scoped_ptr<reactor_t<protocol_t> > reactor;
+    scoped_ptr_t<multistore_ptr_t<protocol_t> > svs;
+    scoped_ptr_t<reactor_t<protocol_t> > reactor;
 
-    boost::scoped_ptr<typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t> reactor_directory_subscription;
+    scoped_ptr_t<typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t> reactor_directory_subscription;
 
     DISABLE_COPYING(watchable_and_reactor_t);
 };
@@ -225,18 +225,23 @@ reactor_driver_t<protocol_t>::~reactor_driver_t() {
 }
 
 template<class protocol_t>
-void reactor_driver_t<protocol_t>::delete_reactor_data(auto_drainer_t::lock_t lock, typename reactor_map_t::auto_type *thing_to_delete) {
+void reactor_driver_t<protocol_t>::delete_reactor_data(
+        auto_drainer_t::lock_t lock, 
+        typename reactor_map_t::auto_type *thing_to_delete,
+        namespace_id_t namespace_id)
+{
     lock.assert_is_holding(&drainer);
     delete thing_to_delete;
+    svs_by_namespace->destroy_svs(namespace_id);
 }
 
 template<class protocol_t>
 void reactor_driver_t<protocol_t>::on_change() {
-    typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t namespaces = namespaces_view->get().namespaces;
+    typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t 
+            namespaces = namespaces_view->get().namespaces;
 
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =  namespaces.begin();
-                                                                                                 it != namespaces.end();
-                                                                                                 it++) {
+    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator 
+                it =  namespaces.begin(); it != namespaces.end(); it++) {
         if (it->second.is_deleted() && std_contains(reactor_data, it->first)) {
             /* on_change cannot block because it is called as part of
              * semilattice subscription, however the
@@ -246,7 +251,14 @@ void reactor_driver_t<protocol_t>::on_change() {
              * map but the destructor hasn't been called... then this needs
              * to be heap allocated so that it can be safely passed to a
              * coroutine for destruction. */
-            coro_t::spawn_sometime(boost::bind(&reactor_driver_t<protocol_t>::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new typename reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first)))));
+            coro_t::spawn_sometime(boost::bind(
+                &reactor_driver_t<protocol_t>::delete_reactor_data,
+                this,
+                auto_drainer_t::lock_t(&drainer),
+                new typename
+                    reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))),
+                it->first
+            ));
         } else {
             persistable_blueprint_t<protocol_t> pbp;
 
@@ -274,7 +286,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                 /* The blueprint does not mentions us so we destroy the
                  * reactor. */
                 if (std_contains(reactor_data, it->first)) {
-                    coro_t::spawn_sometime(boost::bind(&reactor_driver_t<protocol_t>::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new typename reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first)))));
+                    coro_t::spawn_sometime(boost::bind(&reactor_driver_t<protocol_t>::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new typename reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))), it->first));
                 }
             }
         }

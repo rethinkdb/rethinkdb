@@ -70,7 +70,7 @@ public:
 private:
     bool snapshotted;
     bool has_been_changed;
-    scoped_ptr_t<typename inner_cache_t::buf_lock_t> internal_buf_lock;
+    scoped_ptr_t<typename inner_cache_t::buf_lock_type> internal_buf_lock;
     scc_cache_t<inner_cache_t> *cache;
 private:
     crc_t compute_crc() {
@@ -94,8 +94,6 @@ template<class inner_cache_t>
 class scc_transaction_t :
     public home_thread_mixin_t
 {
-    typedef scc_buf_lock_t<inner_cache_t> buf_lock_t;
-
 public:
     scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
     ~scc_transaction_t();
@@ -106,7 +104,7 @@ public:
         inner_transaction.snapshot();
     }
 
-    void set_account(const boost::shared_ptr<typename inner_cache_t::cache_account_t>& cache_account);
+    void set_account(typename inner_cache_t::cache_account_type *cache_account);
 
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb);
 
@@ -123,7 +121,7 @@ private:
     friend class scc_buf_lock_t<inner_cache_t>;
     friend class scc_cache_t<inner_cache_t>;
     access_t access;
-    typename inner_cache_t::transaction_t inner_transaction;
+    typename inner_cache_t::transaction_type inner_transaction;
 };
 
 /* Cache */
@@ -131,9 +129,9 @@ private:
 template<class inner_cache_t>
 class scc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_callback_t {
 public:
-    typedef scc_buf_lock_t<inner_cache_t> buf_lock_t;
-    typedef scc_transaction_t<inner_cache_t> transaction_t;
-    typedef typename inner_cache_t::cache_account_t cache_account_t;
+    typedef scc_buf_lock_t<inner_cache_t> buf_lock_type;
+    typedef scc_transaction_t<inner_cache_t> transaction_type;
+    typedef typename inner_cache_t::cache_account_type cache_account_type;
 
     static void create(
         serializer_t *serializer,
@@ -143,7 +141,7 @@ public:
                 perfmon_collection_t *parent);
 
     block_size_t get_block_size();
-    boost::shared_ptr<cache_account_t> create_account(int priority);
+    void create_cache_account(int priority, scoped_ptr_t<typename inner_cache_t::cache_account_type> *out);
 
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool contains_block(block_id_t block_id);

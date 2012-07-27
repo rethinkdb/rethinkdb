@@ -1,28 +1,15 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/scoped_ptr.hpp>
 
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
+#include "containers/scoped.hpp"
 #include "mock/unittest_utils.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "unittest/gtest.hpp"
 
 namespace unittest {
-
-struct starter_t : public thread_message_t {
-    thread_pool_t *tp;
-    boost::function<void()> fun;
-    starter_t(thread_pool_t *tp, boost::function<void()> fun) : tp(tp), fun(fun) { }
-    void run() {
-        fun();
-        tp->shutdown();
-    }
-    void on_thread_switch() {
-        coro_t::spawn_now(boost::bind(&starter_t::run, this));
-    }
-};
 
 /* `recording_test_application_t` sends and receives integers over a
 `message_service_t`. It keeps track of the integers it has received.
@@ -223,7 +210,7 @@ void run_get_peers_list_test() {
 
         /* Make sure `get_peers_list()` correctly notices that a peer connects */
         std::set<peer_id_t> list_2 = c1.get_peers_list();
-        EXPECT_TRUE(list_2.find(c2.get_me()) != list_2.end());
+        ASSERT_TRUE(list_2.find(c2.get_me()) != list_2.end());
         EXPECT_EQ(port + 1, c1.get_peer_address(c2.get_me()).port);
 
         /* `c2`'s destructor is called here */
@@ -251,7 +238,7 @@ void run_event_watchers_test() {
     connectivity_cluster_t::run_t cr1(&c1, port, NULL);
 
     connectivity_cluster_t c2;
-    boost::scoped_ptr<connectivity_cluster_t::run_t> cr2(new connectivity_cluster_t::run_t(&c2, port+1, NULL));
+    scoped_ptr_t<connectivity_cluster_t::run_t> cr2(new connectivity_cluster_t::run_t(&c2, port+1, NULL));
 
     /* Make sure `c1` notifies us when `c2` connects */
     struct : public cond_t, public peers_list_callback_t {
@@ -314,9 +301,9 @@ struct watcher_t : private peers_list_callback_t {
         EXPECT_TRUE(list.find(p) != list.end());
 
         /* Make sure messages sent from connection events are delivered
-        properly. We must use `coro_t::spawn_now()` because `send_message()`
+        properly. We must use `coro_t::spawn_now_dangerously()` because `send_message()`
         may block. */
-        coro_t::spawn_now(boost::bind(&recording_test_application_t::send, application, 89765, p));
+        coro_t::spawn_now_dangerously(boost::bind(&recording_test_application_t::send, application, 89765, p));
     }
 
     void on_disconnect(peer_id_t p) {
@@ -372,11 +359,11 @@ void run_stop_mid_join_test() {
     const int num_members = 5;
 
     /* Spin up `num_members` cluster-members */
-    boost::scoped_ptr<connectivity_cluster_t> nodes[num_members];
-    boost::scoped_ptr<connectivity_cluster_t::run_t> runs[num_members];
+    scoped_ptr_t<connectivity_cluster_t> nodes[num_members];
+    scoped_ptr_t<connectivity_cluster_t::run_t> runs[num_members];
     for (int i = 0; i < num_members; i++) {
-        nodes[i].reset(new connectivity_cluster_t);
-        runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
+        nodes[i].init(new connectivity_cluster_t);
+        runs[i].init(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
     }
     for (int i = 1; i < num_members; i++) {
         runs[i]->join(nodes[0]->get_peer_address(nodes[0]->get_me()));
@@ -410,11 +397,11 @@ void run_blob_join_test() {
     const size_t blob_size = 4;
 
     /* Spin up cluster-members */
-    boost::scoped_ptr<connectivity_cluster_t> nodes[blob_size * 2];
-    boost::scoped_ptr<connectivity_cluster_t::run_t> runs[blob_size * 2];
+    scoped_ptr_t<connectivity_cluster_t> nodes[blob_size * 2];
+    scoped_ptr_t<connectivity_cluster_t::run_t> runs[blob_size * 2];
     for (size_t i = 0; i < blob_size * 2; i++) {
-        nodes[i].reset(new connectivity_cluster_t);
-        runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
+        nodes[i].init(new connectivity_cluster_t);
+        runs[i].init(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
     }
 
     for (size_t i = 1; i < blob_size; i++) {

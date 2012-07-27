@@ -5,22 +5,20 @@
 #include <vector>
 
 #include "clustering/administration/logger.hpp"
-#include "clustering/resource.hpp"
-#include "containers/archive/boost_types.hpp"
+#include "clustering/generic/resource.hpp"
 
 class log_server_business_card_t {
 public:
-    typedef boost::variant<std::vector<log_message_t>, std::string> result_t;
-    typedef mailbox_t<void(result_t)> result_mailbox_t;
+    typedef mailbox_t<void(boost::variant<std::vector<log_message_t>, std::string>)> result_mailbox_t;
     typedef mailbox_t<void(int, struct timespec, struct timespec, result_mailbox_t::address_t)> request_mailbox_t;
 
     log_server_business_card_t() { }
     explicit log_server_business_card_t(const request_mailbox_t::address_t &a) : address(a) { }
 
     request_mailbox_t::address_t address;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(address);
 };
+
+RDB_DECLARE_SERIALIZABLE(log_server_business_card_t);
 
 class log_server_t {
 public:

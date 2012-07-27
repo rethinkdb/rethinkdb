@@ -33,8 +33,10 @@ SERVER_UNIT_TEST_NAME:=$(SERVER_EXEC_NAME)-unittest
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
-TAGS:=.tags
-ETAGS:=TAGS
+CTAGS:=ctags
+ETAGS:=$(CTAGS) -e
+TAGSFILE:=.tags
+ETAGSFILE:=TAGS
 CSCOPE_XREF:=.cscope
 RUN_PORT?=11211
 RUN_FLAGS?=-s 3 -c 2 -m 10
@@ -77,8 +79,10 @@ endif
 
 ifeq ($(COMPILER), CLANG)
 BUILD_DIR:=$(BUILD_DIR)_clang
-else ifeq ($(COMPILER), INTEL)
+else
+ifeq ($(COMPILER), INTEL)
 BUILD_DIR:=$(BUILD_DIR)_intel
+endif
 endif
 
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
@@ -89,17 +93,25 @@ DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 ifeq ($(COMPILER),CLANG)
 CXX:=clang
-else ifeq ($(COMPILER),INTEL)
+else
+ifeq ($(COMPILER),INTEL)
 CXX:=icc
+endif
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm
-else ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lv8
+else
+ifeq ($(COMPILER),INTEL)
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lv8
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio
+ifeq ($(LEGACY_GCC), 1)
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio # at some point, v8 needs to be installed on the machines with LEGACY_GCC=1
+else
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lv8
+endif
+endif
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
@@ -119,10 +131,16 @@ CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor
 
 ifeq ($(COMPILER), INTEL)
 CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
-else ifeq ($(COMPILER), CLANG)
+else
+ifeq ($(COMPILER), CLANG)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration
 else
+ifeq ($(LEGACY_GCC), 1)
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
+else
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
+endif
+endif
 endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
@@ -239,6 +257,11 @@ BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
 endif
 
+ifeq ($(LEGACY_PROC_STAT),1)
+CXXFLAGS+=-DLEGACY_PROC_STAT
+BUILD_DIR:=$(BUILD_DIR)-legacy-proc-stat
+endif
+
 PROTO_DIR:=$(BUILD_DIR)/proto
 CXXFLAGS += -I$(PROTO_DIR)
 
@@ -309,7 +332,7 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			loading.coffee \
 			body.coffee \
 			ui_components/modals.coffee ui_components/list.coffee \
-			namespaces/index.coffee namespaces/replicas.coffee namespaces/shards.coffee namespaces/machines.coffee namespaces/namespace.coffee \
+			namespaces/index.coffee namespaces/replicas.coffee namespaces/shards.coffee namespaces/pins.coffee namespaces/machines.coffee namespaces/namespace.coffee \
 			servers/index.coffee servers/machine.coffee servers/datacenter.coffee \
 			dashboard.coffee \
 			dataexplorer.coffee \
@@ -349,10 +372,11 @@ SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 
 # High level build targets
 
-ifeq ($(UNIT_TESTS),1)
-all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets
-else
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets
+	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
+
+ifeq ($(UNIT_TESTS),1)
+all: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 endif
 
 unit:
@@ -659,7 +683,8 @@ ifeq ($(NO_TCMALLOC),0)
 		(echo "    Failed to link in TCMalloc. Either install it, or make with NO_TCMALLOC=1." && \
 		false)
 endif
-	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
+
+
 
 # The unittests use gtest, which uses macros that expand into switch statements which don't contain
 # default cases. So we have to remove the -Wswitch-default argument for them.
@@ -732,11 +757,11 @@ endif
 
 TAGFLAGS:=-R --c++-kinds=+p --fields=+iaS --extra=+q --langmap="c++:.cc.tcc.hpp"
 tags:
-	$(QUIET) ctags $(TAGFLAGS) -f $(TAGS)
+	$(QUIET) $(CTAGS) $(TAGFLAGS) -f $(TAGSFILE)
 
 etags:
-	$(QUIET) rm -f $(ETAGS)
-	$(QUIET) ctags -e $(TAGFLAGS) -f $(ETAGS)
+	$(QUIET) rm -f $(ETAGSFILE)
+	$(QUIET) $(ETAGS) $(TAGFLAGS) -f $(ETAGSFILE)
 
 cscope:
 	$(QUIET) cscope -bR -f $(CSCOPE_XREF)

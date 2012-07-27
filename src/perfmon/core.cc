@@ -2,10 +2,10 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/scoped_ptr.hpp>
 
-#include "perfmon/core.hpp"
 #include "arch/runtime/coroutines.hpp"
+#include "containers/scoped.hpp"
+#include "perfmon/core.hpp"
 
 /* Constructor and destructor register and deregister the perfmon. */
 perfmon_t::perfmon_t() {
@@ -78,9 +78,9 @@ perfmon_result_t * perfmon_collection_t::end_stats(void *_context) {
 }
 
 void perfmon_collection_t::add(perfmon_membership_t *perfmon) {
-    boost::scoped_ptr<on_thread_t> thread_switcher;
+    scoped_ptr_t<on_thread_t> thread_switcher;
     if (coroutines_have_been_initialized()) {
-        thread_switcher.reset(new on_thread_t(home_thread()));
+        thread_switcher.init(new on_thread_t(home_thread()));
     }
 
     rwi_lock_t::write_acq_t write_acq(&constituents_access);
@@ -88,9 +88,9 @@ void perfmon_collection_t::add(perfmon_membership_t *perfmon) {
 }
 
 void perfmon_collection_t::remove(perfmon_membership_t *perfmon) {
-    boost::scoped_ptr<on_thread_t> thread_switcher;
+    scoped_ptr_t<on_thread_t> thread_switcher;
     if (coroutines_have_been_initialized()) {
-        thread_switcher.reset(new on_thread_t(home_thread()));
+        thread_switcher.init(new on_thread_t(home_thread()));
     }
 
     rwi_lock_t::write_acq_t write_acq(&constituents_access);

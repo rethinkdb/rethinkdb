@@ -9,7 +9,7 @@
 
 template <class> class semilattice_read_view_t;
 template <class> class multistore_ptr_t;
-
+class traversal_progress_combiner_t;
 
 /* If you construct a `backfiller_t` for a given store, then it will advertise
 its existence in the metadata and serve backfills over the network. */
@@ -50,7 +50,7 @@ private:
     multistore_ptr_t<protocol_t> *svs;
 
     std::map<backfill_session_id_t, cond_t *> local_interruptors;
-    std::map<backfill_session_id_t, typename protocol_t::backfill_progress_t *> local_backfill_progress;
+    std::map<backfill_session_id_t, traversal_progress_combiner_t *> local_backfill_progress;
     auto_drainer_t drainer;
 
     typename backfiller_business_card_t<protocol_t>::backfill_mailbox_t backfill_mailbox;

@@ -24,7 +24,7 @@
 <!-- Template for the confirmation dialog -->
 <script id="confirmation_dialog-template" type="text/x-handlebars-template"> 
   <div class="alert alert-error error_answer"></div>
-  <h2>{{message}}</h2>
+  <strong>{{message}}</strong>
 </script>
 
 <!-- Template in case of ajax error -->
@@ -37,7 +37,7 @@
   <div class="alert alert-error error_answer"></div>
   <form class="form">
     <fieldset>
-      <legend>Rename {{capitalize type}} from {{old_name}} to:</legend>
+      <legend>Rename {{type}} from {{old_name}} to:</legend>
       <div class="clearfix">
         <label for="new_name">New name</label>
 

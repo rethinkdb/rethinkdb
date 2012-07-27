@@ -113,7 +113,7 @@ public:
     }
 
     void stop() {
-        rassert(drainer);
+        rassert(drainer.has());
         drainer.reset();
     }
 
@@ -140,7 +140,7 @@ private:
         return test_inserter_read_namespace_if(namespace_if, key, otok, interruptor);
     }
 
-    boost::scoped_ptr<auto_drainer_t> drainer;
+    scoped_ptr_t<auto_drainer_t> drainer;
 
     void insert_forever(
             order_source_t *osource,

@@ -23,7 +23,6 @@ Limiting Factor
 Cargo Cult
 Little Rascal
 So Much For Subtlety
-Unfortunate Conflict Of Evidence
 Just Testing
 Very Little Gravitas Indeed
 What Are The Civilian Applications?
@@ -119,7 +118,7 @@ Partial Photic Boundary""".splitlines()
 
 
 def usage():
-    print os.sys.argv[0], "p N [data_root_directory] [--keep]"
+    print os.sys.argv[0], "p N [data_root_directory] [--keep] [--copy_old]"
     print """Where: 
     p is the port you want the cluster to use 
     N is the number of machines you want in the cluster

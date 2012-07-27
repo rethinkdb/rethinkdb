@@ -892,9 +892,9 @@ private:
     DISABLE_COPYING(value_sizer_fscker_t);
 };
 
-bool construct_sizer_from_magic(block_size_t bs, boost::scoped_ptr< value_sizer_t<void> > *sizer, block_magic_t magic) {
+bool construct_sizer_from_magic(block_size_t bs, block_magic_t magic, scoped_ptr_t< value_sizer_t<void> > *sizer) {
     if (magic == value_sizer_t<memcached_value_t>::leaf_magic()) {
-        sizer->reset(new value_sizer_t<memcached_value_t>(bs));
+        sizer->init(new value_sizer_t<memcached_value_t>(bs));
         return true;
     } else {
         return false;
@@ -904,8 +904,8 @@ bool construct_sizer_from_magic(block_size_t bs, boost::scoped_ptr< value_sizer_
 void check_subtree_leaf_node(slicecx_t *cx, const leaf_node_t *buf,
                              const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null,
                              node_error *errs) {
-    boost::scoped_ptr< value_sizer_t<void> > sizer;
-    if (!construct_sizer_from_magic(cx->block_size(), &sizer, buf->magic)) {
+    scoped_ptr_t< value_sizer_t<void> > sizer;
+    if (!construct_sizer_from_magic(cx->block_size(), buf->magic, &sizer)) {
         errs->msg = "Unrecognized magic value for leaf node.";
     }
 
@@ -1010,8 +1010,8 @@ void check_subtree(slicecx_t *cx, block_id_t id, const btree_key_t *lo, const bt
         check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
     } else {
 
-        boost::scoped_ptr< value_sizer_t<void> > sizer_ignore;
-        if (construct_sizer_from_magic(cx->block_size(), &sizer_ignore, reinterpret_cast<node_t *>(node.buf)->magic)) {
+        scoped_ptr_t< value_sizer_t<void> > sizer_ignore;
+        if (construct_sizer_from_magic(cx->block_size(), reinterpret_cast<node_t *>(node.buf)->magic, &sizer_ignore)) {
             sizer_ignore.reset();
             check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, &node_err);
         } else {
@@ -1478,7 +1478,7 @@ std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config
 }
 
 bool check_files(const config_t *cfg) {
-    boost::scoped_ptr<io_backender_t> backender;
+    scoped_ptr_t<io_backender_t> backender;
     make_io_backender(cfg->io_backend, &backender);
 
     // 1. Open.

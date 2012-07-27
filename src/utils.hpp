@@ -109,6 +109,14 @@ void debugf_print(const char *msg, const T& obj) {
 #define debugf_print(...) ((void)0)
 #endif
 
+class debugf_in_dtor_t {
+public:
+    explicit debugf_in_dtor_t(const char *msg, ...);
+    ~debugf_in_dtor_t();
+private:
+    std::string message;
+};
+
 class rng_t {
 public:
 // Returns a random number in [0, n).  Is not perfectly uniform; the
@@ -252,5 +260,6 @@ private:
     T *var;
     T old_value;
 };
+
 
 #endif // UTILS_HPP_

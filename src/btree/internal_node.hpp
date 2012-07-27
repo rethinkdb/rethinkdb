@@ -1,10 +1,8 @@
 #ifndef BTREE_INTERNAL_NODE_HPP_
 #define BTREE_INTERNAL_NODE_HPP_
 
-#include "utils.hpp"
-#include <boost/scoped_array.hpp>
-
 #include "btree/node.hpp"
+#include "utils.hpp"
 
 // See internal_node_t in node.hpp
 

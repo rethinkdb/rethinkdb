@@ -1,15 +1,13 @@
 #ifndef ARCH_IO_DISK_HPP_
 #define ARCH_IO_DISK_HPP_
 
-#include "utils.hpp"
-#include <boost/scoped_ptr.hpp>
-#include <containers/scoped.hpp>
-
-#include "config/args.hpp"
 #include "arch/io/io_utils.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/types.hpp"
+#include "config/args.hpp"
+#include "containers/scoped.hpp"
+#include "utils.hpp"
 
 #include "perfmon/core.hpp"
 
@@ -74,7 +72,7 @@ public:
                            scoped_ptr_t<linux_disk_manager_t> *out);
 };
 
-void make_io_backender(io_backend_t backend, boost::scoped_ptr<io_backender_t> *out);
+void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out);
 
 class linux_file_account_t {
 public:
@@ -130,7 +128,7 @@ private:
     linux_disk_manager_t *diskmgr;
 
     /* In a scoped_ptr so we can initialize it after "diskmgr" */
-    boost::scoped_ptr<linux_file_account_t> default_account;
+    scoped_ptr_t<linux_file_account_t> default_account;
 
     DISABLE_COPYING(linux_file_t);
 };

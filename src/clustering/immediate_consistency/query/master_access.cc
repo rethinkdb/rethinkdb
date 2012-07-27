@@ -4,6 +4,7 @@
 
 #include "arch/timing.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/archive/boost_types.hpp"
 
 #define THROTTLE_THRESHOLD 200
 
@@ -29,7 +30,7 @@ master_access_t<protocol_t>::master_access_t(
     cond_t ack_cond;
     mailbox_t<void()> ack_mailbox(mailbox_manager, boost::bind(&cond_t::pulse, &ack_cond), mailbox_callback_mode_inline);
 
-    registrant.reset(new registrant_t<master_access_business_card_t>(
+    registrant.init(new registrant_t<master_access_business_card_t>(
         mailbox_manager,
         master->subview(&master_access_t<protocol_t>::extract_registrar_business_card),
         master_access_business_card_t(master_access_id, ack_mailbox.get_address(), allocation_mailbox.get_address())
@@ -107,7 +108,7 @@ typename protocol_t::write_response_t master_access_t<protocol_t>::write(
     token->end();
 
     if (allocated_writes < THROTTLE_THRESHOLD) {
-        nap(std::min(1000.0, pow(2, -(float(allocated_writes)/100.0))), interruptor);
+        nap(static_cast<int>(std::min(1000.0, pow(2, -(float(allocated_writes)/100.0)))), interruptor);
     }
     allocated_writes--;
 

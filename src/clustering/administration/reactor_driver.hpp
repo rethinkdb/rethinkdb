@@ -6,7 +6,6 @@
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/scoped_ptr.hpp>
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -29,10 +28,10 @@ template <class> class multistore_ptr_t;
 template <class protocol_t>
 class stores_lifetimer_t {
 public:
-    stores_lifetimer_t() : num_stores_(-1) { }
+    stores_lifetimer_t() { }
     ~stores_lifetimer_t() {
-        if (num_stores_ != -1) {
-            for (int i = 0; i < num_stores_; ++i) {
+        if (stores_.has()) {
+            for (int i = 0, e = stores_.size(); i < e; ++i) {
                 // TODO: This should use pmap.
                 on_thread_t th(stores_[i]->home_thread());
 
@@ -41,20 +40,12 @@ public:
         }
     }
 
-    boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> >& stores() {
-        return stores_;
+    scoped_array_t<scoped_ptr_t<typename protocol_t::store_t> > *stores() {
+        return &stores_;
     }
-
-    void set_num_stores(int n) {
-        guarantee(n > 0);
-        guarantee(num_stores_ == -1);
-        num_stores_ = n;
-    }
-
 
 private:
-    boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > stores_;
-    int num_stores_;
+    scoped_array_t<scoped_ptr_t<typename protocol_t::store_t> > stores_;
 
     DISABLE_COPYING(stores_lifetimer_t);
 };
@@ -64,7 +55,8 @@ class svs_by_namespace_t {
 public:
     virtual void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
                          stores_lifetimer_t<protocol_t> *stores_out,
-                         boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) = 0;
+                         scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out) = 0;
+    virtual void destroy_svs(namespace_id_t namespace_id) = 0;
 
 protected:
     virtual ~svs_by_namespace_t() { }
@@ -95,7 +87,10 @@ private:
 
     typedef boost::ptr_map<namespace_id_t, watchable_and_reactor_t<protocol_t> > reactor_map_t;
 
-    void delete_reactor_data(auto_drainer_t::lock_t lock, typename reactor_map_t::auto_type *thing_to_delete);
+    void delete_reactor_data(
+            auto_drainer_t::lock_t lock,
+            typename reactor_map_t::auto_type *thing_to_delete,
+            namespace_id_t namespace_id);
     void on_change();
 
     io_backender_t *io_backender;

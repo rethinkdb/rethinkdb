@@ -1,12 +1,12 @@
 #include <list>
 
 #include "errors.hpp"
-#include <boost/scoped_array.hpp>
 #include <boost/bind.hpp>
 
 #include "arch/io/disk/conflict_resolving.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "containers/intrusive_list.hpp"
+#include "containers/scoped.hpp"
 #include "unittest/gtest.hpp"
 
 namespace unittest {
@@ -106,11 +106,11 @@ struct read_test_t {
         driver(_driver),
         offset(o),
         expected(e),
-        buffer(new char[expected.size()])
+        buffer(expected.size())
     {
         action.is_read = true;
         action.fd = 0;
-        action.buf = buffer.get();
+        action.buf = buffer.data();
         action.count = expected.size();
         action.offset = offset;
         driver->submit(&action);
@@ -118,7 +118,7 @@ struct read_test_t {
     test_driver_t *driver;
     off_t offset;
     std::string expected;
-    boost::scoped_array<char> buffer;
+    scoped_array_t<char> buffer;
     test_driver_t::action_t action;
     bool was_sent() {
         return action.done || action.has_begun;
@@ -133,7 +133,7 @@ struct read_test_t {
     }
     ~read_test_t() {
         EXPECT_TRUE(was_completed());
-        std::string got(buffer.get(), expected.size());
+        std::string got(buffer.data(), expected.size());
         EXPECT_EQ(expected, got) << "Read returned wrong data.";
     }
 };

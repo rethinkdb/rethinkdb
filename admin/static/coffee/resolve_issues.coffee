@@ -118,6 +118,7 @@ module 'ResolveIssuesView', ->
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: '/ajax/issues'
+                contentType: 'application/json'
                 success: set_issues
                 async: false
             
@@ -173,6 +174,7 @@ module 'ResolveIssuesView', ->
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: '/ajax/issues'
+                contentType: 'application/json'
                 success: set_issues
                 async: false
 
@@ -220,6 +222,7 @@ module 'ResolveIssuesView', ->
             $.ajax
                 processData: false
                 url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
+                contentType: 'application/json'
                 type: 'POST'
                 data: JSON.stringify
                     replica_affinities: replica_affinities_to_send
@@ -252,6 +255,7 @@ module 'ResolveIssuesView', ->
             'VCLOCK_CONFLICT': Handlebars.compile $('#resolve_issues-vclock_conflict-template').html()
             'UNSATISFIABLE_GOALS': Handlebars.compile $('#resolve_issues-unsatisfiable_goals-template').html()
             'MACHINE_GHOST': Handlebars.compile $('#resolve_issues-machine_ghost-template').html()
+            'PORT_CONFLICT': Handlebars.compile $('#resolve_issues-port_conflict-template').html()
 
         unknown_issue_template: Handlebars.compile $('#resolve_issues-unknown-template').html()
 
@@ -318,6 +322,7 @@ module 'ResolveIssuesView', ->
                         # Grab the new set of issues (so we don't have to wait)
                         $.ajax
                             url: '/ajax/issues'
+                            contentType: 'application/json'
                             success: set_issues
                             async: false
 
@@ -414,6 +419,16 @@ module 'ResolveIssuesView', ->
                 machine_name: @model.get('ghost')
             @.$el.html _template(json)
 
+        render_port_conflict: (_template) ->
+            # render
+            json =
+                datetime: iso_date_from_unix_time @model.get('time')
+                critical: @model.get('critical')
+                machine_id: @model.get('location')
+                machine_name: machines.get(@model.get('location')).get('name')
+                description: @model.get('description')
+            @.$el.html _template(json)
+
         render_unknown_issue: (_template) ->
             json =
                 issue_type: @model.get('type')
@@ -435,6 +450,8 @@ module 'ResolveIssuesView', ->
                     @render_unsatisfiable_goals _template
                 when 'MACHINE_GHOST'
                     @render_machine_ghost _template
+                when 'PORT_CONFLICT'
+                    @render_port_conflict _template
                 else
                     @render_unknown_issue @unknown_issue_template
 

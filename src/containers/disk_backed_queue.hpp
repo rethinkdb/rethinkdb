@@ -41,7 +41,7 @@ public:
                 standard_serializer_t::static_config_t()
                 );
 
-        serializer.reset(new standard_serializer_t(
+        serializer.init(new standard_serializer_t(
             standard_serializer_t::dynamic_config_t(),
             io_backender,
             standard_serializer_t::private_dynamic_config_t(filename),
@@ -61,7 +61,7 @@ public:
         mirrored_cache_config_t cache_dynamic_config;
         cache_dynamic_config.max_size = MEGABYTE;
         cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
-        cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, stats_parent));
+        cache.init(new cache_t(serializer.get(), &cache_dynamic_config, stats_parent));
     }
 
     void push(const T &t) {
@@ -74,7 +74,7 @@ public:
             add_block_to_head(&txn);
         }
 
-        boost::scoped_ptr<buf_lock_t> _head(new buf_lock_t(&txn, head_block_id, rwi_write));
+        scoped_ptr_t<buf_lock_t> _head(new buf_lock_t(&txn, head_block_id, rwi_write));
         queue_block_t* head = reinterpret_cast<queue_block_t *>(_head->get_data_major_write());
 
         write_message_t wm;
@@ -96,7 +96,7 @@ public:
             head = NULL;
             _head.reset();
             add_block_to_head(&txn);
-            _head.reset(new buf_lock_t(&txn, head_block_id, rwi_write));
+            _head.init(new buf_lock_t(&txn, head_block_id, rwi_write));
             head = reinterpret_cast<queue_block_t *>(_head->get_data_major_write());
         }
 
@@ -112,7 +112,7 @@ public:
         char buffer[MAX_REF_SIZE];
         transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past);
 
-        boost::scoped_ptr<buf_lock_t> _tail(new buf_lock_t(&txn, tail_block_id, rwi_write));
+        scoped_ptr_t<buf_lock_t> _tail(new buf_lock_t(&txn, tail_block_id, rwi_write));
         queue_block_t *tail = reinterpret_cast<queue_block_t *>(_tail->get_data_major_write());
         rassert(tail->data_size != tail->live_data_offset);
 
@@ -190,8 +190,8 @@ private:
     mutex_t mutex;
     int64_t queue_size;
     block_id_t head_block_id, tail_block_id;
-    boost::scoped_ptr<standard_serializer_t> serializer;
-    boost::scoped_ptr<cache_t> cache;
+    scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<cache_t> cache;
 };
 
 #endif /* CONTAINERS_DISK_BACKED_QUEUE_HPP_ */

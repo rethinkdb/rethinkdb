@@ -5,9 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
-
 #include "utils.hpp"
 #include "containers/scoped.hpp"
 #include "btree/node.hpp"
@@ -257,24 +254,19 @@ void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t
 
 void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real_superblock_t> *got_superblock_out);
 
-void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count,
-                          repli_timestamp_t tstamp, order_token_t token, cache_snapshotted_t snapshotted,
-                          const boost::shared_ptr<cache_account_t> &cache_account,
-                          scoped_ptr_t<real_superblock_t> *got_superblock_out, scoped_ptr_t<transaction_t> *txn_out);
+void get_btree_superblock_and_txn(btree_slice_t *slice, access_t access, int expected_change_count,
+                                  repli_timestamp_t tstamp, order_token_t token,
+                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
+                                  scoped_ptr_t<transaction_t> *txn_out);
 
-void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count,
-                                 repli_timestamp_t tstamp, order_token_t token,
-                                 scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                 scoped_ptr_t<transaction_t> *txn_out);
+void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
+                                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
+                                                  scoped_ptr_t<transaction_t> *txn_out);
 
-void get_btree_superblock_for_backfilling(btree_slice_t *slice, order_token_t token,
-                                          scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                          scoped_ptr_t<transaction_t> *txn_out);
-
-void get_btree_superblock_for_reading(btree_slice_t *slice, access_t access, order_token_t token,
-                                      cache_snapshotted_t snapshotted,
-                                      scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                      scoped_ptr_t<transaction_t> *txn_out);
+void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice, access_t access, order_token_t token,
+                                              cache_snapshotted_t snapshotted,
+                                              scoped_ptr_t<real_superblock_t> *got_superblock_out,
+                                              scoped_ptr_t<transaction_t> *txn_out);
 
 #include "btree/operations.tcc"
 

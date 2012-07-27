@@ -1,7 +1,7 @@
 #include "unittest/gtest.hpp"
 
-#include "clustering/registrar.hpp"
-#include "clustering/registrant.hpp"
+#include "clustering/generic/registrar.hpp"
+#include "clustering/generic/registrant.hpp"
 #include "mock/clustering_utils.hpp"
 #include "mock/unittest_utils.hpp"
 
@@ -83,9 +83,9 @@ void run_registrar_death_test() {
 
     monitoring_controller_t controller;
 
-    /* Set up `registrar` in a `boost::scoped_ptr` so we can destroy it whenever
+    /* Set up `registrar` in a `scoped_ptr_t` so we can destroy it whenever
     we want to */
-    boost::scoped_ptr<registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t> > registrar(
+    scoped_ptr_t<registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t> > registrar(
         new registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t>(
             cluster.get_mailbox_manager(),
             &controller

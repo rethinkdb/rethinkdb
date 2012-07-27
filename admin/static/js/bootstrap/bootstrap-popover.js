@@ -89,7 +89,7 @@
   $.fn.popover.defaults = $.extend({} , $.fn.tooltip.defaults, {
     placement: 'right'
   , content: ''
-  , template: '<div class="popover"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3><div class="popover-content"><p></p></div></div></div>'
+  , template: '<div class="popover"><div class="arrow"></div><div class="popover-inner"><a class="popover_close" href="#">x</a><h3 class="popover-title"></h3><div class="popover-content"><p></p></div></div></div>'
   })
 
 }( window.jQuery );

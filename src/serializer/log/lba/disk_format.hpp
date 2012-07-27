@@ -78,6 +78,12 @@ static const block_id_t PADDING_BLOCK_ID = NULL_BLOCK_ID;
 
 struct lba_entry_t {
     block_id_t block_id;
+
+    // TODO: Remove the need for these fields.  Remove the requirement
+    // that lba_entry_t be a divisor of DEVICE_BLOCK_SIZE.
+    uint32_t zero1;
+    uint64_t zero2;
+
     repli_timestamp_t recency;
     // An offset into the file, with is_delete set appropriately.
     flagged_off64_t offset;
@@ -85,6 +91,8 @@ struct lba_entry_t {
     static inline lba_entry_t make(block_id_t block_id, repli_timestamp_t recency, flagged_off64_t offset) {
         lba_entry_t entry;
         entry.block_id = block_id;
+        entry.zero1 = 0;
+        entry.zero2 = 0;
         entry.recency = recency;
         entry.offset = offset;
         return entry;

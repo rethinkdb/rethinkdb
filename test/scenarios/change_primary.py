@@ -31,9 +31,9 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     http.check_no_issues()
 
-    host, port = driver.get_namespace_host(ns.port, [process1, process2])
-    with workload_runner.SplitOrContinuousWorkload(opts, host, port) as workload:
-        workload.step1()
+    workload_ports = scenario_common.get_workload_ports(ns.port, [process1, process2])
+    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
+        workload.run_before()
         cluster.check()
         http.check_no_issues()
         workload.check()
@@ -44,7 +44,7 @@ with driver.Metacluster() as metacluster:
         http.wait_until_blueprint_satisfied(ns)
         cluster.check()
         http.check_no_issues()
-        workload.step2()
+        workload.run_after()
 
     http.check_no_issues()
     cluster.check_and_stop()

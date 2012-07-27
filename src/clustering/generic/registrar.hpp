@@ -1,12 +1,12 @@
-#ifndef CLUSTERING_REGISTRAR_HPP_
-#define CLUSTERING_REGISTRAR_HPP_
+#ifndef CLUSTERING_GENERIC_REGISTRAR_HPP_
+#define CLUSTERING_GENERIC_REGISTRAR_HPP_
 
 #include <algorithm>
 #include <map>
 #include <utility>
 
-#include "clustering/registration_metadata.hpp"
-#include "clustering/resource.hpp"
+#include "clustering/generic/registration_metadata.hpp"
+#include "clustering/generic/resource.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "concurrency/wait_any.hpp"
 #include "concurrency/promise.hpp"
@@ -130,4 +130,4 @@ private:
     DISABLE_COPYING(registrar_t);
 };
 
-#endif /* CLUSTERING_REGISTRAR_HPP_ */
+#endif /* CLUSTERING_GENERIC_REGISTRAR_HPP_ */

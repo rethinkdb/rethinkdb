@@ -10,19 +10,15 @@
 #include <set>
 
 #include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/ptr_container/ptr_map.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "arch/timing.hpp"
+#include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "clustering/reactor/metadata.hpp"
-#include "clustering/registrant.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
-#include "containers/archive/boost_types.hpp"
 #include "protocol_api.hpp"
 
 template <class protocol_t, class value_t>
@@ -186,7 +182,7 @@ private:
 
         std::vector<boost::variant<op_response_type, std::string> > results_or_failures(masters_to_contact.size());
         pmap(masters_to_contact.size(), boost::bind(
-            &cluster_namespace_interface_t::perform_immediate_op<op_type, fifo_enforcer_token_type, op_response_type>, this,
+            &cluster_namespace_interface_t::template perform_immediate_op<op_type, fifo_enforcer_token_type, op_response_type>, this,
             how_to_run_query, &masters_to_contact, &op, order_token, &results_or_failures, _1, interruptor));
 
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
@@ -225,11 +221,11 @@ private:
                 order_token,
                 &master_to_contact->enforcement_token,
                 interruptor);
-        } catch (resource_lost_exc_t) {
+        } catch (const resource_lost_exc_t&) {
             (*results_or_failures)[i] = "lost contact with master";
-        } catch (cannot_perform_query_exc_t e) {
+        } catch (const cannot_perform_query_exc_t& e) {
             (*results_or_failures)[i] = "master error: " + std::string(e.what());
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t&) {
             rassert(interruptor->is_pulsed());
             /* Ignore `interrupted_exc_t` and just return immediately.
             `dispatch_immediate_op()` will notice the interruptor has been
@@ -430,19 +426,19 @@ private:
             bool is_start, bool is_primary, const typename protocol_t::region_t &region,
             auto_drainer_t::lock_t lock) THROWS_NOTHING {
         try {
-            boost::scoped_ptr<master_access_t<protocol_t> > master_access;
-            boost::scoped_ptr<resource_access_t<direct_reader_business_card_t<protocol_t> > > direct_reader_access;
+            scoped_ptr_t<master_access_t<protocol_t> > master_access;
+            scoped_ptr_t<resource_access_t<direct_reader_business_card_t<protocol_t> > > direct_reader_access;
             if (is_primary) {
-                master_access.reset(new master_access_t<protocol_t>(
+                master_access.init(new master_access_t<protocol_t>(
                     mailbox_manager,
                     directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_master_business_card, _1, peer_id, activity_id)),
                     lock.get_drain_signal()
                     ));
-                direct_reader_access.reset(new resource_access_t<direct_reader_business_card_t<protocol_t> >(
+                direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(
                     directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary, _1, peer_id, activity_id))
                     ));
             } else {
-                direct_reader_access.reset(new resource_access_t<direct_reader_business_card_t<protocol_t> >(
+                direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(
                     directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary_up_to_date, _1, peer_id, activity_id))
                     ));
             }
@@ -450,8 +446,8 @@ private:
             relationship_t relationship_record;
             relationship_record.is_local = (peer_id == mailbox_manager->get_connectivity_service()->get_me());
             relationship_record.region = region;
-            relationship_record.master_access = master_access.get();
-            relationship_record.direct_reader_access = direct_reader_access.get();
+            relationship_record.master_access = master_access.has() ? master_access.get() : NULL;
+            relationship_record.direct_reader_access = direct_reader_access.has() ? direct_reader_access.get() : NULL;
 
             region_map_set_membership_t<protocol_t, relationship_t *> relationship_map_insertion(
                 &relationships,
@@ -468,10 +464,10 @@ private:
             }
 
             wait_any_t waiter(lock.get_drain_signal());
-            if (master_access) {
+            if (master_access.has()) {
                 waiter.add(master_access->get_failed_signal());
             }
-            if (direct_reader_access) {
+            if (direct_reader_access.has()) {
                 waiter.add(direct_reader_access->get_failed_signal());
             }
             waiter.wait_lazily_unordered();

@@ -286,8 +286,8 @@ void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btre
     }
 
     if (helper->progress) {
-        helper->progress->inform(0, traversal_progress_t::LEARN, traversal_progress_t::INTERNAL);
-        helper->progress->inform(0, traversal_progress_t::ACQUIRE, traversal_progress_t::INTERNAL);
+        helper->progress->inform(0, parallel_traversal_progress_t::LEARN, parallel_traversal_progress_t::INTERNAL);
+        helper->progress->inform(0, parallel_traversal_progress_t::ACQUIRE, parallel_traversal_progress_t::INTERNAL);
     }
 
     block_id_t root_id = superblock->get_root_block_id();
@@ -337,14 +337,14 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
 
         if (node::is_leaf(node)) {
             if (state->helper->progress) {
-                state->helper->progress->inform(level, traversal_progress_t::ACQUIRE, traversal_progress_t::LEAF);
+                state->helper->progress->inform(level, parallel_traversal_progress_t::ACQUIRE, parallel_traversal_progress_t::LEAF);
             }
             process_a_leaf_node(state, buf, level, left_exclusive_or_null, right_inclusive_or_null);
         } else {
             rassert(node::is_internal(node));
 
             if (state->helper->progress) {
-                state->helper->progress->inform(level, traversal_progress_t::ACQUIRE, traversal_progress_t::INTERNAL);
+                state->helper->progress->inform(level, parallel_traversal_progress_t::ACQUIRE, parallel_traversal_progress_t::INTERNAL);
             }
             process_a_internal_node(state, buf, level, left_exclusive_or_null, right_inclusive_or_null);
         }
@@ -405,7 +405,7 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf
 
     buf->reset();
     if (state->helper->progress) {
-        state->helper->progress->inform(level, traversal_progress_t::RELEASE, traversal_progress_t::LEAF);
+        state->helper->progress->inform(level, parallel_traversal_progress_t::RELEASE, parallel_traversal_progress_t::LEAF);
     }
     state->level_count(level) -= 1;
     state->consider_pulsing();
@@ -415,7 +415,7 @@ void interesting_children_callback_t::receive_interesting_child(int child_index)
     rassert(child_index >= 0 && child_index < ids_source->num_block_ids());
 
     if (state->helper->progress) {
-        state->helper->progress->inform(level, traversal_progress_t::LEARN, traversal_progress_t::UNKNOWN);
+        state->helper->progress->inform(level, parallel_traversal_progress_t::LEARN, parallel_traversal_progress_t::UNKNOWN);
     }
     block_id_t block_id;
     const btree_key_t *left_excl_or_null;
@@ -442,7 +442,7 @@ void interesting_children_callback_t::decr_acquisition_countdown() {
         releaser->release();
         state->level_count(level - 1) -= 1;
         if (state->helper->progress) {
-            state->helper->progress->inform(level - 1, traversal_progress_t::RELEASE, traversal_progress_t::INTERNAL);
+            state->helper->progress->inform(level - 1, parallel_traversal_progress_t::RELEASE, parallel_traversal_progress_t::INTERNAL);
         }
         state->consider_pulsing();
         delete this;
@@ -492,7 +492,7 @@ int ranged_block_ids_t::get_level() {
     return level;
 }
 
-void traversal_progress_t::inform(int level, action_t action, node_type_t type) {
+void parallel_traversal_progress_t::inform(int level, action_t action, node_type_t type) {
     assert_thread();
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
     rassert(level >= 0);
@@ -526,28 +526,28 @@ void traversal_progress_t::inform(int level, action_t action, node_type_t type) 
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
 }
 
-std::pair<int, int> traversal_progress_t::guess_completion() {
+progress_completion_fraction_t parallel_traversal_progress_t::guess_completion() const {
     assert_thread();
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
 
     if (height == -1) {
-        return std::make_pair(-1, -1);
+        return progress_completion_fraction_t::make_invalid();
     }
 
     /* First we compute the ratio at each stage of the acquired nodes to the
      * learned nodes. This gives us a rough estimate of the branch factor at
      * each level. */
 
-    std::vector<float>released_to_acquired_ratios;
+    std::vector<double> released_to_acquired_ratios;
     for (unsigned i = 0; i < learned.size() - 1; i++) {
-        released_to_acquired_ratios.push_back(float(acquired[i + 1]) / std::max(1.0f, float(released[i])));
+        released_to_acquired_ratios.push_back(double(acquired[i + 1]) / std::max(1.0, double(released[i])));
     }
 
     std::vector<int> population_by_level_guesses;
     population_by_level_guesses.push_back(learned[0]);
 
     for (unsigned i = 0; i < (learned.size() - 1); i++) {
-        population_by_level_guesses.push_back(released_to_acquired_ratios[i] * population_by_level_guesses[i]);
+        population_by_level_guesses.push_back(static_cast<int>(released_to_acquired_ratios[i] * population_by_level_guesses[i]));
     }
 
     int estimate_of_total_nodes = 0;
@@ -557,29 +557,6 @@ std::pair<int, int> traversal_progress_t::guess_completion() {
         total_released_nodes += released[i];
     }
 
-    return std::make_pair(total_released_nodes, estimate_of_total_nodes);
-}
-
-void traversal_progress_combiner_t::add_constituent(traversal_progress_t *c) {
-    assert_thread();
-    constituents.push_back(c);
-}
-
-std::pair<int, int> traversal_progress_combiner_t::guess_completion() {
-    assert_thread();
-    int numerator = 0, denominator = 0;
-    for (boost::ptr_vector<traversal_progress_t>::iterator it  = constituents.begin();
-                                                           it != constituents.end();
-                                                           ++it) {
-        std::pair<int, int> n_and_d = it->guess_completion();
-        if (n_and_d.first == -1) {
-            return std::make_pair(-1, -1);
-        }
-
-        numerator += n_and_d.first;
-        denominator += n_and_d.second;
-    }
-
-    return std::make_pair(numerator, denominator);
+    return progress_completion_fraction_t(total_released_nodes, estimate_of_total_nodes);
 }
 

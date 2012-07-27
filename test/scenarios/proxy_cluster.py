@@ -30,8 +30,8 @@ with driver.Metacluster() as metacluster:
     ns = http.add_namespace(protocol = "memcached", primary = dc)
     http.wait_until_blueprint_satisfied(ns)
 
-    host, port = driver.get_namespace_host(ns.port, [proxy_process])
-    workload_runner.run(opts["workload"], host, port, opts["timeout"])
+    workload_ports = scenario_common.get_workload_ports(ns.port, [proxy_process])
+    workload_runner.run(opts["workload"], workload_ports, opts["timeout"])
 
     cluster.check_and_stop()
 

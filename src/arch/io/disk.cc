@@ -162,11 +162,11 @@ void pool_io_backender_t::make_disk_manager(linux_event_queue_t *queue, const in
 }
 
 
-void make_io_backender(io_backend_t backend, boost::scoped_ptr<io_backender_t> *out) {
+void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out) {
     if (backend == aio_native) {
-        out->reset(new native_io_backender_t);
+        out->init(new native_io_backender_t);
     } else if (backend == aio_pool) {
-        out->reset(new pool_io_backender_t);
+        out->init(new pool_io_backender_t);
     } else {
         crash("impossible io_backend_t value: %d\n", backend);
     }
@@ -275,7 +275,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // Construct a disk manager. (given that we have an event pool)
     if (linux_thread_pool_t::thread) {
         diskmgr = io_backender->get_diskmgr_ptr();
-        default_account.reset(new linux_file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
+        default_account.init(new linux_file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
 }
 

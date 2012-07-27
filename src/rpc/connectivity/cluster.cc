@@ -22,7 +22,7 @@ const char *const cluster_proto_header = CLUSTER_PROTO_HEADER;
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int port,
         message_handler_t *mh,
-        int client_port) THROWS_NOTHING :
+        int client_port) THROWS_ONLY(address_in_use_exc_t) :
     parent(p), message_handler(mh),
 
     /* The local port to use when connecting to the cluster port of peers */
@@ -66,7 +66,7 @@ int connectivity_cluster_t::run_t::get_port() {
 
 void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING {
     parent->assert_thread();
-    coro_t::spawn_now(boost::bind(
+    coro_t::spawn_now_dangerously(boost::bind(
         &connectivity_cluster_t::run_t::join_blocking,
         this,
         address,
@@ -129,13 +129,13 @@ connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::~entry_
     }
 }
 
-void connectivity_cluster_t::run_t::on_new_connection(const boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
+void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
     parent->assert_thread();
 
     // conn gets owned by the tcp_conn_stream_t.
     tcp_conn_t *conn;
     nconn->ennervate(&conn);
-    boost::scoped_ptr<tcp_conn_stream_t> conn_stream(new tcp_conn_stream_t(conn));
+    scoped_ptr_t<tcp_conn_stream_t> conn_stream(new tcp_conn_stream_t(conn));
 
     handle(conn_stream.get(), boost::none, boost::none, lock);
 }
@@ -144,6 +144,7 @@ void connectivity_cluster_t::run_t::join_blocking(
         peer_address_t address,
         boost::optional<peer_id_t> expected_id,
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
+    drainer_lock.assert_is_holding(&parent->current_run->drainer);
     parent->assert_thread();
     {
         mutex_assertion_t::acq_t acq(&attempt_table_mutex);
@@ -304,7 +305,7 @@ void connectivity_cluster_t::run_t::handle(
     established. When there are multiple connections trying to be established,
     this is referred to as a "conflict". */
 
-    boost::scoped_ptr<map_insertion_sentry_t<peer_id_t, peer_address_t> >
+    scoped_ptr_t<map_insertion_sentry_t<peer_id_t, peer_address_t> >
         routing_table_entry_sentry;
 
     /* We pick one side of the connection to be the "leader" and the other side
@@ -345,7 +346,7 @@ void connectivity_cluster_t::run_t::handle(
 
             /* Register ourselves while in the critical section, so that whoever
             comes next will see us */
-            routing_table_entry_sentry.reset(
+            routing_table_entry_sentry.init(
                 new map_insertion_sentry_t<peer_id_t, peer_address_t>(
                     &routing_table, other_id, other_address
                     ));
@@ -390,7 +391,7 @@ void connectivity_cluster_t::run_t::handle(
 
             /* Register ourselves while in the critical section, so that whoever
             comes next will see us */
-            routing_table_entry_sentry.reset(
+            routing_table_entry_sentry.init(
                 new map_insertion_sentry_t<peer_id_t, peer_address_t>(
                     &routing_table, other_id, other_address
                     ));
@@ -417,7 +418,7 @@ void connectivity_cluster_t::run_t::handle(
             if (routing_table.find(it->first) == routing_table.end()) {
                 /* `it->first` is the ID of a peer that our peer is connected
                 to, but we aren't connected to. */
-                coro_t::spawn_now(boost::bind(
+                coro_t::spawn_now_dangerously(boost::bind(
                     &connectivity_cluster_t::run_t::join_blocking, this,
                     it->second,
                     boost::optional<peer_id_t>(it->first),

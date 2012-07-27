@@ -28,8 +28,8 @@ with driver.Metacluster() as metacluster:
     ns = http1.add_namespace(protocol = "memcached", primary = dc)
     http1.wait_until_blueprint_satisfied(ns)
 
-    host, port = driver.get_namespace_host(ns.port, [process1])
-    workload_runner.run(opts["workload1"], host, port, opts["timeout"])
+    workload_ports_1 = scenario_common.get_workload_ports(ns.port, [process1])
+    workload_runner.run(opts["workload1"], workload_ports_1, opts["timeout"])
 
     print "Bringing up new server..."
     files2 = driver.Files(metacluster, db_path = "db-second", executable_path = executable_path, command_prefix = command_prefix)
@@ -54,7 +54,7 @@ with driver.Metacluster() as metacluster:
     http2.check_no_issues()
     http2.wait_until_blueprint_satisfied(ns.name)
 
-    host, port = driver.get_namespace_host(http2.find_namespace(ns.name).port, [process2])
-    workload_runner.run(opts["workload2"], host, port, opts["timeout"])
+    workload_ports_2 = scenario_common.get_workload_ports(http2.find_namespace(ns.name).port, [process2])
+    workload_runner.run(opts["workload2"], workload_ports_2, opts["timeout"])
 
     cluster.check_and_stop()

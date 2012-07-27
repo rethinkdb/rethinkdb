@@ -62,7 +62,7 @@ module 'UIComponents', ->
 
             #log_action '#render_elements of collection ' + class_name @collection
             # Render the view for each element in the list
-            @.$(@container).append(view.render().el) for view in @element_views
+            @.$(@container).append(view.render().$el) for view in @element_views
 
             @.delegateEvents()
             return @

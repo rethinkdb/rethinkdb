@@ -143,7 +143,7 @@ public:
 private:
     std::map<ls_block_token_pointee_t*, off64_t> token_offsets;
     std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
-    boost::scoped_ptr<log_serializer_stats_t> stats;
+    scoped_ptr_t<log_serializer_stats_t> stats;
     perfmon_collection_t disk_stats_collection;
     perfmon_membership_t disk_stats_membership;
 

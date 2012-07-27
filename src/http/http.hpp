@@ -6,12 +6,12 @@
 
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
-#include <boost/scoped_ptr.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/optional.hpp>
 
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "containers/scoped.hpp"
 #include "parsing/util.hpp"
 
 enum http_method_t {
@@ -43,11 +43,11 @@ struct http_req_t {
         typedef tokenizer::iterator iterator;
 
         resource_t();
-        explicit resource_t(const std::string &val_);
-        resource_t(const char* val_, size_t size);
+        explicit resource_t(const std::string &_val);
+        resource_t(const char* _val, size_t size);
 
-        void assign(const std::string &val_);
-        void assign(const char* val_, size_t size);
+        void assign(const std::string &_val);
+        void assign(const char* _val, size_t size);
         iterator begin() const;
         iterator end() const;
         std::string as_string(const iterator &from) const;
@@ -70,6 +70,7 @@ struct http_req_t {
     std::string version;
     std::vector<header_line_t> header_lines;
     std::string body;
+    std::string get_sanitized_body() const;
 
     http_req_t();
     explicit http_req_t(const std::string &resource_path);
@@ -146,11 +147,12 @@ class http_server_t {
 public:
     http_server_t(int port, http_app_t *application);
     ~http_server_t();
+    signal_t *get_bound_signal();
 private:
-    void handle_conn(const boost::scoped_ptr<nascent_tcp_conn_t> &conn, auto_drainer_t::lock_t);
+    void handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &conn, auto_drainer_t::lock_t);
     http_app_t *application;
     auto_drainer_t auto_drainer;
-    boost::scoped_ptr<tcp_listener_t> tcp_listener;
+    scoped_ptr_t<repeated_nonthrowing_tcp_listener_t> tcp_listener;
 };
 
 std::string percent_escaped_string(const std::string &s);

@@ -3,10 +3,9 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
-#include <boost/scoped_ptr.hpp>
 
+#include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
-#include "clustering/registrant.hpp"
 #include "protocol_api.hpp"
 
 template <class protocol_t>
@@ -78,7 +77,7 @@ private:
     int allocated_writes;
 
     master_access_business_card_t::allocation_mailbox_t allocation_mailbox;
-    boost::scoped_ptr<registrant_t<master_access_business_card_t> > registrant;
+    scoped_ptr_t<registrant_t<master_access_business_card_t> > registrant;
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_ACCESS_HPP_ */

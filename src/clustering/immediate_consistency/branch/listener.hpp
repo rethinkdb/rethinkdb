@@ -5,10 +5,10 @@
 
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/semantic_checking.hpp"
+#include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
-#include "clustering/registrant.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
@@ -42,6 +42,11 @@ There are four ways a `listener_t` can go wrong:
 template<class protocol_t>
 class listener_t {
 public:
+    /* If the number of writes the broadcaster has sent us minus the number of
+    responses it's gotten is greater than this, then it is not allowed to send
+    another write until it gets another response. */
+    static const int MAX_OUTSTANDING_WRITES_FROM_BROADCASTER = 1000;
+
     class backfiller_lost_exc_t : public std::exception {
     public:
         const char *what() const throw () {
@@ -201,10 +206,14 @@ private:
     disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue;
 
     fifo_enforcer_sink_t write_queue_entrance_sink;
-    boost::scoped_ptr<typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t> write_queue_coro_pool_callback;
-    boost::scoped_ptr<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool;
+    scoped_ptr_t<typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t> write_queue_coro_pool_callback;
+    scoped_ptr_t<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool;
     adjustable_semaphore_t write_queue_semaphore;
     cond_t write_queue_has_drained;
+
+    /* This asserts that the broadcaster doesn't send us too many concurrent
+    writes at the same time. */
+    semaphore_assertion_t enforce_max_outstanding_writes_from_broadcaster;
 
     state_timestamp_t current_timestamp;
 
@@ -223,7 +232,7 @@ private:
     typename listener_business_card_t<protocol_t>::writeread_mailbox_t writeread_mailbox;
     typename listener_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
 
-    boost::scoped_ptr<registrant_t<listener_business_card_t<protocol_t> > > registrant;
+    scoped_ptr_t<registrant_t<listener_business_card_t<protocol_t> > > registrant;
 
     /* Avaste this be used to keep track of people who are waitin' for a us to
      * be up to date (past the given state_timestamp_t). The only use case for

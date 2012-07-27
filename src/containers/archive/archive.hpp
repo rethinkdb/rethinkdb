@@ -63,8 +63,7 @@ MUST_USE int64_t force_read(read_stream_t *s, void *p, int64_t n);
 class write_stream_t {
 public:
     write_stream_t() { }
-    // Returns n, or -1 upon error.  Blocks until all bytes are
-    // written.
+    // Returns n, or -1 upon error. Blocks until all bytes are written.
     virtual int64_t write(const void *p, int64_t n) = 0;
 protected:
     virtual ~write_stream_t() { }
@@ -113,6 +112,10 @@ private:
 
     DISABLE_COPYING(write_message_t);
 };
+
+// Hack for older versions of GCC, which seem to not find the declaration
+// it's outside of the write_message_t class.
+int send_write_message(write_stream_t *s, write_message_t *msg);
 
 MUST_USE int send_message(write_stream_t *s, write_message_t *msg);
 

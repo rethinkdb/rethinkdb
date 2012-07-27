@@ -1,15 +1,19 @@
+#include "clustering/administration/main/command_line.hpp"
+
+#include <signal.h>             // sigaction
+
 #include "utils.hpp"
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
 
 #include "arch/arch.hpp"
-#include "arch/runtime/starter.hpp"
 #include "arch/os_signal.hpp"
-#include "clustering/administration/main/command_line.hpp"
-#include "clustering/administration/main/serve.hpp"
+#include "arch/runtime/starter.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
+#include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
+#include "extproc/spawner.hpp"
 #include "mock/dummy_protocol.hpp"
 
 namespace po = boost::program_options;
@@ -59,7 +63,7 @@ void run_rethinkdb_create(const std::string &filepath, const std::string &machin
         return;
     }
 
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
 
     perfmon_collection_t metadata_perfmon_collection;
@@ -103,7 +107,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     }
 }
 
-void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     if (!check_existence(filepath)) {
@@ -112,14 +116,15 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
         return;
     }
 
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
     metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
 
-    *result_out = serve(io_backender.get(),
+    *result_out = serve(spawner_info,
+                        io_backender.get(),
                         filepath, &store,
                         look_up_peers_addresses(joins),
                         ports,
@@ -129,21 +134,22 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
                         &sigint_cond);
 }
 
-void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     printf("Checking if directory '%s' already exists...\n", filepath.c_str());
     if (check_existence(filepath)) {
         printf("It already exists.  Loading data...\n");
 
-        boost::scoped_ptr<io_backender_t> io_backender;
+        scoped_ptr_t<io_backender_t> io_backender;
         make_io_backender(io_backend, &io_backender);
 
         perfmon_collection_t metadata_perfmon_collection;
         perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
         metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
 
-        *result_out = serve(io_backender.get(),
+        *result_out = serve(spawner_info,
+                            io_backender.get(),
                             filepath, &store,
                             look_up_peers_addresses(joins),
                             ports,
@@ -231,14 +237,15 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
         }
 
-        boost::scoped_ptr<io_backender_t> io_backender;
+        scoped_ptr_t<io_backender_t> io_backender;
         make_io_backender(io_backend, &io_backender);
 
         perfmon_collection_t metadata_perfmon_collection;
         perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
         metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
 
-        *result_out = serve(io_backender.get(),
+        *result_out = serve(spawner_info,
+                            io_backender.get(),
                             filepath, &store,
                             look_up_peers_addresses(joins),
                             ports,
@@ -248,14 +255,15 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
     }
 }
 
-void run_rethinkdb_proxy(const std::string &logfilepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::string &logfilepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
     rassert(!joins.empty());
 
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
 
-    *result_out = serve_proxy(io_backender.get(),
+    *result_out = serve_proxy(spawner_info,
+                              io_backender.get(),
                               logfilepath,
                               look_up_peers_addresses(joins),
                               ports,
@@ -441,10 +449,13 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_t::create(&spawner_info);
+
     const int num_workers = get_cpu_count();
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, &spawner_info, filepath, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())
                                    ),
                                    io_backend,
@@ -533,10 +544,13 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_t::create(&spawner_info);
+
     const int num_workers = get_cpu_count();
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, logfilepath, joins,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, logfilepath, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
                                    io_backend,
                                    &result, render_as_path(web_path)),
@@ -576,10 +590,13 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_t::create(&spawner_info);
+
     const int num_workers = get_cpu_count();
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, joins,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, &spawner_info, filepath, machine_name, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
                                    io_backend,
                                    &result, render_as_path(web_path)),
