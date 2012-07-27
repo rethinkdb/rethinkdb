@@ -229,13 +229,13 @@ int job_handle_t::begin(pool_t *pool, const job_t &job) {
 
 void job_handle_t::release() {
     rassert(connected());
-    worker_->release();
+    worker_->pool_->release_worker(worker_);
     worker_ = NULL;
 }
 
 void job_handle_t::interrupt() {
     rassert(connected());
-    worker_->interrupt();
+    worker_->pool_->interrupt_worker(worker_);
     worker_ = NULL;
 }
 

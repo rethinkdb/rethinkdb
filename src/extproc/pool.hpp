@@ -77,9 +77,6 @@ class pool_t :
         // condition on our socket. Calls on_error().
         virtual void on_event(int events);
 
-        void release() { pool_->release_worker(this); }
-        void interrupt() { pool_->interrupt_worker(this); }
-
         pool_t *pool_;
         pid_t pid_;
 
