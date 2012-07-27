@@ -346,7 +346,7 @@ perfmon_result_t *perfmon_filter_t::subfilter(
                 subactive[i] = regexps[i][depth]->matches(it->first);
                 some_subpath |= subactive[i];
             }
-            if (some_subpath) it->second = subfilter(it->second, depth+1, subactive);
+            if (some_subpath) it->second = subfilter(it->second, depth + 1, subactive);
             if (!some_subpath || !it->second) to_delete.push_back(it);
         }
         for (std::list<perfmon_result_t::iterator>::const_iterator
