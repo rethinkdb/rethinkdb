@@ -5,18 +5,20 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
-#include "hash_region.hpp"
+#include "btree/btree_store.hpp"
 #include "btree/keys.hpp"
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
-#include "btree/btree_store.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/boost_types.hpp"
+#include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
-#include "protocol_api.hpp"
 #include "memcached/region.hpp" //TODO move these to a common place
+#include "protob/protob.hpp"
+#include "protocol_api.hpp"
+#include "rdb_protocol/query_language.pb.h"
 
 enum point_write_result_t {
     STORED,
