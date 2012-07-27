@@ -2,15 +2,20 @@
 
 #include <math.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <stdarg.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include <boost/algorithm/string.hpp>
 
 #include "arch/runtime/thread_pool.hpp"   /* for `run_in_blocker_pool()` */
 #include "clustering/administration/persist.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
+
+primary_log_writer_t primary_log_writer;
 
 std::string format_log_level(log_level_t l) {
     switch (l) {
@@ -249,9 +254,7 @@ TLS_with_init(log_writer_t *, global_log_writer, NULL);
 TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
 
 log_writer_t::log_writer_t(const std::string &filename, local_issue_tracker_t *it) : filename(filename), issue_tracker(it) {
-
-    int res = clock_gettime(CLOCK_MONOTONIC, &uptime_reference);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+    uptime_reference = primary_log_writer.uptime_reference;
 
     pmap(get_num_threads(), boost::bind(&log_writer_t::install_on_thread, this, _1));
 }
@@ -327,7 +330,7 @@ void log_writer_t::write_blocking(const log_message_t &msg, std::string *error_o
     std::string console_formatted = format_log_message_for_console(msg);
 
     // Print the log message to stderr or stdout (stdout only if it's an info log)
-    if(msg.level == log_level_info) {
+    if (msg.level == log_level_info) {
         output_fileno = STDOUT_FILENO;
     } else {
         output_fileno = STDERR_FILENO;
@@ -396,6 +399,121 @@ void log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, s
     }
 }
 
+primary_log_writer_t::primary_log_writer_t() : shutdown(false) {
+    int res = clock_gettime(CLOCK_MONOTONIC, &uptime_reference);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+
+    filelock.l_type = F_WRLCK;
+    filelock.l_whence = SEEK_SET;
+    filelock.l_start = 0;
+    filelock.l_len = 0;
+    filelock.l_pid = getpid();
+
+    fileunlock.l_type = F_UNLCK;
+    fileunlock.l_whence = SEEK_SET;
+    fileunlock.l_start = 0;
+    fileunlock.l_len = 0;
+    fileunlock.l_pid = getpid();
+
+    pthread_create(&worker_thread, NULL, &write_action, (void*) this);
+}
+
+/* Go through the thread queue and wait for them all to finish. */
+primary_log_writer_t::~primary_log_writer_t() {
+    shutdown = true;
+    pthread_join(worker_thread, NULL);
+}
+
+void primary_log_writer_t::install(const std::string &logfile_name) {
+    rassert(filename == "", "Attempted to install a primary_log_writer_t that was already installed.");
+    filename = logfile_name;
+    fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
+}
+
+void *write_action(void *arg) {
+    primary_log_writer_t *writer = reinterpret_cast<primary_log_writer_t*>(arg);
+    while (!writer->shutdown) {
+        if (writer->message_list.size() > 0) {
+            writer->write_in_thread(writer->message_list.front());
+            writer->message_list.pop();
+        }
+    }
+    return NULL;
+}
+
+bool primary_log_writer_t::write_in_thread(const log_message_t &msg) {
+    int res, output_fileno;
+    std::string formatted = format_log_message(msg);
+    std::string console_formatted = format_log_message_for_console(msg);
+
+    // print the log message to stderr or stdout (stdout only if it's an info log)
+    if (msg.level == log_level_info) {
+        output_fileno = STDOUT_FILENO;
+    } else {
+        output_fileno = STDERR_FILENO;
+    }
+    res = ::write(output_fileno, console_formatted.data(), console_formatted.length());
+    if (res != int(console_formatted.length())) {
+        return false;
+    }
+
+    if (fd.get() == -1) {
+        return false;
+    }
+
+    res = fcntl(fd.get(), F_SETLKW, &filelock);
+    if (res != 0) {
+        return false;
+    }
+
+    res = ::write(fd.get(), formatted.data(), formatted.length());
+    if (res != int(formatted.length())) {
+        return false;
+    }
+
+    res = fcntl(fd.get(), F_SETLK, &fileunlock);
+    if (res != 0) {
+        return false;
+    }
+
+    return true;
+}
+
+void primary_log_writer_t::write(log_level_t level, const std::string &msg) {
+    mutex_t::acq_t write_mutex_acq(&write_mutex);
+
+    if (filename == "") {
+        /* The primary log writer has not yet been installed. */
+        fprintf(stderr, "Error: no log writer is available. Printing to stdout / stderr instead.\n");
+        if (level == log_level_info) {
+            fprintf(stdout, "%s", msg.c_str());
+        } else {
+            fprintf(stderr, "%s", msg.c_str());
+        }
+        return;
+    }
+
+    int res;
+
+    struct timespec timestamp;
+    res = clock_gettime(CLOCK_REALTIME, &timestamp);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+
+    struct timespec uptime;
+    res = clock_gettime(CLOCK_MONOTONIC, &uptime);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+    if (uptime.tv_nsec < uptime_reference.tv_nsec) {
+        uptime.tv_nsec += 1000000000;
+        uptime.tv_sec -= 1;
+    }
+
+    uptime.tv_nsec -= uptime_reference.tv_nsec;
+    uptime.tv_sec -= uptime_reference.tv_sec;
+
+    log_message_t log_msg(timestamp, uptime, level, msg);
+    message_list.push(log_msg);
+}
+
 void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t) {
     on_thread_t thread_switcher(writer->home_thread());
 
@@ -431,6 +549,13 @@ void log_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t 
 
         coro_t::spawn_sometime(boost::bind(&log_coro, writer, level, message, lock));
 
+    } else {
+        va_list args;
+        va_start(args, format);
+        std::string message = vstrprintf(format, args);
+        va_end(args);
+
+        primary_log_writer.write(level, message);
     }
 }
 
@@ -439,11 +564,19 @@ void vlog_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t
         auto_drainer_t::lock_t lock(TLS_get_global_log_drainer());
 
         std::string message = vstrprintf(format, args);
-
         coro_t::spawn_sometime(boost::bind(&log_coro, writer, level, message, lock));
 
     } else {
-        fprintf(stderr, "ERROR: Failed to log message. Printing to stderr instead.\n");
-        vfprintf(stderr, format, args);
+        std::string message = vstrprintf(format, args);
+
+        primary_log_writer.write(level, message);
     }
+}
+
+std::string get_logfilepath(const std::string &filepath) {
+    return filepath + "/log_file";
+}
+
+void install_primary_log_writer(const std::string &logfile_name) {
+    primary_log_writer.install(logfile_name);
 }

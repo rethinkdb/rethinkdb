@@ -2,7 +2,9 @@
 #define CLUSTERING_ADMINISTRATION_LOGGER_HPP_
 
 #include <stdio.h>
+#include <fcntl.h>
 
+#include <queue>
 #include <string>
 #include <vector>
 
@@ -61,5 +63,39 @@ private:
 
     DISABLE_COPYING(log_writer_t);
 };
+
+/* Most of the logging we do will be through log_writer_t. However, log_writer_t
+depends on the existence of a thread pool, which is not always the case. Thus,
+primary_log_writer_t exists to perform logging operations when log_writer_t cannot
+be used. */
+
+class primary_log_writer_t {
+public:
+    primary_log_writer_t();
+    ~primary_log_writer_t();
+    void install(const std::string &logfile_name);
+
+private:
+    friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
+    friend void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
+    friend void *write_action(void *arg);
+
+    friend class log_writer_t;
+
+    bool write_in_thread(const log_message_t &msg);
+    void write(log_level_t level, const std::string &msg);
+    bool shutdown;
+    std::string filename;
+    struct timespec uptime_reference;
+    mutex_t write_mutex;
+    struct flock filelock, fileunlock;
+    scoped_fd_t fd;
+    std::queue<log_message_t> message_list;
+    pthread_t worker_thread;
+
+    DISABLE_COPYING(primary_log_writer_t);
+};
+
+void *write_action(void *arg);
 
 #endif /* CLUSTERING_ADMINISTRATION_LOGGER_HPP_ */
