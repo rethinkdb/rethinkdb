@@ -1,3 +1,4 @@
+from query import Expression
 
 ###########################
 # DATABASE ADMINISTRATION #
@@ -9,7 +10,7 @@ class DBCreate(Expression):
 class DBDrop(Expression):
     def __init__(db_name):
         pass
-    
+
 class DBList(Expression):
     pass
 
@@ -23,7 +24,7 @@ class TableCreate(Expression):
 class TableDrop(Expression):
     def __init__(table_name, db_expr=None):
         pass
-    
+
 class TableList(Expression):
     def __init__(db_expr=None):
         pass
