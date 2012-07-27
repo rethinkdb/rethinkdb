@@ -162,7 +162,7 @@ protected:
     };
 
 private:
-    region_map_t<protocol_t, binary_blob_t> get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf) const THROWS_NOTHING;
+    void get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING;
 
     void acquire_superblock_for_read(
             access_t access,

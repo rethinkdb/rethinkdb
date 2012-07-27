@@ -178,7 +178,9 @@ bool btree_store_t<protocol_t>::send_backfill(
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_backfill(token, &txn, &superblock, interruptor);
 
-    region_map_t<protocol_t, binary_blob_t> metainfo = get_metainfo_internal(txn.get(), superblock->get()).mask(start_point.get_domain());
+    region_map_t<protocol_t, binary_blob_t> unmasked_metainfo;
+    get_metainfo_internal(txn.get(), superblock->get(), &unmasked_metainfo);
+    region_map_t<protocol_t, binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
     if (should_backfill(metainfo)) {
         protocol_send_backfill(start_point, chunk_fun, superblock.get(), btree.get(), txn.get(), progress);
         return true;
@@ -222,7 +224,8 @@ void btree_store_t<protocol_t>::reset_data(
     const int expected_change_count = 2;
     acquire_superblock_for_write(rwi_write, expected_change_count, token, &txn, &superblock, interruptor);
 
-    region_map_t<protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock->get());
+    region_map_t<protocol_t, binary_blob_t> old_metainfo;
+    get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
 
     protocol_reset_data(subregion, btree.get(), txn.get(), superblock.get());
@@ -245,7 +248,8 @@ typename btree_store_t<protocol_t>::metainfo_t btree_store_t<protocol_t>::check_
         transaction_t *txn,
         real_superblock_t *superblock) const
         THROWS_NOTHING {
-    region_map_t<protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn, superblock->get());
+    region_map_t<protocol_t, binary_blob_t> old_metainfo;
+    get_metainfo_internal(txn, superblock->get(), &old_metainfo);
 #ifndef NDEBUG
     metainfo_checker.check_metainfo(old_metainfo.mask(metainfo_checker.get_domain()));
 #endif
@@ -285,11 +289,11 @@ void btree_store_t<protocol_t>::do_get_metainfo(UNUSED order_token_t order_token
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor);
 
-    *out = get_metainfo_internal(txn.get(), superblock->get());
+    get_metainfo_internal(txn.get(), superblock->get(), out);
 }
 
 template <class protocol_t>
-region_map_t<protocol_t, binary_blob_t> btree_store_t<protocol_t>::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf) const THROWS_NOTHING {
+void btree_store_t<protocol_t>::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING {
     std::vector<std::pair<std::vector<char>, std::vector<char> > > kv_pairs;
     get_superblock_metainfo(txn, sb_buf, &kv_pairs);   // FIXME: this is inefficient, cut out the middleman (vector)
 
@@ -310,9 +314,8 @@ region_map_t<protocol_t, binary_blob_t> btree_store_t<protocol_t>::get_metainfo_
         ));
     }
     region_map_t<protocol_t, binary_blob_t> res(result.begin(), result.end());
-    // TODO: What?  Why is res.get_domain() equal to universe?
     rassert(res.get_domain() == protocol_t::region_t::universe());
-    return res;
+    *out = res;
 }
 
 template <class protocol_t>
@@ -324,7 +327,8 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_write(rwi_write, 1, token, &txn, &superblock, interruptor);
 
-    region_map_t<protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock->get());
+    region_map_t<protocol_t, binary_blob_t> old_metainfo;
+    get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
 }
 
