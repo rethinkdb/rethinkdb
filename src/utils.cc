@@ -228,14 +228,7 @@ void debug_print_quoted_string(append_only_printf_buffer_t *buf, const uint8_t *
 #ifndef NDEBUG
 // Adds the time/thread id prefix to buf.
 void debugf_prefix_buf(printf_buffer_t<1000> *buf) {
-    struct timespec t;
-
-    int res = clock_gettime(CLOCK_REALTIME, &t);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-
-    format_time(t, buf);
-
-    buf->appendf(" Thread %d: ", get_thread_id());
+    buf->appendf("Thread %d: ", get_thread_id());
 }
 
 void debugf_dump_buf(printf_buffer_t<1000> *buf) {
