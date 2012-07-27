@@ -198,17 +198,21 @@ public:
 #ifndef NDEBUG
         , state_(untouched)
 #endif
-    { }
+    {
+        begin_operation();
+    }
     ~pipeliner_acq_t() {
         rassert(state_ == has_ended_write);
     }
 
+private:
     void begin_operation() {
         rassert(state_ == untouched);
         DEBUG_ONLY_CODE(state_ = has_begun_operation);
         fifo_acq_.enter(&pipeliner_->fifo);
     }
 
+public:
     void done_argparsing() {
         rassert(state_ == has_begun_operation);
         DEBUG_ONLY_CODE(state_ = has_done_argparsing);
@@ -280,7 +284,6 @@ void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i, 
 void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, int argc, char **argv, order_token_t token) {
     // We should already be spawned within a coroutine.
     pipeliner_acq_t pipeliner_acq(pipeliner);
-    pipeliner_acq.begin_operation();
 
     rassert(argc >= 1);
     rassert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
@@ -389,7 +392,6 @@ static bool rget_parse_bound(char *flag, char *key, key_range_t::bound_t *mode_o
 void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char **argv) {
     // We should already be spawned within a coroutine.
     pipeliner_acq_t pipeliner_acq(pipeliner);
-    pipeliner_acq.begin_operation();
 
     if (argc != 6) {
         pipeliner_acq.done_argparsing();
@@ -695,7 +697,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
     // This is _not_ spawned yet.
 
     scoped_ptr_t<pipeliner_acq_t> pipeliner_acq(new pipeliner_acq_t(pipeliner));
-    pipeliner_acq->begin_operation();
 
     const char *invalid_char;
 
@@ -879,7 +880,6 @@ void run_incr_decr(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, 
 void do_incr_decr(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool i, int argc, char **argv, order_token_t token) {
     // We should already be spawned in a coroutine.
     pipeliner_acq_t pipeliner_acq(pipeliner);
-    pipeliner_acq.begin_operation();
 
     /* cmd key delta [noreply] */
     if (argc != 3 && argc != 4) {
@@ -974,7 +974,6 @@ void run_delete(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, sto
 void do_delete(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char **argv, order_token_t token) {
     // This should already be spawned within a coroutine.
     pipeliner_acq_t pipeliner_acq(pipeliner);
-    pipeliner_acq.begin_operation();
 
     /* "delete" key [a number] ["noreply"] */
     if (argc < 2 || argc > 4) {
@@ -1106,7 +1105,6 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
 
         if (args.size() == 0) {
             pipeliner_acq_t pipeliner_acq(&pipeliner);
-            pipeliner_acq.begin_operation();
             pipeliner_acq.done_argparsing();
             pipeliner_acq.begin_write();
             rh.error();
@@ -1145,7 +1143,6 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
             // order tokens)
             if (args.size() > 1) {
                 pipeliner_acq_t pipeliner_acq(&pipeliner);
-                pipeliner_acq.begin_operation();
                 // We block everybody, but who cares?
                 pipeliner_acq.done_argparsing();
                 pipeliner_acq.begin_write();
@@ -1156,7 +1153,6 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
             }
         } else if (!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
             pipeliner_acq_t pipeliner_acq(&pipeliner);
-            pipeliner_acq.begin_operation();
 
             std::vector<std::string> stat_response_lines;
             memcached_stats(args.size(), args.data(), &stat_response_lines);
@@ -1170,7 +1166,6 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
             pipeliner_acq.end_write();
         } else if (!strcmp(args[0], "version")) {
             pipeliner_acq_t pipeliner_acq(&pipeliner);
-            pipeliner_acq.begin_operation();
 
             pipeliner_acq.done_argparsing();
             pipeliner_acq.begin_write();
@@ -1182,7 +1177,6 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
             pipeliner_acq.end_write();
         } else {
             pipeliner_acq_t pipeliner_acq(&pipeliner);
-            pipeliner_acq.begin_operation();
             pipeliner_acq.done_argparsing();
             pipeliner_acq.begin_write();
             rh.error();
@@ -1194,7 +1188,6 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
 
     // Make sure anything that would be running has finished.
     pipeliner_acq_t pipeliner_acq(&pipeliner);
-    pipeliner_acq.begin_operation();
     pipeliner_acq.done_argparsing();
     pipeliner_acq.begin_write();
     pipeliner_acq.end_write();
