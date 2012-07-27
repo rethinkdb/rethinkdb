@@ -10,7 +10,6 @@
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/types.hpp"
-#include "concurrency/auto_drainer.hpp"
 
 #include "perfmon/core.hpp"
 
@@ -34,7 +33,6 @@ struct linux_disk_manager_t : public home_thread_mixin_t {
     virtual void submit_read(fd_t fd, void *buf, size_t count, size_t offset,
         void *account, linux_iocallback_t *cb) = 0;
 
-    auto_drainer_t *auto_drainer;
 private:
     DISABLE_COPYING(linux_disk_manager_t);
 };

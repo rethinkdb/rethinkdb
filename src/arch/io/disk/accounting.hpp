@@ -5,6 +5,7 @@
 #include "containers/intrusive_list.hpp"
 #include "containers/scoped.hpp"
 #include "concurrency/queue/accounting.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "arch/io/disk.hpp"
 
@@ -33,11 +34,14 @@ template<class payload_t>
 class accounting_diskmgr_t : home_thread_mixin_t {
 public:
 
-    explicit accounting_diskmgr_t(int batch_factor, linux_disk_manager_t *par)
+    explicit accounting_diskmgr_t(int batch_factor)
         : producer(&caster),
-          _par(par),
           queue(batch_factor),
-          caster(&queue) { }
+          caster(&queue),
+          auto_drainer(new auto_drainer_t()) { }
+    ~accounting_diskmgr_t() {
+        auto_drainer.reset(); //Make absolutely sure this happens first
+    }
 
     struct account_t;
 
@@ -88,10 +92,10 @@ public:
     };
 
     struct account_t {
-        account_t(accounting_diskmgr_t *par, int pri, int outstanding_requests_limit) :
-            _par(par), _pri(pri),
-            _outstanding_requests_limit(outstanding_requests_limit) { }
-        virtual ~account_t() { rassert(get_thread_id() == _par->home_thread()); }
+        account_t(accounting_diskmgr_t *_par, int _pri, int _outstanding_requests_limit):
+            par(_par), pri(_pri),
+            outstanding_requests_limit(_outstanding_requests_limit) { }
+        virtual ~account_t() { rassert(get_thread_id() == par->home_thread()); }
 
         void push(action_t *action) {
             maybe_init();
@@ -109,16 +113,16 @@ public:
     private:
         void maybe_init(){
             if (!eager_account.has()) {
-                rassert(get_thread_id() == _par->home_thread());
-                eager_account.init(new eager_account_t(_par, _pri, _outstanding_requests_limit));
-                diskmgr_lock.init(new auto_drainer_t::lock_t(_par->_par->auto_drainer));
+                rassert(get_thread_id() == par->home_thread());
+                eager_account.init(new eager_account_t(par, pri, outstanding_requests_limit));
+                accounter_lock.init(par->new_lock());
             }
         }
-        accounting_diskmgr_t *_par;
-        int _pri;
-        int _outstanding_requests_limit;
+        accounting_diskmgr_t *par;
+        int pri;
+        int outstanding_requests_limit;
         scoped_ptr_t<eager_account_t> eager_account;
-        scoped_ptr_t<auto_drainer_t::lock_t> diskmgr_lock;
+        scoped_ptr_t<auto_drainer_t::lock_t> accounter_lock;
     };
 
     void submit(action_t *a) {
@@ -134,11 +138,13 @@ public:
         done_fun(static_cast<action_t *>(p));
     }
 
-    linux_disk_manager_t *_par;
-
+    auto_drainer_t::lock_t *new_lock() {
+        return new auto_drainer_t::lock_t(auto_drainer.get());
+    }
 private:
     accounting_queue_t<action_t *> queue;
     casting_passive_producer_t<action_t *, payload_t *> caster;
+    scoped_ptr_t<auto_drainer_t> auto_drainer;
 };
 
 #endif /* ARCH_IO_DISK_ACCOUNTING_HPP_ */
