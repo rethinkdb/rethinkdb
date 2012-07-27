@@ -57,7 +57,8 @@ public:
         eager_account_t(accounting_diskmgr_t *par, int pri, int outstanding_requests_limit) :
                 parent(par),
                 outstanding_requests_limiter(outstanding_requests_limit == UNLIMITED_OUTSTANDING_REQUESTS ? SEMAPHORE_NO_LIMIT : outstanding_requests_limit),
-                account(&par->queue, &queue, pri) {
+                account(&par->queue, &queue, pri),
+                accounter_lock(par->get_auto_drainer()) {
             rassert(outstanding_requests_limit == UNLIMITED_OUTSTANDING_REQUESTS || outstanding_requests_limit > 0);
         }
 
@@ -87,8 +88,8 @@ public:
         intrusive_list_t<action_t> throttled_queue;
         unlimited_fifo_queue_t<action_t *, intrusive_list_t<action_t> > queue;
         semaphore_t outstanding_requests_limiter;
-
         typename accounting_queue_t<action_t *>::account_t account;
+        auto_drainer_t::lock_t accounter_lock;
     };
 
     struct account_t {
@@ -115,14 +116,12 @@ public:
             if (!eager_account.has()) {
                 rassert(get_thread_id() == par->home_thread());
                 eager_account.init(new eager_account_t(par, pri, outstanding_requests_limit));
-                accounter_lock.init(par->new_lock());
             }
         }
         accounting_diskmgr_t *par;
         int pri;
         int outstanding_requests_limit;
         scoped_ptr_t<eager_account_t> eager_account;
-        scoped_ptr_t<auto_drainer_t::lock_t> accounter_lock;
     };
 
     void submit(action_t *a) {
@@ -138,8 +137,8 @@ public:
         done_fun(static_cast<action_t *>(p));
     }
 
-    auto_drainer_t::lock_t *new_lock() {
-        return new auto_drainer_t::lock_t(auto_drainer.get());
+    auto_drainer_t *get_auto_drainer() {
+        return auto_drainer.get();
     }
 private:
     accounting_queue_t<action_t *> queue;
