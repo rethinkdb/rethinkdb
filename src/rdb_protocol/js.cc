@@ -1,6 +1,5 @@
 #define __STDC_LIMIT_MACROS     // hack. :(
-#include <stdint.h>
-#define MAX_ID UINT32_MAX
+#include <stdint.h>             // for UINT32_MAX
 
 #include "utils.hpp"
 #include <boost/make_shared.hpp>
@@ -9,6 +8,9 @@
 #include "rdb_protocol/jsimpl.hpp"
 
 namespace js {
+
+const id_t MIN_ID = 1;
+const id_t MAX_ID = UINT32_MAX;
 
 // ---------- Utility functions ----------
 // See also rdb_protocol/tofromjson.cc
@@ -63,7 +65,8 @@ runner_t::req_config_t::req_config_t()
 
 env_t::env_t(extproc::job_t::control_t *control)
     : control_(control),
-      should_quit_(false)
+      should_quit_(false),
+      next_id_(MIN_ID)
 {}
 
 env_t::~env_t() {
