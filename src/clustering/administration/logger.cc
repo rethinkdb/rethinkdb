@@ -77,13 +77,14 @@ std::string format_log_message(const log_message_t &m) {
 }
 
 std::string format_log_message_for_console(const log_message_t &m) {
-
     std::string message = m.message;
     std::string message_reformatted;
 
     int prepend_length = format_time(m.timestamp).length() + 12;
-    prepend_length += format_log_level(m.level).length();
-    prepend_length += static_cast<int>(log10(int(m.uptime.tv_sec))) + 1;
+    prepend_length += format_log_level(m.level).length() + 1;
+    if (int(m.uptime.tv_sec) != 0) {
+        prepend_length += static_cast<int>(log10(int(m.uptime.tv_sec)));
+    }
 
     int start = 0, end = int(message.length()) - 1;
     while (start < int(message.length()) && message[start] == '\n') {
@@ -108,6 +109,7 @@ std::string format_log_message_for_console(const log_message_t &m) {
             message_reformatted.push_back(message[i]);
         }
     }
+
     return strprintf("%s %d.%06ds %s: %s\n",
         format_time(m.timestamp).c_str(),
         int(m.uptime.tv_sec),
@@ -458,6 +460,7 @@ bool primary_log_writer_t::write_in_thread(const log_message_t &msg) {
     }
 
     if (fd.get() == -1) {
+        fprintf(stderr, "Error: the log writer has not been assigned a log file. The previous message will not be recorded in the log.\n");
         return false;
     }
 
@@ -481,17 +484,6 @@ bool primary_log_writer_t::write_in_thread(const log_message_t &msg) {
 
 void primary_log_writer_t::write(log_level_t level, const std::string &msg) {
     mutex_t::acq_t write_mutex_acq(&write_mutex);
-
-    if (filename == "") {
-        /* The primary log writer has not yet been installed. */
-        fprintf(stderr, "Error: no log writer is available. Printing to stdout / stderr instead.\n");
-        if (level == log_level_info) {
-            fprintf(stdout, "%s", msg.c_str());
-        } else {
-            fprintf(stderr, "%s", msg.c_str());
-        }
-        return;
-    }
 
     int res;
 
