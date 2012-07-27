@@ -703,7 +703,6 @@ std::string get_primary_key(const std::string &table_name, runtime_environment_t
 boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     if (!js_runner->begun()) {
         pool->assert_thread();
-        //debugf("creating javascript worker\n");
         js_runner->begin(pool);
     }
     return js_runner;
@@ -1082,24 +1081,16 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             if (compiled) {
                 id = t->GetExtension(extension::js_id);
             } else {
-                //debugf("compiling\n");
                 // Not compiled yet. Compile it and add the extension.
-                js::method_handle_t handle;
-                if (!js->compile(&handle, argnames, t->javascript(), &errmsg)) {
+                id = js->compile(argnames, t->javascript(), &errmsg);
+                if (js::INVALID_ID == id) {
                     throw runtime_exc_t("failed to compile javascript: " + errmsg, backtrace);
                 }
-                id = handle.release();
                 t->SetExtension(extension::js_id, (int32_t) id);
             }
 
-            {
-                //debugf("calling\n");
-                // Evaluate the source.
-                js::method_handle_t handle(js.get(), id);
-                result = js->call(&handle, argvals, &errmsg);
-                handle.release();
-            }
-
+            // Evaluate the source.
+            result = js->call(id, argvals, &errmsg);
             if (!result) {
                 throw runtime_exc_t("failed to evaluate javascript: " + errmsg, backtrace);
             }

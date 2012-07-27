@@ -42,26 +42,17 @@ v8::Handle<v8::Value> eval(const std::string &srcstr, std::string *errmsg) {
 }
 
 
-// ---------- handle_t & subclasses ----------
-handle_t::~handle_t() {
-    if (!empty()) release();
+// ---------- scoped_id_t ----------
+scoped_id_t::~scoped_id_t() {
+    if (!empty()) reset();
 }
 
-id_t handle_t::get() const {
-    guarantee(!empty());
-    return id_;
-}
-
-id_t handle_t::release() {
-    guarantee(!empty());
-    parent_ = NULL;
-    return id_;
-}
-
-void handle_t::reset() {
-    guarantee(!empty());
-    parent_->release_id(id_);
-    parent_ = NULL;
+void scoped_id_t::reset(id_t id) {
+    rassert(id_ != id);
+    if (!empty()) {
+        parent_->release_id(id_);
+    }
+    id_ = id;
 }
 
 
@@ -147,13 +138,6 @@ void runner_t::finish() {
     extproc::job_handle_t::release();
 }
 
-void runner_t::create_handle(handle_t *handle, id_t id) {
-    rassert(handle->empty());
-    handle->parent_ = this;
-    handle->id_ = id;
-    DEBUG_ONLY_CODE(on_new_id(id));
-}
-
 void runner_t::job_t::run_job(control_t *control, UNUSED void *extra) {
     // The reason we have env_t is to use it here.
     env_t(control).run();
@@ -171,14 +155,6 @@ runner_t::run_task_t::~run_task_t() {
     rassert(runner_->running_task_);
     DEBUG_ONLY_CODE(runner_->running_task_ = false);
 }
-
-#ifndef NDEBUG
-void runner_t::on_new_id(id_t id) {
-    rassert(connected());
-    rassert(!used_ids_.count(id));
-    used_ids_.insert(id);
-}
-#endif
 
 
 // ---------- tasks ----------
@@ -309,8 +285,7 @@ struct compile_task_t : auto_task_t<compile_task_t> {
     }
 };
 
-bool runner_t::compile(
-    method_handle_t *out,
+id_t runner_t::compile(
     const std::vector<std::string> &args,
     const std::string &source,
     std::string *errmsg,
@@ -325,22 +300,18 @@ bool runner_t::compile(
     }
 
     id_visitor_t v(errmsg);
-    if (!boost::apply_visitor(v, result))
-        return false;
-
-    create_handle(out, v.id_);
-    return true;
+    return new_id(boost::apply_visitor(v, result));
 }
 
 // ----- call() -----
 struct call_task_t : auto_task_t<call_task_t> {
     call_task_t() {}
     call_task_t(id_t id, const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args)
-        : method_id_(id), args_(args) {}
+        : func_id_(id), args_(args) {}
 
-    id_t method_id_;
+    id_t func_id_;
     std::vector<boost::shared_ptr<scoped_cJSON_t> > args_;
-    RDB_MAKE_ME_SERIALIZABLE_2(method_id_, args_);
+    RDB_MAKE_ME_SERIALIZABLE_2(func_id_, args_);
 
     v8::Handle<v8::Value> eval(v8::Handle<v8::Function> func, std::string *errmsg) {
         v8::TryCatch try_catch;
@@ -384,7 +355,7 @@ struct call_task_t : auto_task_t<call_task_t> {
         std::string *errmsg = boost::get<std::string>(&result);
 
         v8::HandleScope handle_scope;
-        v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(env->findValue(method_id_));
+        v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(env->findValue(func_id_));
         rassert(!func.IsEmpty());
 
         v8::Handle<v8::Value> value = eval(func, errmsg);
@@ -403,18 +374,16 @@ struct call_task_t : auto_task_t<call_task_t> {
 };
 
 boost::shared_ptr<scoped_cJSON_t> runner_t::call(
-    const method_handle_t *handle,
+    id_t func_id,
     const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
     std::string *errmsg,
     UNUSED req_config_t *config)
 {
-    rassert(handle->parent_ == this);
-
     // TODO (rntz): use config
     json_result_t result;
 
     {
-        run_task_t run(this, call_task_t(handle->get(), args));
+        run_task_t run(this, call_task_t(func_id, args));
         guarantee(ARCHIVE_SUCCESS == deserialize(this, &result));
     }
 

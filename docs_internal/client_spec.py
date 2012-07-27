@@ -48,6 +48,8 @@ q = r.table('foo.bar').filter(r.all(r.gt(r.attr('age'),
                                          r.attr('candles')),
                                     r.eq(r.attr('name'), 'Michel')))
 
+table('foo.bar').filter(R('age') > R('candles') & R('name') == 'Michel')
+
 q = r.table('foo.bar').filter(r.eq(r['foo'], r.add(r['baz'], 5)))
 
 # Get single row
