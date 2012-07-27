@@ -1,10 +1,10 @@
 #ifndef CONTAINERS_SCOPED_REGEX_HPP_
 #define CONTAINERS_SCOPED_REGEX_HPP_
 
-#include "utils.hpp"
-#include "errors.hpp"
 #include <regex.h>
 #include <string>
+
+#include "errors.hpp"
 
 class scoped_regex_t {
 public:

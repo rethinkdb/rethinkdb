@@ -4,7 +4,6 @@
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/tokenizer.hpp>
-#include <boost/foreach.hpp>
 
 #include "stl_utils.hpp"
 #include "arch/timing.hpp"
@@ -100,7 +99,7 @@ boost::optional<http_res_t> parse_query_params
  uint64_t *timeout) {
     typedef boost::escaped_list_separator<char> separator_t;
     typedef boost::tokenizer<separator_t> tokenizer_t;
-    separator_t commas("\\",",","");
+    separator_t commas("\\", ",", "");
 
     /* We allow users to filter for the stats they want by providing "paths",
        i.e. ERE regular expressions separated by slashes.  We treat these sort

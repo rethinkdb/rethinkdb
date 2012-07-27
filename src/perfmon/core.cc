@@ -1,14 +1,14 @@
 #include <stdarg.h>
 
+#include <list>
+
 #include "errors.hpp"
-#include "logger.hpp"
 #include <boost/bind.hpp>
 #include <boost/tokenizer.hpp>
-#include <boost/foreach.hpp>
-#include <list>
 
 #include "arch/runtime/coroutines.hpp"
 #include "containers/scoped.hpp"
+#include "logger.hpp"
 #include "perfmon/core.hpp"
 
 /* Constructor and destructor register and deregister the perfmon. */
@@ -291,7 +291,7 @@ void perfmon_result_t::splice_into(perfmon_result_t *map) {
 perfmon_filter_t::perfmon_filter_t(const std::set<std::string> &paths) {
     typedef boost::escaped_list_separator<char> separator_t;
     typedef boost::tokenizer<separator_t> tokenizer_t;
-    separator_t slashes("\\","/","");
+    separator_t slashes("\\", "/", "");
 
     for (std::set<std::string>::const_iterator
              str = paths.begin(); str != paths.end(); ++str) {
@@ -302,7 +302,7 @@ perfmon_filter_t::perfmon_filter_t(const std::set<std::string> &paths) {
             for (tokenizer_t::const_iterator it = t.begin(); it != t.end(); ++it) {
                 path->push_back(new scoped_regex_t("^"+(*it)+"$"));
             }
-        } catch (boost::escaped_list_error &e) {
+        } catch (const boost::escaped_list_error &e) {
             logINF("Error: Could not parse %s (%s), skipping.",
                    sanitize_for_logger(*str).c_str(), e.what());
             continue; //Skip this path
@@ -324,8 +324,8 @@ perfmon_filter_t::~perfmon_filter_t() {
    the [perfmon_filter_t] was constructed from, and [active] is the set of paths
    that are still active (i.e. that haven't failed a match yet).  This should
    only be called by [filter]. */
-perfmon_result_t *perfmon_filter_t::subfilter
-(perfmon_result_t *p, size_t depth, std::vector<bool> active) const {
+perfmon_result_t *perfmon_filter_t::subfilter(
+    perfmon_result_t *p, size_t depth, std::vector<bool> active) const {
     if (p->is_string()) {
         std::string *str = p->get_string();
         for (size_t i = 0; i < regexps.size(); ++i) {
