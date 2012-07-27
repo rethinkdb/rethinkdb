@@ -59,7 +59,6 @@ public:
         }
 
         msg_hd = '\0'; //Null terminate it;
-
         fprintf(print_to, "%s", msg);
 
         if (print_to != stderr)

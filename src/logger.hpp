@@ -1,9 +1,8 @@
 #ifndef LOGGER_HPP_
 #define LOGGER_HPP_
 
-#include <string>
-
 #include <stdio.h>
+#include <string>
 
 enum log_level_t { log_level_debug = 0, log_level_info = 1, log_level_warn, log_level_error };
 

@@ -7,8 +7,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <boost/algorithm/string.hpp>
-
 #include "arch/runtime/thread_pool.hpp"   /* for `run_in_blocker_pool()` */
 #include "clustering/administration/persist.hpp"
 #include "concurrency/promise.hpp"
