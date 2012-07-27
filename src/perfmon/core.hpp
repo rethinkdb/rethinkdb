@@ -103,7 +103,7 @@ class perfmon_filter_t {
 public:
     perfmon_filter_t(const std::set<std::string> &paths);
     ~perfmon_filter_t();
-    perfmon_result_t *filter(perfmon_result_t *target) const;
+    void filter(perfmon_result_t *target) const;
 private:
     perfmon_result_t *subfilter(perfmon_result_t *target,
                                 size_t depth, std::vector<bool> active) const;

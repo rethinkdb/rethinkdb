@@ -92,11 +92,12 @@ cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &no
     return machines.release();
 }
 
-boost::optional<http_res_t> parse_query_params
-(const http_req_t &req,
- std::set<std::string> *filter_paths,
- std::set<std::string> *machine_whitelist,
- uint64_t *timeout) {
+boost::optional<http_res_t> parse_query_params(
+    const http_req_t &req,
+    std::set<std::string> *filter_paths,
+    std::set<std::string> *machine_whitelist,
+    uint64_t *timeout) {
+
     typedef boost::escaped_list_separator<char> separator_t;
     typedef boost::tokenizer<separator_t> tokenizer_t;
     separator_t commas("\\", ",", "");

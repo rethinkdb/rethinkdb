@@ -364,8 +364,8 @@ perfmon_result_t *perfmon_filter_t::subfilter(
     }
 }
 
-perfmon_result_t *perfmon_filter_t::filter(perfmon_result_t *p) const {
-    return subfilter(p, 0, std::vector<bool>(regexps.size(), true));
+void perfmon_filter_t::filter(perfmon_result_t *p) const {
+    subfilter(p, 0, std::vector<bool>(regexps.size(), true));
 }
 
 perfmon_collection_t &get_global_perfmon_collection() {
