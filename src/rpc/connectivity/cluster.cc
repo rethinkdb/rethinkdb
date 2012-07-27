@@ -66,7 +66,7 @@ int connectivity_cluster_t::run_t::get_port() {
 
 void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING {
     parent->assert_thread();
-    coro_t::spawn_now(boost::bind(
+    coro_t::spawn_now_deprecated(boost::bind(
         &connectivity_cluster_t::run_t::join_blocking,
         this,
         address,
@@ -418,7 +418,7 @@ void connectivity_cluster_t::run_t::handle(
             if (routing_table.find(it->first) == routing_table.end()) {
                 /* `it->first` is the ID of a peer that our peer is connected
                 to, but we aren't connected to. */
-                coro_t::spawn_now(boost::bind(
+                coro_t::spawn_now_deprecated(boost::bind(
                     &connectivity_cluster_t::run_t::join_blocking, this,
                     it->second,
                     boost::optional<peer_id_t>(it->first),
