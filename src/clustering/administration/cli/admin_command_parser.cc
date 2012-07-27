@@ -563,10 +563,10 @@ admin_cluster_link_t *admin_command_parser_t::get_cluster() {
         if (console_mode) {
             cluster->sync_from();
             size_t machine_count = cluster->machine_count();
-            logINF("Connected to cluster with %ld machine%s, run 'help' for more information\n", machine_count, machine_count > 1 ? "s" : "");
+            fprintf(stdout, "Connected to cluster with %ld machine%s, run 'help' for more information\n", machine_count, machine_count > 1 ? "s" : "");
             size_t num_issues = cluster->issue_count();
             if (num_issues > 0) {
-                logINF("There %s %ld outstanding issue%s, run 'ls issues' for more information\n", num_issues > 1 ? "are" : "is", num_issues, num_issues > 1 ? "s" : "");
+                fprintf(stdout, "There %s %ld outstanding issue%s, run 'ls issues' for more information\n", num_issues > 1 ? "are" : "is", num_issues, num_issues > 1 ? "s" : "");
             }
         }
     }
@@ -880,7 +880,7 @@ void admin_command_parser_t::run_completion(const std::vector<std::string>& comm
     completion_generator(std::vector<std::string>(command_args.begin() + 2, command_args.end()), &completions, command_args[1] == "partial");
 
     for (size_t i = 0; i < completions.len; ++i) {
-        logINF("%s\n", completions.cvec[i]);
+        printf("%s\n", completions.cvec[i]);
     }
 
     linenoiseFreeCompletions(&completions);
@@ -985,7 +985,7 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
                     console_mode = false;
                     throw;
                 } else {
-                    logERR("%s\n", ex.what());
+                    fprintf(stderr, "%s\n", ex.what());
                 }
             }
 

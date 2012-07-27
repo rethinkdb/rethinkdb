@@ -199,17 +199,12 @@ void admin_print_table(const std::vector<std::vector<std::string> >& table) {
     }
 
     // Print out each line, spacing each column
-    std::string output;
-    char buffer[1024];
     for (size_t i = 0; i < table.size(); ++i) {
         for (size_t j = 0; j < table[i].size(); ++j) {
-            sprintf(buffer, "%-*s", column_widths[j] + 2, table[i][j].c_str());
-            output.append(buffer);
+            printf("%-*s", column_widths[j] + 2, table[i][j].c_str());
         }
-        sprintf(buffer, "\n");
-        output.append(buffer);
+        printf("\n");
     }
-    logINF("%s", output.c_str());
 }
 
 // Truncate a uuid for easier user-interface
@@ -1244,7 +1239,7 @@ void admin_cluster_link_t::do_admin_list_directory(const admin_command_parser_t:
 void admin_cluster_link_t::do_admin_list_issues(const admin_command_parser_t::command_data& data UNUSED) {
     std::list<clone_ptr_t<global_issue_t> > issues = admin_tracker.issue_aggregator.get_issues();
     for (std::list<clone_ptr_t<global_issue_t> >::iterator i = issues.begin(); i != issues.end(); ++i) {
-        logINF("%s", (*i)->get_description().c_str());
+        puts((*i)->get_description().c_str());
     }
 }
 
@@ -1681,7 +1676,7 @@ void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser
         throw admin_retry_exc_t();
     }
 
-    logINF("uuid: %s\n", uuid_to_str(new_id).c_str());
+    printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
 
 void admin_cluster_link_t::do_admin_create_namespace(const admin_command_parser_t::command_data& data) {
@@ -1727,7 +1722,7 @@ void admin_cluster_link_t::do_admin_create_namespace(const admin_command_parser_
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
-    logINF("uuid: %s\n", uuid_to_str(new_id).c_str());
+    printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
 
 template <class protocol_t>
@@ -2242,9 +2237,9 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                                                  const cluster_semilattice_metadata_t& cluster_metadata,
                                                  const std::string& protocol) {
     if (ns.name.in_conflict() || ns.name.get().empty()) {
-        logINF("namespace %s\n", uuid_to_str(ns_id).c_str());
+        printf("namespace %s\n", uuid_to_str(ns_id).c_str());
     } else {
-        logINF("namespace '%s' %s\n", ns.name.get().c_str(), uuid_to_str(ns_id).c_str());
+        printf("namespace '%s' %s\n", ns.name.get().c_str(), uuid_to_str(ns_id).c_str());
     }
 
     // Print primary datacenter
@@ -2254,21 +2249,21 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             dc->second.is_deleted() ||
             dc->second.get().name.in_conflict() ||
             dc->second.get().name.get().empty()) {
-            logINF("primary datacenter %s\n", uuid_to_str(ns.primary_datacenter.get()).c_str());
+            printf("primary datacenter %s\n", uuid_to_str(ns.primary_datacenter.get()).c_str());
         } else {
-            logINF("primary datacenter '%s' %s\n", dc->second.get().name.get().c_str(), uuid_to_str(ns.primary_datacenter.get()).c_str());
+            printf("primary datacenter '%s' %s\n", dc->second.get().name.get().c_str(), uuid_to_str(ns.primary_datacenter.get()).c_str());
         }
     } else {
-        logINF("primary datacenter <conflict>\n");
+        printf("primary datacenter <conflict>\n");
     }
 
     // Print port
     if (ns.port.in_conflict()) {
-        logINF("running %s protocol on port <conflict>\n", protocol.c_str());
+        printf("running %s protocol on port <conflict>\n", protocol.c_str());
     } else {
-        logINF("running %s protocol on port %i\n", protocol.c_str(), ns.port.get());
+        printf("running %s protocol on port %i\n", protocol.c_str(), ns.port.get());
     }
-    logINF("\n");
+    printf("\n");
 
     {
         std::vector<std::vector<std::string> > table;
@@ -2330,17 +2325,17 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             }
         }
 
-        logINF("affinity with %ld datacenter%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
+        printf("affinity with %ld datacenter%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
         if (table.size() > 1) {
             admin_print_table(table);
         }
-        logINF("\n");
+        printf("\n");
     }
 
     if (ns.shards.in_conflict()) {
-        logINF("shards in conflict\n");
+        printf("shards in conflict\n");
     } else if (ns.blueprint.in_conflict()) {
-        logINF("cluster blueprint in conflict\n");
+        printf("cluster blueprint in conflict\n");
     } else {
         // Print shard hosting
         std::vector<std::vector<std::string> > table;
@@ -2359,7 +2354,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                                       cluster_metadata.machines.machines,
                                       &table);
 
-        logINF("%ld replica%s for %ld shard%s\n",
+        printf("%ld replica%s for %ld shard%s\n",
                table.size() - 1, table.size() == 2 ? "" : "s",
                ns.shards.get().size(), ns.shards.get().size() == 1 ? "" : "s");
         if (table.size() > 1) {
@@ -2433,11 +2428,11 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
                                                   const cluster_semilattice_metadata_t& cluster_metadata) {
     std::vector<std::vector<std::string> > table;
     if (dc.name.in_conflict() || dc.name.get().empty()) {
-        logINF("datacenter %s\n", uuid_to_str(dc_id).c_str());
+        printf("datacenter %s\n", uuid_to_str(dc_id).c_str());
     } else {
-        logINF("datacenter '%s' %s\n", dc.name.get().c_str(), uuid_to_str(dc_id).c_str());
+        printf("datacenter '%s' %s\n", dc.name.get().c_str(), uuid_to_str(dc_id).c_str());
     }
-    logINF("\n");
+    printf("\n");
 
     // Get a list of machines in the datacenter
     {
@@ -2459,11 +2454,11 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
         }
     }
 
-    logINF("%ld machine%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
+    printf("%ld machine%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
     if (table.size() > 1) {
         admin_print_table(table);
     }
-    logINF("\n");
+    printf("\n");
 
     // Get a list of namespaces hosted by the datacenter
     table.clear();
@@ -2480,7 +2475,7 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
     add_single_datacenter_affinities(dc_id, cluster_metadata.dummy_namespaces.namespaces, "dummy", &table);
     add_single_datacenter_affinities(dc_id, cluster_metadata.memcached_namespaces.namespaces, "memcached", &table);
 
-    logINF("%ld namespace%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
+    printf("%ld namespace%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
     if (table.size() > 1) {
         admin_print_table(table);
     }
@@ -2530,9 +2525,9 @@ void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
                                                const machine_semilattice_metadata_t& machine,
                                                const cluster_semilattice_metadata_t& cluster_metadata) {
     if (machine.name.in_conflict() || machine.name.get().empty()) {
-        logINF("machine %s\n", uuid_to_str(machine_id).c_str());
+        printf("machine %s\n", uuid_to_str(machine_id).c_str());
     } else {
-        logINF("machine '%s' %s\n", machine.name.get().c_str(), uuid_to_str(machine_id).c_str());
+        printf("machine '%s' %s\n", machine.name.get().c_str(), uuid_to_str(machine_id).c_str());
     }
 
     // Print datacenter
@@ -2542,14 +2537,14 @@ void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
             dc->second.is_deleted() ||
             dc->second.get().name.in_conflict() ||
             dc->second.get().name.get().empty()) {
-            logINF("in datacenter %s\n", uuid_to_str(machine.datacenter.get()).c_str());
+            printf("in datacenter %s\n", uuid_to_str(machine.datacenter.get()).c_str());
         } else {
-            logINF("in datacenter '%s' %s\n", dc->second.get().name.get().c_str(), uuid_to_str(machine.datacenter.get()).c_str());
+            printf("in datacenter '%s' %s\n", dc->second.get().name.get().c_str(), uuid_to_str(machine.datacenter.get()).c_str());
         }
     } else {
-        logINF("in datacenter <conflict>\n");
+        printf("in datacenter <conflict>\n");
     }
-    logINF("\n");
+    printf("\n");
 
     // Print hosted replicas
     std::vector<std::vector<std::string> > table;
@@ -2565,7 +2560,7 @@ void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
     namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.dummy_namespaces.namespaces, &table);
     namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.memcached_namespaces.namespaces, &table);
 
-    logINF("hosting %ld replica%s from %ld namespace%s\n", table.size() - 1, table.size() == 2 ? "" : "s", namespace_count, namespace_count == 1 ? "" : "s");
+    printf("hosting %ld replica%s from %ld namespace%s\n", table.size() - 1, table.size() == 2 ? "" : "s", namespace_count, namespace_count == 1 ? "" : "s");
     if (table.size() > 1) {
         admin_print_table(table);
     }
@@ -2712,12 +2707,12 @@ void admin_cluster_link_t::resolve_value(vclock_t<T> *field) {
 
     std::vector<T> values = field->get_all_values();
 
-    logINF("%ld values\n", values.size());
+    printf("%ld values\n", values.size());
     for (size_t i = 0; i < values.size(); ++i) {
-        logINF(" %ld: %s\n", i + 1, admin_value_to_string(values[i]).c_str());
+        printf(" %ld: %s\n", i + 1, admin_value_to_string(values[i]).c_str());
     }
-    logINF(" 0: cancel\n");
-    logINF("select: ");
+    printf(" 0: cancel\n");
+    printf("select: ");
 
     std::string selection;
     bool getline_res = getline(stdin, &selection);
