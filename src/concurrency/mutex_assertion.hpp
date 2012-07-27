@@ -137,6 +137,34 @@ private:
     DISABLE_COPYING(rwi_lock_assertion_t);
 };
 
+struct semaphore_assertion_t : public home_thread_mixin_t {
+    struct acq_t {
+        acq_t() : parent(NULL) { }
+        explicit acq_t(semaphore_assertion_t *p) : parent(p) {
+            parent->assert_thread();
+            rassert(parent->capacity > 0);
+            parent->capacity--;
+        }
+        void reset() {
+            parent->assert_thread();
+            parent->capacity++;
+            parent = NULL;
+        }
+        ~acq_t() {
+            if (parent) {
+                reset();
+            }
+        }
+    private:
+        semaphore_assertion_t *parent;
+        DISABLE_COPYING(acq_t);
+    };
+    explicit semaphore_assertion_t(int cap) : capacity(cap) { }
+private:
+    int capacity;
+    DISABLE_COPYING(semaphore_assertion_t);
+};
+
 #else /* NDEBUG */
 
 struct mutex_assertion_t {
@@ -181,6 +209,21 @@ private:
     friend struct read_acq_t;
     friend struct write_acq_t;
     DISABLE_COPYING(rwi_lock_assertion_t);
+};
+
+struct semaphore_assertion_t {
+    struct acq_t {
+        acq_t() { }
+        explicit acq_t(semaphore_assertion_t *) { }
+        void reset() { }
+        ~acq_t() { }
+    private:
+        DISABLE_COPYING(acq_t);
+    };
+    explicit semaphore_assertion_t(int) { }
+private:
+    int capacity;
+    DISABLE_COPYING(semaphore_assertion_t);
 };
 
 #endif /* NDEBUG */

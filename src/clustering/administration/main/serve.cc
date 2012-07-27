@@ -228,6 +228,7 @@ try {
         metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
         DEBUG_ONLY(ports.port_offset, )
         &dummy_namespace_repo,
+        &local_issue_tracker,
         &perfmon_repo);
 
     parser_maker_t<memcached_protocol_t, memcache_listener_t> memcached_parser_maker(
@@ -235,6 +236,7 @@ try {
         metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
         DEBUG_ONLY(ports.port_offset, )
         &memcached_namespace_repo,
+        &local_issue_tracker,
         &perfmon_repo);
 
     rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
@@ -267,6 +269,7 @@ try {
             directory_read_manager.get_root_view(),
             &memcached_namespace_repo,
             &admin_tracker,
+            &local_issue_tracker,
             machine_id,
             web_assets);
 

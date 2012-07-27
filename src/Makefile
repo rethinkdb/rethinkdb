@@ -376,6 +376,7 @@ SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 # High level build targets
 
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets drivers
+	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
 
 ifeq ($(UNIT_TESTS),1)
 all: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
@@ -694,7 +695,8 @@ ifeq ($(NO_TCMALLOC),0)
 		(echo "    Failed to link in TCMalloc. Either install it, or make with NO_TCMALLOC=1." && \
 		false)
 endif
-	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
+
+
 
 # The unittests use gtest, which uses macros that expand into switch statements which don't contain
 # default cases. So we have to remove the -Wswitch-default argument for them.

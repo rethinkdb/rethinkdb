@@ -8,7 +8,7 @@
 
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
-#include "clustering/resource.hpp"
+#include "clustering/generic/resource.hpp"
 #include "concurrency/auto_drainer.hpp"
 
 template <class metadata_t>

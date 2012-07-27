@@ -16,6 +16,10 @@ distribution_app_t::distribution_app_t(boost::shared_ptr<semilattice_read_view_t
 { }
 
 http_res_t distribution_app_t::handle(const http_req_t &req) {
+    if (req.method != GET) {
+        return http_res_t(405);
+    }
+
     boost::optional<std::string> maybe_n_id = req.find_query_param("namespace");
 
     if (!maybe_n_id || !is_uuid(*maybe_n_id)) {

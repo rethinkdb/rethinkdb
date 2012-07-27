@@ -200,6 +200,10 @@ progress_app_t::progress_app_t(clone_ptr_t<watchable_t<std::map<peer_id_t, clust
 { }
 
 http_res_t progress_app_t::handle(const http_req_t &req) {
+    if (req.method != GET) {
+        return http_res_t(405);
+    }
+
     /* This function is an absolute mess, basically because we need to hack
      * through a mess of different data structures to find the various
      * backfills that are in progress and query the person serving the backfill
