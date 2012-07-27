@@ -43,4 +43,4 @@ with driver.Metacluster() as metacluster:
         http.check_no_issues()
         workload.run_after()
 
-    cluster.check_and_close()
+    cluster.check_and_stop()

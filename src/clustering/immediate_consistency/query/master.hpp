@@ -9,10 +9,6 @@
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
 
-#define ALLOCATION_CHUNK 50
-#define TARGET_OPERATION_QUEUE_LENGTH 5000
-#define MAX_ALLOCATION 1000
-
 template<class protocol_t>
 class master_t {
 public:
@@ -35,6 +31,9 @@ public:
     master_business_card_t<protocol_t> get_business_card();
 
 private:
+    static const int MAX_ALLOCATION;
+    static const int ALLOCATION_CHUNK;
+
     struct parser_lifetime_t {
         parser_lifetime_t(master_t *m, master_access_business_card_t bc)
             : allocate_mailbox(bc.allocation_address), allocated_ops(0),
