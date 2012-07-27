@@ -473,7 +473,6 @@ bool primary_log_writer_t::write_in_thread(const log_message_t &msg) {
         funlockfile(stderr);
     }
 
-
     if (fd.get() == -1) {
         if (filename != "") {
             fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));

@@ -38,8 +38,6 @@ int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
 }
 
 void print_hd(const void *vbuf, size_t offset, size_t ulength) {
-    flockfile(stderr);
-
     const char *buf = reinterpret_cast<const char *>(vbuf);
     ssize_t length = ulength;
 
@@ -99,8 +97,6 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
         length -= 16;
     }
     logERR("%s", output.c_str());
-
-    funlockfile(stderr);
 }
 
 void format_time(struct timespec time, append_only_printf_buffer_t *buf) {
@@ -243,15 +239,7 @@ void debugf_prefix_buf(printf_buffer_t<1000> *buf) {
 }
 
 void debugf_dump_buf(printf_buffer_t<1000> *buf) {
-    // Writing a single buffer in one shot like this makes it less
-    // likely that stderr debugfs and stdout printfs get mixed
-    // together, and probably makes it faster too.  (We can't simply
-    // flockfile both stderr and stdout because there's no established
-    // rule about which one should be locked first.)
-    size_t nitems = fwrite(buf->data(), 1, buf->size(), stderr);
-    guarantee_err(nitems == size_t(buf->size()), "trouble writing to stderr");
-    int res = fflush(stderr);
-    guarantee_err(res == 0, "fflush(stderr) failed");
+    logDBG("%s", buf->c_str());
 }
 
 void debugf(const char *msg, ...) {
