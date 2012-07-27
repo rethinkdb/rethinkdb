@@ -159,7 +159,7 @@ struct semaphore_assertion_t : public home_thread_mixin_t {
         semaphore_assertion_t *parent;
         DISABLE_COPYING(acq_t);
     };
-    semaphore_assertion_t(int cap) : capacity(cap) { }
+    explicit semaphore_assertion_t(int cap) : capacity(cap) { }
 private:
     int capacity;
     DISABLE_COPYING(semaphore_assertion_t);
@@ -220,7 +220,7 @@ struct semaphore_assertion_t {
     private:
         DISABLE_COPYING(acq_t);
     };
-    semaphore_assertion_t(int) { }
+    explicit semaphore_assertion_t(int) { }
 private:
     int capacity;
     DISABLE_COPYING(semaphore_assertion_t);
