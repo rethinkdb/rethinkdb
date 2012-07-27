@@ -68,7 +68,7 @@ public:
 
     ~linux_templated_disk_manager_t() {
         rassert(outstanding_txn == 0, "Closing a file with outstanding txns\n");
-        delete auto_drainer; //We do this explicitly to make sure it happens last.
+        delete auto_drainer; //We do this explicitly to make sure it happens first.
     }
 
     void *create_account(int pri, int outstanding_requests_limit) {
