@@ -19,7 +19,7 @@ Later, rewrite this so that we have a special interface through which to order
 garbage collection. */
 
 data_block_manager_t::data_block_manager_t(const log_serializer_dynamic_config_t *_dynamic_config, extent_manager_t *em, log_serializer_t *_serializer, const log_serializer_on_disk_static_config_t *_static_config, log_serializer_stats_t *_stats)
-    : stats(_stats), shutdown_callback(NULL), state(state_unstarted), dynamic_config(_dynamic_config), 
+    : stats(_stats), shutdown_callback(NULL), state(state_unstarted), dynamic_config(_dynamic_config),
       static_config(_static_config), extent_manager(em), serializer(_serializer),
       next_active_extent(0), gc_state(extent_manager->extent_size), gc_stats(stats)
 {
