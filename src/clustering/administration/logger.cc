@@ -254,6 +254,7 @@ private:
 
 TLS_with_init(log_writer_t *, global_log_writer, NULL);
 TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
+TLS_with_init(int *, log_writer_block, 0);
 
 log_writer_t::log_writer_t(const std::string &filename, local_issue_tracker_t *it) : filename(filename), issue_tracker(it) {
     uptime_reference = primary_log_writer.uptime_reference;
@@ -299,6 +300,7 @@ void log_writer_t::install_on_thread(int i) {
     rassert(TLS_get_global_log_writer() == NULL);
     TLS_set_global_log_drainer(new auto_drainer_t);
     TLS_set_global_log_writer(this);
+    TLS_set_log_writer_block(0);
 }
 
 void log_writer_t::uninstall_on_thread(int i) {
@@ -334,14 +336,21 @@ void log_writer_t::write_blocking(const log_message_t &msg, std::string *error_o
     // Print the log message to stderr or stdout (stdout only if it's an info log)
     if (msg.level == log_level_info) {
         output_fileno = STDOUT_FILENO;
+        flockfile(stdout);
     } else {
         output_fileno = STDERR_FILENO;
+        flockfile(stderr);
     }
     res = ::write(output_fileno, console_formatted.data(), console_formatted.length());
     if (res != int(console_formatted.length())) {
         *error_out = std::string("cannot write to standard error: ") + strerror(errno);
         *ok_out = false;
         return;
+    }
+    if (msg.level == log_level_info) {
+        funlockfile(stdout);
+    } else {
+        funlockfile(stderr);
     }
 
     if (fd.get() == -1) {
@@ -420,7 +429,6 @@ primary_log_writer_t::primary_log_writer_t() : shutdown(false) {
     pthread_create(&worker_thread, NULL, &write_action, (void*) this);
 }
 
-/* Go through the thread queue and wait for them all to finish. */
 primary_log_writer_t::~primary_log_writer_t() {
     shutdown = true;
     pthread_join(worker_thread, NULL);
@@ -429,7 +437,6 @@ primary_log_writer_t::~primary_log_writer_t() {
 void primary_log_writer_t::install(const std::string &logfile_name) {
     rassert(filename == "", "Attempted to install a primary_log_writer_t that was already installed.");
     filename = logfile_name;
-    fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
 }
 
 void *write_action(void *arg) {
@@ -451,17 +458,31 @@ bool primary_log_writer_t::write_in_thread(const log_message_t &msg) {
     // print the log message to stderr or stdout (stdout only if it's an info log)
     if (msg.level == log_level_info) {
         output_fileno = STDOUT_FILENO;
+        flockfile(stdout);
     } else {
         output_fileno = STDERR_FILENO;
+        flockfile(stderr);
     }
     res = ::write(output_fileno, console_formatted.data(), console_formatted.length());
     if (res != int(console_formatted.length())) {
         return false;
     }
+    if (msg.level == log_level_info) {
+        funlockfile(stdout);
+    } else {
+        funlockfile(stderr);
+    }
+
 
     if (fd.get() == -1) {
-        fprintf(stderr, "Error: the log writer has not been assigned a log file. The previous message will not be recorded in the log.\n");
-        return false;
+        if (filename != "") {
+            fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
+        }
+        if (fd.get() == -1) {
+            fprintf(stderr, "Error: the log writer has not been assigned a log file. The previous message will not be recorded in the log.\n");
+            fprintf(stderr, "CURRENT FILE: %s\n", filename.c_str());
+            return false;
+        }
     }
 
     res = fcntl(fd.get(), F_SETLKW, &filelock);
@@ -531,7 +552,8 @@ void log_coro(log_writer_t *writer, log_level_t level, const std::string &messag
 /* Declared in `logger.hpp`, not `clustering/administration/logger.hpp` like the
 other things in this file. */
 void log_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t level, const char *format, ...) {
-    if (log_writer_t *writer = TLS_get_global_log_writer()) {
+    log_writer_t *writer;
+    if ((writer = TLS_get_global_log_writer()) && TLS_get_log_writer_block() == 0) {
         auto_drainer_t::lock_t lock(TLS_get_global_log_drainer());
 
         va_list args;
@@ -552,7 +574,8 @@ void log_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t 
 }
 
 void vlog_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t level, const char *format, va_list args) {
-    if (log_writer_t *writer = TLS_get_global_log_writer()) {
+    log_writer_t *writer;
+    if ((writer = TLS_get_global_log_writer()) && TLS_get_log_writer_block() == 0) {
         auto_drainer_t::lock_t lock(TLS_get_global_log_drainer());
 
         std::string message = vstrprintf(format, args);
@@ -563,6 +586,15 @@ void vlog_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t
 
         primary_log_writer.write(level, message);
     }
+}
+
+void disable_thread_log_writer() {
+    TLS_set_log_writer_block(TLS_get_log_writer_block() + 1);
+}
+
+void enable_thread_log_writer() {
+    TLS_set_log_writer_block(TLS_get_log_writer_block() - 1);
+    rassert(TLS_get_log_writer_block() >= 0);
 }
 
 std::string get_logfilepath(const std::string &filepath) {

@@ -14,7 +14,7 @@
 #include "backtrace.hpp"
 
 void report_user_error(const char *msg, ...) {
-    flockfile(stderr);
+    disable_thread_log_writer();
 
     va_list args;
     va_start(args, msg);
@@ -23,11 +23,11 @@ void report_user_error(const char *msg, ...) {
     logERR("\n");
     va_end(args);
 
-    funlockfile(stderr);
+    enable_thread_log_writer();
 }
 
 void report_fatal_error(const char *file, int line, const char *msg, ...) {
-    flockfile(stderr);
+    disable_thread_log_writer();
 
     va_list args;
     va_start(args, msg);
@@ -45,7 +45,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 
     logERR("\nExiting.\n\n");
 
-    funlockfile(stderr);
+    enable_thread_log_writer();
 }
 
 /* Handlers for various signals and for unexpected exceptions or calls to std::terminate() */

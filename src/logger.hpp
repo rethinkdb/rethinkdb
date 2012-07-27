@@ -15,6 +15,10 @@ void install_primary_log_writer(const std::string &logfile_name);
 This header file exists so that anything can call them without having to include
 the same things that `clustering/administration/logger.hpp` does. */
 
+void disable_thread_log_writer();
+
+void enable_thread_log_writer();
+
 void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...)
     __attribute__ ((format (printf, 4, 5)));
 
