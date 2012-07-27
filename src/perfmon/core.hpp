@@ -108,6 +108,7 @@ private:
     perfmon_result_t *subfilter(perfmon_result_t *target,
                                 size_t depth, std::vector<bool> active) const;
     std::vector<std::vector<scoped_regex_t *> > regexps; //regexps[PATH][DEPTH]
+    DISABLE_COPYING(perfmon_filter_t);
 };
 
 class perfmon_result_t {
