@@ -239,6 +239,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                 namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata;
 
                 namespace_metadata.name = vclock_t<std::string>("Welcome", our_machine_id);
+                namespace_metadata.primary_key = vclock_t<std::string>("id", our_machine_id);
                 namespace_metadata.port = vclock_t<int>(11213, our_machine_id);
 
                 persistable_blueprint_t<rdb_protocol_t> blueprint;

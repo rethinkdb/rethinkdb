@@ -679,6 +679,27 @@ private:
     backtrace_t backtrace;
 };
 
+typedef boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > > > maybe_ns_info_t;
+
+maybe_ns_info_t get_namespace_info(const std::string &name, runtime_environment_t *env) {
+    return env->semilattice_metadata->get().rdb_namespaces.get_namespace_by_name(name);
+}
+
+std::string get_primary_key(const std::string &table_name, runtime_environment_t *env, const backtrace_t &backtrace) {
+    maybe_ns_info_t ns_info = get_namespace_info(table_name, env);
+
+    if (!ns_info) {
+        throw runtime_exc_t(strprintf("Namespace %s not found or names in conflict.", table_name.c_str()), backtrace);
+    }
+
+    if (ns_info->second.get().primary_key.in_conflict()) {
+        throw runtime_exc_t(strprintf("Namespace %s has an in conflict primary key, this should really never happen.", ns_info->second.get().name.get().c_str()), backtrace);
+    }
+
+    return ns_info->second.get().primary_key.get();
+}
+
+
 boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     if (!js_runner->begun()) {
         pool->assert_thread();
@@ -725,13 +746,13 @@ void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const back
     }
 }
 
-void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env, const backtrace_t &backtrace) {
-    if (!data->GetObjectItem("id")) {
-        throw runtime_exc_t("Must have a field named id.", backtrace);
+void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::string &pk, boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env, const backtrace_t &backtrace) {
+    if (!data->GetObjectItem(pk.c_str())) {
+        throw runtime_exc_t(strprintf("Must have a field named %s (The primary key).", pk.c_str()), backtrace);
     }
 
     try {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(data->GetObjectItem("id"))), data));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(data->GetObjectItem(pk.c_str()))), data));
         ns_access.get_namespace_if()->write(write, order_token_t::ignore, env->interruptor);
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
@@ -764,11 +785,11 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 
                     env->scope.put_in_scope(w->update().mapping().arg(), json);
                     boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
-                    if (!cJSON_Equal(json->GetObjectItem("id"),
-                                     val->GetObjectItem("id"))) {
+                    if (!cJSON_Equal(json->GetObjectItem(view.primary_key.c_str()),
+                                     val->GetObjectItem(view.primary_key.c_str()))) {
                         error++;
                     } else {
-                        insert(view.access, val, env, backtrace);
+                        insert(view.access, view.primary_key, val, env, backtrace);
                         updated++;
                     }
                 }
@@ -782,7 +803,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 
                 int deleted = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-                    point_delete(view.access, json->GetObjectItem("id"), env, backtrace);
+                    point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
                     deleted++;
                 }
 
@@ -800,10 +821,10 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
 
                     if (val->type() == cJSON_NULL) {
-                        point_delete(view.access, json->GetObjectItem("id"), env, backtrace);
+                        point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
                         ++deleted;
                     } else {
-                        insert(view.access, val, env, backtrace);
+                        insert(view.access, view.primary_key, val, env, backtrace);
                         ++modified;
                     }
                 }
@@ -813,12 +834,14 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             break;
         case WriteQuery::INSERT:
             {
+                std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref()->table_name(), env, backtrace);
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_insert()->mutable_table_ref(), env, backtrace);
+
                 for (int i = 0; i < w->insert().terms_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> data = eval(w->mutable_insert()->mutable_terms(i), env,
                         backtrace.with(strprintf("term:%d", i)));
 
-                    insert(ns_access, data, env, backtrace.with(strprintf("term:%d", i)));
+                    insert(ns_access, pk, data, env, backtrace.with(strprintf("term:%d", i)));
                 }
 
                 res->add_response(strprintf("{\"inserted\": %d}", w->insert().terms_size()));
@@ -826,6 +849,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             break;
         case WriteQuery::INSERTSTREAM:
             {
+                std::string pk = get_primary_key(w->mutable_insert_stream()->mutable_table_ref()->table_name(), env, backtrace);
                 boost::shared_ptr<json_stream_t> stream = eval_stream(w->mutable_insert_stream()->mutable_stream(), env, backtrace.with("stream"));
 
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_insert_stream()->mutable_table_ref(), env, backtrace);
@@ -833,7 +857,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 int inserted = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
                     inserted++;
-                    insert(ns_access, json, env, backtrace);
+                    insert(ns_access, pk, json, env, backtrace);
                 }
 
                 res->add_response(strprintf("{\"inserted\": %d}", inserted));
@@ -873,7 +897,17 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 /* Now we insert the new value. */
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
 
-                insert(ns_access, new_val, env, backtrace);
+                /* Get the primary key */
+                std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref()->table_name(), env, backtrace);
+
+                /* Make sure that the primary key wasn't changed. */
+                if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
+                                 cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
+                    throw runtime_exc_t(strprintf("Point updates are not allowed to change the primary key (%s).", pk.c_str()), backtrace);
+                }
+
+
+                insert(ns_access, pk, new_val, env, backtrace);
 
                 res->add_response(strprintf("{\"updated\": %d, \"errors\": %d}", 1, 0));
             }
@@ -1002,16 +1036,10 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             break;
         case Term::GETBYKEY:
             {
-                boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
-                    env->semilattice_metadata->get().rdb_namespaces.get_namespace_by_name(t->get_by_key().table_ref().table_name());
+                std::string pk = get_primary_key(t->get_by_key().table_ref().table_name(), env, backtrace);
 
-                if (!namespace_info) {
-                    throw runtime_exc_t(strprintf("Namespace %s either not found, ambigious or namespace metadata in conflict.", t->get_by_key().table_ref().table_name().c_str()),
-                        backtrace.with("table_ref"));
-                }
-
-                if (t->get_by_key().attrname() != "id") {
-                    throw runtime_exc_t(strprintf("Attribute: %s is not the primary key and thus cannot be selected upon.", t->get_by_key().attrname().c_str()),
+                if (t->get_by_key().attrname() != pk) {
+                    throw runtime_exc_t(strprintf("Attribute: %s is not the primary key (%s) and thus cannot be selected upon.", t->get_by_key().attrname().c_str(), pk.c_str()),
                         backtrace.with("attrname"));
                 }
 
@@ -2041,7 +2069,7 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
             {
                 view_t view = eval_view(c->mutable_args(0), env, backtrace.with("arg:0"));
                 predicate_t p(c->builtin().filter().predicate(), *env, backtrace);
-                return view_t(view.access, boost::shared_ptr<json_stream_t>(new filter_stream_t<predicate_t>(view.stream, p)));
+                return view_t(view.access, view.primary_key, boost::shared_ptr<json_stream_t>(new filter_stream_t<predicate_t>(view.stream, p)));
             }
             break;
         case Builtin::ORDERBY:
@@ -2051,7 +2079,7 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
 
                 boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(view.stream));
                 sorted_stream->sort(o);
-                return view_t(view.access, sorted_stream);
+                return view_t(view.access, view.primary_key, sorted_stream);
             }
             break;
         case Builtin::LIMIT:
@@ -2069,7 +2097,7 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
                     throw runtime_exc_t("The limit must be a nonnegative integer.", backtrace.with("arg:1"));
                 }
 
-                return view_t(pview.access, boost::shared_ptr<json_stream_t>(new limit_stream_t(pview.stream, limit)));
+                return view_t(pview.access, pview.primary_key, boost::shared_ptr<json_stream_t>(new limit_stream_t(pview.stream, limit)));
             }
             break;
         case Builtin::SKIP:
@@ -2087,7 +2115,7 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
                     throw runtime_exc_t("The offset must be a nonnegative integer.", backtrace.with("arg:1"));
                 }
 
-                return view_t(pview.access, boost::shared_ptr<json_stream_t>(new skip_stream_t(pview.stream, offset)));
+                return view_t(pview.access, pview.primary_key, boost::shared_ptr<json_stream_t>(new skip_stream_t(pview.stream, offset)));
             }
             break;
         case Builtin::RANGE:
@@ -2147,8 +2175,9 @@ view_t eval_view(Term *t, runtime_environment_t *env, const backtrace_t &backtra
 
 view_t eval_view(Term::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(t->mutable_table_ref(), env, backtrace);
+    std::string pk = get_primary_key(t->mutable_table_ref()->table_name(), env, backtrace);
     boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace));
-    return view_t(ns_access, stream);
+    return view_t(ns_access, pk, stream);
 }
 
 } //namespace query_language
