@@ -13,8 +13,6 @@ module 'MachineView', ->
         template: Handlebars.compile $('#machine_view-container-template').html()
 
         events: ->
-            'click a.set-datacenter': 'set_datacenter'
-            'click a.rename-machine': 'rename_machine'
             'click .close': 'close_alert'
 
         max_log_entries_to_render: 3
@@ -26,19 +24,13 @@ module 'MachineView', ->
             @title = new MachineView.Title(model: @model)
             @profile = new MachineView.Profile(model: @model)
             @data = new MachineView.Data(model: @model)
+            @assignments = new MachineView.Assignments(model: @model)
+            @operations = new MachineView.Operations(model: @model)
             @stats_panel = new Vis.StatsPanel(@model.get_stats_for_performance)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
             @logs = new LogView.Container
                 route: "/ajax/log/"+@model.get('id')+"_?"
                 template_header: Handlebars.compile $('#log-header-machine-template').html()
-
-            @model.on 'change:name', @render
-        
-        rename_machine: (event) ->
-            event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'machine'
-            rename_modal.render()
-            @title.update()
 
         render: =>
             log_render '(rendering) machine view: container'
@@ -59,15 +51,16 @@ module 'MachineView', ->
             # display the data on the machines
             @.$('.data').html @data.render().$el
 
+            # display the data on the machines
+            @.$('.assignments').html @assignments.render().$el
+
+            # display the operations
+            @.$('.operations').html @operations.render().$el
+
             # log entries
             @.$('.recent-log-entries').html @logs.render().$el
 
             return @
-
-        set_datacenter: (event) =>
-            event.preventDefault()
-            set_datacenter_modal = new ServerView.SetDatacenterModal
-            set_datacenter_modal.render [@model]
 
         close_alert: (event) ->
             event.preventDefault()
@@ -87,20 +80,11 @@ module 'MachineView', ->
         className: 'machine-info-view'
         template: Handlebars.compile $('#machine_view_title-template').html()
         initialize: =>
-            @name = @model.get('name')
-            @model.on 'change:name', @update
+            @model.on 'change:name', @render
         
-        update: =>
-            @render()
-            ###
-            if @name isnt @model.get('name')
-                @name = @model.get('name')
-                @render()
-            ###
-
         render: =>
             @.$el.html @template
-                name: @name
+                name: @model.get('name')
             return @
 
         destroy: =>
@@ -155,9 +139,9 @@ module 'MachineView', ->
         template: Handlebars.compile $('#machine_view_data-template').html()
 
         initialize: =>
-            @model.on 'all', @render
-            directory.on 'all', @render
-
+            @directory_entry = directory.get @model.get 'id'
+            @directory_entry.on 'change:memcached_namespaces', @render
+            @namespaces_with_listeners = {}
         render: =>
             json = {}
             # If the machine is reachable, add relevant json
@@ -168,10 +152,63 @@ module 'MachineView', ->
                     if machine_uuid is @model.get('id')
                         for shard, role of peer_roles
                             if role isnt 'role_nothing'
+                                keys = namespace.compute_shard_rows_approximation shard
                                 _shards[_shards.length] =
-                                    role: role
                                     shard: shard
                                     name: human_readable_shard shard
+                                    keys: keys if typeof keys is 'string'
+                if _shards.length > 0
+                    if not @namespaces_with_listeners[namespace.get('id')]?
+                        @namespaces_with_listeners[namespace.get('id')] = true
+                        namespace.load_key_distr_once()
+                        namespace.on 'change:key_distr', @render
+
+                    _namespaces.push
+                        shards: _shards
+                        name: namespace.get('name')
+                        uuid: namespace.get('id')
+
+            json = _.extend json,
+                data:
+                    namespaces: _namespaces
+        
+            # Reachability
+            _.extend json,
+                status: DataUtils.get_machine_reachability(@model.get('id'))
+
+            @.$el.html @template(json)
+            return @
+
+        fetch_key_distr: (namespace) =>
+            namespace.load_key_distr_once @render
+
+        destroy: =>
+            for namespace_id of @namespace_with_listeners
+                namespaces.get(namespace_id).off 'change:key_distr', @render
+            @directory_entry.on 'change:memcached_namespaces', @render
+
+
+    class @Assignments extends Backbone.View
+        className: 'machine-info-view'
+        template: Handlebars.compile $('#machine_view-assignments-template').html()
+
+        initialize: =>
+            @directory_entry = directory.get @model.get 'id'
+            @directory_entry.on 'change:memcached_namespaces', @render
+
+        render: =>
+            json = {}
+            # If the machine is reachable, add relevant json
+            _namespaces = []
+            for namespace in namespaces.models
+                _shards = []
+                for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
+                    if machine_uuid is @model.get('id')
+                        for shard, role of peer_roles
+                            _shards[_shards.length] =
+                                role: role
+                                shard: shard
+                                name: human_readable_shard shard
                 if _shards.length > 0
                     _namespaces[_namespaces.length] =
                         shards: _shards
@@ -189,5 +226,30 @@ module 'MachineView', ->
             return @
 
         destroy: =>
-            @model.off 'all', @render
-            directory.off 'all', @render
+            @directory_entry.on 'change:memcached_namespaces', @render
+
+
+
+
+    class @Operations extends Backbone.View
+        className: 'namespace-other'
+
+        template: Handlebars.compile $('#machine_view-operations-template').html()
+        events: ->
+            'click .rename_server-button': 'rename_server'
+            'click .change_datacenter-button': 'change_datacenter'
+
+        rename_server: (event) ->
+            event.preventDefault()
+            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'machine'
+            rename_modal.render()
+
+        change_datacenter: (event) =>
+            event.preventDefault()
+            set_datacenter_modal = new ServerView.SetDatacenterModal
+            set_datacenter_modal.render [@model]
+
+
+        render: =>
+            @.$el.html @template {}
+            return @
