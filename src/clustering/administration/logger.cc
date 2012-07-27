@@ -57,7 +57,7 @@ std::string format_log_message(const log_message_t &m) {
             message_reformatted.append(LOGGER_NEWLINE);
         } else if (message[i] < ' ' || message[i] > '~') {
 #ifndef NDEBUG
-            crash("We can't have newlines, tabs or special characters in log "
+            crash("We can't have tabs or other special characters in log "
                 "messages because then it would be difficult to parse the log "
                 "file. Message: %s", message.c_str());
 #else
@@ -80,26 +80,14 @@ std::string format_log_message_for_console(const log_message_t &m) {
     std::string message = m.message;
     std::string message_reformatted;
 
-    int prepend_length = format_time(m.timestamp).length() + 12;
-    prepend_length += format_log_level(m.level).length() + 1;
-    if (int(m.uptime.tv_sec) != 0) {
-        prepend_length += static_cast<int>(log10(int(m.uptime.tv_sec)));
-    }
-
-    int start = 0, end = int(message.length()) - 1;
-    while (start < int(message.length()) && message[start] == '\n') {
-        start++;
-    }
-    while (end >= 0 && message[end] == '\n') {
-        end--;
-    }
-    for (int i = start; i <= end; i++) {
+    for (int i = 0; i < int(message.length()); i++) {
         if (message[i] == '\n') {
-            message_reformatted.push_back('\n');
-            message_reformatted.append(prepend_length, ' ');
+            if (i != int(message.length()) - 1) {
+                message_reformatted.push_back('\n');
+            }
         } else if (message[i] < ' ' || message[i] > '~') {
 #ifndef NDEBUG
-            crash("We can't have newlines, tabs or special characters in log "
+            crash("We can't have tabs or other special characters in log "
                 "messages because then it would be difficult to parse the log "
                 "file. Message: %s", message.c_str());
 #else
@@ -110,11 +98,7 @@ std::string format_log_message_for_console(const log_message_t &m) {
         }
     }
 
-    return strprintf("%s %d.%06ds %s: %s\n",
-        format_time(m.timestamp).c_str(),
-        int(m.uptime.tv_sec),
-        int(m.uptime.tv_nsec / 1000),
-        format_log_level(m.level).c_str(),
+    return strprintf("%s\n",
         message_reformatted.c_str()
         );
 }
@@ -479,7 +463,6 @@ bool primary_log_writer_t::write_in_thread(const log_message_t &msg) {
         }
         if (fd.get() == -1) {
             fprintf(stderr, "Error: the log writer has not been assigned a log file. The previous message will not be recorded in the log.\n");
-            fprintf(stderr, "CURRENT FILE: %s\n", filename.c_str());
             return false;
         }
     }
