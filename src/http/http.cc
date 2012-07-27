@@ -9,9 +9,6 @@
 #include "arch/arch.hpp"
 #include "logger.hpp"
 
-#include <stdarg.h>
-#include <stdio.h>
-
 static const char *resource_parts_sep_char = "/";
 static boost::char_separator<char> resource_parts_sep(resource_parts_sep_char, "", boost::keep_empty_tokens);
 

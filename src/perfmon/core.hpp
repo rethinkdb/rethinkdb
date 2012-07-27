@@ -101,7 +101,7 @@ private:
 
 class perfmon_filter_t {
 public:
-    perfmon_filter_t(const std::set<std::string> &paths);
+    explicit perfmon_filter_t(const std::set<std::string> &paths);
     ~perfmon_filter_t();
     void filter(perfmon_result_t *target) const;
 private:
