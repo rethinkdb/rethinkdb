@@ -18,9 +18,8 @@ void report_user_error(const char *msg, ...) {
 
     va_list args;
     va_start(args, msg);
-    //logSTDERR("\nError: ");
+    //logSTDERR("Error: ");
     vlogERR(msg, args);
-    logERR("\n");
     va_end(args);
 
     enable_thread_log_writer();
@@ -31,19 +30,18 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 
     va_list args;
     va_start(args, msg);
-    logERR("\nError in %s at line %d:\n", file, line);
+    logERR("Error in %s at line %d:", file, line);
     vlogERR(msg, args);
-    logERR("\n");
     va_end(args);
 
     /* Don't print backtraces in valgrind mode because valgrind issues lots of spurious
     warnings when print_backtrace() is run. */
 #if !defined(VALGRIND)
-    logERR("\nBacktrace:\n");
+    logERR("Backtrace:");
     log_backtrace();
 #endif
 
-    logERR("\nExiting.\n\n");
+    logERR("Exiting.");
 
     enable_thread_log_writer();
 }

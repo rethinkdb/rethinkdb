@@ -45,7 +45,7 @@ bool check_existence(const std::string& file_path) {
 
 void run_rethinkdb_create(const std::string &filepath, const std::string &machine_name, const io_backend_t io_backend, bool *result_out) {
     if (check_existence(filepath)) {
-        logERR("ERROR: The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
+        logERR("The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
         *result_out = false;
         return;
     }
@@ -61,7 +61,8 @@ void run_rethinkdb_create(const std::string &filepath, const std::string &machin
 
     int res = mkdir(filepath.c_str(), 0755);
     if (res != 0) {
-        logINF("Could not create directory: %s\n", errno_to_string(errno).c_str());
+        logERR("Could not create directory: %s\n", errno_to_string(errno).c_str());
+        *result_out = false;
         return;
     }
 
