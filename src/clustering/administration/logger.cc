@@ -497,23 +497,26 @@ bool fallback_log_writer_t::write(const log_message_t &msg) {
             fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
         }
         if (fd.get() == -1) {
-            fprintf(stderr, "Error: the log writer has not been assigned a log file. The previous message will not be recorded in the log.\n");
+            fprintf(stderr, "(The log writer has not been assigned a log file. The previous message will not be recorded in the log.)\n");
             return false;
         }
     }
 
     res = fcntl(fd.get(), F_SETLKW, &filelock);
     if (res != 0) {
+        fprintf(stderr, "(Failed to lock the log file. The previous message will not be recorded in the log.)\n");
         return false;
     }
 
     res = ::write(fd.get(), formatted.data(), formatted.length());
     if (res != int(formatted.length())) {
+        fprintf(stderr, "(Failed to write to the log file. The previous message will not be recorded in the log.)\n");
         return false;
     }
 
     res = fcntl(fd.get(), F_SETLK, &fileunlock);
     if (res != 0) {
+        fprintf(stderr, "(Failed to unlock the log file.)\n");
         return false;
     }
 
