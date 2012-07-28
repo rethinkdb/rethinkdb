@@ -56,16 +56,14 @@ private:
     void write(const log_message_t &msg);
     void write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out);
     void tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out);
-    std::string filename;
     mutex_t write_mutex;
-    scoped_fd_t fd;
     local_issue_tracker_t *issue_tracker;
     scoped_ptr_t<local_issue_tracker_t::entry_t> issue;
 
     DISABLE_COPYING(thread_pool_log_writer_t);
 };
 
-void install_primary_log_writer(const std::string &logfile_name);
+void install_fallback_log_writer(const std::string &logfile_name);
 
 class thread_log_writer_disabler_t {
     public:

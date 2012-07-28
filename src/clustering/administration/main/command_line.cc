@@ -415,7 +415,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
     std::string filepath = vm["directory"].as<std::string>();
     std::string logfilepath = get_logfilepath(filepath);
-    install_primary_log_writer(logfilepath);
+    install_fallback_log_writer(logfilepath);
 
     std::string machine_name = vm["name"].as<std::string>();
 
@@ -437,7 +437,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     std::string filepath = vm["directory"].as<std::string>();
     std::string logfilepath = get_logfilepath(filepath);
-    install_primary_log_writer(logfilepath);
+    install_fallback_log_writer(logfilepath);
 
     std::vector<host_and_port_t> joins;
     if (vm.count("join") > 0) {
@@ -537,7 +537,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
      }
 
     std::string logfilepath = vm["log-file"].as<std::string>();
-    install_primary_log_writer(logfilepath);
+    install_fallback_log_writer(logfilepath);
 
     std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
     int port = vm["port"].as<int>();
@@ -582,7 +582,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
     std::string filepath = vm["directory"].as<std::string>();
     std::string logfilepath = get_logfilepath(filepath);
-    install_primary_log_writer(logfilepath);
+    install_fallback_log_writer(logfilepath);
 
     std::string machine_name = vm["name"].as<std::string>();
     std::vector<host_and_port_t> joins;

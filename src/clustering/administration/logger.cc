@@ -277,9 +277,9 @@ class fallback_log_writer_t {
 public:
     fallback_log_writer_t();
     void install(const std::string &logfile_name);
+    friend class thread_pool_log_writer_t;
 
 private:
-    friend thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_tracker_t *issue_tracker);
     friend void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t);
     friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
     friend void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
@@ -292,7 +292,7 @@ private:
     scoped_fd_t fd;
 
     DISABLE_COPYING(fallback_log_writer_t);
-} primary_log_writer;
+} fallback_log_writer;
 
 
 
@@ -300,7 +300,7 @@ TLS_with_init(thread_pool_log_writer_t *, global_log_writer, NULL);
 TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
 TLS_with_init(int *, log_writer_block, 0);
 
-thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_tracker_t *it) : filename(primary_log_writer.filename), issue_tracker(it) {
+thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_tracker_t *it) : issue_tracker(it) {
     pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::install_on_thread, this, _1));
 }
 
@@ -383,15 +383,15 @@ void thread_pool_log_writer_t::write_blocking(const log_message_t &msg, std::str
     }
     funlockfile(stderr);
 
-    if (fd.get() == -1) {
-        fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
-        if (fd.get() == -1) {
+    if (fallback_log_writer.fd.get() == -1) {
+        fallback_log_writer.fd.reset(open(fallback_log_writer.filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
+        if (fallback_log_writer.fd.get() == -1) {
             *error_out = std::string("cannot open log file: ") + strerror(errno);
             *ok_out = false;
             return;
         }
     }
-    res = ::write(fd.get(), formatted.data(), formatted.length());
+    res = ::write(fallback_log_writer.fd.get(), formatted.data(), formatted.length());
     if (res != int(formatted.length())) {
         *error_out = std::string("cannot write to log file: ") + strerror(errno);
         *ok_out = false;
@@ -420,7 +420,7 @@ bool operator>=(const struct timespec &t1, const struct timespec &t2) {
 
 void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
     try {
-        file_reverse_reader_t reader(filename);
+        file_reverse_reader_t reader(fallback_log_writer.filename);
         std::string line;
         while (int(messages_out->size()) < max_lines && reader.get_next(&line) && !*cancel) {
             if (line == "" || line[line.length() - 1] != '\n') {
@@ -460,6 +460,8 @@ fallback_log_writer_t::fallback_log_writer_t() {
 void fallback_log_writer_t::install(const std::string &logfile_name) {
     rassert(filename == "", "Attempted to install a fallback_log_writer_t that was already installed.");
     filename = logfile_name;
+
+    fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
 }
 
 bool fallback_log_writer_t::write(const log_message_t &msg) {
@@ -510,7 +512,7 @@ void fallback_log_writer_t::initiate_write(log_level_t level, const std::string 
 void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t) {
     on_thread_t thread_switcher(writer->home_thread());
 
-    log_message_t log_msg = assemble_log_message(level, message, primary_log_writer.uptime_reference);
+    log_message_t log_msg = assemble_log_message(level, message, fallback_log_writer.uptime_reference);
     writer->write(log_msg);
 }
 
@@ -534,7 +536,7 @@ void vlog_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t
     } else {
         std::string message = vstrprintf(format, args);
 
-        primary_log_writer.initiate_write(level, message);
+        fallback_log_writer.initiate_write(level, message);
     }
 }
 
@@ -547,6 +549,6 @@ thread_log_writer_disabler_t::~thread_log_writer_disabler_t() {
     rassert(TLS_get_log_writer_block() >= 0);
 }
 
-void install_primary_log_writer(const std::string &logfile_name) {
-    primary_log_writer.install(logfile_name);
+void install_fallback_log_writer(const std::string &logfile_name) {
+    fallback_log_writer.install(logfile_name);
 }
