@@ -1,7 +1,5 @@
 <script id="machine_view-container-template" type="text/x-handlebars-template">
     <div class="main_title"></div>
-    <div id="user-alert-space"></div>
-
     <div class="two-panel-section">
         <div class="panel-left-unbalanced profile"></div>
 
@@ -19,6 +17,7 @@
         <li><a href="#machine-log-entries" data-toggle="tab">Recent log entries</a></li>
     </ul>
     <div class="tab-content">  
+        <div id="user-alert-space"></div>
         <div class="tab-pane active" id="machine-statistics">
             <div class="section machine-stats"></div>
         </div>
@@ -171,3 +170,9 @@
         {{/if}}
     </p>
 </script>
+
+<script id="outdated_data-template" type="text/x-handlebars-template">
+    <p>Something went wrong. The data of the interface might be outdated. <br/>
+    Please refresh.</p>
+</script>
+

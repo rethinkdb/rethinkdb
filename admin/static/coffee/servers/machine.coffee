@@ -305,23 +305,53 @@ module 'MachineView', ->
             shard = $(event.target).data('shard')
             namespace_id = $(event.target).data('namespace_id')
             namespace = namespaces.get(namespace_id)
+            shard_key = JSON.stringify(shard)
+            model = @model
 
-            post_data = {}
-            post_data[namespace.get('protocol')+'_namespaces'] = {}
-            post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = {}
-            post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['primary_pinnings'] = namespace.get('primary_pinnings')
+            confirmation_modal = new UIComponents.ConfirmationDialogModal
+            confirmation_modal.on_submit = ->
+                @.$('.btn-primary').button('loading')
+                @.$('.cancel').button('loading')
 
-            shard_key = '['+JSON.stringify(shard[0])+', '+JSON.stringify(shard[1])+']'
-            post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['primary_pinnings'][shard_key] = @model.get('id')
+                post_data = {}
+                post_data[namespace.get('protocol')+'_namespaces'] = {}
+                post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = {}
+                post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['primary_pinnings'] = namespace.get('primary_pinnings')
+                post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'] = namespace.get('secondary_pinnings')
+
+
+                old_master = post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['primary_pinnings'][shard_key]
+                shard_key = JSON.stringify(shard)
+
+                post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['primary_pinnings'][shard_key] = model.get('id')
+
+                for mid, index in post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key]
+                    if mid is model.get('id')
+                        post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].splice(index, 1)
+                        break
+
+                num_replicas = namespace.get('replica_affinities')[model.get('datacenter_uuid')]
+                if post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].length >= num_replicas
+                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].pop()
+                post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].push old_master
+                
+                $.ajax
+                    processData: false
+                    url: @url
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify(post_data)
+                    success: @on_success
+                    error: @on_error
+
 
             #TODO Double check if can become secondary
-            confirmation_modal = new UIComponents.ConfirmationDialogModal
             confirmation_modal.render("Are you sure you want to make the machine <strong>#{@model.get('name')}</strong> a primary machine for the shard <strong>#{JSON.stringify(shard)}</strong> of the namespace <strong>#{namespace.get('name')}</strong>?",
                 "/ajax/semilattice",
-                JSON.stringify(post_data),
+                '',
                 (response) =>
                     apply_diffs(response)
-                    # Set the link's text to a loading state
+
                     $link = @.$('a.make-master')
                     $link.text $link.data('loading-text')
 
@@ -338,7 +368,6 @@ module 'MachineView', ->
             shard = $(event.target).data('shard')
             namespace_id = $(event.target).data('namespace_id')
             namespace = namespaces.get(namespace_id)
-            shard_key = '['+JSON.stringify(shard[0])+', '+JSON.stringify(shard[1])+']'
             shard_key = JSON.stringify(shard)
             model = @model
         
@@ -351,8 +380,7 @@ module 'MachineView', ->
                     post_data = {}
                     post_data[namespace.get('protocol')+'_namespaces'] = {}
                     post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = {}
-                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'] = {}
-                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key] = namespace.get('secondary_pinnings')[shard_key]
+                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'] = namespace.get('secondary_pinnings')
 
                     num_replicas = namespace.get('replica_affinities')[model.get('datacenter_uuid')]
                     if post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].length >= num_replicas
@@ -418,7 +446,7 @@ module 'MachineView', ->
                     post_data = {}
                     post_data[namespace.get('protocol')+'_namespaces'] = {}
                     post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = {}
-                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['primary_pinnings'] = {}
+                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['primary_pinnings'] = namespace.get('primary_pinnings')
                     post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['primary_pinnings'][shard_key] = new_master
 
                     $.ajax
