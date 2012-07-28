@@ -14,7 +14,20 @@
 #include "backtrace.hpp"
 #include "clustering/administration/logger.hpp"
 
+bool crashed = false; // to prevent crashing within crashes
+
 void report_user_error(const char *msg, ...) {
+    if (crashed) {
+        va_list args;
+        va_start(args, msg);
+        fprintf(stderr, "Crashing while already crashed. Printing error message to stderr.\n");
+        vfprintf(stderr, msg, args);
+        va_end(args);
+        return;
+    }
+
+    crashed = true;
+
     thread_log_writer_disabler_t disabler;
 
     va_list args;
@@ -25,6 +38,17 @@ void report_user_error(const char *msg, ...) {
 }
 
 void report_fatal_error(const char *file, int line, const char *msg, ...) {
+    if (crashed) {
+        va_list args;
+        va_start(args, msg);
+        fprintf(stderr, "Crashing while already crashed. Printing error message to stderr.\n");
+        vfprintf(stderr, msg, args);
+        va_end(args);
+        return;
+    }
+
+    crashed = true;
+
     thread_log_writer_disabler_t disabler;
 
     va_list args;
