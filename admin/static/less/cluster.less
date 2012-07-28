@@ -13,6 +13,10 @@
 @light_yellow: #FFE6B3;
 @light_green: #CDE9CA;
 
+@alert-yellow: #FCF8E3;
+@alert-yellow-border: #FBEED5;
+@alert-text_color: #C09853;
+
 /* Clear utility */
 .clearboth { clear: both; }
 .clearleft { clear: left; }
@@ -1310,6 +1314,9 @@
                 -webkit-border-radius: 3px;
                 -moz-border-radius: 3px;
             }
+            h4{
+                height: 22px;
+            }
             .master{
                 background: #3A87AD;
             }
@@ -1324,6 +1331,25 @@
             }
         }
     }
+
+    .machine_assignments-view{
+        .action-container{
+            margin: 10px 0px;
+            overflow: auto;
+            .reason{
+                background: #FCF8E3;
+                background: @alert-yellow;
+                border: 1px solid @alert-yellow-border;
+                color: #777; //@alert-text_color;
+                padding: 8px 15px;
+                width: 500px;
+                }
+            input{
+                float: right;
+            }
+        }
+    }
+
 }
 
 /*

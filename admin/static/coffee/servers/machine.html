@@ -101,7 +101,33 @@
             <li class="shard_li">
                 {{humanize_role role}}
                 <h4>Shard {{name}}</h4>
-                <p>Make secondary</p>
+                {{#if display_master}}
+                    <div class="action-container">
+                        <input type="button" {{#if display_master_desactivated}}disabled="disabled"{{/if}}
+                            data-shard="{{shard}}"
+                            data-namespace_id="{{namespace_id}}"
+                            class="btn make_master{{#if display_master_desactivated}} disabled{{/if}}" value="Make master" /> 
+                    {{#if reason_master}}<div class="reason">{{reason_master}}</div>{{/if}}
+                    </div>
+                {{/if}}
+                {{#if display_secondary}}
+                    <div class="action-container">
+                        <input type="button" {{#if display_secondary_desactivated}}disabled="disabled"{{/if}}
+                            data-shard="{{shard}}"
+                            data-namespace_id="{{namespace_id}}"
+                            class="btn make_secondary{{#if display_secondary_desactivated}} disabled{{/if}}" value="Make secondary" /> 
+                    {{#if reason_secondary}}<div class="reason">{{reason_secondary}}</div>{{/if}}
+                    </div>
+                {{/if}}
+                {{#if display_nothing}}
+                    <div class="action-container">
+                        <input type="button" {{#if display_nothing_desactivated}}disabled="disabled"{{/if}}
+                            data-shard="{{shard}}"
+                            data-namespace_id="{{namespace_id}}"
+                            class="btn make_nothing{{#if display_nothing_desactivated}} disabled{{/if}}" value="Remove role" /> 
+                    {{#if reason_nothing}}<div class="reason">{{reason_nothing}}</div>{{/if}}
+                    </div>
+                {{/if}}
             </li>
             {{/each}}
         </ul>
@@ -110,12 +136,18 @@
 </script>
 
 
+<script id="alert-set_server-template" type="text/x-handlebars-template">
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>You successfully set this server as a {{role}} for the shard {{shard}} of the namespace {{namespace_name}}</p>
+    </div>
+</script>
 
 <script id="machine_view-operations-template" type="text/x-handlebars-template">
     <h3 class="title">Operations on this server</h3>
     <div class="other_section rename_server">
         <input type="button" class="btn other_button rename_server-button" value="Rename"/>
-        <p>Rename the serve</p>
+        <p>Rename the server</p>
     </div>
     <div class="other_section rename_namespace">
         <input type="button" class="btn other_button change_datacenter-button" value="Change datacenter"/>

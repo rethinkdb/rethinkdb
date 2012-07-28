@@ -189,12 +189,20 @@ module 'MachineView', ->
 
 
     class @Assignments extends Backbone.View
-        className: 'machine-info-view'
+        className: 'machine_assignments-view'
         template: Handlebars.compile $('#machine_view-assignments-template').html()
+        alert_set_server_template: Handlebars.compile $('#alert-set_server-template').html()
+
+
+        events:
+            'click .make_master': 'make_master'
+            'click .make_secondary': 'make_secondary'
+            'click .make_nothing': 'make_nothing'
 
         initialize: =>
             @directory_entry = directory.get @model.get 'id'
             @directory_entry.on 'change:memcached_namespaces', @render
+            @namespaces_with_listeners = {}
 
         render: =>
             json = {}
@@ -205,10 +213,75 @@ module 'MachineView', ->
                 for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
                     if machine_uuid is @model.get('id')
                         for shard, role of peer_roles
-                            _shards[_shards.length] =
+                            new_shard =
                                 role: role
                                 shard: shard
                                 name: human_readable_shard shard
+                                namespace_id: namespace.get('id')
+                            
+                            switch role
+                                when 'role_primary'
+                                    new_shard.display_master = false
+
+                                    if namespace.get('replica_affinities')[@model.get('datacenter_uuid')] > 0
+                                        new_shard.display_secondary = true
+                                    else
+                                        new_shard.display_secondary = true
+                                        new_shard.display_secondary_desactivated = true
+                                        new_shard.reason_secondary = "You need a replica to replace this master, please increase your number of replicas."
+
+                                    if namespace.get('replica_affinities')[@model.get('datacenter_uuid')] > 1
+                                        new_shard.display_nothing = true
+                                        new_shard.display_nothing_desactivated = true
+                                        new_shard.reason_nothing = "First set this server as a secondary before removing it."
+                                    else
+                                        new_shard.display_nothing = true
+                                        new_shard.display_nothing_desactivated = true
+                                        new_shard.reason_nothing = "You need at least one replica up to date and set this server as a secondary before removing all responsabilities."
+
+
+                                when 'role_secondary'
+                                    if namespace.get('primary_uuid') is @model.get('datacenter_uuid')
+                                        new_shard.display_master = true
+                                    else
+                                        new_shard.display_master = true
+                                        new_shard.display_master_desactivated = true
+                                        new_shard.reason_master = "The server's datacenter is not the primary one for this namespace."
+
+                                    new_shard.display_secondary = false
+
+                                    num_machines_in_datacenter = 0
+                                    for machine in machines.models
+                                        if machine.get('datacenter_uuid') is @model.get('datacenter_uuid')
+                                            num_machines_in_datacenter++
+                                    if num_machines_in_datacenter > namespace.get('ack_expectations')
+                                        new_shard.display_nothing = true
+                                    else
+                                        new_shard.display_nothing = true
+                                        new_shard.display_nothing_desactivated = true
+                                        new_shard.reason_nothing = "Lower your number of replicas or add a machine in this datacenter to avoid unsatisfiable goals."
+
+                                when 'role_nothing'
+                                    new_shard.display_master = true
+                                    new_shard.display_master_desactivated = true
+                                    if @model.get('datacenter_uuid')?
+                                        if namespace.get('primary_uuid') is @model.get('datacenter_uuid')
+                                            new_shard.reason_master = "The server must be a secondary before becoming a master"
+                                        else
+                                            new_shard.reason_master = "The server's datacenter is not the primary for this namespace"
+                                    else
+                                        new_shard.reason_master = "This server is not assigned to any datacenter"
+
+                                    new_shard.display_secondary = true
+                                    if @model.get('datacenter_uuid')?
+                                        if namespace.get('replica_affinities')[@model.get('datacenter_uuid')] < 1
+                                            new_shard.display_master_desactivated = true
+                                            new_shard.reason_master = "You have to increase the number of replicas before setting this machine as a secondary"
+                                    else
+                                        new_shard.display_master_desactivated = true
+                                        new_shard.reason_master = "This server is not assigned to any datacenter"
+
+                            _shards.push new_shard
                 if _shards.length > 0
                     _namespaces[_namespaces.length] =
                         shards: _shards
@@ -224,6 +297,142 @@ module 'MachineView', ->
             
             @.$el.html @template(json)
             return @
+
+        make_master: (event) =>
+            event.preventDefault()
+            shard = $(event.target).data('shard')
+            namespace_id = $(event.target).data('namespace_id')
+            namespace = namespaces.get(namespace_id)
+
+            post_data = {}
+            post_data[namespace.get('protocol')+'_namespaces'] = {}
+            post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = {}
+            post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['primary_pinnings'] = namespace.get('primary_pinnings')
+
+            shard_key = '['+JSON.stringify(shard[0])+', '+JSON.stringify(shard[1])+']'
+            post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['primary_pinnings'][shard_key] = @model.get('id')
+
+            #TODO Double check if can become secondary
+            confirmation_modal = new UIComponents.ConfirmationDialogModal
+            confirmation_modal.render("Are you sure you want to make the machine <strong>#{@model.get('name')}</strong> a primary machine for the shard <strong>#{JSON.stringify(shard)}</strong> of the namespace <strong>#{namespace.get('name')}</strong>?",
+                "/ajax/semilattice",
+                JSON.stringify(post_data),
+                (response) =>
+                    apply_diffs(response)
+                    # Set the link's text to a loading state
+                    $link = @.$('a.make-master')
+                    $link.text $link.data('loading-text')
+
+                    clear_modals()
+                    $('#user-alert-space').html @alert_set_server_template
+                        role: 'primary'
+                        shard: shard_key
+                        namespace_name: namespace.get('name')
+                    @render()
+            )
+
+        make_secondary: (event) =>
+            event.preventDefault()
+            shard = $(event.target).data('shard')
+            namespace_id = $(event.target).data('namespace_id')
+            namespace = namespaces.get(namespace_id)
+            shard_key = '['+JSON.stringify(shard[0])+', '+JSON.stringify(shard[1])+']'
+            model = @model
+        
+            if namespace.get('blueprint')['peers_roles'][@model.get('id')][shard_key] is 'role_nothing'
+                confirmation_modal = new UIComponents.ConfirmationDialogModal
+                confirmation_modal.on_submit = ->
+                    @.$('.btn-primary').button('loading')
+                    @.$('.cancel').button('loading')
+
+                    post_data = {}
+                    post_data[namespace.get('protocol')+'_namespaces'] = {}
+                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = {}
+                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'] = {}
+                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key] = namespace.get('secondary_pinnings')[shard_key]
+
+                    num_replicas = namespace.get('replica_affinities')[model.get('datacenter_uuid')]
+                    if post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].length >= num_replicas
+                        post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].pop()
+                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].push model.get('id')
+                        
+                    $.ajax
+                        processData: false
+                        url: @url
+                        type: 'POST'
+                        contentType: 'application/json'
+                        data: JSON.stringify(post_data)
+                        success: @on_success
+                        error: @on_error
+
+                        
+                confirmation_modal.render("Are you sure you want to make the machine <strong>#{@model.get('name')}</strong> a secondary machine for the shard <strong>#{JSON.stringify(shard)}</strong> of the namespace <strong>#{namespace.get('name')}</strong>?",
+                    "/ajax/semilattice",
+                    '',
+                    (response) =>
+                        apply_diffs(response)
+                        # Set the link's text to a loading state
+                        $link = @.$('a.make-master')
+                        $link.text $link.data('loading-text')
+
+                        clear_modals()
+                        $('#user-alert-space').html @alert_set_server_template
+                            role: 'secondary'
+                            shard: shard_key
+                            namespace_name: namespace.get('name')
+                        @render()
+                )
+            else if namespace.get('blueprint')['peers_roles'][@model.get('id')][shard_key] is 'role_primary'
+                confirmation_modal = new UIComponents.ConfirmationDialogModal
+                confirmation_modal.on_submit = ->
+                    @.$('.btn-primary').button('loading')
+                    @.$('.cancel').button('loading')
+
+                
+                    for machine_id, data of namespace.get('blueprint')['peers_roles']
+                        if namespace.get('blueprint')['peers_roles'][machine_id][shard_key] is 'role_secondary'
+                            if directory.get(machine_id).get(namespace.get('protocol')+'_namespaces')['reactor_bcards'][namespace.get('id')][shard_key]['type'] is 'secondary_up_to_date'
+                                new_master = machine_id
+                    if not machine_id?
+                        console.log 'error'
+                        return
+
+                    post_data = {}
+                    post_data[namespace.get('protocol')+'_namespaces'] = {}
+                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = {}
+                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['primary_pinnings'] = {}
+                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['primary_pinnings'][shard_key] = new_master
+
+                    $.ajax
+                        processData: false
+                        url: @url
+                        type: 'POST'
+                        contentType: 'application/json'
+                        data: JSON.stringify(post_data)
+                        success: @on_success
+                        error: @on_error
+
+                        
+                confirmation_modal.render("Are you sure you want to make the machine <strong>#{@model.get('name')}</strong> a secondary machine for the shard <strong>#{JSON.stringify(shard)}</strong> of the namespace <strong>#{namespace.get('name')}</strong>?",
+                    "/ajax/semilattice",
+                    '',
+                    (response) =>
+                        apply_diffs(response)
+                        # Set the link's text to a loading state
+                        $link = @.$('a.make-master')
+                        $link.text $link.data('loading-text')
+
+                        clear_modals()
+                        $('#user-alert-space').html @alert_set_server_template
+                            role: 'secondary'
+                            shard: shard_key
+                            namespace_name: namespace.get('name')
+                        @render()
+                )
+
+        make_nothing: (event) =>
+            event.preventDefault()
+            console.log 'nothing'
 
         destroy: =>
             @directory_entry.on 'change:memcached_namespaces', @render
