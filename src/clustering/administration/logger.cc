@@ -78,14 +78,26 @@ std::string format_log_message_for_console(const log_message_t &m) {
     std::string message = m.message;
     std::string message_reformatted;
 
-    for (int i = 0; i < int(message.length()); i++) {
+    int prepend_length = format_time(m.timestamp).length() + 12;
+    prepend_length += format_log_level(m.level).length() + 1;
+    if (int(m.uptime.tv_sec) != 0) {
+        prepend_length += static_cast<int>(log10(int(m.uptime.tv_sec)));
+    }
+
+    int start = 0, end = int(message.length()) - 1;
+    while (start < int(message.length()) && message[start] == '\n') {
+        start++;
+    }
+    while (end >= 0 && message[end] == '\n') {
+        end--;
+    }
+    for (int i = start; i <= end; i++) {
         if (message[i] == '\n') {
-            if (i != int(message.length()) - 1) {
-                message_reformatted.push_back('\n');
-            }
+            message_reformatted.push_back('\n');
+            message_reformatted.append(prepend_length, ' ');
         } else if (message[i] < ' ' || message[i] > '~') {
 #ifndef NDEBUG
-            crash("We can't have tabs or other special characters in log "
+            crash("We can't have newlines, tabs or special characters in log "
                 "messages because then it would be difficult to parse the log "
                 "file. Message: %s", message.c_str());
 #else
@@ -96,7 +108,11 @@ std::string format_log_message_for_console(const log_message_t &m) {
         }
     }
 
-    return strprintf("%s\n",
+    return strprintf("%s %d.%06ds %s: %s\n",
+        format_time(m.timestamp).c_str(),
+        int(m.uptime.tv_sec),
+        int(m.uptime.tv_nsec / 1000),
+        format_log_level(m.level).c_str(),
         message_reformatted.c_str()
         );
 }
