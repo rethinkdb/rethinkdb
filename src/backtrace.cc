@@ -15,6 +15,7 @@
 
 #include "containers/scoped.hpp"
 #include "logger.hpp"
+#include "utils.hpp"
 
 
 
@@ -192,7 +193,7 @@ static bool run_addr2line(boost::ptr_map<std::string, addr2line_t> *procs, const
     return true;
 }
 
-void print_backtrace(FILE *out, bool use_addr2line) {
+std::string log_backtrace(bool use_addr2line) {
     boost::ptr_map<std::string, addr2line_t> procs;
 
     // Get a backtrace
@@ -202,61 +203,49 @@ void print_backtrace(FILE *out, bool use_addr2line) {
     char **symbols = backtrace_symbols(stack_frames, size);
 
     if (symbols) {
-        char buffer[1024] = {0}; // Increase 1024 if we expect the size of any backtrace line to exceed it.
         std::string output;
         for (int i = 0; i < size; i ++) {
             // Parse each line of the backtrace
             scoped_malloc_t<char> line(symbols[i], symbols[i] + (strlen(symbols[i]) + 1));
             char *executable, *function, *offset, *address;
 
-            sprintf(buffer, "%d: ", i+1);
-            output.append(buffer);
+            output.append(strprintf("%d: ", i+1));
 
             if (!parse_backtrace_line(line.get(), &executable, &function, &offset, &address)) {
-                sprintf(buffer, "%s\n", symbols[i]);
-                output.append(buffer);
+                output.append(strprintf("%s\n", symbols[i]));
             } else {
                 if (function) {
                     try {
                         std::string demangled = demangle_cpp_name(function);
-                        sprintf(buffer, "%s", demangled.c_str());
-                        output.append(buffer);
+                        output.append(demangled);
                     } catch (demangle_failed_exc_t) {
-                        sprintf(buffer, "%s+%s", function, offset);
-                        output.append(buffer);
+                        output.append(strprintf("%s+%s", function, offset));
                     }
                 } else {
-                    sprintf(buffer, "?");
-                    output.append(buffer);
+                    output.append("?");
                 }
 
-                sprintf(buffer, " at ");
-                output.append(buffer);
+                output.append(" at ");
 
                 char line[255] = {0};
                 if (use_addr2line && run_addr2line(&procs, executable, address, line, sizeof(line))) {
-                    sprintf(buffer, "%s", line);
-                    output.append(buffer);
+                    output.append(line);
                 } else {
-                    sprintf(buffer, "%s (%s)", address, executable);
-                    output.append(buffer);
+                    output.append(strprintf("%s (%s)", address, executable));
                 }
 
-                sprintf(buffer, "\n");
-                output.append(buffer);
+                output.append("\n");
             }
         }
 
-        if (out != stderr) {
-            fprintf(out, "%s", output.c_str());
-        }
         logERR("%s", output.c_str());
 
         free(symbols);
+
+        return output;
     } else {
-        if (out != stderr) {
-            fprintf(out, "(too little memory for backtrace)\n");
-        }
         logERR("%s", "(too little memory for backtrace)\n");
+
+        return NULL;
     }
 }
