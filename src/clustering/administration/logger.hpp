@@ -55,7 +55,6 @@ private:
     void write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out);
     void tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out);
     std::string filename;
-    struct timespec uptime_reference;
     mutex_t write_mutex;
     scoped_fd_t fd;
     local_issue_tracker_t *issue_tracker;

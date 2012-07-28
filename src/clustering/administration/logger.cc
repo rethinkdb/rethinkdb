@@ -255,8 +255,6 @@ TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
 TLS_with_init(int *, log_writer_block, 0);
 
 log_writer_t::log_writer_t(local_issue_tracker_t *it) : filename(primary_log_writer.filename), issue_tracker(it) {
-    uptime_reference = primary_log_writer.uptime_reference;
-
     pmap(get_num_threads(), boost::bind(&log_writer_t::install_on_thread, this, _1));
 }
 
@@ -535,12 +533,12 @@ void log_coro(log_writer_t *writer, log_level_t level, const std::string &messag
     struct timespec uptime;
     res = clock_gettime(CLOCK_MONOTONIC, &uptime);
     guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
-    if (uptime.tv_nsec < writer->uptime_reference.tv_nsec) {
+    if (uptime.tv_nsec < primary_log_writer.uptime_reference.tv_nsec) {
         uptime.tv_nsec += 1000000000;
         uptime.tv_sec -= 1;
     }
-    uptime.tv_nsec -= writer->uptime_reference.tv_nsec;
-    uptime.tv_sec -= writer->uptime_reference.tv_sec;
+    uptime.tv_nsec -= primary_log_writer.uptime_reference.tv_nsec;
+    uptime.tv_sec -= primary_log_writer.uptime_reference.tv_sec;
 
     writer->write(log_message_t(timestamp, uptime, level, message));
 }
