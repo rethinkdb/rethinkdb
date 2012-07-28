@@ -9,26 +9,38 @@
 class scoped_regex_t {
 public:
     static const int default_flags = REG_EXTENDED | REG_NOSUB;
-    scoped_regex_t(const std::string &pat, int flags = default_flags) : is_set(false) {
-        set(pat, flags);
+    scoped_regex_t(const std::string &pat, int flags = default_flags) :
+        compiled(false), valid(true) {
+        compile(pat, flags);
     }
-    scoped_regex_t() : is_set(false) { }
+    scoped_regex_t() : compiled(false), valid(true) { }
     ~scoped_regex_t() {
-        if (is_set) regfree(&r);
+        if (is_compiled()) regfree(&r);
     }
 
-    int set(const std::string &pat, int flags = default_flags) {
-        rassert(!is_set);
-        int retval = regcomp(&r, pat.c_str(), flags);
-        if (!retval) is_set = true;
-        return retval;
+    bool compile(const std::string &pat, int flags = default_flags) {
+        rassert(!is_compiled());
+        status = regcomp(&r, pat.c_str(), flags);
+        if (!status) {
+            compiled = true;
+        } else {
+            valid = false;
+        }
+        return is_valid();
     }
+
     bool matches(const std::string &str) const {
-        rassert(is_set);
+        if (!is_valid()) return false;
+        rassert(is_compiled()); // Matching an uncompiled regex is an error.
         return !regexec(&r, str.c_str(), 0, 0, 0);
     }
+
+    bool is_compiled() const { return compiled; }
+    bool is_valid() const { return valid; }
+    int get_status() const { return status; }
 private:
-    bool is_set;
+    int status;
+    bool compiled, valid;
     regex_t r;
     DISABLE_COPYING(scoped_regex_t);
 };
