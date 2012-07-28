@@ -40,7 +40,7 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
 
 class log_writer_t : public home_thread_mixin_t {
 public:
-    log_writer_t(const std::string &filename, local_issue_tracker_t *issue_tracker);
+    log_writer_t(local_issue_tracker_t *issue_tracker);
     ~log_writer_t();
 
     std::vector<log_message_t> tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t);
@@ -63,6 +63,8 @@ private:
 
     DISABLE_COPYING(log_writer_t);
 };
+
+void install_primary_log_writer(const std::string &logfile_name);
 
 /* Most of the logging we do will be through log_writer_t. However, log_writer_t
 depends on the existence of a thread pool, which is not always the case. Thus,

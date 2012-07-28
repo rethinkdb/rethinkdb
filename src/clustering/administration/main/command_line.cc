@@ -33,6 +33,10 @@ std::string metadata_file(const std::string& file_path) {
     return file_path + "/metadata";
 }
 
+std::string get_logfilepath(const std::string& file_path) {
+    return file_path + "/log_file";
+}
+
 std::string errno_to_string(int err) {
     char buffer[200];
     char *res = strerror_r(err, buffer, sizeof(buffer));
@@ -258,7 +262,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
     }
 }
 
-void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::string &logfilepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
     rassert(!joins.empty());
 
@@ -267,7 +271,6 @@ void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::st
 
     *result_out = serve_proxy(spawner_info,
                               io_backender.get(),
-                              logfilepath,
                               look_up_peers_addresses(joins),
                               ports,
                               generate_uuid(), cluster_semilattice_metadata_t(),
@@ -561,7 +564,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     const int num_workers = get_cpu_count();
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, logfilepath, joins,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
                                    io_backend,
                                    &result, render_as_path(web_path)),

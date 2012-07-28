@@ -238,7 +238,7 @@ TLS_with_init(log_writer_t *, global_log_writer, NULL);
 TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
 TLS_with_init(int *, log_writer_block, 0);
 
-log_writer_t::log_writer_t(const std::string &filename, local_issue_tracker_t *it) : filename(filename), issue_tracker(it) {
+log_writer_t::log_writer_t(local_issue_tracker_t *it) : filename(primary_log_writer.filename), issue_tracker(it) {
     uptime_reference = primary_log_writer.uptime_reference;
 
     pmap(get_num_threads(), boost::bind(&log_writer_t::install_on_thread, this, _1));
@@ -575,10 +575,6 @@ void disable_thread_log_writer() {
 void enable_thread_log_writer() {
     TLS_set_log_writer_block(TLS_get_log_writer_block() - 1);
     rassert(TLS_get_log_writer_block() >= 0);
-}
-
-std::string get_logfilepath(const std::string &filepath) {
-    return filepath + "/log_file";
 }
 
 void install_primary_log_writer(const std::string &logfile_name) {

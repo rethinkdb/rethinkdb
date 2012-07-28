@@ -6,10 +6,6 @@
 
 enum log_level_t { log_level_debug = 0, log_level_info = 1, log_level_warn, log_level_error };
 
-std::string get_logfilepath(const std::string &filepath);
-
-void install_primary_log_writer(const std::string &logfile_name);
-
 /* These functions are implemented in `clustering/administration/logger.cc`.
 This header file exists so that anything can call them without having to include
 the same things that `clustering/administration/logger.hpp` does. */
