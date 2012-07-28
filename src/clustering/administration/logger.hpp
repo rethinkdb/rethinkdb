@@ -79,7 +79,6 @@ be used. */
 class primary_log_writer_t {
 public:
     primary_log_writer_t();
-    ~primary_log_writer_t();
     void install(const std::string &logfile_name);
 
 private:
@@ -87,22 +86,15 @@ private:
     friend void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t);
     friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
     friend void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
-    friend void *write_action(void *arg);
 
-    bool write_in_thread(const log_message_t &msg);
-    void write(log_level_t level, const std::string &msg);
-    bool shutdown;
+    bool write(const log_message_t &msg);
+    void initiate_write(log_level_t level, const std::string &msg);
     std::string filename;
     struct timespec uptime_reference;
-    mutex_t write_mutex;
     struct flock filelock, fileunlock;
     scoped_fd_t fd;
-    std::queue<log_message_t> message_list;
-    pthread_t worker_thread;
 
     DISABLE_COPYING(primary_log_writer_t);
 };
-
-void *write_action(void *arg);
 
 #endif /* CLUSTERING_ADMINISTRATION_LOGGER_HPP_ */

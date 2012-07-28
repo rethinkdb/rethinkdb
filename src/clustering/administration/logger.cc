@@ -394,7 +394,7 @@ void log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, s
     }
 }
 
-primary_log_writer_t::primary_log_writer_t() : shutdown(false) {
+primary_log_writer_t::primary_log_writer_t() {
     int res = clock_gettime(CLOCK_MONOTONIC, &uptime_reference);
     guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
 
@@ -409,13 +409,6 @@ primary_log_writer_t::primary_log_writer_t() : shutdown(false) {
     fileunlock.l_start = 0;
     fileunlock.l_len = 0;
     fileunlock.l_pid = getpid();
-
-    pthread_create(&worker_thread, NULL, &write_action, (void*) this);
-}
-
-primary_log_writer_t::~primary_log_writer_t() {
-    shutdown = true;
-    pthread_join(worker_thread, NULL);
 }
 
 void primary_log_writer_t::install(const std::string &logfile_name) {
@@ -423,18 +416,7 @@ void primary_log_writer_t::install(const std::string &logfile_name) {
     filename = logfile_name;
 }
 
-void *write_action(void *arg) {
-    primary_log_writer_t *writer = reinterpret_cast<primary_log_writer_t*>(arg);
-    while (!writer->shutdown) {
-        if (writer->message_list.size() > 0) {
-            writer->write_in_thread(writer->message_list.front());
-            writer->message_list.pop();
-        }
-    }
-    return NULL;
-}
-
-bool primary_log_writer_t::write_in_thread(const log_message_t &msg) {
+bool primary_log_writer_t::write(const log_message_t &msg) {
     int res;
     std::string formatted = format_log_message(msg);
     std::string console_formatted = format_log_message_for_console(msg);
@@ -474,9 +456,7 @@ bool primary_log_writer_t::write_in_thread(const log_message_t &msg) {
     return true;
 }
 
-void primary_log_writer_t::write(log_level_t level, const std::string &msg) {
-    mutex_t::acq_t write_mutex_acq(&write_mutex);
-
+void primary_log_writer_t::initiate_write(log_level_t level, const std::string &msg) {
     int res;
 
     struct timespec timestamp;
@@ -495,7 +475,7 @@ void primary_log_writer_t::write(log_level_t level, const std::string &msg) {
     uptime.tv_sec -= uptime_reference.tv_sec;
 
     log_message_t log_msg(timestamp, uptime, level, msg);
-    message_list.push(log_msg);
+    write(log_msg);
 }
 
 void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t) {
@@ -540,7 +520,7 @@ void log_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t 
         std::string message = vstrprintf(format, args);
         va_end(args);
 
-        primary_log_writer.write(level, message);
+        primary_log_writer.initiate_write(level, message);
     }
 }
 
@@ -555,7 +535,7 @@ void vlog_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t
     } else {
         std::string message = vstrprintf(format, args);
 
-        primary_log_writer.write(level, message);
+        primary_log_writer.initiate_write(level, message);
     }
 }
 
