@@ -13,8 +13,6 @@
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
 
-primary_log_writer_t primary_log_writer;
-
 std::string format_log_level(log_level_t l) {
     switch (l) {
         case log_level_debug: return "debug";
@@ -270,19 +268,47 @@ private:
     DISABLE_COPYING(file_reverse_reader_t);
 };
 
-TLS_with_init(log_writer_t *, global_log_writer, NULL);
+/* Most of the logging we do will be through thread_pool_log_writer_t. However, thread_pool_log_writer_t
+depends on the existence of a thread pool, which is not always the case. Thus,
+fallback_log_writer_t exists to perform logging operations when thread_pool_log_writer_t cannot
+be used. */
+
+class fallback_log_writer_t {
+public:
+    fallback_log_writer_t();
+    void install(const std::string &logfile_name);
+
+private:
+    friend thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_tracker_t *issue_tracker);
+    friend void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t);
+    friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
+    friend void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
+
+    bool write(const log_message_t &msg);
+    void initiate_write(log_level_t level, const std::string &message);
+    std::string filename;
+    struct timespec uptime_reference;
+    struct flock filelock, fileunlock;
+    scoped_fd_t fd;
+
+    DISABLE_COPYING(fallback_log_writer_t);
+} primary_log_writer;
+
+
+
+TLS_with_init(thread_pool_log_writer_t *, global_log_writer, NULL);
 TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
 TLS_with_init(int *, log_writer_block, 0);
 
-log_writer_t::log_writer_t(local_issue_tracker_t *it) : filename(primary_log_writer.filename), issue_tracker(it) {
-    pmap(get_num_threads(), boost::bind(&log_writer_t::install_on_thread, this, _1));
+thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_tracker_t *it) : filename(primary_log_writer.filename), issue_tracker(it) {
+    pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::install_on_thread, this, _1));
 }
 
-log_writer_t::~log_writer_t() {
-    pmap(get_num_threads(), boost::bind(&log_writer_t::uninstall_on_thread, this, _1));
+thread_pool_log_writer_t::~thread_pool_log_writer_t() {
+    pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::uninstall_on_thread, this, _1));
 }
 
-std::vector<log_message_t> log_writer_t::tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t) {
+std::vector<log_message_t> thread_pool_log_writer_t::tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t) {
     volatile bool cancel = false;
     class cancel_subscription_t : public signal_t::subscription_t {
     public:
@@ -299,7 +325,7 @@ std::vector<log_message_t> log_writer_t::tail(int max_lines, struct timespec min
 
 
     bool ok;
-    thread_pool_t::run_in_blocker_pool(boost::bind(&log_writer_t::tail_blocking, this, max_lines, min_timestamp, max_timestamp, &cancel, &log_messages, &error_message, &ok));
+    thread_pool_t::run_in_blocker_pool(boost::bind(&thread_pool_log_writer_t::tail_blocking, this, max_lines, min_timestamp, max_timestamp, &cancel, &log_messages, &error_message, &ok));
     if (ok) {
         if (cancel) {
             throw interrupted_exc_t();
@@ -311,14 +337,14 @@ std::vector<log_message_t> log_writer_t::tail(int max_lines, struct timespec min
     }
 }
 
-void log_writer_t::install_on_thread(int i) {
+void thread_pool_log_writer_t::install_on_thread(int i) {
     on_thread_t thread_switcher(i);
     rassert(TLS_get_global_log_writer() == NULL);
     TLS_set_global_log_drainer(new auto_drainer_t);
     TLS_set_global_log_writer(this);
 }
 
-void log_writer_t::uninstall_on_thread(int i) {
+void thread_pool_log_writer_t::uninstall_on_thread(int i) {
     on_thread_t thread_switcher(i);
     rassert(TLS_get_global_log_writer() == this);
     TLS_set_global_log_writer(NULL);
@@ -326,11 +352,11 @@ void log_writer_t::uninstall_on_thread(int i) {
     TLS_set_global_log_drainer(NULL);
 }
 
-void log_writer_t::write(const log_message_t &lm) {
+void thread_pool_log_writer_t::write(const log_message_t &lm) {
     mutex_t::acq_t write_mutex_acq(&write_mutex);
     std::string error_message;
     bool ok;
-    thread_pool_t::run_in_blocker_pool(boost::bind(&log_writer_t::write_blocking, this, lm, &error_message, &ok));
+    thread_pool_t::run_in_blocker_pool(boost::bind(&thread_pool_log_writer_t::write_blocking, this, lm, &error_message, &ok));
     if (ok) {
         issue.reset();
     } else {
@@ -343,7 +369,7 @@ void log_writer_t::write(const log_message_t &lm) {
     }
 }
 
-void log_writer_t::write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out) {
+void thread_pool_log_writer_t::write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out) {
     int res;
     std::string formatted = format_log_message(msg);
     std::string console_formatted = format_log_message_for_console(msg);
@@ -392,7 +418,7 @@ bool operator>=(const struct timespec &t1, const struct timespec &t2) {
     return t2 <= t1;
 }
 
-void log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
+void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
     try {
         file_reverse_reader_t reader(filename);
         std::string line;
@@ -414,7 +440,7 @@ void log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, s
     }
 }
 
-primary_log_writer_t::primary_log_writer_t() {
+fallback_log_writer_t::fallback_log_writer_t() {
     int res = clock_gettime(CLOCK_MONOTONIC, &uptime_reference);
     guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
 
@@ -431,12 +457,12 @@ primary_log_writer_t::primary_log_writer_t() {
     fileunlock.l_pid = getpid();
 }
 
-void primary_log_writer_t::install(const std::string &logfile_name) {
-    rassert(filename == "", "Attempted to install a primary_log_writer_t that was already installed.");
+void fallback_log_writer_t::install(const std::string &logfile_name) {
+    rassert(filename == "", "Attempted to install a fallback_log_writer_t that was already installed.");
     filename = logfile_name;
 }
 
-bool primary_log_writer_t::write(const log_message_t &msg) {
+bool fallback_log_writer_t::write(const log_message_t &msg) {
     int res;
     std::string formatted = format_log_message(msg);
     std::string console_formatted = format_log_message_for_console(msg);
@@ -476,12 +502,12 @@ bool primary_log_writer_t::write(const log_message_t &msg) {
     return true;
 }
 
-void primary_log_writer_t::initiate_write(log_level_t level, const std::string &message) {
+void fallback_log_writer_t::initiate_write(log_level_t level, const std::string &message) {
     log_message_t log_msg = assemble_log_message(level, message, uptime_reference);
     write(log_msg);
 }
 
-void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t) {
+void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t) {
     on_thread_t thread_switcher(writer->home_thread());
 
     log_message_t log_msg = assemble_log_message(level, message, primary_log_writer.uptime_reference);
@@ -498,7 +524,7 @@ void log_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t 
 }
 
 void vlog_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t level, const char *format, va_list args) {
-    log_writer_t *writer;
+    thread_pool_log_writer_t *writer;
     if ((writer = TLS_get_global_log_writer()) && TLS_get_log_writer_block() == 0) {
         auto_drainer_t::lock_t lock(TLS_get_global_log_drainer());
 

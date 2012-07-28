@@ -40,15 +40,15 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
 
 log_message_t assemble_log_message(log_level_t level, const std::string &message, struct timespec uptime);
 
-class log_writer_t : public home_thread_mixin_t {
+class thread_pool_log_writer_t : public home_thread_mixin_t {
 public:
-    log_writer_t(local_issue_tracker_t *issue_tracker);
-    ~log_writer_t();
+    thread_pool_log_writer_t(local_issue_tracker_t *issue_tracker);
+    ~thread_pool_log_writer_t();
 
     std::vector<log_message_t> tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t);
 
 private:
-    friend void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t lock);
+    friend void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t lock);
     friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
     friend void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
     void install_on_thread(int i);
@@ -62,7 +62,7 @@ private:
     local_issue_tracker_t *issue_tracker;
     scoped_ptr_t<local_issue_tracker_t::entry_t> issue;
 
-    DISABLE_COPYING(log_writer_t);
+    DISABLE_COPYING(thread_pool_log_writer_t);
 };
 
 void install_primary_log_writer(const std::string &logfile_name);
@@ -71,32 +71,6 @@ class thread_log_writer_disabler_t {
     public:
         thread_log_writer_disabler_t();
         ~thread_log_writer_disabler_t();
-};
-
-/* Most of the logging we do will be through log_writer_t. However, log_writer_t
-depends on the existence of a thread pool, which is not always the case. Thus,
-primary_log_writer_t exists to perform logging operations when log_writer_t cannot
-be used. */
-
-class primary_log_writer_t {
-public:
-    primary_log_writer_t();
-    void install(const std::string &logfile_name);
-
-private:
-    friend log_writer_t::log_writer_t(local_issue_tracker_t *issue_tracker);
-    friend void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t);
-    friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
-    friend void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
-
-    bool write(const log_message_t &msg);
-    void initiate_write(log_level_t level, const std::string &message);
-    std::string filename;
-    struct timespec uptime_reference;
-    struct flock filelock, fileunlock;
-    scoped_fd_t fd;
-
-    DISABLE_COPYING(primary_log_writer_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_LOGGER_HPP_ */

@@ -48,7 +48,7 @@ try {
 
     local_issue_tracker_t local_issue_tracker;
 
-    log_writer_t log_writer(&local_issue_tracker);
+    thread_pool_log_writer_t log_writer(&local_issue_tracker);
 
     connectivity_cluster_t connectivity_cluster;
     message_multiplexer_t message_multiplexer(&connectivity_cluster);

@@ -295,7 +295,7 @@ private:
     metadata_info_t *get_info_from_id(const std::string& id);
 
     local_issue_tracker_t local_issue_tracker;
-    log_writer_t log_writer;
+    thread_pool_log_writer_t log_writer;
     connectivity_cluster_t connectivity_cluster;
     message_multiplexer_t message_multiplexer;
     message_multiplexer_t::client_t mailbox_manager_client;
