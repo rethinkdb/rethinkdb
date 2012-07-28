@@ -49,7 +49,7 @@ std::string render_region_as_string(key_range_t *target, const ctx_t &c) {
         res.AddItemToArray(cJSON_CreateNull());
     }
 
-    return res.Print();
+    return res.PrintUnformatted();
 }
 
 template <class ctx_t>
