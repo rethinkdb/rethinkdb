@@ -58,7 +58,7 @@ http_res_t distribution_app_t::handle(const http_req_t &req) {
         http_res_t res(200);
 
         scoped_cJSON_t data(render_as_json(&boost::get<distribution_result_t>(db_res.result).key_counts, 0));
-        res.set_body("application/json", cJSON_print_std_string(data.get()));
+        res.set_body("application/json", data.Print());
 
         return res;
     } catch (cannot_perform_query_exc_t &) {

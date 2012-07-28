@@ -139,7 +139,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
 
         if (stats_ready->is_pulsed()) {
             perfmon_result_t stats = it->second->stats.wait();
-            cJSON_AddItemToObject(body.get(), uuid_to_str(machine).c_str(), render_as_json(&stats, 0));
+            body.AddItemToObject(uuid_to_str(machine).c_str(), render_as_json(&stats, 0));
         } else {
             not_replied.push_back(machine);
         }
@@ -148,6 +148,6 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
     cJSON_AddItemToObject(body.get(), "machines", prepare_machine_info(not_replied));
 
     http_res_t res(200);
-    res.set_body("application/json", cJSON_print_std_string(body.get()));
+    res.set_body("application/json", body.Print());
     return res;
 }

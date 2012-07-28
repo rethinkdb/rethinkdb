@@ -36,11 +36,9 @@ public:
         //perfmon_collection_t backfill_stats_collection("queue-" + filename, NULL, true, true);
 
         standard_serializer_t::create(
-                standard_serializer_t::dynamic_config_t(),
                 io_backender,
                 standard_serializer_t::private_dynamic_config_t(filename),
-                standard_serializer_t::static_config_t(),
-                stats_parent
+                standard_serializer_t::static_config_t()
                 );
 
         serializer.init(new standard_serializer_t(

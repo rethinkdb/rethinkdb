@@ -372,12 +372,11 @@ SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 
 # High level build targets
 
-ifeq ($(UNIT_TESTS),1)
-all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets
-	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
-else
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets
 	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
+
+ifeq ($(UNIT_TESTS),1)
+all: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 endif
 
 unit:
