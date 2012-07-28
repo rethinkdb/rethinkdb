@@ -192,6 +192,8 @@ module 'MachineView', ->
         className: 'machine_assignments-view'
         template: Handlebars.compile $('#machine_view-assignments-template').html()
         alert_set_server_template: Handlebars.compile $('#alert-set_server-template').html()
+        outdated_data_template: Handlebars.compile $('#outdated_data-template').html()
+
 
 
         events:
@@ -337,6 +339,7 @@ module 'MachineView', ->
             namespace_id = $(event.target).data('namespace_id')
             namespace = namespaces.get(namespace_id)
             shard_key = '['+JSON.stringify(shard[0])+', '+JSON.stringify(shard[1])+']'
+            shard_key = JSON.stringify(shard)
             model = @model
         
             if namespace.get('blueprint')['peers_roles'][@model.get('id')][shard_key] is 'role_nothing'
@@ -383,6 +386,7 @@ module 'MachineView', ->
                         @render()
                 )
             else if namespace.get('blueprint')['peers_roles'][@model.get('id')][shard_key] is 'role_primary'
+                outdated_data_template = @outdated_data_template
                 confirmation_modal = new UIComponents.ConfirmationDialogModal
                 confirmation_modal.on_submit = ->
                     @.$('.btn-primary').button('loading')
@@ -394,12 +398,21 @@ module 'MachineView', ->
                             break
                         if namespace.get('blueprint')['peers_roles'][machine_id][shard_key] is 'role_secondary'
                             for key of directory.get(machine_id).get(namespace.get('protocol')+'_namespaces')['reactor_bcards'][namespace.get('id')]['activity_map']
-                                if directory.get(machine_id).get(namespace.get('protocol')+'_namespaces')['reactor_bcards'][namespace.get('id')]['activity_map'][key] is shard_key and directory.get(machine_id).get(namespace.get('protocol')+'_namespaces')['reactor_bcards'][namespace.get('id')]['activity_map'][key][1]['type'] is 'secondary_up_to_date'
+                                if directory.get(machine_id).get(namespace.get('protocol')+'_namespaces')['reactor_bcards'][namespace.get('id')]['activity_map'][key][0] is shard_key and directory.get(machine_id).get(namespace.get('protocol')+'_namespaces')['reactor_bcards'][namespace.get('id')]['activity_map'][key][1]['type'] is 'secondary_up_to_date'
                                     new_master = machine_id
                                     break
 
                     if not new_master?
-                        console.log 'error'
+                        debugger
+                        @.$('.error_answer').html outdated_data_template {}
+
+                        if @.$('.error_answer').css('display') is 'none'
+                            @.$('.error_answer').slideDown('fast')
+                        else
+                            @.$('.error_answer').css('display', 'none')
+                            @.$('.error_answer').fadeIn()
+
+                        @reset_buttons()
                         return
 
                     post_data = {}
