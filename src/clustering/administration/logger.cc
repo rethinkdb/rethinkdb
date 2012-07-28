@@ -180,6 +180,26 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
     return log_message_t(timestamp, uptime, level, message);
 }
 
+log_message_t assemble_log_message(log_level_t level, const std::string &message, struct timespec uptime_reference) {
+    int res;
+
+    struct timespec timestamp;
+    res = clock_gettime(CLOCK_REALTIME, &timestamp);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+
+    struct timespec uptime;
+    res = clock_gettime(CLOCK_MONOTONIC, &uptime);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+    if (uptime.tv_nsec < uptime_reference.tv_nsec) {
+        uptime.tv_nsec += 1000000000;
+        uptime.tv_sec -= 1;
+    }
+    uptime.tv_nsec -= uptime_reference.tv_nsec;
+    uptime.tv_sec -= uptime_reference.tv_sec;
+
+    return log_message_t(timestamp, uptime, level, message);
+}
+
 static void throw_unless(bool condition, const std::string &where) {
     if (!condition) {
         throw std::runtime_error("file IO error: " + where + " (errno = " + strerror(errno) + ")");
@@ -456,72 +476,25 @@ bool primary_log_writer_t::write(const log_message_t &msg) {
     return true;
 }
 
-void primary_log_writer_t::initiate_write(log_level_t level, const std::string &msg) {
-    int res;
-
-    struct timespec timestamp;
-    res = clock_gettime(CLOCK_REALTIME, &timestamp);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-
-    struct timespec uptime;
-    res = clock_gettime(CLOCK_MONOTONIC, &uptime);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
-    if (uptime.tv_nsec < uptime_reference.tv_nsec) {
-        uptime.tv_nsec += 1000000000;
-        uptime.tv_sec -= 1;
-    }
-
-    uptime.tv_nsec -= uptime_reference.tv_nsec;
-    uptime.tv_sec -= uptime_reference.tv_sec;
-
-    log_message_t log_msg(timestamp, uptime, level, msg);
+void primary_log_writer_t::initiate_write(log_level_t level, const std::string &message) {
+    log_message_t log_msg = assemble_log_message(level, message, uptime_reference);
     write(log_msg);
 }
 
 void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t) {
     on_thread_t thread_switcher(writer->home_thread());
 
-    int res;
-
-    struct timespec timestamp;
-    res = clock_gettime(CLOCK_REALTIME, &timestamp);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-
-    struct timespec uptime;
-    res = clock_gettime(CLOCK_MONOTONIC, &uptime);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
-    if (uptime.tv_nsec < primary_log_writer.uptime_reference.tv_nsec) {
-        uptime.tv_nsec += 1000000000;
-        uptime.tv_sec -= 1;
-    }
-    uptime.tv_nsec -= primary_log_writer.uptime_reference.tv_nsec;
-    uptime.tv_sec -= primary_log_writer.uptime_reference.tv_sec;
-
-    writer->write(log_message_t(timestamp, uptime, level, message));
+    log_message_t log_msg = assemble_log_message(level, message, primary_log_writer.uptime_reference);
+    writer->write(log_msg);
 }
 
 /* Declared in `logger.hpp`, not `clustering/administration/logger.hpp` like the
 other things in this file. */
 void log_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t level, const char *format, ...) {
-    log_writer_t *writer;
-    if ((writer = TLS_get_global_log_writer()) && TLS_get_log_writer_block() == 0) {
-        auto_drainer_t::lock_t lock(TLS_get_global_log_drainer());
-
-        va_list args;
-        va_start(args, format);
-        std::string message = vstrprintf(format, args);
-        va_end(args);
-
-        coro_t::spawn_sometime(boost::bind(&log_coro, writer, level, message, lock));
-
-    } else {
-        va_list args;
-        va_start(args, format);
-        std::string message = vstrprintf(format, args);
-        va_end(args);
-
-        primary_log_writer.initiate_write(level, message);
-    }
+    va_list args;
+    va_start(args, format);
+    vlog_internal(src_file, src_line, level, format, args);
+    va_end(args);
 }
 
 void vlog_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t level, const char *format, va_list args) {

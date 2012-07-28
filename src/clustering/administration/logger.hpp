@@ -38,6 +38,8 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
 std::string format_log_message(const log_message_t &m);
 log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_error);
 
+log_message_t assemble_log_message(log_level_t level, const std::string &message, struct timespec uptime);
+
 class log_writer_t : public home_thread_mixin_t {
 public:
     log_writer_t(local_issue_tracker_t *issue_tracker);
@@ -88,7 +90,7 @@ private:
     friend void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
 
     bool write(const log_message_t &msg);
-    void initiate_write(log_level_t level, const std::string &msg);
+    void initiate_write(log_level_t level, const std::string &message);
     std::string filename;
     struct timespec uptime_reference;
     struct flock filelock, fileunlock;
