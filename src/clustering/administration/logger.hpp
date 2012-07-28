@@ -83,11 +83,11 @@ public:
     void install(const std::string &logfile_name);
 
 private:
+    friend log_writer_t::log_writer_t(local_issue_tracker_t *issue_tracker);
+    friend void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t);
     friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
     friend void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
     friend void *write_action(void *arg);
-
-    friend class log_writer_t;
 
     bool write_in_thread(const log_message_t &msg);
     void write(log_level_t level, const std::string &msg);

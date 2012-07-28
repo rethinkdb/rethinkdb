@@ -296,7 +296,6 @@ void log_writer_t::install_on_thread(int i) {
     rassert(TLS_get_global_log_writer() == NULL);
     TLS_set_global_log_drainer(new auto_drainer_t);
     TLS_set_global_log_writer(this);
-    TLS_set_log_writer_block(0);
 }
 
 void log_writer_t::uninstall_on_thread(int i) {
@@ -325,29 +324,18 @@ void log_writer_t::write(const log_message_t &lm) {
 }
 
 void log_writer_t::write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out) {
-    int res, output_fileno;
+    int res;
     std::string formatted = format_log_message(msg);
     std::string console_formatted = format_log_message_for_console(msg);
 
-    // Print the log message to stderr or stdout (stdout only if it's an info log)
-    if (msg.level == log_level_info) {
-        output_fileno = STDOUT_FILENO;
-        flockfile(stdout);
-    } else {
-        output_fileno = STDERR_FILENO;
-        flockfile(stderr);
-    }
-    res = ::write(output_fileno, console_formatted.data(), console_formatted.length());
+    flockfile(stderr);
+    res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
     if (res != int(console_formatted.length())) {
         *error_out = std::string("cannot write to standard error: ") + strerror(errno);
         *ok_out = false;
         return;
     }
-    if (msg.level == log_level_info) {
-        funlockfile(stdout);
-    } else {
-        funlockfile(stderr);
-    }
+    funlockfile(stderr);
 
     if (fd.get() == -1) {
         fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
@@ -447,27 +435,16 @@ void *write_action(void *arg) {
 }
 
 bool primary_log_writer_t::write_in_thread(const log_message_t &msg) {
-    int res, output_fileno;
+    int res;
     std::string formatted = format_log_message(msg);
     std::string console_formatted = format_log_message_for_console(msg);
 
-    // print the log message to stderr or stdout (stdout only if it's an info log)
-    if (msg.level == log_level_info) {
-        output_fileno = STDOUT_FILENO;
-        flockfile(stdout);
-    } else {
-        output_fileno = STDERR_FILENO;
-        flockfile(stderr);
-    }
-    res = ::write(output_fileno, console_formatted.data(), console_formatted.length());
+    flockfile(stderr);
+    res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
     if (res != int(console_formatted.length())) {
         return false;
     }
-    if (msg.level == log_level_info) {
-        funlockfile(stdout);
-    } else {
-        funlockfile(stderr);
-    }
+    funlockfile(stderr);
 
     if (fd.get() == -1) {
         if (filename != "") {
