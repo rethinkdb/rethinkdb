@@ -66,6 +66,12 @@ private:
 
 void install_primary_log_writer(const std::string &logfile_name);
 
+class thread_log_writer_disabler_t {
+    public:
+        thread_log_writer_disabler_t();
+        ~thread_log_writer_disabler_t();
+};
+
 /* Most of the logging we do will be through log_writer_t. However, log_writer_t
 depends on the existence of a thread pool, which is not always the case. Thus,
 primary_log_writer_t exists to perform logging operations when log_writer_t cannot

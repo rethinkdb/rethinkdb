@@ -568,11 +568,11 @@ void vlog_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t
     }
 }
 
-void disable_thread_log_writer() {
+thread_log_writer_disabler_t::thread_log_writer_disabler_t() {
     TLS_set_log_writer_block(TLS_get_log_writer_block() + 1);
 }
 
-void enable_thread_log_writer() {
+thread_log_writer_disabler_t::~thread_log_writer_disabler_t() {
     TLS_set_log_writer_block(TLS_get_log_writer_block() - 1);
     rassert(TLS_get_log_writer_block() >= 0);
 }

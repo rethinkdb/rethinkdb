@@ -12,21 +12,20 @@
 #include "logger.hpp"
 #include "utils.hpp"
 #include "backtrace.hpp"
+#include "clustering/administration/logger.hpp"
 
 void report_user_error(const char *msg, ...) {
-    disable_thread_log_writer();
+    thread_log_writer_disabler_t disabler;
 
     va_list args;
     va_start(args, msg);
     //logSTDERR("Error: ");
     vlogERR(msg, args);
     va_end(args);
-
-    enable_thread_log_writer();
 }
 
 void report_fatal_error(const char *file, int line, const char *msg, ...) {
-    disable_thread_log_writer();
+    thread_log_writer_disabler_t disabler;
 
     va_list args;
     va_start(args, msg);
@@ -42,8 +41,6 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 #endif
 
     logERR("Exiting.");
-
-    enable_thread_log_writer();
 }
 
 /* Handlers for various signals and for unexpected exceptions or calls to std::terminate() */
