@@ -77,7 +77,7 @@ pool_t::worker_t *pool_t::acquire_worker() {
     return worker;
 }
 
-void pool_t::release_worker(worker_t *worker) {
+void pool_t::release_worker(worker_t *worker) THROWS_NOTHING {
     assert_thread();
     rassert(worker && worker->pool_ == this);
 
@@ -98,7 +98,7 @@ void pool_t::release_worker(worker_t *worker) {
     worker_semaphore_.unlock();
 }
 
-void pool_t::interrupt_worker(worker_t *worker) {
+void pool_t::interrupt_worker(worker_t *worker) THROWS_NOTHING {
     assert_thread();
     rassert(worker && worker->pool_ == this);
 
@@ -162,8 +162,8 @@ void pool_t::spawn_workers(int num) {
 void pool_t::end_worker(workers_t *list, worker_t *worker) {
     rassert(worker && worker->pool_ == this);
 
-    guarantee_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
     list->remove(worker);
+    guarantee_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
     delete worker;
 }
 
@@ -227,16 +227,72 @@ int job_handle_t::begin(pool_t *pool, const job_t &job) {
     return res;
 }
 
-void job_handle_t::release() {
+void job_handle_t::release() THROWS_NOTHING {
     rassert(connected());
-    worker_->release();
+    worker_->pool_->release_worker(worker_);
     worker_ = NULL;
 }
 
-void job_handle_t::interrupt() {
+void job_handle_t::interrupt() THROWS_NOTHING {
     rassert(connected());
-    worker_->interrupt();
+    worker_->pool_->interrupt_worker(worker_);
     worker_ = NULL;
+}
+
+class interruptor_wrapper_t : public signal_t, public signal_t::subscription_t {
+  public:
+    // signal can be NULL. this structure is then dead weight.
+    interruptor_wrapper_t(job_handle_t *handle, signal_t *signal)
+        : handle_(handle)
+    {
+        reset(signal);          // might call run()
+    }
+
+    // Inherited from signal_t::subscription_t. Called on pulse() of signal
+    // passed to ctor. NB. MUST NOT THROW. Could eg. be called from
+    // interruptor_wrapper_t constructor.
+    virtual void run() THROWS_NOTHING {
+        signal_t::assert_thread();
+        rassert(!is_pulsed());  // sanity
+        handle_->interrupt();
+        pulse();
+    }
+
+    void check() {
+        if (is_pulsed())
+            throw interrupted_exc_t();
+    }
+
+  private:
+    job_handle_t *handle_;
+};
+
+int64_t job_handle_t::read_interruptible(void *p, int64_t n, signal_t *interruptor) {
+    rassert(worker_);
+    int res;
+    {
+        interruptor_wrapper_t wrapper(this, interruptor);
+        res = worker_->read_interruptible(p, n, &wrapper);
+        // We need to atomically check-and-destruct wrapper, to avoid a
+        // situation in which the job handle is interrupted by wrapper.run() but
+        // we do not throw interrupted_exc_t.
+        wrapper.check();
+    }
+    if (-1 == res || 0 == res) release();
+    return res;
+}
+
+int64_t job_handle_t::write_interruptible(const void *p, int64_t n, signal_t *interruptor) {
+    rassert(worker_);
+    int res;
+    {
+        interruptor_wrapper_t wrapper(this, interruptor);
+        res = worker_->write_interruptible(p, n, &wrapper);
+        // See comment in read_interruptible.
+        wrapper.check();
+    }
+    if (-1 == res) release();
+    return res;
 }
 
 } // namespace extproc

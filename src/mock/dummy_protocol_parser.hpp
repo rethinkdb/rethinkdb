@@ -31,6 +31,10 @@ public:
         server(port, &query_app)
         { }
 
+    signal_t *get_bound_signal() {
+        return server.get_bound_signal();
+    }
+
 private:
     query_http_app_t query_app;
     http_server_t server;

@@ -100,9 +100,15 @@ memcache_listener_t::memcache_listener_t(int _port, namespace_interface_t<memcac
       next_thread(0),
       parent(_parent),
       stats(parent),
-      tcp_listener(new tcp_listener_t(port, boost::bind(&memcache_listener_t::handle,
-                                                        this, auto_drainer_t::lock_t(&drainer), _1)))
-{ }
+      tcp_listener(new repeated_nonthrowing_tcp_listener_t(port,
+          boost::bind(&memcache_listener_t::handle, this, auto_drainer_t::lock_t(&drainer), _1)))
+{
+    tcp_listener->begin_repeated_listening_attempts();
+}
+
+signal_t *memcache_listener_t::get_bound_signal() {
+    return tcp_listener->get_bound_signal();
+}
 
 memcache_listener_t::~memcache_listener_t() { }
 

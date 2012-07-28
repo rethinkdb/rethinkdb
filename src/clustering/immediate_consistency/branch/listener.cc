@@ -1,13 +1,19 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 
+#include "clustering/generic/registrant.hpp"
+#include "clustering/generic/resource.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
-#include "clustering/registrant.hpp"
-#include "clustering/resource.hpp"
 #include "protocol_api.hpp"
 
-#define OPERATION_CORO_POOL_SIZE 10
+/* `WRITE_QUEUE_CORO_POOL_SIZE` is the number of coroutines that will be used
+when draining the write queue after completing a backfill. */
+#define WRITE_QUEUE_CORO_POOL_SIZE 1000
+
+/* When we have caught up to the master to within
+`WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY` elements, then we consider ourselves
+to be up-to-date. */
 #define WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY 5
 
 #ifndef NDEBUG
@@ -54,6 +60,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     perfmon_collection_membership(backfill_stats_parent, &perfmon_collection, "backfill-serialization-" + uuid_to_str(uuid)),
     write_queue(io_backender, "backfill-serialization-" + uuid_to_str(uuid), &perfmon_collection),
     write_queue_semaphore(SEMAPHORE_NO_LIMIT),
+    enforce_max_outstanding_writes_from_broadcaster(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox(mailbox_manager,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline),
@@ -170,7 +177,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         ));
     write_queue_coro_pool.init(
         new coro_pool_t<write_queue_entry_t>(
-            OPERATION_CORO_POOL_SIZE, &write_queue, write_queue_coro_pool_callback.get()
+            WRITE_QUEUE_CORO_POOL_SIZE, &write_queue, write_queue_coro_pool_callback.get()
         ));
     write_queue_semaphore.set_capacity(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY);
 
@@ -199,6 +206,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     /* TODO: Put the file in the data directory, not here */
     write_queue(io_backender, "backfill-serialization-" + uuid_to_str(uuid), &perfmon_collection),
     write_queue_semaphore(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY),
+    enforce_max_outstanding_writes_from_broadcaster(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox(mailbox_manager,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline),
@@ -259,7 +267,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         ));
     write_queue_coro_pool.init(
         new coro_pool_t<write_queue_entry_t>(
-            OPERATION_CORO_POOL_SIZE, &write_queue, write_queue_coro_pool_callback.get()
+            WRITE_QUEUE_CORO_POOL_SIZE, &write_queue, write_queue_coro_pool_callback.get()
         ));
 }
 
@@ -366,11 +374,20 @@ void listener_t<protocol_t>::enqueue_write(typename protocol_t::write_t write,
         mailbox_addr_t<void()> ack_addr,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     try {
+        /* Make sure that the broadcaster isn't sending us too many concurrent
+        writes */
+        semaphore_assertion_t::acq_t sem_acq(&enforce_max_outstanding_writes_from_broadcaster);
+
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&write_queue_entrance_sink, fifo_token);
         wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
         write_queue_semaphore.co_lock_interruptible(keepalive.get_drain_signal());
         write_queue.push(write_queue_entry_t(write, transition_timestamp, order_token, fifo_token));
+
+        /* Release the semaphore before sending the response, because the
+        broadcaster can send us a new write as soon as we send the ack */
+        sem_acq.reset();
         send(mailbox_manager, ack_addr);
+
     } catch (interrupted_exc_t) {
         /* pass */
     }
@@ -440,6 +457,9 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
         THROWS_NOTHING
 {
     try {
+        /* Make sure the broadcaster isn't sending us too many writes */
+        semaphore_assertion_t::acq_t sem_acq(&enforce_max_outstanding_writes_from_broadcaster);
+
         scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         {
             {
@@ -478,7 +498,11 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
                          &write_token,
                          keepalive.get_drain_signal());
 
+        /* Release the semaphore before sending the response, because the
+        broadcaster can send us a new write as soon as we send the ack */
+        sem_acq.reset();
         send(mailbox_manager, ack_addr, response);
+
     } catch (interrupted_exc_t) {
         /* pass */
     }

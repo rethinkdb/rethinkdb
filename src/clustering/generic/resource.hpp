@@ -1,5 +1,5 @@
-#ifndef CLUSTERING_RESOURCE_HPP_
-#define CLUSTERING_RESOURCE_HPP_
+#ifndef CLUSTERING_GENERIC_RESOURCE_HPP_
+#define CLUSTERING_GENERIC_RESOURCE_HPP_
 
 #include <string>
 
@@ -108,4 +108,4 @@ private:
     DISABLE_COPYING(resource_access_t);
 };
 
-#endif /* CLUSTERING_RESOURCE_HPP_ */
+#endif /* CLUSTERING_GENERIC_RESOURCE_HPP_ */

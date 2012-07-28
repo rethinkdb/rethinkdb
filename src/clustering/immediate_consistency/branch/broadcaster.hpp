@@ -7,9 +7,9 @@
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "clustering/generic/registrar.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "clustering/registrar.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "protocol_api.hpp"
@@ -20,14 +20,17 @@ template <class> class semilattice_readwrite_view_t;
 template <class> class multistore_ptr_t;
 struct mailbox_manager_t;
 
-template <class> class background_writer_t;
-
 template<class protocol_t>
 class broadcaster_t : public home_thread_mixin_t {
 private:
     class incomplete_write_t;
 
 public:
+    /* If the number of calls to `spawn_write()` minus the number of writes that
+    have completed is equal to `MAX_OUTSTANDING_WRITES`, it's illegal to call
+    `spawn_write()` again. */
+    static const int MAX_OUTSTANDING_WRITES;
+
     class write_callback_t {
     public:
         write_callback_t();
@@ -39,6 +42,8 @@ public:
 
     private:
         friend class broadcaster_t;
+        /* This is so that if the write callback is destroyed before `on_done()`
+        is called, it will get deregistered. */
         incomplete_write_t *write;
     };
 
@@ -114,6 +119,7 @@ private:
     std::list<boost::shared_ptr<incomplete_write_t> > incomplete_writes;
     state_timestamp_t current_timestamp, newest_complete_timestamp;
     order_checkpoint_t order_checkpoint;
+    semaphore_assertion_t enforce_max_outstanding_writes;
 
     std::map<dispatchee_t *, auto_drainer_t::lock_t> dispatchees;
     intrusive_list_t<dispatchee_t> readable_dispatchees;
