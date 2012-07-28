@@ -4,8 +4,8 @@
 #include <map>
 #include <utility>
 
-#include "clustering/registration_metadata.hpp"
-#include "clustering/resource.hpp"
+#include "clustering/generic/registration_metadata.hpp"
+#include "clustering/generic/resource.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/promise.hpp"

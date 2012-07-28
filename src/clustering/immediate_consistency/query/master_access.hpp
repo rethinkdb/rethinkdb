@@ -4,8 +4,8 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
+#include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
-#include "clustering/registrant.hpp"
 #include "protocol_api.hpp"
 
 template <class protocol_t>

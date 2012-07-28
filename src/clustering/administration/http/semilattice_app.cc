@@ -48,7 +48,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
             {
                 http_res_t res(200);
                 scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-                res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
+                res.set_body("application/json", json_repr.Print());
                 return res;
             }
             break;
@@ -88,10 +88,9 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     for (std::vector<std::string>::reverse_iterator it = parts.rbegin(); it != parts.rend(); it++) {
                         scoped_cJSON_t inner(absolute_change.release());
                         absolute_change.reset(cJSON_CreateObject());
-                        cJSON_AddItemToObject(absolute_change.get(), it->c_str(), inner.release());
+                        absolute_change.AddItemToObject(it->c_str(), inner.release());
                     }
-                    std::string msg = cJSON_print_unformatted_std_string(absolute_change.get());
-                    logINF("Applying data %s", msg.c_str());
+                    logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }
 
                 /* Fill in the blueprints */
@@ -104,7 +103,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 http_res_t res(200);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-                res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
+                res.set_body("application/json", json_repr.Print());
 
                 return res;
             }
@@ -124,7 +123,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 http_res_t res(200);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-                res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
+                res.set_body("application/json", json_repr.Print());
 
                 return res;
             }
@@ -163,10 +162,9 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     for (std::vector<std::string>::reverse_iterator it = parts.rbegin(); it != parts.rend(); it++) {
                         scoped_cJSON_t inner(absolute_change.release());
                         absolute_change.reset(cJSON_CreateObject());
-                        cJSON_AddItemToObject(absolute_change.get(), it->c_str(), inner.release());
+                        absolute_change.AddItemToObject(it->c_str(), inner.release());
                     }
-                    std::string msg = cJSON_print_unformatted_std_string(absolute_change.get());
-                    logINF("Applying data %s", msg.c_str());
+                    logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }
 
                 json_adapter_head->reset(json_ctx);
@@ -182,7 +180,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 http_res_t res(200);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-                res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
+                res.set_body("application/json", json_repr.Print());
 
                 return res;
             }

@@ -10,13 +10,15 @@ parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox
                                boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_semilattice_metadata,
                                DEBUG_ONLY(int _port_offset, )
                                namespace_repo_t<protocol_t> *_repo,
+                               local_issue_tracker_t *_local_issue_tracker,
                                perfmon_collection_repo_t *_perfmon_collection_repo)
     : mailbox_manager(_mailbox_manager),
       namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
       DEBUG_ONLY(port_offset(_port_offset), )
       repo(_repo),
       namespaces_subscription(boost::bind(&parser_maker_t::on_change, this), namespaces_semilattice_metadata),
-      perfmon_collection_repo(_perfmon_collection_repo)
+      perfmon_collection_repo(_perfmon_collection_repo),
+      local_issue_tracker(_local_issue_tracker)
 {
     on_change();
 }
@@ -89,6 +91,26 @@ void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name, na
         wait_any_t interruptor(&namespaces_being_handled.find(ns)->second->stopper, keepalive.get_drain_signal());
         typename namespace_repo_t<protocol_t>::access_t access(repo, ns, &interruptor);
         parser_t parser(port, access.get_namespace_if(), &perfmon_collection_repo->get_perfmon_collections_for_namespace(ns)->namespace_collection);
+
+        signal_t *is_bound = parser.get_bound_signal();
+
+        scoped_ptr_t<local_issue_tracker_t::entry_t> bound_issue_tracker_entry;
+        issue_subscription_t bound_subscription(&bound_issue_tracker_entry);
+        local_issue_t bound_issue("PORT_CONFLICT", true, strprintf("cannot bind to port %d to serve namespace %s", port, ns_name.c_str()));
+
+        // Don't bother propogating the issue unless we don't immediately connect
+        if (!is_bound->is_pulsed()) {
+
+            // Propogates the issue through the cluster
+            bound_issue_tracker_entry.init(
+                    new local_issue_tracker_t::entry_t(local_issue_tracker, bound_issue));
+
+            // Clears the issue from the cluster when 'is_bound' is pulsed
+            bound_subscription.reset(is_bound);
+        }
+
+        // Because we block here, the local issue related variables will live
+        // for the lifetime of the server.
         interruptor.wait_lazily_unordered();
 
         printf("Stopping serving queries for the namespace '%s' %s on port %d...\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);

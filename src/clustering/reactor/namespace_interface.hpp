@@ -13,9 +13,9 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "arch/timing.hpp"
+#include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "clustering/reactor/metadata.hpp"
-#include "clustering/registrant.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
