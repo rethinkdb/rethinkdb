@@ -389,11 +389,16 @@ module 'MachineView', ->
                     @.$('.cancel').button('loading')
 
                 
-                    for machine_id, data of namespace.get('blueprint')['peers_roles']
+                    for machine_id of namespace.get('blueprint')['peers_roles']
+                        if new_master?
+                            break
                         if namespace.get('blueprint')['peers_roles'][machine_id][shard_key] is 'role_secondary'
-                            if directory.get(machine_id).get(namespace.get('protocol')+'_namespaces')['reactor_bcards'][namespace.get('id')][shard_key]['type'] is 'secondary_up_to_date'
-                                new_master = machine_id
-                    if not machine_id?
+                            for key of directory.get(machine_id).get(namespace.get('protocol')+'_namespaces')['reactor_bcards'][namespace.get('id')]['activity_map']
+                                if directory.get(machine_id).get(namespace.get('protocol')+'_namespaces')['reactor_bcards'][namespace.get('id')]['activity_map'][key] is shard_key and directory.get(machine_id).get(namespace.get('protocol')+'_namespaces')['reactor_bcards'][namespace.get('id')]['activity_map'][key][1]['type'] is 'secondary_up_to_date'
+                                    new_master = machine_id
+                                    break
+
+                    if not new_master?
                         console.log 'error'
                         return
 
