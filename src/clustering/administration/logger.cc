@@ -391,12 +391,28 @@ void thread_pool_log_writer_t::write_blocking(const log_message_t &msg, std::str
             return;
         }
     }
+
+    res = fcntl(fallback_log_writer.fd.get(), F_SETLKW, &fallback_log_writer.filelock);
+    if (res != 0) {
+        *error_out = std::string("cannot lock log file: ") + strerror(errno);
+        *ok_out = false;
+        return;
+    }
+
     res = ::write(fallback_log_writer.fd.get(), formatted.data(), formatted.length());
     if (res != int(formatted.length())) {
         *error_out = std::string("cannot write to log file: ") + strerror(errno);
         *ok_out = false;
         return;
     }
+
+    res = fcntl(fallback_log_writer.fd.get(), F_SETLK, &fallback_log_writer.fileunlock);
+    if (res != 0) {
+        *error_out = std::string("cannot unlock log file: ") + strerror(errno);
+        *ok_out = false;
+        return;
+    }
+
 
     *ok_out = true;
     return;
