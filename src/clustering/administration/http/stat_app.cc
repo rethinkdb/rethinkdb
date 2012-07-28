@@ -195,6 +195,6 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
     cJSON_AddItemToObject(body.get(), "machines", prepare_machine_info(not_replied));
 
     http_res_t res(200);
-    res.set_body("application/json", cJSON_print_std_string(body.get()));
+    res.set_body("application/json", cJSON_print_unformatted_std_string(body.get()));
     return res;
 }
