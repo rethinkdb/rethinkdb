@@ -61,8 +61,8 @@ static void run_read_write_test() {
         &branch_history_manager,
         &broadcaster,
         &get_global_perfmon_collection(),
-        &interruptor
-        );
+        &interruptor,
+        &order_source);
 
     replier_t<dummy_protocol_t> initial_replier(&initial_listener);
 
@@ -151,8 +151,8 @@ static void run_broadcaster_problem_test() {
         &branch_history_manager,
         &broadcaster,
         &get_global_perfmon_collection(),
-        &interruptor
-        );
+        &interruptor,
+        &order_source);
 
     replier_t<dummy_protocol_t> initial_replier(&initial_listener);
 
