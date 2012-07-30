@@ -268,12 +268,12 @@ module 'NamespaceView', ->
         on_submit: (e) =>
             e.preventDefault()
             @.$('.btn-primary').button('Loading')
-            formdata = form_data_as_object($('form', @el))
-
+ 
             empty_master_pin = {}
-            empty_master_pin[JSON.stringify(["", null])] = null
             empty_replica_pins = {}
-            empty_replica_pins[JSON.stringify(["", null])] = []
+            for shard in @shard_set
+                empty_master_pin[shard] = null
+                empty_replica_pins[shard] = []
             json =
                 shards: @shard_set
                 primary_pinnings: empty_master_pin
