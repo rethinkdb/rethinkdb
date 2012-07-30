@@ -51,15 +51,14 @@ void run_with_broadcaster(
     watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > > > broadcaster_business_card_watchable_variable(boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > >(boost::optional<broadcaster_business_card_t<memcached_protocol_t> >(broadcaster->get_business_card())));
 
     scoped_ptr_t<listener_t<memcached_protocol_t> > initial_listener(
-        new listener_t<memcached_protocol_t>(
-            io_backender.get(),
-            cluster.get_mailbox_manager(),
-            broadcaster_business_card_watchable_variable.get_watchable(),
-            &branch_history_manager,
-            broadcaster.get(),
-            &get_global_perfmon_collection(),
-            &interruptor
-        ));
+        new listener_t<memcached_protocol_t>(io_backender.get(),
+                                             cluster.get_mailbox_manager(),
+                                             broadcaster_business_card_watchable_variable.get_watchable(),
+                                             &branch_history_manager,
+                                             broadcaster.get(),
+                                             &get_global_perfmon_collection(),
+                                             &interruptor,
+                                             &order_source));
 
     fun(io_backender.get(),
         &cluster,
@@ -154,7 +153,8 @@ void run_partial_backfill_test(io_backender_t *io_backender,
         replier_business_card_variable.get_watchable(),
         generate_uuid(),
         &get_global_perfmon_collection(),
-        &interruptor);
+        &interruptor,
+        order_source);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());

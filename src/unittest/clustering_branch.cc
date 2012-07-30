@@ -65,15 +65,14 @@ void run_with_broadcaster(
         boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(broadcaster->get_business_card()));
 
     scoped_ptr_t<listener_t<dummy_protocol_t> > initial_listener(
-        new listener_t<dummy_protocol_t>(
-            io_backender.get(),
-            cluster.get_mailbox_manager(),
-            broadcaster_directory_controller.get_watchable()->subview(&wrap_broadcaster_in_optional),
-            &branch_history_manager,
-            broadcaster.get(),
-            &get_global_perfmon_collection(),
-            &interruptor
-        ));
+        new listener_t<dummy_protocol_t>(io_backender.get(),
+                                         cluster.get_mailbox_manager(),
+                                         broadcaster_directory_controller.get_watchable()->subview(&wrap_broadcaster_in_optional),
+                                         &branch_history_manager,
+                                         broadcaster.get(),
+                                         &get_global_perfmon_collection(),
+                                         &interruptor,
+                                         &order_source));
 
     fun(io_backender.get(),
         &cluster,
@@ -222,7 +221,8 @@ void run_backfill_test(io_backender_t *io_backender,
         replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
         generate_uuid(),
         &get_global_perfmon_collection(),
-        &interruptor);
+        &interruptor,
+        order_source);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());
@@ -288,7 +288,8 @@ void run_partial_backfill_test(io_backender_t *io_backender,
         replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
         generate_uuid(),
         &get_global_perfmon_collection(),
-        &interruptor);
+        &interruptor,
+        order_source);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());
