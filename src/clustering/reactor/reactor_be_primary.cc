@@ -240,6 +240,8 @@ bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<bro
 template<class protocol_t>
 void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
+        order_source_t order_source;  // TODO: order_token_t::ignore
+
         //Tell everyone that we're looking to become the primary
         directory_entry_t directory_entry(this, region);
 
@@ -256,7 +258,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
              * store so we don't backfill anything prior to it. */
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
             svs->new_read_token(&read_token);
-            region_map_t<protocol_t, version_range_t> metainfo = svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor);
+            region_map_t<protocol_t, version_range_t> metainfo = svs->get_all_metainfos(order_source.check_in("reactor_t::be_primary").with_read_mode(), &read_token, interruptor);
             region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);
 
             /* This waits until every other peer is ready to accept us as the
@@ -352,8 +354,6 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
          * time that it's constructed. It might take some time to propogate to
          * ourselves after we've put it in the directory. */
         broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
-
-        order_source_t order_source;  // TODO: order_token_t::ignore
 
         listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster_business_card, branch_history_manager, &broadcaster, &region_perfmon_collection, interruptor, &order_source);
         replier_t<protocol_t> replier(&listener);
