@@ -61,7 +61,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
     warnings when print_backtrace() is run. */
 #if !defined(VALGRIND)
     logERR("Backtrace:");
-    log_backtrace();
+    logERR("%s", format_backtrace().c_str());
 #endif
 
     logERR("Exiting.");

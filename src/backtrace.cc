@@ -193,7 +193,7 @@ static bool run_addr2line(boost::ptr_map<std::string, addr2line_t> *procs, const
     return true;
 }
 
-std::string log_backtrace(bool use_addr2line) {
+std::string format_backtrace(bool use_addr2line) {
     boost::ptr_map<std::string, addr2line_t> procs;
 
     // Get a backtrace
@@ -202,8 +202,8 @@ std::string log_backtrace(bool use_addr2line) {
     int size = backtrace(stack_frames, max_frames);
     char **symbols = backtrace_symbols(stack_frames, size);
 
+    std::string output;
     if (symbols) {
-        std::string output;
         for (int i = 0; i < size; i ++) {
             // Parse each line of the backtrace
             scoped_malloc_t<char> line(symbols[i], symbols[i] + (strlen(symbols[i]) + 1));
@@ -238,14 +238,13 @@ std::string log_backtrace(bool use_addr2line) {
             }
         }
 
-        logERR("%s", output.c_str());
-
         free(symbols);
 
         return output;
     } else {
-        logERR("%s", "(too little memory for backtrace)\n");
+        output = "(too little memory for backtrace)";
+        logERR("%s", output.c_str());
 
-        return NULL;
+        return output;
     }
 }

@@ -14,6 +14,6 @@ struct demangle_failed_exc_t : public std::exception {
 };
 std::string demangle_cpp_name(const char *mangled_name);
 
-std::string log_backtrace(bool use_addr2line = true);
+std::string format_backtrace(bool use_addr2line = true);
 
 #endif /* BACKTRACE_HPP_ */
