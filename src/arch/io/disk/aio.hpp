@@ -53,8 +53,14 @@ public:
         bool get_is_write() const { return !get_is_read(); }
         off_t get_offset() const { return this->u.c.offset; }
         size_t get_count() const { return this->u.c.nbytes; }
+        bool get_succeeded() const { return io_result == (int)this->u.c.nbytes; }
+        bool get_errno() const { return -io_result; }
+
     private:
         friend class linux_diskmgr_aio_t;
+
+        // Only valid on return. Can be used to determine success or failure.
+        int io_result;
     };
 
     linux_diskmgr_aio_t(

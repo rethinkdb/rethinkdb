@@ -28,6 +28,11 @@ class linux_iocallback_t {
 public:
     virtual ~linux_iocallback_t() {}
     virtual void on_io_complete() = 0;
+
+    virtual void on_io_failure() {
+        printf("IO Operation failed. Exiting.\n");
+        _exit(1);
+    }
 };
 
 class linux_thread_pool_t;

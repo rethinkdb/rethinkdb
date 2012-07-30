@@ -66,10 +66,8 @@ void linux_diskmgr_aio_t::aio_notify(iocb *event, int result) {
     // Notify the submitter in case it wants to e.g. send more operations to the OS.
     submitter->notify_done();
 
-    // Check for failure.
-    // TODO: Do we have a use case for passing on errors to higher-level code instead of crashing?
-    // Perhaps we should retry the failed IO operation?
-    guarantee_xerr(result == (int)a->u.c.nbytes, -result, "Read or write failed");
+    // Pass result up to higher level code that can decided what to do in case of failure
+    a->io_result = result;
 
     // Pass the notification on up
     done_fun(a);
