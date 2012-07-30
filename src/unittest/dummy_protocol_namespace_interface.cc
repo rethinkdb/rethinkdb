@@ -91,7 +91,7 @@ void run_get_set_test(namespace_interface_t<dummy_protocol_t> *nsi, order_source
         r.keys.keys.insert("z");
 
         cond_t interruptor;
-        dummy_protocol_t::read_response_t rr = nsi->read(r, order_source->check_in("unittest::run_get_set_test(C)"), &interruptor);
+        dummy_protocol_t::read_response_t rr = nsi->read(r, order_source->check_in("unittest::run_get_set_test(C)").with_read_mode(), &interruptor);
 
         EXPECT_EQ(rr.values.size(), 3);
         EXPECT_EQ(rr.values["a"], "flup");
