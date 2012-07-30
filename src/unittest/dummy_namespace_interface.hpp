@@ -20,7 +20,7 @@ template<class protocol_t>
 class dummy_performer_t {
 
 public:
-    explicit dummy_performer_t(boost::shared_ptr<store_view_t<protocol_t> > s) :
+    explicit dummy_performer_t(store_view_t<protocol_t> *s) :
         store(s) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read,
@@ -69,7 +69,7 @@ public:
             );
     }
 
-    boost::shared_ptr<store_view_t<protocol_t> > store;
+    store_view_t<protocol_t> *store;
 };
 
 template<class protocol_t>
@@ -185,7 +185,7 @@ class dummy_namespace_interface_t :
     public namespace_interface_t<protocol_t>
 {
 public:
-    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t> shards, std::vector<boost::shared_ptr<store_view_t<protocol_t> > > stores) {
+    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t> shards, store_view_t<protocol_t> **stores) {
         /* Make sure shards are non-overlapping and stuff */
         {
             typename protocol_t::region_t join;
@@ -194,7 +194,6 @@ public:
                 throw std::runtime_error("bad region join");
             }
         }
-        rassert(stores.size() == shards.size());
 
         std::vector<typename dummy_sharder_t<protocol_t>::shard_t> shards_of_this_db;
         for (int i = 0; i < (int)shards.size(); i++) {
