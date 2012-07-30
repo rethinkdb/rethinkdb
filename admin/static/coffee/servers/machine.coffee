@@ -16,12 +16,6 @@ module 'MachineView', ->
             'click .close': 'close_alert'
             'click .tab-link': 'change_route'
 
-        change_route: (event) =>
-            # Because we are using bootstrap tab. We should remove them later.
-            window.router.navigate @.$(event.target).attr('href')
-
-        max_log_entries_to_render: 3
-
         initialize: =>
             log_initial '(initializing) machine view: container'
 
@@ -36,6 +30,10 @@ module 'MachineView', ->
             @logs = new LogView.Container
                 route: "/ajax/log/"+@model.get('id')+"_?"
                 template_header: Handlebars.compile $('#log-header-machine-template').html()
+
+        change_route: (event) =>
+            # Because we are using bootstrap tab. We should remove them later.
+            window.router.navigate @.$(event.target).attr('href')
 
         render: (tab) =>
             log_render '(rendering) machine view: container'

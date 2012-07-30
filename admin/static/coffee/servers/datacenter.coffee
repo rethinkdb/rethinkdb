@@ -12,6 +12,7 @@ module 'DatacenterView', ->
         className: 'datacenter-view'
         template: Handlebars.compile $('#datacenter_view-container-template').html()
         events: ->
+            'click .tab-link': 'change_route'
             'click a.rename-datacenter': 'rename_datacenter'
             'click .display_more_machines': 'expand_profile'
             'click .close': 'close_alert'
@@ -36,16 +37,21 @@ module 'DatacenterView', ->
                 template_header: Handlebars.compile $('#log-header-datacenter-template').html()
                 filter: filter
         
+        change_route: (event) =>
+            # Because we are using bootstrap tab. We should remove them later.
+            window.router.navigate @.$(event.target).attr('href')
+
         rename_datacenter: (event) ->
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'datacenter'
             rename_modal.render()
             @title.update()
 
-        render: =>
+        render: (tab) =>
             log_render('(rendering) datacenter view: container')
 
             @.$el.html @template
+                datacenter_id: @model.get 'id'
 
             # fill the title of this page
             @.$('.main_title').html @title.render().$el
@@ -67,6 +73,22 @@ module 'DatacenterView', ->
             @.$('.recent-log-entries').html @logs.render().$el
 
             @.$('.nav-tabs').tab()
+
+            if tab?
+                @.$('.active').removeClass('active')
+                switch tab
+                    when 'stats'
+                        @.$('#datacenter-stats').addClass('active')
+                        @.$('#datacenter-stats-link').tab('show')
+                    when 'data'
+                        @.$('#datacenter-data').addClass('active')
+                        @.$('#datacenter-data-link').tab('show')
+                    when 'logs'
+                        @.$('#datacenter-logs').addClass('active')
+                        @.$('#datacenter-logs-link').tab('show')
+                    else
+                        @.$('#datacenter-stats').addClass('active')
+                        @.$('#datacenter-stats-link').tab('show')
 
             return @
 
