@@ -268,10 +268,10 @@ private:
     DISABLE_COPYING(file_reverse_reader_t);
 };
 
-/* Most of the logging we do will be through thread_pool_log_writer_t. However, thread_pool_log_writer_t
-depends on the existence of a thread pool, which is not always the case. Thus,
-fallback_log_writer_t exists to perform logging operations when thread_pool_log_writer_t cannot
-be used. */
+/* Most of the logging we do will be through thread_pool_log_writer_t. However,
+thread_pool_log_writer_t depends on the existence of a thread pool, which is
+not always the case. Thus, fallback_log_writer_t exists to perform logging
+operations when thread_pool_log_writer_t cannot be used. */
 
 class fallback_log_writer_t {
 public:
