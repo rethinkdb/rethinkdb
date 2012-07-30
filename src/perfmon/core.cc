@@ -301,11 +301,13 @@ perfmon_filter_t::perfmon_filter_t(const std::set<std::string> &paths) {
             tokenizer_t t(*str, slashes);
             for (tokenizer_t::const_iterator it = t.begin(); it != t.end(); ++it) {
                 path->push_back(new scoped_regex_t());
-                if (path->back()->compile("^"+(*it)+"$")) {
-                    logWRN("Error: regex %s failed to compile, treating as empty.",
-                           sanitize_for_logger(*it).c_str());
-                    if(path->back()->compile("^$")) {
-                        crash("Regex '^$' failed to compile.\n");
+                if (!path->back()->compile("^"+(*it)+"$")) {
+                    logWRN("Error: regex %s failed to compile (%s), treating as empty.",
+                           sanitize_for_logger(*it).c_str(),
+                           sanitize_for_logger(path->back()->get_error()).c_str());
+                    if(!path->back()->compile("^$")) {
+                        crash("Regex '^$' failed to compile (%s).\n",
+                              sanitize_for_logger(path->back()->get_error()).c_str());
                     }
                 }
             }
