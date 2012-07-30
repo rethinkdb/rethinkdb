@@ -301,13 +301,16 @@ perfmon_filter_t::perfmon_filter_t(const std::set<std::string> &paths) {
             tokenizer_t t(*str, slashes);
             for (tokenizer_t::const_iterator it = t.begin(); it != t.end(); ++it) {
                 path->push_back(new scoped_regex_t());
-                if (!path->back()->compile("^"+(*it)+"$")) {
-                    logINF("Error: regex %s failed to compile, treating as unmatchable.",
+                if (path->back()->compile("^"+(*it)+"$")) {
+                    logWRN("Error: regex %s failed to compile, treating as empty.",
                            sanitize_for_logger(*it).c_str());
+                    if(path->back()->compile("^$")) {
+                        crash("Regex '^$' failed to compile.\n");
+                    }
                 }
             }
         } catch (const boost::escaped_list_error &e) {
-            logINF("Error: Could not parse %s (%s), skipping.",
+            logWRN("Error: Could not parse %s (%s), skipping.",
                    sanitize_for_logger(*str).c_str(), e.what());
             continue; //Skip this path
         }
