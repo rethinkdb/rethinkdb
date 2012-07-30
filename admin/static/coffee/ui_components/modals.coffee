@@ -261,7 +261,7 @@ module 'UIComponents', ->
             @get_item_object().set('name', @formdata.new_name)
 
             # notify the user that we succeeded
-            $('#user-alert-space').append @alert_tmpl
+            $('#user-alert-space').html @alert_tmpl
                 type: @item_type
                 old_name: @old_name
                 new_name: @formdata.new_name

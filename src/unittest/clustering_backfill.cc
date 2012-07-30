@@ -24,6 +24,8 @@ boost::optional<boost::optional<backfiller_business_card_t<dummy_protocol_t> > >
 
 void run_backfill_test() {
 
+    order_source_t order_source;
+
     /* Set up two stores */
 
     dummy_protocol_t::region_t region;
@@ -58,7 +60,7 @@ void run_backfill_test() {
         stores[i]->set_metainfo(
             region_map_t<dummy_protocol_t, binary_blob_t>(region,
                                                           binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))),
-            order_token_t::ignore,
+            order_source.check_in(strprintf("set_metainfo(i=%zu)", i)),
             &token,
             &non_interruptor);
     }
@@ -90,7 +92,7 @@ void run_backfill_test() {
                     binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
                 ),
                 w, ts,
-                order_token_t::ignore,
+                order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
                 &token,
                 &non_interruptor
             );
@@ -142,7 +144,8 @@ void run_backfill_test() {
     backfillee_store.new_read_token(&token1);
 
     region_map_t<dummy_protocol_t, binary_blob_t> untransformed_backfillee_metadata;
-    backfillee_store.do_get_metainfo(order_token_t::ignore, &token1, &interruptor, &untransformed_backfillee_metadata);
+    backfillee_store.do_get_metainfo(order_source.check_in("backfillee_store.do_get_metainfo").with_read_mode(),
+                                     &token1, &interruptor, &untransformed_backfillee_metadata);
 
     region_map_t<dummy_protocol_t, version_range_t> backfillee_metadata =
         region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
@@ -154,7 +157,8 @@ void run_backfill_test() {
     backfiller_store.new_read_token(&token2);
 
     region_map_t<dummy_protocol_t, binary_blob_t> untransformed_backfiller_metadata;
-    backfiller_store.do_get_metainfo(order_token_t::ignore, &token2, &interruptor, &untransformed_backfiller_metadata);
+    backfiller_store.do_get_metainfo(order_source.check_in("backfiller_store.do_get_metainfo").with_read_mode(),
+                                     &token2, &interruptor, &untransformed_backfiller_metadata);
 
     region_map_t<dummy_protocol_t, version_range_t> backfiller_metadata =
         region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
