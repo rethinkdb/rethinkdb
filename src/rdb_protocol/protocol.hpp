@@ -142,7 +142,7 @@ struct rdb_protocol_t {
         int maximum;
 
         rdb_protocol_details::transform_t transform;
-        rdb_protocol_details::terminal_t terminal;
+        boost::optional<rdb_protocol_details::terminal_t> terminal;
 
         RDB_MAKE_ME_SERIALIZABLE_4(key_range, maximum, transform, terminal);
     };
