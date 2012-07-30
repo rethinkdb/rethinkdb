@@ -9,9 +9,10 @@
 #include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/query_language.hpp"
 #include "serializer/config.hpp"
 
-typedef rdb_protocol_details::backfill_atom_t backfill_atom_t;
+typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 
 typedef rdb_protocol_t::store_t store_t;
 typedef rdb_protocol_t::region_t region_t;
@@ -340,13 +341,13 @@ region_t backfill_chunk_t::get_region() const {
     return boost::apply_visitor(v, val);
 }
 
-struct rdb_backfill_callback_t : public backfill_callback_t {
+struct rdb_backfill_callback_impl_t : public rdb_backfill_callback_t {
 public:
     typedef backfill_chunk_t chunk_t;
 
-    explicit rdb_backfill_callback_t(const boost::function<void(rdb_protocol_t::backfill_chunk_t)> &chunk_fun_)
+    explicit rdb_backfill_callback_impl_t(const boost::function<void(rdb_protocol_t::backfill_chunk_t)> &chunk_fun_)
         : chunk_fun(chunk_fun_) { }
-    ~rdb_backfill_callback_t() { }
+    ~rdb_backfill_callback_impl_t() { }
 
     void on_delete_range(const key_range_t &range) {
         chunk_fun(chunk_t::delete_range(region_t(range)));
@@ -356,7 +357,7 @@ public:
         chunk_fun(chunk_t::delete_key(to_store_key(key), recency));
     }
 
-    void on_keyvalue(const backfill_atom_t& atom) {
+    void on_keyvalue(const rdb_backfill_atom_t& atom) {
         chunk_fun(chunk_t::set_key(atom));
     }
 
@@ -368,11 +369,11 @@ protected:
 private:
     const boost::function<void(rdb_protocol_t::backfill_chunk_t)> &chunk_fun;
 
-    DISABLE_COPYING(rdb_backfill_callback_t);
+    DISABLE_COPYING(rdb_backfill_callback_impl_t);
 };
 
 static void call_rdb_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
-        backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, backfill_progress_t *progress) {
+        rdb_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, backfill_progress_t *progress) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owned(p);
     progress->add_constituent(&p_owned);
@@ -386,7 +387,7 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
                                      btree_slice_t *btree,
                                      transaction_t *txn,
                                      backfill_progress_t *progress) {
-    rdb_backfill_callback_t callback(chunk_fun);
+    rdb_backfill_callback_impl_t callback(chunk_fun);
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
     refcount_superblock_t refcount_wrapper(superblock, regions.size());
     pmap(regions.size(), boost::bind(&call_rdb_backfill, _1,
@@ -408,7 +409,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
     }
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
-        const backfill_atom_t& bf_atom = kv.backfill_atom;
+        const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
         rdb_set(bf_atom.key, bf_atom.value,
                 btree, repli_timestamp_t::invalid,
                 txn, superblock);

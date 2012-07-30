@@ -85,7 +85,7 @@ point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_
 
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
-    agnostic_rdb_backfill_callback_t(backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
+    agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
 
     void on_delete_range(const key_range_t &range) {
         rassert(kr_.is_superset(range));
@@ -108,11 +108,11 @@ public:
         cb_->on_keyvalue(atom);
     }
 
-    backfill_callback_t *cb_;
+    rdb_backfill_callback_t *cb_;
     key_range_t kr_;
 };
 
-void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
+void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
                     transaction_t *txn, superblock_t *superblock, parallel_traversal_progress_t *p) {
     agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range);
     value_sizer_t<rdb_value_t> sizer(slice->cache()->get_block_size());
