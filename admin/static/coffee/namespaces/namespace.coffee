@@ -15,6 +15,7 @@ module 'NamespaceView', ->
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
 
         events: ->
+            'click .tab-link': 'change_route'
             'click .close': 'close_alert'
             'click .rebalance_shards-link': 'rebalance_shards'
             'click .change_shards-link': 'change_shards'
@@ -36,11 +37,15 @@ module 'NamespaceView', ->
 
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
 
-        render: =>
+        change_route: (event) =>
+            # Because we are using bootstrap tab. We should remove them later.
+            window.router.navigate @.$(event.target).attr('href')
+ 
+        render: (tab) =>
             log_render '(rendering) namespace view: container'
 
-            json = @model.toJSON()
-            @.$el.html @template json
+            @.$el.html @template
+                namespace_id: @model.get 'id'
 
             # fill the title of this page
             @.$('.main_title').html @title.render().$el
@@ -65,7 +70,28 @@ module 'NamespaceView', ->
             @.$('.other').html @other.render().el
 
             @.$('.nav-tabs').tab()
-
+            
+            if tab?
+                @.$('.active').removeClass('active')
+                switch tab
+                    when 'overview'
+                        @.$('#namespace-overview').addClass('active')
+                        @.$('#namespace-overview-link').tab('show')
+                    when 'replication'
+                        @.$('#namespace-replication').addClass('active')
+                        @.$('#namespace-replication-link').tab('show')
+                    when 'shards'
+                        @.$('#namespace-sharding').addClass('active')
+                        @.$('#namespace-sharding-link').tab('show')
+                    when 'assignments'
+                        @.$('#namespace-pinning').addClass('active')
+                        @.$('#namespace-pinning-link').tab('show')
+                    when 'other'
+                        @.$('#namespace-other').addClass('active')
+                        @.$('#namespace-other-link').tab('show')
+                    else
+                        @.$('#namespace-overview').addClass('active')
+                        @.$('#namespace-overview-link').tab('show')
             return @
 
         close_alert: (event) ->
@@ -204,8 +230,6 @@ module 'NamespaceView', ->
 
             json = @model.toJSON()
             json = _.extend json, namespace_status
-            json = _.extend json,
-                old_alert_html: @.$('#user-alert-space').html()
 
             if namespace_status.reachability == 'Live'
                 json.reachability = true

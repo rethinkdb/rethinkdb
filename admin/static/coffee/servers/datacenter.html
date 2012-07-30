@@ -1,6 +1,5 @@
 <script id="datacenter_view-container-template" type="text/x-handlebars-template">
     <div class="main_title"></div>
-    <div id="user-alert-space"></div>
 
     <div class="two-panel-section profile-expandable">
         <div class="panel-left-unbalanced profile"></div>   
@@ -11,18 +10,21 @@
     </div>
 
     <ul class="nav nav-tabs">
-        <li class="active"><a href="#datacenter-statistics" data-toggle="tab">Statistics</a></li>
-        <li><a href="#datacenter-data" data-toggle="tab">Data</a></li>
-        <li><a href="#datacenter-log-entries" data-toggle="tab">Recent log entries</a></li>
+        <li class="active"><a href="#datacenters/{{datacenter_id}}/stats" data-target="#datacenter-stats" id="datacenter-stats-link" class="tab-link" data-toggle="tab">Statistics</a></li>
+        <li><a href="#datacenters/{{datacenter_id}}/data" data-target="#datacenter-data" id="datacenter-data-link" class="tab-link" data-toggle="tab">Data</a></li>
+        <li><a href="#datacenters/{{datacenter_id}}/logs" data-target="#datacenter-logs" id="datacenter-logs-link" class="tab-link" data-toggle="tab">Recent log entries</a></li>
     </ul>
+
+    <div id="user-alert-space"></div>
+    
     <div class="tab-content">  
-        <div class="tab-pane active" id="datacenter-statistics">
+        <div class="tab-pane active" id="datacenter-stats">
             <div class="section datacenter-stats"></div>
         </div>
         <div class="tab-pane" id="datacenter-data">
             <div class="section data"></div>
         </div>
-        <div class="tab-pane" id="datacenter-log-entries">
+        <div class="tab-pane" id="datacenter-logs">
             <div class="section recent-log-entries">
                 <h3 class="title">Recent log entries for this datacenter</h3>
             </div>
