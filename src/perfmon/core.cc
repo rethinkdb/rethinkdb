@@ -329,6 +329,10 @@ perfmon_filter_t::~perfmon_filter_t() {
     }
 }
 
+void perfmon_filter_t::filter(perfmon_result_t *p) const {
+    subfilter(p, 0, std::vector<bool>(regexps.size(), true));
+}
+
 /* Filter a [perfmon_result_t].  [depth] is how deep we are in the paths that
    the [perfmon_filter_t] was constructed from, and [active] is the set of paths
    that are still active (i.e. that haven't failed a match yet).  This should
@@ -371,10 +375,6 @@ perfmon_result_t *perfmon_filter_t::subfilter(
     } else {
         return p;
     }
-}
-
-void perfmon_filter_t::filter(perfmon_result_t *p) const {
-    subfilter(p, 0, std::vector<bool>(regexps.size(), true));
 }
 
 perfmon_collection_t &get_global_perfmon_collection() {
