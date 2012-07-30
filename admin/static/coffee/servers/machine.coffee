@@ -194,6 +194,15 @@ module 'MachineView', ->
         alert_set_server_template: Handlebars.compile $('#alert-set_server-template').html()
         outdated_data_template: Handlebars.compile $('#outdated_data-template').html()
 
+        reason_set_secondary_need_replica_template: Handlebars.compile $('#reason-set_secondary-need_replica-template').html()
+        reason_set_nothing_set_secondary_first_template: Handlebars.compile $('#reason-set_nothing-set_secondary_first-template').html()
+        reason_set_master_datacenter_not_primary_template: Handlebars.compile $('#reason-set_master-datacenter_not_primary-template').html()
+        reason_set_nothing_unsatisfiable_goals_template: Handlebars.compile $('#reason-set_nothing-unsatisfiable_goals-template').html()
+        reason_set_primary_set_secondary_first_template: Handlebars.compile $('#reason-set_primary-set_secondary_first-template').html()
+        reason_set_primary_set_datecenter_as_primary_template: Handlebars.compile $('#reason-set_primary-set_datecenter_as_primary-template').html()
+        reason_set_primary_no_datacenter_template: Handlebars.compile $('#reason-set_primary-no_datacenter-template').html()
+        reason_set_secondary_increase_replicas_template: Handlebars.compile $('#reason-set_secondary-increase_replicas-template').html()
+
         events:
             'click .make_master': 'make_master'
             'click .make_secondary': 'make_secondary'
@@ -213,6 +222,10 @@ module 'MachineView', ->
                 if not @namespaces_with_listeners[namespace.get('id')]?
                     @namespaces_with_listeners[namespace.get('id')] = true
                     namespace.on 'change:shards', @render
+                    namespace.on 'change:primary_uuid', @render
+                    namespace.on 'change:primary_pinnings', @render
+                    namespace.on 'change:secondary_pinnings', @render
+                    namespace.on 'change:replica_affinities', @render
 
             json = {}
             _namespaces = []
@@ -236,11 +249,11 @@ module 'MachineView', ->
                                     else
                                         new_shard.display_secondary = true
                                         new_shard.display_secondary_desactivated = true
-                                        new_shard.reason_secondary = "You need a replica to replace this master, please increase your number of replicas."
+                                        new_shard.reason_secondary = @reason_set_secondary_need_replica_template({namespace_id: namespace.get('id')})
 
                                     new_shard.display_nothing = true
                                     new_shard.display_nothing_desactivated = true
-                                    new_shard.reason_nothing = "You need to set this server as a secondary before removing all responsabilities."
+                                    new_shard.reason_nothing = @reason_set_nothing_set_secondary_first_template({})
 
 
                                 when 'role_secondary'
@@ -249,7 +262,7 @@ module 'MachineView', ->
                                     else
                                         new_shard.display_master = true
                                         new_shard.display_master_desactivated = true
-                                        new_shard.reason_master = "The server's datacenter is not the primary one for this namespace."
+                                        new_shard.reason_master = @reason_set_master_datacenter_not_primary_template({namespace_id: namespace.get('id')})
 
                                     new_shard.display_secondary = false
 
@@ -262,27 +275,27 @@ module 'MachineView', ->
                                     else
                                         new_shard.display_nothing = true
                                         new_shard.display_nothing_desactivated = true
-                                        new_shard.reason_nothing = "Lower your number of replicas or add a machine in this datacenter to avoid unsatisfiable goals."
+                                        new_shard.reason_nothing = @reason_set_nothing_unsatisfiable_goals_template({namespace_id: namespace.get('id')})
 
                                 when 'role_nothing'
                                     new_shard.display_master = true
                                     new_shard.display_master_desactivated = true
                                     if @model.get('datacenter_uuid')?
                                         if namespace.get('primary_uuid') is @model.get('datacenter_uuid')
-                                            new_shard.reason_master = "The server must be a secondary before becoming a master."
+                                            new_shard.reason_master = @reason_set_primary_set_secondary_first_template()
                                         else
-                                            new_shard.reason_master = "The server's datacenter is not the primary for this namespace."
+                                            new_shard.reason_master = @reason_set_primary_set_datecenter_as_primary_template({namespace_id: namespace.get('id')})
                                     else
-                                        new_shard.reason_master = "This server is not assigned to any datacenter."
+                                        new_shard.reason_master = @reason_set_primary_no_datacenter_template()
 
                                     new_shard.display_secondary = true
                                     if @model.get('datacenter_uuid')?
                                         if not namespace.get('replica_affinities')[@model.get('datacenter_uuid')]? or namespace.get('replica_affinities')[@model.get('datacenter_uuid')] < 1
                                             new_shard.display_secondary_desactivated = true
-                                            new_shard.reason_secondary = "You have to increase the number of replicas first."
+                                            new_shard.reason_secondary = @reason_set_secondary_increase_replicas_template({namespace_id: namespace.get('id')})
                                     else
                                         new_shard.display_secondary_desactivated = true
-                                        new_shard.reason_secondary = "This server is not assigned to any datacenter."
+                                        new_shard.reason_secondary = @reason_set_primary_no_datacenter_template()
 
                             _shards.push new_shard
                 if _shards.length > 0
@@ -486,7 +499,10 @@ module 'MachineView', ->
             for namespace_id of @namespaces_with_listeners
                 namespace = namespaces.get namespace_id
                 namespace.off 'change:shards', @render
-
+                namespace.off 'change:primary_uuid', @render
+                namespace.off 'change:primary_pinnings', @render
+                namespace.off 'change:secondary_pinnings', @render
+                namespace.off 'change:replica_affinities', @render
 
 
     class @Operations extends Backbone.View

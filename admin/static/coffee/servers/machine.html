@@ -107,7 +107,7 @@
                             data-namespace_id="{{namespace_id}}"
                             class="btn make_master{{#if display_master_desactivated}} disabled{{/if}}" value="Make master" /> 
                             {{#if reason_master}}
-                                <div class="reason">{{reason_master}}</div>
+                                <div class="reason">{{print_safe reason_master}}</div>
                             {{else}}
                                 <div class="reason">Make this server master of this shard.</div>
                             {{/if}}
@@ -121,7 +121,7 @@
                             data-namespace_id="{{namespace_id}}"
                             class="btn make_secondary{{#if display_secondary_desactivated}} disabled{{/if}}" value="Make secondary" /> 
                             {{#if reason_secondary}}
-                                <div class="reason">{{reason_secondary}}</div>
+                                <div class="reason">{{print_safe reason_secondary}}</div>
                             {{else}}
                                 <div class="reason">Make this server a secondary for this shard.</div>
  
@@ -135,7 +135,7 @@
                             data-namespace_id="{{namespace_id}}"
                             class="btn make_nothing{{#if display_nothing_desactivated}} disabled{{/if}}" value="Remove role" /> 
                             {{#if reason_nothing}}
-                                <div class="reason">{{reason_nothing}}</div>
+                                <div class="reason">{{print_safe reason_nothing}}</div>
                             {{else}}
                                 <div class="reason">Remove all responsabilities for this shard.</div>
                             {{/if}}
@@ -147,6 +147,42 @@
     </div>
     {{/each}}
 </script>
+
+
+<script id="reason-set_secondary-need_replica-template" type="text/x-handlebars-template">
+    You need a replica to replace this master, please <a href="#namespaces/{{namespace_id}}">increase</a> your number of replicas.
+</script>
+
+<script id="reason-set_nothing-set_secondary_first-template" type="text/x-handlebars-template">
+    First set this server as a secondary before removing all responsabilities.
+</script>
+
+<script id="reason-set_master-datacenter_not_primary-template" type="text/x-handlebars-template">
+    You have to <a href="#namespaces/{{namespace_id}}">set</a> this server's datacenter as the primary one first.
+</script>
+
+
+<script id="reason-set_nothing-unsatisfiable_goals-template" type="text/x-handlebars-template">
+    <a href="#namespaces/{{namespace_id}}">Lower</a> the number of replicas or <a href="#servers">add a machine</a> in this datacenter to avoid unsatisfiable goals.
+</script>
+
+<script id="reason-set_primary-set_secondary_first-template" type="text/x-handlebars-template">
+    The server must be a secondary before becoming a master.
+</script>
+
+<script id="reason-set_primary-set_datecenter_as_primary-template" type="text/x-handlebars-template">
+    You have to <a href="#namespaces/{{namespace_id}}">set</a> this server's datacenter as the primary one first.
+</script>
+
+<script id="reason-set_primary-no_datacenter-template" type="text/x-handlebars-template">
+    You have to <a href="#servers">assign</a> this server to a datacenter first.
+</script>
+
+<script id="reason-set_secondary-increase_replicas-template" type="text/x-handlebars-template">
+    You have to <a href="#namespaces/{{namespace_id}}">increase</a> your number of replicas first.
+</script>
+
+
 
 
 <script id="alert-set_server-template" type="text/x-handlebars-template">
