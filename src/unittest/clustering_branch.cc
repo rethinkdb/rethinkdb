@@ -58,8 +58,8 @@ void run_with_broadcaster(
             &branch_history_manager,
             &initial_svs,
             &get_global_perfmon_collection(),
-            &interruptor
-        ));
+            &order_source,
+            &interruptor));
 
     watchable_variable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > broadcaster_directory_controller(
         boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(broadcaster->get_business_card()));

@@ -44,6 +44,7 @@ void run_with_broadcaster(
             &branch_history_manager,
             &multi_store,
             &get_global_perfmon_collection(),
+            &order_source,
             &interruptor
         ));
 
