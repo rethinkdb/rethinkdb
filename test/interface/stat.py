@@ -31,10 +31,7 @@ with driver.Metacluster() as metacluster:
     ns = http.add_namespace(protocol = "memcached", primary = dc)
     time.sleep(10)
     host, port = driver.get_namespace_host(ns.port, processes)
-
     access = http
-
-    no_failures = True
 
     invalid_requests = ["foo=bar","filter=\|","time0ut=1","timeout=","timeout=0"]
     for req in invalid_requests:
@@ -43,13 +40,9 @@ with driver.Metacluster() as metacluster:
             access.get_stat(req)
         except http_admin.BadServerResponse:
             failed=True
-        if not failed:
-            print "*** ERROR ***: Request '%s' should have failed!" % req
-            no_failures = False
-    assert no_failures
+        assert failed, "Request '%s' should have failed!" % req
 
     all_stats = access.get_stat("")
-
     machines = all_stats.keys()
     machines.remove("machines")
     for machine in machines:
@@ -57,16 +50,14 @@ with driver.Metacluster() as metacluster:
         machine_stats = access.get_stat(machine_query)
 
         other_machines = [x for x in machines if x != machine]
-        other_machines_query="machine_whitelist=%s" % other_machines[0]
-        for other_machine in other_machines[1:]:
-            other_machines_query += ",%s" % other_machine
+        other_machines_query="machine_whitelist=" + ",".join(other_machines)
         other_machine_stats = access.get_stat(other_machines_query)
 
-        assert(machine_stats.keys().count(machine) == 1)
-        assert(other_machine_stats.keys().count(machine) == 0)
+        assert machine_stats.keys().count(machine) == 1
+        assert other_machine_stats.keys().count(machine) == 0
         for other_machine in other_machines:
-            assert(machine_stats.keys().count(other_machine) == 0)
-            assert(other_machine_stats.keys().count(other_machine) == 1)
+            assert machine_stats.keys().count(other_machine) == 0
+            assert other_machine_stats.keys().count(other_machine) == 1
 
         filter_query = "filter=.*/parser/cmd_get"
         filtered_machine_query = "%s&%s" % (machine_query, filter_query)
