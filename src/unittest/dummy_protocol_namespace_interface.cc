@@ -27,15 +27,13 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<dum
     shards.push_back(region2);
 
     boost::ptr_vector<dummy_protocol_t::store_t> underlying_stores;
-    std::vector<boost::shared_ptr<store_view_t<dummy_protocol_t> > > stores;
+    boost::ptr_vector<store_view_t<dummy_protocol_t> > stores;
     for (int i = 0; i < (int)shards.size(); i++) {
         underlying_stores.push_back(new dummy_protocol_t::store_t);
-        stores.push_back(boost::make_shared<store_subview_t<dummy_protocol_t> >(
-            &underlying_stores[i],
-            shards[i]));
+        stores.push_back(new store_subview_t<dummy_protocol_t>(&underlying_stores[i], shards[i]));
     }
 
-    dummy_namespace_interface_t<dummy_protocol_t> nsi(shards, stores);
+    dummy_namespace_interface_t<dummy_protocol_t> nsi(shards, stores.c_array());
 
     fun(&nsi);
 }
