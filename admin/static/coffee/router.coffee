@@ -11,6 +11,7 @@ class BackboneCluster extends Backbone.Router
         'servers': 'index_servers'
         'datacenters/:id': 'datacenter'
         'machines/:id': 'machine'
+        'machines/:id/:tab': 'machine'
         'dashboard': 'dashboard'
         'resolve_issues': 'resolve_issues'
         'logs': 'logs'
@@ -113,7 +114,7 @@ class BackboneCluster extends Backbone.Router
         @$container.html @current_view.render().el
         @sidebar.set_type_view()
 
-    machine: (id) ->
+    machine: (id, tab) ->
         log_router '/machines/' + id
         clear_modals()
         machine = machines.get(id)
@@ -121,6 +122,10 @@ class BackboneCluster extends Backbone.Router
         @current_view.destroy()
         if machine? then @current_view = new MachineView.Container model: machine
         else @current_view = new MachineView.NotFound id
+        
+        if tab?
+            @$container.html @current_view.render(tab).el
+        else
+            @$container.html @current_view.render().el
 
-        @$container.html @current_view.render().el
         @sidebar.set_type_view()

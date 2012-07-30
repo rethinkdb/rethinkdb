@@ -10,11 +10,11 @@
     </div>
 
     <ul class="nav nav-tabs">
-        <li class="active"><a href="#machine-statistics" data-toggle="tab">Statistics</a></li>
-        <li><a href="#machine-data" data-toggle="tab">Data</a></li>
-        <li><a href="#assignments" data-toggle="tab">Assignments</a></li>
-        <li><a href="#operations" data-toggle="tab">Operations</a></li>
-        <li><a href="#machine-log-entries" data-toggle="tab">Recent log entries</a></li>
+        <li class="active"><a href="/#machines/{{server_id}}/statistics" id="machine-statistics-link" data-toggle="tab" class="tab-link">Statistics</a></li>
+        <li><a href="/#machines/{{server_id}}/data" id="machine-data-link" data-toggle="tab" class="tab-link">Data</a></li>
+        <li><a href="/#machines/{{server_id}}/assignments" id="machine-assignments-link" data-toggle="tab" class="tab-link">Assignments</a></li>
+        <li><a href="/#machines/{{server_id}}/operations" id="machine-operations-link" data-toggle="tab" class="tab-link">Operations</a></li>
+        <li><a href="/#machines/{{server_id}}/logs" id="machine-log_entries-link" data-toggle="tab" class="tab-link">Recent log entries</a></li>
     </ul>
     <div class="tab-content">  
         <div id="user-alert-space"></div>
@@ -24,13 +24,13 @@
         <div class="tab-pane" id="machine-data">
             <div class="section data"></div>
         </div>
-        <div class="tab-pane" id="assignments">
+        <div class="tab-pane" id="machine-assignments">
             <div class="section assignments"></div>
         </div>
-        <div class="tab-pane" id="operations">
+        <div class="tab-pane" id="machine-operations">
             <div class="section operations"></div>
         </div>
-        <div class="tab-pane" id="machine-log-entries">
+        <div class="tab-pane" id="machine-log_entries">
             <div class="section machine-log-entries">
                 <div class="recent-log-entries"></div>
             </div>
@@ -88,7 +88,7 @@
 
 
 <script id="machine_view-assignments-template" type="text/x-handlebars-template">
-    <h3 class="title">Data on this machine</h3>
+    <h3 class="title">Assignments for this machine</h3>
     {{#unless data.namespaces}}
     <p>No data found on this machine.</p>
     {{/unless}}
