@@ -29,23 +29,23 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::pair<T, U> *p) {
     return res;
 }
 
-template <class K, class V>
-write_message_t &operator<<(write_message_t &msg, const std::map<K, V> &m) {
+template <class K, class V, class C>
+write_message_t &operator<<(write_message_t &msg, const std::map<K, V, C> &m) {
     // Extreme platform paranoia: It could become important that we
     // use something consistent like uint64_t for the size, not some
     // platform-specific size type such as std::map<K, V>::size_type.
     uint64_t sz = m.size();
 
     msg << sz;
-    for (typename std::map<K, V>::const_iterator it = m.begin(), e = m.end(); it != e; ++it) {
+    for (typename std::map<K, V, C>::const_iterator it = m.begin(), e = m.end(); it != e; ++it) {
         msg << *it;
     }
 
     return msg;
 }
 
-template <class K, class V>
-MUST_USE archive_result_t deserialize(read_stream_t *s, std::map<K, V> *m) {
+template <class K, class V, class C>
+MUST_USE archive_result_t deserialize(read_stream_t *s, std::map<K, V, C> *m) {
     m->clear();
 
     uint64_t sz;
@@ -54,7 +54,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::map<K, V> *m) {
 
     // Using position should make this function take linear time, not
     // sz*log(sz) time.
-    typename std::map<K, V>::iterator position = m->begin();
+    typename std::map<K, V, C>::iterator position = m->begin();
 
     for (uint64_t i = 0; i < sz; ++i) {
         std::pair<K, V> p;

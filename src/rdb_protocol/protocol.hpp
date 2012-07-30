@@ -12,12 +12,14 @@
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/boost_types.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
 #include "memcached/region.hpp" //TODO move these to a common place
 #include "protob/protob.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/json.hpp"
 #include "rdb_protocol/query_language.pb.h"
 
 enum point_write_result_t {
@@ -34,6 +36,13 @@ enum point_delete_result_t {
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_delete_result_t, int8_t, DELETED, MISSING);
 
+RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_Range);
+RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_Filter);
+RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_Map);
+RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_ConcatMap);
+RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
+RDB_MAKE_PROTOB_SERIALIZABLE(Reduction);
+
 namespace rdb_protocol_details {
 
 struct backfill_atom_t {
@@ -48,6 +57,19 @@ struct backfill_atom_t {
 
     RDB_MAKE_ME_SERIALIZABLE_3(key, value, recency);
 };
+
+typedef boost::variant<Builtin_Filter, Builtin_Map, Builtin_ConcatMap, Builtin_Range>  transform_atom_t;
+
+typedef std::list<transform_atom_t> transform_t;
+
+/* There's no protocol buffer for Length (because there's not data associated
+ * with it but to make things work with the variant we create a nice empty
+ * class. */
+
+struct Length { 
+    RDB_MAKE_ME_SERIALIZABLE_0();
+};
+typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length> terminal_t;
 
 } // namespace rdb_protocol_details
 
@@ -71,17 +93,22 @@ struct rdb_protocol_t {
     };
 
     struct rget_read_response_t {
+        typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
+        typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, query_language::shared_scoped_less> groups_t; //Present if the terminal was a groupedmapreduce
+        typedef boost::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
+        typedef boost::variant<stream_t, groups_t, atom_t, int> result_t;
+
         key_range_t key_range;
-        std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > data;
+        result_t result;
+        int errors;
         bool truncated;
 
         rget_read_response_t() { }
-        rget_read_response_t(const key_range_t &_key_range, std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > _data, bool _truncated)
-            : key_range(_key_range), data(_data), truncated(_truncated)
+        rget_read_response_t(const key_range_t &_key_range, const result_t _result, int _errors, bool _truncated)
+            : key_range(_key_range), result(_result), errors(_errors), truncated(_truncated)
         { }
 
-
-        RDB_MAKE_ME_SERIALIZABLE_3(data, key_range, truncated);
+        RDB_MAKE_ME_SERIALIZABLE_4(result, errors, key_range, truncated);
     };
 
     struct read_response_t {
@@ -114,7 +141,10 @@ struct rdb_protocol_t {
         key_range_t key_range;
         int maximum;
 
-        RDB_MAKE_ME_SERIALIZABLE_2(key_range, maximum);
+        rdb_protocol_details::transform_t transform;
+        rdb_protocol_details::terminal_t terminal;
+
+        RDB_MAKE_ME_SERIALIZABLE_4(key_range, maximum, transform, terminal);
     };
 
     struct read_t {

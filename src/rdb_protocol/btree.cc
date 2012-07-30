@@ -183,9 +183,14 @@ public:
     bool handle_pair(const btree_key_t* key, const void *value) {
         const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
         boost::shared_ptr<scoped_cJSON_t> data = get_data(rdb_value, transaction);
-        response.data.push_back(std::make_pair(store_key_t(key), data));
-        cumulative_size += estimate_rget_response_size(response.data.back().second);
-        return int(response.data.size()) < maximum && cumulative_size < rget_max_chunk_size;
+
+        typedef rget_read_response_t::stream_t stream_t;
+        stream_t *stream = boost::get<stream_t>(&response.result);
+        guarantee(stream);
+        stream->push_back(std::make_pair(store_key_t(key), data));
+
+        cumulative_size += estimate_rget_response_size(stream->back().second);
+        return int(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
     }
     transaction_t *transaction;
     int maximum;

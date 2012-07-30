@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_BACKTRACE_HPP_
 
 #include <string>
+#include <vector>
 
 namespace query_language {
 

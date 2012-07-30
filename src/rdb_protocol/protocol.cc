@@ -38,6 +38,8 @@ typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 
 typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 
+typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
+
 const std::string rdb_protocol_t::protocol_name("rdb");
 
 // Construct a region containing only the specified key
@@ -109,6 +111,8 @@ read_response_t read_t::unshard(std::vector<read_response_t> responses, temporar
     if (rg) {
         std::sort(responses.begin(), responses.end(), read_response_cmp);
         rget_read_response_t rg_response;
+        rg_response.result = stream_t();
+        stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
         typedef std::vector<read_response_t>::iterator rri_t;
@@ -116,7 +120,10 @@ read_response_t read_t::unshard(std::vector<read_response_t> responses, temporar
             // TODO: we're ignoring the limit when recombining.
             const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
             rassert(_rr);
-            rg_response.data.insert(rg_response.data.end(), _rr->data.begin(), _rr->data.end());
+
+            const stream_t *stream = boost::get<stream_t>(&(_rr->result));
+
+            res_stream->insert(res_stream->end(), stream->begin(), stream->end());
             rg_response.truncated = rg_response.truncated || _rr->truncated;
         }
         return read_response_t(rg_response);
@@ -138,10 +145,14 @@ void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
     for (std::vector<read_response_t>::iterator i = begin; i != end; ++i) {
         const rget_read_response_t *delta = boost::get<rget_read_response_t>(&i->response);
         rassert(delta);
-        merged.insert(merged.end(), delta->data.begin(), delta->data.end());
+        const stream_t *stream = boost::get<stream_t>(&delta->result);
+        guarantee(stream);
+        merged.insert(merged.end(), stream->begin(), stream->end());
     }
     std::sort(merged.begin(), merged.end(), rget_data_cmp);
-    response->data.insert(response->data.end(), merged.begin(), merged.end());
+    stream_t *stream = boost::get<stream_t>(&response->result);
+    guarantee(stream);
+    stream->insert(stream->end(), merged.begin(), merged.end());
 }
 
 read_response_t read_t::multistore_unshard(std::vector<read_response_t> responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
@@ -184,8 +195,9 @@ read_response_t read_t::multistore_unshard(std::vector<read_response_t> response
             i = shard_end;
         }
 
-        for (std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > >::iterator i = rg_response.data.begin();
-             i != rg_response.data.end(); ++i) {
+        stream_t *stream = boost::get<stream_t>(&rg_response.result);
+        for (std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > >::iterator i = stream->begin();
+             i != stream->end(); ++i) {
             rassert(i->second);
         }
 

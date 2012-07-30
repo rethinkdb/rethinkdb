@@ -13,57 +13,12 @@
 #include "extproc/pool.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.pb.h"
 
 namespace query_language {
-
-/* `bad_protobuf_exc_t` is thrown if the client sends us a protocol buffer that
-doesn't match our schema. This should only happen if the client itself is
-broken. */
-
-class bad_protobuf_exc_t : public std::exception {
-public:
-    ~bad_protobuf_exc_t() throw () { }
-
-    const char *what() const throw () {
-        return "bad protocol buffer";
-    }
-};
-
-/* `bad_query_exc_t` is thrown if the user writes a query that accesses
-undefined variables or that has mismatched types. The difference between this
-and `bad_protobuf_exc_t` is that `bad_protobuf_exc_t` is the client's fault and
-`bad_query_exc_t` is the client's user's fault. */
-
-class bad_query_exc_t : public std::exception {
-public:
-    bad_query_exc_t(const std::string &s, const backtrace_t &bt) : message(s), backtrace(bt) { }
-
-    ~bad_query_exc_t() throw () { }
-
-    const char *what() const throw () {
-        return message.c_str();
-    }
-
-    std::string message;
-    backtrace_t backtrace;
-};
-
-class runtime_exc_t {
-public:
-    runtime_exc_t(const std::string &_what, const backtrace_t &bt)
-        : message(_what), backtrace(bt)
-    { }
-
-    std::string what() const throw() {
-        return message;
-    }
-
-    std::string message;
-    backtrace_t backtrace;
-};
 
 enum term_type_t {
     TERM_TYPE_JSON,
@@ -329,8 +284,11 @@ private:
             rassert(p_res);
 
             // todo: just do a straight copy?
-            for (std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > >::iterator i = p_res->data.begin();
-                 i != p_res->data.end(); ++i) {
+            typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
+            stream_t *stream = boost::get<stream_t>(&p_res->result);
+            guarantee(stream);
+
+            for (stream_t::iterator i = stream->begin(); i != stream->end(); ++i) {
                 data.push_back(i->second);
                 rassert(data.back());
                 range.left = i->first;
