@@ -106,7 +106,12 @@
                             data-shard="{{shard}}"
                             data-namespace_id="{{namespace_id}}"
                             class="btn make_master{{#if display_master_desactivated}} disabled{{/if}}" value="Make master" /> 
-                    {{#if reason_master}}<div class="reason">{{reason_master}}</div>{{/if}}
+                            {{#if reason_master}}
+                                <div class="reason">{{reason_master}}</div>
+                            {{else}}
+                                <div class="reason">Make this server master of this shard.</div>
+                            {{/if}}
+
                     </div>
                 {{/if}}
                 {{#if display_secondary}}
@@ -115,7 +120,12 @@
                             data-shard="{{shard}}"
                             data-namespace_id="{{namespace_id}}"
                             class="btn make_secondary{{#if display_secondary_desactivated}} disabled{{/if}}" value="Make secondary" /> 
-                    {{#if reason_secondary}}<div class="reason">{{reason_secondary}}</div>{{/if}}
+                            {{#if reason_secondary}}
+                                <div class="reason">{{reason_secondary}}</div>
+                            {{else}}
+                                <div class="reason">Make this server a secondary for this shard.</div>
+ 
+                            {{/if}}
                     </div>
                 {{/if}}
                 {{#if display_nothing}}
@@ -124,7 +134,11 @@
                             data-shard="{{shard}}"
                             data-namespace_id="{{namespace_id}}"
                             class="btn make_nothing{{#if display_nothing_desactivated}} disabled{{/if}}" value="Remove role" /> 
-                    {{#if reason_nothing}}<div class="reason">{{reason_nothing}}</div>{{/if}}
+                            {{#if reason_nothing}}
+                                <div class="reason">{{reason_nothing}}</div>
+                            {{else}}
+                                <div class="reason">Remove all responsabilities for this shard.</div>
+                            {{/if}}
                     </div>
                 {{/if}}
             </li>

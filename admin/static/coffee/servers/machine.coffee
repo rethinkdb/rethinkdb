@@ -194,8 +194,6 @@ module 'MachineView', ->
         alert_set_server_template: Handlebars.compile $('#alert-set_server-template').html()
         outdated_data_template: Handlebars.compile $('#outdated_data-template').html()
 
-
-
         events:
             'click .make_master': 'make_master'
             'click .make_secondary': 'make_secondary'
@@ -204,11 +202,19 @@ module 'MachineView', ->
         initialize: =>
             @directory_entry = directory.get @model.get 'id'
             @directory_entry.on 'change:memcached_namespaces', @render
+            namespaces.on 'add', @render
+            namespaces.on 'remove', @render
+            namespaces.on 'reset', @render
             @namespaces_with_listeners = {}
 
         render: =>
+            #Update the namespaces with listners on :shards
+            for namespace in namespaces.models
+                if not @namespaces_with_listeners[namespace.get('id')]?
+                    @namespaces_with_listeners[namespace.get('id')] = true
+                    namespace.on 'change:shards', @render
+
             json = {}
-            # If the machine is reachable, add relevant json
             _namespaces = []
             for namespace in namespaces.models
                 _shards = []
@@ -232,14 +238,9 @@ module 'MachineView', ->
                                         new_shard.display_secondary_desactivated = true
                                         new_shard.reason_secondary = "You need a replica to replace this master, please increase your number of replicas."
 
-                                    if namespace.get('replica_affinities')[@model.get('datacenter_uuid')] > 1
-                                        new_shard.display_nothing = true
-                                        new_shard.display_nothing_desactivated = true
-                                        new_shard.reason_nothing = "First set this server as a secondary before removing it."
-                                    else
-                                        new_shard.display_nothing = true
-                                        new_shard.display_nothing_desactivated = true
-                                        new_shard.reason_nothing = "You need at least one replica up to date and set this server as a secondary before removing all responsabilities."
+                                    new_shard.display_nothing = true
+                                    new_shard.display_nothing_desactivated = true
+                                    new_shard.reason_nothing = "You need to set this server as a secondary before removing all responsabilities."
 
 
                                 when 'role_secondary'
@@ -268,20 +269,20 @@ module 'MachineView', ->
                                     new_shard.display_master_desactivated = true
                                     if @model.get('datacenter_uuid')?
                                         if namespace.get('primary_uuid') is @model.get('datacenter_uuid')
-                                            new_shard.reason_master = "The server must be a secondary before becoming a master"
+                                            new_shard.reason_master = "The server must be a secondary before becoming a master."
                                         else
-                                            new_shard.reason_master = "The server's datacenter is not the primary for this namespace"
+                                            new_shard.reason_master = "The server's datacenter is not the primary for this namespace."
                                     else
-                                        new_shard.reason_master = "This server is not assigned to any datacenter"
+                                        new_shard.reason_master = "This server is not assigned to any datacenter."
 
                                     new_shard.display_secondary = true
                                     if @model.get('datacenter_uuid')?
-                                        if namespace.get('replica_affinities')[@model.get('datacenter_uuid')] < 1
-                                            new_shard.display_master_desactivated = true
-                                            new_shard.reason_master = "You have to increase the number of replicas before setting this machine as a secondary"
+                                        if not namespace.get('replica_affinities')[@model.get('datacenter_uuid')]? or namespace.get('replica_affinities')[@model.get('datacenter_uuid')] < 1
+                                            new_shard.display_secondary_desactivated = true
+                                            new_shard.reason_secondary = "You have to increase the number of replicas first."
                                     else
-                                        new_shard.display_master_desactivated = true
-                                        new_shard.reason_master = "This server is not assigned to any datacenter"
+                                        new_shard.display_secondary_desactivated = true
+                                        new_shard.reason_secondary = "This server is not assigned to any datacenter."
 
                             _shards.push new_shard
                 if _shards.length > 0
@@ -482,7 +483,9 @@ module 'MachineView', ->
 
         destroy: =>
             @directory_entry.on 'change:memcached_namespaces', @render
-
+            for namespace_id of @namespaces_with_listeners
+                namespace = namespaces.get namespace_id
+                namespace.off 'change:shards', @render
 
 
 
