@@ -1,12 +1,14 @@
-#ifndef CLUSTERING_REGISTRANT_HPP_
-#define CLUSTERING_REGISTRANT_HPP_
+#ifndef CLUSTERING_GENERIC_REGISTRANT_HPP_
+#define CLUSTERING_GENERIC_REGISTRANT_HPP_
 
 #include <algorithm>
 #include <map>
 #include <string>
 #include <utility>
 
-#include "clustering/registration_metadata.hpp"
+#include "clustering/generic/registration_metadata.hpp"
+#include "clustering/generic/resource.hpp"
+#include "containers/clone_ptr.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/mailbox/typed.hpp"
@@ -81,4 +83,4 @@ private:
     DISABLE_COPYING(registrant_t);
 };
 
-#endif /* CLUSTERING_REGISTRANT_HPP_ */
+#endif /* CLUSTERING_GENERIC_REGISTRANT_HPP_ */

@@ -6,13 +6,33 @@
 # VARIABLE/ATTRIBUTE ACCESS #
 #############################
 def R(name):
-    """Create an expression that gets the value of a ReQL variable or
-    JSON attribute. The argument `name` must be prefixed with `$` to
-    access a variable, and `@` to access the attribute of JSON in an
-    implicit scope.
+    """Get the value of a variable or attribute.
 
-    You an access inner attributes of JSON documents by separating
-    names with a dot (`.`).
+    To get a variable, prefix the name with `$`.
+
+    >>> R('$user')
+
+    To get attributes of variables, use dot notation.
+
+    >>> R('$user.name')
+    >>> R('$user.options.ads')
+
+    Filter and map bind the current element to the implicit variable.
+
+    To access an attribute of the implicit variable, pass the attribute name.
+
+    >>> R('name')
+    >>> R('options.ads')
+
+    To get the implicit variable, use '@'.
+
+    >>> R('@')
+
+    For attributes that would be misinterpreted, use alternative notations.
+
+    >>> R('@.$special')     # get implicit var's "$special" attribute
+    >>> R('@')['$special']  # the same
+    >>> R('@')['a.b.c']     # get an attribute named "a.b.c"
 
     See information on scoping rules for more details.
 
@@ -22,27 +42,24 @@ def R(name):
     :type name: str
     :returns: :class:`Expression`
 
-    :Example:
-
-    >>> q = table('users').insert({ 'name': Joe,
-                                    'age': 30,
-                                    'address': { 'city': 'Mountain View', 'state': 'CA' }
-                                  })
-    >>> q = table('users').filter(R('@age') == 30) # access attribute age from the implicit row scope
-    >>> q = table('users').filter(R('@address.city') == 'Mountain View') # access subattribute city
-                                                                         # of attribute address from
-                                                                         # the implicit row scope
-    >>> q = table('users').filter(bind('row', R('$row.age') == 30)) # access attribute age from the
-                                                                    # variable 'row'
-    >>> q = table('users').filter(bind('row', R('$row.address.city') == 'Mountain View')) # access subattribute city
-                                                                                          # of attribute address from
-                                                                                          # the variable 'row'
-    >>> q = table('users').filter(bind('row', R('@age') == 30)) # error - binding a row disables implicit scope
-    >>> q = table('users').filter(bind('row', R('$age') == 30)) # error - no variable 'age' is defined
-    >>> q = table('users').filter(R('$age') == 30) # error - no variable 'age' is defined, use '@age' to access
-                                                   # implicit scope
+    >>> table('users').insert({ 'name': Joe,
+                                'age': 30,
+                                'address': { 'city': 'Mountain View', 'state': 'CA' }
+                              }).run()
+    >>> table('users').filter(R('age') == 30) # access attribute age from the implicit row variable
+    >>> table('users').filter(R('address.city') == 'Mountain View') # access subattribute city
+                                                                    # of attribute address from
+                                                                    # the implicit row variable
+    >>> table('users').filter(fn('row', R('$row.age') == 30)) # access attribute age from the
+                                                              # variable 'row'
+    >>> table('users').filter(fn('row', R('$row.address.city') == 'Mountain View')) # access subattribute city
+                                                                                     # of attribute address from
+                                                                                     # the variable 'row'
+    >>> table('users').filter(fn('row', R('age') == 30)) # error - binding a row disables implicit scope
+    >>> table('users').filter(fn('row', R('$age') == 30)) # error - no variable 'age' is defined
+    >>> table('users').filter(R('$age') == 30) # error - no variable '$age' is defined, use 'age'
     """
-    pass
+    raise NotImplementedError
 
 def fn(param, *args):
     """Create a function with named parameters.
@@ -60,7 +77,7 @@ def fn(param, *args):
     >>> fn("x", R("$x") + 1)            # lambda x: x + 1
     >>> fn("x", "y", R("$x") + R("$y))  # lambda x, y: x + y
     """
-    pass
+    raise NotImplementedError
 
 #####################################
 # SELECTORS - QUERYING THE DATABASE #
@@ -71,7 +88,8 @@ class Selectable(object):
     operations return another :class:`Selection`. When applied to a
     :class:`Stream`, they return another :class:`Stream`.
 
-    Selection operations that work with JSON values are noted explicitly."""
+    Selection operations that work with JSON values are noted, and return
+    a :class:`Expressions`."""
     def between(start_key, end_key, start_inclusive=True, end_inclusive=True):
         """Select all elements between two keys.
 
@@ -91,7 +109,7 @@ class Selectable(object):
         >>> expr([1, 2, 3, 4]).between(2, 4) # all elements >= 2 & <= 4
         [2, 3, 4]
         """
-        pass
+        raise NotImplementedError
 
     def filter(selector):
         """Select all elements that fit the specified condition.
@@ -107,19 +125,19 @@ class Selectable(object):
         We can also pass ReQL expressions directly. The above query is
         equivalent to the following query:
 
-        >>> table('users').filter((R('@age') == 30) & (R('@state') == 'CA')))
+        >>> table('users').filter((R('age') == 30) & (R('state') == 'CA')))
 
         The values in a dict can contain ReQL expressions - they will
         get evaluated in order to evaluate the condition:
 
         >>> # Select all Californians whose age is equal to the number
         >>> # of colleges attended added to the number of jobs held
-        >>> table('users').filter( { 'state': 'CA', 'age': R('@jobs_held') + R('@colleges_attended') })
+        >>> table('users').filter( { 'state': 'CA', 'age': R('jobs_held') + R('colleges_attended') })
 
         We can of course specify this query as a ReQL expression directly:
 
-        >>> table('users').filter(R('@state') == 'CA' &
-        >>>                       R('@age') == R('@jobs_held') + R('@colleges_attended'))
+        >>> table('users').filter(R('state') == 'CA' &
+        >>>                       R('age') == R('jobs_held') + R('colleges_attended'))
 
         We can use subqueries as well:
 
@@ -148,7 +166,7 @@ class Selectable(object):
         :type selector: dict, :class:`Expression`
         :returns: :class:`Selection`, :class:`Stream`, :class:`Expression`
         """
-        pass
+        raise NotImplementedError
 
     def get(key):
         """Select a row by primary key. If the key doesn't exist, returns null.
@@ -156,52 +174,58 @@ class Selectable(object):
         Not defined for JSON values.
 
         :param key: the key to look for
-        :type start_key: JSON value
+        :type key: JSON value
         :returns: :class:`RowSelection`, :class:`Expression`
 
         >>> q = table('users').get(10)  # get user with primary key 10
         """
-        pass
+        raise NotImplementedError
 
     def nth(index):
         """Select the element at `index`.
 
         .. note:: ``e.nth(index)`` is equivalent to ``e[index]``.
 
-        When applied to a :class:`Selection` returns a :class:`RowSelection`.
-        When applied to a :class:`Stream` returns a JSON document (an :class:`Expression`).
-        When applied to an array (:class:`Expression`) returns a JSON
-        value (an :class:`Expression`).
-        Not defined for, other JSON values, or :class:`RowSelection`.
+        Also works on JSON arrays.
 
         :param index: The element number to return.
         :type index: int
         :returns: :class:`RowSelection`, :class:`Expression`
 
+        Also works on JSON arrays.
+
         >>> expr([1, 2, 3, 4, 5]).nth(2)  # returns 3
         >>> table('users').nth(10) # returns 11th row
         >>> table('users')[10]     # returns 11th row
         """
-        pass
+        raise NotImplementedError
 
     def skip(offset):
         """Skip elements before the element at `offset`.
 
         .. note:: ``e.skip(offset)`` is equivalent to ``e[offset:]``.
 
+        Also works on JSON arrays.
+
         :param offset: The number of elements to skip.
         :type offset: int
         :returns: :class:`Selection`, :class:`Expression`
 
         """
-        pass
+        raise NotImplementedError
 
     def limit(count):
         """Select elements before the element at `count`.
 
         .. note:: ``e.limit(count)`` is equivalent to ``e[:count]``.
+
+        Also works on JSON arrays.
+
+        :param count: The number of elements to select.
+        :type count: int
+        :returns: :class:`Selection`, :class:`Expression`
         """
-        pass
+        raise NotImplementedError
 
     def orderby(*ordering):
         """Sort elements according to attributes specified by strings.
@@ -209,21 +233,23 @@ class Selectable(object):
         Items are sorted in ascending order unless the attribute name starts
         with '-', which sorts the attribute in descending order.
 
+        Not defined for JSON values.
+
         :param ordering: attribute names to order by
         :type ordering: list(str)
 
         >>> table('users').orderby('name')  # order users by name A-Z
         >>> table('users').orderby('-level', 'name') # levels high-low, then names A-Z
         """
-        pass
+        raise NotImplementedError
 
     def random():
         """Select a random element."""
-        pass
+        raise NotImplementedError
 
     def sample(count):
         """Select `count` elements at random."""
-        pass
+        raise NotImplementedError
 
 
 #####################
@@ -237,17 +263,25 @@ class Transformable(object):
     arrays, and some are defined on other types of JSON values."""
 
     def map(self, mapping):
-        """Evaluate `mapping` for each element, with an implicit
-        scope containing the element.
+        """Evaluate `mapping` for each element, with the implicit
+        variable containing the element if mapping does not bind it.
+
+        Also works on JSON arrays.
 
         :param mapping: The expression to evaluate
         :type mapping: :class:`Expression`
+        :returns: :class:`Stream`, :class:`Expression`
 
         >>> expr([1, 2, 3]).map(R('@') * 2) # gives [2, 4, 6]
         >>> table('users').map(R('age'))
         >>> table('users').map(fn('user', table('posts').filter({'userid': R('$user.id')})))"""
 
     def distinct(self, *attrs):
+        pass
+
+    def pluck(self, *attrs):
+        pass
+
 
 
 ###################
@@ -261,19 +295,15 @@ class Expression(Selectable, Transformable):
     get evaluated to themselves, or as complex as queries with
     multiple subqueries with table joins.
 
-    Use :func:`expr` as a shorthand to create expressions for JSON values.
+    Use :func:`expr` to create expressions for JSON values.
 
-    :Example:
-
-    >>> expr(1) # returns :class:`Expression` that encodes JSON value 1.
+    >>> expr(1)      # returns :class:`Expression` that encodes JSON value 1.
     >>> expr([1, 2]) # returns :class:`Expression` that encodes a JSON array.
-    >>> expr("foo") # returns :class:`Expression` that encodes a JSON string.
-    >>> expr({ 'name': 'Joe', 'age': 30 }) # # returns :class:`Expression` that encodes a JSON document.
+    >>> expr("foo")  # returns :class:`Expression` that encodes a JSON string.
+    >>> expr({ 'name': 'Joe', 'age': 30 }) # returns :class:`Expression` that encodes a JSON object.
 
     Expressions overload Python operators to enable comparisons on
     JSON values, as well as algebraic and logical operations.
-
-    :Example:
 
     >>> conn.run(expr(1) < expr(2)) # Evaluates 1 < 2 on the server and returns True.
     >>> expr(1) < 2 # Whenever possible, ReQL converts Python types to expressions implicitly.
@@ -296,13 +326,11 @@ class Expression(Selectable, Transformable):
         :type conn: :class:`rethinkdb.net.Connection`
         :returns: See the documentation for :func:`rethinkdb.net.Connection.run`
 
-        :Example:
-
         >>> conn = rethinkdb.net.connect() # Connect to localhost, default port
-        >>> q = table('db_name.table_name').insert({ 'a': 1, 'b': 2 }).run(conn)
-        >>> q = table('db_name.table_name').all().run() # uses conn since it's the last created connection
+        >>> res = table('db_name.table_name').insert({ 'a': 1, 'b': 2 }).run(conn)
+        >>> res = table('db_name.table_name').all().run() # uses conn since it's the last created connection
         """
-        pass
+        raise NotImplementedError
 
     def reduce(self, base, func):
         """Build up a result by repeatedly applying `func` to pairs of elements. Returns
@@ -310,12 +338,13 @@ class Expression(Selectable, Transformable):
 
         `base` should be an identity (`func(base, e) == e`).
 
-        :Example:
-
         >>> expr([1, 2, 3]).reduce(0, fn('a', 'b', R('$a') + R('$b'))).run()
         6
 
         >>> table('users').reduce(0, fn('a', 'b', R('$a') + R('$b.credits)))"""
+        raise NotImplementedError
+
+#SomeObject.with_attrs({"perms": <val>, "b"})
 
 
 def expr(val):
@@ -323,8 +352,6 @@ def expr(val):
 
     :param val: Any Python value that can be converted to JSON.
     :returns: :class:`Expression`
-
-    :Example:
 
     >>> expr(1)
     >>> expr("foo")
@@ -341,12 +368,15 @@ class Selection(Expression):
     def delete(self):
         """Delete all rows in the selection from the database."""
 
-    def update(self, func):
-        """Update all rows in the selection by applying `func`.
+    def update(self, mapping):
+        """Update all rows in the selection by merging the current contents
+        with the value of `mapping`.
 
-        :Example:
+        The merge is recursive, see :
 
-        >>> table('users').filter(R('@bans') > 5).update(R('@').without('signature'))"""
+        >>> table('users').filter(R('warnings') > 5).update({'banned': True})
+
+        """
 
 class Stream(Expression):
     """A sequence of JSON values which can be read."""
@@ -355,7 +385,6 @@ class Stream(Expression):
 
 class RowSelection(Selection, Expression):
     """A single row from a table which can be read or written."""
-    pass
 
 ###########################
 # DATABASE ADMINISTRATION #
@@ -386,7 +415,7 @@ def db_create(db_name, primary_datacenter=None):
     >>> q = db_create('db_name')
     >>> q = db_create('db_name', primary_datacenter='us_west')
     """
-    pass
+    raise NotImplementedError
 
 def db_drop(db_name):
     """Create a ReQL expression that drops a database within a
@@ -406,7 +435,7 @@ def db_drop(db_name):
 
     >>> q = db_drop('db_name')
     """
-    pass
+    raise NotImplementedError
 
 def db_list():
     """Create a ReQL expression that lists all databases within a
@@ -424,7 +453,7 @@ def db_list():
 
     >>> q = db_list() # returns a list of names, e.g. ['db1', 'db2', 'db3']
     """
-    pass
+    raise NotImplementedError
 
 ##############################################
 # LEAF SELECTORS - DATABASE AND TABLE ACCESS #
@@ -439,7 +468,7 @@ class Database():
         :param db_name: Name of the databases to access.
         :type db_expr: str
         """
-        pass
+        raise NotImplementedError
 
     def create(table_name, primary_key=None):
         """Create a ReQL expression that creates a table within this
@@ -465,7 +494,7 @@ class Database():
         >>> q = db('db_name').create('posts') # uses primary key 'id'
         >>> q = db('db_name').create('users', primary_key='user_id')
         """
-        pass
+        raise NotImplementedError
 
     def drop(table_name):
         """Create a ReQL expression that drops a table within this
@@ -485,7 +514,7 @@ class Database():
 
         >>> q = db('db_name').drop('posts')
         """
-        pass
+        raise NotImplementedError
 
     def list():
         """Create a ReQL expression that lists all tables within this
@@ -503,7 +532,7 @@ class Database():
 
         >>> q = db('db_name').list() # returns a list of tables, e.g. ['table1', 'table2']
         """
-        pass
+        raise NotImplementedError
 
     def table(table_name):
         """Create a ReQL expression that encodes a table within this
@@ -516,7 +545,7 @@ class Database():
         :returns: :class:`Table` -- a ReQL expression that encodes the
           table expression.
         """
-        pass
+        raise NotImplementedError
 
 def db(db_name):
     """Create a ReQL expression that encodes a database within a
@@ -530,7 +559,7 @@ def db(db_name):
 
     >>> q = db('db_name')
     """
-    pass
+    raise NotImplementedError
 
 class Table(Selection):
     """A ReQL expression that encodes a RethinkDB table. Most data
@@ -548,7 +577,7 @@ class Table(Selection):
           connection object.
         :type db_expr: :class:`Database`
         """
-        pass
+        raise NotImplementedError
 
 def table(table_ref):
     """Get a reference to a table within a RethinkDB cluster.
@@ -563,7 +592,7 @@ def table(table_ref):
     >>> q = table('table_name')         #
     >>> q = table('db_name.table_name') # equivalent to db('db_name').table('table_name')
     """
-    pass
+    raise NotImplementedError
 
 
 # this happens at the end since it's a circular import

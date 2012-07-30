@@ -26,6 +26,11 @@ master_business_card_t<protocol_t> master_t<protocol_t>::get_business_card() {
                                               registrar.get_business_card());
 }
 
+template <class protocol_t>
+const int master_t<protocol_t>::MAX_ALLOCATION = broadcaster_t<protocol_t>::MAX_OUTSTANDING_WRITES / 10;
+
+template <class protocol_t>
+const int master_t<protocol_t>::ALLOCATION_CHUNK = MAX_ALLOCATION / 10;
 
 template <class protocol_t>
 void master_t<protocol_t>::on_read(master_access_id_t parser_id, typename protocol_t::read_t read, order_token_t otok, fifo_enforcer_read_token_t token,
@@ -133,7 +138,7 @@ void master_t<protocol_t>::on_write(master_access_id_t parser_id, typename proto
 
 template <class protocol_t>
 void master_t<protocol_t>::consider_allocating_more_writes() {
-    if (enqueued_writes + ALLOCATION_CHUNK < TARGET_OPERATION_QUEUE_LENGTH) {
+    if (enqueued_writes + ALLOCATION_CHUNK < broadcaster_t<protocol_t>::MAX_OUTSTANDING_WRITES) {
         parser_lifetime_t *most_depleted_parser = NULL;
         for (typename std::map<master_access_id_t, parser_lifetime_t *>::iterator it  = sink_map.begin();
              it != sink_map.end();

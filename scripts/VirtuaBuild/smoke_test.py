@@ -47,7 +47,10 @@ def purge_installed_packages():
     old_binaries = map(lambda x: x.strip('\n'), old_binaries_raw)
     print "Binaries scheduled for removal: ", old_binaries
 
-    exec_command(uninstall(old_binaries[0]), shell = True)
+    try:
+    	exec_command(uninstall(old_binaries[0]), shell = True)
+    except Exception, e:
+        exec_command('rm -f ' + old_binaries[0])
     purge_installed_packages()
 
 def exec_command(cmd, bg = False, shell = False):
