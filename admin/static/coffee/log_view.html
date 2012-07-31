@@ -118,7 +118,20 @@
     Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
     <ul class="pretty_logs_ul">
         {{#each shards}}
+        {{#if is_null}}
+        <li class="pretty_logs_li">{{shard}}: <span class="fake-link">null</span></li>
+        {{else}}
         <li class="pretty_logs_li">{{shard}}: <a href="#machines/{{machine_id}}">{{machine_name}}</a></li>
+        {{/if}}
+        {{/each}}
+    </ul>
+</script>
+
+<script id="log-shards_list_values-template" type="text/x-handlebars-template">
+    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
+    <ul class="pretty_logs_ul">
+        {{#each shards}}
+        <li class="pretty_logs_li">{{shard}}: [ {{links_to_machines machines}} ]</li>
         {{/each}}
     </ul>
 </script>

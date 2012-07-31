@@ -202,6 +202,7 @@ module 'LogView', ->
         log_machines_values_template: Handlebars.compile $('#log-machines_values-template').html()
         log_datacenters_values_template: Handlebars.compile $('#log-datacenters_values-template').html()
         log_shards_values_template: Handlebars.compile $('#log-shards_values-template').html()
+        log_shards_list_values_template: Handlebars.compile $('#log-shards_list_values-template').html()
         log_new_template_template: Handlebars.compile $('#log-new_namespace-template').html()
 
         events:
@@ -267,7 +268,7 @@ module 'LogView', ->
                                     msg += @log_new_template_template 
                                         namespace_name: json_data[group]['new']['name']
                                         datacenter_id: json_data[group]['new']['primary_uuid']
-                                        datacenter_name: datacenters.get(json_data[group]['new']['primary_uuid']).get 'name'
+                                        datacenter_name: if datacenters.get(json_data[group]['new']['primary_uuid'])? then datacenters.get(json_data[group]['new']['primary_uuid']).get 'name' else 'removed datacenter'
                                         port: json_data[group]['new']['port']
                                 else
                                     attributes = []
@@ -281,57 +282,64 @@ module 'LogView', ->
                                                     value: json_data[group][namespace_id][attribute][datacenter_id]
                                             msg += @log_datacenters_values_template
                                                 namespace_id: namespace_id
-                                                namespace_name: namespaces.get(namespace_id).get 'name'
+                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
                                                 attribute: attribute
                                                 datacenters: _datacenters
                                         else if attribute is 'name' or attribute is 'port'
                                             msg += @log_single_value_template
                                                 namespace_id: namespace_id
-                                                namespace_name: namespaces.get(namespace_id).get 'name'
+                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
                                                 attribute: attribute
                                                 value: json_data[group][namespace_id][attribute]
                                         else if attribute is 'primary_uuid'
                                             msg += @log_single_value_template
                                                 namespace_id: namespace_id
-                                                namespace_name: namespaces.get(namespace_id).get 'name'
+                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
                                                 attribute: 'primary datacenter'
                                                 datacenter_id: json_data[group][namespace_id][attribute]
                                                 datacenter_name: datacenters.get(json_data[group][namespace_id][attribute]).get 'name'
                                         else if attribute is 'primary_pinnings'
                                             shards = []
                                             for shard of json_data[group][namespace_id][attribute]
-                                                shards.push
-                                                    shard: shard
-                                                    machine_id: if json_data[group][namespace_id][attribute][shard]? json_data[group][namespace_id][attribute][shard] else 'null'
-                                                    machine_name:if json_data[group][namespace_id][attribute][shard]? machines.get(json_data[group][namespace_id][attribute][shard]).get('name') else 'null'
+                                                if json_data[group][namespace_id][attribute][shard]?
+                                                    shards.push
+                                                        shard: shard
+                                                        machine_id:  json_data[group][namespace_id][attribute][shard]
+                                                        machine_name: if machines.get(json_data[group][namespace_id][attribute][shard])? then  machines.get(json_data[group][namespace_id][attribute][shard]).get('name') else 'removed machine'
+                                                else
+                                                    shards.push
+                                                        shard: shard
+                                                        is_null: true
+
                                             msg += @log_shards_values_template
                                                 namespace_id: namespace_id
-                                                namespace_name: namespaces.get(namespace_id).get 'name'
+                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
                                                 attribute: attribute
                                                 shards: shards
                                         else if attribute is 'secondary_pinnings'
-                                            console.log 'secondary'
-                                            #TODO
-                                            ###
                                             shards = []
                                             for shard of json_data[group][namespace_id][attribute]
+                                                _machines = []
+                                                for machine_id in json_data[group][namespace_id][attribute][shard]
+                                                    if machine_id?
+                                                        _machines.push
+                                                            id: machine_id
+                                                            name: if machines.get(machine_id)? then machines.get(machine_id).get 'name' else 'removed machine'
                                                 shards.push
                                                     shard: shard
-                                                    machine_id: json_data[group][namespace_id][attribute][shard]
-                                                    machine_name: machines.get(json_data[group][namespace_id][attribute][shard]).get('name')
-                                            msg += @log_shards_values_template
+                                                    machines: _machines
+                                            msg += @log_shards_list_values_template
                                                 namespace_id: namespace_id
-                                                namespace_name: namespaces.get(namespace_id).get 'name'
+                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
                                                 attribute: attribute
                                                 shards: shards
-                                            ###
                                         else if attribute is 'shards'
                                             value = [] # We could make thing faster later.
                                             for shard_string in json_data[group][namespace_id][attribute]
                                                 value.push JSON.parse shard_string
                                             msg += @log_single_value_template
                                                 namespace_id: namespace_id
-                                                namespace_name: namespaces.get(namespace_id).get 'name'
+                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
                                                 attribute: attribute
                                                 value: JSON.stringify(value).replace(/\\"/g,'"')
 
