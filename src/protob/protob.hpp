@@ -7,6 +7,7 @@
 #include "arch/arch.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "containers/archive/archive.hpp"
+#include "rdb_protocol/stream_cache.hpp"
 
 enum protob_server_callback_mode_t {
     INLINE, //protobs that arrive will be called inline
@@ -17,7 +18,7 @@ enum protob_server_callback_mode_t {
 template <class request_t, class response_t>
 class protob_server_t {
 public:
-    explicit protob_server_t(int port, boost::function<response_t(request_t *)> _f, protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
+    explicit protob_server_t(int port, boost::function<response_t(request_t *, stream_cache_t *)> _f, protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
     ~protob_server_t();
 private:
 
@@ -26,7 +27,7 @@ private:
 
     auto_drainer_t auto_drainer;
     scoped_ptr_t<tcp_listener_t> tcp_listener;
-    boost::function<response_t(request_t *)> f;
+    boost::function<response_t(request_t *, stream_cache_t *)> f;
     protob_server_callback_mode_t cb_mode;
 };
 
