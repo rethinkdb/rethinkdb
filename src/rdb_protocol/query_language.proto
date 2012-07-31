@@ -206,6 +206,8 @@ message Predicate {
 
 message ReadQuery {
     required Term term = 1;
+    optional int64 max_chunk_size = 2;
+    optional int64 max_age = 3;
 };
 
 message WriteQuery {

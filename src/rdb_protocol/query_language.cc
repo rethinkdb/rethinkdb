@@ -589,7 +589,11 @@ void check_query_type(const Query &q, type_checking_environment_t *env, bool *is
         check_write_query_type(q.write_query(), env, is_det_out, backtrace);
         break;
     case Query::CONTINUE: break;
+        check_protobuf(!q.has_read_query());
+        check_protobuf(!q.has_write_query());
     case Query::STOP: break;
+        check_protobuf(!q.has_read_query());
+        check_protobuf(!q.has_write_query());
     default:
         unreachable("unhandled Query");
     }
@@ -667,7 +671,7 @@ void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const back
         if (stream_cache->contains(key)) {
             throw runtime_exc_t(strprintf("Token %ld already in stream cache, use CONTINUE.", key), backtrace);
         } else {
-            stream_cache->insert(key, stream);
+            stream_cache->insert(r, key, stream);
         }
         stream_cache->serve(key, res);
         break;

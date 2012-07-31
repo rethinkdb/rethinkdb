@@ -17,21 +17,22 @@ public:
 
 class stream_cache_t {
 public:
-    ~stream_cache_t();
     bool contains(int64_t key);
-    void insert(int64_t key, boost::shared_ptr<json_stream_t> val);
+    void insert(ReadQuery *r, int64_t key, boost::shared_ptr<json_stream_t> val);
     void erase(int64_t key);
     bool serve(int64_t key, Response *res);
 private:
-    static const int MAX_CHUNK_SIZE = 10;
-    static const time_t MAX_AGE = 60;
     void maybe_evict();
 
     struct entry_t {
-        entry_t(time_t _last_activity, boost::shared_ptr<json_stream_t> _stream) :
-            last_activity(_last_activity), stream(_stream) { }
+        static const int DEFAULT_MAX_CHUNK_SIZE = 10;
+        static const time_t DEFAULT_MAX_AGE = 60;
+        entry_t(time_t _last_activity, boost::shared_ptr<json_stream_t> _stream,
+                ReadQuery *r);
         time_t last_activity;
         boost::shared_ptr<json_stream_t> stream;
+        int max_chunk_size; //Size of 0 = unlimited
+        time_t max_age;
     };
     std::map<int64_t, entry_t> streams;
 };
