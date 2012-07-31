@@ -312,8 +312,10 @@ message Query {
 
 message Response {
     enum StatusCode {
-        PARTIAL = 1;
         SUCCESS = 0;
+        SUCCESS_JSON = 1;
+        PARTIAL = 2;
+
         BAD_PROTOBUF = -1;
         BAD_QUERY = -2;
         RUNTIME_ERROR = -3;
