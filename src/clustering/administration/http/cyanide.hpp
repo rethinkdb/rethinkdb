@@ -8,7 +8,7 @@
 class cyanide_http_app_t : public http_app_t {
     http_res_t handle(const http_req_t &) {
         crash("Goodbye sweet world\n");
-        return http_res_t(200);
+        return http_res_t(HTTP_OK);
     }
 };
 
