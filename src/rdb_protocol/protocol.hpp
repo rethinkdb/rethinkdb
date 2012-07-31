@@ -73,6 +73,8 @@ struct Length {
 
 typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_t;
 
+
+
 } // namespace rdb_protocol_details
 
 struct rdb_protocol_t {
