@@ -29,7 +29,7 @@ bool stream_cache_t::serve(int64_t key, Response *res) {
             while (boost::shared_ptr<scoped_cJSON_t> json = entry->stream->next()) {
                 res->add_response(json->PrintUnformatted());
                 if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {
-                    res->set_status_code(Response::PARTIAL);
+                    res->set_status_code(Response::SUCCESS_PARTIAL);
                     return true;
                 }
             }

@@ -629,21 +629,33 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     return js_runner;
 }
 
-void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t) {
+void execute(Query *q, runtime_environment_t *env, type_checking_environment_t *type_env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t) {
     rassert(q->token() == res->token());
+    term_info_t type_info;
     switch(q->type()) {
     case Query::READ:
+        type_info = get_term_type(q->read_query().term(), type_env, backtrace);
+        if (type_info.type == TERM_TYPE_JSON) {
+            res->set_status_code(Response::SUCCESS_JSON);
+        } else {
+            //May be changed to SUCCESS_PARTIAL during execution.
+            res->set_status_code(Response::SUCCESS_STREAM);
+        }
         execute(q->mutable_read_query(), env, res, backtrace, stream_cache);
         break;
     case Query::WRITE:
+        res->set_status_code(Response::SUCCESS_STREAM);
         execute(q->mutable_write_query(), env, res, backtrace);
         break;
     case Query::CONTINUE:
+        //May be changed to SUCCESS_PARTIAL during execution.
+        res->set_status_code(Response::SUCCESS_STREAM);
         if (!stream_cache->serve(q->token(), res)) {
             throw runtime_exc_t(strprintf("Could not serve key %ld from stream cache.", q->token()), backtrace);
         }
         break;
     case Query::STOP:
+        res->set_status_code(Response::SUCCESS_EMPTY);
         if (!stream_cache->contains(q->token())) {
             throw runtime_exc_t(strprintf("No key %ld in stream cache.", q->token()), backtrace);
         } else {

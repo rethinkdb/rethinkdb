@@ -206,7 +206,7 @@ message Predicate {
 
 message ReadQuery {
     required Term term = 1;
-    optional int64 max_chunk_size = 2;
+    optional int64 max_chunk_size = 2; //may be 0 for unlimited
     optional int64 max_age = 3;
 };
 
@@ -312,9 +312,10 @@ message Query {
 
 message Response {
     enum StatusCode {
-        SUCCESS = 0;
+        SUCCESS_EMPTY = 0;
         SUCCESS_JSON = 1;
-        PARTIAL = 2;
+        SUCCESS_PARTIAL = 2; //need to send CONTINUE repeatedly until SUCCESS_STREAM
+        SUCCESS_STREAM = 3;
 
         BAD_PROTOBUF = -1;
         BAD_QUERY = -2;
