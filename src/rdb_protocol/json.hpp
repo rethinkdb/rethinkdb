@@ -29,4 +29,4 @@ private:
 
 } //namespace query_language
 
-#endif
+#endif /* RDB_PROTOCOL_JSON_HPP_ */

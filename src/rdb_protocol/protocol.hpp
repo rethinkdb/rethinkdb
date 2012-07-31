@@ -1,6 +1,12 @@
 #ifndef RDB_PROTOCOL_PROTOCOL_HPP_
 #define RDB_PROTOCOL_PROTOCOL_HPP_
 
+#include <list>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>

@@ -55,4 +55,4 @@ public:
 
 
 }// namespace query_language 
-#endif
+#endif /* RDB_PROTOCOL_EXCEPTIONS_HPP_ */

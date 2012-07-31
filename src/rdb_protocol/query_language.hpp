@@ -1,8 +1,14 @@
 #ifndef RDB_PROTOCOL_QUERY_LANGUAGE_HPP_
 #define RDB_PROTOCOL_QUERY_LANGUAGE_HPP_
 
-#include <list>
+#include <algorithm>
 #include <deque>
+#include <list>
+#include <map>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "utils.hpp"
 #include <boost/variant.hpp>
