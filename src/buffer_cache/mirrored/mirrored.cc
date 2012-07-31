@@ -1062,7 +1062,7 @@ void mc_buf_lock_t::release() {
  * Transaction implementation.
  */
 
-mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp)
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */)
     : cache(_cache),
       expected_change_count(_expected_change_count),
       access(_access),
