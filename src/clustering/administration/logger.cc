@@ -81,7 +81,7 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
         }
     }
 
-    return prepend + message_reformatted;
+    return prepend + message_reformatted + "\n";
 }
 
 
