@@ -134,6 +134,8 @@ bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t:
 template<class protocol_t>
 void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
+        order_source_t order_source;  // TODO: order_token_t::ignore
+
         /* Tell everyone that we're backfilling so that we can get up to
          * date. */
         directory_entry_t directory_entry(this, region);
@@ -159,7 +161,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                 svs->new_read_token(&read_token);
 
                 typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
-                    activity(svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor),
+                    activity(svs->get_all_metainfos(order_source.check_in("reactor_t::be_secondary").with_read_mode(), &read_token, interruptor),
                              backfiller.get_business_card());
 
                 directory_entry.set(activity);
@@ -210,8 +212,6 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                 std::string region_name(render_region_as_string(&region, 0));
                 perfmon_collection_t region_perfmon_collection;
                 perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
-
-                order_source_t order_source;  // TODO: order_token_t::ignore
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
                 listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster, branch_history_manager, svs, location_to_backfill_from, backfill_session_id, &regions_perfmon_collection, interruptor, &order_source);

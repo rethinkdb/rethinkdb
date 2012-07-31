@@ -43,13 +43,12 @@ static void run_read_write_test() {
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
     multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
     cond_t interruptor;
-    broadcaster_t<dummy_protocol_t> broadcaster(
-        cluster.get_mailbox_manager(),
-        &branch_history_manager,
-        &multi_initial_store,
-        &get_global_perfmon_collection(),
-        &interruptor
-        );
+    broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(),
+                                                &branch_history_manager,
+                                                &multi_initial_store,
+                                                &get_global_perfmon_collection(),
+                                                &order_source,
+                                                &interruptor);
 
     watchable_variable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > broadcaster_metadata_controller(
         boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(broadcaster.get_business_card()));
@@ -133,13 +132,12 @@ static void run_broadcaster_problem_test() {
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
     multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
     cond_t interruptor;
-    broadcaster_t<dummy_protocol_t> broadcaster(
-        cluster.get_mailbox_manager(),
-        &branch_history_manager,
-        &multi_initial_store,
-        &get_global_perfmon_collection(),
-        &interruptor
-        );
+    broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(),
+                                                &branch_history_manager,
+                                                &multi_initial_store,
+                                                &get_global_perfmon_collection(),
+                                                &order_source,
+                                                &interruptor);
 
     watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_controller(
         boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >(broadcaster.get_business_card()));
