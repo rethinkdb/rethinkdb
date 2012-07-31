@@ -48,12 +48,6 @@ bool check_existence(const std::string& file_path) {
 }
 
 void run_rethinkdb_create(const std::string &filepath, const std::string &machine_name, const io_backend_t io_backend, bool *result_out) {
-    if (check_existence(filepath)) {
-        logERR("The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
-        *result_out = false;
-        return;
-    }
-
     machine_id_t our_machine_id = generate_uuid();
     logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
 
@@ -62,13 +56,6 @@ void run_rethinkdb_create(const std::string &filepath, const std::string &machin
     machine_semilattice_metadata_t machine_semilattice_metadata;
     machine_semilattice_metadata.name = machine_semilattice_metadata.name.make_new_version(machine_name, our_machine_id);
     metadata.machines.machines.insert(std::make_pair(our_machine_id, machine_semilattice_metadata));
-
-    int res = mkdir(filepath.c_str(), 0755);
-    if (res != 0) {
-        logERR("Could not create directory: %s\n", errno_to_string(errno).c_str());
-        *result_out = false;
-        return;
-    }
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
@@ -141,12 +128,12 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
                         &sigint_cond);
 }
 
-void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets, bool new_directory) {
     os_signal_cond_t sigint_cond;
 
-    logINF("Checking if directory '%s' already exists...\n", filepath.c_str());
-    if (check_existence(filepath)) {
-        logINF("It already exists.  Loading data...\n");
+    logINF("Checking if directory '%s' already existed...\n", filepath.c_str());
+    if (!new_directory) {
+        logINF("It already existed.  Loading data...\n");
 
         scoped_ptr_t<io_backender_t> io_backender;
         make_io_backender(io_backend, &io_backender);
@@ -165,13 +152,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                             &sigint_cond);
 
     } else {
-        logINF("It does not already exist. Creating it...\n");
-
-        int res = mkdir(filepath.c_str(), 0755);
-        if (res != 0) {
-            logERR("Could not create directory: %s\n", errno_to_string(errno).c_str());
-            return;
-        }
+        logINF("It did not already exist. It has been created.\n");
 
         machine_id_t our_machine_id = generate_uuid();
 
@@ -415,11 +396,23 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
     std::string filepath = vm["directory"].as<std::string>();
     std::string logfilepath = get_logfilepath(filepath);
-    install_fallback_log_writer(logfilepath);
 
     std::string machine_name = vm["name"].as<std::string>();
 
     const int num_workers = get_cpu_count();
+
+    if (check_existence(filepath)) {
+        fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
+        return 1;
+    }
+
+    res = mkdir(filepath.c_str(), 0755);
+    if (res != 0) {
+        fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
+        return 1;
+    }
+
+    install_fallback_log_writer(logfilepath);
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, machine_name, io_backend, &result),
@@ -437,7 +430,6 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     std::string filepath = vm["directory"].as<std::string>();
     std::string logfilepath = get_logfilepath(filepath);
-    install_fallback_log_writer(logfilepath);
 
     std::vector<host_and_port_t> joins;
     if (vm.count("join") > 0) {
@@ -465,6 +457,13 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     extproc::spawner_t::create(&spawner_info);
 
     const int num_workers = get_cpu_count();
+
+    if (!check_existence(filepath)) {
+        fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
+        return 1;
+    }
+
+    install_fallback_log_writer(logfilepath);
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, &spawner_info, filepath, joins,
@@ -582,7 +581,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
     std::string filepath = vm["directory"].as<std::string>();
     std::string logfilepath = get_logfilepath(filepath);
-    install_fallback_log_writer(logfilepath);
 
     std::string machine_name = vm["name"].as<std::string>();
     std::vector<host_and_port_t> joins;
@@ -612,11 +610,24 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
     const int num_workers = get_cpu_count();
 
+    bool new_directory = false;
+    // Attempt to create the directory early so that the log file can use it.
+    if (!check_existence(filepath)) {
+        new_directory = true;
+        int res = mkdir(filepath.c_str(), 0755);
+        if (res != 0) {
+            fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
+            return 1;
+        }
+    }
+
+    install_fallback_log_writer(logfilepath);
+
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, &spawner_info, filepath, machine_name, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
                                    io_backend,
-                                   &result, render_as_path(web_path)),
+                                   &result, render_as_path(web_path), new_directory),
                        num_workers);
 
     return result ? 0 : 1;
