@@ -81,7 +81,7 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
         }
     }
 
-    return strprintf("%s%s\n", prepend.c_str(), message_reformatted.c_str());
+    return prepend + message_reformatted;
 }
 
 
@@ -253,7 +253,7 @@ private:
     friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
     friend void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
 
-    std::string write(const log_message_t &msg);
+    bool write(const log_message_t &msg, std::string *error_out);
     void initiate_write(log_level_t level, const std::string &message);
     std::string filename;
     struct timespec uptime_reference;
@@ -288,7 +288,7 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     rassert(fd.get() != -1, "%s", (std::string("failed to open log file") + strerror(errno)).c_str());
 }
 
-std::string fallback_log_writer_t::write(const log_message_t &msg) {
+bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {
     int res;
     std::string formatted = format_log_message(msg);
     std::string console_formatted = format_log_message(msg, true);
@@ -296,37 +296,42 @@ std::string fallback_log_writer_t::write(const log_message_t &msg) {
     flockfile(stderr);
     res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
     if (res != int(console_formatted.length())) {
-        return std::string("cannot write to standard error: ") + strerror(errno);
+        *error_out = std::string("cannot write to standard error: ") + strerror(errno);
+        return false;
     }
     funlockfile(stderr);
 
     if (fd.get() == -1) {
-        return std::string("cannot open log file or the log writer has not been assigned a log file.");
+        *error_out = std::string("cannot open log file or the log writer has not been assigned a log file.");
+        return false;
     }
 
     res = fcntl(fd.get(), F_SETLKW, &filelock);
     if (res != 0) {
-        return std::string("cannot lock log file: ") + strerror(errno);
+        *error_out = std::string("cannot lock log file: ") + strerror(errno);
+        return false;
     }
 
     res = ::write(fd.get(), formatted.data(), formatted.length());
     if (res != int(formatted.length())) {
-        return std::string("cannot write to log file: ") + strerror(errno);
+        *error_out = std::string("cannot write to log file: ") + strerror(errno);
+        return false;
     }
 
     res = fcntl(fd.get(), F_SETLK, &fileunlock);
     if (res != 0) {
-        return std::string("cannot unlock log file: ") + strerror(errno);
+        *error_out = std::string("cannot unlock log file: ") + strerror(errno);
+        return false;
     }
 
-    return std::string("");
+    return true;
 }
 
 void fallback_log_writer_t::initiate_write(log_level_t level, const std::string &message) {
     log_message_t log_msg = assemble_log_message(level, message, uptime_reference);
-    std::string result = write(log_msg);
-    if (result != "") {
-        fprintf(stderr, "Previous message may not have been written to the log file (%s).\n", result.c_str());
+    std::string error_message;
+    if (!write(log_msg, &error_message)) {
+        fprintf(stderr, "Previous message may not have been written to the log file (%s).\n", error_message.c_str());
     }
 }
 
@@ -406,14 +411,7 @@ void thread_pool_log_writer_t::write(const log_message_t &lm) {
 }
 
 void thread_pool_log_writer_t::write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out) {
-    std::string res = fallback_log_writer.write(msg);
-    if (res != "") {
-        *error_out = res;
-        *ok_out = false;
-        return;
-    }
-
-    *ok_out = true;
+    *ok_out = fallback_log_writer.write(msg, error_out);
     return;
 }
 
