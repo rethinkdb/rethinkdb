@@ -169,6 +169,12 @@ void http_res_t::set_body(const std::string& content_type, const std::string& co
     body = content;
 }
 
+http_res_t new_error_res(const std::string &content) {
+    http_res_t res(400);
+    res.set_body("application/text", content);
+    return res;
+}
+
 void test_header_parser() {
     http_req_t res("/foo/bar");
     //str_http_msg_parser_t http_msg_parser;

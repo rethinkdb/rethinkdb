@@ -1,15 +1,15 @@
 #ifndef CONTAINERS_SCOPED_REGEX_HPP_
 #define CONTAINERS_SCOPED_REGEX_HPP_
 
-#include "utils.hpp"
-#include "errors.hpp"
 #include <regex.h>
 #include <string>
+
+#include "errors.hpp"
 
 class scoped_regex_t {
 public:
     static const int default_flags = REG_EXTENDED | REG_NOSUB;
-    scoped_regex_t(const std::string &pat, int flags=default_flags) : is_set(false) {
+    scoped_regex_t(const std::string &pat, int flags = default_flags) : is_set(false) {
         set(pat, flags);
     }
     scoped_regex_t() : is_set(false) { }
@@ -17,7 +17,7 @@ public:
         if (is_set) regfree(&r);
     }
 
-    int set(const std::string &pat, int flags=default_flags) {
+    int set(const std::string &pat, int flags = default_flags) {
         rassert(!is_set);
         int retval = regcomp(&r, pat.c_str(), flags);
         if (!retval) is_set = true;

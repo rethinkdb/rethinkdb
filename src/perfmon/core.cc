@@ -1,14 +1,14 @@
 #include <stdarg.h>
 
+#include <list>
+
 #include "errors.hpp"
-#include "logger.hpp"
 #include <boost/bind.hpp>
 #include <boost/tokenizer.hpp>
-#include <boost/foreach.hpp>
-#include <list>
 
 #include "arch/runtime/coroutines.hpp"
 #include "containers/scoped.hpp"
+#include "logger.hpp"
 #include "perfmon/core.hpp"
 
 /* Constructor and destructor register and deregister the perfmon. */
@@ -285,34 +285,48 @@ void perfmon_result_t::splice_into(perfmon_result_t *map) {
     map_.clear();
 }
 
+/* Construct a filter from a set of paths.  Paths are of the form foo/bar/baz,
+   where each of those can be a regular expression.  They act a lot like XPath
+   expressions, but for perfmon_t objects.  */
 perfmon_filter_t::perfmon_filter_t(const std::set<std::string> &paths) {
-    boost::escaped_list_separator<char> by_slashes("\\","/","");
-    BOOST_FOREACH(std::string str, paths) {
+    typedef boost::escaped_list_separator<char> separator_t;
+    typedef boost::tokenizer<separator_t> tokenizer_t;
+    separator_t slashes("\\", "/", "");
+
+    for (std::set<std::string>::const_iterator
+             str = paths.begin(); str != paths.end(); ++str) {
         regexps.push_back(std::vector<scoped_regex_t *>());
         std::vector<scoped_regex_t *> *path = &regexps.back();
         try {
-            boost::tokenizer<boost::escaped_list_separator<char> > t(str, by_slashes);
-            BOOST_FOREACH(std::string regex_string, t) {
-                path->push_back(new scoped_regex_t("^"+regex_string+"$"));
+            tokenizer_t t(*str, slashes);
+            for (tokenizer_t::const_iterator it = t.begin(); it != t.end(); ++it) {
+                path->push_back(new scoped_regex_t("^"+(*it)+"$"));
             }
-        } catch (boost::escaped_list_error &e) {
+        } catch (const boost::escaped_list_error &e) {
             logINF("Error: Could not parse %s (%s), skipping.",
-                   sanitize_for_logger(str).c_str(), e.what());
+                   sanitize_for_logger(*str).c_str(), e.what());
             continue; //Skip this path
         }
     }
 }
 
 perfmon_filter_t::~perfmon_filter_t() {
-    BOOST_FOREACH(std::vector<scoped_regex_t *> per_path_regexps, regexps) {
-        BOOST_FOREACH(scoped_regex_t *regexp, per_path_regexps) {
-            delete regexp;
+    for (std::vector<std::vector<scoped_regex_t *> >::const_iterator
+             it = regexps.begin(); it != regexps.end(); ++it) {
+        for (std::vector<scoped_regex_t *>::const_iterator
+                 regexp = it->begin(); regexp != it->end(); ++regexp) {
+            delete *regexp;
         }
     }
 }
 
-perfmon_result_t *perfmon_filter_t::subfilter
-(perfmon_result_t *p, size_t depth, std::vector<bool> active) const {
+/* Filter a [perfmon_result_t].  [depth] is how deep we are in the paths that
+   the [perfmon_filter_t] was constructed from, and [active] is the set of paths
+   that are still active (i.e. that haven't failed a match yet).  This should
+   only be called by [filter]. */
+perfmon_result_t *perfmon_filter_t::subfilter(
+    perfmon_result_t *p, size_t depth, std::vector<bool> active) const {
+    bool keep_this_perfmon = true;
     if (p->is_string()) {
         std::string *str = p->get_string();
         for (size_t i = 0; i < regexps.size(); ++i) {
@@ -320,34 +334,38 @@ perfmon_result_t *perfmon_filter_t::subfilter
             if (depth >= regexps[i].size()) return p;
             if (depth == regexps[i].size() && regexps[i][depth]->matches(*str)) return p;
         }
-        delete p;
-        return 0;
+        keep_this_perfmon = false;
+    } else if (p->is_map()) {
+        std::list<perfmon_result_t::iterator> to_delete;
+        for (perfmon_result_t::iterator it = p->begin(); it != p->end(); ++it) {
+            std::vector<bool> subactive = active;
+            bool some_subpath = false;
+            for (size_t i = 0; i < regexps.size(); ++i) {
+                if (!active[i]) continue;
+                if (depth >= regexps[i].size()) return p;
+                subactive[i] = regexps[i][depth]->matches(it->first);
+                some_subpath |= subactive[i];
+            }
+            if (some_subpath) it->second = subfilter(it->second, depth + 1, subactive);
+            if (!some_subpath || !it->second) to_delete.push_back(it);
+        }
+        for (std::list<perfmon_result_t::iterator>::const_iterator
+                 it = to_delete.begin(); it != to_delete.end(); ++it) {
+            p->erase(*it);
+        }
+        if (p->get_map()->empty()) keep_this_perfmon = false;
     }
 
-    rassert(p->is_map());
-    std::list<perfmon_result_t::iterator> to_delete;
-    for (perfmon_result_t::iterator it = p->begin(); it != p->end(); ++it) {
-        std::vector<bool> subactive = active;
-        int some_subpath = false;
-        for (size_t i = 0; i < regexps.size(); ++i) {
-            if (!active[i]) continue;
-            if (depth >= regexps[i].size()) return p;
-            subactive[i] = regexps[i][depth]->matches(it->first);
-            some_subpath |= subactive[i];
-        }
-        if (some_subpath) it->second = subfilter(it->second, depth+1, subactive);
-        if (!some_subpath || !it->second) to_delete.push_back(it);
-    }
-    BOOST_FOREACH(perfmon_result_t::iterator it, to_delete) p->erase(it);
-    if (p->get_map()->empty() && depth > 0) { //Never delete top node
+    if (!keep_this_perfmon && depth > 0) { //Never delete topmost node
         delete p;
         return 0;
+    } else {
+        return p;
     }
-    return p;
 }
 
-perfmon_result_t *perfmon_filter_t::filter(perfmon_result_t *p) const {
-    return subfilter(p, 0, std::vector<bool>(regexps.size(), true));
+void perfmon_filter_t::filter(perfmon_result_t *p) const {
+    subfilter(p, 0, std::vector<bool>(regexps.size(), true));
 }
 
 perfmon_collection_t &get_global_perfmon_collection() {

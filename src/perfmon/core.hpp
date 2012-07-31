@@ -101,13 +101,14 @@ private:
 
 class perfmon_filter_t {
 public:
-    perfmon_filter_t(const std::set<std::string> &paths);
+    explicit perfmon_filter_t(const std::set<std::string> &paths);
     ~perfmon_filter_t();
-    perfmon_result_t *filter(perfmon_result_t *target) const;
+    void filter(perfmon_result_t *target) const;
 private:
     perfmon_result_t *subfilter(perfmon_result_t *target,
                                 size_t depth, std::vector<bool> active) const;
     std::vector<std::vector<scoped_regex_t *> > regexps; //regexps[PATH][DEPTH]
+    DISABLE_COPYING(perfmon_filter_t);
 };
 
 class perfmon_result_t {
