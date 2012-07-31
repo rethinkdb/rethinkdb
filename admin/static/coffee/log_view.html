@@ -137,7 +137,7 @@
 </script>
 
 <script id="log-new_namespace-template" type="text/x-handlebars-template">
-    Create a new namespace {{name}} with primary datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a> on port {{port}}}
+    Create a new namespace {{namespace_name}} with primary datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a> on port {{port}}}
 </script>
 
 <script id="log-server-new_name-template" type="text/x-handlebars-template">
@@ -150,4 +150,30 @@
 
 <script id="log-datacenter-new_name-template" type="text/x-handlebars-template">
     Set machine <a href="#dacenters/{{datacenter_id}}">{{datacenter_id_trunked}}</a>'s name to {{name}}<br/>
+</script>
+
+
+
+<script id="log-entry-small_template" type="text/x-handlebars-template">
+    <div class="message">
+        {{print_safe msg}}
+    </div>
+    <p class="from-machine">From <a href="#machines/{{machine_uuid}}">{{machine_name}}</a></p>
+    <p class="datetime">{{timeago_timestamp}}</p>
+</script>
+
+<script id="log-namespace_value-small_template" type="text/x-handlebars-template">
+    Change namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}}<br/>
+</script>
+
+<script id="log-new_namespace-small_template" type="text/x-handlebars-template">
+    Create a new namespace {{namespace_name}}<br/>
+</script>
+
+<script id="log-machine_value-small_template" type="text/x-handlebars-template">
+    Change machine <a href="#machines/{{machine_id}}">{{machine_name}}</a>'s {{attribute}}<br/>
+</script>
+
+<script id="log-datacenter_value-small_template" type="text/x-handlebars-template">
+    Change datacenter <a href="#dacenters/{{datacenter_id}}">{{datacenter_name}}</a>'s {{attribute}}<br/>
 </script>

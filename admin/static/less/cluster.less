@@ -247,50 +247,25 @@
         overflow: hidden;
     }
 
-    .recent-log-entry {
+    .recent-log-entries {
         padding: 7px 0px;
-
-        .level {
-            width: 24px;
-            height: 24px;
-            float: left;
-            margin-top: 4px;
-            margin-bottom: 4px;
-            margin-right: 15px;
-            &.error {
-                background: url('/images/alert-icon_small.png') no-repeat center center;
-            }
-            &.info, &.debug {
-                background: url('/images/information-icon_small.png') no-repeat center center;
-            }
-        }
-
-        .message {
-            display: table-cell;
-            height: 32px;
+        margin: 0px;
+        list-style: none;
+        .log-entry{
+            padding: 7px 0px;
+            border-bottom: 1px solid #DDD;
             overflow: hidden;
-            padding: 0 0;
-            vertical-align: middle;
-            width: 100%;
-            a.json {
+            .message{
+                padding: 0;
+                text-align: justify;
+           }
+            .datetime, .from-machine {
+                color: @gray;
+                text-align: right;
                 text-transform: uppercase;
                 font-size: 0.75em;
-                color: @gray;
-                border-bottom: thin dotted @gray;
-                &:hover {
-                    border-bottom: none;
-                }
+                margin-bottom: 0;
             }
-        }
-
-
-
-        .datetime, .from-machine {
-            color: @gray;
-            text-align: right;
-            text-transform: uppercase;
-            font-size: 0.75em;
-            margin-bottom: 0;
         }
     }
 }

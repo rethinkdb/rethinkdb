@@ -77,18 +77,6 @@
   {{/if}}
 </script>
 
-<script id="sidebar-recent_log_entry-template" type="text/x-handlebars-template">
-    <div class="level {{level}}"></div>
-    <p class="message">
-        {{formatted_message}}
-        {{#if json}}
-                <a href="#" class="json" rel="log_details" data-content="<pre>{{json}}</pre>" data-title="JSON applied to server">examine JSON</a>
-        {{/if}}
-    </p>
-    <p class="from-machine">From <a href="#machines/{{machine_uuid}}">{{machine_name}}</a></p>
-    <p class="datetime"><abbr class="timeago" title="{{timeago_timestamp}}">{{timeago_timestamp}}</abbr></p>
-</script>
-
 <script id="sidebar-dataexplorer_container-template" type="text/x-handlebars-template">
     <div class="section cluster-status">
         <div class="issues"></div>

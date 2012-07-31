@@ -6,6 +6,7 @@ module 'LogView', ->
         template: Handlebars.compile $('#log-container-template').html()
         header_template: Handlebars.compile $('#log-header-template').html()
         max_log_entries: 20
+        interval_update_log: 10000
 
         route: "/ajax/log/_?"
 
@@ -32,7 +33,7 @@ module 'LogView', ->
 
             @current_logs = []
             
-            @set_interval = setInterval @check_for_new_updates, updateInterval
+            @set_interval = setInterval @check_for_new_updates, @interval_update_log
 
         render: =>
             @.$el.html @template({})
@@ -195,8 +196,10 @@ module 'LogView', ->
 
     class @LogEntry extends Backbone.View
         className: 'log-entry'
+        classNameSmall: 'log-entry'
         tagName: 'li'
         template: Handlebars.compile $('#log-entry-template').html()
+        template_small: Handlebars.compile $('#log-entry-small_template').html()
 
         log_single_value_template: Handlebars.compile $('#log-single_value-template').html()
         log_machines_values_template: Handlebars.compile $('#log-machines_values-template').html()
@@ -207,6 +210,12 @@ module 'LogView', ->
         log_server_new_name_template: Handlebars.compile $('#log-server-new_name-template').html()
         log_server_set_datacenter_template: Handlebars.compile $('#log-server-set_datacenter-template').html()
         log_datacenter_new_name_template: Handlebars.compile $('#log-datacenter-new_name-template').html()
+
+
+        log_new_namespace_small_template: Handlebars.compile $('#log-new_namespace-small_template').html()
+        log_namespace_value_small_template: Handlebars.compile $('#log-namespace_value-small_template').html()
+        log_machine_value_small_template: Handlebars.compile $('#log-machine_value-small_template').html()
+        log_datacenter_value_small_template: Handlebars.compile $('#log-datacenter_value-small_template').html()
 
         events:
             'click .more-details-link': 'display_details'
@@ -241,7 +250,6 @@ module 'LogView', ->
 
         render: =>
             json = _.extend @model.toJSON(), @format_msg(@model)
-            #@model.get_formatted_message()
             json = _.extend json,
                 machine_name: machines.get(@model.get('machine_uuid')).get('name')
                 datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
@@ -252,12 +260,22 @@ module 'LogView', ->
             return @
 
 
+        render_small: =>
+            json = _.extend @model.toJSON(), @format_msg_small(@model)
+            json = _.extend json,
+                machine_name: machines.get(@model.get('machine_uuid')).get('name')
+                datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
+        
+            @.$el.html @template_small json 
+            @.$el.attr('class', @classNameSmall) 
+            return @
+
+
+
         pattern_applying_data: /^(Applying data {)/
+
         format_msg: (model) =>
             msg = model.get('message')
-
-            # Not sure if useful.
-            # return '' if not msg?
             
             if @pattern_applying_data.test(msg)
                 data = msg.slice 14
@@ -371,12 +389,95 @@ module 'LogView', ->
                                             datacenter_id: machine_id
                                             datacenter_id_trunked: datacenter_id.slice 24
                                             name: json_data[group][datacenter_id][attribute]
+                        else
+                            msg += "We were unable to parse this log. Click on 'More details' to see the raw log"
                         #TODO logs for databases
                 return {
                     msg: msg
-                    raw_data: data
+                    raw_data: JSON.stringify $.parseJSON(data), undefined, 2
                 }
             else
                 return {
                     msg: msg
+                }
+
+
+        format_msg_small: (model) =>
+            msg = model.get('message')
+            
+            if @pattern_applying_data.test(msg)
+                data = msg.slice 14
+                msg = ''
+                json_data = $.parseJSON data
+                for group of json_data
+                    switch group
+                        when 'memcached_namespaces'
+                            for namespace_id of json_data[group]
+                                if namespace_id is 'new'
+                                    msg += @log_new_namespace_small_template
+                                        namespace_name: json_data[group]['new']['name']
+                                else
+                                    attributes = []
+                                    for attribute of json_data[group][namespace_id]
+                                        attributes.push attribute
+
+                                    value = ''
+                                    for attribute, i in attributes
+                                        value += attribute
+                                        if i isnt attributes.length-1
+                                            value += ', '
+
+                                    msg += @log_namespace_value_small_template
+                                        namespace_id: namespace_id
+                                        namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
+                                        attribute: value
+                        when 'machines'
+                            for machine_id of json_data[group]
+                                for attribute of json_data[group][machine_id]
+                                    attributes = []
+                                    for attribute of json_data[group][machine_id]
+                                        attributes.push attribute
+
+                                    value = ''
+                                    for attribute, i in attributes
+                                        value += attribute
+                                        if i isnt attributes.length-1
+                                            value += ', '
+
+                                    msg += @log_machine_value_small_template
+                                        machine_id: machine_id
+                                        machine_name: if machines.get(machine_id)? then machines.get(machine_id).get 'name' else 'removed machine'
+                                        attribute: value
+
+                        when 'datacenters'
+                            for datacenter_id of json_data[group]
+                                for attribute of json_data[group][datacenter_id]
+                                    attributes = []
+                                    for attribute of json_data[group][datacenter_id]
+                                        attributes.push attribute
+
+                                    value = ''
+                                    for attribute, i in attributes
+                                        value += attribute
+                                        if i isnt attributes.length-1
+                                            value += ', '
+
+                                    msg += @log_datacenter_value_small_template
+                                        datacenter_id: datacenter_id
+                                        datacenter_name: if datacenters.get(datacenter_id)? then datacenters.get(datacenter_id).get 'name' else 'removed datacenter'
+                                        attribute: value
+
+
+                        else
+                            msg += "We were unable to parse this log. Click on 'More details' to see the raw log"
+                        #TODO logs for databases
+                return {
+                    msg: msg
+                    raw_data: JSON.stringify $.parseJSON(data), undefined, 2
+                    timeago_timestamp: @model.get_iso_8601_timestamp()
+                }
+            else
+                return {
+                    msg: msg
+                    timeago_timestamp: @model.get_iso_8601_timestamp()
                 }
