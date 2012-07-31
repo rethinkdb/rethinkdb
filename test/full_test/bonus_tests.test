@@ -18,7 +18,7 @@ do_test(
 
 do_test(
     "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 2+1-1+1-1+1-1+1-1+1-1 "
-        "--workload-during '$RETHINKDB/bench/stress/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' "
+        "--workload-during '$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' "
         "--workload-during '$RETHINKDB/test/workloads/simulate_web_ui.py $HOST:$HTTP_PORT'",
     repeat = 3,
     inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "bench/stress-client/stress"]
@@ -26,7 +26,7 @@ do_test(
 
 do_test(
     "$RETHINKDB/test/scenarios/rebalance.py --sequence 0,++++++++,----,++++++++,------------ "
-        "--workload-during '$RETHINKDB/bench/stress/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' "
+        "--workload-during '$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' "
         "--workload-during '$RETHINKDB/test/workloads/simulate_web_ui.py $HOST:$HTTP_PORT'",
     repeat = 3,
     inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "bench/stress-client/stress"]
