@@ -34,10 +34,10 @@ public:
             return "Regular expression never compiled.";
         } else {
             size_t length = regerror(errcode, &r, 0, 0);
-            scoped_ptr_t<char> raw(new char[length]);
-            rassert(raw.get());
-            regerror(errcode, &r, raw.get(), length);
-            std::string out = raw.get();
+            scoped_array_t<char> raw(length);
+            rassert(raw.data());
+            regerror(errcode, &r, raw.data(), length);
+            std::string out = raw.data();
             return out;
         }
     }
