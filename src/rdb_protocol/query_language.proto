@@ -296,6 +296,8 @@ message Query {
     enum QueryType {
         READ = 1;
         WRITE = 2;
+        CONTINUE = 3;
+        STOP = 4;
     }
 
     required QueryType type = 1;
@@ -308,6 +310,7 @@ message Query {
 
 message Response {
     enum StatusCode {
+        PARTIAL = 1;
         SUCCESS = 0;
         BAD_PROTOBUF = -1;
         BAD_QUERY = -2;

@@ -588,6 +588,8 @@ void check_query_type(const Query &q, type_checking_environment_t *env, bool *is
         check_protobuf(!q.has_read_query());
         check_write_query_type(q.write_query(), env, is_det_out, backtrace);
         break;
+    case Query::CONTINUE: break;
+    case Query::STOP: break;
     default:
         unreachable("unhandled Query");
     }
@@ -623,17 +625,33 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     return js_runner;
 }
 
-void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
-    if (q->type() == Query::READ) {
-        execute(q->mutable_read_query(), env, res, backtrace);
-    } else if (q->type() == Query::WRITE) {
+void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t) {
+    rassert(q->token() == res->token());
+    switch(q->type()) {
+    case Query::READ:
+        execute(q->mutable_read_query(), env, res, backtrace, stream_cache);
+        break;
+    case Query::WRITE:
         execute(q->mutable_write_query(), env, res, backtrace);
-    } else {
+        break;
+    case Query::CONTINUE:
+        if (!stream_cache->serve(q->token(), res)) {
+            throw runtime_exc_t(strprintf("Could not serve key %ld from stream cache.", q->token()), backtrace);
+        }
+        break;
+    case Query::STOP:
+        if (!stream_cache->contains(q->token())) {
+            throw runtime_exc_t(strprintf("No key %ld in stream cache.", q->token()), backtrace);
+        } else {
+            stream_cache->erase(q->token());
+        }
+        break;
+    default:
         crash("unreachable");
     }
 }
 
-void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t) {
     term_info_t type = get_term_type(r->term(), &env->type_env, backtrace);
 
     switch (type.type) {
@@ -645,9 +663,13 @@ void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const back
     case TERM_TYPE_STREAM:
     case TERM_TYPE_VIEW: {
         boost::shared_ptr<json_stream_t> stream = eval_stream(r->mutable_term(), env, backtrace);
-        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            res->add_response(json->PrintUnformatted());
+        int64_t key = res->token();
+        if (stream_cache->contains(key)) {
+            throw runtime_exc_t(strprintf("Token %ld already in stream cache, use CONTINUE.", key), backtrace);
+        } else {
+            stream_cache->insert(key, stream);
         }
+        stream_cache->serve(key, res);
         break;
     }
     case TERM_TYPE_ARBITRARY: {

@@ -1,6 +1,7 @@
 #include "rdb_protocol/pb_server.hpp"
 
 #include <boost/make_shared.hpp>
+#include "stream_cache.hpp"
 
 query_server_t::query_server_t(int port, extproc::pool_group_t *_pool_group, const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata, namespace_repo_t<rdb_protocol_t> * _ns_repo)
     : pool_group(_pool_group),
@@ -43,20 +44,13 @@ Response query_server_t::handle(Query *q) {
         query_language::runtime_environment_t runtime_environment(
             pool_group, ns_repo, semilattice_metadata, js_runner, &interruptor);
         try {
-            execute(q, &runtime_environment, &res, root_backtrace);
             res.set_status_code(Response::SUCCESS);
+            execute(q, &runtime_environment, &res, root_backtrace, &stream_cache);
         } catch (query_language::runtime_exc_t &e) {
             res.set_status_code(Response::RUNTIME_ERROR);
             res.set_error_message(e.message);
             put_backtrace(e.backtrace, &res);
         }
-    }
-    // js_runner shouldn't survive the end of query execution (really we'd like
-    // a scoped_ptr_t)
-    guarantee(js_runner.unique());
-    if (js_runner->begun()) {
-        // Clean shutdown.
-        js_runner->finish();
     }
 
     return res;

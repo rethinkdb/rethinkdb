@@ -79,17 +79,11 @@ class Connection(object):
 
         self.socket = socket.create_connection((hostname, port))
 
-    def run(self, query, debug=False):
-        query = toTerm(query)
-
-        root_ast = p.Query()
-        root_ast.token = self._get_token()
-        query._finalize_query(root_ast)
-
+    def _run(self, protobuf, query, debug=False):
         if debug:
-            print "sending:", root_ast
+            print "sending:", protobuf
 
-        serialized = root_ast.SerializeToString()
+        serialized = protobuf.SerializeToString()
 
         header = struct.pack("<L", len(serialized))
         self.socket.sendall(header + serialized)
@@ -104,6 +98,11 @@ class Connection(object):
 
         if response.status_code == p.Response.SUCCESS:
             return [json.loads(s) for s in response.response]
+        if response.status_code == p.Response.PARTIAL:
+            new_protobuf = p.Query()
+            new_protobuf.token = protobuf.token
+            new_protobuf.type = p.Query.CONTINUE
+            return [json.loads(s) for s in response.response] + self._run(new_protobuf, query)
         elif response.status_code == p.Response.BAD_PROTOBUF:
             raise ValueError("RethinkDB server rejected our protocol buffer as "
                 "malformed. RethinkDB client is buggy?")
@@ -113,6 +112,15 @@ class Connection(object):
             raise ExecutionError(response.error_message, response.backtrace.frame, query)
         else:
             raise ValueError("Got unexpected status code from server: %d" % response.status_code)
+
+    def run(self, query, debug=False):
+        query = toTerm(query)
+
+        root_ast = p.Query()
+        root_ast.token = self._get_token()
+        query._finalize_query(root_ast)
+
+        return self._run(root_ast, query)
 
     def _get_token(self):
         token = self.token

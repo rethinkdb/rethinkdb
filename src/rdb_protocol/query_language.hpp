@@ -17,6 +17,7 @@
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.pb.h"
+#include "stream_cache.hpp"
 
 namespace query_language {
 
@@ -208,12 +209,6 @@ void check_query_type(const Query &q, type_checking_environment_t *env, bool *is
 /* functions to evaluate the queries */
 
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > cJSON_list_t;
-
-class json_stream_t {
-public:
-    virtual boost::shared_ptr<scoped_cJSON_t> next() = 0;
-    virtual ~json_stream_t() { }
-};
 
 class in_memory_stream_t : public json_stream_t {
 public:
@@ -597,9 +592,9 @@ typedef implicit_value_t<boost::shared_ptr<scoped_cJSON_t> >::impliciter_t impli
 
 //TODO most of these functions that are supposed to only throw runtime exceptions
 
-void execute(Query *q, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(Query *q, runtime_environment_t *, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t);
 
-void execute(ReadQuery *r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(ReadQuery *r, runtime_environment_t *, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t);
 
 void execute(WriteQuery *r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
