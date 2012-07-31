@@ -22,7 +22,7 @@ struct fake_fifo_enforcement_t {
 template<class protocol_t>
 class test_store_t {
 public:
-    explicit test_store_t(io_backender_t *io_backender) :
+    explicit test_store_t(io_backender_t *io_backender, order_source_t *order_source) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
             store(io_backender, temp_file.name(), true, &get_global_perfmon_collection())
     {
@@ -34,7 +34,7 @@ public:
                 store.get_region(),
                 binary_blob_t(version_range_t(version_t::zero()))
             );
-        store.set_metainfo(new_metainfo, order_token_t::ignore, &token, &non_interruptor);
+        store.set_metainfo(new_metainfo, order_source->check_in("test_store_t"), &token, &non_interruptor);
     }
 
     temp_file_t temp_file;

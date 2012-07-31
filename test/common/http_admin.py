@@ -372,6 +372,9 @@ class ClusterAccess(object):
         assert isinstance(log, list)
         return log
 
+    def get_stat(self, query):
+        return self.do_query("GET", "/ajax/stat?%s" % query)
+
     def declare_machine_dead(self, machine):
         machine = self.find_machine(machine)
         del self.machines[machine.uuid]

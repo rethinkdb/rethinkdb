@@ -14,8 +14,6 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/optional.hpp>
 
 #include "concurrency/coro_fifo.hpp"
 #include "concurrency/mutex.hpp"
@@ -478,7 +476,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
             rget_query_t rget_query(region_intersection(range, shard_it->inner), max_items);
             memcached_protocol_t::read_t read(rget_query, time(NULL));
             cond_t non_interruptor;
-            memcached_protocol_t::read_response_t response = rh->nsi->read(read, order_source->check_in("do_rget"), &non_interruptor);
+            memcached_protocol_t::read_response_t response = rh->nsi->read(read, order_source->check_in("do_rget").with_read_mode(), &non_interruptor);
             rget_result_t results = boost::get<rget_result_t>(response.result);
 
             for (std::vector<key_with_data_buffer_t>::iterator it = results.pairs.begin(); it != results.pairs.end(); it++) {

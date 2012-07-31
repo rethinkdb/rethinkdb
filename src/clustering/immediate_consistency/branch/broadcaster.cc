@@ -29,10 +29,11 @@ broadcaster_t<protocol_t>::write_callback_t::~write_callback_t() {
 
 template <class protocol_t>
 broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
-              branch_history_manager_t<protocol_t> *bhm,
-              multistore_ptr_t<protocol_t> *initial_svs,
-              perfmon_collection_t *parent_perfmon_collection,
-              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
+        branch_history_manager_t<protocol_t> *bhm,
+        multistore_ptr_t<protocol_t> *initial_svs,
+        perfmon_collection_t *parent_perfmon_collection,
+        order_source_t *order_source,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       branch_id(generate_uuid()),
       branch_history_manager(bhm),
@@ -48,7 +49,7 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     initial_svs->new_read_token(&read_token);
 
-    region_map_t<protocol_t, version_range_t> origins = initial_svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor);
+    region_map_t<protocol_t, version_range_t> origins = initial_svs->get_all_metainfos(order_source->check_in("broadcaster_t(read)").with_read_mode(), &read_token, interruptor);
 
     /* Determine what the first timestamp of the new branch will be */
     state_timestamp_t initial_timestamp = state_timestamp_t::zero();
@@ -84,7 +85,7 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     initial_svs->new_write_token(&write_token);
     initial_svs->set_all_metainfos(region_map_t<protocol_t, binary_blob_t>(initial_svs->get_multistore_joined_region(),
                                                                            binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
-                                   order_token_t::ignore,
+                                   order_source->check_in("broadcaster_t(write)"),
                                    &write_token,
                                    interruptor);
 

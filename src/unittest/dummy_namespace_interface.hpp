@@ -47,7 +47,10 @@ public:
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
-        return store->read(DEBUG_ONLY(metainfo_checker, ) read, order_token_t::ignore, &read_token, interruptor);
+        return store->read(DEBUG_ONLY(metainfo_checker, ) read,
+                           bs_outdated_read_source.check_in("dummy_performer_t::read_outdated").with_read_mode(),
+                           &read_token,
+                           interruptor);
     }
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, transition_timestamp_t transition_timestamp, order_token_t order_token) THROWS_NOTHING {
@@ -70,6 +73,8 @@ public:
             );
     }
 
+    order_source_t bs_outdated_read_source;
+
     store_view_t<protocol_t> *store;
 };
 
@@ -86,7 +91,8 @@ public:
         next->store->new_read_token(&read_token);
 
         region_map_t<protocol_t, binary_blob_t> metainfo;
-        next->store->do_get_metainfo(order_source->check_in("dummy_timestamper_t"), &read_token, &interruptor, &metainfo);
+        next->store->do_get_metainfo(order_source->check_in("dummy_timestamper_t").with_read_mode(),
+                                     &read_token, &interruptor, &metainfo);
 
         for (typename region_map_t<protocol_t, binary_blob_t>::iterator it  = metainfo.begin();
                                                                         it != metainfo.end();
@@ -206,7 +212,8 @@ public:
                 stores[i]->new_read_token(&read_token);
 
                 region_map_t<protocol_t, binary_blob_t> metadata;
-                stores[i]->do_get_metainfo(order_source->check_in("dummy_namespace_interface_t::dummy_namespace_interface_t (do_get_metainfo)"), &read_token, &interruptor, &metadata);
+                stores[i]->do_get_metainfo(order_source->check_in("dummy_namespace_interface_t::dummy_namespace_interface_t (do_get_metainfo)").with_read_mode(),
+                                           &read_token, &interruptor, &metadata);
 
                 rassert(metadata.get_domain() == shards[i]);
                 for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it  = metadata.begin();
