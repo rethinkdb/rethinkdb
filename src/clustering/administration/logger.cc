@@ -301,7 +301,7 @@ std::string fallback_log_writer_t::write(const log_message_t &msg) {
     funlockfile(stderr);
 
     if (fd.get() == -1) {
-        return std::string("cannot open log file or the log writer has not been assigned a log file.") + strprintf("current filename is %s", filename.c_str());
+        return std::string("cannot open log file or the log writer has not been assigned a log file.");
     }
 
     res = fcntl(fd.get(), F_SETLKW, &filelock);
