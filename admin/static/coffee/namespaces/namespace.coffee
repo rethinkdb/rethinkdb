@@ -100,7 +100,7 @@ module 'NamespaceView', ->
 
         change_shards: (event) =>
             event.preventDefault()
-            @.$('.namespace_sharding-link').tab('show')
+            @.$('#namespace_sharding-link').tab('show')
 
         change_pinning: (event) =>
             event.preventDefault()
