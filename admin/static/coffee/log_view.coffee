@@ -203,7 +203,10 @@ module 'LogView', ->
         log_datacenters_values_template: Handlebars.compile $('#log-datacenters_values-template').html()
         log_shards_values_template: Handlebars.compile $('#log-shards_values-template').html()
         log_shards_list_values_template: Handlebars.compile $('#log-shards_list_values-template').html()
-        log_new_template_template: Handlebars.compile $('#log-new_namespace-template').html()
+        log_new_namespace_template: Handlebars.compile $('#log-new_namespace-template').html()
+        log_server_new_name_template: Handlebars.compile $('#log-server-new_name-template').html()
+        log_server_set_datacenter_template: Handlebars.compile $('#log-server-set_datacenter-template').html()
+        log_datacenter_new_name_template: Handlebars.compile $('#log-datacenter-new_name-template').html()
 
         events:
             'click .more-details-link': 'display_details'
@@ -265,7 +268,7 @@ module 'LogView', ->
                         when 'memcached_namespaces'
                             for namespace_id of json_data[group]
                                 if namespace_id is 'new'
-                                    msg += @log_new_template_template 
+                                    msg += @log_new_namespace_template 
                                         namespace_name: json_data[group]['new']['name']
                                         datacenter_id: json_data[group]['new']['primary_uuid']
                                         datacenter_name: if datacenters.get(json_data[group]['new']['primary_uuid'])? then datacenters.get(json_data[group]['new']['primary_uuid']).get 'name' else 'removed datacenter'
@@ -346,9 +349,29 @@ module 'LogView', ->
 
 
                         when 'machines'
-                            console.log 'machine'
+                            for machine_id of json_data[group]
+                                for attribute of json_data[group][machine_id]
+                                    if attribute is 'name'
+                                        msg += @log_server_new_name_template
+                                            name: json_data[group][machine_id][attribute]
+                                            machine_id: machine_id
+                                            machine_id_trunked: machine_id.slice 24
+                                    else if attribute is 'datacenter_uuid'
+                                        msg += @log_server_set_datacenter_template
+                                            machine_id: machine_id
+                                            machine_name: if machines.get(machine_id)? then machines.get(machine_id).get('name') else 'removed machine'
+                                            datacenter_id: json_data[group][machine_id][attribute]
+                                            datacenter_name: if datacenters.get(json_data[group][machine_id][attribute])? then datacenters.get(json_data[group][machine_id][attribute]).get('name') else 'removed datacenter'
                         when 'datacenters'
-                            console.log 'datacenter'
+                            for datacenter_id of json_data[group]
+                                for attribute of json_data[group][datacenter_id]
+                                    if attribute is 'name'
+                                        msg += @log_datacenter_new_name_template
+                                            name: json_data[group][datacenter_id][attribute]
+                                            datacenter_id: machine_id
+                                            datacenter_id_trunked: datacenter_id.slice 24
+                                            name: json_data[group][datacenter_id][attribute]
+                        #TODO logs for databases
                 return {
                     msg: msg
                     raw_data: data

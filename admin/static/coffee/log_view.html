@@ -140,4 +140,14 @@
     Create a new namespace {{name}} with primary datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a> on port {{port}}}
 </script>
 
+<script id="log-server-new_name-template" type="text/x-handlebars-template">
+    Set machine <a href="#machines/{{machine_id}}">{{machine_id_trunked}}</a>'s name to {{name}}<br/>
+</script>
 
+<script id="log-server-set_datacenter-template" type="text/x-handlebars-template">
+    Set machine <a href="#machines/{{machine_id}}">{{machine_name}}</a>'s datacenter to <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a><br/>
+</script>
+
+<script id="log-datacenter-new_name-template" type="text/x-handlebars-template">
+    Set machine <a href="#dacenters/{{datacenter_id}}">{{datacenter_id_trunked}}</a>'s name to {{name}}<br/>
+</script>
