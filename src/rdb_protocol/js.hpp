@@ -70,7 +70,7 @@ class runner_t :
         std::string message;
     };
 
-    bool begun() { return extproc::job_handle_t::connected(); }
+    bool connected() { return extproc::job_handle_t::connected(); }
 
     void begin(extproc::pool_t *pool);
     void finish();

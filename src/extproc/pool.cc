@@ -254,6 +254,11 @@ class interruptor_wrapper_t : public signal_t, public signal_t::subscription_t {
     virtual void run() THROWS_NOTHING {
         signal_t::assert_thread();
         rassert(!is_pulsed());  // sanity
+
+        // TODO (rntz) FIXME BUG XXX: at this point there could be someone
+        // waiting to read/write to the worker. interrupting the worker destroys
+        // it, but there might still be people trapped inside calls to its
+        // read() or write() methods.
         handle_->interrupt();
         pulse();
     }

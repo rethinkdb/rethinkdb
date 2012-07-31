@@ -318,7 +318,7 @@ id_t runner_t::compile(
 
     {
         run_task_t run(this, config, compile_task_t(args, source));
-        guarantee(ARCHIVE_SUCCESS == deserialize(this, &result));
+        guarantee(ARCHIVE_SUCCESS == deserialize(&run, &result));
     }
 
     id_visitor_t v(errmsg);
@@ -406,7 +406,7 @@ boost::shared_ptr<scoped_cJSON_t> runner_t::call(
 
     {
         run_task_t run(this, config, call_task_t(func_id, args));
-        guarantee(ARCHIVE_SUCCESS == deserialize(this, &result));
+        guarantee(ARCHIVE_SUCCESS == deserialize(&run, &result));
     }
 
     json_visitor_t v(errmsg);
