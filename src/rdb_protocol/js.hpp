@@ -1,9 +1,9 @@
 #ifndef RDB_PROTOCOL_JS_HPP_
 #define RDB_PROTOCOL_JS_HPP_
 
-#include <map>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -30,8 +30,7 @@ class scoped_id_t {
     friend class runner_t;
 
   public:
-    scoped_id_t(runner_t *parent) : parent_(parent), id_(INVALID_ID) {}
-    scoped_id_t(runner_t *parent, id_t id) : parent_(parent), id_(id) {}
+    explicit scoped_id_t(runner_t *parent, id_t id = INVALID_ID) : parent_(parent), id_(id) {}
     ~scoped_id_t();
 
     bool empty() const { return id_ == INVALID_ID; }

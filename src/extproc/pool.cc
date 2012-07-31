@@ -233,6 +233,11 @@ void job_handle_t::release() THROWS_NOTHING {
     worker_ = NULL;
 }
 
+// FIXME: should it be legal for someone to call this while we are in the middle
+// of {read,write}_interruptible()?
+//
+// Currently doing this causes a bug, as it destroys the worker while we are in
+// the middle of a call to its read/write method.
 void job_handle_t::interrupt() THROWS_NOTHING {
     rassert(connected());
     worker_->pool_->interrupt_worker(worker_);
@@ -260,6 +265,12 @@ class interruptor_wrapper_t : public signal_t, public signal_t::subscription_t {
         // it, but there might still be people trapped inside calls to its
         // read() or write() methods.
         handle_->interrupt();
+
+        // Unfortunately, we can't just wait to interrupt the job until the
+        // bottom of {read,write}_interruptible() because we need to stop
+        // listening for errors on the job before we shutdown_{read,write}() it,
+        // and the exception causes us to do that inside of
+        // socket_stream_t::wait_for_read().
         pulse();
     }
 

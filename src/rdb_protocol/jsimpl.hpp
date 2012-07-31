@@ -101,8 +101,14 @@ struct id_visitor_t {
     typedef bool result_type;
     explicit id_visitor_t(std::string *errmsg) : errmsg_(errmsg) {}
     std::string *errmsg_;
-    id_t operator()(const id_t &id) { rassert(id != INVALID_ID); return id; }
-    id_t operator()(const std::string &msg) { *errmsg_ = msg; return INVALID_ID; }
+    id_t operator()(const id_t &id) {
+        rassert(id != INVALID_ID);
+        return id;
+    }
+    id_t operator()(const std::string &msg) {
+        *errmsg_ = msg;
+        return INVALID_ID;
+    }
 };
 
 struct json_visitor_t {
@@ -110,7 +116,10 @@ struct json_visitor_t {
     explicit json_visitor_t(std::string *errmsg) : errmsg_(errmsg) {}
     std::string *errmsg_;
     result_type operator()(const result_type &r) { return r; }
-    result_type operator()(const std::string &msg) { *errmsg_ = msg; return result_type(); }
+    result_type operator()(const std::string &msg) {
+        *errmsg_ = msg;
+        return result_type();
+    }
 };
 
 } // namespace js
