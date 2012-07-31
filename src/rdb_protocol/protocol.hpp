@@ -330,7 +330,7 @@ struct rdb_protocol_t {
                 const std::string& filename,
                 bool create,
                 perfmon_collection_t *parent_perfmon_collection);
-        virtual ~store_t();
+        ~store_t();
 
     private:
         read_response_t protocol_read(const read_t &read,
