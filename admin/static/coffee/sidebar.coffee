@@ -78,7 +78,7 @@ module 'Sidebar', ->
         className: 'recent-log-entries'
         tagName: 'ul'
         min_timestamp: 0
-        max_entry_logs: 500
+        max_entry_logs: 5
         interval_update_log: 10000
 
         initialize: ->
