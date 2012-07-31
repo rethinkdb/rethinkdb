@@ -84,7 +84,7 @@ private:
     machine.) */
     void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);
 
-    void background_write(dispatchee_t *, auto_drainer_t::lock_t, incomplete_write_ref_t, order_token_t, fifo_enforcer_write_token_t) THROWS_NOTHING;
+    void background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING;
     void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
 
     /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
