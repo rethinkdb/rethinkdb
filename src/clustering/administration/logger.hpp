@@ -15,8 +15,6 @@
 #include "rpc/mailbox/typed.hpp"
 #include "utils.hpp"
 
-#define LOGGER_NEWLINE "\\n"
-
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(log_level_t, int, log_level_debug, log_level_error);
 RDB_MAKE_SERIALIZABLE_2(struct timespec, tv_sec, tv_nsec);
 
@@ -35,7 +33,7 @@ public:
 std::string format_log_level(log_level_t l);
 log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error);
 
-std::string format_log_message(const log_message_t &m);
+std::string format_log_message(const log_message_t &m, bool for_console = false);
 log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_error);
 
 log_message_t assemble_log_message(log_level_t level, const std::string &message, struct timespec uptime);
