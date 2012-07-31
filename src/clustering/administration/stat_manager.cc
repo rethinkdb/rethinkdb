@@ -20,7 +20,7 @@ void stat_manager_t::on_stats_request(const return_address_t& reply_address, con
     coro_t::spawn_sometime(boost::bind(&stat_manager_t::perform_stats_request, this, reply_address, requested_stats, auto_drainer_t::lock_t(&drainer)));
 }
 
-void stat_manager_t::perform_stats_request(const return_address_t& reply_address, const std::set<stat_id_t>& requested_stats, auto_drainer_t::lock_t) {
+void stat_manager_t::perform_stats_request(const return_address_t& reply_address, const std::set<std::string>& requested_stats, auto_drainer_t::lock_t) {
     perfmon_filter_t request(requested_stats);
     scoped_ptr_t<perfmon_result_t> perfmon_result(perfmon_get_stats());
     request.filter(perfmon_result.get());

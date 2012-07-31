@@ -300,10 +300,19 @@ perfmon_filter_t::perfmon_filter_t(const std::set<std::string> &paths) {
         try {
             tokenizer_t t(*str, slashes);
             for (tokenizer_t::const_iterator it = t.begin(); it != t.end(); ++it) {
-                path->push_back(new scoped_regex_t("^"+(*it)+"$"));
+                path->push_back(new scoped_regex_t());
+                if (!path->back()->compile("^"+(*it)+"$")) {
+                    logWRN("Error: regex %s failed to compile (%s), treating as empty.",
+                           sanitize_for_logger(*it).c_str(),
+                           sanitize_for_logger(path->back()->get_error()).c_str());
+                    if(!path->back()->compile("^$")) {
+                        crash("Regex '^$' failed to compile (%s).\n",
+                              sanitize_for_logger(path->back()->get_error()).c_str());
+                    }
+                }
             }
         } catch (const boost::escaped_list_error &e) {
-            logINF("Error: Could not parse %s (%s), skipping.",
+            logWRN("Error: Could not parse %s (%s), skipping.",
                    sanitize_for_logger(*str).c_str(), e.what());
             continue; //Skip this path
         }
@@ -318,6 +327,10 @@ perfmon_filter_t::~perfmon_filter_t() {
             delete *regexp;
         }
     }
+}
+
+void perfmon_filter_t::filter(perfmon_result_t *p) const {
+    subfilter(p, 0, std::vector<bool>(regexps.size(), true));
 }
 
 /* Filter a [perfmon_result_t].  [depth] is how deep we are in the paths that
@@ -362,10 +375,6 @@ perfmon_result_t *perfmon_filter_t::subfilter(
     } else {
         return p;
     }
-}
-
-void perfmon_filter_t::filter(perfmon_result_t *p) const {
-    subfilter(p, 0, std::vector<bool>(regexps.size(), true));
 }
 
 perfmon_collection_t &get_global_perfmon_collection() {
