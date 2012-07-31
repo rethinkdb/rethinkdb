@@ -1,14 +1,14 @@
 #define __STDC_LIMIT_MACROS
-#include <stdint.h>
-
 #include "rpc/mailbox/mailbox.hpp"
+
+#include <stdint.h>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
-#include "logger.hpp"
 #include "concurrency/pmap.hpp"
+#include "logger.hpp"
 
 /* raw_mailbox_t */
 

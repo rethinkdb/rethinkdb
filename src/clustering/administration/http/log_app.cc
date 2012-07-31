@@ -8,10 +8,10 @@ template <class ctx_t>
 cJSON *render_as_json(log_message_t *message, const ctx_t &) {
     std::string timestamp_buffer = strprintf("%d.%09ld", int(message->timestamp.tv_sec), message->timestamp.tv_nsec);
     scoped_cJSON_t json(cJSON_CreateObject());
-    cJSON_AddItemToObject(json.get(), "timestamp", cJSON_CreateString(timestamp_buffer.c_str()));
-    cJSON_AddItemToObject(json.get(), "uptime", cJSON_CreateNumber(message->uptime.tv_sec + message->uptime.tv_nsec / 1000000000.0));
-    cJSON_AddItemToObject(json.get(), "level", cJSON_CreateString(format_log_level(message->level).c_str()));
-    cJSON_AddItemToObject(json.get(), "message", cJSON_CreateString(message->message.c_str()));
+    json.AddItemToObject("timestamp", cJSON_CreateString(timestamp_buffer.c_str()));
+    json.AddItemToObject("uptime", cJSON_CreateNumber(message->uptime.tv_sec + message->uptime.tv_nsec / 1000000000.0));
+    json.AddItemToObject("level", cJSON_CreateString(format_log_level(message->level).c_str()));
+    json.AddItemToObject("message", cJSON_CreateString(message->message.c_str()));
     return json.release();
 }
 
@@ -43,6 +43,10 @@ static bool scan_timespec(const char *string, struct timespec *out) {
 }
 
 http_res_t log_http_app_t::handle(const http_req_t &req) {
+    if (req.method != GET) {
+        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+    }
+
     http_req_t::resource_t::iterator it = req.resource.begin();
     if (it == req.resource.end()) {
         return http_res_t(HTTP_NOT_FOUND);

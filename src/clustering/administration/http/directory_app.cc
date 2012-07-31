@@ -53,11 +53,14 @@ void directory_http_app_t::get_root(scoped_cJSON_t *json_out) {
         json_read_only_adapter_t<cluster_directory_metadata_t, namespace_metadata_ctx_t> json_adapter(&metadata);
         namespace_metadata_ctx_t json_ctx(metadata.machine_id);
 
-        cJSON_AddItemToObject(json_out->get(), machine_id.c_str(), json_adapter.render(json_ctx));
+        json_out->AddItemToObject(machine_id.c_str(), json_adapter.render(json_ctx));
     }
 }
 
 http_res_t directory_http_app_t::handle(const http_req_t &req) {
+    if (req.method != GET) {
+        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+    }
     try {
         std::map<peer_id_t, cluster_directory_metadata_t> md = directory_metadata->get();
 
@@ -77,7 +80,7 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
             for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = md.begin(); i != md.end(); ++i) {
                 cluster_directory_metadata_t metadata = i->second;
                 std::string machine_id = uuid_to_str(metadata.machine_id);
-                cJSON_AddItemToObject(body.get(), machine_id.c_str(), get_metadata_json(&metadata, it, req.resource.end()));
+                body.AddItemToObject(machine_id.c_str(), get_metadata_json(&metadata, it, req.resource.end()));
             }
             return http_json_res(body.get());
         } else {

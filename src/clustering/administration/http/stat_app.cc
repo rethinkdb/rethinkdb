@@ -144,6 +144,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
 #else
     uint64_t timeout = DEFAULT_STAT_REQ_TIMEOUT_MS*10;
 #endif
+    if (req.method != GET) return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     boost::optional<http_res_t> maybe_error_res =
         parse_query_params(req, &filter_paths, &machine_whitelist, &timeout);
     if (maybe_error_res) return *maybe_error_res;
@@ -185,7 +186,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
         if (stats_ready->is_pulsed()) {
             perfmon_result_t stats = it->second->stats.wait();
             if (!stats.get_map()->empty()) {
-                cJSON_AddItemToObject(body.get(), uuid_to_str(machine).c_str(), render_as_json(&stats, 0));
+                body.AddItemToObject(uuid_to_str(machine).c_str(), render_as_json(&stats, 0));
             }
         } else {
             not_replied.push_back(machine);

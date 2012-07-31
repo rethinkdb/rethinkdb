@@ -4,9 +4,13 @@
 #include "logger.hpp"
 
 combining_http_app_t::combining_http_app_t(std::map<std::string, http_json_app_t *> components_)
-	: components(components_) { }
+    : components(components_) { }
 
 http_res_t combining_http_app_t::handle(const http_req_t &req) {
+    if (req.method != GET && req.method != POST) {
+        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+    }
+
     typedef std::map<std::string, http_json_app_t *>::const_iterator components_iterator;
 
     std::string resource = req.resource.as_string();
@@ -38,7 +42,7 @@ http_res_t combining_http_app_t::handle(const http_req_t &req) {
     for (components_iterator it = components.begin(); it != components.end(); ++it) {
         scoped_cJSON_t child_json(NULL);
         it->second->get_root(&child_json);
-        cJSON_AddItemToObject(json.get(), it->first.c_str(), child_json.release());
+        json.AddItemToObject(it->first.c_str(), child_json.release());
     }
 
     return http_json_res(json.get());

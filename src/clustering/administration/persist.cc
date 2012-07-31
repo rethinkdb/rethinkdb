@@ -194,11 +194,9 @@ void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backen
 
     if (create) {
         standard_serializer_t::create(
-            standard_serializer_t::dynamic_config_t(),
             io_backender,
             standard_serializer_t::private_dynamic_config_t(filename),
-            standard_serializer_t::static_config_t(),
-            perfmon_parent
+            standard_serializer_t::static_config_t()
         );
     }
 

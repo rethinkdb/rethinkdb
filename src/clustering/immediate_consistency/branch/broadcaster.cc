@@ -6,10 +6,15 @@
 #include "concurrency/coro_fifo.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
+#include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
+
+template <class protocol_t>
+const int broadcaster_t<protocol_t>::MAX_OUTSTANDING_WRITES =
+    listener_t<protocol_t>::MAX_OUTSTANDING_WRITES_FROM_BROADCASTER;
 
 template <class protocol_t>
 broadcaster_t<protocol_t>::write_callback_t::write_callback_t() : write(NULL) { }
@@ -24,18 +29,19 @@ broadcaster_t<protocol_t>::write_callback_t::~write_callback_t() {
 
 template <class protocol_t>
 broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
-              branch_history_manager_t<protocol_t> *bhm,
-              multistore_ptr_t<protocol_t> *initial_svs,
-              perfmon_collection_t *parent_perfmon_collection,
-              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
+        branch_history_manager_t<protocol_t> *bhm,
+        multistore_ptr_t<protocol_t> *initial_svs,
+        perfmon_collection_t *parent_perfmon_collection,
+        order_source_t *order_source,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       branch_id(generate_uuid()),
       branch_history_manager(bhm),
+      enforce_max_outstanding_writes(MAX_OUTSTANDING_WRITES),
       registrar(mailbox_manager, this),
       broadcaster_collection(),
       broadcaster_membership(parent_perfmon_collection, &broadcaster_collection, "broadcaster")
 {
-
     order_checkpoint.set_tagappend("broadcaster_t");
 
     /* Snapshot the starting point of the store; we'll need to record this
@@ -43,7 +49,7 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     initial_svs->new_read_token(&read_token);
 
-    region_map_t<protocol_t, version_range_t> origins = initial_svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor);
+    region_map_t<protocol_t, version_range_t> origins = initial_svs->get_all_metainfos(order_source->check_in("broadcaster_t(read)").with_read_mode(), &read_token, interruptor);
 
     /* Determine what the first timestamp of the new branch will be */
     state_timestamp_t initial_timestamp = state_timestamp_t::zero();
@@ -79,7 +85,7 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     initial_svs->new_write_token(&write_token);
     initial_svs->set_all_metainfos(region_map_t<protocol_t, binary_blob_t>(initial_svs->get_multistore_joined_region(),
                                                                            binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
-                                   order_token_t::ignore,
+                                   order_source->check_in("broadcaster_t(write)"),
                                    &write_token,
                                    interruptor);
 
@@ -110,11 +116,13 @@ template <class protocol_t>
 class broadcaster_t<protocol_t>::incomplete_write_t : public home_thread_mixin_t {
 public:
     incomplete_write_t(broadcaster_t *p, typename protocol_t::write_t w, transition_timestamp_t ts, write_callback_t *cb) :
-        write(w), timestamp(ts), callback(cb), parent(p), incomplete_count(0) { }
+        write(w), timestamp(ts), callback(cb), sem_acq(&p->enforce_max_outstanding_writes), parent(p), incomplete_count(0) { }
 
     const typename protocol_t::write_t write;
     const transition_timestamp_t timestamp;
     write_callback_t *callback;
+
+    semaphore_assertion_t::acq_t sem_acq;
 
 private:
     friend class incomplete_write_ref_t;
@@ -514,6 +522,7 @@ void broadcaster_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> 
         rassert(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
         newest_complete_timestamp = removed_write->timestamp.timestamp_after();
     }
+    write->sem_acq.reset();
     if (write->callback) {
         rassert(write->callback->write == write.get());
         write->callback->write = NULL;

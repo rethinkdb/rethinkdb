@@ -5,10 +5,10 @@
 
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/semantic_checking.hpp"
+#include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
-#include "clustering/registrant.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
@@ -42,6 +42,11 @@ There are four ways a `listener_t` can go wrong:
 template<class protocol_t>
 class listener_t {
 public:
+    /* If the number of writes the broadcaster has sent us minus the number of
+    responses it's gotten is greater than this, then it is not allowed to send
+    another write until it gets another response. */
+    static const int MAX_OUTSTANDING_WRITES_FROM_BROADCASTER = 1000;
+
     class backfiller_lost_exc_t : public std::exception {
     public:
         const char *what() const throw () {
@@ -65,7 +70,8 @@ public:
             clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
             backfill_session_id_t backfill_session_id,
             perfmon_collection_t *backfill_stats_parent,
-            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t);
+            signal_t *interruptor,
+            order_source_t *order_source) THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t);
 
     /* This version of the `listener_t` constructor is called when we are
     becoming the first mirror of a new branch. It should only be called once for
@@ -77,7 +83,8 @@ public:
             branch_history_manager_t<protocol_t> *branch_history_manager,
             broadcaster_t<protocol_t> *broadcaster,
             perfmon_collection_t *backfill_stats_parent,
-            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+            signal_t *interruptor,
+            order_source_t *order_source) THROWS_ONLY(interrupted_exc_t);
 
     /* Returns a signal that is pulsed if the mirror is not in contact with the
     master. */
@@ -205,6 +212,10 @@ private:
     scoped_ptr_t<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool;
     adjustable_semaphore_t write_queue_semaphore;
     cond_t write_queue_has_drained;
+
+    /* This asserts that the broadcaster doesn't send us too many concurrent
+    writes at the same time. */
+    semaphore_assertion_t enforce_max_outstanding_writes_from_broadcaster;
 
     state_timestamp_t current_timestamp;
 

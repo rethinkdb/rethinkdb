@@ -200,6 +200,10 @@ progress_app_t::progress_app_t(clone_ptr_t<watchable_t<std::map<peer_id_t, clust
 { }
 
 http_res_t progress_app_t::handle(const http_req_t &req) {
+    if (req.method != GET) {
+        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+    }
+
     /* This function is an absolute mess, basically because we need to hack
      * through a mess of different data structures to find the various
      * backfills that are in progress and query the person serving the backfill
@@ -329,7 +333,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                                     m_it != promise_map.end();
                                     ++m_it) {
         cJSON *machine_info = cJSON_CreateObject();
-        cJSON_AddItemToObject(body.get(), uuid_to_str(m_it->first).c_str(), machine_info);
+        body.AddItemToObject(uuid_to_str(m_it->first).c_str(), machine_info);
         for (namespace_id_map_t::iterator n_it  = m_it->second.begin();
                                           n_it != m_it->second.end();
                                           ++n_it) {

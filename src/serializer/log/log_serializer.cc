@@ -50,10 +50,10 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           NULL)
 { }
 
-void log_serializer_t::create(dynamic_config_t dynamic_config, io_backender_t *backender, private_dynamic_config_t private_dynamic_config, static_config_t static_config, perfmon_collection_t *stats_parent) {
+void log_serializer_t::create(io_backender_t *backender, private_dynamic_config_t private_dynamic_config, static_config_t static_config) {
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
 
-    direct_file_t df(private_dynamic_config.db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, stats_parent, backender, dynamic_config.io_batch_factor);
+    direct_file_t df(private_dynamic_config.db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, backender);
 
     co_static_header_write(&df, on_disk_config, sizeof(*on_disk_config));
 
@@ -92,7 +92,7 @@ struct ls_start_existing_fsm_t :
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
 
-        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, &ser->disk_stats_collection, ser->io_backender, ser->dynamic_config.io_batch_factor);
+        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, ser->io_backender);
         if (!ser->dbfile->exists()) {
             crash("Database file \"%s\" does not exist.\n", ser->db_path);
         }
@@ -253,7 +253,7 @@ log_serializer_t::~log_serializer_t() {
 }
 
 void ls_check_existing(const char *filename, io_backender_t *io_backender, log_serializer_t::check_callback_t *cb) {
-    direct_file_t df(filename, file_t::mode_read, NULL, io_backender);
+    direct_file_t df(filename, file_t::mode_read, io_backender);
     cb->on_serializer_check(static_header_check(&df));
 }
 
