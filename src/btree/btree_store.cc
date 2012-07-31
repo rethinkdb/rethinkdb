@@ -61,12 +61,11 @@ btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
     perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, filename)
 {
     if (create) {
+
         standard_serializer_t::create(
-            standard_serializer_t::dynamic_config_t(),
             io_backender,
             standard_serializer_t::private_dynamic_config_t(filename),
-            standard_serializer_t::static_config_t(),
-            &perfmon_collection
+            standard_serializer_t::static_config_t()
             );
     }
 

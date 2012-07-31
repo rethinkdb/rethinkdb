@@ -10,6 +10,7 @@
 #include "config/args.hpp"
 #include "containers/bitset.hpp"
 #include "perfmon/perfmon.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 
 /* The purpose of the conflict-resolving disk manager is to deal with the case
 where we have been sent a number of different reads or writes for overlapping
@@ -84,16 +85,16 @@ private:
         *end = ceil_aligned(a->get_offset() + a->get_count(), DEVICE_BLOCK_SIZE) / DEVICE_BLOCK_SIZE;
     }
 
-    /* For each chunk "B" in the file:
-    chunk_queues[B] contains a deque of things that are either (a) waiting to operate on that chunk
-    but cannot because something else is currently operating on that chunk, or (b)
-    which are currently operating on that chunk. In case (b), that operation
-    is always the first one on the deque and there can just be one such operation.
-    If no operation is active on B, chunk_queues does not have an entry for B.
-    It could be a multimap instead, but that would mean depending on properties of multimaps that
-    are not guaranteed by the C++ standard. */
+    /* For each chunk B in the file FD: all_chunk_queues[FD][B] contains a deque
+    of things that are either (a) waiting to operate on that chunk but cannot
+    because something else is currently operating on that chunk, or (b) which
+    are currently operating on that chunk. In case (b), that operation is always
+    the first one on the deque and there can just be one such operation.  If no
+    operation is active on FD/B, all_chunk_queues[FD][B] does not have an entry
+    for B.  It could be a multimap instead, but that would mean depending on
+    properties of multimaps that are not guaranteed by the C++ standard. */
 
-    std::map<int, std::deque<action_t*> > chunk_queues;
+    std::map<fd_t, std::map<int, std::deque<action_t *> > > all_chunk_queues;
 
     perfmon_sampler_t conflict_sampler;
     perfmon_membership_t conflict_sampler_membership;
