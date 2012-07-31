@@ -127,30 +127,6 @@ set_last_seen = (last_seen_from_server) ->
         if _m
             _m.set('last_seen_from_server', timestamp)
 
-set_log_entries = (log_data_from_server) ->
-    for machine_uuid, log_entries of log_data_from_server
-        if not machines.get(machine_uuid)?
-            continue # Machine not ready or down, we skip
-
-        for json in log_entries
-
-            new_timestamp = parseFloat(json.timestamp)
-            for entry, i in recent_log_entries.models
-                if new_timestamp > parseFloat(entry.get('timestamp'))
-                    entry = new LogEntry json
-                    entry.set('machine_uuid',machine_uuid)
-
-                    recent_log_entries.add entry, {at: i}
-                    if recent_log_entries.length > 3
-                        recent_log_entries.shift()
-
-                    if parseFloat(json.timestamp) > recent_log_entries.min_timestamp
-                        recent_log_entries.min_timestamp = Math.ceil parseFloat json.timestamp # /ajax/log juste compare integers
-            if recent_log_entries.length < 4
-                entry = new LogEntry json
-                entry.set('machine_uuid',machine_uuid)
-                recent_log_entries.push entry
-
 set_stats = (stat_data) ->
     for machine_id, data of stat_data
         if machines.get(machine_id)? #if the machines are not ready, we just skip the current stats
@@ -235,12 +211,7 @@ function collect_server_data_once(async, optional_callback) {
         success: set_progress
     })
     
-    $.ajax({
-        contentType: 'application/json',
-        url: '/ajax/log/_?max_length=10&min_timestamp='+window.recent_log_entries.min_timestamp,
-        dataType: 'json',
-        success: set_log_entries
-    })
+
 } 
 
 function collect_server_data(optional_callback) {
@@ -261,7 +232,6 @@ $ ->
     window.issues = new Issues
     window.progress_list = new ProgressList
     window.directory = new Directory
-    window.recent_log_entries = new LogEntries
     window.issues_redundancy = new IssuesRedundancy
     window.connection_status = new ConnectionStatus
     window.computed_cluster = new ComputedCluster

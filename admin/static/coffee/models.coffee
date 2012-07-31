@@ -271,21 +271,6 @@ class LogEntry extends Backbone.Model
     get_iso_8601_timestamp: => ISODateString new Date(@.get('timestamp') * 1000)
     get_formatted_message: =>
         msg = @.get('message')
-        return '' if not msg?
-
-        index = msg.indexOf('{')
-        return {formatted_message: msg} if index is -1
-
-        str_fragment = msg.slice(0,index)
-        json_fragment = $.parseJSON msg.slice(msg.indexOf('{'))
-
-        return {formatted_message: msg} if not json_fragment?
-
-        return {
-            formatted_message: str_fragment
-            json: JSON.stringify(json_fragment, undefined, 2)
-        }
-
 
 class Issue extends Backbone.Model
 
@@ -354,28 +339,6 @@ class Datacenters extends Backbone.Collection
 class Machines extends Backbone.Collection
     model: Machine
     name: 'Machines'
-
-class LogEntries extends Backbone.Collection
-    min_timestamp: 0
-    model: LogEntry
-    comparator: (a, b) ->
-        if a.get('timestamp') < b.get('timestamp')
-            return 1
-        else if a.get('timestamp') > b.get('timestamp')
-            return -1
-        else if a.get('machine_uuid') <  b.get('machine_uuid')
-            return 1
-        else if a.get('machine_uuid') > b.get('machine_uuid')
-            return -1
-        else if a.get('message') < b.get('message')
-            return 1
-        else if a.get('message') > b.get('message')
-            return -1
-        else
-            return 0
-        # sort strings in reverse order (return a negated string)
-        #String.fromCharCode.apply String,
-        #    _.map(log_entry.get('datetime').split(''), (c) -> 0xffff - c.charCodeAt())
 
 class Issues extends Backbone.Collection
     model: Issue
