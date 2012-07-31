@@ -2,7 +2,7 @@
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_DIRECT_READER_HPP_
 
 #include "clustering/immediate_consistency/branch/multistore.hpp"
-#include "clustering/immediate_consistency/query/metadata.hpp"
+#include "clustering/immediate_consistency/query/direct_reader_metadata.hpp"
 
 template <class protocol_t>
 class direct_reader_t {

@@ -15,8 +15,11 @@ master_access_t<protocol_t>::master_access_t(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t) :
     mailbox_manager(mm),
-    master_access_id(generate_uuid()), allocated_writes(0),
-    allocation_mailbox(mailbox_manager, boost::bind(&master_access_t<protocol_t>::on_allocation, this, _1), mailbox_callback_mode_inline)
+    multi_throttling_client(
+        mailbox_manager,
+        master->subview(&master_access_t<protocol_t>::extract_multi_throttling_business_card),
+        typename master_business_card_t<protocol_t>::inner_client_business_card_t(),
+        interruptor)
 {
     boost::optional<boost::optional<master_business_card_t<protocol_t> > > business_card = master->get();
     if (!business_card || !business_card.get()) {
@@ -24,19 +27,6 @@ master_access_t<protocol_t>::master_access_t(
     }
 
     region = business_card.get().get().region;
-    read_address = business_card.get().get().read_mailbox;
-    write_address = business_card.get().get().write_mailbox;
-
-    cond_t ack_cond;
-    mailbox_t<void()> ack_mailbox(mailbox_manager, boost::bind(&cond_t::pulse, &ack_cond), mailbox_callback_mode_inline);
-
-    registrant.init(new registrant_t<master_access_business_card_t>(
-        mailbox_manager,
-        master->subview(&master_access_t<protocol_t>::extract_registrar_business_card),
-        master_access_business_card_t(master_access_id, ack_mailbox.get_address(), allocation_mailbox.get_address())
-        ));
-
-    wait_interruptible(&ack_cond, interruptor);
 }
 
 template <class protocol_t>
@@ -61,13 +51,20 @@ typename protocol_t::read_response_t master_access_t<protocol_t>::read(
 
     wait_interruptible(token, interruptor);
     fifo_enforcer_read_token_t token_for_master = source_for_master.enter_read();
+    typename multi_throttling_client_t<
+            typename master_business_card_t<protocol_t>::request_t,
+            typename master_business_card_t<protocol_t>::inner_client_business_card_t
+            >::ticket_acq_t ticket(&multi_throttling_client);
     token->end();
 
-    send(mailbox_manager, read_address,
-        master_access_id,
+    typename master_business_card_t<protocol_t>::read_request_t read_request(
         read,
-        otok, token_for_master,
-        result_or_failure_mailbox.get_address());
+        otok,
+        token_for_master,
+        result_or_failure_mailbox.get_address()
+        );
+
+    multi_throttling_client.spawn_request(read_request, &ticket, interruptor);
 
     wait_any_t waiter(result_or_failure.get_ready_signal(), get_failed_signal());
     wait_interruptible(&waiter, interruptor);
@@ -75,8 +72,11 @@ typename protocol_t::read_response_t master_access_t<protocol_t>::read(
     if (result_or_failure.get_ready_signal()->is_pulsed()) {
         if (const std::string *error = boost::get<std::string>(&result_or_failure.get_value())) {
             throw cannot_perform_query_exc_t(*error);
+        } else if (const typename protocol_t::read_response_t *result =
+                boost::get<typename protocol_t::read_response_t>(&result_or_failure.get_value())) {
+            return *result;
         } else {
-            return boost::get<typename protocol_t::read_response_t>(result_or_failure.get_value());
+            unreachable();
         }
     } else {
         throw resource_lost_exc_t();
@@ -105,18 +105,20 @@ typename protocol_t::write_response_t master_access_t<protocol_t>::write(
 
     wait_interruptible(token, interruptor);
     fifo_enforcer_write_token_t token_for_master = source_for_master.enter_write();
+    typename multi_throttling_client_t<
+            typename master_business_card_t<protocol_t>::request_t,
+            typename master_business_card_t<protocol_t>::inner_client_business_card_t
+            >::ticket_acq_t ticket(&multi_throttling_client);
     token->end();
 
-    if (allocated_writes < THROTTLE_THRESHOLD) {
-        nap(static_cast<int>(std::min(1000.0, pow(2, -(float(allocated_writes)/100.0)))), interruptor);
-    }
-    allocated_writes--;
-
-    send(mailbox_manager, write_address,
-        master_access_id,
+    typename master_business_card_t<protocol_t>::write_request_t write_request(
         write,
-        otok, token_for_master,
-        result_or_failure_mailbox.get_address());
+        otok,
+        token_for_master,
+        result_or_failure_mailbox.get_address()
+        );
+
+    multi_throttling_client.spawn_request(write_request, &ticket, interruptor);
 
     wait_any_t waiter(result_or_failure.get_ready_signal(), get_failed_signal());
     wait_interruptible(&waiter, interruptor);
@@ -124,17 +126,15 @@ typename protocol_t::write_response_t master_access_t<protocol_t>::write(
     if (result_or_failure.get_ready_signal()->is_pulsed()) {
         if (const std::string *error = boost::get<std::string>(&result_or_failure.get_value())) {
             throw cannot_perform_query_exc_t(*error);
+        } else if (const typename protocol_t::write_response_t *result =
+                boost::get<typename protocol_t::write_response_t>(&result_or_failure.get_value())) {
+            return *result;
         } else {
-            return boost::get<typename protocol_t::write_response_t>(result_or_failure.get_value());
+            unreachable();
         }
     } else {
         throw resource_lost_exc_t();
     }
-}
-
-template <class protocol_t>
-void master_access_t<protocol_t>::on_allocation(int amount) {
-    allocated_writes += amount;
 }
 
 
