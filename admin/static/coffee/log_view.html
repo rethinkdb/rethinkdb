@@ -68,29 +68,63 @@
 
 <script id="log-entry-template" type="text/x-handlebars-template">
     <div class="entry-metadata">
-        <p>Reported from <a href="#machines/{{machine_uuid}}">{{machine_name}}</a> on {{datetime}}</p>
-    </div>
-    <p class="message">
-        {{#if json}}
+        {{#if raw_data}}
             <span class="more-details"><a href="#" class="more-details-link">More details</a></span>
         {{/if}}
-        <strong>Log: </strong>
+        <p><strong>Log</strong> reported from <a href="#machines/{{machine_uuid}}">{{machine_name}}</a> on {{datetime}}</p>
+    </div>
+    <div class="message">
+        {{print_safe msg}}
+    </div>
 
-        {{formatted_message}}
-        {{#if concerns_memcached_namespaces}}
-            namespace ({{links_to_namespaces_inline memcached_namespaces}})
-        {{/if}}
-
-        {{#if concerns_machines}}
-            machine ({{links_to_machines_inline machines}})
-        {{/if}}
-
-        {{#if concerns_datacenters}}
-            datacenter ({{links_to_datacenters_inline datacenters}})
-        {{/if}}
-    </p>
-
-    {{#if json}}    
-        <pre class="details">{{json}}</pre>
+    {{#if raw_data}}    
+        <pre class="details">{{raw_data}}</pre>
     {{/if}}
 </script>
+
+<script id="log-single_value-template" type="text/x-handlebars-template">
+    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to 
+    {{#if value}}
+    {{value}}
+    {{/if}}
+
+    {{#if datacenter_id}}
+    <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>
+    {{/if}}
+
+    <br/>
+</script>
+
+<script id="log-machines_values-template" type="text/x-handlebars-template">
+    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
+    <ul class="pretty_logs_ul">
+        {{#each machines}}
+        <li class="pretty_logs_li">Machine <a href="#machines/{{machine_id}}">{{machine_name}}: {{value}}</li>
+        {{/each}}
+    </ul>
+</script>
+
+<script id="log-datacenters_values-template" type="text/x-handlebars-template">
+    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
+    <ul class="pretty_logs_ul">
+        {{#each datacenters}}
+        <li class="pretty_logs_li">Datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>: {{value}}</li>
+        {{/each}}
+    </ul>
+</script>
+
+
+<script id="log-shards_values-template" type="text/x-handlebars-template">
+    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
+    <ul class="pretty_logs_ul">
+        {{#each shards}}
+        <li class="pretty_logs_li">{{shard}}: <a href="#machines/{{machine_id}}">{{machine_name}}</a></li>
+        {{/each}}
+    </ul>
+</script>
+
+<script id="log-new_namespace-template" type="text/x-handlebars-template">
+    Create a new namespace {{name}} with primary datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a> on port {{port}}}
+</script>
+
+

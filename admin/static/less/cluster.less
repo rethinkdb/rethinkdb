@@ -99,9 +99,7 @@
             list-style-type: none;
             margin-bottom: 10px;
             padding-bottom: 10px;
-            border-bottom: thin solid @grayLighter;
-
-            p { margin-bottom: 0; }
+            border-bottom: thin solid #BBB;
 
             .entry-metadata {
                 p {
@@ -112,21 +110,22 @@
                 margin-bottom: 6px;
             }
 
-            p.message {
-                margin: 0px 0px 5px 0px;
-                a.json {
-                    color: @gray;
-                    border-bottom: thin dotted @gray;
-                    &:hover {
-                        border-bottom: none;
-                    }
-                }
+            .message {
+                margin: 0px 0px 5px 20px;
+                padding: 0px 0px 0px 10px;
+                border-left: 1px solid @grayLighter;
             }
             .more-details{
                 float: right;
             }
             .details{
                 display: none;
+            }
+
+            .pretty_logs_ul{
+                margin: 0px 0px 0px 30px;
+                padding: 0px;
+                list-style: square;
             }
         }
     }

@@ -270,21 +270,9 @@ class Machine extends Backbone.Model
 class LogEntry extends Backbone.Model
     get_iso_8601_timestamp: => ISODateString new Date(@.get('timestamp') * 1000)
     get_formatted_message: =>
-        msg = @.get('message')
-        return '' if not msg?
+        return @.get('message')
 
-        index = msg.indexOf('{')
-        return {formatted_message: msg} if index is -1
 
-        str_fragment = msg.slice(0,index)
-        json_fragment = $.parseJSON msg.slice(msg.indexOf('{'))
-
-        return {formatted_message: msg} if not json_fragment?
-
-        return {
-            formatted_message: str_fragment
-            json: JSON.stringify(json_fragment, undefined, 2)
-        }
 
 
 class Issue extends Backbone.Model

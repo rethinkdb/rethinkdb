@@ -150,7 +150,7 @@
 
 
 <script id="reason-set_secondary-need_replica-template" type="text/x-handlebars-template">
-    You need a replica to replace this master, please <a href="#namespaces/{{namespace_id}}">increase</a> your number of replicas.
+    You need a replica to replace this master, please <a href="#namespaces/{{namespace_id}}/replication">increase</a> your number of replicas.
 </script>
 
 <script id="reason-set_nothing-set_secondary_first-template" type="text/x-handlebars-template">
@@ -158,12 +158,12 @@
 </script>
 
 <script id="reason-set_master-datacenter_not_primary-template" type="text/x-handlebars-template">
-    You have to <a href="#namespaces/{{namespace_id}}">set</a> this server's datacenter as the primary one first.
+    You have to <a href="#namespaces/{{namespace_id}}/replication">set</a> this server's datacenter as the primary one first.
 </script>
 
 
 <script id="reason-set_nothing-unsatisfiable_goals-template" type="text/x-handlebars-template">
-    <a href="#namespaces/{{namespace_id}}">Lower</a> the number of replicas or <a href="#servers">add a machine</a> in this datacenter to avoid unsatisfiable goals.
+    <a href="#namespaces/{{namespace_id}}/replication">Lower</a> the number of replicas or <a href="#servers">add a machine</a> in this datacenter to avoid unsatisfiable goals.
 </script>
 
 <script id="reason-set_primary-set_secondary_first-template" type="text/x-handlebars-template">
@@ -171,7 +171,7 @@
 </script>
 
 <script id="reason-set_primary-set_datecenter_as_primary-template" type="text/x-handlebars-template">
-    You have to <a href="#namespaces/{{namespace_id}}">set</a> this server's datacenter as the primary one first.
+    You have to <a href="#namespaces/{{namespace_id}}/replication">set</a> this server's datacenter as the primary one first.
 </script>
 
 <script id="reason-set_primary-no_datacenter-template" type="text/x-handlebars-template">
@@ -179,7 +179,7 @@
 </script>
 
 <script id="reason-set_secondary-increase_replicas-template" type="text/x-handlebars-template">
-    You have to <a href="#namespaces/{{namespace_id}}">increase</a> your number of replicas first.
+    You have to <a href="#namespaces/{{namespace_id}}/replication">increase</a> your number of replicas first.
 </script>
 
 

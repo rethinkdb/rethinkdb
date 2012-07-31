@@ -183,12 +183,12 @@ module 'LogView', ->
                 @.$(event.target).html 'Hide all details'
                 @.$('.more-details-link').each ->
                     $(this).html 'Hide details'
-                    $(this).parent().parent().next().slideDown 'fast'
+                    $(this).parent().parent().next().next().slideDown 'fast'
             else
                 @.$(event.target).html 'Show all details'
                 @.$('.more-details-link').each ->
                     $(this).html 'More details'
-                    $(this).parent().parent().next().slideUp 'fast'
+                    $(this).parent().parent().next().next().slideUp 'fast'
 
         destroy: =>
             clearInterval @set_interval
@@ -198,14 +198,21 @@ module 'LogView', ->
         tagName: 'li'
         template: Handlebars.compile $('#log-entry-template').html()
 
+        log_single_value_template: Handlebars.compile $('#log-single_value-template').html()
+        log_machines_values_template: Handlebars.compile $('#log-machines_values-template').html()
+        log_datacenters_values_template: Handlebars.compile $('#log-datacenters_values-template').html()
+        log_shards_values_template: Handlebars.compile $('#log-shards_values-template').html()
+        log_new_template_template: Handlebars.compile $('#log-new_namespace-template').html()
+
         events:
             'click .more-details-link': 'display_details'
 
+        #TODO Check why it's not butter smooth.
         display_details: (event) =>
             event.preventDefault()
             if @.$(event.target).html() is 'More details'
                 @.$(event.target).html 'Hide details'
-                @.$(event.target).parent().parent().next().slideDown 'fast'
+                @.$(event.target).parent().parent().next().next().slideDown 'fast'
                 
                 # Check if we can show other details
                 found_more_details_link = false
@@ -217,7 +224,7 @@ module 'LogView', ->
                     $('.expand_all_link').html 'Hide all details'
             else
                 @.$(event.target).html 'More details'
-                @.$(event.target).parent().parent().next().slideUp 'fast'
+                @.$(event.target).parent().parent().next().next().slideUp 'fast'
 
                 # Check if we can show other details
                 found_hide_details_link = false
@@ -229,46 +236,116 @@ module 'LogView', ->
                     $('.expand_all_link').html 'Show all details'
 
         render: =>
-            json = _.extend @model.toJSON(), @model.get_formatted_message()
+            json = _.extend @model.toJSON(), @format_msg(@model)
+            #@model.get_formatted_message()
             json = _.extend json,
                 machine_name: machines.get(@model.get('machine_uuid')).get('name')
                 datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
         
-            json_data = $.parseJSON json.json
-            if json_data?
-                for group of json_data
-                    switch group
-                        when 'memcached_namespaces'
-                            json.memcached_namespaces = []
-                            for key of json_data[group]
-                                if namespaces.get(key)?
-                                    json.memcached_namespaces.push
-                                        id: key
-                                        name: namespaces.get(key).get('name')
-                                    json.concerns_memcached_namespaces = true
-                        when 'machines'
-                            json.machines = []
-                            for key of json_data[group]
-                                if machines.get(key)?
-                                    json.machines.push
-                                        id: key
-                                        name: machines.get(key).get('name')
-                                    json.concerns_machines = true
-                        when 'datacenters'
-                            json.datacenters = []
-                            for key of json_data[group]
-                                if datacenters.get(key)?
-                                    json.datacenters.push
-                                        id: key
-                                        name: datacenters.get(key).get('name')
-                                    json.concerns_datacenters = true   
-
-
-             if json.formatted_message is 'Applying data ' and (json.concerns_memcached_namespaces or json.concerns_machines or json.concerns_datacenters)
-                json.formatted_message = ' Applying data for'
-
-   
             @.$el.html @template json 
             
             @delegateEvents()
             return @
+
+
+        pattern_applying_data: /^(Applying data {)/
+        format_msg: (model) =>
+            msg = model.get('message')
+
+            # Not sure if useful.
+            # return '' if not msg?
+            
+            if @pattern_applying_data.test(msg)
+                data = msg.slice 14
+                msg = ''
+                json_data = $.parseJSON data
+                for group of json_data
+                    switch group
+                        when 'memcached_namespaces'
+                            for namespace_id of json_data[group]
+                                if namespace_id is 'new'
+                                    msg += @log_new_template_template 
+                                        namespace_name: json_data[group]['new']['name']
+                                        datacenter_id: json_data[group]['new']['primary_uuid']
+                                        datacenter_name: datacenters.get(json_data[group]['new']['primary_uuid']).get 'name'
+                                        port: json_data[group]['new']['port']
+                                else
+                                    attributes = []
+                                    for attribute of json_data[group][namespace_id]
+                                        if attribute is 'ack_expectations' or attribute is 'replica_affinities'
+                                            _datacenters = []
+                                            for datacenter_id of json_data[group][namespace_id][attribute]
+                                                _datacenters.push
+                                                    datacenter_id: datacenter_id
+                                                    datacenter_name: datacenters.get(datacenter_id).get 'name'
+                                                    value: json_data[group][namespace_id][attribute][datacenter_id]
+                                            msg += @log_datacenters_values_template
+                                                namespace_id: namespace_id
+                                                namespace_name: namespaces.get(namespace_id).get 'name'
+                                                attribute: attribute
+                                                datacenters: _datacenters
+                                        else if attribute is 'name' or attribute is 'port'
+                                            msg += @log_single_value_template
+                                                namespace_id: namespace_id
+                                                namespace_name: namespaces.get(namespace_id).get 'name'
+                                                attribute: attribute
+                                                value: json_data[group][namespace_id][attribute]
+                                        else if attribute is 'primary_uuid'
+                                            msg += @log_single_value_template
+                                                namespace_id: namespace_id
+                                                namespace_name: namespaces.get(namespace_id).get 'name'
+                                                attribute: 'primary datacenter'
+                                                datacenter_id: json_data[group][namespace_id][attribute]
+                                                datacenter_name: datacenters.get(json_data[group][namespace_id][attribute]).get 'name'
+                                        else if attribute is 'primary_pinnings'
+                                            shards = []
+                                            for shard of json_data[group][namespace_id][attribute]
+                                                shards.push
+                                                    shard: shard
+                                                    machine_id: if json_data[group][namespace_id][attribute][shard]? json_data[group][namespace_id][attribute][shard] else 'null'
+                                                    machine_name:if json_data[group][namespace_id][attribute][shard]? machines.get(json_data[group][namespace_id][attribute][shard]).get('name') else 'null'
+                                            msg += @log_shards_values_template
+                                                namespace_id: namespace_id
+                                                namespace_name: namespaces.get(namespace_id).get 'name'
+                                                attribute: attribute
+                                                shards: shards
+                                        else if attribute is 'secondary_pinnings'
+                                            console.log 'secondary'
+                                            #TODO
+                                            ###
+                                            shards = []
+                                            for shard of json_data[group][namespace_id][attribute]
+                                                shards.push
+                                                    shard: shard
+                                                    machine_id: json_data[group][namespace_id][attribute][shard]
+                                                    machine_name: machines.get(json_data[group][namespace_id][attribute][shard]).get('name')
+                                            msg += @log_shards_values_template
+                                                namespace_id: namespace_id
+                                                namespace_name: namespaces.get(namespace_id).get 'name'
+                                                attribute: attribute
+                                                shards: shards
+                                            ###
+                                        else if attribute is 'shards'
+                                            value = [] # We could make thing faster later.
+                                            for shard_string in json_data[group][namespace_id][attribute]
+                                                value.push JSON.parse shard_string
+                                            msg += @log_single_value_template
+                                                namespace_id: namespace_id
+                                                namespace_name: namespaces.get(namespace_id).get 'name'
+                                                attribute: attribute
+                                                value: JSON.stringify(value).replace(/\\"/g,'"')
+
+
+
+                        when 'machines'
+                            console.log 'machine'
+                        when 'datacenters'
+                            console.log 'datacenter'
+                return {
+                    msg: msg
+                    raw_data: data
+                }
+            else
+                return {
+                    msg: msg
+                }
