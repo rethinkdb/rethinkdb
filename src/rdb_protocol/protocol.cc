@@ -40,6 +40,10 @@ typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 
 typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
+typedef rdb_protocol_t::rget_read_response_t::groups_t groups_t;
+typedef rdb_protocol_t::rget_read_response_t::atom_t atom_t;
+typedef rdb_protocol_t::rget_read_response_t::length_t length_t;
+typedef rdb_protocol_t::rget_read_response_t::inserted_t inserted_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
 
@@ -112,20 +116,49 @@ read_response_t read_t::unshard(std::vector<read_response_t> responses, temporar
     if (rg) {
         std::sort(responses.begin(), responses.end(), read_response_cmp);
         rget_read_response_t rg_response;
-        rg_response.result = stream_t();
-        stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
         typedef std::vector<read_response_t>::iterator rri_t;
-        for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-            // TODO: we're ignoring the limit when recombining.
-            const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
-            rassert(_rr);
 
-            const stream_t *stream = boost::get<stream_t>(&(_rr->result));
+        if (!rg->terminal) {
+            rg_response.result = stream_t();
+            stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
+            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                // TODO: we're ignoring the limit when recombining.
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                rassert(_rr);
 
-            res_stream->insert(res_stream->end(), stream->begin(), stream->end());
-            rg_response.truncated = rg_response.truncated || _rr->truncated;
+                const stream_t *stream = boost::get<stream_t>(&(_rr->result));
+
+                res_stream->insert(res_stream->end(), stream->begin(), stream->end());
+                rg_response.truncated = rg_response.truncated || _rr->truncated;
+            }
+        } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg->terminal)) {
+            //Mapreduce
+            rg_response.result = groups_t();
+            groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
+            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                guarantee(_rr);
+
+                const groups_t *groups = boost::get<groups_t>(&(_rr->result));
+                query_language::runtime_environment_t *env = NULL; //obviously this is a problem
+                query_language::backtrace_t backtrace;
+
+                for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
+                    query_language::new_val_scope_t scope(&env->scope);
+                    Term base = gmr->reduction().base(),
+                         body = gmr->reduction().body();
+
+                    env->scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, env, backtrace)));
+                    env->scope.put_in_scope(gmr->reduction().var2(), j->second);
+
+                    (*res_groups)[j->first] = eval(&body, env, backtrace);
+                }
+            }
+        } else if (boost::get<Reduction>(&*rg->terminal)) {
+        } else if (boost::get<rdb_protocol_details::Length>(&*rg->terminal)) {
+        } else if (boost::get<WriteQuery_ForEach>(&*rg->terminal)) {
         }
         return read_response_t(rg_response);
     }

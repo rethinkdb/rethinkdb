@@ -42,6 +42,7 @@ RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_Map);
 RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_ConcatMap);
 RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
 RDB_MAKE_PROTOB_SERIALIZABLE(Reduction);
+RDB_MAKE_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
 
 namespace rdb_protocol_details {
 
@@ -69,7 +70,8 @@ typedef std::list<transform_atom_t> transform_t;
 struct Length { 
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
-typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length> terminal_t;
+
+typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_t;
 
 } // namespace rdb_protocol_details
 
@@ -96,7 +98,18 @@ struct rdb_protocol_t {
         typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
         typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, query_language::shared_scoped_less> groups_t; //Present if the terminal was a groupedmapreduce
         typedef boost::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
-        typedef boost::variant<stream_t, groups_t, atom_t, int> result_t;
+
+        struct length_t {
+            int length;
+            RDB_MAKE_ME_SERIALIZABLE_1(length);
+        };
+
+        struct inserted_t {
+            int inserted;
+            RDB_MAKE_ME_SERIALIZABLE_1(inserted);
+        };
+
+        typedef boost::variant<stream_t, groups_t, atom_t, length_t, inserted_t> result_t;
 
         key_range_t key_range;
         result_t result;
