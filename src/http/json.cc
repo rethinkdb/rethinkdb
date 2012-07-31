@@ -7,6 +7,15 @@
 #include "stl_utils.hpp"
 #include "utils.hpp"
 
+#ifndef NDEBUG
+std::string (*cJSON_default_print)(cJSON *json) = cJSON_print_std_string;
+#else
+std::string (*cJSON_default_print)(cJSON *json) = cJSON_print_unformatted_std_string;
+#endif
+http_res_t http_json_res(cJSON *json) {
+    return http_res_t(HTTP_OK, "application/json", cJSON_default_print(json));
+}
+
 scoped_cJSON_t::scoped_cJSON_t(cJSON *_val)
     : val(_val)
 { }

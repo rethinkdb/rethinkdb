@@ -5,8 +5,11 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <set>
 
 #include "containers/intrusive_list.hpp"
+#include "containers/scoped_regex.hpp"
+#include "containers/scoped.hpp"
 #include "utils.hpp"
 #include "concurrency/rwi_lock.hpp"
 
@@ -87,13 +90,25 @@ private:
 class perfmon_multi_membership_t {
 public:
     perfmon_multi_membership_t(perfmon_collection_t *collection,
-        perfmon_t *perfmon, const char *name,   // This block of (perfmon, name) is to be repeated as 
+        perfmon_t *perfmon, const char *name,   // This block of (perfmon, name) is to be repeated as
         ...);                                   // many times as needed, and then followed by NULL.
     ~perfmon_multi_membership_t();
 private:
     std::vector<perfmon_membership_t*> memberships;
 
     DISABLE_COPYING(perfmon_multi_membership_t);
+};
+
+class perfmon_filter_t {
+public:
+    explicit perfmon_filter_t(const std::set<std::string> &paths);
+    ~perfmon_filter_t();
+    void filter(perfmon_result_t *target) const;
+private:
+    perfmon_result_t *subfilter(perfmon_result_t *target,
+                                size_t depth, std::vector<bool> active) const;
+    std::vector<std::vector<scoped_regex_t *> > regexps; //regexps[PATH][DEPTH]
+    DISABLE_COPYING(perfmon_filter_t);
 };
 
 class perfmon_result_t {
@@ -136,6 +151,7 @@ public:
     iterator end();
     const_iterator begin() const;
     const_iterator end() const;
+    void erase(iterator);
 
     // Splices the contents of the internal map into `map` and thus passes ownership to `map`.
     void splice_into(perfmon_result_t *map);
