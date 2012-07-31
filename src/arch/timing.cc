@@ -61,5 +61,5 @@ void call_ringer(repeating_timer_callback_t *ringee) {
 void repeating_timer_t::on_timer_ring(void *v_timer) {
     // Spawn _now_, otherwise the reating_timer_t lifetime might end
     // before ring gets used.
-    coro_t::spawn_now(boost::bind(call_ringer, reinterpret_cast<repeating_timer_t *>(v_timer)->ringee));
+    coro_t::spawn_now_dangerously(boost::bind(call_ringer, reinterpret_cast<repeating_timer_t *>(v_timer)->ringee));
 }
