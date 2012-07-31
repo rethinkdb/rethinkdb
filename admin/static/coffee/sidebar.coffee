@@ -99,11 +99,11 @@ module 'Sidebar', ->
             need_render = false
             for machine_id, data of response
                 for new_log_entry in data
-                    for old_log_entry in @log_entries
-                        if new_log_entry.timestamp > old_log_entry.get('timestamp')
+                    for old_log_entry, i in @log_entries
+                        if parseFloat(new_log_entry.timestamp) > parseFloat(old_log_entry.get('timestamp'))
                             entry = new LogEntry new_log_entry
                             entry.set('machine_uuid', machine_id)
-                            @log_entries.unshift entry
+                            @log_entries.splice i, 0, entry
                             need_render = true
                             break
 
