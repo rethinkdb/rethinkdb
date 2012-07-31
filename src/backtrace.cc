@@ -243,7 +243,6 @@ std::string format_backtrace(bool use_addr2line) {
         return output;
     } else {
         output = "(too little memory for backtrace)";
-        logERR("%s", output.c_str());
 
         return output;
     }
