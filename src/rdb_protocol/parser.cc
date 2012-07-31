@@ -49,14 +49,14 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 cJSON *doc = cJSON_Parse(req.body.c_str());
 
                 if (doc == NULL) {
-                    return http_res_t(400);
+                    return http_res_t(HTTP_BAD_REQUEST);
                 }
 
                 cJSON *id = cJSON_GetObjectItem(doc, "id");
 
                 if (id == NULL || id->type != cJSON_String) {
                     cJSON_Delete(doc);
-                    return http_res_t(400);
+                    return http_res_t(HTTP_BAD_REQUEST);
                 }
 
                 store_key_t key(id->valuestring);
@@ -65,7 +65,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 cond_t cond;
                 rdb_protocol_t::write_response_t write_res = namespace_if->write(write, order_source.check_in("dummy parser"), &cond);
 
-                return http_res_t(204);
+                return http_res_t(HTTP_NO_CONTENT);
             }
             break;
 
@@ -76,13 +76,13 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
         case CONNECT:
         case PATCH:
         default:
-            return http_res_t(400);
+            return http_res_t(HTTP_BAD_REQUEST);
         }
         crash("Unreachable\n");
     } catch(cannot_perform_query_exc_t e) {
         http_res_t res;
         res.set_body("text/plain", e.what());
-        return http_res_t(500);
+        return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
     }
 }
 

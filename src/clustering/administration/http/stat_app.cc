@@ -111,7 +111,7 @@ boost::optional<http_res_t> parse_query_params(
             if (!strtou64_strict(it->val, 10, timeout)
                 || *timeout == 0
                 || *timeout > MAX_STAT_REQ_TIMEOUT_MS) {
-                return boost::optional<http_res_t>(new_error_res(
+                return boost::optional<http_res_t>(http_error_res(
                     "Invalid timeout value: "+it->val));
             }
         } else if (it->key == "filter" || it->key == "machine_whitelist") {
@@ -123,12 +123,12 @@ boost::optional<http_res_t> parse_query_params(
                     out_set->insert(*s);
                 }
             } catch (const boost::escaped_list_error &e) {
-                return boost::optional<http_res_t>(new_error_res(
+                return boost::optional<http_res_t>(http_error_res(
                     "Boost tokenizer error: "+std::string(e.what())
                     +" ("+it->key+"="+it->val+")"));
             }
         } else {
-            return boost::optional<http_res_t>(new_error_res(
+            return boost::optional<http_res_t>(http_error_res(
                 "Invalid parameter: "+it->key+"="+it->val));
         }
     }
@@ -194,7 +194,5 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
 
     cJSON_AddItemToObject(body.get(), "machines", prepare_machine_info(not_replied));
 
-    http_res_t res(200);
-    res.set_body("application/json", cJSON_print_unformatted_std_string(body.get()));
-    return res;
+    return http_json_res(body.get());
 }

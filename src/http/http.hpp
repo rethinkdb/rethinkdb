@@ -83,6 +83,17 @@ struct http_req_t {
 
 int content_length(http_req_t);
 
+enum http_status_code_t {
+    HTTP_OK = 200,
+    HTTP_NO_CONTENT = 204,
+    HTTP_BAD_REQUEST = 400,
+    HTTP_FORBIDDEN = 403,
+    HTTP_NOT_FOUND = 404,
+    HTTP_METHOD_NOT_ALLOWED = 405,
+    HTTP_UNSUPPORTED_MEDIA_TYPE = 415,
+    HTTP_INTERNAL_SERVER_ERROR = 500
+};
+
 struct http_res_t {
     std::string version;
     int code;
@@ -93,10 +104,12 @@ struct http_res_t {
     void set_body(const std::string&, const std::string&);
 
     http_res_t();
-    explicit http_res_t(int rescode);
+    explicit http_res_t(http_status_code_t rescode);
+    http_res_t(http_status_code_t rescode, const std::string&, const std::string&);
     void add_last_modified(int);
 };
-http_res_t new_error_res(const std::string &content);
+http_res_t http_error_res(const std::string &content,
+                          http_status_code_t rescode = HTTP_BAD_REQUEST);
 
 void test_header_parser();
 

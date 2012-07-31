@@ -134,9 +134,14 @@ int content_length(http_req_t msg) {
 http_res_t::http_res_t()
 { }
 
-http_res_t::http_res_t(int rescode)
+http_res_t::http_res_t(http_status_code_t rescode)
     : code(rescode)
 { }
+
+http_res_t::http_res_t(http_status_code_t rescode, const std::string& content_type,
+                       const std::string& content) : code(rescode) {
+    set_body(content_type, content);
+}
 
 void http_res_t::add_last_modified(int) {
     not_implemented();
@@ -163,10 +168,8 @@ void http_res_t::set_body(const std::string& content_type, const std::string& co
     body = content;
 }
 
-http_res_t new_error_res(const std::string &content) {
-    http_res_t res(400);
-    res.set_body("application/text", content);
-    return res;
+http_res_t http_error_res(const std::string &content, http_status_code_t rescode) {
+    return http_res_t(rescode, "application/text", content);
 }
 
 void test_header_parser() {

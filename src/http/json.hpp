@@ -6,6 +6,9 @@
 
 #include "errors.hpp"
 #include "http/json/cJSON.hpp"
+#include "http/http.hpp"
+
+http_res_t http_json_res(cJSON *json);
 
 class scoped_cJSON_t {
 private:

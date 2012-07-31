@@ -317,9 +317,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
     uint64_t timeout = DEFAULT_PROGRESS_REQ_TIMEOUT_MS;
     if (timeout_param) {
         if (!strtou64_strict(timeout_param.get(), 10, &timeout) || timeout == 0 || timeout > MAX_PROGRESS_REQ_TIMEOUT_MS) {
-            http_res_t res(400);
-            res.set_body("application/text", "Invalid timeout value");
-            return res;
+            return http_error_res("Invalid timeout value.");
         }
     }
 
@@ -386,7 +384,5 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
         }
     }
 
-    http_res_t res(200);
-    res.set_body("application/json", cJSON_print_std_string(body.get()));
-    return res;
+    return http_json_res(body.get());
 }

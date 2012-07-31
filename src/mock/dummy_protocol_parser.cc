@@ -44,7 +44,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 cond_t cond;
                 dummy_protocol_t::write_response_t write_res = namespace_if->write(write, order_source.check_in("dummy parser"), &cond);
 
-                return http_res_t(204);
+                return http_res_t(HTTP_NO_CONTENT);
             }
             break;
             case HEAD:
@@ -59,7 +59,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
         }
         crash("Unreachable\n");
     } catch(cannot_perform_query_exc_t) {
-        return http_res_t(500);
+        return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
     }
 }
 
