@@ -46,9 +46,9 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
         try {
             res.set_status_code(Response::SUCCESS);
             if (q->type() == Query::READ) {
-                term_info_t type_info = get_term_type(
-                    q->read_query()->term(), &type_environment, root_backtrace);
-                if (type_info.type == TERM_TYPE_JSON) {
+                query_language::term_info_t type_info = get_term_type(
+                    q->read_query().term(), &type_environment, root_backtrace);
+                if (type_info.type == query_language::TERM_TYPE_JSON) {
                     res.set_status_code(Response::SUCCESS_JSON);
                 }
             }
