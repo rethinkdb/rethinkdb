@@ -27,6 +27,8 @@ boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > 
 `master_access_t`. */
 
 static void run_read_write_test() {
+    order_source_t order_source;
+
     /* Set up a cluster so mailboxes can be created */
     mock::simple_mailbox_cluster_t cluster;
 
@@ -37,7 +39,7 @@ static void run_read_write_test() {
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a branch */
-    mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get());
+    mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
     multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
     cond_t interruptor;
@@ -59,8 +61,8 @@ static void run_read_write_test() {
         &branch_history_manager,
         &broadcaster,
         &get_global_perfmon_collection(),
-        &interruptor
-        );
+        &interruptor,
+        &order_source);
 
     replier_t<dummy_protocol_t> initial_replier(&initial_listener);
 
@@ -83,7 +85,6 @@ static void run_read_write_test() {
         &non_interruptor);
 
     /* Send some writes to the namespace */
-    order_source_t order_source;
     std::map<std::string, std::string> inserter_state;
     mock::test_inserter_t inserter(
         &master_access,
@@ -103,9 +104,9 @@ static void run_read_write_test() {
         fifo_enforcer_sink_t::exit_read_t read_token;
         master_access.new_read_token(&read_token);
         dummy_protocol_t::read_response_t resp = master_access.read(r,
-            order_source.check_in("unittest::run_read_write_test(clustering_query.cc)"),
-            &read_token,
-            &interruptor);
+                                                                    order_source.check_in("unittest::run_read_write_test(clustering_query.cc)").with_read_mode(),
+                                                                    &read_token,
+                                                                    &interruptor);
         EXPECT_EQ((*it).second, resp.values[(*it).first]);
     }
 }
@@ -115,6 +116,8 @@ TEST(ClusteringQuery, ReadWrite) {
 }
 
 static void run_broadcaster_problem_test() {
+    order_source_t order_source;
+
     /* Set up a cluster so mailboxes can be created */
     mock::simple_mailbox_cluster_t cluster;
 
@@ -126,7 +129,7 @@ static void run_broadcaster_problem_test() {
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a branch */
-    mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get());
+    mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
     multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
     cond_t interruptor;
@@ -148,8 +151,8 @@ static void run_broadcaster_problem_test() {
         &branch_history_manager,
         &broadcaster,
         &get_global_perfmon_collection(),
-        &interruptor
-        );
+        &interruptor,
+        &order_source);
 
     replier_t<dummy_protocol_t> initial_replier(&initial_listener);
 
@@ -171,8 +174,6 @@ static void run_broadcaster_problem_test() {
         cluster.get_mailbox_manager(),
         master_directory_view.get_watchable(),
         &non_interruptor_2);
-
-    order_source_t order_source;
 
     /* Confirm that it throws an exception */
     dummy_protocol_t::write_t w;

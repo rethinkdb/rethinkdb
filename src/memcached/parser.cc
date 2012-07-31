@@ -14,8 +14,6 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/optional.hpp>
 
 #include "concurrency/coro_fifo.hpp"
 #include "concurrency/mutex.hpp"
@@ -389,7 +387,7 @@ static bool rget_parse_bound(char *flag, char *key, key_range_t::bound_t *mode_o
     }
 }
 
-void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char **argv) {
+void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t *order_source, int argc, char **argv) {
     // We should already be spawned within a coroutine.
     pipeliner_acq_t pipeliner_acq(pipeliner);
 
@@ -478,7 +476,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
             rget_query_t rget_query(region_intersection(range, shard_it->inner), max_items);
             memcached_protocol_t::read_t read(rget_query, time(NULL));
             cond_t non_interruptor;
-            memcached_protocol_t::read_response_t response = rh->nsi->read(read, order_token_t::ignore, &non_interruptor);
+            memcached_protocol_t::read_response_t response = rh->nsi->read(read, order_source->check_in("do_rget").with_read_mode(), &non_interruptor);
             rget_result_t results = boost::get<rget_result_t>(response.result);
 
             for (std::vector<key_with_data_buffer_t>::iterator it = results.pairs.begin(); it != results.pairs.end(); it++) {
@@ -1119,7 +1117,7 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
         } else if (!strcmp(args[0], "gets")) {
             coro_t::spawn_now_dangerously(boost::bind(do_get, &rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "rget")) {
-            coro_t::spawn_now_dangerously(boost::bind(do_rget, &rh, &pipeliner, args.size(), args.data()));
+            coro_t::spawn_now_dangerously(boost::bind(do_rget, &rh, &pipeliner, &order_source, args.size(), args.data()));
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
             do_storage(&rh, &pipeliner, set_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "add")) {

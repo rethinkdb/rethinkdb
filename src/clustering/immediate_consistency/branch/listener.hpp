@@ -70,7 +70,8 @@ public:
             clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
             backfill_session_id_t backfill_session_id,
             perfmon_collection_t *backfill_stats_parent,
-            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t);
+            signal_t *interruptor,
+            order_source_t *order_source) THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t);
 
     /* This version of the `listener_t` constructor is called when we are
     becoming the first mirror of a new branch. It should only be called once for
@@ -82,7 +83,8 @@ public:
             branch_history_manager_t<protocol_t> *branch_history_manager,
             broadcaster_t<protocol_t> *broadcaster,
             perfmon_collection_t *backfill_stats_parent,
-            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+            signal_t *interruptor,
+            order_source_t *order_source) THROWS_ONLY(interrupted_exc_t);
 
     /* Returns a signal that is pulsed if the mirror is not in contact with the
     master. */
