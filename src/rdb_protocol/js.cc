@@ -60,7 +60,7 @@ void scoped_id_t::reset(id_t id) {
 
 // ---------- env_t ----------
 runner_t::req_config_t::req_config_t()
-    : timeout(0)
+    : timeout_ms(0)
 {}
 
 env_t::env_t(extproc::job_t::control_t *control)
@@ -113,6 +113,11 @@ runner_t::runner_t()
     DEBUG_ONLY(: running_task_(false))
 {}
 
+const runner_t::req_config_t *runner_t::default_req_config() {
+    static req_config_t config;
+    return &config;
+}
+
 // TODO(rntz): should we check that we have no used ids? (ie. no remaining
 // handles?)
 //
@@ -137,7 +142,7 @@ struct quit_task_t : auto_task_t<quit_task_t> {
 
 void runner_t::finish() {
     rassert(connected());
-    run_task_t(this, quit_task_t());
+    run_task_t(this, default_req_config(), quit_task_t());
     extproc::job_handle_t::release();
 }
 
@@ -146,17 +151,31 @@ void runner_t::job_t::run_job(control_t *control, UNUSED void *extra) {
     env_t(control).run();
 }
 
-runner_t::run_task_t::run_task_t(runner_t *runner, const task_t &task)
+runner_t::run_task_t::run_task_t(runner_t *runner, const req_config_t *config, const task_t &task)
     : runner_(runner)
 {
     rassert(!runner_->running_task_);
     DEBUG_ONLY_CODE(runner_->running_task_ = true);
-    guarantee(0 == task.send_over(runner_));
+
+    if (NULL == config)
+        config = runner->default_req_config();
+    if (config->timeout_ms)
+        timer_.init(new signal_timer_t(config->timeout_ms));
+
+    guarantee(0 == task.send_over(this));
 }
 
 runner_t::run_task_t::~run_task_t() {
     rassert(runner_->running_task_);
     DEBUG_ONLY_CODE(runner_->running_task_ = false);
+}
+
+int64_t runner_t::run_task_t::read(void *p, int64_t n) {
+    return runner_->read_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
+}
+
+int64_t runner_t::run_task_t::write(const void *p, int64_t n) {
+    return runner_->write_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
 }
 
 
@@ -176,7 +195,7 @@ void runner_t::release_id(id_t id) {
     rassert(connected());
     rassert(used_ids_.count(id));
 
-    run_task_t(this, release_task_t(id));
+    run_task_t(this, default_req_config(), release_task_t(id));
 
     DEBUG_ONLY_CODE(used_ids_.erase(id));
 }
@@ -292,13 +311,13 @@ id_t runner_t::compile(
     const std::vector<std::string> &args,
     const std::string &source,
     std::string *errmsg,
-    UNUSED req_config_t *config)
+    const req_config_t *config)
 {
     // TODO (rntz): use config
     id_result_t result;
 
     {
-        run_task_t run(this, compile_task_t(args, source));
+        run_task_t run(this, config, compile_task_t(args, source));
         guarantee(ARCHIVE_SUCCESS == deserialize(this, &result));
     }
 
@@ -380,13 +399,13 @@ boost::shared_ptr<scoped_cJSON_t> runner_t::call(
     id_t func_id,
     const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
     std::string *errmsg,
-    UNUSED req_config_t *config)
+    const req_config_t *config)
 {
     // TODO (rntz): use config
     json_result_t result;
 
     {
-        run_task_t run(this, call_task_t(func_id, args));
+        run_task_t run(this, config, call_task_t(func_id, args));
         guarantee(ARCHIVE_SUCCESS == deserialize(this, &result));
     }
 

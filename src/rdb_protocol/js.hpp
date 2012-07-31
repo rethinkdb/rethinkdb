@@ -8,6 +8,9 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "arch/timing.hpp"      // signal_timer_t
+#include "containers/archive/archive.hpp"
+#include "containers/scoped.hpp"
 #include "extproc/job.hpp"
 #include "extproc/pool.hpp"
 #include "http/json.hpp"
@@ -79,10 +82,17 @@ class runner_t :
 
     // Generic per-request options. A pointer to one of these is passed to all
     // requests. If NULL, the default configuration is used.
+    //
+    // Methods taking a `const req_config_t *config` may time-out and raise
+    // interrupted_exc_t if timeout_ms != 0.
     struct req_config_t {
         req_config_t();
-        long timeout;           // FIXME: wrong type.
+        // Time-out in milliseconds. 0 indicates "no timeout". Must be >= 0.
+        // Default: 0
+        int64_t timeout_ms;
     };
+
+    static const req_config_t *default_req_config();
 
     // Returns INVALID_ID on error.
     // Returned id may only be used in `call`.
@@ -93,7 +103,7 @@ class runner_t :
         // "function(...) {" and closing "}".
         const std::string &source,
         std::string *errmsg,
-        req_config_t *config = NULL);
+        const req_config_t *config = NULL);
 
     // Calls a previously compiled function.
     // TODO: receiver object.
@@ -101,7 +111,7 @@ class runner_t :
         id_t func_id,
         const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
         std::string *errmsg,
-        req_config_t *config = NULL);
+        const req_config_t *config = NULL);
 
     // TODO (rntz): a way to send streams over to javascript.
     // TODO (rntz): a way to get streams back from javascript.
@@ -118,15 +128,19 @@ class runner_t :
         RDB_MAKE_ME_SERIALIZABLE_0();
     };
 
-    class run_task_t {
+    class run_task_t : public read_stream_t, public write_stream_t {
       public:
         // Starts running the given task. We can only run one task at a time.
-        run_task_t(runner_t *runner, const task_t &task);
+        run_task_t(runner_t *runner, const req_config_t *config, const task_t &task);
         // Signals that we are done running this task.
         ~run_task_t();
 
+        virtual MUST_USE int64_t read(void *p, int64_t n);
+        virtual int64_t write(const void *p, int64_t n);
+
       private:
         runner_t *runner_;
+        scoped_ptr_t<signal_timer_t> timer_;
         DISABLE_COPYING(run_task_t);
     };
 
@@ -141,11 +155,6 @@ class runner_t :
 #endif
         return id;
     }
-
-    // The default req_config_t for this runner_t. May be modified to change
-    // defaults.
-  public:
-    req_config_t default_req_config;
 
   private:
 #ifndef NDEBUG
