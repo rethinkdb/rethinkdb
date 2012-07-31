@@ -25,6 +25,7 @@ private:
     mailbox_manager_t *mailbox_manager;
     multistore_ptr_t<protocol_t> *svs;
 
+    order_source_t order_source;  // TODO: order_token_t::ignore
     auto_drainer_t drainer;
 
     typename direct_reader_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
