@@ -6,7 +6,6 @@ module 'Sidebar', ->
         template: Handlebars.compile $('#sidebar-container-template').html()
         template_dataexplorer: Handlebars.compile $('#sidebar-dataexplorer_container-template').html()
 
-        max_recent_log_entries: 5
         type_view: 'default'
         previous_queries: []
         events:
@@ -79,7 +78,7 @@ module 'Sidebar', ->
         className: 'recent-log-entries'
         tagName: 'ul'
         min_timestamp: 0
-        max_entry_logs: 5
+        max_entry_logs: 500
         interval_update_log: 10000
 
         initialize: ->

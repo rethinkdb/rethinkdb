@@ -207,13 +207,15 @@ module 'LogView', ->
         log_shards_values_template: Handlebars.compile $('#log-shards_values-template').html()
         log_shards_list_values_template: Handlebars.compile $('#log-shards_list_values-template').html()
         log_new_namespace_template: Handlebars.compile $('#log-new_namespace-template').html()
+        log_new_datacenter_template: Handlebars.compile $('#log-new_datacenter-template').html()
         log_delete_something_template: Handlebars.compile $('#log-delete_something-template').html()
         log_server_new_name_template: Handlebars.compile $('#log-server-new_name-template').html()
         log_server_set_datacenter_template: Handlebars.compile $('#log-server-set_datacenter-template').html()
         log_datacenter_new_name_template: Handlebars.compile $('#log-datacenter-new_name-template').html()
 
 
-        log_new_namespace_small_template: Handlebars.compile $('#log-new_namespace-small_template').html()
+        log_new_something_small_template: Handlebars.compile $('#log-new_something-small_template').html()
+        log_new_datacenter_small_template: Handlebars.compile $('#log-new_datacenter-small_template').html()
         log_namespace_value_small_template: Handlebars.compile $('#log-namespace_value-small_template').html()
         log_machine_value_small_template: Handlebars.compile $('#log-machine_value-small_template').html()
         log_datacenter_value_small_template: Handlebars.compile $('#log-datacenter_value-small_template').html()
@@ -391,17 +393,21 @@ module 'LogView', ->
                         when 'datacenters'
                             for datacenter_id of json_data[group]
                                 if json_data[group][datacenter_id] is null
-                                    msg += @log_delete_something_template 
+                                    msg += @log_delete_something_template
                                         type: 'datacenter'
                                         datacenter_id: datacenter_id
+                                else if datacenter_id is 'new'
+                                    msg += @log_new_datacenter_template
+                                        type: 'datacenter'
+                                        datacenter_name: json_data[group][datacenter_id]['name']
+
                                 else
                                     for attribute of json_data[group][datacenter_id]
                                         if attribute is 'name'
                                             msg += @log_datacenter_new_name_template
                                                 name: json_data[group][datacenter_id][attribute]
-                                                datacenter_id: machine_id
+                                                datacenter_id: datacenter_id
                                                 datacenter_id_trunked: datacenter_id.slice 24
-                                                name: json_data[group][datacenter_id][attribute]
                         else
                             msg += "We were unable to parse this log. Click on 'More details' to see the raw log"
                         #TODO logs for databases
@@ -426,8 +432,13 @@ module 'LogView', ->
                     switch group
                         when 'memcached_namespaces'
                             for namespace_id of json_data[group]
-                                if namespace_id is 'new'
-                                    msg += @log_new_namespace_small_template
+                                if json_data[group][namespace_id] is null
+                                    msg += @log_delete_something_template
+                                        type: 'namespace'
+                                        namespace_id: namespace_id
+                                else if namespace_id is 'new'
+                                    msg += @log_new_something_small_template
+                                        type: 'namespace'
                                         namespace_name: json_data[group]['new']['name']
                                 else
                                     attributes = []
@@ -464,25 +475,35 @@ module 'LogView', ->
 
                         when 'datacenters'
                             for datacenter_id of json_data[group]
-                                for attribute of json_data[group][datacenter_id]
-                                    attributes = []
-                                    for attribute of json_data[group][datacenter_id]
-                                        attributes.push attribute
-
-                                    value = ''
-                                    for attribute, i in attributes
-                                        value += attribute
-                                        if i isnt attributes.length-1
-                                            value += ', '
-
-                                    msg += @log_datacenter_value_small_template
+                                if json_data[group][datacenter_id] is null
+                                    msg += @log_delete_something_template
+                                        type: 'datacenter'
                                         datacenter_id: datacenter_id
-                                        datacenter_name: if datacenters.get(datacenter_id)? then datacenters.get(datacenter_id).get 'name' else 'removed datacenter'
-                                        attribute: value
+                                else if datacenter_id is 'new'
+                                    msg += @log_new_something_small_template
+                                        type: 'datacenter'
+                                        datacenter_name: json_data[group][datacenter_id]['name']
+                                else
+                                    for attribute of json_data[group][datacenter_id]
+                                        attributes = []
+                                        for attribute of json_data[group][datacenter_id]
+                                            attributes.push attribute
+
+                                        value = ''
+                                        for attribute, i in attributes
+                                            value += attribute
+                                            if i isnt attributes.length-1
+                                                value += ', '
+
+                                        msg += @log_datacenter_value_small_template
+                                            datacenter_id: datacenter_id
+                                            datacenter_name: if datacenters.get(datacenter_id)? then datacenters.get(datacenter_id).get 'name' else 'removed datacenter'
+                                            attribute: value
 
 
                         else
                             msg += "We were unable to parse this log. Click on 'More details' to see the raw log"
+
                         #TODO logs for databases
                 return {
                     msg: msg
