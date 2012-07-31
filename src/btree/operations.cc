@@ -466,7 +466,7 @@ void get_btree_superblock_and_txn_internal(btree_slice_t *slice, access_t access
     slice->assert_thread();
 
     slice->pre_begin_transaction_sink_.check_out(token);
-    order_token_t begin_transaction_token = (is_read_mode(access) ? slice->pre_begin_transaction_read_mode_source_ : slice->pre_begin_transaction_write_mode_source_).check_in(token.tag() + "+begin_transaction_token");
+    order_token_t begin_transaction_token = slice->pre_begin_transaction_source_.check_in(token.tag() + "+begin_transaction_token");
     if (is_read_mode(access)) {
         begin_transaction_token = begin_transaction_token.with_read_mode();
     }

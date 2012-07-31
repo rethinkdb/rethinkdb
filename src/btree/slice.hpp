@@ -57,10 +57,7 @@ public:
 
     plain_sink_t pre_begin_transaction_sink_;
 
-    // read and write operations are in different buckets for when
-    // they go through throttling.
-    order_source_t pre_begin_transaction_read_mode_source_; // bucket 0
-    order_source_t pre_begin_transaction_write_mode_source_; // bucket 1
+    order_source_t pre_begin_transaction_source_;
 
     enum { PRE_BEGIN_TRANSACTION_READ_MODE_BUCKET = 0, PRE_BEGIN_TRANSACTION_WRITE_MODE_BUCKET = 1 };
 
