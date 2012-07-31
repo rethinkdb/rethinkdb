@@ -49,7 +49,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    backfill_session_id_t backfill_session_id,
                                    perfmon_collection_t *backfill_stats_parent,
                                    signal_t *interruptor,
-                                   order_source_t *order_source)
+                                   DEBUG_ONLY_VAR order_source_t *order_source)
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
     /* TODO: Put the file in the data directory, not here */
@@ -200,7 +200,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    broadcaster_t<protocol_t> *broadcaster,
                                    perfmon_collection_t *backfill_stats_parent,
                                    signal_t *interruptor,
-                                   order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
+                                   DEBUG_ONLY_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager(mm),
     branch_history_manager(bhm),
     branch_id(broadcaster->branch_id),
