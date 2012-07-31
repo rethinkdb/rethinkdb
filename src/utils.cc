@@ -545,3 +545,15 @@ std::string render_as_path(const path_t &path) {
 
     return res;
 }
+
+std::string sanitize_for_logger(const std::string &s) {
+    std::string sanitized = s;
+    for (int i = 0; i < int(sanitized.length()); ++i) {
+        if (sanitized[i] == '\n' || sanitized[i] == '\t') {
+            sanitized[i] = ' ';
+        } else if (sanitized[i] < ' ' || sanitized[i] > '~') {
+            sanitized[i] = '?';
+        }
+    }
+    return sanitized;
+}
