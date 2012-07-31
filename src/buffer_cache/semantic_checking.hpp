@@ -95,7 +95,7 @@ class scc_transaction_t :
     public home_thread_mixin_t
 {
 public:
-    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
+    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t _order_token = order_token_t::ignore);
     ~scc_transaction_t();
 
     // TODO: Implement semantic checking for snapshots!
