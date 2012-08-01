@@ -9,9 +9,10 @@
 #include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/query_language.hpp"
 #include "serializer/config.hpp"
 
-typedef rdb_protocol_details::backfill_atom_t backfill_atom_t;
+typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 
 typedef rdb_protocol_t::store_t store_t;
 typedef rdb_protocol_t::region_t region_t;
@@ -39,6 +40,10 @@ typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 
 typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
+typedef rdb_protocol_t::rget_read_response_t::groups_t groups_t;
+typedef rdb_protocol_t::rget_read_response_t::atom_t atom_t;
+typedef rdb_protocol_t::rget_read_response_t::length_t length_t;
+typedef rdb_protocol_t::rget_read_response_t::inserted_t inserted_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
 
@@ -111,20 +116,98 @@ read_response_t read_t::unshard(std::vector<read_response_t> responses, temporar
     if (rg) {
         std::sort(responses.begin(), responses.end(), read_response_cmp);
         rget_read_response_t rg_response;
-        rg_response.result = stream_t();
-        stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
         typedef std::vector<read_response_t>::iterator rri_t;
-        for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-            // TODO: we're ignoring the limit when recombining.
-            const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
-            rassert(_rr);
 
-            const stream_t *stream = boost::get<stream_t>(&(_rr->result));
+        if (!rg->terminal) {
+            //A vanilla range get
+            rg_response.result = stream_t();
+            stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
+            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                // TODO: we're ignoring the limit when recombining.
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                rassert(_rr);
 
-            res_stream->insert(res_stream->end(), stream->begin(), stream->end());
-            rg_response.truncated = rg_response.truncated || _rr->truncated;
+                const stream_t *stream = boost::get<stream_t>(&(_rr->result));
+
+                res_stream->insert(res_stream->end(), stream->begin(), stream->end());
+                rg_response.truncated = rg_response.truncated || _rr->truncated;
+            }
+        } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg->terminal)) {
+            //GroupedMapreduce
+            rg_response.result = groups_t();
+            groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
+            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                guarantee(_rr);
+
+                const groups_t *groups = boost::get<groups_t>(&(_rr->result));
+                query_language::runtime_environment_t *env = NULL; //obviously this is a problem
+                query_language::backtrace_t backtrace;
+
+                for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
+                    query_language::new_val_scope_t scope(&env->scope);
+                    Term base = gmr->reduction().base(),
+                         body = gmr->reduction().body();
+
+                    env->scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, env, backtrace)));
+                    env->scope.put_in_scope(gmr->reduction().var2(), j->second);
+
+                    (*res_groups)[j->first] = eval(&body, env, backtrace);
+                }
+            }
+        } else if (const Reduction *r = boost::get<Reduction>(&*rg->terminal)) {
+            //Normal Mapreduce
+            rg_response.result = atom_t();
+            atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
+
+            query_language::runtime_environment_t *env = NULL; //obviously this is a problem
+            query_language::backtrace_t backtrace;
+
+            Term base = r->base();
+            *res_atom = eval(&base, env, backtrace);
+
+            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                guarantee(_rr);
+
+                const atom_t *atom = boost::get<atom_t>(&(_rr->result));
+
+                query_language::new_val_scope_t scope(&env->scope);
+                env->scope.put_in_scope(r->var1(), *res_atom);
+                env->scope.put_in_scope(r->var2(), *atom);
+                Term body = r->body();
+                *res_atom = eval(&body, env, backtrace);
+            }
+        } else if (boost::get<rdb_protocol_details::Length>(&*rg->terminal)) {
+            rg_response.result = atom_t();
+            length_t *res_length = boost::get<length_t>(&rg_response.result);
+            res_length->length = 0;
+
+            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                guarantee(_rr);
+
+                const length_t *length = boost::get<length_t>(&(_rr->result));
+
+                res_length->length += length->length;
+            }
+        } else if (boost::get<WriteQuery_ForEach>(&*rg->terminal)) {
+            rg_response.result = atom_t();
+            inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
+            res_inserted->inserted = 0;
+
+            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                guarantee(_rr);
+
+                const inserted_t *inserted = boost::get<inserted_t>(&(_rr->result));
+
+                res_inserted->inserted += inserted->inserted;
+            }
+        } else {
+            unreachable();
         }
         return read_response_t(rg_response);
     }
@@ -340,13 +423,13 @@ region_t backfill_chunk_t::get_region() const {
     return boost::apply_visitor(v, val);
 }
 
-struct rdb_backfill_callback_t : public backfill_callback_t {
+struct rdb_backfill_callback_impl_t : public rdb_backfill_callback_t {
 public:
     typedef backfill_chunk_t chunk_t;
 
-    explicit rdb_backfill_callback_t(const boost::function<void(rdb_protocol_t::backfill_chunk_t)> &chunk_fun_)
+    explicit rdb_backfill_callback_impl_t(const boost::function<void(rdb_protocol_t::backfill_chunk_t)> &chunk_fun_)
         : chunk_fun(chunk_fun_) { }
-    ~rdb_backfill_callback_t() { }
+    ~rdb_backfill_callback_impl_t() { }
 
     void on_delete_range(const key_range_t &range) {
         chunk_fun(chunk_t::delete_range(region_t(range)));
@@ -356,7 +439,7 @@ public:
         chunk_fun(chunk_t::delete_key(to_store_key(key), recency));
     }
 
-    void on_keyvalue(const backfill_atom_t& atom) {
+    void on_keyvalue(const rdb_backfill_atom_t& atom) {
         chunk_fun(chunk_t::set_key(atom));
     }
 
@@ -368,11 +451,11 @@ protected:
 private:
     const boost::function<void(rdb_protocol_t::backfill_chunk_t)> &chunk_fun;
 
-    DISABLE_COPYING(rdb_backfill_callback_t);
+    DISABLE_COPYING(rdb_backfill_callback_impl_t);
 };
 
 static void call_rdb_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
-        backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, backfill_progress_t *progress) {
+        rdb_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, backfill_progress_t *progress) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owned(p);
     progress->add_constituent(&p_owned);
@@ -386,7 +469,7 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
                                      btree_slice_t *btree,
                                      transaction_t *txn,
                                      backfill_progress_t *progress) {
-    rdb_backfill_callback_t callback(chunk_fun);
+    rdb_backfill_callback_impl_t callback(chunk_fun);
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
     refcount_superblock_t refcount_wrapper(superblock, regions.size());
     pmap(regions.size(), boost::bind(&call_rdb_backfill, _1,
@@ -408,7 +491,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
     }
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
-        const backfill_atom_t& bf_atom = kv.backfill_atom;
+        const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
         rdb_set(bf_atom.key, bf_atom.value,
                 btree, repli_timestamp_t::invalid,
                 txn, superblock);

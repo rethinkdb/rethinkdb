@@ -622,7 +622,7 @@ std::string get_primary_key(const std::string &table_name, runtime_environment_t
 
 
 boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
-    if (!js_runner->begun()) {
+    if (!js_runner->connected()) {
         pool->assert_thread();
         js_runner->begin(pool);
     }
