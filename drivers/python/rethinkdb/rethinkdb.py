@@ -98,14 +98,15 @@ class Connection(object):
 
         if response.status_code == p.Response.SUCCESS_JSON:
             return json.loads(response.response[0])
-        # FIXME: need to handle SUCCESS_EMPTY, SUCCESS_PARTIAL
-        if response.status_code == p.Response.SUCCESS_STREAM:
+        elif response.status_code == p.Response.SUCCESS_STREAM:
             return [json.loads(s) for s in response.response]
-        if response.status_code == p.Response.PARTIAL:
+        elif response.status_code == p.Response.SUCCESS_PARTIAL:
             new_protobuf = p.Query()
             new_protobuf.token = protobuf.token
             new_protobuf.type = p.Query.CONTINUE
             return [json.loads(s) for s in response.response] + self._run(new_protobuf, query)
+        elif response.status_code == p.Response.SUCCESS_EMPTY:
+            return None
         elif response.status_code == p.Response.BAD_PROTOBUF:
             raise ValueError("RethinkDB server rejected our protocol buffer as "
                 "malformed. RethinkDB client is buggy?")
