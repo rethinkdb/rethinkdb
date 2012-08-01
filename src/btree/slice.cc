@@ -10,7 +10,7 @@
 void btree_slice_t::create(cache_t *cache) {
 
     /* Initialize the btree superblock and the delete queue */
-    transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past);
+    transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
 
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
 
