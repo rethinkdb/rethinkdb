@@ -135,6 +135,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
     res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_read_only_adapter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, ctx_t>(&target->dummy_namespaces));
     res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_directory_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces));
+    res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_directory_metadata_t<rdb_protocol_t>, ctx_t>(&target->rdb_namespaces));
     res["machine_id"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machine_id_t, ctx_t>(&target->machine_id)); // TODO: should be 'me'?
     res["ips"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<std::vector<std::string>, ctx_t>(&target->ips));
     res["peer_type"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<cluster_directory_peer_type_t, ctx_t>(&target->peer_type));
