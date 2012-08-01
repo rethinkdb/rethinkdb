@@ -17,7 +17,9 @@ static void run_jsproc_test(extproc::spawner_t::info_t *spawner_info, test_t fun
     js::runner_t runner;
     runner.begin(pool_group.get());
     func(&runner);
-    runner.finish();
+    if (runner.connected()) {
+        runner.finish();
+    }
 }
 
 static void main_jsproc_test(test_t func) {
