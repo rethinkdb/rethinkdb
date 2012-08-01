@@ -21,7 +21,7 @@ need_update_objects = (new_data, old_data) ->
     for key of new_data
         if key of old_data is false
             return true
- 
+
     for key of new_data
         if typeof new_data[key] is object and typeof old_data[key] is object
             need_update = compare_object(new_data[key], old_data[key])
@@ -91,6 +91,8 @@ apply_diffs = (updates) ->
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "dummy"))
             when 'memcached_namespaces'
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "memcached"))
+            when 'rdb_namespaces'
+                apply_to_collection(namespaces, add_protocol_tag(collection_data, "rdb"))
             when 'datacenters'
                 apply_to_collection(datacenters, collection_data)
             when 'machines'
@@ -192,7 +194,7 @@ function collect_server_data_once(async, optional_callback) {
             if (optional_callback) {
                 optional_callback()
             }
-            
+
         },
         error: function() {
             if (window.is_disconnected != null) {
@@ -203,10 +205,10 @@ function collect_server_data_once(async, optional_callback) {
             }
         }
     })
-    
+
     $.ajax({
         contentType: 'application/json',
-        url: '/ajax/progress', 
+        url: '/ajax/progress',
         dataType: 'json',
         success: set_progress
     })

@@ -24,6 +24,9 @@
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
+#include "rdb_protocol/parser.hpp"
+#include "rdb_protocol/pb_server.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
@@ -139,6 +142,8 @@ try {
 
     file_based_svs_by_namespace_t<mock::dummy_protocol_t> dummy_svs_source(io_backender, filepath);
     // Reactor drivers
+
+    // Dummy
     scoped_ptr_t<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!i_am_a_server ? NULL :
         new reactor_driver_t<mock::dummy_protocol_t>(
             io_backender,
@@ -180,6 +185,28 @@ try {
                 memcached_reactor_driver->get_watchable(),
                 &our_root_directory_variable));
 
+    // RDB
+    file_based_svs_by_namespace_t<rdb_protocol_t> rdb_svs_source(io_backender, filepath);
+    scoped_ptr_t<reactor_driver_t<rdb_protocol_t> > rdb_reactor_driver(!i_am_a_server ? NULL :
+        new reactor_driver_t<rdb_protocol_t>(
+            io_backender,
+            &mailbox_manager,
+            directory_read_manager.get_root_view()->subview(
+                field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
+            persistent_file->get_rdb_branch_history_manager(),
+            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()),
+            metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
+            directory_read_manager.get_root_view()->subview(
+                field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+            &rdb_svs_source,
+            &perfmon_repo));
+    scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t> >
+        rdb_reactor_directory_copier(!i_am_a_server ? NULL :
+            new field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(
+                &cluster_directory_metadata_t::rdb_namespaces,
+                rdb_reactor_driver->get_watchable(),
+                &our_root_directory_variable));
+
     // Namespace repos
     namespace_repo_t<mock::dummy_protocol_t> dummy_namespace_repo(&mailbox_manager,
         directory_read_manager.get_root_view()->subview(
@@ -189,6 +216,11 @@ try {
     namespace_repo_t<memcached_protocol_t> memcached_namespace_repo(&mailbox_manager,
         directory_read_manager.get_root_view()->subview(
             field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces))
+        );
+
+    namespace_repo_t<rdb_protocol_t> rdb_namespace_repo(&mailbox_manager,
+        directory_read_manager.get_root_view()->subview(
+            field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces))
         );
 
     parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
@@ -206,6 +238,16 @@ try {
         &memcached_namespace_repo,
         &local_issue_tracker,
         &perfmon_repo);
+
+    rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
+    // TODO: make this not be shitty (port offsets and such)
+#ifdef NDEBUG
+    //http_server_t server(12345, &rdb_parser);
+    query_server_t rdb_pb_server(12346, &extproc_pool_group, semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
+#else
+    //http_server_t server(12345 + ports.port_offset, &rdb_parser);
+    query_server_t rdb_pb_server(12346 + ports.port_offset, &extproc_pool_group, semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
+#endif
 
     scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
         new metadata_persistence::semilattice_watching_persister_t(

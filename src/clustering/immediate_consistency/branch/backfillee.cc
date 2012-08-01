@@ -341,6 +341,7 @@ void backfillee(
 
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 template void backfillee<mock::dummy_protocol_t>(
         mailbox_manager_t *mailbox_manager,
@@ -358,6 +359,16 @@ template void backfillee<memcached_protocol_t>(
         multistore_ptr_t<memcached_protocol_t> *svs,
         memcached_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<memcached_protocol_t> > > > > backfiller_metadata,
+        backfill_session_id_t backfill_session_id,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);
+
+template void backfillee<rdb_protocol_t>(
+        mailbox_manager_t *mailbox_manager,
+        branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
+        multistore_ptr_t<rdb_protocol_t> *svs,
+        rdb_protocol_t::region_t region,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);

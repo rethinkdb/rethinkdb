@@ -12,6 +12,10 @@
 #endif  /* x86/amd64 */
 #endif /* __linux__ */
 
+#ifdef __MACH__
+#define BREAKPOINT raise(SIGTRAP)
+#endif
+
 #define CT_ASSERT(e) {enum { compile_time_assert_error = 1/(!!(e)) };}
 
 #ifndef NDEBUG

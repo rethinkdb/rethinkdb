@@ -247,7 +247,9 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
 #include "mock/dummy_protocol_json_adapter.hpp"
 #include "memcached/protocol.hpp"
 #include "memcached/protocol_json_adapter.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 template class reactor_t<mock::dummy_protocol_t>;
 template class reactor_t<memcached_protocol_t>;
+template class reactor_t<rdb_protocol_t>;
 

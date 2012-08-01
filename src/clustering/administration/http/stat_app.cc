@@ -137,6 +137,9 @@ boost::optional<http_res_t> parse_query_params(
 }
 
 http_res_t stat_http_app_t::handle(const http_req_t &req) {
+    if (req.method != GET) {
+        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+    }
     std::set<std::string> filter_paths;
     std::set<std::string> machine_whitelist;
 #ifndef VALGRIND

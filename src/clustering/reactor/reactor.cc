@@ -228,6 +228,8 @@ void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t ver
 
 #include "mock/dummy_protocol.hpp"
 #include "memcached/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 template class reactor_t<mock::dummy_protocol_t>;
 template class reactor_t<memcached_protocol_t>;
+template class reactor_t<rdb_protocol_t>;

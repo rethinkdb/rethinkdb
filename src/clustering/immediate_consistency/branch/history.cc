@@ -54,6 +54,7 @@ bool version_is_divergent(
 
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 
 template
@@ -83,3 +84,17 @@ bool version_is_divergent<memcached_protocol_t>(
         version_t v1,
         version_t v2,
         memcached_protocol_t::region_t relevant_region);
+
+template
+bool version_is_ancestor<rdb_protocol_t>(
+        branch_history_manager_t<rdb_protocol_t> *bhm,
+        version_t ancestor,
+        version_t descendent,
+        rdb_protocol_t::region_t relevant_region);
+
+template
+bool version_is_divergent<rdb_protocol_t>(
+        branch_history_manager_t<rdb_protocol_t> *bhm,
+        version_t v1,
+        version_t v2,
+        rdb_protocol_t::region_t relevant_region);

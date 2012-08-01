@@ -1,4 +1,5 @@
 #include <stdlib.h>
+//#include <string.h>
 
 #include <set>
 #include <vector>
@@ -6,6 +7,7 @@
 #include "http/json.hpp"
 #include "stl_utils.hpp"
 #include "utils.hpp"
+#include "containers/archive/stl_types.hpp"
 
 #ifndef NDEBUG
 std::string (*cJSON_default_print)(cJSON *json) = cJSON_print_std_string;
@@ -59,6 +61,22 @@ void scoped_cJSON_t::reset(cJSON *v) {
         cJSON_Delete(val);
     }
     val = v;
+}
+
+copyable_cJSON_t::copyable_cJSON_t(cJSON *_val)
+    : val(_val)
+{ }
+
+copyable_cJSON_t::copyable_cJSON_t(const copyable_cJSON_t &other)
+    : val(cJSON_DeepCopy(other.val))
+{ }
+
+copyable_cJSON_t::~copyable_cJSON_t() {
+    cJSON_Delete(val);
+}
+
+cJSON *copyable_cJSON_t::get() const {
+    return val;
 }
 
 json_iterator_t::json_iterator_t(cJSON *target) {
@@ -154,3 +172,131 @@ cJSON *merge(cJSON *x, cJSON *y) {
 
     return res;
 }
+
+write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
+    msg << cjson.type;
+
+    switch(cjson.type) {
+    case cJSON_False:
+        break;
+    case cJSON_True:
+        break;
+    case cJSON_NULL:
+        break;
+    case cJSON_Number:
+        msg << cjson.valuedouble;
+        break;
+    case cJSON_String:
+        {
+            std::string s(cjson.valuestring);
+            msg << s;
+        }
+        break;
+    case cJSON_Array:
+    case cJSON_Object:
+        {
+            msg << cJSON_GetArraySize(&cjson);
+
+            cJSON *hd = cjson.child;
+            while (hd) {
+                if (cjson.type == cJSON_Object) {
+                    msg << std::string(hd->string);
+                }
+                msg << *hd;
+                hd = hd->next;
+            }
+        }
+        break;
+    default:
+        crash("Unreachable");
+        break;
+    }
+    return msg;
+}
+
+#define CHECK_RES(res) if (res != ARCHIVE_SUCCESS) {\
+                           return res;\
+                       }
+
+
+MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
+    archive_result_t res = deserialize(s, &cjson->type);
+    CHECK_RES(res);
+
+    switch (cjson->type) {
+    case cJSON_False:
+    case cJSON_True:
+    case cJSON_NULL:
+        return ARCHIVE_SUCCESS;
+        break;
+    case cJSON_Number:
+        res = deserialize(s, &cjson->valuedouble);
+        CHECK_RES(res);
+        cjson->valueint = int(cjson->valuedouble);
+        return ARCHIVE_SUCCESS;
+        break;
+    case cJSON_String:
+        {
+            std::string str;
+            res = deserialize(s, &str);
+            CHECK_RES(res);
+            cjson->valuestring = strdup(str.c_str());
+            return ARCHIVE_SUCCESS;
+        }
+        break;
+    case cJSON_Array:
+        {
+            int size;
+            res = deserialize(s, &size);
+            CHECK_RES(res);
+            for (int i = 0; i < size; ++i) {
+                cJSON *item = cJSON_CreateBlank();
+                res = deserialize(s, item);
+                CHECK_RES(res);
+                cJSON_AddItemToArray(cjson, item);
+            }
+            return ARCHIVE_SUCCESS;
+        }
+        break;
+    case cJSON_Object:
+        {
+            int size;
+            res = deserialize(s, &size);
+            CHECK_RES(res);
+            for (int i = 0; i < size; ++i) {
+                //grab the key
+                std::string key;
+                res = deserialize(s, &key);
+                CHECK_RES(res);
+
+                //grab the item
+                cJSON *item = cJSON_CreateBlank();
+                res = deserialize(s, item);
+                CHECK_RES(res);
+                cJSON_AddItemToObject(cjson, key.c_str(), item);
+            }
+            return ARCHIVE_SUCCESS;
+        }
+        break;
+    default:
+        crash("Unreachable");
+        break;
+    }
+}
+
+write_message_t &operator<<(write_message_t &msg, const boost::shared_ptr<scoped_cJSON_t> &cjson) {
+    msg << *cjson->get();
+    return msg;
+}
+
+MUST_USE archive_result_t deserialize(read_stream_t *s, boost::shared_ptr<scoped_cJSON_t> *cjson) {
+    cJSON *data = cJSON_CreateBlank();
+
+    archive_result_t res = deserialize(s, data);
+    CHECK_RES(res);
+
+    *cjson = boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(data));
+
+    return ARCHIVE_SUCCESS;
+}
+

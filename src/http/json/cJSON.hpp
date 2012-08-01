@@ -40,7 +40,7 @@ extern "C"
 #define cJSON_IsReference 256
 
 /* The cJSON structure: */
-typedef struct cJSON {
+struct cJSON {
 	struct cJSON *next,*prev;	/* next/prev allow you to walk array/object chains. Alternatively, use GetArraySize/GetArrayItem/GetObjectItem */
 	struct cJSON *child;		/* An array or object item will have a child pointer pointing to a chain of the items in the array/object. */
 
@@ -51,7 +51,7 @@ typedef struct cJSON {
 	double valuedouble;			/* The item's number, if type==cJSON_Number */
 
 	char *string;				/* The item's name string, if this item is the child of, or is in the list of subitems of an object. */
-} cJSON;
+};
 
 //typedef struct cJSON_Hooks {
 //      void *(*malloc_fn)(size_t sz);
@@ -72,7 +72,7 @@ extern char  *cJSON_PrintUnformatted(cJSON *item);
 extern void   cJSON_Delete(cJSON *c);
 
 /* Returns the number of items in an array (or object). */
-extern int	  cJSON_GetArraySize(cJSON *array);
+extern int	  cJSON_GetArraySize(const cJSON *array);
 /* Retrieve item number "item" from array "array". Returns NULL if unsuccessful. */
 extern cJSON *cJSON_GetArrayItem(cJSON *array,int item);
 /* Get item "string" from object. Case insensitive. */
@@ -82,6 +82,7 @@ extern cJSON *cJSON_GetObjectItem(cJSON *object,const char *string);
 extern const char *cJSON_GetErrorPtr();
 
 /* These calls create a cJSON item of the appropriate type. */
+extern cJSON *cJSON_CreateBlank();
 extern cJSON *cJSON_CreateNull();
 extern cJSON *cJSON_CreateTrue();
 extern cJSON *cJSON_CreateFalse();
@@ -119,6 +120,11 @@ extern void cJSON_ReplaceItemInObject(cJSON *object,const char *string,cJSON *ne
 #define cJSON_AddFalseToObject(object,name)		cJSON_AddItemToObject(object, name, cJSON_CreateFalse())
 #define cJSON_AddNumberToObject(object,name,n)	cJSON_AddItemToObject(object, name, cJSON_CreateNumber(n))
 #define cJSON_AddStringToObject(object,name,s)	cJSON_AddItemToObject(object, name, cJSON_CreateString(s))
+
+/* Copy function. */
+extern cJSON *cJSON_DeepCopy(cJSON *target);
+
+extern bool cJSON_Equal(cJSON *x, cJSON *y);
 
 #ifdef __cplusplus
 }

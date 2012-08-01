@@ -19,6 +19,7 @@ struct metadata_superblock_t {
     static const int BRANCH_HISTORY_BLOB_MAXREFLEN = 500;
     char dummy_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
     char memcached_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
+    char rdb_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
 
     static const block_magic_t expected_magic;
 };
@@ -75,6 +76,7 @@ persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::st
     write_blob(&txn, sb->metadata_blob, metadata_superblock_t::METADATA_BLOB_MAXREFLEN, initial_metadata);
     write_blob(&txn, sb->dummy_branch_history_blob, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, branch_history_t<mock::dummy_protocol_t>());
     write_blob(&txn, sb->memcached_branch_history_blob, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, branch_history_t<memcached_protocol_t>());
+    write_blob(&txn, sb->rdb_branch_history_blob, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, branch_history_t<rdb_protocol_t>());
 
     construct_branch_history_managers(true);
 }
@@ -189,6 +191,10 @@ branch_history_manager_t<memcached_protocol_t> *persistent_file_t::get_memcached
     return memcached_branch_history_manager.get();
 }
 
+branch_history_manager_t<rdb_protocol_t> *persistent_file_t::get_rdb_branch_history_manager() {
+    return rdb_branch_history_manager.get();
+}
+
 void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backender, const bool create, const std::string &filename, perfmon_collection_t *const perfmon_parent) {
     standard_serializer_t::dynamic_config_t serializer_dynamic_config;
 
@@ -224,6 +230,8 @@ void persistent_file_t::construct_branch_history_managers(bool create) {
         this, &metadata_superblock_t::dummy_branch_history_blob, create));
     memcached_branch_history_manager.init(new persistent_branch_history_manager_t<memcached_protocol_t>(
         this, &metadata_superblock_t::memcached_branch_history_blob, create));
+    rdb_branch_history_manager.init(new persistent_branch_history_manager_t<rdb_protocol_t>(
+        this, &metadata_superblock_t::rdb_branch_history_blob, create));
 }
 
 semilattice_watching_persister_t::semilattice_watching_persister_t(

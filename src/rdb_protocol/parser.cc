@@ -1,37 +1,76 @@
 #include "rdb_protocol/parser.hpp"
 
-#include "errors.hpp"
+#include <stdexcept>
+
+#include "utils.hpp"
 #include <boost/make_shared.hpp>
+
+#include "rdb_protocol/query_language.pb.h"
 
 namespace rdb_protocol {
 
-query_http_app_t::query_http_app_t(namespace_interface_t<rdb_protocol_t> * _namespace_if)
-    : namespace_if(_namespace_if)
+query_http_app_t::query_http_app_t(const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata,
+                                   namespace_repo_t<rdb_protocol_t> * _ns_repo)
+    : semilattice_metadata(_semilattice_metadata), ns_repo(_ns_repo)
 { }
+
+query_http_app_t::~query_http_app_t() {
+    on_destruct.pulse();
+}
 
 http_res_t query_http_app_t::handle(const http_req_t &req) {
     try {
         switch (req.method) {
         case GET:
             {
+                // /<uuid>/<key>
                 rdb_protocol_t::read_t read;
 
                 http_req_t::resource_t::iterator it = req.resource.begin();
-                rassert(it != req.resource.end());
 
-                store_key_t key(*it);
-                read.read = rdb_protocol_t::point_read_t(key);
-                cond_t cond;
-                rdb_protocol_t::read_response_t read_res = namespace_if->read(read, order_source.check_in("dummy parser"), &cond);
+                if (it == req.resource.end()) {
+                    return http_res_t(HTTP_BAD_REQUEST, "text/plain", "No namespace specified");
+                }
+
+                uuid_t namespace_uuid;
+                try {
+                    namespace_uuid = str_to_uuid(*it);
+                } catch (std::runtime_error) {
+                    return http_res_t(HTTP_BAD_REQUEST, "text/plain", "Failed to parse namespace\n");
+                }
+
+                cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+
+                if (!std_contains(cluster_metadata.rdb_namespaces.namespaces, namespace_uuid)) {
+                    return http_res_t(HTTP_NOT_FOUND, "text/plain", "Didn't find namespace.");
+                }
+
+                ++it;
+
+                if (it == req.resource.end()) {
+                    return http_res_t(HTTP_BAD_REQUEST, "text/plain", "Key not specified");
+                }
+
+                rdb_protocol_t::read_response_t read_res;
+
+                try {
+                    namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_uuid, &on_destruct);
+
+                    store_key_t key(*it);
+                    read.read = rdb_protocol_t::point_read_t(key);
+                    read_res = ns_access.get_namespace_if()->read(read, order_source.check_in("dummy parser"), &on_destruct);
+                } catch (interrupted_exc_t &) {
+                    return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
+                }
 
                 http_res_t res;
 
                 rdb_protocol_t::point_read_response_t response = boost::get<rdb_protocol_t::point_read_response_t>(read_res.response);
                 if (response.data) {
-                    res.code = 200;
+                    res.code = HTTP_OK;
                     res.set_body("application/json", response.data.get()->Print());
                 } else {
-                    res.code = 404;
+                    res.code = HTTP_NOT_FOUND;
                 }
                 return res;
             }
@@ -41,26 +80,50 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
             {
                 rdb_protocol_t::write_t write;
 
-                rassert(req.resource.begin() == req.resource.end());
+                http_req_t::resource_t::iterator it = req.resource.begin();
 
-                cJSON *doc = cJSON_Parse(req.body.c_str());
+                if (it == req.resource.end()) {
+                    return http_res_t(HTTP_BAD_REQUEST, "text/plain", "Namespace not specified");
+                }
 
-                if (doc == NULL) {
+                uuid_t namespace_uuid;
+                try {
+                    namespace_uuid = str_to_uuid(*it);
+                } catch (std::runtime_error) {
+                    return http_res_t(HTTP_BAD_REQUEST, "text/plain", "namespace uuid did not parse as uuid");
+                }
+
+                cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+
+                if (!std_contains(cluster_metadata.rdb_namespaces.namespaces, namespace_uuid)) {
                     return http_res_t(HTTP_BAD_REQUEST);
                 }
 
-                cJSON *id = cJSON_GetObjectItem(doc, "id");
+                ++it;
 
-                if (id == NULL || id->type != cJSON_String) {
-                    cJSON_Delete(doc);
-                    return http_res_t(HTTP_BAD_REQUEST);
+                if (it == req.resource.end()) {
+                    return http_res_t(HTTP_BAD_REQUEST, "text/plain", "Key not specified");
                 }
 
-                store_key_t key(id->valuestring);
-                write.write = rdb_protocol_t::point_write_t(key, boost::make_shared<scoped_cJSON_t>(doc));
+                store_key_t key(*it);
 
-                cond_t cond;
-                rdb_protocol_t::write_response_t write_res = namespace_if->write(write, order_source.check_in("dummy parser"), &cond);
+                boost::shared_ptr<scoped_cJSON_t> doc(new scoped_cJSON_t(cJSON_Parse(req.body.c_str())));
+
+                if (!doc->get()) {
+                    return http_res_t(HTTP_BAD_REQUEST, "text/plain", "Json failed to parse");
+                }
+
+                rdb_protocol_t::write_response_t write_res;
+
+                try {
+                    namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_uuid, &on_destruct);
+
+                    write.write = rdb_protocol_t::point_write_t(key, doc);
+
+                    write_res = ns_access.get_namespace_if()->write(write, order_source.check_in("rdb parser"), &on_destruct);
+                } catch (interrupted_exc_t &) {
+                    return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
+                }
 
                 return http_res_t(HTTP_NO_CONTENT);
             }

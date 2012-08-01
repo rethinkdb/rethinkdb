@@ -8,7 +8,7 @@
 #include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
 
-#define MAX_CHUNKS_OUT 5000 
+#define MAX_CHUNKS_OUT 5000
 
 inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_range_t &vr) {
     return vr.earliest.timestamp;
@@ -81,7 +81,7 @@ bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<p
 }
 
 template <class protocol_t>
-void send_chunk(mailbox_manager_t *mbox_manager, 
+void send_chunk(mailbox_manager_t *mbox_manager,
                 mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_addr,
                 const typename protocol_t::backfill_chunk_t &chunk,
                 fifo_enforcer_source_t *fifo_src,
@@ -192,6 +192,8 @@ void backfiller_t<protocol_t>::request_backfill_progress(backfill_session_id_t s
 
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 template class backfiller_t<mock::dummy_protocol_t>;
 template class backfiller_t<memcached_protocol_t>;
+template class backfiller_t<rdb_protocol_t>;

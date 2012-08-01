@@ -19,6 +19,7 @@
 #include "memcached/protocol_json_adapter.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_json_adapter.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -28,15 +29,17 @@ public:
 
     namespaces_semilattice_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_semilattice_metadata_t<memcached_protocol_t> memcached_namespaces;
+    namespaces_semilattice_metadata_t<rdb_protocol_t> rdb_namespaces;
+
     machines_semilattice_metadata_t machines;
     datacenters_semilattice_metadata_t datacenters;
     databases_semilattice_metadata_t databases;
 
-    RDB_MAKE_ME_SERIALIZABLE_5(dummy_namespaces, memcached_namespaces, machines, datacenters, databases);
+    RDB_MAKE_ME_SERIALIZABLE_6(dummy_namespaces, memcached_namespaces, rdb_namespaces, machines, datacenters, databases);
 };
 
-RDB_MAKE_SEMILATTICE_JOINABLE_5(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, machines, datacenters, databases);
-RDB_MAKE_EQUALITY_COMPARABLE_5(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, machines, datacenters, databases);
+RDB_MAKE_SEMILATTICE_JOINABLE_6(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, rdb_namespaces, machines, datacenters, databases);
+RDB_MAKE_EQUALITY_COMPARABLE_6(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, rdb_namespaces, machines, datacenters, databases);
 
 //json adapter concept for cluster_semilattice_metadata_t
 template <class ctx_t>
@@ -44,6 +47,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
     res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t>, ctx_t>(&target->dummy_namespaces));
     res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces));
+    res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<rdb_protocol_t>, ctx_t>(&target->rdb_namespaces));
     res["machines"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machines_semilattice_metadata_t, ctx_t>(&target->machines));
     res["datacenters"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<datacenters_semilattice_metadata_t, ctx_t>(&target->datacenters));
     res["databases"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<databases_semilattice_metadata_t, ctx_t>(&target->databases));
@@ -87,6 +91,7 @@ public:
 
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
+    namespaces_directory_metadata_t<rdb_protocol_t> rdb_namespaces;
 
     /* Tell the other peers what our machine ID is */
     machine_id_t machine_id;
@@ -100,7 +105,7 @@ public:
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_9(dummy_namespaces, memcached_namespaces, machine_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, log_mailbox, local_issues, peer_type);
+    RDB_MAKE_ME_SERIALIZABLE_10(dummy_namespaces, memcached_namespaces, rdb_namespaces, machine_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, log_mailbox, local_issues, peer_type);
 };
 
 // json adapter concept for directory_echo_wrapper_t

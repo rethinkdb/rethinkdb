@@ -473,7 +473,7 @@ static char *print_object(cJSON *item,int depth,int fmt)
 }
 
 /* Get Array size/item / object item. */
-int    cJSON_GetArraySize(cJSON *array)							{cJSON *c=array->child;int i=0;while(c)i++,c=c->next;return i;}
+int    cJSON_GetArraySize(const cJSON *array)					{cJSON *c=array->child;int i=0;while(c)i++,c=c->next;return i;}
 cJSON *cJSON_GetArrayItem(cJSON *array,int item)				{cJSON *c=array->child;  while (c && item>0) item--,c=c->next; return c;}
 cJSON *cJSON_GetObjectItem(cJSON *object,const char *string)	{cJSON *c=object->child; while (c && cJSON_strcasecmp(c->string,string)) c=c->next; return c;}
 
@@ -483,8 +483,10 @@ static void suffix_object(cJSON *prev,cJSON *item) {prev->next=item;item->prev=p
 static cJSON *create_reference(cJSON *item) {cJSON *ref=cJSON_New_Item();if (!ref) return 0;memcpy(ref,item,sizeof(cJSON));ref->string=0;ref->type|=cJSON_IsReference;ref->next=ref->prev=0;return ref;}
 
 /* Add item to array/object. */
+//TODO all of these functions take time linear in the number of elements in the
+//array. This needs to be fixed.
 void   cJSON_AddItemToArray(cJSON *array, cJSON *item)						{cJSON *c=array->child;if (!item) return; if (!c) {array->child=item;} else {while (c && c->next) c=c->next; suffix_object(c,item);}}
-void   cJSON_AddItemToObject(cJSON *object,const char *string,cJSON *item)	{if (!item) return; if (item->string) cJSON_free(item->string);item->string=cJSON_strdup(string);cJSON_AddItemToArray(object,item);}
+void   cJSON_AddItemToObject(cJSON *object,const char *string,cJSON *item)	{if (!item) return; char *tmp = cJSON_strdup(string); if (item->string) cJSON_free(item->string);item->string=tmp;cJSON_AddItemToArray(object,item);}
 void	cJSON_AddItemReferenceToArray(cJSON *array, cJSON *item)						{cJSON_AddItemToArray(array,create_reference(item));}
 void	cJSON_AddItemReferenceToObject(cJSON *object,const char *string,cJSON *item)	{cJSON_AddItemToObject(object,string,create_reference(item));}
 
@@ -501,6 +503,7 @@ void   cJSON_ReplaceItemInArray(cJSON *array,int which,cJSON *newitem)		{cJSON *
 void   cJSON_ReplaceItemInObject(cJSON *object,const char *string,cJSON *newitem){int i=0;cJSON *c=object->child;while(c && cJSON_strcasecmp(c->string,string))i++,c=c->next;if(c){newitem->string=cJSON_strdup(string);cJSON_ReplaceItemInArray(object,i,newitem);}}
 
 /* Create basic types: */
+cJSON *cJSON_CreateBlank()                      {return cJSON_New_Item();}
 cJSON *cJSON_CreateNull()						{cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_NULL;return item;}
 cJSON *cJSON_CreateTrue()						{cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_True;return item;}
 cJSON *cJSON_CreateFalse()						{cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_False;return item;}
@@ -515,3 +518,131 @@ cJSON *cJSON_CreateIntArray(int *numbers,int count)				{int i;cJSON *n=0,*p=0,*a
 cJSON *cJSON_CreateFloatArray(float *numbers,int count)			{int i;cJSON *n=0,*p=0,*a=cJSON_CreateArray();for(i=0;a && i<count;i++){n=cJSON_CreateNumber(numbers[i]);if(!i)a->child=n;else suffix_object(p,n);p=n;}return a;}
 cJSON *cJSON_CreateDoubleArray(double *numbers,int count)		{int i;cJSON *n=0,*p=0,*a=cJSON_CreateArray();for(i=0;a && i<count;i++){n=cJSON_CreateNumber(numbers[i]);if(!i)a->child=n;else suffix_object(p,n);p=n;}return a;}
 cJSON *cJSON_CreateStringArray(const char **strings,int count)	{int i;cJSON *n=0,*p=0,*a=cJSON_CreateArray();for(i=0;a && i<count;i++){n=cJSON_CreateString(strings[i]);if(!i)a->child=n;else suffix_object(p,n);p=n;}return a;}
+
+cJSON *cJSON_DeepCopy(cJSON *target) {
+    cJSON *hd;
+    switch (target->type) {
+    case cJSON_False:
+        return cJSON_CreateFalse();
+        break;
+    case cJSON_True:
+        return cJSON_CreateTrue();
+        break;
+    case cJSON_NULL:
+        return cJSON_CreateNull();
+        break;
+    case cJSON_Number:
+        return cJSON_CreateNumber(target->valuedouble);
+        break;
+    case cJSON_String:
+        return cJSON_CreateString(target->valuestring);
+        break;
+    case cJSON_Array:
+        {
+            cJSON *array_res = cJSON_CreateArray();
+
+            hd = target->child;
+            while (hd) { 
+                cJSON_AddItemToArray(array_res, cJSON_DeepCopy(hd));
+                hd = hd->next; 
+            }
+            return array_res;
+        }
+        break;
+    case cJSON_Object:
+        {
+            cJSON *obj_res = cJSON_CreateObject();
+
+            hd = target->child;
+            while (hd) {
+                cJSON_AddItemToObject(obj_res, hd->string, cJSON_DeepCopy(hd));
+                hd = hd->next;
+            }
+
+            return obj_res;
+        }
+        break;
+    default:
+        crash("Unreachable");
+        break;
+    }
+}
+
+bool cJSON_Equal(cJSON *x, cJSON *y) {
+    if (x->type != y->type) {
+        return false;
+    }
+
+    switch (x->type) {
+    case cJSON_False:
+    case cJSON_True:
+    case cJSON_NULL:
+        return true;
+        break;
+    case cJSON_Number:
+        if (x->valuedouble == y->valuedouble) {
+            rassert(x->valueint == y->valueint);
+            return true;
+        }
+        break;
+    case cJSON_String:
+        return strcmp(x->valuestring, y->valuestring) == 0;
+        break;
+    case cJSON_Array:
+        {
+            cJSON *xhd = x->child, *yhd = y->child;
+            while (xhd) { 
+                if (!yhd) {
+                    return false;
+                }
+
+                if (!cJSON_Equal(xhd, yhd)) {
+                    return false;
+                }
+
+                xhd = xhd->next; 
+                yhd = yhd->next;
+            }
+
+            if (yhd != NULL) {
+                return false;
+            }
+        }
+        return true;
+        break;
+    case cJSON_Object:
+        {
+            cJSON *xhd = x->child;
+            int child_count = 0;
+            while (xhd) {
+                child_count++;
+                //inefficient becase cjson sucks
+                cJSON *other_item = cJSON_GetObjectItem(y, xhd->string);
+
+                if (!other_item || !cJSON_Equal(xhd, other_item)) {
+                    return false;
+                }
+                xhd = xhd->next;
+            }
+
+            cJSON *yhd = y->child;
+
+            while (yhd) {
+                child_count--;
+                yhd = yhd->next;
+            }
+            if (child_count != 0) {
+                return false;
+            }
+
+            return true;
+        }
+        break;
+    default:
+        crash("Unreachable");
+        break;
+
+    }
+    crash("Unreachable");
+}
+
