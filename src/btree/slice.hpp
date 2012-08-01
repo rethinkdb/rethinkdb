@@ -55,10 +55,7 @@ public:
     cache_t *cache() { return cache_; }
     cache_account_t *get_backfill_account() { return backfill_account.get(); }
 
-    order_checkpoint_t pre_begin_transaction_checkpoint_;
-
-    // We put all `order_token_t`s through this.
-    order_checkpoint_t order_checkpoint_;  // TODO: This is used ridiculously.
+    order_checkpoint_t pre_begin_txn_checkpoint_;
 
     btree_stats_t stats;
 

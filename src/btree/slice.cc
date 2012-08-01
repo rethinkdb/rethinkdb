@@ -34,8 +34,7 @@ btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent)
       root_eviction_priority(INITIAL_ROOT_EVICTION_PRIORITY) {
     cache()->create_cache_account(BACKFILL_CACHE_PRIORITY, &backfill_account);
 
-    order_checkpoint_.set_tagappend("slice");
-    pre_begin_transaction_checkpoint_.set_tagappend("pre_begin_transaction");
+    pre_begin_txn_checkpoint_.set_tagappend("pre_begin_txn");
 }
 
 btree_slice_t::~btree_slice_t() { }
