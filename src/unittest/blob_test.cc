@@ -182,7 +182,7 @@ private:
         SCOPED_TRACE("small_value_test");
         UNUSED block_size_t block_size = cache->get_block_size();
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
 
         blob_tracker_t tk(251);
 
@@ -215,7 +215,7 @@ private:
         SCOPED_TRACE("small_value_boundary_test");
         block_size_t block_size = cache->get_block_size();
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
 
         blob_tracker_t tk(251);
 
@@ -269,7 +269,7 @@ private:
 
         ASSERT_EQ(4080, block_size.value() - sizeof(block_magic_t));
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
 
         blob_tracker_t tk(251);
 
@@ -285,7 +285,7 @@ private:
 
         ASSERT_EQ(4080, block_size.value() - sizeof(block_magic_t));
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
 
         blob_tracker_t tk(251);
 
@@ -305,7 +305,7 @@ private:
     void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
         UNUSED block_size_t block_size = cache->get_block_size();
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
         blob_tracker_t tk(251);
 
         char v = 'A';

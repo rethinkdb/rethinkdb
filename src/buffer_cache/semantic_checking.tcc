@@ -127,7 +127,7 @@ scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *
     order_token(_order_token),
     snapshotted(false),
     access(access),
-    inner_transaction(&cache->inner_cache, access, expected_change_count, recency_timestamp)
+    inner_transaction(&cache->inner_cache, access, expected_change_count, recency_timestamp, _order_token)
     { }
 
 template<class inner_cache_t>

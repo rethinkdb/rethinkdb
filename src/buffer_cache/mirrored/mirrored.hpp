@@ -250,7 +250,7 @@ class mc_transaction_t :
     friend class writeback_t;
 
 public:
-    mc_transaction_t(mc_cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t order_token = order_token_t::ignore);
+    mc_transaction_t(mc_cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t order_token);
     mc_transaction_t(mc_cache_t *cache, access_t access, int fook, bool dont_assert_about_shutting_down = false);   // Not for use with write transactions
     mc_transaction_t(mc_cache_t *cache, access_t access, i_am_writeback_t i_am_writeback);
     ~mc_transaction_t();
@@ -264,9 +264,6 @@ public:
     void snapshot();
 
     void set_account(mc_cache_account_t *cache_account);
-
-    // Order tokens are only actually stored by semantic checking and mock caches.
-    void set_token(UNUSED order_token_t token) { }
 
 private:
     void register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap);

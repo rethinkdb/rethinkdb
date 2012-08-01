@@ -95,7 +95,7 @@ class scc_transaction_t :
     public home_thread_mixin_t
 {
 public:
-    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t _order_token = order_token_t::ignore);
+    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t _order_token);
     ~scc_transaction_t();
 
     // TODO: Implement semantic checking for snapshots!
@@ -111,9 +111,7 @@ public:
     scc_cache_t<inner_cache_t> *get_cache() const { return cache; }
     scc_cache_t<inner_cache_t> *cache;
 
-    order_token_t order_token;
-
-    void set_token(order_token_t token) { order_token = token; }
+    const order_token_t order_token;
 
 private:
     bool snapshotted; // Disables CRC checks

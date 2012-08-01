@@ -91,7 +91,7 @@ class mock_transaction_t :
     typedef mock_buf_lock_t buf_lock_t;
 
 public:
-    mock_transaction_t(mock_cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t order_token = order_token_t::ignore);
+    mock_transaction_t(mock_cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t order_token);
     ~mock_transaction_t();
 
     void snapshot() { }
@@ -103,9 +103,7 @@ public:
     mock_cache_t *get_cache() const { return cache; }
     mock_cache_t *cache;
 
-    order_token_t order_token;
-
-    void set_token(order_token_t token) { order_token = token; }
+    const order_token_t order_token;
 
 private:
     friend class mock_buf_lock_t;
