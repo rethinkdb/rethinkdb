@@ -317,7 +317,7 @@ message Response {
         SUCCESS_PARTIAL = 2; //need to send CONTINUE repeatedly until SUCCESS_STREAM
         SUCCESS_STREAM = 3;
 
-        MEANINGLESS_QUERY = -1; // Means the client is misbehaving, not the user
+        BROKEN_CLIENT = -1; // Means the client is misbehaving, not the user
         BAD_QUERY = -2;
         RUNTIME_ERROR = -3;
     }

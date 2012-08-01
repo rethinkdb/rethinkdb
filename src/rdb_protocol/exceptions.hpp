@@ -10,10 +10,10 @@ namespace query_language {
 /* Thrown if the client sends a malformed or nonsensical query (e.g. a
    protocol buffer that doesn't match our schema or STOP for an
    unknown token). */
-class meaningless_query_exc_t : public std::exception {
+class broken_client_exc_t : public std::exception {
 public:
-    meaningless_query_exc_t(const std::string &_what) : message(_what) { }
-    ~meaningless_query_exc_t() throw () { }
+    broken_client_exc_t(const std::string &_what) : message(_what) { }
+    ~broken_client_exc_t() throw () { }
 
     const char *what() const throw () {
         return message.c_str();
@@ -24,8 +24,8 @@ public:
 
 /* `bad_query_exc_t` is thrown if the user writes a query that
    accesses undefined variables or that has mismatched types. The
-   difference between this and `meaningless_query_exc_t` is that
-   `meaningless_query_exc_t` is the client's fault and
+   difference between this and `broken_client_exc_t` is that
+   `broken_client_exc_t` is the client's fault and
    `bad_query_exc_t` is the client's user's fault. */
 
 class bad_query_exc_t : public std::exception {

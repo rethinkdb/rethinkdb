@@ -28,7 +28,7 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
     try {
         query_language::check_query_type(*q, &type_environment, &is_deterministic, root_backtrace);
     } catch (query_language::meaningless_query_exc_t &e) {
-        res.set_status_code(Response::MEANINGLESS_QUERY);
+        res.set_status_code(Response::BROKEN_CLIENT);
         res.set_error_message(e.message);
         return res;
     } catch (query_language::bad_query_exc_t &e) {
