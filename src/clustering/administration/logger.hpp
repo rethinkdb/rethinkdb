@@ -2,7 +2,9 @@
 #define CLUSTERING_ADMINISTRATION_LOGGER_HPP_
 
 #include <stdio.h>
+#include <fcntl.h>
 
+#include <queue>
 #include <string>
 #include <vector>
 
@@ -31,32 +33,40 @@ public:
 std::string format_log_level(log_level_t l);
 log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error);
 
-std::string format_log_message(const log_message_t &m);
+std::string format_log_message(const log_message_t &m, bool for_console = false);
 log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_error);
 
-class log_writer_t : public home_thread_mixin_t {
+log_message_t assemble_log_message(log_level_t level, const std::string &message, struct timespec uptime);
+
+class thread_pool_log_writer_t : public home_thread_mixin_t {
 public:
-    log_writer_t(const std::string &filename, local_issue_tracker_t *issue_tracker);
-    ~log_writer_t();
+    thread_pool_log_writer_t(local_issue_tracker_t *issue_tracker);
+    ~thread_pool_log_writer_t();
 
     std::vector<log_message_t> tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t);
 
 private:
-    friend void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t lock);
+    friend void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t lock);
     friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
+    friend void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
     void install_on_thread(int i);
     void uninstall_on_thread(int i);
     void write(const log_message_t &msg);
     void write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out);
     void tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out);
-    std::string filename;
-    struct timespec uptime_reference;
     mutex_t write_mutex;
-    scoped_fd_t fd;
     local_issue_tracker_t *issue_tracker;
     scoped_ptr_t<local_issue_tracker_t::entry_t> issue;
 
-    DISABLE_COPYING(log_writer_t);
+    DISABLE_COPYING(thread_pool_log_writer_t);
+};
+
+void install_fallback_log_writer(const std::string &logfile_name);
+
+class thread_log_writer_disabler_t {
+    public:
+        thread_log_writer_disabler_t();
+        ~thread_log_writer_disabler_t();
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_LOGGER_HPP_ */

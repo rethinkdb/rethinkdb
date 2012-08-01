@@ -29,7 +29,7 @@ static void get_string(boost::scoped_array<char> *out, const v8::Handle<v8::Stri
 
 // Returns NULL & sets `*errmsg` on failure.
 //
-// FIXME: implement max recursion depth, to avoid potential security
+// TODO (rntz) FIXME: implement max recursion depth, to avoid potential security
 // vulnerabilies if nothing else.
 //
 // FIXME: avoid infinite recursion on cyclic data structures. Not sure whether
@@ -70,7 +70,7 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, std::string *errmsg) {
                 cJSON *eltj = mkJSON(elth, errmsg);
                 if (NULL == eltj) return NULL;
 
-                // FIXME: this is O(n). do this better by explicitly
+                // TODO (rntz) FIXME: this is O(n). do this better by explicitly
                 // manipulating object chains.
                 arrayj.AddItemToArray(eltj);
             }
@@ -90,8 +90,9 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, std::string *errmsg) {
         } else {
             // Treat it as a dictionary.
             v8::Handle<v8::Object> objh = value->ToObject();
+            rassert(!objh.IsEmpty()); // FIXME
             v8::Handle<v8::Array> props = objh->GetPropertyNames();
-            rassert(!objh.IsEmpty() && !props.IsEmpty()); // FIXME.
+            rassert(!props.IsEmpty()); // FIXME
 
             scoped_cJSON_t objj(cJSON_CreateObject());
             if (NULL == objj.get()) {
@@ -101,16 +102,16 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, std::string *errmsg) {
 
             uint32_t len = props->Length();
             for (uint32_t i = 0; i < len; ++i) {
-                v8::Handle<v8::Value> keyh = props->Get(i);
+                v8::Handle<v8::String> keyh = props->Get(i)->ToString();
+                rassert(!keyh.IsEmpty()); // FIXME
                 v8::Handle<v8::Value> valueh = objh->Get(keyh);
-                rassert(!keyh.IsEmpty() && !valueh.IsEmpty()); // FIXME.
+                rassert(!valueh.IsEmpty()); // FIXME
 
                 cJSON *valuej = mkJSON(valueh, errmsg);
                 if (NULL == valuej) return NULL;
 
                 boost::scoped_array<char> buf;
-                // FIXME TODO (rntz): could a property name be a non-string?
-                get_string(&buf, keyh->ToString());
+                get_string(&buf, keyh);
 
                 objj.AddItemToObject(buf.get(), valuej);
             }

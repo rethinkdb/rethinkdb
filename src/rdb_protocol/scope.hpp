@@ -44,7 +44,7 @@ public:
         scopes.pop_front();
     }
 
-    // TODO (rntz): find a better way to do this.
+    // TODO(rntz): find a better way to do this.
     void dump(std::vector<std::string> *argnames, std::vector<T> *argvals) {
         std::set<std::string> seen;
 
