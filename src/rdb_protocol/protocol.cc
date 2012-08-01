@@ -341,8 +341,9 @@ write_response_t write_t::multistore_unshard(const std::vector<write_response_t>
 store_t::store_t(io_backender_t *io_backend,
                  const std::string& filename,
                  bool create,
-                 perfmon_collection_t *parent_perfmon_collection) :
-    btree_store_t<rdb_protocol_t>(io_backend, filename, create, parent_perfmon_collection) { }
+                 perfmon_collection_t *parent_perfmon_collection,
+                 context_t *ctx) :
+    btree_store_t<rdb_protocol_t>(io_backend, filename, create, parent_perfmon_collection, ctx) { }
 
 store_t::~store_t() {
     assert_thread();

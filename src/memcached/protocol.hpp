@@ -56,6 +56,7 @@ public:
     typedef hash_region_t<key_range_t> region_t;
 
     struct temporary_cache_t { };
+    struct context_t { };
 
     struct read_response_t {
         typedef boost::variant<get_result_t, rget_result_t, distribution_result_t> result_t;
@@ -161,7 +162,8 @@ public:
         store_t(io_backender_t *io_backender,
                 const std::string& filename,
                 bool create,
-                perfmon_collection_t *collection);
+                perfmon_collection_t *collection,
+                context_t *);
         virtual ~store_t();
 
     private:
@@ -194,6 +196,7 @@ public:
                                  transaction_t *txn,
                                  superblock_t *superblock);
     };
+
 };
 
 RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::read_response_t);

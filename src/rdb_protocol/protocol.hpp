@@ -92,6 +92,8 @@ struct rdb_protocol_t {
 
     struct temporary_cache_t { };
 
+    struct context_t { };
+
     struct point_read_response_t {
         boost::shared_ptr<scoped_cJSON_t> data;
         point_read_response_t() { }
@@ -337,7 +339,8 @@ struct rdb_protocol_t {
         store_t(io_backender_t *io_backend,
                 const std::string& filename,
                 bool create,
-                perfmon_collection_t *parent_perfmon_collection);
+                perfmon_collection_t *parent_perfmon_collection,
+                context_t *ctx);
         ~store_t();
 
     private:
@@ -372,6 +375,7 @@ struct rdb_protocol_t {
     };
 
     static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
+
 };
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_

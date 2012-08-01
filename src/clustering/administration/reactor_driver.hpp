@@ -55,7 +55,8 @@ class svs_by_namespace_t {
 public:
     virtual void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
                          stores_lifetimer_t<protocol_t> *stores_out,
-                         scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out) = 0;
+                         scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out,
+                         typename protocol_t::context_t *) = 0;
     virtual void destroy_svs(namespace_id_t namespace_id) = 0;
 
 protected:
@@ -73,7 +74,8 @@ public:
                      boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                      const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
                      svs_by_namespace_t<protocol_t> *_svs_by_namespace,
-                     perfmon_collection_repo_t *);
+                     perfmon_collection_repo_t *,
+                     typename protocol_t::context_t *);
 
     ~reactor_driver_t();
 
@@ -100,6 +102,7 @@ private:
     clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view;
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;
+    typename protocol_t::context_t *ctx;
     svs_by_namespace_t<protocol_t> *const svs_by_namespace;
 
     watchable_variable_t<namespaces_directory_metadata_t<protocol_t> > watchable_variable;

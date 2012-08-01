@@ -42,6 +42,8 @@ public:
         /* Dummy protocol doesn't need to cache anything */
     };
 
+    class context_t { };
+
     class read_response_t {
     public:
         RDB_MAKE_ME_SERIALIZABLE_1(values);
@@ -111,7 +113,7 @@ public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
         store_t();
-        store_t(io_backender_t *io_backender, const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
+        store_t(io_backender_t *io_backender, const std::string& filename, bool create, perfmon_collection_t *collection = NULL, context_t *ctx = NULL);
         ~store_t();
 
         void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;

@@ -156,7 +156,8 @@ try {
             directory_read_manager.get_root_view()->subview(
                 field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
             &dummy_svs_source,
-            &perfmon_repo));
+            &perfmon_repo,
+            NULL));
     scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> >
         dummy_reactor_directory_copier(!i_am_a_server ? NULL :
             new field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(
@@ -177,7 +178,8 @@ try {
             directory_read_manager.get_root_view()->subview(
                 field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
             &memcached_svs_source,
-            &perfmon_repo));
+            &perfmon_repo,
+            NULL));
     scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >
         memcached_reactor_directory_copier(!i_am_a_server ? NULL :
             new field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(
@@ -199,7 +201,8 @@ try {
             directory_read_manager.get_root_view()->subview(
                 field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
             &rdb_svs_source,
-            &perfmon_repo));
+            &perfmon_repo,
+            NULL));
     scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t> >
         rdb_reactor_directory_copier(!i_am_a_server ? NULL :
             new field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(
