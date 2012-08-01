@@ -17,6 +17,8 @@
 #include "btree/parallel_traversal.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
+#include "clustering/administration/namespace_interface_repository.hpp"
+#include "clustering/administration/namespace_metadata.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "hash_region.hpp"
@@ -80,7 +82,6 @@ struct Length {
 typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_t;
 
 
-
 } // namespace rdb_protocol_details
 
 struct rdb_protocol_t {
@@ -92,7 +93,15 @@ struct rdb_protocol_t {
 
     struct temporary_cache_t { };
 
-    struct context_t { };
+    struct context_t { 
+        context_t(namespace_repo_t<rdb_protocol_t> *_ns_repo, 
+                  boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > _semilattice_metadata)
+            : ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata)
+        { }
+
+        namespace_repo_t<rdb_protocol_t> *ns_repo;
+        boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > semilattice_metadata;
+    };
 
     struct point_read_response_t {
         boost::shared_ptr<scoped_cJSON_t> data;

@@ -16,14 +16,14 @@
 
 class query_server_t {
 public:
-    query_server_t(int port, extproc::pool_group_t *_pool_group, const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata, namespace_repo_t<rdb_protocol_t> * _ns_repo);
+    query_server_t(int port, extproc::pool_group_t *_pool_group, const boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > &_semilattice_metadata, namespace_repo_t<rdb_protocol_t> * _ns_repo);
 
 private:
     Response handle(Query *q, stream_cache_t *stream_cache);
 
     extproc::pool_group_t *pool_group;
     protob_server_t<Query, Response> server;
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+    boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > semilattice_metadata;
     namespace_repo_t<rdb_protocol_t> *ns_repo;
 };
 

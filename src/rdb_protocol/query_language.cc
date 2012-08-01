@@ -603,7 +603,7 @@ void check_query_type(const Query &q, type_checking_environment_t *env, bool *is
 typedef boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > > > maybe_ns_info_t;
 
 maybe_ns_info_t get_namespace_info(const std::string &name, runtime_environment_t *env) {
-    return env->semilattice_metadata->get().rdb_namespaces.get_namespace_by_name(name);
+    return env->semilattice_metadata->get().get_namespace_by_name(name);
 }
 
 std::string get_primary_key(const std::string &table_name, runtime_environment_t *env, const backtrace_t &backtrace) {
@@ -1957,7 +1957,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 
 namespace_repo_t<rdb_protocol_t>::access_t eval(TableRef *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
-        env->semilattice_metadata->get().rdb_namespaces.get_namespace_by_name(t->table_name());
+        env->semilattice_metadata->get().get_namespace_by_name(t->table_name());
 
     if (namespace_info) {
         return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, namespace_info->first, env->interruptor);

@@ -56,7 +56,7 @@ class runtime_environment_t {
 public:
     runtime_environment_t(extproc::pool_group_t *_pool_group,
                           namespace_repo_t<rdb_protocol_t> *_ns_repo,
-                          boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+                          boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > _semilattice_metadata,
                           boost::shared_ptr<js::runner_t> _js_runner,
                           signal_t *_interruptor)
         : pool(_pool_group->get()),
@@ -76,7 +76,7 @@ public:
     namespace_repo_t<rdb_protocol_t> *ns_repo;
     //TODO this should really just be the namespace metadata... but
     //constructing views is too hard :-/
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+    boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > semilattice_metadata;
 
   private:
     // Ideally this would be a scoped_ptr_t<js::runner_t>, but unfortunately we
