@@ -629,36 +629,25 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     return js_runner;
 }
 
-void execute(Query *q, runtime_environment_t *env, type_checking_environment_t *type_env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t) {
+void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t) {
     rassert(q->token() == res->token());
-    term_info_t type_info;
     switch(q->type()) {
     case Query::READ:
-        type_info = get_term_type(q->read_query().term(), type_env, backtrace);
-        if (type_info.type == TERM_TYPE_JSON) {
-            res->set_status_code(Response::SUCCESS_JSON);
-        } else {
-            //May be changed to SUCCESS_PARTIAL during execution.
-            res->set_status_code(Response::SUCCESS_STREAM);
-        }
         execute(q->mutable_read_query(), env, res, backtrace, stream_cache);
-        break;
+        break; //status set in [execute]
     case Query::WRITE:
-        res->set_status_code(Response::SUCCESS_STREAM);
         execute(q->mutable_write_query(), env, res, backtrace);
-        break;
+        break; //status set in [execute]
     case Query::CONTINUE:
-        //May be changed to SUCCESS_PARTIAL during execution.
-        res->set_status_code(Response::SUCCESS_STREAM);
         if (!stream_cache->serve(q->token(), res)) {
             throw runtime_exc_t(strprintf("Could not serve key %ld from stream cache.", q->token()), backtrace);
         }
-        break;
+        break; //status set in [serve]
     case Query::STOP:
-        res->set_status_code(Response::SUCCESS_EMPTY);
         if (!stream_cache->contains(q->token())) {
             throw runtime_exc_t(strprintf("No key %ld in stream cache.", q->token()), backtrace);
         } else {
+            res->set_status_code(Response::SUCCESS_EMPTY);
             stream_cache->erase(q->token());
         }
         break;
@@ -674,6 +663,7 @@ void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const back
     case TERM_TYPE_JSON: {
         boost::shared_ptr<scoped_cJSON_t> json = eval(r->mutable_term(), env, backtrace);
         res->add_response(json->PrintUnformatted());
+        res->set_status_code(Response::SUCCESS_JSON);
         break;
     }
     case TERM_TYPE_STREAM:
@@ -685,8 +675,9 @@ void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const back
         } else {
             stream_cache->insert(r, key, stream);
         }
-        stream_cache->serve(key, res);
-        break;
+        bool b = stream_cache->serve(key, res);
+        rassert(b);
+        break; //status code set in [serve]
     }
     case TERM_TYPE_ARBITRARY: {
         eval(r->mutable_term(), env, backtrace);
@@ -725,6 +716,8 @@ void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::s
 }
 
 void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+    //TODO: When writes can return different responses, be more clever.
+    res->set_status_code(Response::SUCCESS_STREAM);
     switch (w->type()) {
         case WriteQuery::UPDATE:
             {

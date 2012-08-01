@@ -44,9 +44,8 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
         query_language::runtime_environment_t runtime_environment(
             pool_group, ns_repo, semilattice_metadata, js_runner, &interruptor);
         try {
-            //Execute now takes a the type environment so it can set the status code.
-            execute(q, &runtime_environment, &type_environment,
-                    &res, root_backtrace, stream_cache);
+            //[execute] will set the status code unless it throws
+            execute(q, &runtime_environment, &res, root_backtrace, stream_cache);
         } catch (query_language::runtime_exc_t &e) {
             res.set_status_code(Response::RUNTIME_ERROR);
             res.set_error_message(e.message);

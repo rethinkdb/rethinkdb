@@ -38,6 +38,7 @@ bool stream_cache_t::serve(int64_t key, Response *res) {
             throw e;
         }
         erase(key);
+        res->set_status_code(Response::SUCCESS_STREAM);
         return true;
     }
 }
