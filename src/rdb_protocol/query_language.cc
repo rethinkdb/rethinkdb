@@ -13,7 +13,7 @@ namespace query_language {
 void check_protobuf(bool cond) {
     if (!cond) {
         BREAKPOINT;
-        throw bad_protobuf_exc_t();
+        throw meaningless_query_exc_t("bad protocol buffer; client is buggy");
     }
 }
 
@@ -645,7 +645,7 @@ void execute(Query *q, runtime_environment_t *env, Response *res, const backtrac
         break; //status set in [serve]
     case Query::STOP:
         if (!stream_cache->contains(q->token())) {
-            throw runtime_exc_t(strprintf("No key %ld in stream cache.", q->token()), backtrace);
+            throw meaningless_query_exc_t(strprintf("No key %ld in stream cache.", q->token()));
         } else {
             res->set_status_code(Response::SUCCESS_EMPTY);
             stream_cache->erase(q->token());

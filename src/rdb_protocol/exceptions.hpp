@@ -7,17 +7,19 @@
 
 namespace query_language {
 
-/* `bad_protobuf_exc_t` is thrown if the client sends us a protocol buffer that
-doesn't match our schema. This should only happen if the client itself is
-broken. */
-
-class bad_protobuf_exc_t : public std::exception {
+/* Thrown if the client sends a malformed or nonsensical query (e.g. a
+   protocol buffer that doesn't match our schema or STOP for an
+   unknown token). */
+class meaningless_query_exc_t : public std::exception {
 public:
-    ~bad_protobuf_exc_t() throw () { }
+    meaningless_query_exc_t(const std::string &_what) : message(_what) { }
+    ~meaningless_query_exc_t() throw () { }
 
     const char *what() const throw () {
-        return "bad protocol buffer";
+        return message.c_str();
     }
+
+    std::string message;
 };
 
 /* `bad_query_exc_t` is thrown if the user writes a query that accesses
