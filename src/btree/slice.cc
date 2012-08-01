@@ -10,7 +10,7 @@
 void btree_slice_t::create(cache_t *cache) {
 
     /* Initialize the btree superblock and the delete queue */
-    transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past);
+    transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
 
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
 
@@ -34,8 +34,7 @@ btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent)
       root_eviction_priority(INITIAL_ROOT_EVICTION_PRIORITY) {
     cache()->create_cache_account(BACKFILL_CACHE_PRIORITY, &backfill_account);
 
-    order_checkpoint_.set_tagappend("slice");
-    post_begin_transaction_checkpoint_.set_tagappend("post");
+    pre_begin_txn_checkpoint_.set_tagappend("pre_begin_txn");
 }
 
 btree_slice_t::~btree_slice_t() { }

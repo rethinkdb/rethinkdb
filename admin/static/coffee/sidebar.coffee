@@ -6,7 +6,6 @@ module 'Sidebar', ->
         template: Handlebars.compile $('#sidebar-container-template').html()
         template_dataexplorer: Handlebars.compile $('#sidebar-dataexplorer_container-template').html()
 
-        max_recent_log_entries: 5
         type_view: 'default'
         previous_queries: []
         events:

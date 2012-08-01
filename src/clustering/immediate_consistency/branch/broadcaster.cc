@@ -221,7 +221,7 @@ public:
                 it != controller->incomplete_writes.end(); it++) {
 
             coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, controller,
-                                               this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it), order_token_t::ignore /* TODO */, fifo_source.enter_write()));
+                                               this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it), order_source.check_in("dispatchee_t"), fifo_source.enter_write()));
         }
     }
 
@@ -246,6 +246,13 @@ public:
        destination machine in the same order that we send them, even if the
        network layer reorders the messages. */
     fifo_enforcer_source_t fifo_source;
+
+    // Accompanies the fifo_source.  It is questionable that we have a
+    // separate order source just for the background writes.  What
+    // about other writes that could interact with the background
+    // writes?
+    // TODO: Is something wrong with the ordering guarantees between background writes and other writes?
+    order_source_t order_source;
 
     perfmon_counter_t queue_count;
     perfmon_membership_t queue_count_membership;

@@ -156,7 +156,12 @@ void backfillee(
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs->new_read_token(&read_token);
 
-    region_map_t<protocol_t, version_range_t> start_point = svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor);
+    // TODO: This is bs.  order_token_t::ignore.  The svs needs an order checkpoint with its fifo enforcers.
+    order_source_t order_source;
+
+    region_map_t<protocol_t, version_range_t> start_point
+        = svs->get_all_metainfos(order_source.check_in("backfillee(A)").with_read_mode(),
+                                 &read_token, interruptor);
 
     start_point = start_point.mask(region);
 
@@ -293,7 +298,7 @@ void backfillee(
                 region_map_t<protocol_t, version_range_t>(span_parts.begin(), span_parts.end()),
                 &binary_blob_t::make<version_range_t>
                 ),
-            order_token_t::ignore,
+            order_source.check_in("backfillee(B)"),
             &write_token,
             interruptor
             );
@@ -327,7 +332,7 @@ void backfillee(
             end_point_cond.get_value().first,
             &binary_blob_t::make<version_range_t>
             ),
-        order_token_t::ignore,
+        order_source.check_in("backfillee(C)"),
         &write_token,
         interruptor
     );

@@ -66,7 +66,7 @@ persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::st
 persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &initial_metadata) {
     construct_serializer_and_cache(io_backender, true, filename, perfmon_parent);
 
-    transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past);
+    transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
     metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_major_write());
 
@@ -89,14 +89,14 @@ persistent_file_t::~persistent_file_t() {
 }
 
 machine_id_t persistent_file_t::read_machine_id() {
-    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past);
+    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_read);
     const metadata_superblock_t *sb = static_cast<const metadata_superblock_t *>(superblock.get_data_read());
     return sb->machine_id;
 }
 
 cluster_semilattice_metadata_t persistent_file_t::read_metadata() {
-    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past);
+    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_read);
     const metadata_superblock_t *sb = static_cast<const metadata_superblock_t *>(superblock.get_data_read());
     cluster_semilattice_metadata_t metadata;
@@ -105,7 +105,7 @@ cluster_semilattice_metadata_t persistent_file_t::read_metadata() {
 }
 
 void persistent_file_t::update_metadata(const cluster_semilattice_metadata_t &metadata) {
-    transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past);
+    transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
     metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_major_write());
     write_blob(&txn, sb->metadata_blob, metadata_superblock_t::METADATA_BLOB_MAXREFLEN, metadata);
@@ -120,7 +120,7 @@ public:
         /* If we're not creating, we have to load the existing branch history
         database from disk */
         if (!create) {
-            transaction_t txn(parent->cache.get(), rwi_read, 0, repli_timestamp_t::distant_past);
+            transaction_t txn(parent->cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
             buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_read);
             const metadata_superblock_t *sb = static_cast<const metadata_superblock_t *>(superblock.get_data_read());
             read_blob(&txn, sb->*field_name, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, &bh);
@@ -167,7 +167,7 @@ public:
 
 private:
     void flush(UNUSED signal_t *interruptor) {
-        transaction_t txn(parent->cache.get(), rwi_write, 1, repli_timestamp_t::distant_past);
+        transaction_t txn(parent->cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
         metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_major_write());
         write_blob(&txn, sb->*field_name, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, bh);
