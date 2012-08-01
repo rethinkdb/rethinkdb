@@ -241,6 +241,13 @@ module 'NamespaceView', ->
             for key of @model.get('key_distr')
                 json.total_keys += @model.get('key_distr')[key]
 
+            json.stats_up_to_date = true
+            for machine in machines.models
+                if machine.get('stats')? and @model.get('id') of machine.get('stats') and machine.is_reachable
+                    if machine.get('stats_up_to_date') is false
+                        json.stats_up_to_date = false
+                        break
+
             @.$el.html @template json
 
             return @
