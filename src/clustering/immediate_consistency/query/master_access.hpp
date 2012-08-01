@@ -4,8 +4,9 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
+#include "clustering/generic/multi_throttling_client.hpp"
 #include "clustering/generic/registrant.hpp"
-#include "clustering/immediate_consistency/query/metadata.hpp"
+#include "clustering/immediate_consistency/query/master_metadata.hpp"
 #include "protocol_api.hpp"
 
 template <class protocol_t>
@@ -22,7 +23,7 @@ public:
     }
 
     signal_t *get_failed_signal() {
-        return registrant->get_failed_signal();
+        return multi_throttling_client.get_failed_signal();
     }
 
     void new_read_token(fifo_enforcer_sink_t::exit_read_t *out);
@@ -44,20 +45,22 @@ public:
             THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t);
 
 private:
-    static boost::optional<boost::optional<registrar_business_card_t<master_access_business_card_t> > > extract_registrar_business_card(
+    typedef multi_throttling_business_card_t<
+            typename master_business_card_t<protocol_t>::request_t,
+            typename master_business_card_t<protocol_t>::inner_client_business_card_t
+            > mt_business_card_t;
+    static boost::optional<boost::optional<mt_business_card_t> > extract_multi_throttling_business_card(
             const boost::optional<boost::optional<master_business_card_t<protocol_t> > > &bcard) {
         if (bcard) {
             if (bcard.get()) {
-                return boost::optional<boost::optional<registrar_business_card_t<master_access_business_card_t> > >(
-                    boost::optional<registrar_business_card_t<master_access_business_card_t> >(
-                        bcard.get().get().master_access_registration_business_card
-                        ));
+                return boost::optional<boost::optional<mt_business_card_t> >(boost::optional<mt_business_card_t>(
+                    bcard.get().get().multi_throttling
+                    ));
             } else {
-                return boost::optional<boost::optional<registrar_business_card_t<master_access_business_card_t> > >(
-                    boost::optional<registrar_business_card_t<master_access_business_card_t> >());
+                return boost::optional<boost::optional<mt_business_card_t> >(boost::optional<mt_business_card_t>());
             }
         } else {
-            return boost::optional<boost::optional<registrar_business_card_t<master_access_business_card_t> > >();
+            return boost::optional<boost::optional<mt_business_card_t> >();
         }
     }
 
@@ -66,18 +69,15 @@ private:
     mailbox_manager_t *mailbox_manager;
 
     typename protocol_t::region_t region;
-    typename master_business_card_t<protocol_t>::read_mailbox_t::address_t read_address;
-    typename master_business_card_t<protocol_t>::write_mailbox_t::address_t write_address;
-
     fifo_enforcer_source_t internal_fifo_source;
     fifo_enforcer_sink_t internal_fifo_sink;
 
-    master_access_id_t master_access_id;
     fifo_enforcer_source_t source_for_master;
-    int allocated_writes;
 
-    master_access_business_card_t::allocation_mailbox_t allocation_mailbox;
-    scoped_ptr_t<registrant_t<master_access_business_card_t> > registrant;
+    multi_throttling_client_t<
+            typename master_business_card_t<protocol_t>::request_t,
+            typename master_business_card_t<protocol_t>::inner_client_business_card_t
+            > multi_throttling_client;
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_ACCESS_HPP_ */
