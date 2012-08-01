@@ -21,17 +21,18 @@ module 'Sidebar', ->
             @issues = new Sidebar.Issues()
             @logs = new Sidebar.Logs()
 
-            recent_log_entries.on 'add', @render
             window.app.on 'all', @render
 
         set_type_view: (type = 'default') =>
             if type isnt @type_view
                 @type_view = type
                 @render()
+                ###
                 if type is 'default'
                     recent_log_entries.on 'add', @render
                 else if type is 'dataexplorer'
                     recent_log_entries.off()
+                ###
 
         add_query: (query) =>
             @previous_queries.push query
@@ -76,14 +77,54 @@ module 'Sidebar', ->
 
     class @Logs extends Backbone.View
         className: 'recent-log-entries'
+        tagName: 'ul'
+        min_timestamp: 0
+        max_entry_logs: 5
+        interval_update_log: 10000
+
         initialize: ->
-            recent_log_entries.on 'add', @render
+            @fetch_log()
+            @set_interval = setInterval @fetch_log, @interval_update_log
+            @log_entries = []
+
+        fetch_log: =>
+            $.ajax({
+                contentType: 'application/json'
+                url: '/ajax/log/_?max_length='+@max_entry_logs+'&min_timestamp='+@min_timestamp
+                dataType: 'json'
+                success: @set_log_entries
+            })
+
+        set_log_entries: (response) =>
+            need_render = false
+            for machine_id, data of response
+                for new_log_entry in data
+                    for old_log_entry, i in @log_entries
+                        if parseFloat(new_log_entry.timestamp) > parseFloat(old_log_entry.get('timestamp'))
+                            entry = new LogEntry new_log_entry
+                            entry.set('machine_uuid', machine_id)
+                            @log_entries.splice i, 0, entry
+                            need_render = true
+                            break
+
+                    if @log_entries.length < @max_entry_logs
+                        entry = new LogEntry new_log_entry
+                        entry.set('machine_uuid', machine_id)
+                        @log_entries.push entry
+                        need_render = true
+                    else if @log_entries.length > @max_entry_logs
+                        @log_entries.pop()
+
+            if need_render
+                @render()
+
+            @min_timestamp = parseFloat(@log_entries[0].get('timestamp'))+1
 
         render: =>
-            @.$('.recent-log-entries').html ''
-            for log in recent_log_entries.models
-                view = new Sidebar.RecentLogEntry model: log
-                @.$el.append view.render().el
+            @.$el.html ''
+            for log in @log_entries
+                view = new LogView.LogEntry model: log
+                @.$el.append view.render_small().$el
             return @
 
     # Sidebar.ClientConnectionStatus
@@ -183,42 +224,3 @@ module 'Sidebar', ->
                     )
                 no_issues: _.keys(critical_issues).length is 0 and _.keys(other_issues).length is 0
             return @
-
-    # Sidebar.RecentLogEntry
-    class @RecentLogEntry extends Backbone.View
-        className: 'recent-log-entry'
-        template: Handlebars.compile $('#sidebar-recent_log_entry-template').html()
-
-        events:
-            'click a[rel=log_details]': 'show_popover'
-
-        show_popover: (event) =>
-            event.preventDefault()
-            @.$(event.currentTarget).popover('show')
-            $popover = $('.popover')
-
-            $popover.on 'clickoutside', (e) ->
-                if e.target isnt event.target  # so we don't remove the popover when we click on the link
-                    $(e.currentTarget).remove()
-            $('.popover_close').on 'click', (e) ->
-                $(e.target).parent().parent().remove()
-
-
-        render: =>
-            json = _.extend @model.toJSON(), @model.get_formatted_message()
-            # Trim message length
-            MAX_LOG_MSG_DISPLAY_LENGTH = 25
-            if typeof(json.formatted_message) is 'string' and json.formatted_message.length > MAX_LOG_MSG_DISPLAY_LENGTH
-                json.formatted_message = json.formatted_message.slice(0, MAX_LOG_MSG_DISPLAY_LENGTH) + "..."
-
-            if machines? and machines.get(@model.get('machine_uuid'))
-                @.$el.html @template _.extend json,
-                    machine_name: machines.get(@model.get('machine_uuid')).get('name')
-                    timeago_timestamp: @model.get_iso_8601_timestamp()
-
-            @.$('abbr.timeago').timeago()
-            @.$('a[rel=log_details]').popover
-                trigger: 'manual'
-                placement: 'left'
-            return @
-
