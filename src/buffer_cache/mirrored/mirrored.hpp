@@ -265,9 +265,6 @@ public:
 
     void set_account(mc_cache_account_t *cache_account);
 
-    // Order tokens are only actually stored by semantic checking and mock caches.
-    void set_token(UNUSED order_token_t token) { }
-
 private:
     void register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap);
 

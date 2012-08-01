@@ -103,9 +103,7 @@ public:
     mock_cache_t *get_cache() const { return cache; }
     mock_cache_t *cache;
 
-    order_token_t order_token;
-
-    void set_token(order_token_t token) { order_token = token; }
+    const order_token_t order_token;
 
 private:
     friend class mock_buf_lock_t;

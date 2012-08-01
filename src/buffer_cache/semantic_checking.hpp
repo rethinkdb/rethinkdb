@@ -111,9 +111,7 @@ public:
     scc_cache_t<inner_cache_t> *get_cache() const { return cache; }
     scc_cache_t<inner_cache_t> *cache;
 
-    order_token_t order_token;
-
-    void set_token(order_token_t token) { order_token = token; }
+    const order_token_t order_token;
 
 private:
     bool snapshotted; // Disables CRC checks
