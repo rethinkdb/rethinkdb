@@ -6,7 +6,6 @@
 
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
-#include "clustering/immediate_consistency/query/metadata.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/metadata.hpp"

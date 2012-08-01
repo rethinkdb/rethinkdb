@@ -23,10 +23,7 @@ boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value, std:
 // Should never error.
 v8::Handle<v8::Value> fromJSON(const cJSON &json);
 
-// Returns an empty handle and sets `*errmsg` on error.
-v8::Handle<v8::Value> eval(const std::string &src, std::string *errmsg);
 
-
 // Worker-side JS evaluation environment.
 class env_t {
     friend class runner_t;
@@ -62,7 +59,7 @@ class env_t {
     std::map<id_t, v8::Persistent<v8::Value> > values_;
 };
 
-
+
 // Puts us into a fresh v8 context.
 // By default each task gets its own context.
 struct context_t {

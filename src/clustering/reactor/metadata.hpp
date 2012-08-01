@@ -9,7 +9,8 @@
 #include <boost/optional.hpp>
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "clustering/immediate_consistency/query/metadata.hpp"
+#include "clustering/immediate_consistency/query/master_metadata.hpp"
+#include "clustering/immediate_consistency/query/direct_reader_metadata.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "rpc/serialize_macros.hpp"
 

@@ -12,8 +12,6 @@
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/administration/persistable_blueprint.hpp"
-#include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "clustering/immediate_consistency/query/metadata.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/json_adapters.hpp"

@@ -79,7 +79,7 @@ pool_t::worker_t *pool_t::acquire_worker() {
 
 void pool_t::release_worker(worker_t *worker) THROWS_NOTHING {
     assert_thread();
-    rassert(worker && worker->pool_ == this);
+    rassert(worker && worker->pool_ == this && worker->attached_);
 
     // If the worker's stream isn't open, something bad has happened.
     if (!worker->is_read_open() || !worker->is_write_open()) {
@@ -115,6 +115,8 @@ void pool_t::detach_worker(worker_t *worker) {
     worker->attached_ = false;
     busy_workers_.remove(worker);
     worker_semaphore_.unlock();
+
+    guarantee_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
 
     // Alas, we can't call repair_invariants now, since we're not allowed to
     // block.

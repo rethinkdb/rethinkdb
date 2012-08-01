@@ -52,7 +52,7 @@ class scoped_id_t {
     DISABLE_COPYING(scoped_id_t);
 };
 
-
+
 // A handle to a running "javascript evaluator" job.
 class runner_t :
     private extproc::job_handle_t
@@ -105,7 +105,6 @@ class runner_t :
         const req_config_t *config = NULL);
 
     // Calls a previously compiled function.
-    // TODO: receiver object.
     boost::shared_ptr<scoped_cJSON_t> call(
         id_t func_id,
         const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
@@ -114,7 +113,6 @@ class runner_t :
 
     // TODO (rntz): a way to send streams over to javascript.
     // TODO (rntz): a way to get streams back from javascript.
-    // TODO (rntz): map/reduce jobs & co.
 
   private:
     // The actual job that runs all this stuff.
