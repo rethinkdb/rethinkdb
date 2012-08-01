@@ -194,6 +194,15 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                 deletable_t<machine_semilattice_metadata_t>(our_machine_metadata)
                 ));
 
+
+            /* Create a welcome database. */
+            database_id_t database_id = generate_uuid();
+            database_semilattice_metadata_t database_metadata;
+            database_metadata.name = vclock_t<std::string>("Welcome", our_machine_id);
+            semilattice_metadata.databases.databases.insert(std::make_pair(
+                database_id,
+                deletable_t<database_semilattice_metadata_t>(database_metadata)
+                ));
             {
                 /* add an mc namespace */
                 namespace_id_t namespace_id = generate_uuid();
@@ -229,6 +238,8 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
                 region_map_t<memcached_protocol_t, std::set<machine_id_t> > secondary_pinnings(hash_region_t<key_range_t>::universe(), std::set<machine_id_t>());
                 namespace_metadata.secondary_pinnings = vclock_t<region_map_t<memcached_protocol_t, std::set<machine_id_t> > >(secondary_pinnings, our_machine_id);
+
+                namespace_metadata.database = vclock_t<datacenter_id_t>(database_id, our_machine_id);
 
                 semilattice_metadata.memcached_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
             }
@@ -267,6 +278,8 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
                 region_map_t<rdb_protocol_t, std::set<machine_id_t> > secondary_pinnings(rdb_protocol_t::region_t::universe(), std::set<machine_id_t>());
                 namespace_metadata.secondary_pinnings = vclock_t<region_map_t<rdb_protocol_t, std::set<machine_id_t> > >(secondary_pinnings, our_machine_id);
+
+                namespace_metadata.database = vclock_t<datacenter_id_t>(database_id, our_machine_id);
 
                 semilattice_metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
             }
