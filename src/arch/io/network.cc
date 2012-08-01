@@ -680,6 +680,7 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
         &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())
         ));
 
+    logINF("Listening on port %d", port);
     return true;
 }
 
