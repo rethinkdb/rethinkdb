@@ -310,7 +310,7 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
     funlockfile(stderr);
 
     if (fd.get() == -1) {
-        *error_out = std::string("cannot open log file or the log writer has not been assigned a log file.");
+        *error_out = std::string("cannot open or find log file");
         return false;
     }
 
