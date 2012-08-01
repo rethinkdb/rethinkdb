@@ -16,18 +16,16 @@ void last_seen_http_app_t::get_root(scoped_cJSON_t *json_out) {
 
 http_res_t last_seen_http_app_t::handle(const http_req_t &req) {
     if (req.method != GET) {
-        return http_res_t(405);
+        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
 
     std::string resource = req.resource.as_string();
     if (resource != "/" && resource != "") {
-        return http_res_t(404);
+        return http_res_t(HTTP_NOT_FOUND);
     }
 
     scoped_cJSON_t json(NULL);
     get_root(&json);
 
-    http_res_t res(200);
-    res.set_body("application/json", cJSON_print_std_string(json.get()));
-    return res;
+    return http_json_res(json.get());
 }

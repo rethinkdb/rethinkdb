@@ -21,7 +21,7 @@ need_update_objects = (new_data, old_data) ->
     for key of new_data
         if key of old_data is false
             return true
- 
+
     for key of new_data
         if typeof new_data[key] is object and typeof old_data[key] is object
             need_update = compare_object(new_data[key], old_data[key])
@@ -91,13 +91,16 @@ apply_diffs = (updates) ->
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "dummy"))
             when 'memcached_namespaces'
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "memcached"))
+            when 'rdb_namespaces'
+                apply_to_collection(namespaces, add_protocol_tag(collection_data, "rdb"))
             when 'datacenters'
                 apply_to_collection(datacenters, collection_data)
             when 'machines'
                 apply_to_collection(machines, collection_data)
             when 'me' then continue
+            when 'databases' then continue #TODO Implement
             else
-                console.log "Unhandled element update: " + updates
+                console.log "Unhandled element update: " + collection_id
     return
 
 set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
@@ -126,34 +129,28 @@ set_last_seen = (last_seen_from_server) ->
         if _m
             _m.set('last_seen_from_server', timestamp)
 
-set_log_entries = (log_data_from_server) ->
-    for machine_uuid, log_entries of log_data_from_server
-        if not machines.get(machine_uuid)?
-            continue # Machine not ready or down, we skip
-
-        for json in log_entries
-
-            new_timestamp = parseFloat(json.timestamp)
-            for entry, i in recent_log_entries.models
-                if new_timestamp > parseFloat(entry.get('timestamp'))
-                    entry = new LogEntry json
-                    entry.set('machine_uuid',machine_uuid)
-
-                    recent_log_entries.add entry, {at: i}
-                    if recent_log_entries.length > 3
-                        recent_log_entries.shift()
-
-                    if parseFloat(json.timestamp) > recent_log_entries.min_timestamp
-                        recent_log_entries.min_timestamp = Math.ceil parseFloat json.timestamp # /ajax/log juste compare integers
-            if recent_log_entries.length < 4
-                entry = new LogEntry json
-                entry.set('machine_uuid',machine_uuid)
-                recent_log_entries.push entry
-
 set_stats = (stat_data) ->
     for machine_id, data of stat_data
         if machines.get(machine_id)? #if the machines are not ready, we just skip the current stats
             machines.get(machine_id).set('stats', data)
+        else if machine_id is 'machines' # It would be nice if the back end could update that.
+            for mid in data.known
+                machines.get(mid)?.set('stats_up_to_date', true)
+            for mid in data.timed_out
+                machines.get(mid)?.set('stats_up_to_date', false)
+            ###
+            # Ignore these cases for the time being. When we'll consider these, 
+            # we might need an integer instead of a boolean
+            for mid in data.dead
+                machines.get(mid)?.set('stats_up_to_date', false)
+            for mid in data.ghosts
+                machines.get(mid)?.set('stats_up_to_date', false)
+            ###
+
+
+
+
+
 
 collections_ready = ->
     # Data is now ready, let's get rockin'!
@@ -197,7 +194,7 @@ function collect_server_data_once(async, optional_callback) {
             if (optional_callback) {
                 optional_callback()
             }
-            
+
         },
         error: function() {
             if (window.is_disconnected != null) {
@@ -208,20 +205,15 @@ function collect_server_data_once(async, optional_callback) {
             }
         }
     })
-    
+
     $.ajax({
         contentType: 'application/json',
-        url: '/ajax/progress', 
+        url: '/ajax/progress',
         dataType: 'json',
         success: set_progress
     })
     
-    $.ajax({
-        contentType: 'application/json',
-        url: '/ajax/log/_?max_length=10&min_timestamp='+window.recent_log_entries.min_timestamp,
-        dataType: 'json',
-        success: set_log_entries
-    })
+
 } 
 
 function collect_server_data(optional_callback) {
@@ -242,7 +234,6 @@ $ ->
     window.issues = new Issues
     window.progress_list = new ProgressList
     window.directory = new Directory
-    window.recent_log_entries = new LogEntries
     window.issues_redundancy = new IssuesRedundancy
     window.connection_status = new ConnectionStatus
     window.computed_cluster = new ComputedCluster

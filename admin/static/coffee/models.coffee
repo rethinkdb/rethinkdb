@@ -3,17 +3,17 @@ class Namespace extends Backbone.Model
     initialize: ->
         # Add a computed shards property for convenience and metadata
         @compute_shards()
-        @load_key_distr()
     compute_shards: =>
         @.set 'computed_shards', new DataUtils.Shards [],@
 
-    interval: 5000
+    interval: 0
     set_interval_key_distr: =>
         @set_interval = setInterval @load_key_distr, @interval
 
     clear_interval_key_distr: ->
         if @set_interval?
             clearInterval @set_interval
+            @interval = 0
 
     # Cache key distribution info.
     load_key_distr: =>
@@ -30,8 +30,8 @@ class Namespace extends Backbone.Model
                     distr_keys.push(key)
                 distr_keys = _.sortBy(distr_keys, _.identity)
 
-                @set('key_distr', distr_data)
                 @set('key_distr_sorted', distr_keys)
+                @set('key_distr', distr_data)
                 if @interval isnt 5000
                     @clear_interval_key_distr()
                     @interval = 5000
@@ -43,6 +43,24 @@ class Namespace extends Backbone.Model
                     @interval = 1000
                     @set_interval_key_distr()
 
+    load_key_distr_once: =>
+        $.ajax
+            processData: false
+            url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
+            type: 'GET'
+            contentType: 'application/json'
+            success: (distr_data) =>
+                # Cache the data
+                # Sort the keys and cache that too
+                distr_keys = []
+                for key, count of distr_data
+                    distr_keys.push(key)
+                distr_keys = _.sortBy(distr_keys, _.identity)
+
+                @set('key_distr_sorted', distr_keys)
+                @set('key_distr', distr_data)
+            error: =>
+                setTimeout 1000, @load_key_distr_once
 
     # Some shard helpers
     compute_shard_rows_approximation: (shard) =>
@@ -63,7 +81,7 @@ class Namespace extends Backbone.Model
         count = 0
 
         for key in @get('key_distr_sorted')
-            if key >= start_key or start_key is null
+            if key >= start_key or start_key is ""
                 if end_key is null or key < end_key
                     if @get('key_distr')[key]?
                         count += @get('key_distr')[key]
@@ -253,21 +271,6 @@ class LogEntry extends Backbone.Model
     get_iso_8601_timestamp: => ISODateString new Date(@.get('timestamp') * 1000)
     get_formatted_message: =>
         msg = @.get('message')
-        return '' if not msg?
-
-        index = msg.indexOf('{')
-        return {formatted_message: msg} if index is -1
-
-        str_fragment = msg.slice(0,index)
-        json_fragment = $.parseJSON msg.slice(msg.indexOf('{'))
-
-        return {formatted_message: msg} if not json_fragment?
-
-        return {
-            formatted_message: str_fragment
-            json: JSON.stringify(json_fragment, undefined, 2)
-        }
-
 
 class Issue extends Backbone.Model
 
@@ -336,28 +339,6 @@ class Datacenters extends Backbone.Collection
 class Machines extends Backbone.Collection
     model: Machine
     name: 'Machines'
-
-class LogEntries extends Backbone.Collection
-    min_timestamp: 0
-    model: LogEntry
-    comparator: (a, b) ->
-        if a.get('timestamp') < b.get('timestamp')
-            return 1
-        else if a.get('timestamp') > b.get('timestamp')
-            return -1
-        else if a.get('machine_uuid') <  b.get('machine_uuid')
-            return 1
-        else if a.get('machine_uuid') > b.get('machine_uuid')
-            return -1
-        else if a.get('message') < b.get('message')
-            return 1
-        else if a.get('message') > b.get('message')
-            return -1
-        else
-            return 0
-        # sort strings in reverse order (return a negated string)
-        #String.fromCharCode.apply String,
-        #    _.map(log_entry.get('datetime').split(''), (c) -> 0xffff - c.charCodeAt())
 
 class Issues extends Backbone.Collection
     model: Issue

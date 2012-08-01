@@ -8,9 +8,12 @@ class BackboneCluster extends Backbone.Router
         '': 'dashboard'
         'namespaces': 'index_namespaces'
         'namespaces/:id': 'namespace'
+        'namespaces/:id/:tab': 'namespace'
         'servers': 'index_servers'
         'datacenters/:id': 'datacenter'
+        'datacenters/:id/:tab': 'datacenter'
         'machines/:id': 'machine'
+        'machines/:id/:tab': 'machine'
         'dashboard': 'dashboard'
         'resolve_issues': 'resolve_issues'
         'logs': 'logs'
@@ -89,7 +92,7 @@ class BackboneCluster extends Backbone.Router
         @$container.html @current_view.render().el
         @sidebar.set_type_view('dataexplorer')
 
-    namespace: (id) ->
+    namespace: (id, tab) ->
         log_router '/namespaces/' + id
         clear_modals()
         namespace = namespaces.get(id)
@@ -98,10 +101,14 @@ class BackboneCluster extends Backbone.Router
         if namespace? then @current_view = new NamespaceView.Container model:namespace
         else @current_view = new NamespaceView.NotFound id
 
-        @$container.html @current_view.render().el
+        if tab?
+            @$container.html @current_view.render(tab).el
+        else
+            @$container.html @current_view.render().el
+
         @sidebar.set_type_view()
 
-    datacenter: (id) ->
+    datacenter: (id, tab) ->
         log_router '/datacenters/' + id
         clear_modals()
         datacenter = datacenters.get(id)
@@ -110,10 +117,14 @@ class BackboneCluster extends Backbone.Router
         if datacenter? then @current_view = new DatacenterView.Container model: datacenter
         else @current_view = new DatacenterView.NotFound id
 
-        @$container.html @current_view.render().el
+        if tab?
+            @$container.html @current_view.render(tab).el
+        else
+            @$container.html @current_view.render().el
+
         @sidebar.set_type_view()
 
-    machine: (id) ->
+    machine: (id, tab) ->
         log_router '/machines/' + id
         clear_modals()
         machine = machines.get(id)
@@ -121,6 +132,10 @@ class BackboneCluster extends Backbone.Router
         @current_view.destroy()
         if machine? then @current_view = new MachineView.Container model: machine
         else @current_view = new MachineView.NotFound id
+        
+        if tab?
+            @$container.html @current_view.render(tab).el
+        else
+            @$container.html @current_view.render().el
 
-        @$container.html @current_view.render().el
         @sidebar.set_type_view()

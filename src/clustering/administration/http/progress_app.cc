@@ -201,7 +201,7 @@ progress_app_t::progress_app_t(clone_ptr_t<watchable_t<std::map<peer_id_t, clust
 
 http_res_t progress_app_t::handle(const http_req_t &req) {
     if (req.method != GET) {
-        return http_res_t(405);
+        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
 
     /* This function is an absolute mess, basically because we need to hack
@@ -321,9 +321,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
     uint64_t timeout = DEFAULT_PROGRESS_REQ_TIMEOUT_MS;
     if (timeout_param) {
         if (!strtou64_strict(timeout_param.get(), 10, &timeout) || timeout == 0 || timeout > MAX_PROGRESS_REQ_TIMEOUT_MS) {
-            http_res_t res(400);
-            res.set_body("application/text", "Invalid timeout value");
-            return res;
+            return http_error_res("Invalid timeout value.");
         }
     }
 
@@ -335,7 +333,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                                     m_it != promise_map.end();
                                     ++m_it) {
         cJSON *machine_info = cJSON_CreateObject();
-        cJSON_AddItemToObject(body.get(), uuid_to_str(m_it->first).c_str(), machine_info);
+        body.AddItemToObject(uuid_to_str(m_it->first).c_str(), machine_info);
         for (namespace_id_map_t::iterator n_it  = m_it->second.begin();
                                           n_it != m_it->second.end();
                                           ++n_it) {
@@ -390,7 +388,5 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
         }
     }
 
-    http_res_t res(200);
-    res.set_body("application/json", cJSON_print_std_string(body.get()));
-    return res;
+    return http_json_res(body.get());
 }

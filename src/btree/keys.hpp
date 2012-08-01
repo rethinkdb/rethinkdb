@@ -201,6 +201,7 @@ struct key_range_t {
     };
 
     key_range_t();   /* creates a range containing no keys */
+    explicit key_range_t(const store_key_t &);
     key_range_t(bound_t, const store_key_t&, bound_t, const store_key_t&);
 
     static key_range_t empty() THROWS_NOTHING {

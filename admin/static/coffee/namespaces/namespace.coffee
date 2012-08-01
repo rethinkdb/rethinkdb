@@ -15,6 +15,7 @@ module 'NamespaceView', ->
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
 
         events: ->
+            'click .tab-link': 'change_route'
             'click .close': 'close_alert'
             'click .rebalance_shards-link': 'rebalance_shards'
             'click .change_shards-link': 'change_shards'
@@ -24,8 +25,7 @@ module 'NamespaceView', ->
             log_initial '(initializing) namespace view: container'
 
             @model.load_key_distr()
-            @model.set_interval_key_distr()
-        
+
             # Panels for namespace view
             @title = new NamespaceView.Title(model: @model)
             @profile = new NamespaceView.Profile(model: @model)
@@ -37,11 +37,15 @@ module 'NamespaceView', ->
 
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
 
-        render: =>
+        change_route: (event) =>
+            # Because we are using bootstrap tab. We should remove them later.
+            window.router.navigate @.$(event.target).attr('href')
+ 
+        render: (tab) =>
             log_render '(rendering) namespace view: container'
 
-            json = @model.toJSON()
-            @.$el.html @template json
+            @.$el.html @template
+                namespace_id: @model.get 'id'
 
             # fill the title of this page
             @.$('.main_title').html @title.render().$el
@@ -66,7 +70,28 @@ module 'NamespaceView', ->
             @.$('.other').html @other.render().el
 
             @.$('.nav-tabs').tab()
-
+            
+            if tab?
+                @.$('.active').removeClass('active')
+                switch tab
+                    when 'overview'
+                        @.$('#namespace-overview').addClass('active')
+                        @.$('#namespace-overview-link').tab('show')
+                    when 'replication'
+                        @.$('#namespace-replication').addClass('active')
+                        @.$('#namespace-replication-link').tab('show')
+                    when 'shards'
+                        @.$('#namespace-sharding').addClass('active')
+                        @.$('#namespace-sharding-link').tab('show')
+                    when 'assignments'
+                        @.$('#namespace-pinning').addClass('active')
+                        @.$('#namespace-pinning-link').tab('show')
+                    when 'other'
+                        @.$('#namespace-other').addClass('active')
+                        @.$('#namespace-other-link').tab('show')
+                    else
+                        @.$('#namespace-overview').addClass('active')
+                        @.$('#namespace-overview-link').tab('show')
             return @
 
         close_alert: (event) ->
@@ -75,11 +100,11 @@ module 'NamespaceView', ->
 
         change_shards: (event) =>
             event.preventDefault()
-            @.$('.namespace_sharding-link').tab('show')
+            @.$('#namespace-sharding-link').tab('show')
 
         change_pinning: (event) =>
             event.preventDefault()
-            @.$('.namespace_pinning-link').tab('show')
+            @.$('#namespace-pinning-link').tab('show')
             $(event.currentTarget).parent().parent().slideUp('fast', -> $(this).remove())
 
 
@@ -205,8 +230,6 @@ module 'NamespaceView', ->
 
             json = @model.toJSON()
             json = _.extend json, namespace_status
-            json = _.extend json,
-                old_alert_html: @.$('#user-alert-space').html()
 
             if namespace_status.reachability == 'Live'
                 json.reachability = true
@@ -217,6 +240,13 @@ module 'NamespaceView', ->
             json.total_keys = 0
             for key of @model.get('key_distr')
                 json.total_keys += @model.get('key_distr')[key]
+
+            json.stats_up_to_date = true
+            for machine in machines.models
+                if machine.get('stats')? and @model.get('id') of machine.get('stats') and machine.is_reachable
+                    if machine.get('stats_up_to_date') is false
+                        json.stats_up_to_date = false
+                        break
 
             @.$el.html @template json
 
@@ -236,7 +266,7 @@ module 'NamespaceView', ->
 
         initialize: =>
             machines.on 'change', @render_data_in_memory
-            @model.on 'change:key_distr_sorted', @render_data_repartition
+            @model.on 'change:key_distr', @render_data_repartition
             @model.on 'change:shards', @render_data_repartition
             @json_in_memory =
                 data_in_memory_percent: -1
@@ -254,7 +284,6 @@ module 'NamespaceView', ->
             data_in_memory = 0
             data_total = 0
             data_is_ready = false
-            #TODO These are being calculated incorrectly. As they stand, data_in_memory is correct, but data_total is measuring the disk space used by this namespace. Issue filed.
             for machine in machines.models
                 if machine.get('stats')? and @model.get('id') of machine.get('stats') and machine.get('stats')[@model.get('id')].serializers?
                     for key of machine.get('stats')[@model.get('id')].serializers
@@ -449,7 +478,7 @@ module 'NamespaceView', ->
 
         destroy: =>
             machines.off 'change', @render_data_in_memory
-            @model.off 'change:key_distr_sorted', @render_data_repartition
+            @model.off 'change:key_distr', @render_data_repartition
             @model.off 'change:shards', @render_data_repartition
 
     class @Other extends Backbone.View

@@ -4,24 +4,24 @@
 #include "logger.hpp"
 
 combining_http_app_t::combining_http_app_t(std::map<std::string, http_json_app_t *> components_)
-	: components(components_) { }
+    : components(components_) { }
 
 http_res_t combining_http_app_t::handle(const http_req_t &req) {
     if (req.method != GET && req.method != POST) {
-        return http_res_t(405);
+        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
 
     typedef std::map<std::string, http_json_app_t *>::const_iterator components_iterator;
 
     std::string resource = req.resource.as_string();
-    if (resource != "/" && resource != "") return http_res_t(404);
+    if (resource != "/" && resource != "") return http_res_t(HTTP_NOT_FOUND);
 
     if (req.method == POST) {
         scoped_cJSON_t req_json(cJSON_Parse(req.body.c_str()));
         if (!req_json.get() || req_json.get()->type != cJSON_Object) {
             logINF("JSON body failed to parse as object: %s",
                    req.get_sanitized_body().c_str());
-            return http_res_t(400);
+            return http_res_t(HTTP_BAD_REQUEST);
         }
         for (components_iterator it = components.begin(); it != components.end(); ++it) {
             cJSON *subpost = cJSON_GetObjectItem(req_json.get(), it->first.c_str());
@@ -42,10 +42,8 @@ http_res_t combining_http_app_t::handle(const http_req_t &req) {
     for (components_iterator it = components.begin(); it != components.end(); ++it) {
         scoped_cJSON_t child_json(NULL);
         it->second->get_root(&child_json);
-        cJSON_AddItemToObject(json.get(), it->first.c_str(), child_json.release());
+        json.AddItemToObject(it->first.c_str(), child_json.release());
     }
 
-    http_res_t res(200);
-    res.set_body("application/json", cJSON_print_std_string(json.get()));
-    return res;
+    return http_json_res(json.get());
 }

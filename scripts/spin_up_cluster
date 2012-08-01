@@ -1,4 +1,6 @@
 #!/usr/bin/python
+import commands
+import getpass
 import os
 import subprocess
 import signal
@@ -125,6 +127,7 @@ def usage():
     data_root_directory is the directory where RethinkDB will store each server data
     --keep preserve the data directories between runs (by default they are deleted)"""
 
+
 if len(os.sys.argv) < 3:
     usage()
     exit(1)
@@ -149,10 +152,11 @@ else:
         # cleanup the directory
         if not keep_data:
             os.system("rm -rf " + directory)
+        binary = "../build/debug/rethinkdb"
         if (i == 0):
-            cl = ["../build/debug/rethinkdb", "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
+            cl = [binary, "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
         else:
-            cl = ["../build/debug/rethinkdb", "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "newton:%d" % port, "--port-offset", str(i+port)]
+            cl = [binary, "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "newton:%d" % port, "--port-offset", str(i+port)]
         print ' '.join(cl)
         kids += [subprocess.Popen(cl, stdout=sys.stdout, stderr=sys.stderr)]
         time.sleep(1)
@@ -160,7 +164,7 @@ else:
     time.sleep(1)
     print "CTRL-C to kill me http requests can be sent to ports:",
     for i in range(n_machines):
-        if i != 0: 
+        if i != 0:
             print ",",
 
         print port + (i * 2) + 1,

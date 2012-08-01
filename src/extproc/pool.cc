@@ -77,7 +77,7 @@ pool_t::worker_t *pool_t::acquire_worker() {
     return worker;
 }
 
-void pool_t::release_worker(worker_t *worker) {
+void pool_t::release_worker(worker_t *worker) THROWS_NOTHING {
     assert_thread();
     rassert(worker && worker->pool_ == this);
 
@@ -98,13 +98,31 @@ void pool_t::release_worker(worker_t *worker) {
     worker_semaphore_.unlock();
 }
 
-void pool_t::interrupt_worker(worker_t *worker) {
+void pool_t::interrupt_worker(worker_t *worker) THROWS_NOTHING {
     assert_thread();
     rassert(worker && worker->pool_ == this);
 
     end_worker(&busy_workers_, worker);
     worker_semaphore_.unlock();
 
+    repair_invariants();
+}
+
+void pool_t::detach_worker(worker_t *worker) {
+    rassert(worker && worker->pool_ == this && worker->attached_);
+    ASSERT_NO_CORO_WAITING;
+
+    worker->attached_ = false;
+    busy_workers_.remove(worker);
+    worker_semaphore_.unlock();
+
+    // Alas, we can't call repair_invariants now, since we're not allowed to
+    // block.
+}
+
+void pool_t::cleanup_detached_worker(worker_t *worker) {
+    rassert(worker && worker->pool_ == this && !worker->attached_);
+    delete worker;
     repair_invariants();
 }
 
@@ -162,8 +180,8 @@ void pool_t::spawn_workers(int num) {
 void pool_t::end_worker(workers_t *list, worker_t *worker) {
     rassert(worker && worker->pool_ == this);
 
-    guarantee_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
     list->remove(worker);
+    guarantee_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
     delete worker;
 }
 
@@ -171,7 +189,8 @@ void pool_t::end_worker(workers_t *list, worker_t *worker) {
 // ---------- pool_t::worker_t ----------
 pool_t::worker_t::worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd)
     : unix_socket_stream_t(fd),
-      pool_(pool), pid_(pid)
+      pool_(pool), pid_(pid),
+      attached_(true)
 {
     guarantee(pid > 1 && fd > 0); // sanity
 }
@@ -180,7 +199,9 @@ pool_t::worker_t::~worker_t() {}
 
 void pool_t::worker_t::on_event(UNUSED int events) {
     // NB. We are not in coroutine context when this method is called.
-    on_error();
+    if (attached_) {
+        on_error();
+    }
     unix_socket_stream_t::on_event(events);
 }
 
@@ -227,16 +248,88 @@ int job_handle_t::begin(pool_t *pool, const job_t &job) {
     return res;
 }
 
-void job_handle_t::release() {
-    rassert(connected());
-    worker_->release();
+void job_handle_t::release() THROWS_NOTHING {
+    rassert(connected() && worker_->attached_);
+    worker_->pool_->release_worker(worker_);
     worker_ = NULL;
 }
 
-void job_handle_t::interrupt() {
-    rassert(connected());
-    worker_->interrupt();
+void job_handle_t::interrupt() THROWS_NOTHING {
+    rassert(connected() && worker_->attached_);
+    worker_->pool_->interrupt_worker(worker_);
     worker_ = NULL;
+}
+
+int64_t job_handle_t::read_interruptible(void *p, int64_t n, signal_t *interruptor) {
+    rassert(worker_ && worker_->attached_);
+    int res;
+    try {
+        interruptor_wrapper_t wrapper(this, interruptor);
+        res = worker_->read_interruptible(p, n, &wrapper);
+    } catch (interrupted_exc_t) {
+        // We were interrupted, and need to clean up the detached worker created
+        // by job_handle_t::interruptor_wrapper_t::run(). We do this by falling
+        // through to check_attached(), which will re-raise an interrupted_exc_t
+        // for us. The reason we don't just handle it here is that it isn't safe
+        // to do anything that might block in a catch() block.
+        rassert(worker_ && !worker_->attached_);
+    }
+    check_attached();
+
+    if (-1 == res || 0 == res) release();
+    return res;
+}
+
+int64_t job_handle_t::write_interruptible(const void *p, int64_t n, signal_t *interruptor) {
+    rassert(worker_ && worker_->attached_);
+    int res;
+    try {
+        interruptor_wrapper_t wrapper(this, interruptor);
+        res = worker_->write_interruptible(p, n, &wrapper);
+    } catch (interrupted_exc_t) {
+        // See comments in read_interruptible.
+        rassert(worker_ && !worker_->attached_);
+    }
+    check_attached();
+
+    if (-1 == res) release();
+    return res;
+}
+
+void job_handle_t::check_attached() {
+    if (worker_ && !worker_->attached_) {
+        worker_->pool_->cleanup_detached_worker(worker_);
+        worker_ = NULL;
+        throw interrupted_exc_t();
+    }
+}
+
+// ---------- job_handle_t::interruptor_wrapper_t ----------
+job_handle_t::interruptor_wrapper_t::interruptor_wrapper_t(job_handle_t *handle, signal_t *signal)
+        : handle_(handle)
+{
+    reset(signal);          // might call run()
+}
+
+// Inherited from signal_t::subscription_t. Called on pulse() of signal passed
+// to ctor. NB. MUST NOT THROW. Could eg. be called from interruptor_wrapper_t
+// constructor.
+void job_handle_t::interruptor_wrapper_t::run() THROWS_NOTHING {
+    signal_t::assert_thread();
+    rassert(!is_pulsed());  // sanity
+
+    // Ignore errors on the worker socket. This is necessary because
+    // interruption causes the worker socket to shutdown (see
+    // socket_stream_t::wait_for_{read,write}). When the worker process notices
+    // this it exits, closing its end of the socket and causing us to get an
+    // error.
+    //
+    // We actually destroy the worker (via pool_t::cleanup_detached_worker) at
+    // the end of whatever operation we're serving as an interruptor wrapper
+    // for.
+    handle_->worker_->pool_->detach_worker(handle_->worker_);
+
+    pulse();
 }
 
 } // namespace extproc

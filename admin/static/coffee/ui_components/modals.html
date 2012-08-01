@@ -24,7 +24,7 @@
 <!-- Template for the confirmation dialog -->
 <script id="confirmation_dialog-template" type="text/x-handlebars-template"> 
   <div class="alert alert-error error_answer"></div>
-  <strong>{{message}}</strong>
+  <p>{{print_safe message}}</p>
 </script>
 
 <!-- Template in case of ajax error -->

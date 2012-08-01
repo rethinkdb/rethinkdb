@@ -31,6 +31,7 @@ void check_namespaces_for_protocol(
             check("namespace", it->first, "port", it->second.get().port, out);
             check("namespace", it->first, "primary_pinnings", it->second.get().primary_pinnings, out);
             check("namespace", it->first, "secondary_pinnings", it->second.get().secondary_pinnings, out);
+            check("namespace", it->first, "database", it->second.get().database, out);
         }
     }
 }
@@ -44,11 +45,19 @@ std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_iss
 
     check_namespaces_for_protocol(metadata.memcached_namespaces, &issues);
     check_namespaces_for_protocol(metadata.dummy_namespaces, &issues);
+    check_namespaces_for_protocol(metadata.rdb_namespaces, &issues);
 
     for (datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator it =
             metadata.datacenters.datacenters.begin(); it != metadata.datacenters.datacenters.end(); it++) {
         if (!it->second.is_deleted()) {
             check("datacenter", it->first, "name", it->second.get().name, &issues);
+        }
+    }
+
+    for (databases_semilattice_metadata_t::database_map_t::const_iterator it =
+            metadata.databases.databases.begin(); it != metadata.databases.databases.end(); it++) {
+        if (!it->second.is_deleted()) {
+            check("database", it->first, "name", it->second.get().name, &issues);
         }
     }
 

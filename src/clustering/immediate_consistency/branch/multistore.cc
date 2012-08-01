@@ -648,6 +648,8 @@ void multistore_ptr_t<protocol_t>::switch_inner_write_token(int i, fifo_enforcer
 
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 template class multistore_ptr_t<mock::dummy_protocol_t>;
 template class multistore_ptr_t<memcached_protocol_t>;
+template class multistore_ptr_t<rdb_protocol_t>;

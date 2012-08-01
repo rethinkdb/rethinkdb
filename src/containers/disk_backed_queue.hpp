@@ -36,11 +36,9 @@ public:
         //perfmon_collection_t backfill_stats_collection("queue-" + filename, NULL, true, true);
 
         standard_serializer_t::create(
-                standard_serializer_t::dynamic_config_t(),
                 io_backender,
                 standard_serializer_t::private_dynamic_config_t(filename),
-                standard_serializer_t::static_config_t(),
-                stats_parent
+                standard_serializer_t::static_config_t()
                 );
 
         serializer.init(new standard_serializer_t(
@@ -70,7 +68,7 @@ public:
         mutex_t::acq_t mutex_acq(&mutex);
 
         //first we need a transaction
-        transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past);
+        transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past, order_token_t::ignore);
 
         if (head_block_id == NULL_BLOCK_ID) {
             add_block_to_head(&txn);
@@ -112,7 +110,7 @@ public:
         mutex_t::acq_t mutex_acq(&mutex);
 
         char buffer[MAX_REF_SIZE];
-        transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past);
+        transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past, order_token_t::ignore);
 
         scoped_ptr_t<buf_lock_t> _tail(new buf_lock_t(&txn, tail_block_id, rwi_write));
         queue_block_t *tail = reinterpret_cast<queue_block_t *>(_tail->get_data_major_write());

@@ -124,7 +124,9 @@ public:
     int randint(int n);
     explicit rng_t(int seed = -1);
 private:
+#ifndef __MACH__
     struct drand48_data buffer_;
+#endif
     DISABLE_COPYING(rng_t);
 };
 
@@ -261,5 +263,6 @@ private:
     T old_value;
 };
 
+std::string sanitize_for_logger(const std::string &s);
 
 #endif // UTILS_HPP_

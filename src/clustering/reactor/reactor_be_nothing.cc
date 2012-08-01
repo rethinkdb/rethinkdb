@@ -60,6 +60,8 @@ template<class protocol_t>
 void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
         multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint,
         signal_t *interruptor) THROWS_NOTHING {
+    order_source_t order_source;  // TODO: order_token_t::ignore
+
     try {
         directory_entry_t directory_entry(this, region);
 
@@ -73,7 +75,8 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
             svs->new_read_token(&read_token);
             typename reactor_business_card_t<protocol_t>::nothing_when_safe_t
-                activity(svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor),
+                activity(svs->get_all_metainfos(order_source.check_in("be_nothing").with_read_mode(),
+                                                &read_token, interruptor),
                          backfiller.get_business_card());
             directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
 
@@ -131,6 +134,8 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
 
 #include "mock/dummy_protocol.hpp"
 #include "memcached/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 template class reactor_t<mock::dummy_protocol_t>;
 template class reactor_t<memcached_protocol_t>;
+template class reactor_t<rdb_protocol_t>;

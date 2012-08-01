@@ -48,7 +48,8 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
                                    backfill_session_id_t backfill_session_id,
                                    perfmon_collection_t *backfill_stats_parent,
-                                   signal_t *interruptor)
+                                   signal_t *interruptor,
+                                   DEBUG_ONLY_VAR order_source_t *order_source)
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
     /* TODO: Put the file in the data directory, not here */
@@ -95,7 +96,8 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs->new_read_token(&read_token);
-    region_map_t<protocol_t, version_range_t> start_point = svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor);
+    region_map_t<protocol_t, version_range_t> start_point
+        = svs->get_all_metainfos(order_source->check_in("listener_t(A)").with_read_mode(), &read_token, interruptor);
 
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
          it != start_point.end();
@@ -153,7 +155,8 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token2;
     svs->new_read_token(&read_token2);
 
-    region_map_t<protocol_t, version_range_t> backfill_end_point = svs->get_all_metainfos(order_token_t::ignore, &read_token2, interruptor);
+    region_map_t<protocol_t, version_range_t> backfill_end_point
+        = svs->get_all_metainfos(order_source->check_in("listener_t(B)").with_read_mode(), &read_token2, interruptor);
 
     /* Sanity checking. */
 
@@ -196,7 +199,8 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    branch_history_manager_t<protocol_t> *bhm,
                                    broadcaster_t<protocol_t> *broadcaster,
                                    perfmon_collection_t *backfill_stats_parent,
-                                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) :
+                                   signal_t *interruptor,
+                                   DEBUG_ONLY_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager(mm),
     branch_history_manager(bhm),
     branch_id(broadcaster->branch_id),
@@ -244,7 +248,8 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     /* Snapshot the metainfo before we start receiving writes */
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs->new_read_token(&read_token);
-    region_map_t<protocol_t, version_range_t> initial_metainfo = svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor);
+    region_map_t<protocol_t, version_range_t> initial_metainfo
+        = svs->get_all_metainfos(order_source->check_in("listener_t(C)").with_read_mode(), &read_token, interruptor);
 #endif
 
     /* Attempt to register for writes */
@@ -598,6 +603,8 @@ void listener_t<protocol_t>::advance_current_timestamp_and_pulse_waiters(transit
 
 #include "mock/dummy_protocol.hpp"
 #include "memcached/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 template class listener_t<memcached_protocol_t>;
 template class listener_t<mock::dummy_protocol_t>;
+template class listener_t<rdb_protocol_t>;

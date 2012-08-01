@@ -13,6 +13,10 @@
 @light_yellow: #FFE6B3;
 @light_green: #CDE9CA;
 
+@alert-yellow: #FCF8E3;
+@alert-yellow-border: #FBEED5;
+@alert-text_color: #C09853;
+
 /* Clear utility */
 .clearboth { clear: both; }
 .clearleft { clear: left; }
@@ -95,9 +99,7 @@
             list-style-type: none;
             margin-bottom: 10px;
             padding-bottom: 10px;
-            border-bottom: thin solid @grayLighter;
-
-            p { margin-bottom: 0; }
+            border-bottom: thin solid #BBB;
 
             .entry-metadata {
                 p {
@@ -108,21 +110,27 @@
                 margin-bottom: 6px;
             }
 
-            p.message {
-                margin: 0px 0px 5px 0px;
-                a.json {
-                    color: @gray;
-                    border-bottom: thin dotted @gray;
-                    &:hover {
-                        border-bottom: none;
-                    }
-                }
+            .message {
+                margin: 0px 0px 5px 20px;
+                padding: 0px 0px 0px 10px;
+                border-left: 1px solid @grayLighter;
             }
             .more-details{
                 float: right;
             }
             .details{
                 display: none;
+            }
+
+            .pretty_logs_ul{
+                margin: 0px 0px 0px 30px;
+                padding: 0px;
+                list-style: square;
+                .pretty_logs_li{
+                    .fake-link{
+                        color: #08C;
+                    }
+                }
             }
         }
     }
@@ -239,50 +247,25 @@
         overflow: hidden;
     }
 
-    .recent-log-entry {
+    .recent-log-entries {
         padding: 7px 0px;
-
-        .level {
-            width: 24px;
-            height: 24px;
-            float: left;
-            margin-top: 4px;
-            margin-bottom: 4px;
-            margin-right: 15px;
-            &.error {
-                background: url('/images/alert-icon_small.png') no-repeat center center;
-            }
-            &.info, &.debug {
-                background: url('/images/information-icon_small.png') no-repeat center center;
-            }
-        }
-
-        .message {
-            display: table-cell;
-            height: 32px;
+        margin: 0px;
+        list-style: none;
+        .log-entry{
+            padding: 7px 0px;
+            border-bottom: 1px solid #DDD;
             overflow: hidden;
-            padding: 0 0;
-            vertical-align: middle;
-            width: 100%;
-            a.json {
+            .message{
+                padding: 0;
+                text-align: justify;
+           }
+            .datetime, .from-machine {
+                color: @gray;
+                text-align: right;
                 text-transform: uppercase;
                 font-size: 0.75em;
-                color: @gray;
-                border-bottom: thin dotted @gray;
-                &:hover {
-                    border-bottom: none;
-                }
+                margin-bottom: 0;
             }
-        }
-
-
-
-        .datetime, .from-machine {
-            color: @gray;
-            text-align: right;
-            text-transform: uppercase;
-            font-size: 0.75em;
-            margin-bottom: 0;
         }
     }
 }
@@ -1292,6 +1275,61 @@
         bottom: 3px;
         left: 3px;
     }
+    .shard_ul{
+        border-left: 1px solid #ddd;
+        margin: 10px 0px 30px 20px;
+        .shard_li{
+            margin: 10px 0px;
+            padding: 7px 0px 7px 20px;
+            background: #f3f3f3;
+            list-style: none;
+            overflow: hidden;
+            .responsability{
+                padding: 2px 4px;
+                font-size: 11px;
+                color: #fff;
+                font-weight: bold;
+                float: right;
+                -webkit-border-radius: 3px;
+                -moz-border-radius: 3px;
+            }
+            h4{
+                height: 22px;
+            }
+            .master{
+                background: #3A87AD;
+            }
+            .secondary{
+                background: #809EAB;
+            }
+            .nothing{
+               background: #B3B3B3;
+            }
+            p{
+                margin: 0px;
+            }
+        }
+    }
+
+    .machine_assignments-view{
+        .action-container{
+            margin: 10px 0px;
+            overflow: auto;
+            .reason{
+                background: #FCF8E3;
+                background: @alert-yellow;
+                border: 1px solid @alert-yellow-border;
+                color: #777; //@alert-text_color;
+                padding: 8px 15px;
+                width: 500px;
+                }
+            input{
+                float: right;
+                margin: 4px 0px;
+            }
+        }
+    }
+
 }
 
 /*

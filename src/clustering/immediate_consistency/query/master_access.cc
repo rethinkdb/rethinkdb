@@ -138,8 +138,10 @@ typename protocol_t::write_response_t master_access_t<protocol_t>::write(
 }
 
 
+#include "rdb_protocol/protocol.hpp"
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
 
+template class master_access_t<rdb_protocol_t>;
 template class master_access_t<memcached_protocol_t>;
 template class master_access_t<mock::dummy_protocol_t>;

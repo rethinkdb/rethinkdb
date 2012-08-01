@@ -3,8 +3,12 @@
 
 #include <sys/types.h>          // pid_t
 
+#include "errors.hpp"
+
 #include "concurrency/one_per_thread.hpp"
 #include "concurrency/semaphore.hpp"
+#include "concurrency/signal.hpp"
+#include "containers/archive/interruptible_stream.hpp"
 #include "containers/archive/socket_stream.hpp"
 #include "containers/intrusive_list.hpp"
 #include "extproc/job.hpp"
@@ -77,11 +81,9 @@ class pool_t :
         // condition on our socket. Calls on_error().
         virtual void on_event(int events);
 
-        void release() { pool_->release_worker(this); }
-        void interrupt() { pool_->interrupt_worker(this); }
-
         pool_t *pool_;
         pid_t pid_;
+        bool attached_;
 
       private:
         DISABLE_COPYING(worker_t);
@@ -98,10 +100,25 @@ class pool_t :
     worker_t *acquire_worker();
 
     // Called by job_handle_t to indicate the job has finished or errored.
-    void release_worker(worker_t *worker);
+    void release_worker(worker_t *worker) THROWS_NOTHING;
 
     // Called by job_handle_t to interrupt a running job.
-    void interrupt_worker(worker_t *worker);
+    void interrupt_worker(worker_t *worker) THROWS_NOTHING;
+
+    // Detaches the worker from the pool, sends it SIGKILL, and ignores further
+    // errors from it (ie. on_event will not call on_error, and hence will not
+    // crash). Does not block.
+    //
+    // This is used by the interruptor-signal logic in
+    // job_handle_t::{read,write}_interruptible(), where interrupt_worker()
+    // cannot be used because it destroys the worker.
+    //
+    // It is the caller's responsibility to call cleanup_detached_worker() at
+    // some point in the near future.
+    void detach_worker(worker_t *worker);
+
+    // Cleans up after a detached worker. Destroys the worker. May block.
+    void cleanup_detached_worker(worker_t *worker);
 
     void spawn_workers(int n);
     void end_worker(workers_t *list, worker_t *worker);
@@ -129,9 +146,10 @@ class pool_t :
 
 // A handle to a running job.
 class job_handle_t :
-    public read_stream_t, public write_stream_t
+    public interruptible_read_stream_t, public interruptible_write_stream_t
 {
     friend class pool_t;
+    friend class interruptor_wrapper_t;
 
   public:
     // When constructed, job handles are "disconnected", not associated with a
@@ -139,14 +157,15 @@ class job_handle_t :
     job_handle_t();
 
     // You MUST call release() to finish a job normally, and you SHOULD call
-    // interrupt() explicitly to interrupt a job.
+    // interrupt() explicitly to interrupt a job (or signal the interruptor
+    // during {read,write}_interruptible()).
     //
     // However, as a convenience in the case of exception-raising code, if the
     // handle is connected, the destructor will log a warning and interrupt the
     // job.
     virtual ~job_handle_t();
 
-    bool connected() { return worker_ != NULL; }
+    bool connected() { return NULL != worker_; }
 
     // Begins running `job` on `pool`. Must be disconnected beforehand. On
     // success, returns 0 and connects us to the spawned job. Returns -1 on
@@ -155,26 +174,28 @@ class job_handle_t :
 
     // Indicates the job has either finished normally or experienced an I/O
     // error; disconnects the job handle.
-    void release();
+    void release() THROWS_NOTHING;
 
     // Forcibly interrupts a running job; disconnects the job handle.
-    void interrupt();
+    //
+    // MAY NOT be called concurrently with any I/O methods. Instead, pass a
+    // signal to {read,write}_interruptible().
+    void interrupt() THROWS_NOTHING;
 
-    // On either read or write error, the job handle becomes disconnected and
-    // must not be used.
-    virtual MUST_USE int64_t read(void *p, int64_t n) {
-        rassert(worker_);
-        int res = worker_->read(p, n);
-        if (-1 == res || 0 == res) release();
-        return res;
-    }
+    // On either read or write error or interruption, the job handle becomes
+    // disconnected and must not be used.
+    virtual MUST_USE int64_t read_interruptible(void *p, int64_t n, signal_t *interruptor);
+    virtual int64_t write_interruptible(const void *p, int64_t n, signal_t *interruptor);
 
-    virtual int64_t write(const void *p, int64_t n) {
-        rassert(worker_);
-        int res = worker_->write(p, n);
-        if (-1 == res) release();
-        return res;
-    }
+  private:
+    void check_attached();
+
+    class interruptor_wrapper_t : public signal_t, public signal_t::subscription_t {
+      public:
+        interruptor_wrapper_t(job_handle_t *handle, signal_t *signal);
+        virtual void run() THROWS_NOTHING;
+        job_handle_t *handle_;
+    };
 
   private:
     pool_t::worker_t *worker_;

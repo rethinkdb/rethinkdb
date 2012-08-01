@@ -1,0 +1,1 @@
+A second attempt at the python RethinkDB driver, now that we finalized everything. Eventually we'll delete the old python/ directory and rename this one (python2/) to python/.

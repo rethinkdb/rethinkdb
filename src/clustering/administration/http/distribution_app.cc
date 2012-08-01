@@ -17,22 +17,20 @@ distribution_app_t::distribution_app_t(boost::shared_ptr<semilattice_read_view_t
 
 http_res_t distribution_app_t::handle(const http_req_t &req) {
     if (req.method != GET) {
-        return http_res_t(405);
+        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
 
     boost::optional<std::string> maybe_n_id = req.find_query_param("namespace");
 
     if (!maybe_n_id || !is_uuid(*maybe_n_id)) {
-        http_res_t res(400);
-        res.set_body("application/text", "Valid uuid required for query parameter \"namespace\"\n");
-        return res;
+        return http_error_res("Valid uuid required for query parameter \"namespace\"\n");
     }
     namespace_id_t n_id = str_to_uuid(*maybe_n_id);
 
     namespaces_semilattice_metadata_t<memcached_protocol_t> ns_snapshot = namespaces_sl_metadata->get();
 
     if (!std_contains(ns_snapshot.namespaces, n_id)) {
-        return http_res_t(404);
+        return http_res_t(HTTP_NOT_FOUND);
     }
 
     uint64_t depth = DEFAULT_DEPTH;
@@ -40,9 +38,7 @@ http_res_t distribution_app_t::handle(const http_req_t &req) {
 
     if (maybe_depth) {
         if (!strtou64_strict(maybe_depth.get(), 10, &depth) || depth == 0 || depth > MAX_DEPTH) {
-            http_res_t res(400);
-            res.set_body("application/text", "Invalid depth value.");
-            return res;
+            return http_error_res("Invalid depth value.");
         }
     }
 
@@ -55,13 +51,9 @@ http_res_t distribution_app_t::handle(const http_req_t &req) {
             read,
             &interrupt);
 
-        http_res_t res(200);
-
         scoped_cJSON_t data(render_as_json(&boost::get<distribution_result_t>(db_res.result).key_counts, 0));
-        res.set_body("application/json", cJSON_print_std_string(data.get()));
-
-        return res;
+        return http_json_res(data.get());
     } catch (cannot_perform_query_exc_t &) {
-        return http_res_t(500);
+        return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
     }
 }

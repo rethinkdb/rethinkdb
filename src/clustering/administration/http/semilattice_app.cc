@@ -36,7 +36,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
         while (it != req.resource.end()) {
             json_adapter_if_t<namespace_metadata_ctx_t>::json_adapter_map_t subfields = json_adapter_head->get_subfields(json_ctx);
             if (subfields.find(*it) == subfields.end()) {
-                return http_res_t(404); //someone tried to walk off the edge of the world
+                return http_res_t(HTTP_NOT_FOUND); //someone tried to walk off the edge of the world
             }
             json_adapter_head = subfields[*it];
             it++;
@@ -46,10 +46,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
         switch (req.method) {
             case GET:
             {
-                http_res_t res(200);
                 scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-                res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
-                return res;
+                return http_json_res(json_repr.get());
             }
             break;
             case POST:
@@ -60,24 +58,15 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     boost::optional<std::string> content_type = req.find_header_line("Content-Type");
                     if (!content_type || content_type.get() != "application/json") {
                         logINF("Bad request, Content-Type should be application/json.");
-                        return http_res_t(415);
+                        return http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
                     }
                 }
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
                 if (!change.get()) { //A null value indicates that parsing failed
-                    std::string sanitized = req.body;
-                    /* We mustn't try to log tabs, newlines, or unprintable
-                    characters. */
-                    for (int i = 0; i < int(sanitized.length()); i++) {
-                        if (sanitized[i] == '\n' || sanitized[i] == '\t') {
-                            sanitized[i] = ' ';
-                        } else if (sanitized[i] < ' ' || sanitized[i] > '~') {
-                            sanitized[i] = '?';
-                        }
-                    }
-                    logINF("Json body failed to parse. Here's the data that failed: %s", sanitized.c_str());
-                    return http_res_t(400);
+                    logINF("Json body failed to parse. Here's the data that failed: %s",
+                           req.get_sanitized_body().c_str());
+                    return http_res_t(HTTP_BAD_REQUEST);
                 }
 
                 json_adapter_head->apply(change.get(), json_ctx);
@@ -88,10 +77,9 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     for (std::vector<std::string>::reverse_iterator it = parts.rbegin(); it != parts.rend(); it++) {
                         scoped_cJSON_t inner(absolute_change.release());
                         absolute_change.reset(cJSON_CreateObject());
-                        cJSON_AddItemToObject(absolute_change.get(), it->c_str(), inner.release());
+                        absolute_change.AddItemToObject(it->c_str(), inner.release());
                     }
-                    std::string msg = cJSON_print_unformatted_std_string(absolute_change.get());
-                    logINF("Applying data %s", msg.c_str());
+                    logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }
 
                 /* Fill in the blueprints */
@@ -101,12 +89,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 metadata_change_handler->update(cluster_metadata);
 
-                http_res_t res(200);
-
                 scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-                res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
-
-                return res;
+                return http_json_res(json_repr.get());
             }
             break;
             case DELETE:
@@ -121,12 +105,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 metadata_change_handler->update(cluster_metadata);
 
-                http_res_t res(200);
-
                 scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-                res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
-
-                return res;
+                return http_json_res(json_repr.get());
             }
             break;
             case PUT:
@@ -137,24 +117,15 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     boost::optional<std::string> content_type = req.find_header_line("Content-Type");
                     if (!content_type || content_type.get() != "application/json") {
                         logINF("Bad request, Content-Type should be application/json.");
-                        return http_res_t(415);
+                        return http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
                     }
                 }
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
                 if (!change.get()) { //A null value indicates that parsing failed
-                    std::string sanitized = req.body;
-                    /* We mustn't try to log tabs, newlines, or unprintable
-                    characters. */
-                    for (int i = 0; i < int(sanitized.length()); i++) {
-                        if (sanitized[i] == '\n' || sanitized[i] == '\t') {
-                            sanitized[i] = ' ';
-                        } else if (sanitized[i] < ' ' || sanitized[i] > '~') {
-                            sanitized[i] = '?';
-                        }
-                    }
-                    logINF("Json body failed to parse. Here's the data that failed: %s", sanitized.c_str());
-                    return http_res_t(400);
+                    logINF("Json body failed to parse. Here's the data that failed: %s",
+                           req.get_sanitized_body().c_str());
+                    return http_res_t(HTTP_BAD_REQUEST);
                 }
 
                 {
@@ -163,10 +134,9 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     for (std::vector<std::string>::reverse_iterator it = parts.rbegin(); it != parts.rend(); it++) {
                         scoped_cJSON_t inner(absolute_change.release());
                         absolute_change.reset(cJSON_CreateObject());
-                        cJSON_AddItemToObject(absolute_change.get(), it->c_str(), inner.release());
+                        absolute_change.AddItemToObject(it->c_str(), inner.release());
                     }
-                    std::string msg = cJSON_print_unformatted_std_string(absolute_change.get());
-                    logINF("Applying data %s", msg.c_str());
+                    logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }
 
                 json_adapter_head->reset(json_ctx);
@@ -179,12 +149,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 metadata_change_handler->update(cluster_metadata);
 
-                http_res_t res(200);
-
                 scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-                res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
-
-                return res;
+                return http_json_res(json_repr.get());
             }
             break;
             case HEAD:
@@ -193,24 +159,18 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
             case CONNECT:
             case PATCH:
             default:
-                return http_res_t(405);
+                return http_res_t(HTTP_METHOD_NOT_ALLOWED);
                 break;
         }
     } catch (const schema_mismatch_exc_t &e) {
-        http_res_t res(400);
         logINF("HTTP request throw a schema_mismatch_exc_t with what = %s", e.what());
-        res.set_body("application/text", e.what());
-        return res;
+        return http_error_res(e.what());
     } catch (const permission_denied_exc_t &e) {
-        http_res_t res(400);
         logINF("HTTP request throw a permission_denied_exc_t with what = %s", e.what());
-        res.set_body("application/text", e.what());
-        return res;
+        return http_error_res(e.what());
     } catch (const cannot_satisfy_goals_exc_t &e) {
-        http_res_t res(500);
         logINF("The server was given a set of goals for which it couldn't find a valid blueprint. %s", e.what());
-        res.set_body("application/text", e.what());
-        return res;
+        return http_error_res(e.what(), HTTP_INTERNAL_SERVER_ERROR);
     }
     unreachable();
 }

@@ -156,7 +156,12 @@ void backfillee(
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs->new_read_token(&read_token);
 
-    region_map_t<protocol_t, version_range_t> start_point = svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor);
+    // TODO: This is bs.  order_token_t::ignore.  The svs needs an order checkpoint with its fifo enforcers.
+    order_source_t order_source;
+
+    region_map_t<protocol_t, version_range_t> start_point
+        = svs->get_all_metainfos(order_source.check_in("backfillee(A)").with_read_mode(),
+                                 &read_token, interruptor);
 
     start_point = start_point.mask(region);
 
@@ -293,7 +298,7 @@ void backfillee(
                 region_map_t<protocol_t, version_range_t>(span_parts.begin(), span_parts.end()),
                 &binary_blob_t::make<version_range_t>
                 ),
-            order_token_t::ignore,
+            order_source.check_in("backfillee(B)"),
             &write_token,
             interruptor
             );
@@ -327,7 +332,7 @@ void backfillee(
             end_point_cond.get_value().first,
             &binary_blob_t::make<version_range_t>
             ),
-        order_token_t::ignore,
+        order_source.check_in("backfillee(C)"),
         &write_token,
         interruptor
     );
@@ -336,6 +341,7 @@ void backfillee(
 
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 template void backfillee<mock::dummy_protocol_t>(
         mailbox_manager_t *mailbox_manager,
@@ -353,6 +359,16 @@ template void backfillee<memcached_protocol_t>(
         multistore_ptr_t<memcached_protocol_t> *svs,
         memcached_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<memcached_protocol_t> > > > > backfiller_metadata,
+        backfill_session_id_t backfill_session_id,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);
+
+template void backfillee<rdb_protocol_t>(
+        mailbox_manager_t *mailbox_manager,
+        branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
+        multistore_ptr_t<rdb_protocol_t> *svs,
+        rdb_protocol_t::region_t region,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);

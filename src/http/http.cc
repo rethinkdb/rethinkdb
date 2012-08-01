@@ -3,6 +3,7 @@
 #include <exception>
 
 #include "errors.hpp"
+#include "utils.hpp"
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
@@ -119,15 +120,7 @@ bool http_req_t::has_header_line(const std::string& key) const {
 }
 
 std::string http_req_t::get_sanitized_body() const {
-    std::string sanitized = body;
-    for (int i = 0; i < int(sanitized.length()); ++i) {
-        if (sanitized[i] == '\n' || sanitized[i] == '\t') {
-            sanitized[i] = ' ';
-        } else if (sanitized[i] < ' ' || sanitized[i] > '~') {
-            sanitized[i] = '?';
-        }
-    }
-    return sanitized;
+    return sanitize_for_logger(body);
 }
 
 int content_length(http_req_t msg) {
@@ -141,9 +134,16 @@ int content_length(http_req_t msg) {
 http_res_t::http_res_t()
 { }
 
-http_res_t::http_res_t(int rescode)
+http_res_t::http_res_t(http_status_code_t rescode)
     : code(rescode)
 { }
+
+http_res_t::http_res_t(http_status_code_t rescode, const std::string& content_type,
+                       const std::string& content) 
+    : code(rescode) 
+{
+    set_body(content_type, content);
+}
 
 void http_res_t::add_last_modified(int) {
     not_implemented();
@@ -168,6 +168,10 @@ void http_res_t::set_body(const std::string& content_type, const std::string& co
     add_header_line("Content-Length", strprintf("%zu", content.size()));
 
     body = content;
+}
+
+http_res_t http_error_res(const std::string &content, http_status_code_t rescode) {
+    return http_res_t(rescode, "application/text", content);
 }
 
 void test_header_parser() {
@@ -196,7 +200,6 @@ signal_t *http_server_t::get_bound_signal() {
 }
 
 http_server_t::~http_server_t() { }
-
 
 std::string human_readable_status(int code) {
     switch(code) {
