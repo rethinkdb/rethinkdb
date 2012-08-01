@@ -54,7 +54,7 @@ class Metacluster(object):
         try:
             self.base_port = int(os.environ["RETHINKDB_BASE_PORT"])
         except KeyError:
-            self.base_port = random.randint(20000, 60000)
+            self.base_port = random.randint(20000, 30000)
 
     def close(self):
         """Kills all processes and deletes all files. Also, makes the
@@ -318,7 +318,7 @@ class Process(_Process):
         self.cluster_port = cluster.metacluster.base_port + self.files.id_number * 2
         self.local_cluster_port = cluster.metacluster.base_port + self.files.id_number * 2 + 1
         self.http_port = self.cluster_port + 1000
-        self.port_offset = self.files.id_number
+        self.port_offset = self.cluster_port
 
         options = ["serve",
                    "--directory=" + self.files.db_path,
