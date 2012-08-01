@@ -40,11 +40,19 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
     std::string message = m.message;
     std::string message_reformatted;
 
-    std::string prepend = strprintf("%s %d.%06ds %s: ",
+    std::string prepend;
+    if (!for_console) {
+        prepend = strprintf("%s %d.%06ds %s: ",
                             format_time(m.timestamp).c_str(),
                             int(m.uptime.tv_sec),
                             int(m.uptime.tv_nsec / 1000),
                             format_log_level(m.level).c_str());
+    } else {
+        prepend = strprintf("%d.%02ds %s: ",
+                            int(m.uptime.tv_sec),
+                            int(m.uptime.tv_nsec / 10000000),
+                            format_log_level(m.level).c_str());
+    }
     int prepend_length = int(prepend.length());
 
     int start = 0, end = int(message.length()) - 1;
