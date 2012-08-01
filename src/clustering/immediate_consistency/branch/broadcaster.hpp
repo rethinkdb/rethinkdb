@@ -52,6 +52,7 @@ public:
             branch_history_manager_t<protocol_t> *bhm,
             multistore_ptr_t<protocol_t> *initial_svs,
             perfmon_collection_t *parent_perfmon_collection,
+            order_source_t *order_source,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);

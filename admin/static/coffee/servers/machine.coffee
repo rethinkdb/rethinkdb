@@ -14,8 +14,7 @@ module 'MachineView', ->
 
         events: ->
             'click .close': 'close_alert'
-
-        max_log_entries_to_render: 3
+            'click .tab-link': 'change_route'
 
         initialize: =>
             log_initial '(initializing) machine view: container'
@@ -32,11 +31,16 @@ module 'MachineView', ->
                 route: "/ajax/log/"+@model.get('id')+"_?"
                 template_header: Handlebars.compile $('#log-header-machine-template').html()
 
-        render: =>
+        change_route: (event) =>
+            # Because we are using bootstrap tab. We should remove them later.
+            window.router.navigate @.$(event.target).attr('href')
+
+        render: (tab) =>
             log_render '(rendering) machine view: container'
 
             # create main structure
             @.$el.html @template
+                server_id: @model.get 'id'
 
             # fill the title of this page
             @.$('.main_title').html @title.render().$el
@@ -59,7 +63,28 @@ module 'MachineView', ->
 
             # log entries
             @.$('.recent-log-entries').html @logs.render().$el
-
+            
+            if tab?
+                @.$('.active').removeClass('active')
+                switch tab
+                    when 'stats'
+                        @.$('#machine-statistics').addClass('active')
+                        @.$('#machine-statistics-link').tab('show')
+                    when 'data'
+                        @.$('#machine-data').addClass('active')
+                        @.$('#machine-data-link').tab('show')
+                    when 'assignments'
+                        @.$('#machine-assignments').addClass('active')
+                        @.$('#machine-assignments-link').tab('show')
+                    when 'operations'
+                        @.$('#machine-operations').addClass('active')
+                        @.$('#machine-operations-link').tab('show')
+                    when 'logs'
+                        @.$('#machine-log_entries').addClass('active')
+                        @.$('#machine-log_entries-link').tab('show')
+                    else
+                        @.$('#machine-statistics').addClass('active')
+                        @.$('#machine-statistics-link').tab('show')
             return @
 
         close_alert: (event) ->
