@@ -1,7 +1,7 @@
 .PHONY: build
-LIBS = -lpthread -ldl 
+LIBS = -lpthread -ldl -lprotobuf
 # Do not include main.cc or python_interface.cc in SRC
-SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c
+SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c protocols/query_language.pb.cc
 HEADERS = $(wildcard *.hpp) $(wildcard */*.hpp)
 
 MYSQL ?= 1
@@ -32,14 +32,22 @@ CXX = g++
 CFLAGS = -fPIC
 CXXFLAGS = -g $(INCLUDE) -I . $(DEFINES) -fPIC # -O3
 
+PROTO_DIR = ../../src/rdb_protocol
+
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 
 build: $(EXEC_NAME) $(SO_NAME)
 
+proto_files:
+	protoc -I $(PROTO_DIR) --cpp_out=protocols/ $(PROTO_DIR)/query_language.proto
+
 %.o: %.cc $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(EXEC_NAME): $(OBJ) main.o $(HEADERS) Makefile
+%.pb.o: %.pb.cc $(HEADERS) Makefile
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(EXEC_NAME): proto_files $(OBJ) main.o $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) main.o -lm -lrt $(TLIB) $(LIBS)
 
 $(SO_NAME): $(OBJ) python_interface.o $(HEADERS) python_interface.h Makefile
@@ -53,3 +61,5 @@ clean:
 	rm -f *.o
 	rm -f $(EXEC_NAME)
 	rm -f $(SO_NAME)
+	rm -f protocols/query_language.pb.cc
+	rm -f protocols/query_language.pb.h
