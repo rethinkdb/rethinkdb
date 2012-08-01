@@ -45,16 +45,17 @@ public:
     vclock_t<int> port;
     vclock_t<region_map_t<protocol_t, machine_id_t> > primary_pinnings;
     vclock_t<region_map_t<protocol_t, std::set<machine_id_t> > > secondary_pinnings;
+    vclock_t<std::string> primary_key; //TODO this should actually never be changed...
     vclock_t<database_id_t> database;
 
-    RDB_MAKE_ME_SERIALIZABLE_10(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, database);
+    RDB_MAKE_ME_SERIALIZABLE_11(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
 };
 
 template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_10(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, database);
+RDB_MAKE_SEMILATTICE_JOINABLE_11(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
 
 template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_10(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, database);
+RDB_MAKE_EQUALITY_COMPARABLE_11(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
 
 //json adapter concept for namespace_semilattice_metadata_t
 template <class ctx_t, class protocol_t>
@@ -69,6 +70,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespa
     res["port"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<int, ctx_t>(&target->port));
     res["primary_pinnings"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<region_map_t<protocol_t, machine_id_t>, ctx_t>(&target->primary_pinnings));
     res["secondary_pinnings"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<region_map_t<protocol_t, std::set<machine_id_t> >, ctx_t>(&target->secondary_pinnings));
+    res["primary_key"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_read_only_adapter_t<vclock_t<std::string>, ctx_t>(&target->primary_key));
     res["database"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<database_id_t, ctx_t>(&target->database));
     return res;
 }
@@ -92,6 +94,28 @@ class namespaces_semilattice_metadata_t {
 public:
     typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > namespace_map_t;
     namespace_map_t namespaces;
+
+    /* If a name uniquely identifies a namespace then return it, otherwise
+     * return nothing. */
+    boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > > get_namespace_by_name(std::string name) {
+        boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > >  res;
+        for (typename namespace_map_t::iterator it  = namespaces.begin();
+                                                it != namespaces.end();
+                                                ++it) {
+            if (it->second.is_deleted() || it->second.get().name.in_conflict()) {
+                return boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > > ();
+            }
+
+            if (it->second.get().name.get() == name) {
+                if (!res) {
+                    res = *it;
+                } else {
+                    return boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > >();
+                }
+            }
+        }
+        return res;
+    }
 
     RDB_MAKE_ME_SERIALIZABLE_1(namespaces);
 };

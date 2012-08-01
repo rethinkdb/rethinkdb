@@ -134,6 +134,8 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
 
 #include "mock/dummy_protocol.hpp"
 #include "memcached/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 template class reactor_t<mock::dummy_protocol_t>;
 template class reactor_t<memcached_protocol_t>;
+template class reactor_t<rdb_protocol_t>;

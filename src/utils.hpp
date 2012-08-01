@@ -124,7 +124,9 @@ public:
     int randint(int n);
     explicit rng_t(int seed = -1);
 private:
+#ifndef __MACH__
     struct drand48_data buffer_;
+#endif
     DISABLE_COPYING(rng_t);
 };
 

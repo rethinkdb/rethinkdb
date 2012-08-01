@@ -17,6 +17,7 @@
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */

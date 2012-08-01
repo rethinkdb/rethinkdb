@@ -61,6 +61,10 @@
         <p>Replicas: {{nareplicas}} of {{nreplicas}} reachable</p>
         <p>Data: {{total_keys}} documents</p>
         <p>Replication: {{> backfill_progress_summary}}</p>
+        {{#unless stats_up_to_date}}
+        <p>The stats displayed might not be up to date<br />
+            (One server might be overload with queries).</p>
+        {{/unless}}
     </div>
 </script>
 

@@ -139,7 +139,9 @@ http_res_t::http_res_t(http_status_code_t rescode)
 { }
 
 http_res_t::http_res_t(http_status_code_t rescode, const std::string& content_type,
-                       const std::string& content) : code(rescode) {
+                       const std::string& content) 
+    : code(rescode) 
+{
     set_body(content_type, content);
 }
 
@@ -198,7 +200,6 @@ signal_t *http_server_t::get_bound_signal() {
 }
 
 http_server_t::~http_server_t() { }
-
 
 std::string human_readable_status(int code) {
     switch(code) {

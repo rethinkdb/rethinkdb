@@ -129,15 +129,23 @@ void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
         }
     }
 
-    std::map<peer_id_t, namespaces_directory_metadata_t<memcached_protocol_t> > reactor_directory;
+    std::map<peer_id_t, namespaces_directory_metadata_t<memcached_protocol_t> > reactor_directory_memcached;
+    std::map<peer_id_t, namespaces_directory_metadata_t<rdb_protocol_t> > reactor_directory_rdb;
     std::map<peer_id_t, machine_id_t> machine_id_translation_table;
     for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator it = directory.begin(); it != directory.end(); it++) {
-        reactor_directory.insert(std::make_pair(it->first, it->second.memcached_namespaces));
+        reactor_directory_memcached.insert(std::make_pair(it->first, it->second.memcached_namespaces));
+        reactor_directory_rdb.insert(std::make_pair(it->first, it->second.rdb_namespaces));
         machine_id_translation_table.insert(std::make_pair(it->first, it->second.machine_id));
     }
 
     fill_in_blueprints_for_protocol<memcached_protocol_t>(&cluster_metadata->memcached_namespaces,
-            reactor_directory,
+            reactor_directory_memcached,
+            machine_id_translation_table,
+            machine_assignments,
+            us);
+
+    fill_in_blueprints_for_protocol<rdb_protocol_t>(&cluster_metadata->rdb_namespaces,
+            reactor_directory_rdb,
             machine_id_translation_table,
             machine_assignments,
             us);
@@ -194,6 +202,33 @@ template
 void fill_in_blueprints_for_protocol<memcached_protocol_t>(
         namespaces_semilattice_metadata_t<memcached_protocol_t> *ns_goals,
         const std::map<peer_id_t, namespaces_directory_metadata_t<memcached_protocol_t> > &reactor_directory_view,
+        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
+        const machine_id_t &us)
+        THROWS_ONLY(missing_machine_exc_t);
+
+#include "rdb_protocol/protocol.hpp"
+
+template
+persistable_blueprint_t<rdb_protocol_t> suggest_blueprint_for_namespace<rdb_protocol_t>(
+        const namespace_semilattice_metadata_t<rdb_protocol_t> &ns_goals,
+        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<rdb_protocol_t> > > > &reactor_directory_view,
+        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
+        THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t);
+
+template
+std::map<namespace_id_t, persistable_blueprint_t<rdb_protocol_t> > suggest_blueprints_for_protocol<rdb_protocol_t>(
+        const namespaces_semilattice_metadata_t<rdb_protocol_t> &ns_goals,
+        const std::map<peer_id_t, namespaces_directory_metadata_t<rdb_protocol_t> > &reactor_directory_view,
+        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
+        THROWS_ONLY(missing_machine_exc_t);
+
+template
+void fill_in_blueprints_for_protocol<rdb_protocol_t>(
+        namespaces_semilattice_metadata_t<rdb_protocol_t> *ns_goals,
+        const std::map<peer_id_t, namespaces_directory_metadata_t<rdb_protocol_t> > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const machine_id_t &us)

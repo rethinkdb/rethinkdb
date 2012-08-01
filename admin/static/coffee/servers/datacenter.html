@@ -43,16 +43,19 @@
 <script id="datacenter_view_profile-template" type="text/x-handlebars-template">
     <h3 class="title">Datacenter profile</h3>
     <div class="section summary">
-      <p class="status">Status: {{humanize_datacenter_reachability status}}</p>
-      <p class="status">Machines: {{status.reachable}} of {{status.total}} reachable</p>
+        <p class="status">Status: {{humanize_datacenter_reachability status}}</p>
+        <p class="status">Machines: {{status.reachable}} of {{status.total}} reachable</p>
+        {{#unless stats_up_to_date}}
+        <p>The stats displayed might not be up to date<br />
+        (One server might be overload with queries).</p>
+        {{/unless}}
     </div>
     <h3 class="title">Machines</h3>
     <div class="section dc-machine-list">
-      <ul>
-      {{display_truncated_machines list_machines}}
-      </ul>
+        <ul>
+        {{display_truncated_machines list_machines}}
+        </ul>
     </div>
-  </div>
 </script>
 
 <script id="datacenter_view_data-template" type="text/x-handlebars-template">

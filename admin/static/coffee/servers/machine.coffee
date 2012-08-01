@@ -282,6 +282,7 @@ module 'MachineView', ->
 
 
                                 when 'role_secondary'
+                                    #TODO We could check if a secondary is up to date here too (and not just in the modal)
                                     if namespace.get('primary_uuid') is @model.get('datacenter_uuid')
                                         new_shard.display_master = true
                                     else
@@ -372,7 +373,8 @@ module 'MachineView', ->
                 num_replicas = namespace.get('replica_affinities')[model.get('datacenter_uuid')]
                 if post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].length >= num_replicas
                     post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].pop()
-                post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].push old_master
+                if old_master?
+                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].push old_master
                 
                 $.ajax
                     processData: false
@@ -470,7 +472,6 @@ module 'MachineView', ->
                                     break
 
                     if not new_master?
-                        debugger
                         @.$('.error_answer').html outdated_data_template {}
 
                         if @.$('.error_answer').css('display') is 'none'

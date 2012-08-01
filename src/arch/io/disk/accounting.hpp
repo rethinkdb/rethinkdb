@@ -76,7 +76,7 @@ public:
         }
 
     private:
-        friend class account_t;
+        friend struct account_t;
         accounting_diskmgr_t *parent;
 
         // It would be nice if we could just use a limited_fifo_queue to
