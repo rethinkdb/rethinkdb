@@ -106,7 +106,6 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 metadata_change_handler->update(cluster_metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-
                 return http_json_res(json_repr.get());
             }
             break;

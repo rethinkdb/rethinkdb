@@ -140,7 +140,6 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
     if (req.method != GET) {
         return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
-
     std::set<std::string> filter_paths;
     std::set<std::string> machine_whitelist;
 #ifndef VALGRIND
@@ -148,6 +147,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
 #else
     uint64_t timeout = DEFAULT_STAT_REQ_TIMEOUT_MS*10;
 #endif
+    if (req.method != GET) return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     boost::optional<http_res_t> maybe_error_res =
         parse_query_params(req, &filter_paths, &machine_whitelist, &timeout);
     if (maybe_error_res) return *maybe_error_res;
