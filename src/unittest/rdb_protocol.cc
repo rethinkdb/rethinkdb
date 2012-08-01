@@ -26,10 +26,10 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
         temp_files.push_back(new mock::temp_file_t("/tmp/rdb_unittest.XXXXXX"));
     }
 
-    boost::ptr_vector<rdb_protocol_t::store_t> underlying_stores;
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
+    boost::ptr_vector<rdb_protocol_t::store_t> underlying_stores;
     for (int i = 0; i < (int)shards.size(); i++) {
         underlying_stores.push_back(new rdb_protocol_t::store_t(io_backender.get(), temp_files[i].name(), true, &get_global_perfmon_collection()));
     }
