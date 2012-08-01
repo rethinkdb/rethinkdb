@@ -48,10 +48,7 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
                             int(m.uptime.tv_nsec / 1000),
                             format_log_level(m.level).c_str());
     } else {
-        prepend = strprintf("%d.%02ds %s: ",
-                            int(m.uptime.tv_sec),
-                            int(m.uptime.tv_nsec / 10000000),
-                            format_log_level(m.level).c_str());
+        prepend = strprintf("%s: ", format_log_level(m.level).c_str());
     }
     int prepend_length = int(prepend.length());
 
