@@ -465,14 +465,10 @@ void get_btree_superblock_and_txn_internal(btree_slice_t *slice, access_t access
                                            scoped_ptr_t<transaction_t> *txn_out) {
     slice->assert_thread();
 
-    slice->pre_begin_transaction_sink_.check_out(token);
-    order_token_t begin_transaction_token = slice->pre_begin_transaction_source_.check_in(token.tag() + "+begin_transaction_token");
-    if (is_read_mode(access)) {
-        begin_transaction_token = begin_transaction_token.with_read_mode();
-    }
-    transaction_t *txn = new transaction_t(slice->cache(), access, expected_change_count, tstamp);
+    order_token_t pre_begin_transaction_token = slice->pre_begin_transaction_checkpoint_.check_through(token);
+
+    transaction_t *txn = new transaction_t(slice->cache(), access, expected_change_count, tstamp, pre_begin_transaction_token);
     txn_out->init(txn);
-    txn->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 
     txn->set_account(cache_account);
 

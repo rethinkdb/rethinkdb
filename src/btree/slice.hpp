@@ -55,15 +55,10 @@ public:
     cache_t *cache() { return cache_; }
     cache_account_t *get_backfill_account() { return backfill_account.get(); }
 
-    plain_sink_t pre_begin_transaction_sink_;
+    order_checkpoint_t pre_begin_transaction_checkpoint_;
 
-    order_source_t pre_begin_transaction_source_;
-
-    enum { PRE_BEGIN_TRANSACTION_READ_MODE_BUCKET = 0, PRE_BEGIN_TRANSACTION_WRITE_MODE_BUCKET = 1 };
-
-    order_checkpoint_t post_begin_transaction_checkpoint_;
     // We put all `order_token_t`s through this.
-    order_checkpoint_t order_checkpoint_;
+    order_checkpoint_t order_checkpoint_;  // TODO: This is used ridiculously.
 
     btree_stats_t stats;
 

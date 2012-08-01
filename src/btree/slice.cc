@@ -35,7 +35,7 @@ btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent)
     cache()->create_cache_account(BACKFILL_CACHE_PRIORITY, &backfill_account);
 
     order_checkpoint_.set_tagappend("slice");
-    post_begin_transaction_checkpoint_.set_tagappend("post");
+    pre_begin_transaction_checkpoint_.set_tagappend("pre_begin_transaction");
 }
 
 btree_slice_t::~btree_slice_t() { }
