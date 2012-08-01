@@ -96,7 +96,10 @@ class Connection(object):
         if debug:
             print "response:", response
 
-        if response.status_code == p.Response.SUCCESS:
+        if response.status_code == p.Response.SUCCESS_JSON:
+            return json.loads(response.response[0])
+        # FIXME: need to handle SUCCESS_EMPTY, SUCCESS_PARTIAL
+        if response.status_code == p.Response.SUCCESS_STREAM:
             return [json.loads(s) for s in response.response]
         if response.status_code == p.Response.PARTIAL:
             new_protobuf = p.Query()
