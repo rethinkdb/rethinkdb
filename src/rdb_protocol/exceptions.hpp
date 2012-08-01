@@ -22,10 +22,11 @@ public:
     std::string message;
 };
 
-/* `bad_query_exc_t` is thrown if the user writes a query that accesses
-undefined variables or that has mismatched types. The difference between this
-and `bad_protobuf_exc_t` is that `bad_protobuf_exc_t` is the client's fault and
-`bad_query_exc_t` is the client's user's fault. */
+/* `bad_query_exc_t` is thrown if the user writes a query that
+   accesses undefined variables or that has mismatched types. The
+   difference between this and `meaningless_query_exc_t` is that
+   `meaningless_query_exc_t` is the client's fault and
+   `bad_query_exc_t` is the client's user's fault. */
 
 class bad_query_exc_t : public std::exception {
 public:
