@@ -1,7 +1,5 @@
 <script id="machine_view-container-template" type="text/x-handlebars-template">
     <div class="main_title"></div>
-    <div id="user-alert-space"></div>
-
     <div class="two-panel-section">
         <div class="panel-left-unbalanced profile"></div>
 
@@ -14,14 +12,23 @@
     <ul class="nav nav-tabs">
         <li class="active"><a href="#machine-statistics" data-toggle="tab">Statistics</a></li>
         <li><a href="#machine-data" data-toggle="tab">Data</a></li>
+        <li><a href="#assignments" data-toggle="tab">Assignments</a></li>
+        <li><a href="#operations" data-toggle="tab">Operations</a></li>
         <li><a href="#machine-log-entries" data-toggle="tab">Recent log entries</a></li>
     </ul>
     <div class="tab-content">  
+        <div id="user-alert-space"></div>
         <div class="tab-pane active" id="machine-statistics">
             <div class="section machine-stats"></div>
         </div>
         <div class="tab-pane" id="machine-data">
             <div class="section data"></div>
+        </div>
+        <div class="tab-pane" id="assignments">
+            <div class="section assignments"></div>
+        </div>
+        <div class="tab-pane" id="operations">
+            <div class="section operations"></div>
         </div>
         <div class="tab-pane" id="machine-log-entries">
             <div class="section machine-log-entries">
@@ -44,16 +51,19 @@
       {{else}}
       Unassigned 
       {{/if}}
-      (<a class="set-datacenter" href="#">change</a>)
     </p>
     <p>Status: {{humanize_machine_reachability status}}</p>
     <p>IP {{pluralize_noun "address" nips}}: {{#if ips}} {{html_list ips}} {{else}} N/A {{/if}}</p>
     <p class="uptime">Uptime: {{uptime}}</p>
+    {{#unless stats_up_to_date}}
+    <p>The stats displayed might not be up to date<br />
+        (the server might be overload with queries).</p>
+    {{/unless}}
   </div>
 </script>
 
 <script id="machine_view_title-template" type="text/x-handlebars-template">
-  <h1>Machine overview for {{name}}</h1> (<a href="#" class="rename-machine">rename</a>)
+    <h1>Machine overview for {{name}}</h1>
 </script>
 
 <script id="machine_view_data-template" type="text/x-handlebars-template">
@@ -63,17 +73,140 @@
     {{/unless}}
     {{#each data.namespaces}}
     <div class="namespace">
-      <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
-      <ul>
-        {{#each shards}}
-        <li>{{name}} ({{humanize_role role}})</li>
-        {{/each}}
-      </ul>
+        <h4>Namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
+        <ul class="shard_ul">
+            {{#each shards}}
+            <li class="shard_li">
+                <h4>Shard {{name}}</h4>
+                <p>About {{keys}} keys</p>
+            </li>
+            {{/each}}
+        </ul>
     </div>
     {{/each}}
 </script>
 
 
+<script id="machine_view-assignments-template" type="text/x-handlebars-template">
+    <h3 class="title">Data on this machine</h3>
+    {{#unless data.namespaces}}
+    <p>No data found on this machine.</p>
+    {{/unless}}
+    {{#each data.namespaces}}
+    <div class="namespace">
+        <h4>Namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
+        <ul class="shard_ul">
+            {{#each shards}}
+            <li class="shard_li">
+                {{humanize_role role}}
+                <h4>Shard {{name}}</h4>
+                {{#if display_master}}
+                    <div class="action-container">
+                        <input type="button" {{#if display_master_desactivated}}disabled="disabled"{{/if}}
+                            data-shard="{{shard}}"
+                            data-namespace_id="{{namespace_id}}"
+                            class="btn make_master{{#if display_master_desactivated}} disabled{{/if}}" value="Make master" /> 
+                            {{#if reason_master}}
+                                <div class="reason">{{print_safe reason_master}}</div>
+                            {{else}}
+                                <div class="reason">Make this server master of this shard.</div>
+                            {{/if}}
+
+                    </div>
+                {{/if}}
+                {{#if display_secondary}}
+                    <div class="action-container">
+                        <input type="button" {{#if display_secondary_desactivated}}disabled="disabled"{{/if}}
+                            data-shard="{{shard}}"
+                            data-namespace_id="{{namespace_id}}"
+                            class="btn make_secondary{{#if display_secondary_desactivated}} disabled{{/if}}" value="Make secondary" /> 
+                            {{#if reason_secondary}}
+                                <div class="reason">{{print_safe reason_secondary}}</div>
+                            {{else}}
+                                <div class="reason">Make this server a secondary for this shard.</div>
+ 
+                            {{/if}}
+                    </div>
+                {{/if}}
+                {{#if display_nothing}}
+                    <div class="action-container">
+                        <input type="button" {{#if display_nothing_desactivated}}disabled="disabled"{{/if}}
+                            data-shard="{{shard}}"
+                            data-namespace_id="{{namespace_id}}"
+                            class="btn make_nothing{{#if display_nothing_desactivated}} disabled{{/if}}" value="Remove role" /> 
+                            {{#if reason_nothing}}
+                                <div class="reason">{{print_safe reason_nothing}}</div>
+                            {{else}}
+                                <div class="reason">Remove all responsabilities for this shard.</div>
+                            {{/if}}
+                    </div>
+                {{/if}}
+            </li>
+            {{/each}}
+        </ul>
+    </div>
+    {{/each}}
+</script>
+
+
+<script id="reason-set_secondary-need_replica-template" type="text/x-handlebars-template">
+    You need a replica to replace this master, please <a href="#namespaces/{{namespace_id}}">increase</a> your number of replicas.
+</script>
+
+<script id="reason-set_nothing-set_secondary_first-template" type="text/x-handlebars-template">
+    First set this server as a secondary before removing all responsabilities.
+</script>
+
+<script id="reason-set_master-datacenter_not_primary-template" type="text/x-handlebars-template">
+    You have to <a href="#namespaces/{{namespace_id}}">set</a> this server's datacenter as the primary one first.
+</script>
+
+
+<script id="reason-set_nothing-unsatisfiable_goals-template" type="text/x-handlebars-template">
+    <a href="#namespaces/{{namespace_id}}">Lower</a> the number of replicas or <a href="#servers">add a machine</a> in this datacenter to avoid unsatisfiable goals.
+</script>
+
+<script id="reason-set_primary-set_secondary_first-template" type="text/x-handlebars-template">
+    The server must be a secondary before becoming a master.
+</script>
+
+<script id="reason-set_primary-set_datecenter_as_primary-template" type="text/x-handlebars-template">
+    You have to <a href="#namespaces/{{namespace_id}}">set</a> this server's datacenter as the primary one first.
+</script>
+
+<script id="reason-set_primary-no_datacenter-template" type="text/x-handlebars-template">
+    You have to <a href="#servers">assign</a> this server to a datacenter first.
+</script>
+
+<script id="reason-set_secondary-increase_replicas-template" type="text/x-handlebars-template">
+    You have to <a href="#namespaces/{{namespace_id}}">increase</a> your number of replicas first.
+</script>
+
+
+
+
+<script id="alert-set_server-template" type="text/x-handlebars-template">
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>You successfully set this server as a {{role}} for the shard {{shard}} of the namespace {{namespace_name}}</p>
+    </div>
+</script>
+
+<script id="machine_view-operations-template" type="text/x-handlebars-template">
+    <h3 class="title">Operations on this server</h3>
+    <div class="other_section rename_server">
+        <input type="button" class="btn other_button rename_server-button" value="Rename"/>
+        <p>Rename the server</p>
+    </div>
+    <div class="other_section rename_namespace">
+        <input type="button" class="btn other_button change_datacenter-button" value="Change datacenter"/>
+        <p>Change the datacenter of this server</p>
+    </div>
+    <div class="other_section rename_namespace">
+        <input type="button" class="btn other_button change_datacenter-button" value="Change datacenter"/>
+        <p>Unassign the datacenter of this server</p>
+    </div>
+</script>
 
 <script id="machine_view-recent_log_entry-template" type="text/x-handlebars-template">
     <div class="entry-metadata">
@@ -87,3 +220,9 @@
         {{/if}}
     </p>
 </script>
+
+<script id="outdated_data-template" type="text/x-handlebars-template">
+    <p>Something went wrong. The data of the interface might be outdated. <br/>
+    Please refresh.</p>
+</script>
+

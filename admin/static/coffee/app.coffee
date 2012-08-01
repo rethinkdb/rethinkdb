@@ -98,8 +98,9 @@ apply_diffs = (updates) ->
             when 'machines'
                 apply_to_collection(machines, collection_data)
             when 'me' then continue
+            when 'databases' then continue #TODO Implement
             else
-                console.log "Unhandled element update: " + updates
+                console.log "Unhandled element update: " + collection_id
     return
 
 set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
@@ -156,6 +157,24 @@ set_stats = (stat_data) ->
     for machine_id, data of stat_data
         if machines.get(machine_id)? #if the machines are not ready, we just skip the current stats
             machines.get(machine_id).set('stats', data)
+        else if machine_id is 'machines' # It would be nice if the back end could update that.
+            for mid in data.known
+                machines.get(mid)?.set('stats_up_to_date', true)
+            ###
+            # Ignore these cases for the time being. When we'll consider these, 
+            # we might need an integer instead of a boolean
+            for mid in data.dead
+                machines.get(mid)?.set('stats_up_to_date', false)
+            for mid in data.ghosts
+                machines.get(mid)?.set('stats_up_to_date', false)
+            ###
+            for mid in data.timed_out
+                machines.get(mid)?.set('stats_up_to_date', false)
+
+
+
+
+
 
 collections_ready = ->
     # Data is now ready, let's get rockin'!
