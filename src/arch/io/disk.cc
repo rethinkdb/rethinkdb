@@ -327,7 +327,7 @@ void linux_file_t::write_async(size_t offset, size_t length, const void *buf, li
 
 #ifdef DEBUG_DUMP_WRITES
     debugf("--- WRITE BEGIN ---\n");
-    debufg("%s", format_backtrace().c_str());
+    debugf("%s", format_backtrace().c_str());
     print_hd(buf, offset, length);
     debugf("---- WRITE END ----\n\n");
 #endif
