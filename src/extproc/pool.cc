@@ -79,7 +79,7 @@ pool_t::worker_t *pool_t::acquire_worker() {
 
 void pool_t::release_worker(worker_t *worker) THROWS_NOTHING {
     assert_thread();
-    rassert(worker && worker->pool_ == this);
+    rassert(worker && worker->pool_ == this && worker->attached_);
 
     // If the worker's stream isn't open, something bad has happened.
     if (!worker->is_read_open() || !worker->is_write_open()) {
