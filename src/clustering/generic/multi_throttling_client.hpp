@@ -115,16 +115,18 @@ private:
             ticket_queue.remove(lucky_winner);
             lucky_winner->state = ticket_acq_t::state_acquired_ticket;
             lucky_winner->pulse();
+            count--;
         }
         free_tickets += count;
     }
 
     void on_reclaim_tickets(int count) {
-        int to_return = std::min(count, free_tickets);
-        if (to_return > 0) {
+        int to_relinquish = std::min(count, free_tickets);
+        if (to_relinquish > 0) {
+            free_tickets -= to_relinquish;
             coro_t::spawn_sometime(boost::bind(
                 &multi_throttling_client_t<request_type, inner_client_business_card_type>::relinquish_tickets_blocking, this,
-                to_return,
+                to_relinquish,
                 auto_drainer_t::lock_t(&drainer)
                 ));
         }

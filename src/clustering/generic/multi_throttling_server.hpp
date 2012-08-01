@@ -130,6 +130,7 @@ private:
         }
 
         void perform_request(const request_type &request, auto_drainer_t::lock_t keepalive) {
+            requests_since_last_qps_sample++;
             try {
                 registrant.perform_request(request, keepalive.get_drain_signal());
             } catch (interrupted_exc_t) {
@@ -140,6 +141,7 @@ private:
         }
 
         void on_relinquish_tickets(int tickets) {
+            held_tickets -= tickets;
             parent->return_tickets(tickets);
         }
 
