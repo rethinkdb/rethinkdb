@@ -116,6 +116,8 @@ void pool_t::detach_worker(worker_t *worker) {
     busy_workers_.remove(worker);
     worker_semaphore_.unlock();
 
+    guarantee_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
+
     // Alas, we can't call repair_invariants now, since we're not allowed to
     // block.
 }
