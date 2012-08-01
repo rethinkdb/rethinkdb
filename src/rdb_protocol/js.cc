@@ -124,7 +124,9 @@ const runner_t::req_config_t *runner_t::default_req_config() {
 // For now, no, because we don't actually use handles to manage id lifetimes at
 // the moment. Instead we tag them onto terms and keep them around for the
 // entire query.
-runner_t::~runner_t() {}
+runner_t::~runner_t() {
+    if (connected()) finish();
+}
 
 void runner_t::begin(extproc::pool_t *pool) {
     // TODO(rntz): might eventually want to handle external process failure

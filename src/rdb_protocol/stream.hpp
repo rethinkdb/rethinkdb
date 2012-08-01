@@ -2,16 +2,11 @@
 #define RDB_PROTOCOL_STREAM_HPP_
 
 #include "rdb_protocol/protocol.hpp"
+#include "stream_cache.hpp"
 
 namespace query_language {
 
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > cJSON_list_t;
-
-class json_stream_t {
-public:
-    virtual boost::shared_ptr<scoped_cJSON_t> next() = 0;
-    virtual ~json_stream_t() { }
-};
 
 class in_memory_stream_t : public json_stream_t {
 public:
