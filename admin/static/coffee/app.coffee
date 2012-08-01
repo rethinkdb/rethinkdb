@@ -136,6 +136,8 @@ set_stats = (stat_data) ->
         else if machine_id is 'machines' # It would be nice if the back end could update that.
             for mid in data.known
                 machines.get(mid)?.set('stats_up_to_date', true)
+            for mid in data.timed_out
+                machines.get(mid)?.set('stats_up_to_date', false)
             ###
             # Ignore these cases for the time being. When we'll consider these, 
             # we might need an integer instead of a boolean
@@ -144,8 +146,6 @@ set_stats = (stat_data) ->
             for mid in data.ghosts
                 machines.get(mid)?.set('stats_up_to_date', false)
             ###
-            for mid in data.timed_out
-                machines.get(mid)?.set('stats_up_to_date', false)
 
 
 

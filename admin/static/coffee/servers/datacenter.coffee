@@ -200,6 +200,15 @@ module 'DatacenterView', ->
                         id: machine.get('id')
                         status: status
 
+            # Check if data are up to date
+            stats_up_to_date = true
+            for machine in machines_in_datacenter
+                if machine.get('stats_up_to_date') is false
+                    stats_up_to_date = false
+                    break
+
+ 
+
             # Generate json and render
             json =
                 name: @model.get('name')
@@ -207,6 +216,7 @@ module 'DatacenterView', ->
                     machines: machines_returned
                     more_link_should_be_displayed: @more_link_should_be_displayed
                 status: DataUtils.get_datacenter_reachability(@model.get('id'))
+                stats_up_to_date: stats_up_to_date
             stats = @model.get_stats()
             json = _.extend json,
                 global_cpu_util: Math.floor(stats.global_cpu_util_avg * 100)
