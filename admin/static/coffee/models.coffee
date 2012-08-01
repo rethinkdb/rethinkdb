@@ -81,7 +81,7 @@ class Namespace extends Backbone.Model
         count = 0
 
         for key in @get('key_distr_sorted')
-            if key >= start_key or start_key is null
+            if key >= start_key or start_key is ""
                 if end_key is null or key < end_key
                     if @get('key_distr')[key]?
                         count += @get('key_distr')[key]

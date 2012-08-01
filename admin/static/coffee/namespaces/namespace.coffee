@@ -266,7 +266,7 @@ module 'NamespaceView', ->
 
         initialize: =>
             machines.on 'change', @render_data_in_memory
-            @model.on 'change:key_distr_sorted', @render_data_repartition
+            @model.on 'change:key_distr', @render_data_repartition
             @model.on 'change:shards', @render_data_repartition
             @json_in_memory =
                 data_in_memory_percent: -1
@@ -284,7 +284,6 @@ module 'NamespaceView', ->
             data_in_memory = 0
             data_total = 0
             data_is_ready = false
-            #TODO These are being calculated incorrectly. As they stand, data_in_memory is correct, but data_total is measuring the disk space used by this namespace. Issue filed.
             for machine in machines.models
                 if machine.get('stats')? and @model.get('id') of machine.get('stats') and machine.get('stats')[@model.get('id')].serializers?
                     for key of machine.get('stats')[@model.get('id')].serializers
@@ -479,7 +478,7 @@ module 'NamespaceView', ->
 
         destroy: =>
             machines.off 'change', @render_data_in_memory
-            @model.off 'change:key_distr_sorted', @render_data_repartition
+            @model.off 'change:key_distr', @render_data_repartition
             @model.off 'change:shards', @render_data_repartition
 
     class @Other extends Backbone.View
