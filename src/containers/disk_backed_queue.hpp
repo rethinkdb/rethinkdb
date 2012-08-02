@@ -187,11 +187,14 @@ private:
         _old_tail.mark_deleted();
     }
 
+private:
     mutex_t mutex;
     int64_t queue_size;
     block_id_t head_block_id, tail_block_id;
     scoped_ptr_t<standard_serializer_t> serializer;
     scoped_ptr_t<cache_t> cache;
+
+    DISABLE_COPYING(disk_backed_queue_t);
 };
 
 #endif /* CONTAINERS_DISK_BACKED_QUEUE_HPP_ */
