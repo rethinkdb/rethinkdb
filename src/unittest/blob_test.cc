@@ -156,8 +156,10 @@ private:
     blob_t blob_;
 };
 
-struct blob_tester_t : public server_test_helper_t {
-protected:
+class blob_tester_t : public server_test_helper_t {
+public:
+    blob_tester_t() { }
+private:
     void run_tests(cache_t *cache) {
         // The tests below hard-code constants related to these numbers.
         EXPECT_EQ(251, blob::btree_maxreflen);
@@ -177,12 +179,12 @@ protected:
         debugf("finished...\n");
     }
 
-private:
     void small_value_test(cache_t *cache) {
         SCOPED_TRACE("small_value_test");
         UNUSED block_size_t block_size = cache->get_block_size();
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+        order_source_t order_source;
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_source.check_in("small_value_test"));
 
         blob_tracker_t tk(251);
 
@@ -215,7 +217,9 @@ private:
         SCOPED_TRACE("small_value_boundary_test");
         block_size_t block_size = cache->get_block_size();
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+        order_source_t order_source;
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
+                          order_source.check_in("small_value_boundary_test"));
 
         blob_tracker_t tk(251);
 
@@ -269,7 +273,9 @@ private:
 
         ASSERT_EQ(4080, block_size.value() - sizeof(block_magic_t));
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+        order_source_t order_source;
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
+                          order_source.check_in("special_4080_prepend_4081_test"));
 
         blob_tracker_t tk(251);
 
@@ -285,7 +291,9 @@ private:
 
         ASSERT_EQ(4080, block_size.value() - sizeof(block_magic_t));
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+        order_source_t order_source;
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
+                          order_source.check_in("special_4161600_prepend_12484801_test"));
 
         blob_tracker_t tk(251);
 
@@ -305,7 +313,9 @@ private:
     void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
         UNUSED block_size_t block_size = cache->get_block_size();
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+        order_source_t order_source;
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
+                          order_source.check_in("general_journey_test"));
         blob_tracker_t tk(251);
 
         char v = 'A';
@@ -373,6 +383,8 @@ private:
             }
         }
     }
+
+    DISABLE_COPYING(blob_tester_t);
 };
 
 TEST(BlobTest, all_tests) {

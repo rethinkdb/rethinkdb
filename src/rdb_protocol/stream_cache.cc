@@ -33,9 +33,9 @@ bool stream_cache_t::serve(int64_t key, Response *res) {
                     return true;
                 }
             }
-        } catch (query_language::runtime_exc_t &e) {
+        } catch (query_language::runtime_exc_t) {
             erase(key);
-            throw e;
+            throw;
         }
         erase(key);
         res->set_status_code(Response::SUCCESS_STREAM);

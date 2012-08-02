@@ -4,6 +4,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <utility>
 
 #include "utils.hpp"
 #include <boost/bind.hpp>

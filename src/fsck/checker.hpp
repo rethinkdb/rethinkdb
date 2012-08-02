@@ -56,7 +56,7 @@ struct config_t {
     bool print_file_version;
     io_backend_t io_backend;
 
-    config_t() : ignore_diff_log(false), print_command_line(false), print_file_version(false), io_backend(aio_native) {}
+    config_t() : ignore_diff_log(false), print_command_line(false), print_file_version(false), io_backend(aio_default) {}
 };
 
 bool check_files(const config_t *config);

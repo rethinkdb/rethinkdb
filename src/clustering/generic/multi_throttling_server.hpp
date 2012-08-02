@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_GENERIC_MULTI_THROTTLING_SERVER_HPP_
 #define CLUSTERING_GENERIC_MULTI_THROTTLING_SERVER_HPP_
 
+#include <algorithm>
+
 #include "arch/timing.hpp"
 #include "clustering/generic/multi_throttling_metadata.hpp"
 #include "clustering/generic/registrar.hpp"
@@ -269,4 +271,4 @@ private:
     registrar_t<client_business_card_t, multi_throttling_server_t *, client_t> registrar;
 };
 
-#endif   /* CLUSTERING_GENERIC_MULTI_THROTTLING_SERVER_HPP_ */
+#endif /* CLUSTERING_GENERIC_MULTI_THROTTLING_SERVER_HPP_ */

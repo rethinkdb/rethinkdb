@@ -1,8 +1,9 @@
 #include "rdb_protocol/query_language.hpp"
 
+#include <math.h>
+
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
-#include <math.h>
 
 #include "http/json.hpp"
 #include "rdb_protocol/internal_extensions.pb.h"

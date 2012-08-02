@@ -2,6 +2,10 @@
 
 # __all__ = ['R', 'fn', 'expr', 'db', 'db_create', 'db_drop', 'db_list', 'table']
 
+import types
+
+import query_language_pb2 as p
+
 #############################
 # VARIABLE/ATTRIBUTE ACCESS #
 #############################
@@ -40,7 +44,7 @@ def R(name):
       implicit attribute (prefixed with `@`), or inner attributes
       (separated by `.`)
     :type name: str
-    :returns: :class:`Expression`
+    :returns: :class:`JSONExpression`
 
     >>> table('users').insert({ 'name': Joe,
                                 'age': 30,
@@ -66,28 +70,29 @@ def R(name):
     is_var = name.startswith('$')
     is_implicit = name.startswith('@')
 
-def fn(param, *args):
-    """Create a function with named parameters.
+def fn(arg, *args):
+    """Create a function.
     See :func:`Selectable.filter` for examples.
 
     The last argument is the body of the function,
     and the other arguments are the parameter names.
 
-    :param param: The name of the first parameter.
-    :type param: str
-    :param args: args[:-1] are names of additional parameters,
+    :param args: args[:-1] are names of parameters,
         args[-1] is the function body
-    :type args: list(str/:class:`Expression`)
+    :type args: list(str/:class:`JSONExpression`)
 
+    >>> fn(3)                           # lambda: 3
     >>> fn("x", R("$x") + 1)            # lambda x: x + 1
     >>> fn("x", "y", R("$x") + R("$y))  # lambda x, y: x + y
     """
-    raise NotImplementedError
+    if not args:
+        return internal.Function(arg)
+    return internal.Function(args[-1], arg, *args[:-1])
 
 #####################################
 # SELECTORS - QUERYING THE DATABASE #
 #####################################
-class BaseExpression(object):
+class Expression(object):
     """A base class for all ReQL expressions. An expression encodes an
     operation that can be evaluated on the server via
     :func:`rethinkdb.net.Connection.run` or
@@ -116,6 +121,13 @@ class BaseExpression(object):
         """
         raise NotImplementedError
 
+    def _write_call(self, parent, builtin, *args):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = builtin
+        for arg in args:
+            arg._write_ast(parent.call.args.add())
+        return parent.call.builtin
+
     def between(self, start_key, end_key, start_inclusive=True, end_inclusive=True):
         """Select all elements between two keys.
 
@@ -129,12 +141,12 @@ class BaseExpression(object):
         :type start_inclusive: bool
         :param end_inclusive: if True, includes rows with `end_key`
         :type end_inclusive: bool
-        :returns: :class:`Stream`, :class:`StreamSelection`, :class:`JSON` (depends on input)
+        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
 
         >>> table('users').between(10, 20) # all users with ids between 10 and 20
         >>> expr([1, 2, 3, 4]).between(2, 4) # [2, 3, 4]
         """
-        raise NotImplementedError
+        return internal.Between(self, start_key, end_key, start_inclusive, end_inclusive)
 
     def filter(self, selector):
         """Select all elements that fit the specified condition.
@@ -188,10 +200,15 @@ class BaseExpression(object):
                   .count()))
 
         :param selector: the constraint
-        :type selector: dict, :class:`Expression`
-        :returns: :class:`Stream`, :class:`StreamSelection`, :class:`JSON` (depends on input)
+        :type selector: dict, :class:`JSONExpression`
+        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
         """
-        raise NotImplementedError
+        if isinstance(selector, dict):
+            selector = internal.Conjunction(*[R(k) == v for k, v in selector.iteritems()])
+        if not isinstance(selector, internal.Function):
+            selector = internal.Function(selector)
+
+        return internal.Filter(self, selector)
 
     def nth(self, index):
         """Select the element at `index`.
@@ -208,7 +225,7 @@ class BaseExpression(object):
         >>> table('users').nth(10) # returns 11th row
         >>> table('users')[10]     # returns 11th row
         """
-        raise NotImplementedError
+        return self[index]
 
     def skip(self, offset):
         """Skip elements before the element at `offset`.
@@ -219,10 +236,10 @@ class BaseExpression(object):
 
         :param offset: The number of elements to skip.
         :type offset: int
-        :returns: :class:`Stream`, :class:`StreamSelection`, :class:`JSON` (depends on input)
+        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
 
         """
-        raise NotImplementedError
+        return self[offset:]
 
     def limit(self, count):
         """Select elements before the element at `count`.
@@ -233,9 +250,9 @@ class BaseExpression(object):
 
         :param count: The number of elements to select.
         :type count: int
-        :returns: :class:`Stream`, :class:`StreamSelection`, :class:`JSON` (depends on input)
+        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
         """
-        raise NotImplementedError
+        return self[:count]
 
     def orderby(self, *ordering):
         """Sort elements according to attributes specified by strings.
@@ -247,7 +264,7 @@ class BaseExpression(object):
 
         :param ordering: attribute names to order by
         :type ordering: list(str)
-        :returns: :class:`Stream`, :class:`StreamSelection`, :class:`JSON` (depends on input)
+        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
 
         >>> table('users').orderby('name')  # order users by name A-Z
         >>> table('users').orderby('-level', 'name') # levels high-low, then names A-Z
@@ -259,7 +276,7 @@ class BaseExpression(object):
 
         This is a Selector.
 
-        :returns: :class:`Stream`, :class:`StreamSelection`, :class:`JSON` (depends on input)
+        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
         """
         raise NotImplementedError
 
@@ -268,7 +285,7 @@ class BaseExpression(object):
 
         This is a Selector.
 
-        :returns: :class:`Stream`, :class:`StreamSelection`, :class:`JSON` (depends on input)"""
+        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)"""
         raise NotImplementedError
 
     def map(self, mapping):
@@ -276,8 +293,8 @@ class BaseExpression(object):
         variable containing the element if mapping does not bind it.
 
         :param mapping: The expression to evaluate
-        :type mapping: :class:`Expression`
-        :returns: :class:`Stream`, :class:`StreamSelection`, :class:`JSON` (depends on input)
+        :type mapping: :class:`JSONExpression`
+        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
 
         >>> expr([1, 2, 3]).map(R('@') * 2) # gives [2, 4, 6]
         >>> table('users').map(R('age'))
@@ -291,7 +308,7 @@ class BaseExpression(object):
         `base` should be an identity (`func(base, e) == e`).
 
         :type base: :class:`Function`, :class:`JSON`
-        :returns: :class:`Stream`, :class:`StreamSelection`, :class:`JSON` (depends on input)
+        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
 
         >>> expr([1, 2, 3]).reduce(0, fn('a', 'b', R('$a') + R('$b'))).run()
         6
@@ -306,23 +323,10 @@ class BaseExpression(object):
     def pluck(self, *attrs):
         pass
 
-def expr(val):
-    """Converts a python value to a ReQL :class:`JSON`.
-
-    :param val: Any Python value that can be converted to JSON.
-    :returns: :class:`JSON`
-
-    >>> expr(1)
-    >>> expr("foo")
-    >>> expr(["foo", 1])
-    >>> expr({ 'name': 'Joe', 'age': 30 })
-    """
-    return JSON(val)
-
 ##########################################
 # DATA OBJECTS - SELECTION, STREAM, ETC. #
 ##########################################
-class Stream(BaseExpression):
+class Stream(Expression):
     """A sequence of JSON values which can be read."""
     def to_array(self):
         """Convert the stream into a JSON array."""
@@ -342,18 +346,18 @@ class BaseSelection(object):
 
         """
 
-class StreamSelection(Stream, BaseSelection):
+class MultiRowSelection(Stream, BaseSelection):
     """A sequence of rows which can be read or written."""
 
-class Expression(BaseExpression):
+class JSONExpression(Expression):
     """A JSON value.
 
     Use :func:`expr` to create expressions for JSON values.
 
-    >>> expr(1)      # returns :class:`Expression` that encodes JSON value 1.
-    >>> expr([1, 2]) # returns :class:`Expression` that encodes a JSON array.
-    >>> expr("foo")  # returns :class:`Expression` that encodes a JSON string.
-    >>> expr({ 'name': 'Joe', 'age': 30 }) # returns :class:`Expression` that encodes a JSON object.
+    >>> expr(1)      # returns :class:`JSONExpression` that encodes JSON value 1.
+    >>> expr([1, 2]) # returns :class:`JSONExpression` that encodes a JSON array.
+    >>> expr("foo")  # returns :class:`JSONExpression` that encodes a JSON string.
+    >>> expr({ 'name': 'Joe', 'age': 30 }) # returns :class:`JSONExpression` that encodes a JSON object.
 
     Python operators enable comparisons, logic, and algebra to be performed
     on JSON expressions.
@@ -363,51 +367,110 @@ class Expression(BaseExpression):
     >>> expr(1) + 2 # Addition. We can do `-`, `*`, `/`, and `%` in the same way.
     >>> expr(1) < 2 # We can also do `>`, `<=`, `>=`, `==`, etc.
     >>> expr(1) < 2 & 3 < 4 # We use `&` and `|` to encode `and` and `or` since we can't overload
-    >>>                     # these in Python"""
+                            # these in Python"""
+
+
+    def _finalize_query(self, root):
+        root.type = p.Query.READ
+        self._write_ast(root.read_query.term)
+
     def to_stream(self):
         """Convert a JSON array into a stream."""
+        return internal.ToStream(self)
 
     def __lt__(self, other):
-        return lt(self, other)
+        return internal.CompareLT(self, other)
     def __le__(self, other):
-        return le(self, other)
+        return internal.CompareLE(self, other)
     def __eq__(self, other):
-        return eq(self, other)
+        return internal.CompareEQ(self, other)
     def __ne__(self, other):
-        return ne(self, other)
+        return internal.CompareNE(self, other)
     def __gt__(self, other):
-        return gt(self, other)
+        return internal.CompareGT(self, other)
     def __ge__(self, other):
-        return ge(self, other)
+        return internal.CompareGE(self, other)
 
     def __add__(self, other):
-        return add(self, other)
+        return internal.Add(self, other)
     def __sub__(self, other):
-        return sub(self, other)
+        return internal.Sub(self, other)
     def __mul__(self, other):
-        return mul(self, other)
+        return internal.Mul(self, other)
     def __div__(self, other):
-        return div(self, other)
+        return internal.Div(self, other)
     def __mod__(self, other):
-        return mod(self, other)
+        return internal.Mod(self, other)
 
     def __radd__(self, other):
-        return add(other, self)
+        return internal.Add(other, self)
     def __rsub__(self, other):
-        return sub(other, self)
+        return internal.Sub(other, self)
     def __rmul__(self, other):
-        return mul(other, self)
+        return internal.Mul(other, self)
     def __rdiv__(self, other):
-        return div(other, self)
+        return internal.Div(other, self)
     def __rmod__(self, other):
-        return mod(other, self)
+        return internal.Mod(other, self)
 
     def __neg__(self):
-        return sub(self)
+        return internal.Sub(self)
     def __pos__(self):
         return self
 
-class RowSelection(Expression, BaseSelection):
+class JSONLiteral(JSONExpression):
+    """A literal JSON value."""
+
+    def __init__(self, value):
+        self.value = value
+        if isinstance(value, bool):
+            self.type = p.Term.BOOL
+            self.valueattr = 'valuebool'
+        elif isinstance(value, (int, float)):
+            self.type = p.Term.NUMBER
+            self.valueattr = 'number'
+        elif isinstance(value, (str, unicode)):
+            self.type = p.Term.STRING
+            self.valueattr = 'valuestring'
+        elif isinstance(value, dict):
+            self.type = p.Term.OBJECT
+        elif isinstance(value, list):
+            self.type = p.Term.ARRAY
+        elif value is None:
+            self.type = p.Term.JSON_NULL
+        else:
+            raise TypeError("argument must be a JSON-compatible type (bool/int/float/str/unicode/dict/list),"
+                            "not %r" % value.__class__.__name__)
+
+    def _write_ast(self, parent):
+        parent.type = self.type
+        if self.type == p.Term.ARRAY:
+            for value in self.value:
+                expr(value)._write_ast(parent.array.add())
+        elif self.type == p.Term.OBJECT:
+            for key, value in self.value.iteritems():
+                pair = parent.object.add()
+                pair.var = key
+                expr(value)._write_ast(pair.term)
+        elif self.value is not None:
+            setattr(parent, self.valueattr, self.value)
+
+def expr(val):
+    """Converts a python value to a ReQL :class:`JSONExpression`.
+
+    :param val: Any Python value that can be converted to JSON.
+    :returns: :class:`JSON`
+
+    >>> expr(1)
+    >>> expr("foo")
+    >>> expr(["foo", 1])
+    >>> expr({ 'name': 'Joe', 'age': 30 })
+    """
+    if isinstance(val, JSONExpression):
+        return val
+    return JSONLiteral(val)
+
+class RowSelection(JSONExpression, BaseSelection):
     """A single row from a table which can be read or written."""
 
 ###########################
@@ -431,7 +494,7 @@ def db_create(db_name, primary_datacenter=None):
       omitted, the cluster-level default datacenter will be used as
       primary for this database.
     :type primary_datacenter: str
-    :returns: :class:`BaseExpression` -- a ReQL expression that encodes
+    :returns: :class:`Expression` -- a ReQL expression that encodes
       the database creation operation.
 
     :Example:
@@ -510,7 +573,7 @@ class Database(object):
           that will be used as a primary key for the document. If
           missing, defaults to 'id'.
         :type primary_key: str
-        :returns: :class:`Expression` -- a ReQL expression that
+        :returns: :class:`JSONExpression` -- a ReQL expression that
           encodes the table creation operation.
 
         :Example:
@@ -531,7 +594,7 @@ class Database(object):
 
         :param table_name: The name of the table to be dropped.
         :type table_name: str
-        :returns: :class:`Expression` -- a ReQL expression that
+        :returns: :class:`JSONExpression` -- a ReQL expression that
           encodes the table creation operation.
 
         :Example:
@@ -585,12 +648,12 @@ def db(db_name):
     """
     raise NotImplementedError
 
-class Table(StreamSelection):
+class Table(MultiRowSelection):
     """A ReQL expression that encodes a RethinkDB table. Most data
     manipulation operations (such as inserting, selecting, and
     updating data) can be chained off of this object."""
 
-    def __init__(table_name, db_expr=None):
+    def __init__(self, table_name, db_expr=None):
         """Use :func:`rethinkdb.query.table` as a shortcut to create
         this object.
 
@@ -601,14 +664,15 @@ class Table(StreamSelection):
           connection object.
         :type db_expr: :class:`Database`
         """
-        raise NotImplementedError
+        self.table_name = table_name
+        self.db_expr = db_expr
 
     def get(self, key):
         """Select a row by primary key. If the key doesn't exist, returns null.
 
         :param key: the key to look for
         :type key: JSON value
-        :returns: :class:`RowSelection`, :class:`Expression`
+        :returns: :class:`RowSelection`, :class:`JSONExpression`
 
         >>> q = table('users').get(10)  # get user with primary key 10
         """
@@ -627,7 +691,11 @@ def table(table_ref):
     >>> q = table('table_name')         #
     >>> q = table('db_name.table_name') # equivalent to db('db_name').table('table_name')
     """
-    raise NotImplementedError
+    if '.' in table_ref:
+        db_name, table_name = table_ref.split('.', 1)
+        return db(db_name).table(table_name)
+    else:
+        return Table(table_ref)
 
 
 # this happens at the end since it's a circular import
