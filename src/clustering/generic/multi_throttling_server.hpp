@@ -75,13 +75,13 @@ private:
         }
 
         ~client_t() {
+            parent->clients.remove(this);
+            parent->recompute_allocations();
             request_mailbox.reset();
             relinquish_tickets_mailbox.reset();
             drainer.reset();
-            parent->clients.remove(this);
             rassert(in_use_tickets == 0);
             parent->return_tickets(held_tickets);
-            parent->recompute_allocations();
         }
 
         void give_tickets(int tickets) {
@@ -198,7 +198,6 @@ private:
             total_qps += c->estimate_qps();
         }
         if (clients.size() == 0) {
-            rassert(total_tickets == free_tickets);
             return;
         }
         if (total_qps == 0) {
