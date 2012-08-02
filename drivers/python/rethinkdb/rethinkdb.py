@@ -71,13 +71,16 @@ class BadQueryError(ExecutionError):
     pass
 
 class Connection(object):
-    def __init__(self, hostname, port):
+    def __init__(self, hostname, port = 12346):
         self.hostname = hostname
         self.port = port
 
         self.token = 1
 
         self.socket = socket.create_connection((hostname, port))
+
+    def close(self):
+        self.socket.close()
 
     def _run(self, protobuf, query, debug=False):
         if debug:
@@ -107,7 +110,7 @@ class Connection(object):
             return [json.loads(s) for s in response.response] + self._run(new_protobuf, query)
         elif response.status_code == p.Response.SUCCESS_EMPTY:
             return None
-        elif response.status_code == p.Response.BAD_PROTOBUF:
+        elif response.status_code == p.Response.BROKEN_CLIENT:
             raise ValueError("RethinkDB server rejected our protocol buffer as "
                 "malformed. RethinkDB client is buggy?")
         elif response.status_code == p.Response.BAD_QUERY:
