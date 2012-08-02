@@ -7,6 +7,7 @@
 #include <boost/function.hpp>
 
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/one_per_thread.hpp"
 #include "containers/scoped.hpp"
 
 namespace boost { template <class> class function; }
@@ -163,19 +164,20 @@ private:
     void switch_inner_write_token(int i, fifo_enforcer_write_token_t internal_token, signal_t *interruptor, scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *store_token);
 
     // We _own_ these pointers and must delete them at destruction.
-    scoped_array_t<store_view_t<protocol_t> *> store_views_;
+    const scoped_array_t<store_view_t<protocol_t> *> store_views_;
 
-    typename protocol_t::region_t region_;
+    const typename protocol_t::region_t region_;
 
     // A fifo source/sink pair, exposed publicly in new_read_token and
     // new_write_token.
-    fifo_enforcer_source_t external_source_;
-    fifo_enforcer_sink_t external_sink_;
+    one_per_thread_t<fifo_enforcer_source_t> external_source_;
+    one_per_thread_t<fifo_enforcer_sink_t> external_sink_;
 
     // An internal fifo source/sink pair, for cross-thread (and
     // cross-pmap) fifo ordering.  Their tokens are never seen
     // publicly, neither by external users or inner store_ts.
-    scoped_array_t<fifo_enforcer_source_t> internal_sources_;
+    // These are effectively 
+    one_per_thread_t<scoped_array_t<fifo_enforcer_source_t> > internal_sources_;
     scoped_array_t<scoped_ptr_t<fifo_enforcer_sink_t> > internal_sinks_;
 
     DISABLE_COPYING(multistore_ptr_t);
