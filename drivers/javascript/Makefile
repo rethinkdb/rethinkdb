@@ -24,7 +24,16 @@ test: test.js
 	echo "(function(){this.goog = goog = {};" > /tmp/one
 	$(CLOSURE_BUILDER) --root=$(CLOSURE_LIB) --root=. --input=test.js \
 		--compiler_jar=$(CLOSURE_COMPILER) \
-		--compiler_flags="--compilation_level=ADVANCED_OPTIMIZATIONS" \
+		--compiler_flags="--externs externs.js --compilation_level=ADVANCED_OPTIMIZATIONS" \
 		--output_mode=$(JS_COMPILATION_MODE) > /tmp/two
 	echo "}).call(this.window ? window : global);" > /tmp/three
 	cat /tmp/one /tmp/two /tmp/three > test_compiled.js
+
+lib:
+	$(CLOSURE_BUILDER) --root=$(CLOSURE_LIB) --root=rethinkdb/ --namespace=rethinkdb \
+		--compiler_jar=$(CLOSURE_COMPILER) \
+		--compiler_flags="--compilation_level=ADVANCED_OPTIMIZATIONS" \
+		--compiler_flags="--accept_const_keyword" \
+		--compiler_flags="--generate_exports" \
+		--compiler_flags="--externs=externs.js" \
+		--output_mode=compiled > rethinkdb.js

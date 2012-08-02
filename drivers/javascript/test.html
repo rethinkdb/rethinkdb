@@ -1,8 +1,11 @@
 <html>
     <head>
         <!-- Harness for testing in browser -->
+        <script src="rethinkdb.js"></script>
     </head>
     <body>
-        <script src="test_compiled.js"></script>
+        <script>
+            var conn = new rethinkdb.net.HttpConnection();
+        </script>
     </body>
 </html>

@@ -4,6 +4,10 @@ goog.provide('rethinkdb.net.HttpConnection');
 
 goog.require('rethinkdb.net.Connection');
 
+/**
+ * @constructor
+ * @export
+ */
 rethinkdb.net.HttpConnection = function(path, db_name) {
 	//TODO
 };

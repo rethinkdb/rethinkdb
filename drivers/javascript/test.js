@@ -1,7 +1,4 @@
-goog.provide('test');
-
-goog.require('rethinkdb.net.TcpConnection');
-goog.require('rethinkdb.net');
+var rethinkdb = require('./rethinkdb');
 
 // This script is designed to run bare in node.js or included in a 
 // html file to test in the browser.
