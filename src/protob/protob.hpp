@@ -22,7 +22,7 @@ public:
     ~protob_server_t();
 private:
 
-    void handle_conn(scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t);
+    void handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t);
     void send(const response_t &, tcp_conn_t *conn);
 
     auto_drainer_t auto_drainer;

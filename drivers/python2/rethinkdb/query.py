@@ -406,9 +406,9 @@ class JSONExpression(Expression):
             ret.type = p.Term.STRING
             ret.valueattr = 'valuestring'
         elif isinstance(value, dict):
-            ret.type = p.Term.ARRAY
-        elif isinstance(value, list):
             ret.type = p.Term.OBJECT
+        elif isinstance(value, list):
+            ret.type = p.Term.ARRAY
         elif value is None:
             ret.type = p.Term.JSON_NULL
         else:
@@ -422,7 +422,7 @@ class JSONExpression(Expression):
         if self.type == p.Term.ARRAY:
             for value in self.value:
                 expr(value)._write_ast(parent.array.add())
-        if self.type == p.Term.OBJECT:
+        elif self.type == p.Term.OBJECT:
             for key, value in self.value.iteritems():
                 pair = parent.object.add()
                 pair.var = key
@@ -434,53 +434,46 @@ class JSONExpression(Expression):
         root.type = p.Query.READ
         self._write_ast(root.read_query.term)
 
-    def _chain_builtin(self, builtin, *args):
-        def _write_ast(self, parent):
-            self._write_call(parent, self.builtin, *self.args)
-
-        return self._chain(_write_ast, JSONExpression, builtin=builtin,
-                           args=args)
-
     def to_stream(self):
         """Convert a JSON array into a stream."""
 
     def __lt__(self, other):
-        return self._chain_builtin(p.Builtin.LT, self, expr(other))
+        return internal.CompareLT(self, other)
     def __le__(self, other):
-        return self._chain_builtin(p.Builtin.LE, self, expr(other))
+        return internal.CompareLE(self, other)
     def __eq__(self, other):
-        return self._chain_builtin(p.Builtin.EQ, self, expr(other))
+        return internal.CompareEQ(self, other)
     def __ne__(self, other):
-        return self._chain_builtin(p.Builtin.NE, self, expr(other))
+        return internal.CompareNE(self, other)
     def __gt__(self, other):
-        return self._chain_builtin(p.Builtin.GT, self, expr(other))
+        return internal.CompareGT(self, other)
     def __ge__(self, other):
-        return self._chain_builtin(p.Builtin.GE, self, expr(other))
+        return internal.CompareGE(self, other)
 
     def __add__(self, other):
-        return self._chain_builtin(p.Builtin.ADD, self, expr(other))
+        return internal.Add(self, other)
     def __sub__(self, other):
-        return self._chain_builtin(p.Builtin.SUBTRACT, self, expr(other))
+        return internal.Sub(self, other)
     def __mul__(self, other):
-        return self._chain_builtin(p.Builtin.MULTIPLY, self, expr(other))
+        return internal.Mul(self, other)
     def __div__(self, other):
-        return self._chain_builtin(p.Builtin.DIVIDE, self, expr(other))
+        return internal.Div(self, other)
     def __mod__(self, other):
-        return self._chain_builtin(p.Builtin.MODULO, self, expr(other))
+        return internal.Mod(self, other)
 
     def __radd__(self, other):
-        return expr(other) + self
+        return internal.Add(other, self)
     def __rsub__(self, other):
-        return expr(other) - self
+        return internal.Sub(other, self)
     def __rmul__(self, other):
-        return expr(other) * self
+        return internal.Mul(other, self)
     def __rdiv__(self, other):
-        return expr(other) / self
+        return internal.Div(other, self)
     def __rmod__(self, other):
-        return expr(other) % self
+        return internal.Mod(other, self)
 
     def __neg__(self):
-        return self._chain_builtin(p.Builtin.SUBTRACT, self)
+        return internal.Sub(self)
     def __pos__(self):
         return self
 

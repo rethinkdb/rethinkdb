@@ -89,74 +89,14 @@
 // Max number of blocks which can be read ahead in one i/o transaction (if enabled)
 #define MAX_READ_AHEAD_BLOCKS 32
 
-// Max size of log file name
-// FIXME: unused. should this be deleted?
-#define MAX_LOG_FILE_NAME                         1024
-
-// Max length of log message, including terminating \0
-// FIXME: unused. should this deleted?
-#define MAX_LOG_MSGLEN                            1024
-
-// Queue ID of logging worker
-// FIXME: unused. should this deleted?
-#define LOG_WORKER 0
-
 // Ratio of free ram to use for the cache by default
-// FIXME: unused. should this deleted?
+// TODO: DEFAULT_MAX_CACHE_RATIO is unused. Should it be deleted?
 #define DEFAULT_MAX_CACHE_RATIO                   0.5
+
 
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
-#define MAX_THREADS                                 128
-
-// Maximum slices total
-// FIXME: unused. should this deleted?
-#define MAX_SLICES_PER_DEVICE                     1024
-
-// Maximum number of files we use
-// FIXME: unused. should this deleted?
-#define MAX_SERIALIZERS                           32
-
-// The number of ways we split a BTree (the most optimal is the number
-// of cores, but we use a higher split factor to allow upgrading to
-// more cores without migrating the database file).
-// FIXME: unused. should this deleted?
-#define DEFAULT_BTREE_SHARD_FACTOR                64
-
-// If --diff-log-size is not specified, then the patch log size will default to the
-// smaller of DEFAULT_PATCH_LOG_SIZE and (DEFAULT_PATCH_LOG_FRACTION * cache size).
-// FIXME: unused. should this deleted?
-#ifdef NDEBUG
-#define DEFAULT_PATCH_LOG_SIZE                     (0 * MEGABYTE)
-#else
-#define DEFAULT_PATCH_LOG_SIZE                     (4 * MEGABYTE)
-#endif
-// FIXME: unused. should this deleted?
-#define DEFAULT_PATCH_LOG_FRACTION                0.2
-
-// Default port to listen on
-// FIXME: unused. should this deleted?
-#define DEFAULT_LISTEN_PORT                       11211
-
-// Default port to do replication on
-// FIXME: unused. should this deleted?
-#define DEFAULT_REPLICATION_PORT                  11319
-
-// FIXME: unused. should this deleted?
-#define DEFAULT_TOTAL_DELETE_QUEUE_LIMIT          GIGABYTE
-
-// Heartbeat configuration...
-// The interval at which heartbeats are sent (ms)
-// FIXME: unused. should this deleted?
-#define REPLICATION_HEARTBEAT_INTERVAL            800 // (so we can allow a timeout of 1000 if users like it risky)
-// The default timeout. This is the time after which replication
-// connections get terminated, if no activity has been observed.
-// FIXME: unused. should this deleted?
-#define DEFAULT_REPLICATION_HEARTBEAT_TIMEOUT     30000
-
-// Default extension for the semantic file which is appended to the database name
-// FIXME: unused. should this deleted?
-#define DEFAULT_SEMANTIC_EXTENSION                ".semantic"
+#define MAX_THREADS                               128
 
 // Ticks (in milliseconds) the internal timed tasks are performed at
 #define TIMER_TICKS_IN_MS                         5
@@ -232,17 +172,12 @@
 // have to wait until the first one finishes
 #define MAX_CONCURRENT_QUERIES_PER_CONNECTION     500
 
-//
-// FIXME: unused. should this deleted?
-#define MAX_CONCURRENT_QUEURIES_ON_IMPORT 1000
+// The number of concurrent queries when loading memcached operations from a file.
+#define MAX_CONCURRENT_QUEURIES_ON_IMPORT         1000
 
 // How many timestamps we store in a leaf node.  We store the
 // NUM_LEAF_NODE_EARLIER_TIMES+1 most-recent timestamps.
 #define NUM_LEAF_NODE_EARLIER_TIMES               4
-
-// Perform allocator GC every N milliseconds (the resolution is limited to TIMER_TICKS_IN_MS)
-// FIXME: unused. should this deleted?
-#define ALLOC_GC_INTERVAL_MS                      3000
 
 // We assume there will never be more than this many blocks. The value
 // is computed by dividing 1 TB by the smallest reasonable block size.
@@ -269,12 +204,16 @@
 // 0.000001 in MAX_GC_HIGH_RATIO for?  Is it because we told the user
 // that 0.99 was too high?)
 #define DEFAULT_GC_HIGH_RATIO                     0.65
-// FIXME: unused. should this deleted?
+// TODO: MAX_GC_HIGH_RATIO is unused.  Use it!
+//  - Keeping this around because if it becomes configurable again, we
+//    should have these limits.  Before then at least rassert it.
 #define MAX_GC_HIGH_RATIO                         0.990001
 
 // The ratio at which we don't want to keep GC'ing.
 #define DEFAULT_GC_LOW_RATIO                      0.5
-// FIXME: unused. should this deleted?
+// TODO: MIN_GC_LOW_RATIO is unused.  Use it!
+//  - Keeping this around because if it becomes configurable again, we
+//    should have these limits.  Before then at least rassert it.
 #define MIN_GC_LOW_RATIO                          0.099999
 
 
@@ -301,28 +240,13 @@
 #define MAX_ACTIVE_DATA_EXTENTS                   64
 #define DEFAULT_ACTIVE_DATA_EXTENTS               1
 
-// How many zones the serializer will divide a block device into
-// FIXME: unused. should this deleted?
+// The size of zones the serializer will divide a block device into
 #define DEFAULT_FILE_ZONE_SIZE                    GIGABYTE
-// FIXME: unused. should this deleted?
-#define MAX_FILE_ZONES                            (TERABYTE / DEFAULT_FILE_ZONE_SIZE)
 
-// XXX: I increased this from 65536; make sure it's actually needed.
 #define COROUTINE_STACK_SIZE                      131072
 
 #define MAX_COROS_PER_THREAD                      10000
 
-
-// TODO: It would be nice if we didn't need MAX_HOSTNAME_LEN and
-// MAX_PATH_LEN.. just because we're storing stuff in the database.
-
-// Maximum length of a hostname we communicate with
-// FIXME: unused. should this deleted?
-#define MAX_HOSTNAME_LEN                          100
-
-//max length of a path that we have to store during run time
-// FIXME: unused. should this deleted?
-#define MAX_PATH_LEN                              200
 
 // Size of a cache line (used in cache_line_padded_t).
 #define CACHE_LINE_SIZE                           64

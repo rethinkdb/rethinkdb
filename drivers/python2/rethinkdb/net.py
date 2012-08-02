@@ -6,13 +6,10 @@ import json
 import socket
 import struct
 
-import reql.query_language_pb2 as p
+import query_language_pb2 as p
+import errors
 
 last_connection = None
-
-class QueryError():
-    """Foo"""
-    pass
 
 class BatchedIterator():
     """Foo"""
@@ -110,15 +107,14 @@ class Connection():
             new_protobuf.type = p.Query.CONTINUE
             return [json.loads(s) for s in response.response] + self._run(new_protobuf, query)
         elif response.status_code == p.Response.SUCCESS_EMPTY:
-            print "huh"
             return None
-        elif response.status_code == p.Response.BAD_PROTOBUF:
+        elif response.status_code == p.Response.RUNTIME_ERROR:
+            raise errors.ExecutionError(response.error_message, response.backtrace.frame, query)
+        elif response.status_code == p.Response.BAD_QUERY:
+            raise errors.BadQueryError(response.error_message, response.backtrace.frame, query)
+        elif response.status_code == p.Response.BROKEN_CLIENT:
             raise ValueError("RethinkDB server rejected our protocol buffer as "
                 "malformed. RethinkDB client is buggy?")
-        elif response.status_code == p.Response.BAD_QUERY:
-            raise BadQueryError(response.error_message, response.backtrace.frame, query)
-        elif response.status_code == p.Response.RUNTIME_ERROR:
-            raise ExecutionError(response.error_message, response.backtrace.frame, query)
         else:
             raise ValueError("Got unexpected status code from server: %d" % response.status_code)
 

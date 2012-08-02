@@ -1,6 +1,8 @@
 #ifndef BTREE_BTREE_STORE_HPP_
 #define BTREE_BTREE_STORE_HPP_
 
+#include <string>
+
 #include "protocol_api.hpp"
 #include "btree/slice.hpp"
 #include "btree/operations.hpp"

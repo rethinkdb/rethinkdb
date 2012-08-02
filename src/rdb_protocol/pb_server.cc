@@ -27,11 +27,11 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
 
     try {
         query_language::check_query_type(*q, &type_environment, &is_deterministic, root_backtrace);
-    } catch (query_language::broken_client_exc_t &e) {
+    } catch (const query_language::broken_client_exc_t &e) {
         res.set_status_code(Response::BROKEN_CLIENT);
         res.set_error_message(e.message);
         return res;
-    } catch (query_language::bad_query_exc_t &e) {
+    } catch (const query_language::bad_query_exc_t &e) {
         res.set_status_code(Response::BAD_QUERY);
         res.set_error_message(e.message);
         put_backtrace(e.backtrace, &res);
@@ -46,7 +46,7 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
         try {
             //[execute] will set the status code unless it throws
             execute(q, &runtime_environment, &res, root_backtrace, stream_cache);
-        } catch (query_language::runtime_exc_t &e) {
+        } catch (const query_language::runtime_exc_t &e) {
             res.set_status_code(Response::RUNTIME_ERROR);
             res.set_error_message(e.message);
             put_backtrace(e.backtrace, &res);
