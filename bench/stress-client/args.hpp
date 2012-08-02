@@ -229,6 +229,7 @@ public:
 /* List supported protocols. */
 void list_protocols() {
     // I'll just cheat here.
+    printf("rethinkdb");
     printf("sockmemcached,");
 #ifdef USE_MYSQL
     printf("mysql,");
@@ -236,7 +237,7 @@ void list_protocols() {
 #ifdef USE_LIBMEMCACHED
     printf("libmemcached,");
 #endif
-    printf("sqlite");
+    printf("sqlite,");
 }
 
 /* Usage */
@@ -314,7 +315,7 @@ void usage(const char *name) {
     _d_server.print_protocol();
     printf("].\n\n");
 
-    printf("\t\tFor memcached protocols the host argument should be in the form host:port.\n");
+    printf("\t\tFor memcached and rethinkdb protocols the host argument should be in the form host:port.\n");
 #ifdef USE_MYSQL
     printf("\t\tFor mysql protocol the host argument should be in the following\n" \
            "\t\tformat: username/password@host:port+database.\n\n");

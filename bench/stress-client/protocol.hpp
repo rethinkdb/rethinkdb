@@ -57,6 +57,7 @@ public:
 #define MAX_HOST 255
 
 enum protocol_enum_t {
+    protocol_rethinkdb,
     protocol_sockmemcached,
 #ifdef USE_MYSQL
     protocol_mysql,
@@ -68,24 +69,26 @@ enum protocol_enum_t {
 };
 
 struct server_t {
-    server_t() : protocol(protocol_sockmemcached) {
-        strcpy(host, "localhost:11211");
+    server_t() : protocol(protocol_rethinkdb) {
+        strcpy(host, "localhost:12346");
     }
 
     protocol_enum_t parse_protocol(const char *name) {
-        if (strcmp(name, "sockmemcached") == 0)
+        if (strcmp(name, "rethinkdb") == 0) {
+            return protocol_rethinkdb;
+        } else if (strcmp(name, "sockmemcached") == 0) {
             return protocol_sockmemcached;
 #ifdef USE_MYSQL
-        else if (strcmp(name, "mysql") == 0)
+        } else if (strcmp(name, "mysql") == 0) {
             return protocol_mysql;
 #endif
 #ifdef USE_LIBMEMCACHED
-        else if (strcmp(name, "libmemcached") == 0)
+        } else if (strcmp(name, "libmemcached") == 0) {
             return protocol_libmemcached;
 #endif
-        else if(strcmp(name, "sqlite") == 0)
+        } else if(strcmp(name, "sqlite") == 0) {
             return protocol_sqlite;
-        else {
+        } else {
             fprintf(stderr, "Unknown protocol\n");
             exit(-1);
         }
@@ -107,20 +110,23 @@ struct server_t {
     }
 
     void print_protocol() {
-        if (protocol == protocol_sockmemcached)
+        if (protocol == protocol_rethinkdb) {
+            printf("rethinkdb");
+        } if (protocol == protocol_sockmemcached) {
             printf("sockmemcached");
 #ifdef USE_MYSQL
-        else if (protocol == protocol_mysql)
+        } else if (protocol == protocol_mysql) {
             printf("mysql");
 #endif
 #ifdef USE_LIBMEMCACHED
-        else if (protocol == protocol_libmemcached)
+        } else if (protocol == protocol_libmemcached) {
             printf("libmemcached");
 #endif
-        else if (protocol == protocol_sqlite)
+        } else if (protocol == protocol_sqlite) {
             printf("sqlite");
-        else
+        } else {
             printf("unknown");
+        }
     }
 
     void print() {
