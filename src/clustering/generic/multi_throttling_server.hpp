@@ -227,7 +227,7 @@ private:
         static const int min_reasonable_tickets = 10;
         while (free_tickets > 0) {
             client_t *neediest = NULL;
-            int gift_size;
+            int gift_size = -1;
             /* First, look for a client with a critically low number of tickets.
             They get priority in tickets. This prevents starvation. */
             for (client_t *c = clients.head(); c; c = clients.next(c)) {
@@ -255,6 +255,7 @@ private:
             if (!neediest) {
                 break;
             }
+            rassert(gift_size >= 0);
             free_tickets -= gift_size;
             neediest->give_tickets(gift_size);
         }
