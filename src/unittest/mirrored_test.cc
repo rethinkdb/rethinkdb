@@ -16,6 +16,7 @@ protected:
     }
 private:
     void test_read_ahead_checks_free_list(cache_t *cache) {
+        order_source_t order_source;
         // Scenario:
         //   t0:create+release(A)
         //   t1:acqw+mark_deleted+release(A)
@@ -31,11 +32,13 @@ private:
         // block_id/block_sequence_id, we will get an assertion failure during mc_inner_buf
         // creation, but since creating it is a bug in the first place, it's fine to do so in this
         // test (although I'm definitely not proud of doing so).
-        transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+        transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past,
+                         order_source.check_in("test_read_ahead_checks_free_list(t0)"));
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
-        transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+        transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past,
+                         order_source.check_in("test_read_ahead_checks_free_list(t1)"));
 
         buf_lock_t buf1_A(&t1, block_A, rwi_write);
         buf1_A.mark_deleted();

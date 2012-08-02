@@ -326,11 +326,10 @@ void linux_file_t::write_async(size_t offset, size_t length, const void *buf, li
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
 #ifdef DEBUG_DUMP_WRITES
-    printf("--- WRITE BEGIN ---\n");
-    print_backtrace(stdout);
-    printf("\n");
+    debugf("--- WRITE BEGIN ---\n");
+    debugf("%s", format_backtrace().c_str());
     print_hd(buf, offset, length);
-    printf("---- WRITE END ----\n\n");
+    debugf("---- WRITE END ----\n\n");
 #endif
 
     verify(offset, length, buf);

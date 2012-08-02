@@ -205,21 +205,31 @@ private:
     uuid_t uuid;
     perfmon_collection_t perfmon_collection;
     perfmon_membership_t perfmon_collection_membership;
-    disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue;
 
+    state_timestamp_t current_timestamp;
+    fifo_enforcer_sink_t store_entrance_sink;
+
+    /* Avaste this be used to keep track of people who are waitin' for a us to
+     * be up to date (past the given state_timestamp_t). The only use case for
+     * this right now is the replier_t who needs to be able to tell backfillees
+     * how up to date s/he is. */
+    std::multimap<state_timestamp_t, cond_t *> synchronize_waiters;
+
+    disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue;
     fifo_enforcer_sink_t write_queue_entrance_sink;
     scoped_ptr_t<typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t> write_queue_coro_pool_callback;
-    scoped_ptr_t<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool;
     adjustable_semaphore_t write_queue_semaphore;
     cond_t write_queue_has_drained;
+
+    /* Destroying `write_queue_coro_pool` will stop any invocations of
+    `perform_enqueued_write()`. We mustn't access any member variables defined
+    below `write_queue_coro_pool` from within `perform_enqueued_write()`,
+    because their destructors might have been called. */
+    scoped_ptr_t<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool;
 
     /* This asserts that the broadcaster doesn't send us too many concurrent
     writes at the same time. */
     semaphore_assertion_t enforce_max_outstanding_writes_from_broadcaster;
-
-    state_timestamp_t current_timestamp;
-
-    fifo_enforcer_sink_t store_entrance_sink;
 
     auto_drainer_t drainer;
 
@@ -235,12 +245,6 @@ private:
     typename listener_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
 
     scoped_ptr_t<registrant_t<listener_business_card_t<protocol_t> > > registrant;
-
-    /* Avaste this be used to keep track of people who are waitin' for a us to
-     * be up to date (past the given state_timestamp_t). The only use case for
-     * this right now is the replier_t who needs to be able to tell backfillees
-     * how up to date s/he is. */
-    std::multimap<state_timestamp_t, cond_t *> synchronize_waiters;
 
     DISABLE_COPYING(listener_t);
 };

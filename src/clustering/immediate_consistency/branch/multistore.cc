@@ -28,6 +28,7 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inn
       region_(region),
       internal_sources_(inner->num_stores()),
       internal_sinks_(inner->num_stores()) {
+
     rassert(region_is_superset(inner->region_, region));
 
     initialize(inner->store_views_.data());
@@ -41,7 +42,13 @@ void multistore_ptr_t<protocol_t>::do_initialize(int i, store_view_t<protocol_t>
     store_views_[i] = new store_subview_t<protocol_t>(store_views[i],
                                                       region_intersection(region_, store_views[i]->get_region()));
 
+    // We have an internal sink for each thread of internal_sources.
+    // However really one of them goes unused, because
+    // one_per_thread_t uses get_num_threads instead of
+    // get_num_db_threads.
     internal_sinks_[i].init(new fifo_enforcer_sink_t);
+
+    // TODO: Should we use get_num_threads() or get_num_db_threads()?  What about in one_per_thread_t?
 }
 
 template <class protocol_t>
@@ -71,14 +78,14 @@ typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_multistore_joine
 
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token_out) {
-    fifo_enforcer_read_token_t token = external_source_.enter_read();
-    external_token_out->init(new fifo_enforcer_sink_t::exit_read_t(&external_sink_, token));
+    fifo_enforcer_read_token_t token = external_source_.get()->enter_read();
+    external_token_out->init(new fifo_enforcer_sink_t::exit_read_t(external_sink_.get(), token));
 }
 
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token_out) {
-    fifo_enforcer_write_token_t token = external_source_.enter_write();
-    external_token_out->init(new fifo_enforcer_sink_t::exit_write_t(&external_sink_, token));
+    fifo_enforcer_write_token_t token = external_source_.get()->enter_write();
+    external_token_out->init(new fifo_enforcer_sink_t::exit_write_t(external_sink_.get(), token));
 }
 
 template <class protocol_t>
@@ -601,7 +608,7 @@ void multistore_ptr_t<protocol_t>::switch_read_tokens(scoped_ptr_t<fifo_enforcer
     const int n = num_stores();
     internal_out->init(n);
     for (int i = 0; i < n; ++i) {
-        (*internal_out)[i] = internal_sources_[i].enter_read();
+        (*internal_out)[i] = (*internal_sources_.get())[i].enter_read();
     }
 }
 
@@ -615,7 +622,7 @@ void multistore_ptr_t<protocol_t>::switch_write_tokens(scoped_ptr_t<fifo_enforce
     const int n = num_stores();
     internal_out->init(n);
     for (int i = 0; i < n; ++i) {
-        (*internal_out)[i] = internal_sources_[i].enter_write();
+        (*internal_out)[i] = (*internal_sources_.get())[i].enter_write();
     }
 }
 

@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_GENERIC_MULTI_THROTTLING_CLIENT_HPP_
 #define CLUSTERING_GENERIC_MULTI_THROTTLING_CLIENT_HPP_
 
+#include <algorithm>
+
 #include "clustering/generic/multi_throttling_metadata.hpp"
 #include "clustering/generic/registrant.hpp"
 #include "concurrency/promise.hpp"
@@ -16,7 +18,7 @@ private:
 public:
     class ticket_acq_t : public signal_t, public intrusive_list_node_t<ticket_acq_t> {
     public:
-        ticket_acq_t(multi_throttling_client_t *p) : parent(p) {
+        explicit ticket_acq_t(multi_throttling_client_t *p) : parent(p) {
             if (parent->free_tickets > 0) {
                 state = state_acquired_ticket;
                 parent->free_tickets--;
@@ -154,4 +156,4 @@ private:
         > > registrant;
 };
 
-#endif   /* CLUSTERING_GENERIC_MULTI_THROTTLING_CLIENT_HPP_ */
+#endif /* CLUSTERING_GENERIC_MULTI_THROTTLING_CLIENT_HPP_ */

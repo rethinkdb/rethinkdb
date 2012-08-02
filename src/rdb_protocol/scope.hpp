@@ -1,6 +1,12 @@
 #ifndef RDB_PROTOCOL_SCOPE_HPP_
 #define RDB_PROTOCOL_SCOPE_HPP_
 
+#include <deque>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
 template <class T>
 class variable_scope_t {
 public:
@@ -44,7 +50,7 @@ public:
         scopes.pop_front();
     }
 
-    // TODO (rntz): find a better way to do this.
+    // TODO(rntz): find a better way to do this.
     void dump(std::vector<std::string> *argnames, std::vector<T> *argvals) {
         std::set<std::string> seen;
 
@@ -139,4 +145,4 @@ private:
     scopes_t scopes;
 };
 
-#endif
+#endif  // RDB_PROTOCOL_SCOPE_HPP_

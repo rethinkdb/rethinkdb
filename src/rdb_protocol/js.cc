@@ -12,38 +12,6 @@ namespace js {
 const id_t MIN_ID = 1;
 const id_t MAX_ID = UINT32_MAX;
 
-// ---------- Utility functions ----------
-// See also rdb_protocol/tofromjson.cc
-
-v8::Handle<v8::Value> eval(const std::string &srcstr, std::string *errmsg) {
-    v8::HandleScope scope;
-    v8::Handle<v8::Value> result;
-
-    // TODO (rntz): utf-8 source code support
-    v8::Handle<v8::String> src = v8::String::New(srcstr.c_str());
-
-    v8::TryCatch try_catch;
-
-    v8::Handle<v8::Script> script = v8::Script::Compile(src);
-    if (script.IsEmpty()) {
-        // TODO (rntz): use try_catch for error message
-        *errmsg = "script compilation failed";
-        // FIXME: do we need to close over an empty handle?
-        return result;
-    }
-
-    result = script->Run();
-    if (result.IsEmpty()) {
-        // TODO (rntz): use try_catch for error message
-        *errmsg = "script execution failed";
-        // FIXME: do we need to close over an empty handle?
-        return result;
-    }
-
-    return scope.Close(result);
-}
-
-
 // ---------- scoped_id_t ----------
 scoped_id_t::~scoped_id_t() {
     if (!empty()) reset();
@@ -57,7 +25,7 @@ void scoped_id_t::reset(id_t id) {
     id_ = id;
 }
 
-
+
 // ---------- env_t ----------
 runner_t::req_config_t::req_config_t()
     : timeout_ms(0)
@@ -107,7 +75,7 @@ void env_t::forget(id_t id) {
     guarantee(1 == values_.erase(id));
 }
 
-
+
 // ---------- runner_t ----------
 runner_t::runner_t()
     DEBUG_ONLY(: running_task_(false))
@@ -148,11 +116,13 @@ void runner_t::finish() {
     extproc::job_handle_t::release();
 }
 
+// ----- runner_t::job_t -----
 void runner_t::job_t::run_job(control_t *control, UNUSED void *extra) {
     // The reason we have env_t is to use it here.
     env_t(control).run();
 }
 
+// ----- runner_t::run_task_t -----
 runner_t::run_task_t::run_task_t(runner_t *runner, const req_config_t *config, const task_t &task)
     : runner_(runner)
 {
@@ -180,7 +150,7 @@ int64_t runner_t::run_task_t::write(const void *p, int64_t n) {
     return runner_->write_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
 }
 
-
+
 // ---------- tasks ----------
 // ----- release_id() -----
 struct release_task_t : auto_task_t<release_task_t> {
@@ -315,7 +285,6 @@ id_t runner_t::compile(
     std::string *errmsg,
     const req_config_t *config)
 {
-    // TODO (rntz): use config
     id_result_t result;
 
     {
@@ -403,7 +372,6 @@ boost::shared_ptr<scoped_cJSON_t> runner_t::call(
     std::string *errmsg,
     const req_config_t *config)
 {
-    // TODO (rntz): use config
     json_result_t result;
 
     {
