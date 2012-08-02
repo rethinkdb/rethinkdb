@@ -14,7 +14,7 @@
 #include "backtrace.hpp"
 #include "clustering/administration/logger.hpp"
 
-bool crashed = false; // to prevent crashing within crashes
+static __thread bool crashed = false; // to prevent crashing within crashes
 
 void report_user_error(const char *msg, ...) {
     if (crashed) {
@@ -32,7 +32,6 @@ void report_user_error(const char *msg, ...) {
 
     va_list args;
     va_start(args, msg);
-    //logSTDERR("Error: ");
     vlogERR(msg, args);
     va_end(args);
 }

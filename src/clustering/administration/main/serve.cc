@@ -53,6 +53,8 @@ try {
 
     thread_pool_log_writer_t log_writer(&local_issue_tracker);
 
+    logINF("Our machine ID is %s", uuid_to_str(machine_id).c_str());
+
     connectivity_cluster_t connectivity_cluster;
     message_multiplexer_t message_multiplexer(&connectivity_cluster);
 
