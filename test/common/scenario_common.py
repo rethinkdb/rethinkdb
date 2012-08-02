@@ -4,17 +4,18 @@ import driver
 import workload_runner
 
 def prepare_option_parser_mode_flags(opt_parser):
-    opt_parser["wrapper"] = ChoiceFlags(["--valgrind", "--strace"], None)
+    opt_parser["valgrind"] = BoolFlag("--valgrind")
     opt_parser["valgrind-options"] = StringFlag("--valgrind-options", "--leak-check=full --track-origins=yes --child-silent-after-fork=yes")
+    opt_parser["wrapper"] = StringFlag("--wrapper", None)
     opt_parser["mode"] = StringFlag("--mode", "debug")
     opt_parser["serve-flags"] = StringFlag("--serve-flags", "")
 
 def parse_mode_flags(parsed_opts):
     mode = parsed_opts["mode"]
-    command_prefix = [ ]
 
-    if parsed_opts["wrapper"] == "valgrind":
-        command_prefix.append("valgrind")
+    if parsed_opts["valgrind"]:
+        assert parsed_opts["wrapper"] is None
+        command_prefix = ["valgrind"]
         for valgrind_option in shlex.split(parsed_opts["valgrind-options"]):
             command_prefix.append(valgrind_option)
 
@@ -23,8 +24,11 @@ def parse_mode_flags(parsed_opts):
         if "valgrind" not in mode:
             mode = mode + "-valgrind"
 
-    elif parsed_opts["wrapper"] == "strace":
-        command_prefix.extend(["strace", "-f"])
+    elif parsed_opts["wrapper"] is not None:
+        command_prefix = shlex.split(parsed_opts["wrapper"])
+
+    else:
+        command_prefix = []
 
     return driver.find_rethinkdb_executable(mode), command_prefix, shlex.split(parsed_opts["serve-flags"])
 
