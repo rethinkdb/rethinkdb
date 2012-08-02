@@ -1,6 +1,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
+#include <boost/make_shared.hpp>
 
 #include "btree/erase_range.hpp"
 #include "btree/slice.hpp"
@@ -342,8 +343,10 @@ store_t::store_t(io_backender_t *io_backend,
                  const std::string& filename,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
-                 context_t *ctx) :
-    btree_store_t<rdb_protocol_t>(io_backend, filename, create, parent_perfmon_collection, ctx) { }
+                 context_t *_ctx) :
+    btree_store_t<rdb_protocol_t>(io_backend, filename, create, parent_perfmon_collection, _ctx),
+    ctx(_ctx)
+{ }
 
 store_t::~store_t() {
     assert_thread();
@@ -358,20 +361,23 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
         return read_response_t(rdb_rget_slice(btree, rget.key_range, 1000, txn, superblock));
     }
 
-    read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_) :
-        btree(btree_), txn(txn_), superblock(superblock_) { }
+    read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, rdb_protocol_t::context_t *ctx) :
+        btree(btree_), txn(txn_), superblock(superblock_), 
+        env(ctx->pool_group, ctx->ns_repo, ctx->semilattice_metadata, boost::make_shared<js::runner_t>(), &ctx->interruptor)
+    { }
 
 private:
     btree_slice_t *btree;
     transaction_t *txn;
     superblock_t *superblock;
+    query_language::runtime_environment_t env;
 };
 
 read_response_t store_t::protocol_read(const read_t &read,
                                        btree_slice_t *btree,
                                        transaction_t *txn,
                                        superblock_t *superblock) {
-    read_visitor_t v(btree, txn, superblock);
+    read_visitor_t v(btree, txn, superblock, ctx);
     return boost::apply_visitor(v, read.read);
 }
 

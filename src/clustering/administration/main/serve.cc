@@ -207,7 +207,8 @@ try {
     // RDB
 
     // Create and RDB context
-    rdb_protocol_t::context_t ctx(&rdb_namespace_repo, metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()));
+    rdb_protocol_t::context_t ctx(&extproc_pool_group, &rdb_namespace_repo, 
+                                  metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()));
                                   
 
     file_based_svs_by_namespace_t<rdb_protocol_t> rdb_svs_source(io_backender, filepath);

@@ -21,6 +21,7 @@
 #include "clustering/administration/namespace_metadata.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
+#include "extproc/pool.hpp"
 #include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
@@ -94,13 +95,16 @@ struct rdb_protocol_t {
     struct temporary_cache_t { };
 
     struct context_t { 
-        context_t(namespace_repo_t<rdb_protocol_t> *_ns_repo, 
+        context_t(extproc::pool_group_t *_pool_group,
+                  namespace_repo_t<rdb_protocol_t> *_ns_repo, 
                   boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > _semilattice_metadata)
-            : ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata)
+            : pool_group(_pool_group), ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata)
         { }
 
+        extproc::pool_group_t *pool_group;
         namespace_repo_t<rdb_protocol_t> *ns_repo;
         boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > semilattice_metadata;
+        cond_t interruptor; //TODO figure out where we're going to want to interrupt this from and put this there instead
     };
 
     struct point_read_response_t {
@@ -381,10 +385,11 @@ struct rdb_protocol_t {
                                  btree_slice_t *btree,
                                  transaction_t *txn,
                                  superblock_t *superblock);
+        context_t *ctx;
     };
 
-    static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 
+    static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 };
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_
