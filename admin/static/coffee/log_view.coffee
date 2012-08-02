@@ -409,16 +409,16 @@ module 'LogView', ->
                                             datacenter_id: datacenter_id
                                             datacenter_id_trunked: datacenter_id.slice 24
                     else if group is 'databases'
-                        for datacenter_id of json_data[group]
-                            if json_data[group][datacenter_id] is null
+                        for database_id of json_data[group]
+                            if json_data[group][database_id] is null
                                 msg += @log_delete_something_template
                                     type: 'database'
-                                    id: datacenter_id
-                            else if datacenter_id is 'new'
+                                    id: database_id
+                            else if database_id is 'new'
                                 msg += @log_new_database_template
-                                    database_name: json_data[group][datacenter_id]['name']
+                                    database_name: json_data[group][database_id]['name']
                             else
-                                for attribute of json_data[group][datacenter_id]
+                                for attribute of json_data[group][database_id]
                                     if attribute is 'name'
                                         msg += @log_database_new_name_template
                                             name: json_data[group][database_id][attribute]
@@ -538,7 +538,7 @@ module 'LogView', ->
                                             value += ', '
 
                                     msg += @log_database_value_small_template
-                                        database_id: datacenter_id
+                                        database_id: database_id
                                         database_name: if databases.get(database_id)? then databases.get(database_id).get 'name' else 'removed database'
                                         attribute: value
 
