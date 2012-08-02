@@ -152,7 +152,8 @@ module 'ServerView', ->
                 @history.traffic_sent.push 0
                 @history.traffic_recv.push 0
 
-            @model.on 'change', @render_summary
+            @model.on 'change:name', @render_summary
+            #TODO change callback so we don't refresh the whole element but just the status
             directory.on 'all', @render_summary
 
             # Load abstract list element view with the machine template
@@ -449,7 +450,7 @@ module 'ServerView', ->
     class @UnassignedMachinesListElement extends UIComponents.CollapsibleListElement
         template: Handlebars.compile $('#unassigned_machines_list_element-template').html()
 
-        className: 'unassigned-machines element'
+        className: 'unassigned-machines element-container'
 
         initialize: ->
             super

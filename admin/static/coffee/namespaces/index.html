@@ -2,8 +2,9 @@
   <h1>Namespaces in the cluster</h1>
   <div id="user-alert-space"></div>
   <div class="actions-bar">
-    <a href="#" class="btn add-namespace">Add namespace</a>
-    <a href="#" class="btn for-multiple-elements disabled remove-namespace">Remove selected namespaces</a>
+      <input type="button" class="btn add-database" value="Add database" />
+    <input type="button" class="btn add-namespace" value="Add namespace" />
+    <input type="button" class="btn for-multiple-elements disabled remove-namespace" value="Remove selected namespaces" />
   </div>
   <div class="collapsible-list">
   </div>
@@ -70,6 +71,29 @@
     Sorry, something went wrong. The namespace might not be up to date, please refresh.
 </script>
 
+
+
+<script id="add_database-modal-template" type="text/x-handlebars-template"> 
+  <div class="alert alert-error error_answer"></div>
+  <form class="form">
+    <fieldset>
+      <legend>Database details</legend>
+      <div class="clearfix">
+        <label for="name">Name</label>
+        <div class="input">
+          <input class="xlarge focus_new_name" name="name" size="30" type="text" />
+        </div>
+      </div>
+    </fieldset>
+  </form>
+</script>
+
+<script id="added_database-alert-template" type="text/x-handlebars-template">
+  <div class="alert" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+    <p>You successfully added database <span class="name">{{name}}</span>.</p>
+  </div>
+</script>
 
 
 <script id="add_namespace-modal-template" type="text/x-handlebars-template">

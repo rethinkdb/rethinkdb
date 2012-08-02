@@ -116,14 +116,18 @@
 </script>
 
 <script id="unassigned_machines_list_element-template" type="text/x-handlebars-template">
-  {{# unless no_machines}}
-  <div class="header">
-    <div class="expanded arrow"></div>
-    <h3 class="datacenter name">Unassigned machines</h3>
-  </div>
-  <div class="element-list-container"></div>
-  <div class="summary expanded"></div>
-  {{/unless}}
+    {{# unless no_machines}}
+    <div class="header_container">
+        <div class="expanded arrow"></div>
+        <div class="datacenter summary">
+            <div class="element-type">Unasssigned machines</div>
+        </div>
+    </div>
+
+    {{#unless no_machines}}
+    <div class="element-list-container"></div>
+    {{/unless}}
+    {{/unless}}
 </script>
 
 <script id="add_datacenter-modal-template" type="text/x-handlebars-template"> 

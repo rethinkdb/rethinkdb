@@ -10,8 +10,10 @@ module 'NamespaceView', ->
         error_template: Handlebars.compile $('#error_adding_namespace-template').html()
 
         events: ->
-            'click a.add-namespace': 'add_namespace'
-            'click a.remove-namespace': 'remove_namespace'
+            'click .add-database': 'add_database'
+            'click .add-namespace': 'add_namespace'
+            'click .remove-namespace': 'remove_namespace'
+            'click .close': 'remove_parent_alert'
         ###
         'mouseenter .contains_info': 'display_popover'
         'mouseleave .contains_info': 'hide_popover'
@@ -27,6 +29,7 @@ module 'NamespaceView', ->
         initialize: ->
             log_initial '(initializing) namespace list view'
 
+            @add_database_dialog = new NamespaceView.AddDatabaseModal
             @add_namespace_dialog = new NamespaceView.AddNamespaceModal
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
@@ -34,7 +37,7 @@ module 'NamespaceView', ->
 
         render: =>
             super
-            #@update_toolbar_buttons()
+            @update_toolbar_buttons()
             return @
 
         remove_parent_alert: (event) ->
@@ -46,6 +49,9 @@ module 'NamespaceView', ->
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'namespace'
             rename_modal.render()
+
+        add_database: (event) =>
+            @add_database_dialog.render()
 
         add_namespace: (event) =>
             event.preventDefault()
@@ -61,25 +67,31 @@ module 'NamespaceView', ->
             log_action 'remove namespace button clicked'
             # Make sure the button isn't disabled, and pass the list of namespace UUIDs selected
             if not $(event.currentTarget).hasClass 'disabled'
-                @remove_namespace_dialog.render @get_selected_elements()
+                @remove_namespace_dialog.render @get_selected_namespaces()
             event.preventDefault()
 
-        ###
         # Extend the AbstractList.add_element method to bind a callback to each namespace added to the list
         add_element: (element) =>
-            machine_list_element = super element
-            machine_list_element.off 'selected'
-            machine_list_element.on 'selected', @update_toolbar_buttons
+            namespaces_list_element = super element
+            namespaces_list_element.register_namespace_callback [@update_toolbar_buttons]
 
+        # Count up the number of namespaces checked off across all machine lists
+        get_selected_namespaces: =>
+            namespaces_lists = _.map @element_views, (database_list_element) ->
+                database_list_element.namespace_list
 
+            selected_namespaces = []
+            for namespaces_list in namespaces_lists
+                selected_namespaces = selected_namespaces.concat namespaces_list.get_selected_elements()
+
+            return selected_namespaces
 
 
         # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
         update_toolbar_buttons: =>
             # We need to check how many namespaces have been checked off to decide which buttons to enable/disable
-            $remove_namespaces_button = @.$('.actions-bar a.btn.remove-namespace')
-            $remove_namespaces_button.toggleClass 'disabled', @get_selected_elements().length < 1
-        ###
+            $remove_namespaces_button = @.$('.btn.remove-namespace')
+            $remove_namespaces_button.toggleClass 'disabled', @get_selected_namespaces().length < 1
 
         destroy: =>
              super()
@@ -132,11 +144,13 @@ module 'NamespaceView', ->
 
         render_summary: =>
             json = @model.toJSON()
-            console.log json
-
 
             @.$('.summary').html @summary_template json
 
+
+        register_namespace_callback: (callbacks) =>
+            @callbacks = callbacks
+            @namespace_list.register_namespace_callbacks callbacks
 
         rename_datacenter: (event) ->
             event.preventDefault()
@@ -166,11 +180,6 @@ module 'NamespaceView', ->
             super namespaces, NamespaceView.NamespaceListElement, 'tbody.list',
                 filter: (model) -> model.get('database') is database_id
 
-        render: =>
-            console.log 'render namespace list'
-            super
-            @update_toolbar_buttons()
-            return @
 
         remove_parent_alert: (event) ->
             event.preventDefault()
@@ -179,10 +188,8 @@ module 'NamespaceView', ->
 
         # Extend the AbstractList.add_element method to bind a callback to each namespace added to the list
         add_element: (element) =>
-            machine_list_element = super element
-            machine_list_element.off 'selected'
-            machine_list_element.on 'selected', @update_toolbar_buttons
-
+            namespace_list_element = super element
+            @bind_callbacks_to_namespace namespace_list_element
 
         add_namespace: (event) =>
             event.preventDefault()
@@ -201,11 +208,13 @@ module 'NamespaceView', ->
                 @remove_namespace_dialog.render @get_selected_elements()
             event.preventDefault()
 
-        # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
-        update_toolbar_buttons: =>
-            # We need to check how many namespaces have been checked off to decide which buttons to enable/disable
-            $remove_namespaces_button = @.$('.actions-bar a.btn.remove-namespace')
-            $remove_namespaces_button.toggleClass 'disabled', @get_selected_elements().length < 1
+        register_namespace_callbacks: (callbacks) =>
+            @callbacks = callbacks
+            @bind_callbacks_to_namespace namespace_list_element for namespace_list_element in @element_views
+
+        bind_callbacks_to_namespace: (namespace_list_element) =>
+            namespace_list_element.off 'selected'
+            namespace_list_element.on 'selected', => callback() for callback in @callbacks
 
         destroy: =>
              super()
@@ -280,6 +289,58 @@ module 'NamespaceView', ->
         destroy: =>
             @model.off 'change', @render
             machines.off 'all', @render
+
+
+    class @AddDatabaseModal extends UIComponents.AbstractModal
+        template: Handlebars.compile $('#add_database-modal-template').html()
+        alert_tmpl: Handlebars.compile $('#added_database-alert-template').html()
+        error_template: Handlebars.compile $('#error_input-template').html()
+        
+        class: 'add-database'
+
+        initialize: ->
+            log_initial '(initializing) modal dialog: add datacenter'
+            super
+
+        render: ->
+            log_render '(rendering) add datatabase dialog'
+            super
+                modal_title: "Add database"
+                btn_primary_text: "Add"
+            @.$('.focus_new_name').focus()
+
+        on_submit: ->
+            super
+            @formdata = form_data_as_object($('form', @$modal))
+
+            no_error = true
+            if @formdata.name is ''
+                no_error = false
+                template_error =
+                    database_is_empty: true
+                $('.alert_modal').html @error_template template_error
+                $('.alert_modal').alert()
+                @reset_buttons()
+            else
+                for database in databases.models
+                    if database.get('name') is @formdata.name
+                        no_error = false
+                        template_error =
+                            database_exists: true
+                        $('.alert_modal').html @error_template template_error
+                        $('.alert_modal').alert()
+                        @reset_buttons()
+                        break
+            if no_error is true
+                $.ajax
+                    processData: false
+                    url: '/ajax/semilattice/databases/new'
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify({"name" : @formdata.name})
+                    success: @on_success
+                    error: @on_error
+
 
     # A modal for adding namespaces
     class @AddNamespaceModal extends UIComponents.AbstractModal
