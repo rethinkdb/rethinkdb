@@ -341,6 +341,14 @@ module 'NamespaceView', ->
                     success: @on_success
                     error: @on_error
 
+        on_success: (response) =>
+            super
+            apply_to_collection(databases, response)
+
+            # Notify the user
+            for id, namespace of response
+                $('#user-alert-space').append @alert_tmpl
+                    name: namespace.name
 
     # A modal for adding namespaces
     class @AddNamespaceModal extends UIComponents.AbstractModal
