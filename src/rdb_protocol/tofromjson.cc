@@ -4,6 +4,9 @@
 
 #include "rdb_protocol/jsimpl.hpp"
 
+// Picked from a hat.
+#define TOJSON_RECURSION_LIMIT  500
+
 namespace js {
 
 static void get_string(boost::scoped_array<char> *out, const v8::Handle<v8::String> string) {
@@ -29,13 +32,15 @@ static void get_string(boost::scoped_array<char> *out, const v8::Handle<v8::Stri
 
 // Returns NULL & sets `*errmsg` on failure.
 //
-// TODO (rntz) FIXME: implement max recursion depth, to avoid potential security
-// vulnerabilies if nothing else.
-//
-// FIXME: avoid infinite recursion on cyclic data structures. Not sure whether
-// there's a good way to detect this, or if I should just rely on maximum
-// recursion depth.
-static cJSON *mkJSON(const v8::Handle<v8::Value> value, std::string *errmsg) {
+// TODO(rntz): Is there a better way of detecting cyclic data structures than
+// using a recursion limit?
+static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std::string *errmsg) {
+    if (0 == recursion_limit) {
+        *errmsg = "toJSON recursion limit exceeded";
+        return NULL;
+    }
+    --recursion_limit;
+
     // TODO(rntz): should we handle BooleanObject, NumberObject, StringObject?
     v8::HandleScope handle_scope;
 
@@ -67,7 +72,7 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, std::string *errmsg) {
                 // elt would be empty.
                 rassert(!elth.IsEmpty());
 
-                cJSON *eltj = mkJSON(elth, errmsg);
+                cJSON *eltj = mkJSON(elth, recursion_limit, errmsg);
                 if (NULL == eltj) return NULL;
 
                 // TODO (rntz) FIXME: this is O(n). do this better by explicitly
@@ -107,7 +112,7 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, std::string *errmsg) {
                 v8::Handle<v8::Value> valueh = objh->Get(keyh);
                 rassert(!valueh.IsEmpty()); // FIXME
 
-                cJSON *valuej = mkJSON(valueh, errmsg);
+                cJSON *valuej = mkJSON(valueh, recursion_limit, errmsg);
                 if (NULL == valuej) return NULL;
 
                 boost::scoped_array<char> buf;
@@ -150,7 +155,7 @@ boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value, std:
     v8::HandleScope handle_scope;
     *errmsg = "unknown error when converting to JSON";
 
-    cJSON *json = mkJSON(value, errmsg);
+    cJSON *json = mkJSON(value, TOJSON_RECURSION_LIMIT, errmsg);
     if (json) {
         return boost::make_shared<scoped_cJSON_t>(json);
     } else {
