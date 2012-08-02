@@ -40,7 +40,7 @@ log_message_t assemble_log_message(log_level_t level, const std::string &message
 
 class thread_pool_log_writer_t : public home_thread_mixin_t {
 public:
-    thread_pool_log_writer_t(local_issue_tracker_t *issue_tracker);
+    explicit thread_pool_log_writer_t(local_issue_tracker_t *issue_tracker);
     ~thread_pool_log_writer_t();
 
     std::vector<log_message_t> tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t);

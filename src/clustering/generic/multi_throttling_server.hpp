@@ -272,4 +272,4 @@ private:
     registrar_t<client_business_card_t, multi_throttling_server_t *, client_t> registrar;
 };
 
-#endif   /* CLUSTERING_GENERIC_MULTI_THROTTLING_SERVER_HPP_ */
+#endif /* CLUSTERING_GENERIC_MULTI_THROTTLING_SERVER_HPP_ */
