@@ -29,9 +29,9 @@ public:
     virtual ~linux_iocallback_t() {}
     virtual void on_io_complete() = 0;
 
+    //TODO Remove this default implementation and actually handle io errors.
     virtual void on_io_failure() {
-        printf("IO Operation failed. Exiting.\n");
-        _exit(1);
+        crash("I/O operation failed. Exiting.\n");
     }
 };
 

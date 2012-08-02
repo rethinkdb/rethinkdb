@@ -60,7 +60,7 @@ public:
         friend class linux_diskmgr_aio_t;
 
         // Only valid on return. Can be used to determine success or failure.
-        int io_result;
+        int64_t io_result;
     };
 
     linux_diskmgr_aio_t(
@@ -118,7 +118,7 @@ public:
     iocb *produce_next_value();
 
     /* `getter` calls `aio_notify()` when an operation is complete. */
-    void aio_notify(iocb *event, int result) NON_NULL_ATTR(2);
+    void aio_notify(iocb *event, int64_t result) NON_NULL_ATTR(2);
 };
 
 #endif // ARCH_IO_DISK_AIO_HPP_

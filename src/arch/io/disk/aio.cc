@@ -59,7 +59,7 @@ iocb *linux_diskmgr_aio_t::produce_next_value() {
     return next_iocb;
 }
 
-void linux_diskmgr_aio_t::aio_notify(iocb *event, int result) {
+void linux_diskmgr_aio_t::aio_notify(iocb *event, int64_t result) {
 
     action_t *a = static_cast<action_t *>(event);
 

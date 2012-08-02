@@ -85,6 +85,11 @@
         abort();                                                    \
     } while (0)
 
+#define nice_crash(msg, ...) do {            \
+        fprintf(stderr, msg, ##__VA_ARGS__); \
+        exit(EXIT_FAILURE);                             \
+    } while (0)
+
 #define crash_or_trap(msg, ...) do {                                \
         report_fatal_error(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
         BREAKPOINT;                                                 \
@@ -101,6 +106,13 @@ void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
             crash_or_trap(format_assert_message("Guarantee", cond) msg); \
         }                               \
     } while (0)
+
+#define nice_guarantee(cond, msg, ...) do { \
+        if (!(cond)) {                      \
+            nice_crash(msg, ##__VA_ARGS__); \
+        }                                   \
+    } while (0)
+
 #define guarantee_xerr(cond, err, msg, args...) do {                            \
         if (!(cond)) {                                                          \
             if (err == 0) {                                                     \
