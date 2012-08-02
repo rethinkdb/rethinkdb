@@ -12,6 +12,21 @@ namespace js {
 const id_t MIN_ID = 1;
 const id_t MAX_ID = UINT32_MAX;
 
+// ---------- utility functions ----------
+static void append_caught_error(std::string *errmsg, const v8::TryCatch &try_catch) {
+    if (!try_catch.HasCaught()) return;
+
+    v8::HandleScope handle_scope;
+    v8::Handle<v8::String> msg = try_catch.Message()->Get();
+
+    int len = msg->Utf8Length();
+    scoped_array_t<char> buf(len);
+    guarantee(len == msg->WriteUtf8(buf.data(), len));
+
+    errmsg->append(":\n");
+    errmsg->append(buf.data(), len);
+}
+
 // ---------- scoped_id_t ----------
 scoped_id_t::~scoped_id_t() {
     if (!empty()) reset();
@@ -242,15 +257,15 @@ struct compile_task_t : auto_task_t<compile_task_t> {
 
         v8::Handle<v8::Script> script = v8::Script::Compile(src);
         if (script.IsEmpty()) {
-            // TODO (rntz): use try_catch for error message
             *errmsg = "compiling function definition failed";
+            append_caught_error(errmsg, try_catch);
             return result;
         }
 
         v8::Handle<v8::Value> funcv = script->Run();
         if (funcv.IsEmpty()) {
-            // TODO (rntz): use try_catch for error message
             *errmsg = "evaluating function definition failed";
+            append_caught_error(errmsg, try_catch);
             return result;
         }
         if (!funcv->IsFunction()) {
@@ -327,17 +342,7 @@ struct call_task_t : auto_task_t<call_task_t> {
         v8::Handle<v8::Value> result = func->Call(obj, nargs, handles.data());
         if (result.IsEmpty()) {
             *errmsg = "calling function failed";
-            if (try_catch.HasCaught()) {
-                v8::Handle<v8::String> msg = try_catch.Message()->Get();
-
-                // FIXME TODO (rntz): stack overflow problem if len too large.
-                size_t len = msg->Utf8Length();
-                char buf[len];
-                msg->WriteUtf8(buf);
-
-                errmsg->append(":\n");
-                errmsg->append(buf, len);
-            }
+            append_caught_error(errmsg, try_catch);
         }
         return scope.Close(result);
     }
