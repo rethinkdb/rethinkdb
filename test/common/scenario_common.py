@@ -5,7 +5,7 @@ import workload_runner
 
 def prepare_option_parser_mode_flags(opt_parser):
     opt_parser["valgrind"] = BoolFlag("--valgrind")
-    opt_parser["valgrind-options"] = StringFlag("--valgrind-options", "--leak-check=full --track-origins=yes")
+    opt_parser["valgrind-options"] = StringFlag("--valgrind-options", "--leak-check=full --track-origins=yes --child-silent-after-fork=yes")
     opt_parser["mode"] = StringFlag("--mode", "debug")
     opt_parser["serve-flags"] = StringFlag("--serve-flags", "")
 
