@@ -417,7 +417,7 @@ struct memcached_sock_protocol_t : public protocol_t {
     }
 
     virtual ~memcached_sock_protocol_t() {
-        // assert(!exist_outstanding_pipeline_reads());;
+        // assert(!exist_outstanding_pipeline_reads());
         if (sockfd != -1) {
             int res = close(sockfd);
             int err = errno;
@@ -433,7 +433,7 @@ struct memcached_sock_protocol_t : public protocol_t {
     }
 
     virtual void remove(const char *key, size_t key_size) {
-        assert(!exist_outstanding_pipeline_reads());;
+        assert(!exist_outstanding_pipeline_reads());
         // Setup the text command
         send_buffer_at_least(key_size + 1024);
         char *buf = send_buffer.data();
@@ -465,13 +465,13 @@ struct memcached_sock_protocol_t : public protocol_t {
 
     virtual void update(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
-        assert(!exist_outstanding_pipeline_reads());;
+        assert(!exist_outstanding_pipeline_reads());
         insert(key, key_size, value, value_size);
     }
 
     virtual void insert(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
-        assert(!exist_outstanding_pipeline_reads());;
+        assert(!exist_outstanding_pipeline_reads());
         // Setup the text command
         send_buffer_at_least(key_size + value_size + 1024);
         char *buf = send_buffer.data();
@@ -506,7 +506,7 @@ struct memcached_sock_protocol_t : public protocol_t {
     }
 
     virtual void read(payload_t *keys, int count, payload_t *values = NULL) {
-        assert(!exist_outstanding_pipeline_reads());;
+        assert(!exist_outstanding_pipeline_reads());
         // Setup the text command
         send_buffer_at_least(count * MAX_MC_KEY_SIZE + 1024);
         char *buf = send_buffer.data();
@@ -635,7 +635,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
-        assert(!exist_outstanding_pipeline_reads());;
+        assert(!exist_outstanding_pipeline_reads());
         // Setup the text command
         send_buffer_at_least(key_size + value_size + 1024);
         char *buf = send_buffer.data();
@@ -670,7 +670,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
     virtual void prepend(const char *key, size_t key_size,
                           const char *value, size_t value_size) {
-        assert(!exist_outstanding_pipeline_reads());;
+        assert(!exist_outstanding_pipeline_reads());
         // Setup the text command
         send_buffer_at_least(key_size + value_size + 1024);
         char *buf = send_buffer.data();
