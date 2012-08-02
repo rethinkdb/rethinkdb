@@ -167,7 +167,7 @@ protected:
         if (buffer.bytes_in_buffer < n) {
             // MSG_WAITALL makes recv wait until it actually receives the full n bytes
             const ssize_t bytes_read = recv(socketfd, char_buffer + buffer.first_buffer_byte + buffer.bytes_in_buffer, n - buffer.bytes_in_buffer, MSG_WAITALL);
-            if(bytes_read < n - buffer.bytes_in_buffer) {
+            if (bytes_read < n - buffer.bytes_in_buffer) {
                 perror("Unable to read from socket");
                 exit(-1);
             }
@@ -369,7 +369,7 @@ struct memcached_sock_protocol_t : public protocol_t {
     {
         // init the socket
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if(sockfd < 0) {
+        if (sockfd < 0) {
             int err = errno;
             fprintf(stderr, "Could not create socket\n");
             exit(-1);
@@ -383,7 +383,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         strncpy(_host, conn_str, MAX_HOST);
 
         int port;
-        if(char *_port = strchr(_host, ':')) {
+        if (char *_port = strchr(_host, ':')) {
             *_port = '\0';
             _port++;
             port = atoi(_port);
@@ -409,7 +409,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
         // Connect to server
         int res = ::connect(sockfd, (struct sockaddr *)&sin, sizeof(sin));
-        if(res < 0) {
+        if (res < 0) {
             int err = errno;
             fprintf(stderr, "Could not connect to server (%d)\n", err);
             exit(-1);
@@ -418,10 +418,10 @@ struct memcached_sock_protocol_t : public protocol_t {
 
     virtual ~memcached_sock_protocol_t() {
         // assert(!exist_outstanding_pipeline_reads());;
-        if(sockfd != -1) {
+        if (sockfd != -1) {
             int res = close(sockfd);
             int err = errno;
-            if(res != 0) {
+            if (res != 0) {
                 fprintf(stderr, "Could not close socket\n");
                 exit(-1);
             }
@@ -514,7 +514,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         for(int i = 0; i < count; i++) {
             memcpy(buf, keys[i].first, keys[i].second);
             buf += keys[i].second;
-            if(i != count - 1) {
+            if (i != count - 1) {
                 buf += sprintf(buf, " ");
             }
         }
@@ -560,7 +560,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         for(int i = 0; i < count; i++) {
             memcpy(buf, keys[i].first, keys[i].second);
             buf += keys[i].second;
-            if(i != count - 1) {
+            if (i != count - 1) {
                 buf += sprintf(buf, " ");
             }
         }
@@ -708,7 +708,7 @@ private:
         int count = 0, res = 0;
         do {
             res = write(sockfd, send_buffer.data() + count, total - count);
-            if(res < 0) {
+            if (res < 0) {
                 int err = errno;
                 fprintf(stderr, "Could not send command (%d)\n", errno);
                 exit(-1);
