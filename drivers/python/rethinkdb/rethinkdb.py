@@ -107,7 +107,7 @@ class Connection(object):
             return [json.loads(s) for s in response.response] + self._run(new_protobuf, query)
         elif response.status_code == p.Response.SUCCESS_EMPTY:
             return None
-        elif response.status_code == p.Response.BAD_PROTOBUF:
+        elif response.status_code == p.Response.BROKEN_CLIENT:
             raise ValueError("RethinkDB server rejected our protocol buffer as "
                 "malformed. RethinkDB client is buggy?")
         elif response.status_code == p.Response.BAD_QUERY:

@@ -36,7 +36,7 @@ static void get_string(boost::scoped_array<char> *out, const v8::Handle<v8::Stri
 // using a recursion limit?
 static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std::string *errmsg) {
     if (0 == recursion_limit) {
-        *errmsg = "toJSON recursion limit exceeded";
+        *errmsg = "toJSON recursion limit exceeded (cyclic datastructure?)";
         return NULL;
     }
     --recursion_limit;
