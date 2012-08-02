@@ -178,7 +178,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
             datacenter_id_t datacenter_id = generate_uuid();
             datacenter_semilattice_metadata_t datacenter_metadata;
-            datacenter_metadata.name = vclock_t<std::string>("Welcome", our_machine_id);
+            datacenter_metadata.name = vclock_t<std::string>("Welcome-dc", our_machine_id);
             semilattice_metadata.datacenters.datacenters.insert(std::make_pair(
                 datacenter_id,
                 deletable_t<datacenter_semilattice_metadata_t>(datacenter_metadata)
@@ -198,7 +198,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
             /* Create a welcome database. */
             database_id_t database_id = generate_uuid();
             database_semilattice_metadata_t database_metadata;
-            database_metadata.name = vclock_t<std::string>("Welcome", our_machine_id);
+            database_metadata.name = vclock_t<std::string>("Welcome-db", our_machine_id);
             semilattice_metadata.databases.databases.insert(std::make_pair(
                 database_id,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)
@@ -208,7 +208,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                 namespace_id_t namespace_id = generate_uuid();
                 namespace_semilattice_metadata_t<memcached_protocol_t> namespace_metadata;
 
-                namespace_metadata.name = vclock_t<std::string>("Welcome", our_machine_id);
+                namespace_metadata.name = vclock_t<std::string>("Welcome-memcached", our_machine_id);
                 namespace_metadata.port = vclock_t<int>(11213, our_machine_id);
 
                 persistable_blueprint_t<memcached_protocol_t> blueprint;
@@ -249,7 +249,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                 namespace_id_t namespace_id = generate_uuid();
                 namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata;
 
-                namespace_metadata.name = vclock_t<std::string>("Welcome", our_machine_id);
+                namespace_metadata.name = vclock_t<std::string>("Welcome-rdb", our_machine_id);
                 namespace_metadata.primary_key = vclock_t<std::string>("id", our_machine_id);
                 namespace_metadata.port = vclock_t<int>(11213, our_machine_id);
 

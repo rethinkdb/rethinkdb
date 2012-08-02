@@ -48,7 +48,7 @@ class BackboneCluster extends Backbone.Router
         log_router '/index_namespaces'
         clear_modals()
         @current_view.destroy()
-        @current_view = new NamespaceView.NamespaceList
+        @current_view = new NamespaceView.DatabaseList
         @$container.html @current_view.render().el
         @sidebar.set_type_view()
 

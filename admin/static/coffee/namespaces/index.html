@@ -1,53 +1,68 @@
-<script id="namespace_list-template" type="text/x-handlebars-template">
+<script id="database_list-template" type="text/x-handlebars-template">
   <h1>Namespaces in the cluster</h1>
   <div id="user-alert-space"></div>
   <div class="actions-bar">
     <a href="#" class="btn add-namespace">Add namespace</a>
     <a href="#" class="btn for-multiple-elements disabled remove-namespace">Remove selected namespaces</a>
   </div>
-  <div class="namespace-list">
-    <table class="table table-bordered table-striped" cellpadding="0" cellspacing="0">
-      <tbody class="list">
-      </tbody>
-    </table>
+  <div class="collapsible-list">
   </div>
 </script>
 
+<script id="namespace_list-template" type="text/x-handlebars-template">
+    <tbody class="list">
+    </tbody>
+</script>
+
+<script id="database_list_element-template" type="text/x-handlebars-template">
+    <div class="header_container">
+        {{#unless no_namespace}}
+        <div class="expanded arrow"></div>
+        {{/unless}}
+        <div class="database summary"></div>
+    </div>
+
+    {{#unless no_namespaces}}
+    <div class="element-list-container"></div>
+    {{/unless}}
+</script>
+
 <script id="namespace_list_element-template" type="text/x-handlebars-template">
-    <td>
+    <td class="checkbox-container">
         <input type="checkbox"></input>
     </td>
-    <td>
-    <div class="namespace details">
-        <div class="toolbar">
-            <p class="actions"><a href="#" class="rename-namespace">rename</a></p>
-        </div>
-        <h3 class="name">
-            <span class="label label-namespace">Namespace</span>
-            <a href="#namespaces/{{id}}">{{name}}</a>
-            <span class="status">{{humanize_namespace_reachability reachability}}</span>
-            <span class="namespace_replication_status">Replication: {{> backfill_progress_summary}}<span>
-        </h3>
-        {{#if unassigned_machine}}
-        <p class="contains">Not assigned to any datacenter</p>
-        {{else}}
-        <p class="quick_info">
-        {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}
-        </p>
-        {{/if}}
-        <ul class="list_stats">
-            <li class="stat_name">Total op/sec</li>
-            <li class="opsec_sparkline sparkline_container contains_info" title="{{opsec}} {{pluralize_noun "operation" opsec}} per second"></li>
-        </ul>
-        <ul class="list_stats">
-            <li class="stat_name">Data in RAM</li>
-            <li class="data_in_ram">
-                <div class="progress contains_info" title="Data in ram: {{data_in_memory}} - Data in disk: {{data_total}}">
-                    <div class="bar" style="width: {{data_in_memory_percent}}%;"></div>
-                </div>
-            </li>
-        </ul>
+    <td class="element-detail-container">
+        <span class="status">{{humanize_namespace_reachability reachability}}</span>
+            <div class="label label-namespace">Namespace</div>
+            <span class="name">    
+                <a href="#namespaces/{{id}}">{{name}}</a>
+            </span>
+            <p class="quick_info">
+            {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}, replication: {{> backfill_progress_summary}}
+            </p>
+    
+            <!--
+            <ul class="list_stats">
+                <li class="stat_name">Total op/sec</li>
+                <li class="opsec_sparkline sparkline_container contains_info" title="{{opsec}} {{pluralize_noun "operation" opsec}} per second"></li>
+            </ul>
+            <ul class="list_stats">
+                <li class="stat_name">Data in RAM</li>
+                <li class="data_in_ram">
+                    <div class="progress contains_info" title="Data in ram: {{data_in_memory}} - Data in disk: {{data_total}}">
+                        <div class="bar" style="width: {{data_in_memory_percent}}%;"></div>
+                    </div>
+                </li>
+            </ul>
+            -->
     </td>
+</script>
+
+<script id="database_list_element-summary-template" type="text/x-handlebars-template">
+    <div class="element-type">Database</div>
+    <h3 class="name">
+        <a href="#database/{{id}}">{{name}}</a>
+    </h3>
 </script>
 
 
@@ -66,6 +81,16 @@
         <label for="name">Name</label>
         <div class="input">
           <input class="xlarge" id="focus_namespace_name" name="name" size="30" type="text" />
+        </div>
+      </div>
+      <div class="clearfix">
+        <label for="primary_datacenter">Select a database:</label>
+        <div class="input">
+          <select class="database" name="database">
+            {{#each databases}}
+            <option value="{{this.id}}">{{this.name}}</option>
+            {{/each}}
+          </select>
         </div>
       </div>
       <div class="clearfix">

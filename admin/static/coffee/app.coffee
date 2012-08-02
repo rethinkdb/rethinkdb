@@ -89,6 +89,8 @@ apply_diffs = (updates) ->
         switch collection_id
             when 'dummy_namespaces'
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "dummy"))
+            when 'databases'
+                apply_to_collection(databases, collection_data)
             when 'memcached_namespaces'
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "memcached"))
             when 'rdb_namespaces'
@@ -98,7 +100,6 @@ apply_diffs = (updates) ->
             when 'machines'
                 apply_to_collection(machines, collection_data)
             when 'me' then continue
-            when 'databases' then continue #TODO Implement
             else
                 console.log "Unhandled element update: " + collection_id
     return
@@ -229,6 +230,7 @@ $ ->
 
     # Initializing the Backbone.js app
     window.datacenters = new Datacenters
+    window.databases = new Databases
     window.namespaces = new Namespaces
     window.machines = new Machines
     window.issues = new Issues

@@ -534,51 +534,113 @@
     .panel-gradient;
 }
 
-.namespace-list, .server-list .machine-list {
-    border: @panel_border;
-    .border-radius(0 0 @border_radius @border_radius);
-    margin-top: 10px;
-    margin-bottom: 20px;
+.collapsible-list{
+    margin: 20px 0px 20px 0px;
+    .element-container{
+        margin: 0px 0px 20px 0px;
+        .header_container{
+            overflow: auto;
+            .arrow {
+                width: 16px;
+                height: 16px;
+                float: left;
+                cursor: pointer;
+                &.collapsed {
+                    background: url('/images/right-arrow_16x16.png') no-repeat center top;
+                }
+                &.expanded {
+                    background: url('/images/down-arrow_16x16.png') no-repeat center top;
+                    margin-top: 3px;
+                }
+            }
+            .element-type {
+                float: left;
+                margin: 3px 0px 0px 10px;
+                padding: 2px 4px 2px 4px;
 
-    table {
-        margin-bottom: 0;
-        border: 0;
-        td + td { border-left: 0; }
-        td { vertical-align: top; }
+                line-height: 13px;
 
-        tr.machine-element {
-            &.selected td {
-                background: @selected_color;
-            }
-            &.last-child td {
-                border-bottom: 0;
-            }
-        }
-        tr.element {
-            &.selected td {
-                background: @selected_color;
-            }
-            &.last-child td {
-                border-bottom: 0;
-            }
+                background-color: #333;
 
-            input[type="checkbox"] {
-                margin-left: 10px; 
-            }
-        }
-        .details {
-            padding: 5px;
-
-            h3.name {
-                line-height: 1em;
-                margin-bottom: 0.3em;
+                color: #fff;
                 font-weight: bold;
-                font-size: 1.2em;
-                color: @grayDark;
+                text-transform: uppercase;
+                font-size: 10px;
+
+                -webkit-border-radius: 3px;
+                -moz-border-radius: 3px;
+                border-radius: 3px;
+            }
+            .name{
+                float: left;
+                margin: 0px 0px 0px 10px;
+            }
+        }
+
+        .element-list-container{
+            margin: 0px 0px 0px 26px;
+            table {
+                margin: 10px 0px 7px 0px;
+                border: 1px solid #ddd;
+                width: 100%;
+                tr.element {
+                    border-bottom: 1px solid #ddd;
+                    &.selected td {
+                        background: @selected_color;
+                    }
+                    &.last-child td {
+                        border-bottom: 0;
+                    }
+                    .checkbox-container{
+                        padding: 12px 8px;
+                        vertical-align: top;
+                        text-align: center;
+                        input{
+                            margin: 10px 0px 0px 0px;
+                        }
+                    }
+                    .element-detail-container{
+                        padding: 12px 8px 12px 0px;
+                        .status{
+                            float: right;
+                        }
+                        .label{
+                            float: left;
+                            padding: 2px 4px 2px;
+                            font-size: 11px;
+                            font-weight: bold;
+                            line-height: 13px;
+                            color: white;
+                            -webkit-border-radius: 3px;
+                            -moz-border-radius: 3px;
+                            border-radius: 3px;
+                        }
+                        .label-namespace{
+                            background-color: #999;
+                        }
+                        .label-machine{
+                            background-color: #3A87AD;
+                        }
+                        .name{
+                            margin: 0px 0px 0px 10px;
+                            height: 20px;
+                            font-size: 15px;
+                            font-weight: bold;
+                        }
+                        .quick_info{
+                            margin: 4px 0px;
+                        }
+                    }
+                }
+                tr.element:hover{
+                    background: #f1f1f1;
+                }
             }
         }
     }
 }
+
+
 .namespace-list {
     margin-top: 20px;
 
@@ -672,6 +734,7 @@
         }
     }
 }
+/*
 .server-list {
     margin-top: 20px;
     .label.element-type {
@@ -792,7 +855,7 @@
         margin-left: 28px;
     }
 }
-
+*/
 
 
 .modal {

@@ -1,4 +1,14 @@
 #Models for Backbone.js
+
+class Database extends Backbone.Model
+    get_namespaces: =>
+        namespaces_in_datacenter = []
+        for namespace in namespaces.models
+            if namespace.get('database') is @get('id')
+                namespaces_in_datacenter.push namespace
+
+        return namespaces_in_datacenter
+
 class Namespace extends Backbone.Model
     initialize: ->
         # Add a computed shards property for convenience and metadata
@@ -328,6 +338,11 @@ class ComputedCluster extends Backbone.Model
 
 
 # Collections for Backbone.js
+class Databases extends Backbone.Collection
+    model: Database
+    name: 'Databases'
+
+
 class Namespaces extends Backbone.Collection
     model: Namespace
     name: 'Namespaces'
@@ -612,7 +627,16 @@ module 'DataUtils', ->
                     if !activities[namespace_id][machine.get('id')]?
                         activities[namespace_id][machine.get('id')] = {}
                     activities[namespace_id][machine.get('id')][activity[0]] = activity[1]['type']
+            bcards = machine.get('rdb_namespaces')['reactor_bcards']
+            for namespace_id, activity_map of bcards
+                activity_map = activity_map['activity_map']
+                for activity_id, activity of activity_map
+                    if !(namespace_id of activities)
+                        activities[namespace_id] = {}
 
+                    if !activities[namespace_id][machine.get('id')]?
+                        activities[namespace_id][machine.get('id')] = {}
+                    activities[namespace_id][machine.get('id')][activity[0]] = activity[1]['type']
         return activities
 
     # Computes backfill progress for a given (namespace, shard,

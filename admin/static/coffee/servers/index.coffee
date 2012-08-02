@@ -10,6 +10,7 @@
 module 'ServerView', ->
     class @DatacenterList extends UIComponents.AbstractList
         # Use a datacenter-specific template for the datacenter list
+        className: 'datacenters_list-container'
         template: Handlebars.compile $('#server_list-template').html()
 
         # Extend the generic list events
@@ -22,10 +23,11 @@ module 'ServerView', ->
             @add_datacenter_dialog = new ServerView.AddDatacenterModal
             @set_datacenter_dialog = new ServerView.SetDatacenterModal
 
-            super datacenters, ServerView.DatacenterListElement, 'div.datacenters'
-
             @unassigned_machines = new ServerView.UnassignedMachinesListElement()
             @unassigned_machines.register_machine_callbacks @get_callbacks()
+
+            super datacenters, ServerView.DatacenterListElement, 'div.datacenters'
+
 
         render: =>
             super
@@ -84,6 +86,7 @@ module 'ServerView', ->
 
     class @MachineList extends UIComponents.AbstractList
         # Use a machine-specific template for the machine list
+        tagName: 'table'
         template: Handlebars.compile $('#machine_list-template').html()
 
         initialize: (datacenter_uuid) ->
@@ -123,7 +126,7 @@ module 'ServerView', ->
     class @MachineListElement extends UIComponents.CheckboxListElement
         template: Handlebars.compile $('#machine_list_element-template').html()
         summary_template: Handlebars.compile $('#machine_list_element-summary-template').html()
-        className: 'machine-element'
+        className: 'element'
 
         threshold_alert: 90
         history:
@@ -223,6 +226,7 @@ module 'ServerView', ->
                         all_machine_in_datacenter_ready = false
 
             # Generate data for bars and popover
+            # TODO Clean this data if we definitively remove sparklines/bars
             if @model.get_stats().proc.global_cpu_util?
                 json = _.extend json,
                     # TODO: add a helper to upgrade/downgrade units dynamically depending on the values
@@ -272,7 +276,8 @@ module 'ServerView', ->
             # Displays bars and text in the popover
             @.$('.machine.summary').html @summary_template json
 
-
+            ###
+            # Sparklines
             if @model.get_stats().proc.global_cpu_util?
                 # Update data for the sparklines
                 if !isNaN(json.global_cpu_util)
@@ -324,8 +329,8 @@ module 'ServerView', ->
                     sparkline_attr_traffic_sent.lineColor = 'red'
                 _.extend sparkline_attr_traffic_recv, sparkline_attr
                 @.$('.traffic_recv_sparkline').sparkline @history.traffic_recv, sparkline_attr_traffic_recv
-
-
+            ###
+    
             @.delegateEvents()
 
         rename_machine: (event) ->
@@ -345,7 +350,7 @@ module 'ServerView', ->
         template: Handlebars.compile $('#datacenter_list_element-template').html()
         summary_template: Handlebars.compile $('#datacenter_list_element-summary-template').html()
 
-        className: 'datacenter element'
+        className: 'element-container'
 
         events: ->
             _.extend super,
@@ -388,7 +393,7 @@ module 'ServerView', ->
             @render_summary()
 
             # Attach a list of available machines to the given datacenter
-            @.$('.machine-list').html @machine_list.render().el
+            @.$('.element-list-container').html @machine_list.render().el
 
             super
 
@@ -477,7 +482,7 @@ module 'ServerView', ->
                 no_machines: @no_machines
 
             # Attach a list of available machines to the given datacenter
-            @.$('.machine-list').html @machine_list.render().el
+            @.$('.element-list-container').html @machine_list.render().el
 
             super
 
