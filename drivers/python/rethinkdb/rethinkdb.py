@@ -79,6 +79,9 @@ class Connection(object):
 
         self.socket = socket.create_connection((hostname, port))
 
+    def close():
+        self.socket.close()
+
     def _run(self, protobuf, query, debug=False):
         if debug:
             print "sending:", protobuf
