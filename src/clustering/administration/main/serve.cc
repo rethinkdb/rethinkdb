@@ -140,6 +140,23 @@ try {
 
     perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
+    // Namespace repos
+    namespace_repo_t<mock::dummy_protocol_t> dummy_namespace_repo(&mailbox_manager,
+        directory_read_manager.get_root_view()->subview(
+            field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces))
+        );
+
+    namespace_repo_t<memcached_protocol_t> memcached_namespace_repo(&mailbox_manager,
+        directory_read_manager.get_root_view()->subview(
+            field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces))
+        );
+
+    namespace_repo_t<rdb_protocol_t> rdb_namespace_repo(&mailbox_manager,
+        directory_read_manager.get_root_view()->subview(
+            field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces))
+        );
+
+
     file_based_svs_by_namespace_t<mock::dummy_protocol_t> dummy_svs_source(io_backender, filepath);
     // Reactor drivers
 
@@ -188,6 +205,11 @@ try {
                 &our_root_directory_variable));
 
     // RDB
+
+    // Create and RDB context
+    rdb_protocol_t::context_t ctx(&rdb_namespace_repo, metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()));
+                                  
+
     file_based_svs_by_namespace_t<rdb_protocol_t> rdb_svs_source(io_backender, filepath);
     scoped_ptr_t<reactor_driver_t<rdb_protocol_t> > rdb_reactor_driver(!i_am_a_server ? NULL :
         new reactor_driver_t<rdb_protocol_t>(
@@ -202,29 +224,13 @@ try {
                 field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
             &rdb_svs_source,
             &perfmon_repo,
-            NULL));
+            &ctx));
     scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t> >
         rdb_reactor_directory_copier(!i_am_a_server ? NULL :
             new field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::rdb_namespaces,
                 rdb_reactor_driver->get_watchable(),
                 &our_root_directory_variable));
-
-    // Namespace repos
-    namespace_repo_t<mock::dummy_protocol_t> dummy_namespace_repo(&mailbox_manager,
-        directory_read_manager.get_root_view()->subview(
-            field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces))
-        );
-
-    namespace_repo_t<memcached_protocol_t> memcached_namespace_repo(&mailbox_manager,
-        directory_read_manager.get_root_view()->subview(
-            field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces))
-        );
-
-    namespace_repo_t<rdb_protocol_t> rdb_namespace_repo(&mailbox_manager,
-        directory_read_manager.get_root_view()->subview(
-            field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces))
-        );
 
     parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
         &mailbox_manager,
