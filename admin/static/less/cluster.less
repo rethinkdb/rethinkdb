@@ -902,7 +902,7 @@
     Generic element view
     ----------------------------
 */
-.namespace-view, .datacenter-view, .machine-view {
+.database-view, .namespace-view, .datacenter-view, .machine-view {
     .two-panel-section {
         padding-bottom: 10px;
         margin-bottom: 10px;
@@ -950,6 +950,190 @@
         margin-bottom: 15px; 
         margin-top: 15px;
     }
+
+
+    h3.title {
+        margin-bottom: 10px;
+    }
+
+    h1 {
+        margin-bottom: 10px;
+        display: inline-block;
+    }
+
+    .database-overview{
+        table {
+            margin: 10px 0px 7px 0px;
+            border: 1px solid #ddd;
+            width: 100%;
+            tr.element {
+                border-bottom: 1px solid #ddd;
+                &.selected td {
+                    background: @selected_color;
+                }
+                &.last-child td {
+                    border-bottom: 0;
+                }
+                .checkbox-container{
+                    padding: 12px 8px;
+                    vertical-align: top;
+                    text-align: center;
+                    input{
+                        margin: 10px 0px 0px 0px;
+                    }
+                }
+                .element-detail-container{
+                    padding: 12px 8px 12px 0px;
+                    .status{
+                        float: right;
+                    }
+                    .label{
+                        float: left;
+                        padding: 2px 4px 2px;
+                        font-size: 11px;
+                        font-weight: bold;
+                        line-height: 13px;
+                        color: white;
+                        -webkit-border-radius: 3px;
+                        -moz-border-radius: 3px;
+                        border-radius: 3px;
+                    }
+                    .label-namespace{
+                        background-color: #999;
+                    }
+                    .label-machine{
+                        background-color: #3A87AD;
+                    }
+                    .name{
+                        margin: 0px 0px 0px 10px;
+                        height: 20px;
+                        font-size: 15px;
+                        font-weight: bold;
+                    }
+                    .quick_info{
+                        margin: 4px 0px;
+                    }
+                }
+            }
+            tr.element:hover{
+                background: #f1f1f1;
+            }
+        }
+    }
+
+    .recent-log-entry {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: thin solid @grayLighter;
+
+        p { margin-bottom: 0; }
+
+        .entry-metadata {
+            p {
+                text-transform: uppercase;
+                color: @gray;
+                text-align: left;
+                font-size: 0.75em;
+                margin-bottom: 0;
+            }
+            margin-bottom: 6px;
+        }
+
+        p.level {
+            text-transform: uppercase;
+            color: @gray;
+            font-size: 0.75em;
+            float: left;
+        }
+
+        p.message {
+            margin-left: 50px;
+            a.json {
+                text-transform: uppercase;
+                font-size: 0.75em;
+                color: @gray;
+                border-bottom: thin dotted @gray;
+                &:hover {
+                    border-bottom: none;
+                }
+            }
+        }
+    }
+
+    .other_section{
+        height: 30px;
+        margin: 10px 0px;
+        .border-radius(4px);
+        background-color: #F0F2EB;
+        border: thin solid #B9D7D9;
+        padding: 7px 14px;
+        p{
+            padding: 7px 0px;
+        }
+        .other_button{
+            float: right;
+        }
+    }
+}
+
+
+/*
+-----------------
+Database view
+----------------
+*/
+.database-view{
+
+    .database-overview{
+        .namespaces-list{
+            margin: 0px 0px 0px 15px;
+            padding: 0px 0px 0px 15px;
+            border-left: 1px solid #ddd;
+            .element-detail-container{
+                padding: 12px 8px 12px 0px;
+                margin-bottom: 1px solid #ddd;
+                .status{
+                    float: right;
+                }
+                .name{
+                    margin: 0px 0px 0px 0px;
+                    height: 20px;
+                    font-size: 15px;
+                    font-weight: bold;
+                }
+                .quick_info{
+                    margin: 4px 0px 4px 0px;
+                }
+            }
+        }
+    }
+
+
+    .operations_section{
+        height: 30px;
+        margin: 10px 0px;
+        .border-radius(4px);
+        background-color: #F0F2EB;
+        border: thin solid #B9D7D9;
+        padding: 7px 14px;
+        p{
+            padding: 7px 0px;
+        }
+        .other_button{
+            float: right;
+        }
+    }
+
+}
+
+
+/*
+    ----------------------------
+    Namespace view
+    ----------------------------
+*/
+
+.namespace-view {
 
     .pie_legend{
         .legend{
@@ -1056,78 +1240,6 @@
         margin: 40px 0px 0px 0px;
     }
 
-
-    h3.title {
-        margin-bottom: 10px;
-    }
-
-    h1 {
-        margin-bottom: 10px;
-        display: inline-block;
-    }
-
-    .recent-log-entry {
-        margin-bottom: 10px;
-        padding-bottom: 10px;
-        border-bottom: thin solid @grayLighter;
-
-        p { margin-bottom: 0; }
-
-        .entry-metadata {
-            p {
-                text-transform: uppercase;
-                color: @gray;
-                text-align: left;
-                font-size: 0.75em;
-                margin-bottom: 0;
-            }
-            margin-bottom: 6px;
-        }
-
-        p.level {
-            text-transform: uppercase;
-            color: @gray;
-            font-size: 0.75em;
-            float: left;
-        }
-
-        p.message {
-            margin-left: 50px;
-            a.json {
-                text-transform: uppercase;
-                font-size: 0.75em;
-                color: @gray;
-                border-bottom: thin dotted @gray;
-                &:hover {
-                    border-bottom: none;
-                }
-            }
-        }
-    }
-
-    .other_section{
-        height: 30px;
-        margin: 10px 0px;
-        .border-radius(4px);
-        background-color: #F0F2EB;
-        border: thin solid #B9D7D9;
-        padding: 7px 14px;
-        p{
-            padding: 7px 0px;
-        }
-        .other_button{
-            float: right;
-        }
-    }
-}
-
-/*
-    ----------------------------
-    Namespace view
-    ----------------------------
-*/
-
-.namespace-view {
     table.datacenters {
         margin-bottom: 15px;
         td {

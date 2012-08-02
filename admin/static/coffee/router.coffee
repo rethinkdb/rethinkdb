@@ -6,6 +6,9 @@ Backbone.View.prototype.destroy = ->
 class BackboneCluster extends Backbone.Router
     routes:
         '': 'dashboard'
+        'databases': 'index_namespaces'
+        'databases/:id': 'database'
+        'databases/:id/:tab': 'database'
         'namespaces': 'index_namespaces'
         'namespaces/:id': 'namespace'
         'namespaces/:id/:tab': 'namespace'
@@ -91,6 +94,22 @@ class BackboneCluster extends Backbone.Router
         @current_view = new DataExplorerView.Container
         @$container.html @current_view.render().el
         @sidebar.set_type_view('dataexplorer')
+
+    database: (id, tab) ->
+        log_router '/databases/' + id
+        clear_modals()
+        database = databases.get(id)
+        
+        @current_view.destroy()
+        if database? then @current_view = new DatabaseView.Container model: database
+        else @current_view = new DatabaseView.NotFound id
+
+        if tab?
+            @$container.html @current_view.render(tab).el
+        else
+            @$container.html @current_view.render().el
+
+        @sidebar.set_type_view()
 
     namespace: (id, tab) ->
         log_router '/namespaces/' + id

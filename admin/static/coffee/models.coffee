@@ -9,6 +9,19 @@ class Database extends Backbone.Model
 
         return namespaces_in_datacenter
 
+    get_stats_for_performance: =>
+        __s =
+            keys_read: 0
+            keys_set: 0
+        for namespace in namespaces.models
+            if namespace.get('database') is @get('id')
+                _s = namespace.get_stats()
+                if not _s?
+                    continue
+                __s.keys_read += _s.keys_read
+                __s.keys_set += _s.keys_set
+        return __s
+
 class Namespace extends Backbone.Model
     initialize: ->
         # Add a computed shards property for convenience and metadata
