@@ -71,7 +71,7 @@ class BadQueryError(ExecutionError):
     pass
 
 class Connection(object):
-    def __init__(self, hostname, port):
+    def __init__(self, hostname, port = 12346):
         self.hostname = hostname
         self.port = port
 
