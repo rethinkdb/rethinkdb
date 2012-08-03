@@ -1,6 +1,7 @@
 #ifndef RDB_PROTOCOL_STREAM_HPP_
 #define RDB_PROTOCOL_STREAM_HPP_
 
+#include <algorithm>
 #include <list>
 #include <string>
 #include <vector>
