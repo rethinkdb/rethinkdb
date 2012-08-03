@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <netdb.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -16,7 +17,7 @@
 #define PRIMARY_KEY_NAME "id"
 
 struct rethinkdb_protocol_t : protocol_t {
-    rethinkdb_protocol_t(const char *conn_str) : sockfd(-1), outstanding_reads(0), token_index(0) {
+    rethinkdb_protocol_t(const char *conn_str) : sockfd(-1), outstanding_reads(0) {
         // initialize the socket
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0) {
@@ -75,7 +76,6 @@ struct rethinkdb_protocol_t : protocol_t {
         // generate query
         Query *query = new Query;
         query->set_type(Query::WRITE);
-        query->set_token(token_index++);
         WriteQuery *write_query = query->mutable_write_query();
         write_query->set_type(WriteQuery::POINTDELETE);
         WriteQuery::PointDelete *point_delete = write_query->mutable_point_delete();
@@ -115,7 +115,6 @@ struct rethinkdb_protocol_t : protocol_t {
         // generate query
         Query *query = new Query;
         query->set_type(Query::WRITE);
-        query->set_token(token_index++);
         WriteQuery *write_query = query->mutable_write_query();
         write_query->set_type(WriteQuery::INSERT);
         WriteQuery::Insert *insert = write_query->mutable_insert();
@@ -125,7 +124,6 @@ struct rethinkdb_protocol_t : protocol_t {
         term->set_type(Term::JSON);
         std::string json_insert = std::string("{\"") + std::string(PRIMARY_KEY_NAME) + std::string("\" : \"") + std::string(key, key_size) + std::string("\", \"val\" : \"") + std::string(value, value_size) + std::string("\"}");
         term->set_jsonstring(json_insert);
-        printf("%s\n", query->DebugString().c_str());
 
         send_query(query);
 
@@ -152,7 +150,6 @@ struct rethinkdb_protocol_t : protocol_t {
             // generate query
             Query *query = new Query;
             query->set_type(Query::READ);
-            query->set_token(token_index++);
             ReadQuery *read_query = query->mutable_read_query();
             Term *term = read_query->mutable_term();
             term->set_type(Term::GETBYKEY);
@@ -198,7 +195,6 @@ struct rethinkdb_protocol_t : protocol_t {
             // generate query
             Query *query = new Query;
             query->set_type(Query::READ);
-            query->set_token(token_index++);
             ReadQuery *read_query = query->mutable_read_query();
             Term *term = read_query->mutable_term();
             term->set_type(Term::GETBYKEY);
@@ -293,6 +289,9 @@ private:
     }
 
     void send_query(Query *query) {
+        // set token
+        query->set_token(token_index++);
+
         // serialize query
         std::string query_serialized;
         if (!query->SerializeToString(&query_serialized)) {
@@ -325,10 +324,12 @@ private:
     }
 
 private:
+    static int token_index;
     int sockfd;
     int outstanding_reads;
-    int token_index;
     char buffer[MAX_PROTOBUF_SIZE];
 } ;
+
+int rethinkdb_protocol_t::token_index = 0;
 
 #endif // __STRESS_CLIENT_PROTOCOLS_RETHINKDB_PROTOCOL_HPP__
