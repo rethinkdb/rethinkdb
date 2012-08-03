@@ -383,7 +383,7 @@ module 'NamespaceView', ->
                 template_error.namespace_is_empty = true
             else
                 for namespace in namespaces.models
-                    if namespace.get('name') is formdata.name
+                    if namespace.get('name') is formdata.name and namespace.get('database') is formdata.database
                         input_error = true
                         template_error.namespace_exists = true
                         break
