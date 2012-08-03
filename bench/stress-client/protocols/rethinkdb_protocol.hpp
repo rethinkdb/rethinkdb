@@ -12,7 +12,7 @@
 #include "query_language.pb.h"
 
 #define MAX_PROTOBUF_SIZE (1024*1024)
-#define RDB_TABLE_NAME "Welcome"
+#define RDB_TABLE_NAME "Welcome-rdb"
 #define PRIMARY_KEY_NAME "id"
 
 struct rethinkdb_protocol_t : protocol_t {
@@ -94,7 +94,7 @@ struct rethinkdb_protocol_t : protocol_t {
         if (response->token() != query->token()) {
             fprintf(stderr, "Delete response token %ld did not match query token %ld.\n", response->token(), query->token());
         }
-        if (response->status_code() != Response::SUCCESS_STREAM) {
+        if (response->status_code() != Response::SUCCESS_JSON) {
             fprintf(stderr, "Failed to remove key %s: %s\n", key, response->error_message().c_str());
         }
 
@@ -135,7 +135,7 @@ struct rethinkdb_protocol_t : protocol_t {
         if (response->token() != query->token()) {
             fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), query->token());
         }
-        if (response->status_code() != Response::SUCCESS_STREAM) {
+        if (response->status_code() != Response::SUCCESS_JSON) {
             fprintf(stderr, "Failed to insert key %s, value %s: %s\n", key, value, response->error_message().c_str());
         }
 
