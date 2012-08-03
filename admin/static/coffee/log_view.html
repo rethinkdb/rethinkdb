@@ -143,8 +143,11 @@
 <script id="log-new_datacenter-template" type="text/x-handlebars-template">
     Create a new datacenter {{datacenter_name}}<br/>
 </script>
+<script id="log-new_database-template" type="text/x-handlebars-template">
+    Create a new database {{database_name}}<br/>
+</script>
 <script id="log-delete_something-template" type="text/x-handlebars-template">
-    Delete {{type}} {{namespace_id}}<br/>
+    Delete {{type}} {{id}}<br/>
 </script>
 
 <script id="log-server-new_name-template" type="text/x-handlebars-template">
@@ -157,6 +160,9 @@
 
 <script id="log-datacenter-new_name-template" type="text/x-handlebars-template">
     Set datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_id_trunked}}</a>'s name to {{name}}<br/>
+</script>
+<script id="log-database-new_name-template" type="text/x-handlebars-template">
+    Set datacenter <a href="#databases/{{database_id}}">{{database_id_trunked}}</a>'s name to {{name}}<br/>
 </script>
 
 
@@ -184,4 +190,7 @@
 
 <script id="log-datacenter_value-small_template" type="text/x-handlebars-template">
     Change datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>'s {{attribute}}<br/>
+</script>
+<script id="log-database_value-small_template" type="text/x-handlebars-template">
+    Change database <a href="#databases/{{database_id}}">{{database_name}}</a>'s {{attribute}}<br/>
 </script>

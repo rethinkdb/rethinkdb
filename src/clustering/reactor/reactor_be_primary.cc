@@ -3,6 +3,9 @@
 #include <exception>
 #include <vector>
 
+#include "errors.hpp"
+#include <boost/ptr_container/ptr_vector.hpp>
+
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
@@ -42,8 +45,19 @@ void reactor_t<protocol_t>::update_best_backfiller(const region_map_t<protocol_t
             } else if (incumbent.latest == challenger.latest &&
                        incumbent.is_coherent() == challenger.is_coherent()) {
                 j->second.places_to_get_this_version.push_back(backfiller);
-            } else if (version_is_ancestor(branch_history_manager, incumbent.latest, challenger.latest, j->first) ||
-                       (incumbent.latest == challenger.latest && challenger.is_coherent() && !incumbent.is_coherent())) {
+            } else if (
+                    /* `version_is_ancestor` also returns true if
+                    `incumbent.latest` and `challenger.latest` are the same. So
+                    if `incumbent.latest` is the ancestor of `challenger.latest`
+                    *and they are distinct* then the challenger beats the
+                    incumbent. */
+                    (version_is_ancestor(branch_history_manager, incumbent.latest, challenger.latest, j->first) &&
+                        incumbent.latest != challenger.latest) ||
+                    /* If they are the same, but the challenger is coherent
+                    and the incumbent is not, then that breaks the tie. */
+                    (incumbent.latest == challenger.latest &&
+                        challenger.is_coherent() &&
+                        !incumbent.is_coherent())) {
                 j->second = backfill_candidate_t(challenger,
                                                  std::vector<typename backfill_candidate_t::backfill_location_t>(1, backfiller),
                                                  false);
@@ -122,8 +136,7 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
         }
 
         typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > >::const_iterator bcard_it = reactor_directory.find(p_it->first);
-        if (bcard_it == reactor_directory.end() ||
-            !bcard_it->second) {
+        if (bcard_it == reactor_directory.end() || !bcard_it->second) {
             return false;
         }
 
@@ -186,7 +199,7 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
     /* If the latest version of the data we've found for a region is incoherent
      * then we don't backfill it automatically. The admin must explicit "bless"
      * the incoherent data making it coherent or get rid of all incoherent data
-     * until the must up to date data for a region is coherent. */
+     * until the most up to date data for a region is coherent. */
     for (typename best_backfiller_map_t::iterator it =  res.begin();
                                                   it != res.end();
                                                   it++) {

@@ -100,6 +100,6 @@ public:
     signal_t *interruptor;
 };
 
-} //namespace query_language 
+} //namespace query_language
 
 #endif  // RDB_PROTOCOL_ENVIRONMENT_HPP_

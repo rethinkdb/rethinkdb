@@ -1,12 +1,13 @@
 #include <queue>
 
-#include "unittest/gtest.hpp"
-
+#include "arch/io/disk.hpp"
+#include "arch/timing.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "containers/disk_backed_queue.hpp"
-#include "arch/runtime/starter.hpp"
-#include "arch/timing.hpp"
+#include "mock/unittest_utils.hpp"
+#include "unittest/gtest.hpp"
 
 namespace unittest {
 
@@ -30,7 +31,7 @@ void run_many_ints_test() {
 }
 
 TEST(DiskBackedQueue, ManyInts) {
-    run_in_thread_pool(&run_many_ints_test, 2);
+    mock::run_in_thread_pool(&run_many_ints_test, 2);
 }
 
 void run_big_values_test() {
@@ -56,7 +57,7 @@ void run_big_values_test() {
 }
 
 TEST(DiskBackedQueue, BigVals) {
-    run_in_thread_pool(&run_big_values_test, 2);
+    mock::run_in_thread_pool(&run_big_values_test, 2);
 }
 
 static void randomly_delay(int, signal_t *) {
@@ -78,7 +79,7 @@ void run_concurrent_test() {
 }
 
 TEST(DiskBackedQueue, Concurrent) {
-    run_in_thread_pool(&run_concurrent_test, 1);
+    mock::run_in_thread_pool(&run_concurrent_test, 1);
 }
 
 } //namespace unittest

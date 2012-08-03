@@ -54,7 +54,7 @@ class Metacluster(object):
         try:
             self.base_port = int(os.environ["RETHINKDB_BASE_PORT"])
         except KeyError:
-            self.base_port = random.randint(20000, 30000)
+            self.base_port = random.randint(10000, 20000)
 
     def close(self):
         """Kills all processes and deletes all files. Also, makes the

@@ -75,13 +75,13 @@ private:
         }
 
         ~client_t() {
+            parent->clients.remove(this);
+            parent->recompute_allocations();
             request_mailbox.reset();
             relinquish_tickets_mailbox.reset();
             drainer.reset();
-            parent->clients.remove(this);
             rassert(in_use_tickets == 0);
             parent->return_tickets(held_tickets);
-            parent->recompute_allocations();
         }
 
         void give_tickets(int tickets) {
@@ -198,7 +198,6 @@ private:
             total_qps += c->estimate_qps();
         }
         if (clients.size() == 0) {
-            rassert(total_tickets == free_tickets);
             return;
         }
         if (total_qps == 0) {
@@ -228,7 +227,7 @@ private:
         static const int min_reasonable_tickets = 10;
         while (free_tickets > 0) {
             client_t *neediest = NULL;
-            int gift_size;
+            int gift_size = -1;
             /* First, look for a client with a critically low number of tickets.
             They get priority in tickets. This prevents starvation. */
             for (client_t *c = clients.head(); c; c = clients.next(c)) {
@@ -256,6 +255,7 @@ private:
             if (!neediest) {
                 break;
             }
+            rassert(gift_size >= 0);
             free_tickets -= gift_size;
             neediest->give_tickets(gift_size);
         }
