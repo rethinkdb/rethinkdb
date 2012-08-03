@@ -212,7 +212,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    DEBUG_ONLY_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager(mm),
     branch_history_manager(bhm),
-    branch_id(broadcaster->branch_id),
+    branch_id(broadcaster->get_branch_id()),
     uuid(generate_uuid()),
     perfmon_collection(),
     perfmon_collection_membership(backfill_stats_parent, &perfmon_collection, "backfill-serialization-" + uuid_to_str(uuid)),
@@ -237,16 +237,14 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
     /* We take our store directly from the broadcaster to make sure that we
        get the correct one. */
-    rassert(broadcaster->bootstrap_svs != NULL);
-    svs = broadcaster->bootstrap_svs;
-    broadcaster->bootstrap_svs = NULL;
+    svs = broadcaster->release_bootstrap_svs_for_listener();
 
 #ifndef NDEBUG
     /* Confirm that `broadcaster_metadata` corresponds to `broadcaster` */
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
         broadcaster_metadata->get();
     rassert(business_card && business_card.get());
-    rassert(business_card.get().get().branch_id == broadcaster->branch_id);
+    rassert(business_card.get().get().branch_id == broadcaster->get_branch_id());
 
     /* Make sure the initial state of the store is sane. Note that we assume
     that we're using the same `branch_history_manager_t` as the broadcaster, so
