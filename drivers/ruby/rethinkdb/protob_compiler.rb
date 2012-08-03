@@ -14,11 +14,13 @@ module RethinkDB
     def comp(message_class, args, repeating=false)
       #PP.pp(["A", message_class, args, repeating])
       if repeating; return args.map {|arg| comp(message_class, arg)}; end
-      args = args[0] if args.kind_of? Array and args[0].kind_of? Hash
-      throw "Cannot construct #{message_class} from #{args}." if args == []
+      args = [args] if args.class != Array
+      args = args[0] if args.class == Array and args[0].class == Hash
+      if args == []; throw "Cannot construct #{message_class} from #{args}."; end
       if message_class.kind_of? Symbol
         args = [args] if args.class != Array
         throw "Cannot construct #{message_class} from #{args}." if args.length != 1
+        args[0] = args[0].to_s if args[0].class == Symbol
         return args[0]
       end
 
@@ -42,15 +44,14 @@ module RethinkDB
       elsif args.class == Hash
         message.fields.each {|_field|; field = _field[1]; arg = args[field.name]
           message_set(message, field.name,
-                      comp(field.type, arg, field.rule==:repeated)) if arg
+                      comp(field.type, arg, field.rule==:repeated)) if arg != nil
         }
       elsif args.class == Array
         message.fields.zip(args).each {|_params|; field = _params[0][1]; arg = _params[1]
           message_set(message, field.name,
-                      comp(field.type, arg, field.rule==:repeated)) if arg
+                      comp(field.type, arg, field.rule==:repeated)) if arg != nil
         }
-      else
-        throw "Don't know how to handle arg '#{arg}' of type '#{arg.class}'."
+      else throw "Don't know how to handle args '#{args}' of type '#{args.class}'."
       end
       return message
     end

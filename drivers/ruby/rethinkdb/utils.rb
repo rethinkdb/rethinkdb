@@ -12,7 +12,11 @@ module RethinkDB
         :hasatter => :attr, :implicit_hasattr => :attr,
         :pickattrs => :attrs, :implicit_pickattrs => :attrs,
         :string => :valuestring, :json => :jsonstring, :bool => :valuebool,
-        :if => :if_, :getbykey => :get_by_key } end
+        :if => :if_, :getbykey => :get_by_key, :groupedmapreduce => :grouped_map_reduce,
+        :insertstream => :insert_stream, :foreach => :for_each, :orderby => :order_by,
+        :pointupdate => :point_update, :pointdelete => :point_delete,
+        :pointmutate => :point_mutate
+      } end
     def trampolines
       [:table, :map, :filter, :concatmap] end
   end

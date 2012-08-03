@@ -3,8 +3,8 @@ require 'query_language.pb.rb'
 require 'socket'
 require 'pp'
 
-require 'utils.rb'
-require 'protob_compiler.rb'
+load 'utils.rb'
+load 'protob_compiler.rb'
 
 module RethinkDB
   class S #Sexp
@@ -40,7 +40,7 @@ module RethinkDB
         if P.enum_type(Builtin::Comparison, m)
           S.new [:call, [:compare, m], [@body, *args]]
         elsif P.enum_type(Builtin::BuiltinType, m)
-          if P.message_field(Builtin, m)
+          if P.message_field(Builtin, C.query_rewrites[m] || m)
           then S.new [:call, [m, *args], [@body]]
           else S.new [:call, [m], [@body, *args]]
           end
