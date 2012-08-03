@@ -103,10 +103,6 @@ struct rethinkdb_protocol_t : protocol_t {
         if (response->status_code() != Response::SUCCESS_JSON) {
             fprintf(stderr, "Failed to remove key %s: %s\n", key, response->error_message().c_str());
         }
-
-        // temporary debug output
-        printf("%s\n", query->DebugString().c_str());
-        printf("%s\n", response->DebugString().c_str());
     }
 
     virtual void update(const char *key, size_t key_size,
@@ -142,10 +138,6 @@ struct rethinkdb_protocol_t : protocol_t {
         if (response->status_code() != Response::SUCCESS_JSON) {
             fprintf(stderr, "Failed to insert key %s, value %s: %s\n", key, value, response->error_message().c_str());
         }
-
-        // temporary debug output
-        printf("%s\n", query->DebugString().c_str());
-        printf("%s\n", response->DebugString().c_str());
     }
 
     // TODO: make this more efficient instead of just doing a bunch of reads in a row
@@ -189,10 +181,6 @@ struct rethinkdb_protocol_t : protocol_t {
                     fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
                 }
             }
-
-            // temporary debug output
-            printf("%s\n", query->DebugString().c_str());
-            printf("%s\n", response->DebugString().c_str());
         }
     }
 
@@ -213,9 +201,6 @@ struct rethinkdb_protocol_t : protocol_t {
             term_key->set_valuestring(std::string(keys[i].first, keys[i].second));
 
             send_query(query);
-
-            // temporary debug output
-            printf("%s\n", query->DebugString().c_str());
 
             outstanding_reads++;
         }
@@ -247,15 +232,60 @@ struct rethinkdb_protocol_t : protocol_t {
                 }
             }
 
-            // temporary debug output
-            printf("%s\n", response->DebugString().c_str());
-
             outstanding_reads--;
         }
     }
 
     virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) {
-        fprintf(stderr, "RANGE READ NOT YET IMPLEMENTED\n");
+        assert(!exist_outstanding_pipeline_reads());
+
+        // generate query
+        Query *query = new Query;
+        query->set_type(Query::READ);
+        ReadQuery *read_query = query->mutable_read_query();
+        Term *term = read_query->mutable_term();
+        term->set_type(Term::CALL);
+        Term::Call *call = term->mutable_call();
+        Builtin *builtin = call->mutable_builtin();
+        builtin->set_type(Builtin::RANGE);
+        Builtin::Range *range = builtin->mutable_range();
+        range->set_attrname(PRIMARY_KEY_NAME);
+        Term *lowerbound = range->mutable_lowerbound();
+        lowerbound->set_type(Term::STRING);
+        lowerbound->set_valuestring(std::string(lkey, lkey_size));
+        Term *upperbound = range->mutable_upperbound();
+        upperbound->set_type(Term::STRING);
+        upperbound->set_valuestring(std::string(rkey, rkey_size));
+        Term *args = call->add_args();
+        args->set_type(Term::TABLE);
+        Term::Table *table = args->mutable_table();
+        TableRef *table_ref = table->mutable_table_ref();
+        table_ref->set_table_name(RDB_TABLE_NAME);
+
+        send_query(query);
+
+        // get response
+        Response *response = new Response;
+        get_response(response);
+        if (response->token() != query->token()) {
+            fprintf(stderr, "Range read response token %ld did not match query token %ld.\n", response->token(), query->token());
+        }
+        if (response->status_code() != Response::SUCCESS_JSON) {
+            fprintf(stderr, "Failed to range read key %s to key %s: %s\n", lkey, rkey, response->error_message().c_str());
+        }
+        if (values) {
+            for (int i = 0; i < count_limit; i++) {
+                // TODO: use some JSON parser instead of this
+                int last_quote = (int) response->response(i).find_last_of('"');
+                int second_to_last_quote = (int) response->response(i).find_last_of(last_quote - 1);
+                assert(last_quote >= 0 && last_quote < response->response(i).length());
+                assert(second_to_last_quote >= 0 && second_to_last_quote < response->response(i).length());
+                std::string result = response->response(i).substr(second_to_last_quote + 1, last_quote - second_to_last_quote - 1);
+                if (std::string(values[i].first, values[i].second) != result) {
+                    fprintf(stderr, "Range read failed: wanted %s but got %s for some key.\n", values[i].first, result.c_str());
+                }
+            }
+        }
     }
 
     virtual void append(const char *key, size_t key_size,
@@ -309,6 +339,10 @@ private:
             exit(-1);
         }
 
+        // TODO: remove debug output
+        printf("About to send query.\n");
+        printf("%s\n", query->DebugString().c_str());
+
         // send message
         int size = int(query_serialized.length());
         send_all((char *) &size, sizeof(size));
@@ -332,6 +366,10 @@ private:
             fprintf(stderr, "failed to unserialize response\n");
             exit(-1);
         }
+
+        // TODO: remove debug output
+        printf("Received response!\n");
+        printf("%s\n", response->DebugString().c_str());
     }
 
     bool exist_outstanding_pipeline_reads() {
