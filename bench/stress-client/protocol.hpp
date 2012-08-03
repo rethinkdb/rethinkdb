@@ -112,7 +112,7 @@ struct server_t {
     void print_protocol() {
         if (protocol == protocol_rethinkdb) {
             printf("rethinkdb");
-        } if (protocol == protocol_sockmemcached) {
+        } else if (protocol == protocol_sockmemcached) {
             printf("sockmemcached");
 #ifdef USE_MYSQL
         } else if (protocol == protocol_mysql) {
