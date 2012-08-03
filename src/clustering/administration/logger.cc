@@ -299,11 +299,19 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
     std::string console_formatted = format_log_message(msg, true);
 
     flockfile(stderr);
+
     res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
     if (res != int(console_formatted.length())) {
         *error_out = std::string("cannot write to standard error: ") + strerror(errno);
         return false;
     }
+
+    res = fsync(STDERR_FILENO);
+    if (res != 0 && !(errno == EROFS || errno == EINVAL)) {
+        *error_out = std::string("cannot flush stderr: ") + strerror(errno);
+        return false;
+    }
+
     funlockfile(stderr);
 
     if (fd.get() == -1) {
