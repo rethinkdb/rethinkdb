@@ -57,6 +57,9 @@ struct rethinkdb_protocol_t : protocol_t {
             perror("connect() failed");
             exit(-1);
         }
+
+        // initialize send mutex
+        pthread_mutex_init(&send_mutex, NULL);
     }
 
     virtual ~rethinkdb_protocol_t() {
@@ -68,6 +71,9 @@ struct rethinkdb_protocol_t : protocol_t {
                 exit(-1);
             }
         }
+
+        // destroy send mutex
+        pthread_mutex_destroy(&send_mutex);
     }
 
     virtual void remove(const char *key, size_t key_size) {
@@ -289,6 +295,9 @@ private:
     }
 
     void send_query(Query *query) {
+        pthread_mutex_lock(&send_mutex);
+        printf("got mutex for token %d\n", token_index);
+
         // set token
         query->set_token(token_index++);
 
@@ -304,8 +313,14 @@ private:
         int size = int(query_serialized.length());
         send_all((char *) &size, sizeof(size));
         send_all(query_serialized.c_str(), size);
+        printf("about to release mutex for token %d\n", token_index - 1);
+        pthread_mutex_unlock(&send_mutex);
     }
 
+    // TODO: RethinkDB apparently does not guarantee that responses come back in the same order
+    // that queries were sent. Thus, we should keep some storage of received Responses
+    // and when we want to check the response to a particular query, we wait for the storage to
+    // gain the response with the token we want.
     void get_response(Response *response) {
         // get message
         int size;
@@ -325,11 +340,13 @@ private:
 
 private:
     static int token_index;
+    static pthread_mutex_t send_mutex;
     int sockfd;
     int outstanding_reads;
     char buffer[MAX_PROTOBUF_SIZE];
 } ;
 
 int rethinkdb_protocol_t::token_index = 0;
+pthread_mutex_t rethinkdb_protocol_t::send_mutex;
 
 #endif // __STRESS_CLIENT_PROTOCOLS_RETHINKDB_PROTOCOL_HPP__
