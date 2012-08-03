@@ -56,10 +56,13 @@ Handlebars.registerHelper 'links_to_namespaces', (namespaces) ->
     return out
 
 #Returns a list of links to namespaces on one line
-Handlebars.registerHelper 'links_to_namespaces_inline', (namespaces) ->
+Handlebars.registerHelper 'links_to_namespaces_inline', (namespaces, tab) ->
     out = ""
     for i in [0...namespaces.length]
-        out += '<a href="#namespaces/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
+        if tab?
+            out += '<a href="#namespaces/'+namespaces[i].id+'/'+tab+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
+        else
+            out += '<a href="#namespaces/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
         out += ", " if i isnt namespaces.length-1
     return new Handlebars.SafeString(out)
 
