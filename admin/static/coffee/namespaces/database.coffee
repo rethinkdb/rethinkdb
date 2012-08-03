@@ -76,7 +76,7 @@ module 'DatabaseView', ->
             @profile.destroy()
             @overview.destroy()
             @operations.destroy()
-
+            @performance_graph.destroy()
 
     # DatabaseView.Title
     class @Title extends Backbone.View
@@ -95,6 +95,9 @@ module 'DatabaseView', ->
             @.$el.html @template
                 name: @name
             return @
+
+        destroy: =>
+            @model.off 'change:name', @update
 
     # Profile view
     class @Profile extends Backbone.View
@@ -138,9 +141,7 @@ module 'DatabaseView', ->
             return @
         
         destroy: =>
-            @model.off 'all', @render
-            directory.off 'all', @render
-            progress_list.off 'all', @render
+            namespaces.off 'all', @render
 
     class @Overview extends Backbone.View
         className: 'database-overview'
@@ -197,7 +198,7 @@ module 'DatabaseView', ->
             return @
 
         destroy: =>
-            for view in @namespaces_list
+            for view in @namespaces_view_list
                 view.destroy()
             namespaces.off 'add', @update_data
             namespaces.off 'remove', @update_data
@@ -207,6 +208,12 @@ module 'DatabaseView', ->
     class @NamespaceView extends Backbone.View
         className: 'element-detail-container'
         template: Handlebars.compile $('#database-namespace_view-template').html()
+
+        initialize: =>
+            @model.on 'change:shards', @render
+            @model.on 'change:primary_pinnings', @render
+            @model.on 'change:secondary_pinnings', @render
+            @model.on 'change:replica_affinities', @render
 
         render: =>
             json = _.extend DataUtils.get_namespace_status(@model.get('id')),
@@ -218,8 +225,10 @@ module 'DatabaseView', ->
             return @
 
         destroy: =>
-            @model.off 'change', @render
-            machines.off 'all', @render
+            @model.off 'change:shards', @render
+            @model.off 'change:primary_pinnings', @render
+            @model.off 'change:secondary_pinnings', @render
+            @model.off 'change:replica_affinities', @render
 
     class @Operations extends Backbone.View
         className: 'database-operations'
@@ -249,16 +258,59 @@ module 'DatabaseView', ->
 
         delete_database: (event) ->
             event.preventDefault()
-            remove_database_dialog = new DatabaseView.RemoveBaseModal
-            #overwrite on_success to add a redirectiona
-            database_to_delete = @model
-        
-            remove_database_dialog.on_success = (response) =>
+
+            model = @model
+            confirmation_modal = new UIComponents.ConfirmationDialogModal
+            confirmation_modal.on_submit = ->
+                @.$('.btn-primary').button('loading')
+                @.$('.cancel').button('loading')
+
+                post_data = {}
+                post_data.databases = {}
+                post_data.databases[model.get('id')] = null
+                for namespace in namespaces.models
+                    if namespace.get('database') is model.get('id')
+                        if not post_data[namespace.get('protocol')+'_namespaces']?
+                            post_data[namespace.get('protocol')+'_namespaces'] = {}
+                        post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = null
+
+                $.ajax
+                    processData: false
+                    url: @url
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify(post_data)
+                    success: @on_success
+                    error: @on_error
+
+            confirmation_modal.on_success = (response) =>
                 window.router.navigate '#databases', {'trigger': true}
+
+                namespace_id_to_remove = []
+                for namespace in namespaces.models
+                    if namespace.get('database') is model.get('id')
+                        namespace_id_to_remove.push namespace.get 'id'
+
+
+                for id in namespace_id_to_remove
+                    namespaces.remove id
+                
                 databases.remove @model.get 'id'
 
-            remove_database_dialog.render [@model]
+            confirmation_modal.render("Are you sure you want to delete the database <strong>#{@model.get('name')}</strong>? All the namespaces'data of this database will be lost.",
+                "/ajax/semilattice",
+                '',
+                (response) =>
+                    database_to_delete = @model
+
+
+
+            )
+
 
         render: =>
             @.$el.html @template {}
             return @
+
+        destroy: =>
+            @model.off 'change:name', @render
