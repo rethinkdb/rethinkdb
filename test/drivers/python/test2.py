@@ -181,10 +181,10 @@ class RDBTest(unittest.TestCase):
         expect(I.Append([1], 2), [1, 2])
         fail(I.Append(3, 0), "array")
 
-        expect(I.Concat([1], [2]), [1, 2])
-        expect(I.Concat([1, 2], []), [1, 2])
-        fail(I.Concat(1, [1]), "array")
-        fail(I.Concat([1], 1), "array")
+        expect(I.Add([1], [2]), [1, 2])
+        expect(I.Add([1, 2], []), [1, 2])
+        fail(I.Add(1, [1]), "number")
+        fail(I.Add([1], 1), "array")
 
         arr = range(10)
         expect(I.Slice(expr(arr), 0, 3), arr[0: 3])
@@ -208,9 +208,9 @@ class RDBTest(unittest.TestCase):
         fail(I.Element(arr, .1), "integer")
         fail(I.Element([0], 1), "bounds")
 
-        expect(I.Size([]), 0)
-        expect(I.Size(arr), len(arr))
-        fail(I.Size(0), "array")
+        expect(I.Length(expr([])), 0)
+        expect(I.Length(expr(arr)), len(arr))
+        fail(I.Length(expr(0)), "array")
 
     def test_stream(self):
         expect = self.expect

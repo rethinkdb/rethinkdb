@@ -165,14 +165,8 @@ class Extend(JSONBuiltin):
 class Append(JSONBuiltin):
     builtin = p.Builtin.ARRAYAPPEND
 
-class Concat(JSONBuiltin):
-    builtin = p.Builtin.ARRAYCONCAT
-
 class Element(JSONBuiltin):
     builtin = p.Builtin.ARRAYNTH
-
-class Size(JSONBuiltin):
-    builtin = p.Builtin.ARRAYLENGTH
 
 class ArrayNth(JSONBuiltin):
     builtin = p.Builtin.ARRAYNTH
@@ -207,6 +201,12 @@ class Has(query.JSONExpression):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.HASATTR, self.parent)
         parent.call.builtin.attr = self.key
+
+class Length(query.JSONExpression):
+    def __init__(self, seq):
+        self.seq = seq
+    def _write_ast(self, parent):
+        self._write_call(parent, p.Builtin.LENGTH, self.seq)
 
 class Attr(Has):
     def _write_ast(self, parent):
