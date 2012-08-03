@@ -12,9 +12,8 @@ module RethinkDB
     end
 
     def comp(message_class, args, repeating=false)
-      #PP.pp(["A", message_class, args, repeating])
+      PP.pp(["A", message_class, args, repeating])
       if repeating; return args.map {|arg| comp(message_class, arg)}; end
-      args = [args] if args.class != Array
       args = args[0] if args.class == Array and args[0].class == Hash
       if args == []; throw "Cannot construct #{message_class} from #{args}."; end
       if message_class.kind_of? Symbol
@@ -51,7 +50,8 @@ module RethinkDB
           message_set(message, field.name,
                       comp(field.type, arg, field.rule==:repeated)) if arg != nil
         }
-      else throw "Don't know how to handle args '#{args}' of type '#{args.class}'."
+      else message = comp(message_class, [args], repeating)
+      #else throw "Don't know how to handle args '#{args}' of type '#{args.class}'."
       end
       return message
     end

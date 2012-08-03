@@ -99,11 +99,12 @@ r.table('','Welcome').concatmap { |row|
   }
 }.protob ;p? :CONCATMAP
 
-r.table('','Welcome').orderby(:name, :age).protob ;p? :ORDERBY
+r.table('','Welcome').orderby([:name], :age).protob ;p? :ORDERBY
 r.table('','Welcome').orderby('name', 'age').protob ;p? :ORDERBY
 r.table('','Welcome').orderby([:name, false], :age).protob ;p? :ORDERBY
 r.table('','Welcome').orderby('name', ['age', false]).protob ;p? :ORDERBY
 
+r.distinct('a', 'b').protob
 #DISTINCT
 #LIMIT
 #LENGTH
