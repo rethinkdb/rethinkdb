@@ -188,9 +188,9 @@ private:
 
     void advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp);
 
-    mailbox_manager_t *mailbox_manager;
+    mailbox_manager_t *const mailbox_manager;
 
-    branch_history_manager_t<protocol_t> *branch_history_manager;
+    branch_history_manager_t<protocol_t> *const branch_history_manager;
 
     multistore_ptr_t<protocol_t> *svs;
 
@@ -202,11 +202,11 @@ private:
     gets pulsed when we successfully register. */
     promise_t<intro_t> registration_done_cond;
 
-    uuid_t uuid;
+    const uuid_t uuid;
     perfmon_collection_t perfmon_collection;
     perfmon_membership_t perfmon_collection_membership;
 
-    state_timestamp_t current_timestamp;
+    const state_timestamp_t current_timestamp;
     fifo_enforcer_sink_t store_entrance_sink;
 
     /* Avaste this be used to keep track of people who are waitin' for a us to
