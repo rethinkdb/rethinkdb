@@ -272,9 +272,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
     case Builtin::NOT:
     case Builtin::MAPMERGE:
     case Builtin::ARRAYAPPEND:
-    case Builtin::ARRAYCONCAT:
     case Builtin::ARRAYNTH:
-    case Builtin::ARRAYLENGTH:
     case Builtin::ADD:
     case Builtin::SUBTRACT:
     case Builtin::MULTIPLY:
@@ -350,7 +348,6 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
         case Builtin::GETATTR:
         case Builtin::HASATTR:
         case Builtin::PICKATTRS:
-        case Builtin::ARRAYLENGTH:
             check_function_args(c, TERM_TYPE_JSON, 1, env, &deterministic, backtrace);
             return term_info_t(TERM_TYPE_JSON, deterministic);
             break;
@@ -366,7 +363,6 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::MAPMERGE:
         case Builtin::ARRAYAPPEND:
-        case Builtin::ARRAYCONCAT:
         case Builtin::ARRAYNTH:
         case Builtin::MODULO:
             check_function_args(c, TERM_TYPE_JSON, 2, env, &deterministic, backtrace);
@@ -440,6 +436,12 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             return term_info_t(TERM_TYPE_JSON, deterministic);
             break;
         case Builtin::LENGTH:
+            {
+                check_arg_count(c, 1, backtrace);
+                term_info_t res = get_term_type(c.args(0), env, backtrace);
+                const_cast<Term::Call&>(c).mutable_args(0)->SetExtension(extension::inferred_type, static_cast<int32_t>(res.type));
+                return term_info_t(TERM_TYPE_JSON, deterministic & res.deterministic);
+            }
         case Builtin::STREAMTOARRAY:
             check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
             return term_info_t(TERM_TYPE_JSON, deterministic);
@@ -507,7 +509,8 @@ void check_read_query_type(const ReadQuery &rq, type_checking_environment_t *env
     /* Read queries could return anything--a view, a stream, a JSON, or an
     error. Views will be automatically converted to streams at evaluation time.
     */
-    get_term_type(rq.term(), env, backtrace);
+    term_info_t res = get_term_type(rq.term(), env, backtrace);
+    const_cast<ReadQuery&>(rq).SetExtension(extension::inferred_read_type, static_cast<int32_t>(res.type));
 }
 
 void check_write_query_type(const WriteQuery &w, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
@@ -660,9 +663,9 @@ void execute(Query *q, runtime_environment_t *env, Response *res, const backtrac
 }
 
 void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t) {
-    term_info_t type = get_term_type(r->term(), &env->type_env, backtrace);
+    int type = r->GetExtension(extension::inferred_read_type);
 
-    switch (type.type) {
+    switch (type) {
     case TERM_TYPE_JSON: {
         boost::shared_ptr<scoped_cJSON_t> json = eval(r->mutable_term(), env, backtrace);
         res->add_response(json->PrintUnformatted());
@@ -1250,30 +1253,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 return res;
             }
             break;
-        case Builtin::ARRAYCONCAT:
-            {
-                // Check first arg type
-                boost::shared_ptr<scoped_cJSON_t> array1  = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
-                if (array1->type() != cJSON_Array) {
-                    throw runtime_exc_t("The first argument must be an array.", backtrace.with("arg:0"));
-                }
-                // Check second arg type
-                boost::shared_ptr<scoped_cJSON_t> array2  = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
-                if (array2->type() != cJSON_Array) {
-                    throw runtime_exc_t("The second argument must be an array.", backtrace.with("arg:1"));
-                }
-                // Create new array and deep copy all the elements
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
-                for(int i = 0; i < array1->GetArraySize(); i++) {
-                    res->AddItemToArray(cJSON_DeepCopy(array1->GetArrayItem(i)));
-                }
-                for(int j = 0; j < array2->GetArraySize(); j++) {
-                    res->AddItemToArray(cJSON_DeepCopy(array2->GetArrayItem(j)));
-                }
-
-                return res;
-            }
-            break;
         case Builtin::SLICE:
             {
                 int start, stop;
@@ -1355,7 +1334,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
         case Builtin::ARRAYNTH:
             {
                 // Check first arg type
-                boost::shared_ptr<scoped_cJSON_t> array  = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
+                boost::shared_ptr<scoped_cJSON_t> array = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
                 if (array->type() != cJSON_Array) {
                     throw runtime_exc_t("The first argument must be an array.", backtrace.with("arg:0"));
                 }
@@ -1383,30 +1362,41 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(array->GetArrayItem(index))));
             }
             break;
-        case Builtin::ARRAYLENGTH:
-            {
-                // Check first arg type
-                boost::shared_ptr<scoped_cJSON_t> array  = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
-                if (array->type() != cJSON_Array) {
-                    throw runtime_exc_t("The first argument must be an array.", backtrace.with("arg:0"));
-                }
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(array->GetArraySize())));
-            }
-            break;
         case Builtin::ADD:
             {
-                double result = 0.0;
-
-                for (int i = 0; i < c->args_size(); ++i) {
-                    boost::shared_ptr<scoped_cJSON_t> arg = eval(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)));
-                    if (arg->type() != cJSON_Number) {
-                        throw runtime_exc_t("All operands to ADD must be numbers.", backtrace.with(strprintf("arg:%d", i)));
-                    }
-                    result += arg->get()->valuedouble;
+                if (c->args_size() == 0) {
+                    return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNull()));
                 }
 
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(result)));
-                return res;
+                boost::shared_ptr<scoped_cJSON_t> arg = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
+
+                if (arg->type() == cJSON_Number) {
+                    double result = arg->get()->valuedouble;
+
+                    for (int i = 1; i < c->args_size(); ++i) {
+                        arg = eval(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)));
+                        if (arg->type() != cJSON_Number) {
+                            throw runtime_exc_t("Cannot ADD numbers to non-numbers", backtrace.with(strprintf("arg:%d", i)));
+                        }
+                        result += arg->get()->valuedouble;
+                    }
+
+                    return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(result)));
+                } else if (arg->type() == cJSON_Array) {
+                    boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(arg->DeepCopy()));
+                    for (int i = 1; i < c->args_size(); ++i) {
+                        boost::shared_ptr<scoped_cJSON_t> arg = eval(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)));
+                        if (arg->type() != cJSON_Array) {
+                            throw runtime_exc_t("Cannot ADD arrays to non-arrays", backtrace.with(strprintf("arg:%d", i)));
+                        }
+                        for(int j = 0; j < arg->GetArraySize(); j++) {
+                            res->AddItemToArray(cJSON_DeepCopy(arg->GetArrayItem(j)));
+                        }
+                    }
+                    return res;
+                } else {
+                    throw runtime_exc_t("Can only ADD numbers with numbers and arrays with arrays", backtrace.with("arg:0"));
+                }
             }
             break;
         case Builtin::SUBTRACT:
@@ -1551,10 +1541,21 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
             break;
         case Builtin::LENGTH:
             {
-                boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
                 int length = 0;
-                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    ++length;
+
+                if (c->args(0).GetExtension(extension::inferred_type) == TERM_TYPE_JSON)
+                {
+                    // Check first arg type
+                    boost::shared_ptr<scoped_cJSON_t> array = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
+                    if (array->type() != cJSON_Array) {
+                        throw runtime_exc_t("LENGTH argument must be an array.", backtrace.with("arg:0"));
+                    }
+                    length = array->GetArraySize();
+                } else {
+                    boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
+                    while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+                        ++length;
+                    }
                 }
 
                 return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(length)));
@@ -1746,9 +1747,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
         case Builtin::IMPLICIT_PICKATTRS:
         case Builtin::MAPMERGE:
         case Builtin::ARRAYAPPEND:
-        case Builtin::ARRAYCONCAT:
         case Builtin::ARRAYNTH:
-        case Builtin::ARRAYLENGTH:
         case Builtin::ADD:
         case Builtin::SUBTRACT:
         case Builtin::MULTIPLY:
@@ -2002,9 +2001,7 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
         case Builtin::IMPLICIT_PICKATTRS:
         case Builtin::MAPMERGE:
         case Builtin::ARRAYAPPEND:
-        case Builtin::ARRAYCONCAT:
         case Builtin::ARRAYNTH:
-        case Builtin::ARRAYLENGTH:
         case Builtin::ADD:
         case Builtin::SUBTRACT:
         case Builtin::MULTIPLY:

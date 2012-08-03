@@ -97,10 +97,8 @@ message Builtin {
         IMPLICIT_PICKATTRS = 7;
         MAPMERGE = 8;
         ARRAYAPPEND = 9;
-        ARRAYCONCAT = 10;
         SLICE = 11;         // slice(thing_to_slice, None/left extent, None/right extent)
         ARRAYNTH = 12;
-        ARRAYLENGTH = 13;
         ADD = 14;
         SUBTRACT = 15;
         MULTIPLY = 16;
@@ -206,6 +204,9 @@ message ReadQuery {
     required Term term = 1;
     optional int64 max_chunk_size = 2; //may be 0 for unlimited
     optional int64 max_age = 3;
+
+    // reserved for RethinkDB internal use.
+    extensions 1000 to 1099;
 };
 
 message WriteQuery {
