@@ -1061,17 +1061,25 @@
     }
 
     .other_section{
-        height: 30px;
         margin: 10px 0px;
+        overflow: auto;
         .border-radius(4px);
         background-color: #F0F2EB;
         border: thin solid #B9D7D9;
         padding: 7px 14px;
         p{
             padding: 7px 0px;
+            margin: 0px;
         }
         .other_button{
             float: right;
+        }
+        .reason{
+            background: @alert-yellow;
+            border: 1px solid @alert-yellow-border;
+            color: #777; //@alert-text_color;
+            padding: 8px 15px;
+            width: 670px;
         }
     }
 }
@@ -1491,7 +1499,6 @@ Database view
             margin: 10px 0px;
             overflow: auto;
             .reason{
-                background: #FCF8E3;
                 background: @alert-yellow;
                 border: 1px solid @alert-yellow-border;
                 color: #777; //@alert-text_color;
