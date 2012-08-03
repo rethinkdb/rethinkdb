@@ -2,7 +2,7 @@
 LIBS = -lpthread -ldl -lprotobuf
 # Do not include main.cc or python_interface.cc in SRC
 SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c protocols/query_language.pb.cc
-HEADERS = $(wildcard *.hpp) $(wildcard */*.hpp)
+HEADERS = $(wildcard *.hpp) $(wildcard */*.hpp) $(wildcard *.h) $(wildcard */*.h)
 
 MYSQL ?= 1
 LIBMEMCACHED ?= 0
@@ -39,12 +39,12 @@ OBJ = $(addsuffix .o, $(basename $(SRC)))
 build: $(EXEC_NAME) $(SO_NAME)
 
 proto_files:
-	protoc -I $(PROTO_DIR) --cpp_out=protocols/ $(PROTO_DIR)/query_language.proto
+	protoc -I $(PROTO_DIR) --cpp_out=protocols $(PROTO_DIR)/query_language.proto
+
+# we need this because of the way Make builds the dependency tree ahead of time
+protocols/query_language.pb.cc: proto_files
 
 %.o: %.cc $(HEADERS) Makefile
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-%.pb.o: %.pb.cc $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(EXEC_NAME): proto_files $(OBJ) main.o $(HEADERS) Makefile
@@ -59,6 +59,7 @@ tags: Makefile
 clean:
 	rm -f *~
 	rm -f *.o
+	rm -f */*.o
 	rm -f $(EXEC_NAME)
 	rm -f $(SO_NAME)
 	rm -f protocols/query_language.pb.cc
