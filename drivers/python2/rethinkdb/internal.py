@@ -9,7 +9,7 @@ class PolymorphicOperation(object):
                 return type(cls.__name__, (output,),
                             dict(cls.__dict__))(parent, *args, **kwargs)
         raise TypeError("cannot perform operation on incompatible type %r"
-                        % cls.__name__)
+                        % parent.__class__.__name__)
 
 class Selector(PolymorphicOperation):
     """The resulting class should be a MultiRowSelection
@@ -168,9 +168,6 @@ class Append(JSONBuiltin):
 class Concat(JSONBuiltin):
     builtin = p.Builtin.ARRAYCONCAT
 
-class Slice(JSONBuiltin):
-    builtin = p.Builtin.ARRAYSLICE
-
 class Element(JSONBuiltin):
     builtin = p.Builtin.ARRAYNTH
 
@@ -243,13 +240,14 @@ class Nth(query.JSONExpression):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.NTH, self.stream, self.index)
 
-class Limit(Selector):
-    def __init__(self, parent, count):
+class Slice(Selector):
+    def __init__(self, parent, start, stop):
         self.parent = parent
-        self.count = query.expr(count)
+        self.start = query.expr(start)
+        self.stop = query.expr(stop)
 
     def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.LIMIT, self.parent, self.count)
+        self._write_call(parent, p.Builtin.SLICE, self.parent, self.start, self.stop)
 
 class Skip(Selector):
     def __init__(self, parent, offset):

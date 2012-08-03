@@ -221,13 +221,7 @@ class Expression(BaseExpression):
         if isinstance(index, slice):
             if index.step is not None:
                 raise ValueError("slice stepping is unsupported")
-            if index.start is None:
-                if index.stop is None:
-                    return self                 # [:]
-                return internal.Limit(self, index.stop)  # [:x]
-            if index.stop is None:
-                return internal.Skip(self, index.start)  # [x:]
-            return internal.Skip(internal.Limit(self, index.stop), index.start) # [x:y]
+            return internal.Slice(self, index.start, index.stop)
         elif isinstance(index, int):
             return internal.Nth(self, index)
         else:
@@ -488,7 +482,7 @@ class JSONLiteral(JSONExpression):
             self.type = p.Term.JSON_NULL
         else:
             raise TypeError("argument must be a JSON-compatible type (bool/int/float/str/unicode/dict/list),"
-                            "not %r" % value.__class__.__name__)
+                            " not %r" % value.__class__.__name__)
 
     def _write_ast(self, parent):
         parent.type = self.type
@@ -515,6 +509,12 @@ def expr(val):
     >>> expr({ 'name': 'Joe', 'age': 30 })
     """
     if isinstance(val, JSONExpression):
+        return val
+    return JSONLiteral(val)
+
+def _baseexpr(val):
+    """Like expr(), but just coerces to :class:`BaseExpression`"""
+    if isinstance(val, Expression):
         return val
     return JSONLiteral(val)
 
