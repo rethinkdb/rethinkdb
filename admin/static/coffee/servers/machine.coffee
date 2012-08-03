@@ -296,7 +296,10 @@ module 'MachineView', ->
                                     for machine in machines.models
                                         if machine.get('datacenter_uuid') is @model.get('datacenter_uuid')
                                             num_machines_in_datacenter++
-                                    if num_machines_in_datacenter > namespace.get('ack_expectations')
+                                    num_replicas = namespace.get('replica_affinities')[@model.get('datacenter_uuid')]
+                                    if @model.get('datacenter_uuid') is namespace.get('primary_uuid')
+                                        num_replicas++
+                                    if num_machines_in_datacenter > num_replicas
                                         new_shard.display_nothing = true
                                     else
                                         new_shard.display_nothing = true
@@ -518,6 +521,76 @@ module 'MachineView', ->
 
         make_nothing: (event) =>
             event.preventDefault()
+            shard = $(event.target).data('shard')
+            namespace_id = $(event.target).data('namespace_id')
+            namespace = namespaces.get(namespace_id)
+            shard_key = JSON.stringify(shard)
+            model = @model
+
+            confirmation_modal = new UIComponents.ConfirmationDialogModal
+            confirmation_modal.on_submit = ->
+                @.$('.btn-primary').button('loading')
+                @.$('.cancel').button('loading')
+
+                post_data = {}
+                post_data[namespace.get('protocol')+'_namespaces'] = {}
+                post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = {}
+                post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'] = namespace.get('secondary_pinnings')
+
+                replica_requirement = namespace.get('replica_affinities')[model.get('datacenter_uuid')]
+                if namespace.get('primary_uuid') is model.get('datacenter_uuid')
+                    replica_requirement--
+
+                for machine_id, i in post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key]
+                    if machine_id is model.get('id')
+                        post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].splice(i, 1)
+                        break
+
+                for machine in machines.models
+                    # Skip the machine we are changing role
+                    if machine.get('id') is model.get('id')
+                        continue
+
+                    if post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'].length >= replica_requirement
+                        break
+
+                    if machine.get('datacenter_uuid') is model.get('datacenter_uuid') # Check if in the same datacenter
+                        already_secondary = false
+                        for secondary_id in post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key]
+                            if machine.get('id') is secondary_id
+                                already_secondary = true
+                                break
+
+                        if already_secondary is false
+                            post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].push machine.get('id')
+
+                $.ajax
+                    processData: false
+                    url: @url
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify(post_data)
+                    success: @on_success
+                    error: @on_error
+
+
+            #TODO Double check if can become secondary
+            confirmation_modal.render("Are you sure you want to make the machine <strong>#{@model.get('name')}</strong> a primary machine for the shard <strong>#{JSON.stringify(shard)}</strong> of the namespace <strong>#{namespace.get('name')}</strong>?",
+                "/ajax/semilattice",
+                '',
+                (response) =>
+                    apply_diffs(response)
+
+                    $link = @.$('a.make-master')
+                    $link.text $link.data('loading-text')
+
+                    clear_modals()
+                    $('#user-alert-space').html @alert_set_server_template
+                        role: 'nothing'
+                        shard: shard_key
+                        namespace_name: namespace.get('name')
+                    @render()
+            )
 
         destroy: =>
             @directory_entry.on 'change:memcached_namespaces', @render
