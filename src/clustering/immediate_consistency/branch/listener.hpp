@@ -209,10 +209,8 @@ private:
     state_timestamp_t current_timestamp;
     fifo_enforcer_sink_t store_entrance_sink;
 
-    /* Avaste this be used to keep track of people who are waitin' for a us to
-     * be up to date (past the given state_timestamp_t). The only use case for
-     * this right now is the replier_t who needs to be able to tell backfillees
-     * how up to date s/he is. */
+    // Used by the replier_t which needs to be able to tell
+    // backfillees how up to date it is.
     std::multimap<state_timestamp_t, cond_t *> synchronize_waiters;
 
     disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue;
