@@ -2,6 +2,7 @@ $class_types = {
   Query => Query::QueryType, WriteQuery => WriteQuery::WriteQueryType,
   Term => Term::TermType, Builtin => Builtin::BuiltinType }
 def enum_type(_class, _type); _class.values[_type.to_s.upcase.to_sym]; end
+def message_field(_class, _type); _class.fields.select{|x,y| y.name == _type}[0]; end
 def message_set(message, key, val); message.send((key.to_s+'=').to_sym, val); end
 
 def handle_special_cases(message, query_type, query_args)
@@ -28,7 +29,7 @@ def is_trampoline(query_type)
 end
 
 def parse(message_class, args, repeating=false)
-  PP.pp(["A", message_class, args, repeating])
+  #PP.pp(["A", message_class, args, repeating])
   if repeating; return args.map {|arg| parse(message_class, arg)}; end
   args = args[0] if args.kind_of? Array and args[0].kind_of? Hash
   throw "Cannot construct #{message_class} from #{args}." if args == []
