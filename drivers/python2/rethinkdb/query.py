@@ -63,7 +63,7 @@ def R(name):
     >>> table('users').filter(fn('row', R('$age') == 30)) # error - no variable 'age' is defined
     >>> table('users').filter(R('$age') == 30) # error - no variable '$age' is defined, use 'age'
     """
-    if name.startwith('$'):
+    if name.startswith('$'):
         if '.' not in name:
             return internal.Var(name[1:])
         var = internal.Var()
