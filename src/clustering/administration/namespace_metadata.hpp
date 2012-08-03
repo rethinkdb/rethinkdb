@@ -172,7 +172,7 @@ public:
 };
 
 struct namespace_metadata_ctx_t {
-    uuid_t us;
+    const uuid_t us;
     explicit namespace_metadata_ctx_t(uuid_t _us)
         : us(_us)
     { }
