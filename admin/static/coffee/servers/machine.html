@@ -78,7 +78,11 @@
             {{#each shards}}
             <li class="shard_li">
                 <h4>Shard {{name}}</h4>
+                {{#if keys}}
                 <p>About {{keys}} keys</p>
+                {{else}}
+                <p>Loading number of keys...</p>
+                {{/if}}
             </li>
             {{/each}}
         </ul>
@@ -206,7 +210,7 @@
         {{/if}}
     </div>
     <div class="other_section unassign_datacenter">
-        <input type="button" class="btn other_button change_datacenter-button" {{#unless can_unassign}}disabled="disabled"{{/unless}} value="Change datacenter"/>
+        <input type="button" class="btn other_button change_datacenter-button" {{#unless can_unassign}}disabled="disabled"{{/unless}} value="Remove from datacenter"/>
         <p>Unassign the datacenter of this server</p>
         {{#if unassign_reason}}
         <div class="reason">{{print_safe unassign_reason}}</div>
