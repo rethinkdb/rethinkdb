@@ -206,7 +206,7 @@ private:
     perfmon_collection_t perfmon_collection;
     perfmon_membership_t perfmon_collection_membership;
 
-    const state_timestamp_t current_timestamp;
+    state_timestamp_t current_timestamp;
     fifo_enforcer_sink_t store_entrance_sink;
 
     /* Avaste this be used to keep track of people who are waitin' for a us to
