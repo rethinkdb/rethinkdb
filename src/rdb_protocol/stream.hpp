@@ -12,7 +12,7 @@
 #include <boost/variant/get.hpp>
 
 #include "rdb_protocol/protocol.hpp"
-#include "stream_cache.hpp"
+#include "rdb_protocol/stream_cache.hpp"
 
 namespace query_language {
 
