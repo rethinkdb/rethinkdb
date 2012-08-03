@@ -104,7 +104,7 @@ struct server_t {
             protocol = parse_protocol(str);
         } else {
             _host = str;
-            protocol = protocol_sockmemcached;
+            protocol = protocol_rethinkdb;
         }
         strncpy(host, _host, MAX_HOST);
     }
