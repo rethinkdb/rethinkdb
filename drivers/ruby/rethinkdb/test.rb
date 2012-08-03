@@ -7,8 +7,8 @@ def p? x; x; end
 r.var('x').protob ;p? :VAR
 r.expr(:$x).protob ;p? :VAR
 r.let([["a", 1],
-          ["b", 2]],
-          r.all(r.var('a').eq(1), r.var('b').eq(2))).protob ;p? :LET
+       ["b", 2]],
+      r.all(r.var('a').eq(1), r.var('b').eq(2))).protob ;p? :LET
 #CALL not done explicitly
 r.if(r.var('a'), 1, '2').protob ;p? :IF
 r.error('e').protob ;p? :ERROR
