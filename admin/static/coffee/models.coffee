@@ -513,8 +513,12 @@ module 'DataUtils', ->
             @namespace.off 'add', @compute_shards_without_args
 
 
-
-    #TODO destroy
+    @stripslashes = (str) ->
+        str=str.replace(/\\'/g,'\'')
+        str=str.replace(/\\"/g,'"')
+        str=str.replace(/\\0/g,'\0')
+        str=str.replace(/\\\\/g,'\\')
+        return str
 
     @get_machine_reachability = (machine_uuid) ->
         reachable = directory.get(machine_uuid)?
