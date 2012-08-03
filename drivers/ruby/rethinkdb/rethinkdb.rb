@@ -2,214 +2,152 @@ require 'rubygems'
 require 'query_language.pb.rb'
 require 'socket'
 require 'pp'
-load '/home/mlucy/rethinkdb_ruby/drivers/ruby/rethinkdb/parse.rb'
 
-def _ x; SexpTerm.new x; end
-class Reql
-  def attr a; _ [:call, [:implicit_getattr, a], []]; end
-  def expr x
-    return x.sexp if x.class() == SexpTerm
-    case x.class().hash
-    when SexpTerm.hash   then x
-    when String.hash     then _ [:string, x]
-    when Fixnum.hash     then _ [:number, x]
-    when TrueClass.hash  then _ [:bool, x]
-    when FalseClass.hash then _ [:bool, x]
-    when NilClass.hash   then _ [:json_null]
-    when Array.hash      then _ [:array, *x.map{|y| expr(y)}]
-    when Hash.hash       then _ [:object, *x.map{|var,term| [var, expr(term)]}]
-    when Symbol.hash     then
-      str = x.to_s
-      _ str[0] == '$'[0] ? var(str[1..str.length]) : attr(str)
-    else raise TypeError, "term.expr can't handle type `#{x.class()}`"
-    end
-  end
-  def method_missing(meth, *args, &block)
-    meth = $method_aliases[meth] || meth
-    case
-    when enum_type(Builtin::BuiltinType, meth) then _ [:call, [meth], args]
-    when enum_type(Builtin::Comparison, meth)  then _ [:call, [:compare, meth], args]
-    when enum_type(Term::TermType, meth)       then _ [meth, *args]
-    else super(meth, *args, &block)
-    end
-  end
-end
-$reql = Reql.new
-
-def clean_lst lst
-  case lst.class.hash
-  when Array.hash then lst.map{|z| clean_lst(z)}
-  when SexpTerm.hash then lst.sexp
-  else lst
-  end
-end
-
-$method_aliases = {
-  :equals => :eq, :neq => :neq,
-  :neq => :ne, :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
-  :+ => :add, :- => :subtract, :* => :multiply, :/ => :divide, :% => :modulo
-}
-class SexpTerm
-  def _ x; SexpTerm.new x; end
-  def initialize(init_body); @body = init_body; end
-  def sexp; clean_lst @body; end
-  def protob; parse(Term, sexp); end
-
-  def [](ind); _ [:call, [:getattr, ind.to_s], [@body]]; end
-  def getbykey(attr, key)
-    throw "getbykey must be called on a table" if @body[0] != :table
-    _ [:getbykey, @body[1..3], attr, $reql.expr(key)]
+module RethinkDB
+  module C #Constants
+    def self.method_aliases
+      { :equals => :eq, :neq => :neq,
+        :neq => :ne, :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
+        :+ => :add, :- => :subtract, :* => :multiply, :/ => :divide, :% => :modulo } end
+    def self.class_types
+      { Query => Query::QueryType, WriteQuery => WriteQuery::WriteQueryType,
+        Term => Term::TermType, Builtin => Builtin::BuiltinType } end
+    def self.query_rewrites
+      { :getattr => :attr, :implicit_getattr => :attr,
+        :hasatter => :attr, :implicit_hasattr => :attr,
+        :pickattrs => :attrs, :implicit_pickattrs => :attrs,
+        :string => :valuestring, :json => :jsonstring, :bool => :valuebool,
+        :if => :if_, :getbykey => :get_by_key } end
+    def self.trampolines
+      [:table, :map, :filter, :concatmap] end
   end
 
-  def method_missing(meth, *args, &block)
-    meth = $method_aliases[meth] || meth
-    if enum_type(Builtin::Comparison, meth)
-      _ [:call, [:compare, meth], [@body, *args]]
-    elsif enum_type(Builtin::BuiltinType, meth)
-      if message_field(Builtin, meth) then _ [:call, [meth, *args], [@body]]
-      else _ [:call, [meth], [@body, *args]]
+  module RQL_Protob_Mixin
+    def enum_type(_class, _type); _class.values[_type.to_s.upcase.to_sym]; end
+    def message_field(_class, _type); _class.fields.select{|x,y| y.name == _type}[0]; end
+    def message_set(message, key, val); message.send((key.to_s+'=').to_sym, val); end
+
+    def handle_special_cases(message, query_type, query_args)
+      case query_type
+      when :compare then
+        message.comparison = enum_type(Builtin::Comparison, query_args)
+        throw :unknown_comparator_error if not message.comparison
+        return true
+      else return false
       end
-    else super(meth, *args, &block)
+    end
+
+    def comp(message_class, args, repeating=false)
+      #PP.pp(["A", message_class, args, repeating])
+      if repeating; return args.map {|arg| comp(message_class, arg)}; end
+      args = args[0] if args.kind_of? Array and args[0].kind_of? Hash
+      throw "Cannot construct #{message_class} from #{args}." if args == []
+      if message_class.kind_of? Symbol
+        args = [args] if args.class != Array
+        throw "Cannot construct #{message_class} from #{args}." if args.length != 1
+        return args[0]
+      end
+
+      message = message_class.new
+      if (message_type_class = C.class_types[message_class])
+        args = $reql.expr(args).sexp if args.class() != Array
+        query_type = args[0]
+        message.type = enum_type(message_type_class, query_type)
+        return message if args.length == 1
+
+        query_args = args[1..args.length]
+        query_args = [query_args] if C.trampolines.include? query_type
+        return message if handle_special_cases(message, query_type, query_args)
+
+        query_type = C.query_rewrites[query_type] || query_type
+        field_metadata = message_class.fields.select{|x,y| y.name == query_type}[0]
+        throw "No field '#{query_type}' in '#{message_class}'." if not field_metadata
+        field = field_metadata[1]
+        message_set(message, query_type,
+                    comp(field.type, query_args,field.rule==:repeated))
+      else
+        if args.kind_of? Hash
+          message.fields.each { |field|
+            field = field[1]
+            arg = args[field.name]
+            if arg
+              message_set(message, field.name,
+                          comp(field.type, arg, field.rule==:repeated))
+            end
+          }
+        else
+          message.fields.zip(args).each { |params|
+            field = params[0][1]
+            arg = params[1]
+            if arg
+              message_set(message, field.name,
+                          comp(field.type, arg, field.rule==:repeated))
+            end
+          }
+        end
+      end
+      return message
     end
   end
-end
+  module RQL_Protob; extend RQL_Protob_Mixin; end
 
-# PP.pp(parse(Term,
-#       [:call,
-#        [:filter,
-#         "row",
-#         [:call,
-#          [:all],
-#          [[:call,
-#            [:compare, :eq],
-#            [[:call, [:implicit_getattr, "a"], []],
-#             [:number, 0]]]]]],
-#        [[:table, "", "Welcome"]]]))
+  class S #Sexp
+    def clean_lst lst
+      case lst.class.hash
+      when Array.hash then lst.map{|z| clean_lst(z)}
+      when S.hash     then lst.sexp
+      else lst
+      end
+    end
+    def initialize(init_body); @body = init_body; end
+    def sexp; clean_lst @body; end
+    def protob; RQL_Protob.comp(Term, sexp); end
 
-$reql.all($reql.var('a'), $reql.var('b')).protob
-# term.var('x').protob
-# PP.pp(term.let([["a", term.expr(1)],
-#                 ["b", term.expr(2)]],
-#                term.var('a').eq(1).and(term.var.('b').eq(2))).protob)
-# PP.pp(term.table('a','b').filter('row', term.var('@')['a'].eq(5)).protob)
-# PP.pp(term.expr({ 'a' => 5, 'b' => 'foo' }).protob)
-# PP.pp(term.table({:db_name => 'a',:table_name => 'b'}).filter('row', term.var('@')['a'].eq(5)).protob)
+    def [](ind); S.new [:call, [:getattr, ind.to_s], [@body]]; end
+    def getbykey(attr, key)
+      throw "getbykey must be called on a table" if @body[0] != :table
+      S.new [:getbykey, @body[1..3], attr, RQL.expr(key)]
+    end
 
-################################################################################
-#                                  TERM TESTS                                  #
-################################################################################
-def p? x; x; end
-$reql.var('x').protob ;p? :VAR
-$reql.expr(:$x).protob ;p? :VAR
-$reql.let([["a", 1],
-          ["b", 2]],
-          $reql.all($reql.var('a').eq(1), $reql.var('b').eq(2))).protob ;p? :LET
-#CALL not done explicitly
-$reql.if($reql.var('a'), 1, '2').protob ;p? :IF
-$reql.error('e').protob ;p? :ERROR
-$reql.expr(5).protob ;p? :NUMBER
-$reql.expr('s').protob ;p? :STRING
-$reql.json('{type : "json"}').protob ;p? :JSON
-$reql.expr(true).protob ;p? :BOOL
-$reql.expr(false).protob ;p? :BOOL
-$reql.expr(nil).protob ;p? :JSON_NULL
-$reql.expr([1, 2, [4, 5]]).protob ;p? :ARRAY
-$reql.expr({'a' => 1, 'b' => '2', 'c' => { 'nested' => true }}).protob ;p? :OBJECT
-$reql.table('a', 'b').getbykey('attr', 5).protob ;p? :GETBYKEY
-$reql.table('a', 'b').protob ;p? :TABLE
-$reql.table({:table_name => 'b'}).protob ;p? :TABLE
-$reql.javascript('javascript').protob ;p? :JAVASCRIPT
-
-################################################################################
-#                                 BUILTIN TESTS                                #
-################################################################################
-$reql.not(true).protob ;p? :NOT
-$reql.expr(true).not.protob ;p? :NOT
-$reql.var('v')['a'].protob ;p? :GETATTR
-$reql.var('v')[:a].protob ;p? :GETATTR
-$reql.attr('a').protob ;p? :IMPLICIT_GETATTR
-$reql.expr(:a).protob ;p? :IMPLICIT_GETATTR
-#HASATTR
-#IMPLICIT_HASATTR
-#PICKATTRS
-#IMPLICIT_PICKATTRS
-#MAPMERGE
-#ARRAYAPPEND
-#ARRAYCONCAT
-#ARRAYSLICE
-#ARRAYNTH
-#ARRAYLENGTH
-$reql.add(1, 2).protob ;p? :ADD
-$reql.expr(1).add(2).protob ;p? :ADD
-($reql.expr(1) + 2).protob ;p? :ADD
-$reql.subtract(1, 2).protob ;p? :SUBTRACT
-$reql.expr(1).subtract(2).protob ;p? :SUBTRACT
-($reql.expr(1) - 2).protob ;p? :SUBTRACT
-$reql.multiply(1, 2).protob ;p? :MULTIPLY
-$reql.expr(1).multiply(2).protob ;p? :MULTIPLY
-($reql.expr(1) * 2).protob ;p? :MULTIPLY
-$reql.divide(1, 2).protob ;p? :DIVIDE
-$reql.expr(1).divide(2).protob ;p? :DIVIDE
-($reql.expr(1) / 2).protob ;p? :DIVIDE
-$reql.modulo(1, 2).protob ;p? :MODULO
-$reql.expr(1).modulo(2).protob ;p? :MODULO
-($reql.expr(1) % 2).protob ;p? :MODULO
-
-$reql.eq(1, 2).protob ;p? :COMPARE_EQ
-$reql.expr(1).eq(2).protob ;p? :COMPARE_EQ
-$reql.equals(1, 2).protob ;p? :COMPARE_EQ
-$reql.expr(1).equals(2).protob ;p? :COMPARE_EQ
-
-$reql.ne(1, 2).protob ;p? :COMPARE_NE
-$reql.expr(1).ne(2).protob ;p? :COMPARE_NE
-$reql.neq(1, 2).protob ;p? :COMPARE_NE
-$reql.expr(1).neq(2).protob ;p? :COMPARE_NE
-
-$reql.lt(1, 2).protob ;p? :COMPARE_LT
-$reql.expr(1).lt(2).protob ;p? :COMPARE_LT
-($reql.expr(1) < 2).protob ;p? :COMPARE_LT
-
-$reql.le(1, 2).protob ;p? :COMPARE_LE
-$reql.expr(1).le(2).protob ;p? :COMPARE_LE
-($reql.expr(1) <= 2).protob ;p? :COMPARE_LE
-
-$reql.gt(1, 2).protob ;p? :COMPARE_GT
-$reql.expr(1).gt(2).protob ;p? :COMPARE_GT
-($reql.expr(1) > 2).protob ;p? :COMPARE_GT
-
-$reql.ge(1, 2).protob ;p? :COMPARE_GE
-$reql.expr(1).ge(2).protob ;p? :COMPARE_GE
-($reql.expr(1) >= 2).protob ;p? :COMPARE_GE
-
-$reql.table('','Welcome').filter('row', $reql.eq(:id, 1)).protob ;p? :FILTER
-$reql.table('','Welcome').map('row', $reql.expr(:$row)).protob ;p? :MAP
-$reql.table('','Welcome').concatmap('row',
-    $reql.table('','Other').filter('row2',
-        $reql.expr(:$row)[:id] > :id)).protob ;p? :CONCATMAP
-
-#ORDERBY
-#DISTINCT
-#LIMIT
-#LENGTH
-#UNION
-#NTH
-#STREAMTOARRAY
-#ARRAYTOSTREAM
-#REDUCE
-#GROUPEDMAPREDUCE
-#ANY
-#ALL
-#RANGE
-#SKIP
-
-class Tst5
-  def method_missing(meth, *args, &block)
-    if meth == :tst
-      PP.pp([meth, args, block])
-      $out = block
-      block.call(:block) if block
-    else
-      super(meth)
+    def method_missing(meth, *args, &block)
+      meth = C.method_aliases[meth] || meth
+      if enum_type(Builtin::Comparison, meth)
+        S.new [:call, [:compare, meth], [@body, *args]]
+      elsif enum_type(Builtin::BuiltinType, meth)
+        if message_field(Builtin, meth) then S.new [:call, [meth, *args], [@body]]
+        else S.new [:call, [meth], [@body, *args]]
+        end
+      else super(meth, *args, &block)
+      end
     end
   end
+
+  module RQL_Mixin
+    def attr a; S.new [:call, [:implicit_getattr, a], []]; end
+    def expr x
+      case x.class().hash
+      when S.hash          then x
+      when String.hash     then S.new [:string, x]
+      when Fixnum.hash     then S.new [:number, x]
+      when TrueClass.hash  then S.new [:bool, x]
+      when FalseClass.hash then S.new [:bool, x]
+      when NilClass.hash   then S.new [:json_null]
+      when Array.hash      then S.new [:array, *x.map{|y| expr(y)}]
+      when Hash.hash       then S.new [:object, *x.map{|var,term| [var, expr(term)]}]
+      when Symbol.hash     then
+        str = x.to_s
+        S.new str[0] == '$'[0] ? var(str[1..str.length]) : attr(str)
+      else raise TypeError, "term.expr can't handle type `#{x.class()}`"
+      end
+    end
+    def method_missing(meth, *args, &block)
+      meth = C.method_aliases[meth] || meth
+      if    enum_type(Builtin::BuiltinType, meth) then S.new [:call,[meth],args]
+      elsif enum_type(Builtin::Comparison, meth)  then S.new [:call,[:compare,meth],args]
+      elsif enum_type(Term::TermType, meth)       then S.new [meth,*args]
+      else super(meth, *args, &block)
+      end
+    end
+  end
+  module RQL; extend RQL_Mixin; end
 end
