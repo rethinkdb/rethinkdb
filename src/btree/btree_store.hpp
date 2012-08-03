@@ -107,7 +107,9 @@ protected:
                                         superblock_t *superblock,
                                         btree_slice_t *btree,
                                         transaction_t *txn,
-                                        typename protocol_t::backfill_progress_t *progress) = 0;
+                                        typename protocol_t::backfill_progress_t *progress,
+                                        signal_t *interruptor)
+                                        THROWS_ONLY(interrupted_exc_t) = 0;
 
     virtual void protocol_receive_backfill(btree_slice_t *btree,
                                            transaction_t *txn,
