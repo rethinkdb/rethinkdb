@@ -18,7 +18,8 @@ def maybe_rewrite_query_type(query_type)
   { :getattr => :attr, :implicit_getattr => :attr,
     :hasatter => :attr, :implicit_hasattr => :attr,
     :pickattrs => :attrs, :implicit_pickattrs => :attrs,
-    :string => :valuestring, :json => :jsonstring, :bool => :valuebool
+    :string => :valuestring, :json => :jsonstring, :bool => :valuebool,
+    :if => :if_, :getbykey => :get_by_key
   }[query_type] || query_type
 end
 
@@ -27,8 +28,9 @@ def is_trampoline(query_type)
 end
 
 def parse(message_class, args, repeating=false)
- # PP.pp(["A", message_class, args, repeating])
+  PP.pp(["A", message_class, args, repeating])
   if repeating; return args.map {|arg| parse(message_class, arg)}; end
+  args = args[0] if args.kind_of? Array and args[0].kind_of? Hash
   throw "Cannot construct #{message_class} from #{args}." if args == []
   if message_class.kind_of? Symbol
     args = [args] if args.class != Array
@@ -38,6 +40,7 @@ def parse(message_class, args, repeating=false)
 
   message = message_class.new
   if (message_type_class = $class_types[message_class])
+    args = $reql.expr(args).sexp if args.class() != Array
     query_type = args[0]
     message.type = enum_type(message_type_class, query_type)
     return message if args.length == 1
@@ -48,7 +51,7 @@ def parse(message_class, args, repeating=false)
 
     query_type = maybe_rewrite_query_type(query_type)
     field_metadata = message_class.fields.select{|x,y| y.name == query_type}[0]
-    throw "No field #{query_type} in #{message_class}." if not field_metadata
+    throw "No field '#{query_type}' in '#{message_class}'." if not field_metadata
     field = field_metadata[1]
     message_set(message, query_type, parse(field.type, query_args,field.rule==:repeated))
   else
