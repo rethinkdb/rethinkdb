@@ -66,9 +66,12 @@
     {{#each data.namespaces}}
     <div class="namespace">
       <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
-      <ul>
+      <ul class="shard_ul">
         {{#each shards}}
-        <li>{{name}} ({{nprimaries}} {{pluralize_noun "primary" nprimaries}}, {{nsecondaries}} {{pluralize_noun "secondary" nsecondaries}})</li>
+        <li class="shard_li">
+            <h4>{{name}}</h4>
+            <p>{{#if keys}}About {{keys}} keys{{else}}Loading number of keys...{{/if}}, {{nprimaries}} {{pluralize_noun "primary" nprimaries}}, {{nsecondaries}} {{pluralize_noun "secondary" nsecondaries}}</p>
+        </li>
         {{/each}}
       </ul>
     </div>
