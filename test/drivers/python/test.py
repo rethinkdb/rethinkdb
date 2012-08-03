@@ -180,10 +180,9 @@ class RDBTest(unittest.TestCase):
         expect(r.append([1], 2), [1, 2])
         fail(r.append(3, 0), "array")
 
-        expect(r.concat([1], [2]), [1, 2])
-        expect(r.concat([1, 2], []), [1, 2])
-        fail(r.concat(1, [1]), "array")
-        fail(r.concat([1], 1), "array")
+        expect(r.add([1], [2]), [1, 2])
+        expect(r.add([1, 2], []), [1, 2])
+        fail(r.add([1], 1), "array")
 
         arr = range(10)
         expect(r.slice_(arr, 0, 3), arr[0: 3])
@@ -207,9 +206,9 @@ class RDBTest(unittest.TestCase):
         fail(r.element(arr, .1), "integer")
         fail(r.element([0], 1), "bounds")
 
-        expect(r.size([]), 0)
-        expect(r.size(arr), len(arr))
-        fail(r.size(0), "array")
+        expect(r.length([]), 0)
+        expect(r.length(arr), len(arr))
+        fail(r.length(0), "array")
 
     def test_stream(self):
         expect = self.expect
@@ -231,10 +230,10 @@ class RDBTest(unittest.TestCase):
         fail = self.error_exec
 
         def limit(arr, count):
-            return r.array(r.stream(arr).limit(count))
+            return r.array(r.slice_(r.stream(arr), None, count))
 
         def skip(arr, offset):
-            return r.array(r.stream(arr).skip(offset))
+            return r.array(r.slice_(r.stream(arr), offset, None))
 
         expect(limit([], 0), [])
         expect(limit([1, 2], 0), [])
