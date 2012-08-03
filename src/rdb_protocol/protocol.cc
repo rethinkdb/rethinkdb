@@ -358,7 +358,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
     }
 
     read_response_t operator()(const rget_read_t& rget) {
-        return read_response_t(rdb_rget_slice(btree, rget.key_range, 1000, txn, superblock));
+        return read_response_t(rdb_rget_slice(btree, rget.key_range, 1000, txn, superblock, &env, rget.transform, rget.terminal));
     }
 
     read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, rdb_protocol_t::context_t *ctx) :

@@ -27,6 +27,10 @@ typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
 static const size_t rget_max_chunk_size = MEGABYTE;
 
+namespace query_language {
+    class runtime_environment_t;
+} //namespace query_language 
+
 struct rdb_value_t {
     char contents[];
 
@@ -137,6 +141,8 @@ struct rget_response_t {
 };
 
 rget_read_response_t rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-                               int maximum, transaction_t *txn, superblock_t *superblock);
+                               int maximum, transaction_t *txn, superblock_t *superblock,
+                               query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
+                               boost::optional<rdb_protocol_details::terminal_t> terminal);
 
 #endif /* RDB_PROTOCOL_BTREE_HPP_ */

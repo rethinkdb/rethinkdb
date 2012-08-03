@@ -4,6 +4,7 @@
 #include "rdb_protocol/scope.hpp"
 #include "rdb_protocol/stream.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/js.hpp"
 
 namespace query_language {
 

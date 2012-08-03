@@ -1,6 +1,7 @@
 #ifndef RDB_PROTOCOL_STREAM_HPP_
 #define RDB_PROTOCOL_STREAM_HPP_
 
+#include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "stream_cache.hpp"
 
@@ -309,6 +310,7 @@ public:
 
     boost::shared_ptr<scoped_cJSON_t> next() {
         // TODO: error handling
+        // TODO reevaluate this when we better understand what we're doing for ordering
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             if (json->type() != cJSON_Object) {
                 continue;

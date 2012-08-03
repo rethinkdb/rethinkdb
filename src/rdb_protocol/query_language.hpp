@@ -80,6 +80,20 @@ view_t eval_view(Term::Call *t, runtime_environment_t *, const backtrace_t &back
 
 view_t eval_view(Term::Table *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
+class predicate_t {
+public:
+    predicate_t(const Predicate &_pred, runtime_environment_t _env, const backtrace_t &_backtrace);
+    bool operator()(boost::shared_ptr<scoped_cJSON_t> json);
+private:
+    Predicate pred;
+    runtime_environment_t env;
+    backtrace_t backtrace;
+};
+
+boost::shared_ptr<scoped_cJSON_t> map(std::string arg, Term *term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace);
+
+boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace);
+
 } //namespace query_language
 
 #endif /* RDB_PROTOCOL_QUERY_LANGUAGE_HPP_ */
