@@ -259,7 +259,7 @@ module 'LogView', ->
                 machine_name: machines.get(@model.get('machine_uuid')).get('name')
                 datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
         
-            @.$el.html @template json 
+            @.$el.html @template json
             
             @delegateEvents()
             return @
@@ -271,8 +271,8 @@ module 'LogView', ->
                 machine_name: machines.get(@model.get('machine_uuid')).get('name')
                 datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
         
-            @.$el.html @template_small json 
-            @.$el.attr('class', @classNameSmall) 
+            @.$el.html @template_small json
+            @.$el.attr('class', @classNameSmall)
             return @
 
 
@@ -284,20 +284,21 @@ module 'LogView', ->
             
             if @pattern_applying_data.test(msg)
                 data = msg.slice 14
+                data = DataUtils.stripslashes data
                 msg = ''
                 json_data = $.parseJSON data
                 for group of json_data
                     if group is 'memcached_namespaces' or group is 'rdb_namespaces'
                         for namespace_id of json_data[group]
                             if namespace_id is 'new'
-                                msg += @log_new_namespace_template 
+                                msg += @log_new_namespace_template
                                     namespace_name: json_data[group]['new']['name']
                                     datacenter_id: json_data[group]['new']['primary_uuid']
                                     datacenter_name: if datacenters.get(json_data[group]['new']['primary_uuid'])? then datacenters.get(json_data[group]['new']['primary_uuid']).get 'name' else 'removed datacenter'
                                     port: json_data[group]['new']['port']
                             else
                                 if json_data[group][namespace_id] is null
-                                    msg += @log_delete_something_template 
+                                    msg += @log_delete_something_template
                                         type: 'namespace'
                                         id: namespace_id
                                 else
@@ -443,6 +444,7 @@ module 'LogView', ->
             
             if @pattern_applying_data.test(msg)
                 data = msg.slice 14
+                data = DataUtils.stripslashes data
                 msg = ''
                 json_data = $.parseJSON data
                 for group of json_data
