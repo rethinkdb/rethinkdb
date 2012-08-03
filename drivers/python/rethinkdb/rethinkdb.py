@@ -127,7 +127,7 @@ class Connection(object):
         root_ast.token = self._get_token()
         query._finalize_query(root_ast)
 
-        return self._run(root_ast, query)
+        return self._run(root_ast, query, debug)
 
     def _get_token(self):
         token = self.token
