@@ -302,9 +302,6 @@ module 'DatabaseView', ->
                 '',
                 (response) =>
                     database_to_delete = @model
-
-
-
             )
 
 

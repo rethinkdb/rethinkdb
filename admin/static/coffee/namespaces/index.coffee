@@ -224,7 +224,7 @@ module 'NamespaceView', ->
     class @NamespaceListElement extends UIComponents.CheckboxListElement
         template: Handlebars.compile $('#namespace_list_element-template').html()
 
-        history_opsec: []
+        #history_opsec: []
 
         hide_popover: ->
             $('.tooltip').remove()
@@ -233,18 +233,18 @@ module 'NamespaceView', ->
             log_initial '(initializing) list view: namespace'
             super @template
 
+            ###
             # Initialize history
             for i in [0..40]
                 @history_opsec.push 0
-            ###
             @model.on 'change', @render
             machines.on 'all', @render
             ###
-
+        ###
         update_history_opsec: =>
             @history_opsec.shift()
             @history_opsec.push @model.get_stats().keys_read + @model.get_stats().keys_set
-
+        ###
 
         json_for_template: =>
             json = _.extend super(), DataUtils.get_namespace_status(@model.get('id'))
@@ -261,11 +261,11 @@ module 'NamespaceView', ->
             json.data_in_memory_percent = Math.floor(data_in_memory/data_total*100)
             json.data_in_memory = human_readable_units(data_in_memory, units_space)
             json.data_total = human_readable_units(data_total, units_space)
-            ###
 
             @update_history_opsec()
             json.opsec = @history_opsec[@history_opsec.length-1]
-
+            ###
+            
             return json
 
         render: =>
@@ -393,23 +393,6 @@ module 'NamespaceView', ->
                 $('.alert_modal').alert()
                 @reset_buttons()
             else
-                ### TODO use this call so we are sure to be consistent when we update the namespace
-                data = {}
-                data['memcached_namespaces'] = {}
-                data['memcached_namespaces']['new'] =
-                    name: formdata.name
-                    primary_uuid: formdata.primary_datacenter
-                    port : parseInt(formdata.port)
-
-                $.ajax
-                    processData: false
-                    url: '/ajax/semilattice'
-                    type: 'POST'
-                    contentType: 'application/json'
-                    data: JSON.stringify data
-                    success: @on_success
-                    error: @on_error
-                ###
                 $.ajax
                     processData: false
                     url: '/ajax/semilattice/rdb_namespaces/new'
@@ -426,12 +409,8 @@ module 'NamespaceView', ->
         on_success: (response) =>
             super
 
-            # the result of this operation are some
-            # attributes about the namespace we
-            # created, to be used in an alert
             apply_to_collection(namespaces, add_protocol_tag(response, "rdb"))
 
-            # Notify the user
             for id, namespace of response
                 $('#user-alert-space').append @alert_tmpl
                     uuid: id
