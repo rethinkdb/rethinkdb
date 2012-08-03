@@ -240,9 +240,7 @@ module 'DatacenterView', ->
         template: Handlebars.compile $('#datacenter_view_data-template').html()
 
         initialize: =>
-            @model.on 'all', @render
-            machines.on 'all', @render
-            directory.on 'all', @render
+            @namespaces_with_listeners = {}
 
         render: =>
             # Filter all the machines for those belonging to this datacenter
@@ -261,16 +259,23 @@ module 'DatacenterView', ->
                                     shard: shard
                                     name: human_readable_shard shard
                 if _shards.length > 0
+                    if not @namespaces_with_listeners[namespace.get('id')]?
+                        @namespaces_with_listeners[namespace.get('id')] = true
+                        namespace.load_key_distr_once()
+                        namespace.on 'change:key_distr', @render
+
                     # Compute number of primaries and secondaries for each shard
                     __shards = {}
                     for shard in _shards
                         shard_repr = shard.shard.toString()
                         if not __shards[shard_repr]?
+                            keys = namespace.compute_shard_rows_approximation shard.shard
                             __shards[shard_repr] =
                                 shard: shard.shard
                                 name: human_readable_shard shard.shard
                                 nprimaries: if shard.role is 'role_primary' then 1 else 0
                                 nsecondaries: if shard.role is 'role_secondary' then 1 else 0
+                                keys: keys if typeof keys is 'string'
                         else
                             if shard.role is 'role_primary'
                                 __shards[shard_repr].nprimaries += 1
@@ -298,6 +303,6 @@ module 'DatacenterView', ->
             return @
 
         destroy: =>
-            @model.off 'all', @render
-            machines.off 'all', @render
-            directory.off 'all', @render
+            for namespace_id of @namespaces_with_listeners
+                namespaces.get(namespace_id).off 'change:key_distr', @render
+                namespaces.get(namespace_id).clear_timeout()

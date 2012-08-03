@@ -160,12 +160,10 @@ module 'MachineView', ->
             @model.off 'all', @render
 
     class @Data extends Backbone.View
-        className: 'machine-info-view'
+        className: 'machine-data-view'
         template: Handlebars.compile $('#machine_view_data-template').html()
 
         initialize: =>
-            @directory_entry = directory.get @model.get 'id'
-            @directory_entry.on 'change:memcached_namespaces', @render
             @namespaces_with_listeners = {}
         render: =>
             json = {}
@@ -197,20 +195,13 @@ module 'MachineView', ->
                 data:
                     namespaces: _namespaces
         
-            # Reachability
-            _.extend json,
-                status: DataUtils.get_machine_reachability(@model.get('id'))
-
             @.$el.html @template(json)
             return @
 
-        fetch_key_distr: (namespace) =>
-            namespace.load_key_distr_once @render
-
         destroy: =>
-            for namespace_id of @namespace_with_listeners
+            for namespace_id of @namespaces_with_listeners
                 namespaces.get(namespace_id).off 'change:key_distr', @render
-            @directory_entry.on 'change:memcached_namespaces', @render
+                namespaces.get(namespace_id).clear_timeout()
 
 
     class @Assignments extends Backbone.View
