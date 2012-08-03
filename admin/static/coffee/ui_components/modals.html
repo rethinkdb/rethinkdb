@@ -68,6 +68,12 @@
     {{#if port_isnt_integer}}
         <p>Please enter an integer for the port.</p>
     {{/if}}
+    {{#if database_is_empty}}
+        <p>Please do not use an empty name for a database.</p>
+    {{/if}}
+     {{#if database_exists}}
+        <p>The chosen database's name is already being used. please choose another one.</p>
+    {{/if}}
     {{#if namespace_is_empty}}
         <p>Please do not use an empty namespace.</p>
     {{/if}}
