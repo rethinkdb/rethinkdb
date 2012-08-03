@@ -19,7 +19,7 @@ class RDBTest(unittest.TestCase):
     def setUpClass(cls):
         cls.conn = r.Connection(os.getenv('HOST') or 'localhost',
                                  12346 + (int(os.getenv('PORT') or 2010)))
-        cls.table = r.db("").Welcome
+        cls.table = r.db("")['Welcome-rdb']
 
     def expect(self, query, expected):
         try:
@@ -180,10 +180,9 @@ class RDBTest(unittest.TestCase):
         expect(r.append([1], 2), [1, 2])
         fail(r.append(3, 0), "array")
 
-        expect(r.concat([1], [2]), [1, 2])
-        expect(r.concat([1, 2], []), [1, 2])
-        fail(r.concat(1, [1]), "array")
-        fail(r.concat([1], 1), "array")
+        expect(r.add([1], [2]), [1, 2])
+        expect(r.add([1, 2], []), [1, 2])
+        fail(r.add([1], 1), "array")
 
         arr = range(10)
         expect(r.slice_(arr, 0, 3), arr[0: 3])
@@ -207,9 +206,9 @@ class RDBTest(unittest.TestCase):
         fail(r.element(arr, .1), "integer")
         fail(r.element([0], 1), "bounds")
 
-        expect(r.size([]), 0)
-        expect(r.size(arr), len(arr))
-        fail(r.size(0), "array")
+        expect(r.length([]), 0)
+        expect(r.length(arr), len(arr))
+        fail(r.length(0), "array")
 
     def test_stream(self):
         expect = self.expect
@@ -231,10 +230,10 @@ class RDBTest(unittest.TestCase):
         fail = self.error_exec
 
         def limit(arr, count):
-            return r.array(r.stream(arr).limit(count))
+            return r.array(r.slice_(r.stream(arr), None, count))
 
         def skip(arr, offset):
-            return r.array(r.stream(arr).skip(offset))
+            return r.array(r.slice_(r.stream(arr), offset, None))
 
         expect(limit([], 0), [])
         expect(limit([1, 2], 0), [])
@@ -416,6 +415,43 @@ class RDBTest(unittest.TestCase):
         self.do_insert(docs)
 
         self.expect(self.table.range(2, 3), docs[2:4])
+
+    def test_js(self):
+        self.expect(r.js('2'), 2)
+        self.expect(r.js('2+2'), 4)
+        self.expect(r.js('"cows"'), u"cows")
+        self.expect(r.js('[1,2,3]'), [1,2,3])
+        self.expect(r.js('{}'), {})
+        self.expect(r.js('{a: "whee"}'), {u"a": u"whee"})
+        self.expect(r.js('this'), {})
+
+        self.expect(r.js(body='return 0;'), 0)
+
+        self.error_exec(r.js('undefined'), "undefined")
+        self.error_exec(r.js(body='return;'), "undefined")
+        self.error_exec(r.js(body='var x = {}; x.x = x; return x;'), "cyclic datastructure")
+
+    def test_js_vars(self):
+        self.clear_table()
+        names = "slava joe rntz rmmh tim".split()
+        docs = [{'id': i, 'name': name} for i,name in enumerate(names)]
+
+        self.expect(r.let(('x', 2), r.js('x')), 2)
+        self.expect(r.let(('x', 2), ('y', 3), r.js('x + y')), 5)
+
+        self.do_insert(docs)
+        self.expect(self.table.map(r.var('x'), row='x'), docs) # sanity check
+
+        self.expect(self.table.map(r.js('x'), row='x'), docs)
+        self.expect(self.table.map(r.js('x.name'), row='x'), names)
+        self.expect(self.table.filter(r.js('x.id > 2'), row='x'),
+                    [x for x in docs if x['id'] > 2])
+        self.expect(self.table.map(r.js('x.id + ": " + x.name'), row='x'),
+                    ["%s: %s" % (x['id'], x['name']) for x in docs])
+
+        self.expect(self.table, docs)
+        self.expect(self.table.map(r.js('this')), docs)
+        self.expect(self.table.map(r.js('this.name')), names)
 
     # def test_huge(self):
     #     self.clear_table()
