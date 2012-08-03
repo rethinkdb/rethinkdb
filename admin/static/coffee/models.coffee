@@ -83,7 +83,11 @@ class Namespace extends Backbone.Model
                 @set('key_distr_sorted', distr_keys)
                 @set('key_distr', distr_data)
             error: =>
-                setTimeout 1000, @load_key_distr_once
+                @timeout = setTimeout @load_key_distr_once, 1000
+
+    clear_timeout: =>
+        if @timeout?
+            clearTimeout @timeout
 
     # Some shard helpers
     compute_shard_rows_approximation: (shard) =>

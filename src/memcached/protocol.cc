@@ -571,12 +571,18 @@ private:
 };
 
 static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
-        memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress) {
+        memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress,
+        signal_t *interruptor) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owner(p);
     progress->add_constituent(&p_owner);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
-    memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p);
+    try {
+        memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p, interruptor);
+    } catch (interrupted_exc_t) {
+        /* do nothing; `protocol_send_backfill()` will notice and deal with it.
+        */
+    }
 }
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
@@ -585,20 +591,27 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
                                      superblock_t *superblock,
                                      btree_slice_t *btree,
                                      transaction_t *txn,
-                                     backfill_progress_t *progress)
+                                     backfill_progress_t *progress,
+                                     signal_t *interruptor)
+                                     THROWS_ONLY(interrupted_exc_t)
 {
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
 
     if (regions.size() > 0) {
         memcached_backfill_callback_t callback(chunk_fun);
 
-        // pmapping by regions.size() is now the arguably wrong
-        // thing to do, because regions are not separate key
-        // ranges.  On the other hand it's harmless, because
-        // caching is basically perfect.
+        // pmapping by regions.size() is now the arguably wrong thing to do,
+        // because adjacent regions often have the same value. On the other hand
+        // it's harmless, because caching is basically perfect.
         refcount_superblock_t refcount_wrapper(superblock, regions.size());
         pmap(regions.size(), boost::bind(&call_memcached_backfill, _1,
-                                         btree, regions, &callback, txn, &refcount_wrapper, progress));
+                                         btree, regions, &callback, txn, &refcount_wrapper, progress, interruptor));
+
+        /* if interruptor was pulsed in `call_memcached_backfill()`, it returned
+        normally anyway. So now we have to check manually. */
+        if (interruptor->is_pulsed()) {
+            throw interrupted_exc_t();
+        }
     }
 }
 

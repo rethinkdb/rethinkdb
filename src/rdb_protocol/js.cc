@@ -3,6 +3,7 @@
 
 #include "utils.hpp"
 #include <boost/make_shared.hpp>
+#include <boost/optional.hpp>
 
 #include "containers/scoped.hpp"
 #include "rdb_protocol/jsimpl.hpp"
@@ -314,19 +315,30 @@ id_t runner_t::compile(
 // ----- call() -----
 struct call_task_t : auto_task_t<call_task_t> {
     call_task_t() {}
-    call_task_t(id_t id, const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args)
-        : func_id_(id), args_(args) {}
+    call_task_t(id_t id,
+                boost::shared_ptr<scoped_cJSON_t> obj,
+                const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args)
+        : func_id_(id), args_(args)
+    {
+        if (NULL != obj.get()) {
+            obj_ = obj;
+            rassert(obj->type() == cJSON_Object);
+        }
+    }
 
     id_t func_id_;
+    boost::optional<boost::shared_ptr<scoped_cJSON_t> > obj_;
     std::vector<boost::shared_ptr<scoped_cJSON_t> > args_;
-    RDB_MAKE_ME_SERIALIZABLE_2(func_id_, args_);
+    RDB_MAKE_ME_SERIALIZABLE_3(func_id_, obj_, args_);
 
     v8::Handle<v8::Value> eval(v8::Handle<v8::Function> func, std::string *errmsg) {
         v8::TryCatch try_catch;
         v8::HandleScope scope;
 
         // Construct receiver object.
-        v8::Handle<v8::Object> obj = v8::Object::New();
+        v8::Handle<v8::Object> obj = obj_ ? fromJSON(*obj_.get()->get())->ToObject()
+                                          : v8::Object::New();
+        rassert(!obj.IsEmpty());
 
         // Construct arguments.
         int nargs = (int) args_.size();
@@ -373,14 +385,16 @@ struct call_task_t : auto_task_t<call_task_t> {
 
 boost::shared_ptr<scoped_cJSON_t> runner_t::call(
     id_t func_id,
+    boost::shared_ptr<scoped_cJSON_t> object,
     const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
     std::string *errmsg,
     const req_config_t *config)
 {
     json_result_t result;
+    rassert(!object || object->type() == cJSON_Object);
 
     {
-        run_task_t run(this, config, call_task_t(func_id, args));
+        run_task_t run(this, config, call_task_t(func_id, object, args));
         guarantee(ARCHIVE_SUCCESS == deserialize(&run, &result));
     }
 

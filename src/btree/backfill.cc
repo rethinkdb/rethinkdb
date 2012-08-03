@@ -158,10 +158,11 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 };
 
 void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
-                                agnostic_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, parallel_traversal_progress_t *p) {
+                                agnostic_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, parallel_traversal_progress_t *p,
+                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(coro_t::self());
 
     backfill_traversal_helper_t helper(callback, since_when, sizer, key_range);
     helper.progress = p;
-    btree_parallel_traversal(txn, superblock, slice, &helper);
+    btree_parallel_traversal(txn, superblock, slice, &helper, interruptor);
 }
