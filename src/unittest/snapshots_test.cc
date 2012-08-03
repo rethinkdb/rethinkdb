@@ -198,17 +198,17 @@ private:
         // t0:create+release(A,B), t3:acq_outdated_ok(A), t1:acqw(A) doesn't block, t1:change(A), t1:release(A), t2:acqw(A) doesn't block, t2:release(A), t3 doesn't see the change, t3:release(A)
         order_source_t order_source;
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                         order_source.check_in("test_cow_snapshot(t1)"));
+                         order_source.check_in("test_cow_snapshot(t0)"));
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
+        order_token_t t3_order_token = order_source.check_in("test_cow_snapshot(t3)").with_read_mode();
         transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                         order_source.check_in("test_cow_snapshot(t2)"));
+                         order_source.check_in("test_cow_snapshot(t1)"));
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                          order_source.check_in("test_cow_snapshot(t2)"));
-        transaction_t t3(cache, rwi_read, 0, repli_timestamp_t::invalid,
-                         order_source.check_in("test_cow_snapshot(t3)").with_read_mode());
+        transaction_t t3(cache, rwi_read, 0, repli_timestamp_t::invalid, t3_order_token);
 
         buf_lock_t buf3_A(&t3, block_A, rwi_read_outdated_ok);
         uint32_t old_value = get_value(&buf3_A);

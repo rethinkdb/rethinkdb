@@ -267,26 +267,34 @@ private:
     F f;
 };
 
-class limit_stream_t : public json_stream_t {
+class slice_stream_t : public json_stream_t {
 public:
-    limit_stream_t(boost::shared_ptr<json_stream_t> _stream, int _limit)
-        : stream(_stream), limit(_limit)
+    slice_stream_t(boost::shared_ptr<json_stream_t> _stream, int _start, bool _unbounded, int _stop)
+        : stream(_stream), start(_start), unbounded(_unbounded), stop(_stop)
     {
-        guarantee(limit >= 0);
+        guarantee(start >= 0);
+        guarantee(stop >= 0);
+        guarantee(unbounded || stop >= start);
+        stop -= start;
     }
 
     boost::shared_ptr<scoped_cJSON_t> next() {
-        if (limit == 0) {
-            return boost::shared_ptr<scoped_cJSON_t>();
-        } else {
-            limit--;
+        while (start) {
+            start--;
+            stream->next();
+        }
+        if (unbounded || stop != 0) {
+            stop--;
             return stream->next();
         }
+        return boost::shared_ptr<scoped_cJSON_t>();
     }
 
 private:
     boost::shared_ptr<json_stream_t> stream;
-    int limit;
+    int start;
+    bool unbounded;
+    int stop;
 };
 
 class skip_stream_t : public json_stream_t {
@@ -298,10 +306,6 @@ public:
     }
 
     boost::shared_ptr<scoped_cJSON_t> next() {
-        while (offset) {
-            offset--;
-            stream->next();
-        }
         return stream->next();
     }
 
@@ -337,6 +341,6 @@ private:
 };
 
 
-} //namespace query_language 
+} //namespace query_language
 
 #endif  // RDB_PROTOCOL_STREAM_HPP_

@@ -20,7 +20,7 @@ class RDBTest(unittest.TestCase):
     def setUpClass(cls):
         cls.conn = connect(os.getenv('HOST') or 'localhost',
                                  12346 + (int(os.getenv('PORT') or 2010)))
-        cls.table = table("Welcome")
+        cls.table = table(".Welcome")
 
     def expect(self, query, expected):
         try:
@@ -28,6 +28,9 @@ class RDBTest(unittest.TestCase):
             self.assertNotEqual(str(query), '')
             self.assertEqual(res, expected)
         except Exception, e:
+            root_ast = I.p.Query()
+            query._finalize_query(root_ast)
+            print root_ast
             raise
 
     def error_query(self, query, msg):
@@ -47,7 +50,7 @@ class RDBTest(unittest.TestCase):
         self.conn.run(self.table.delete())
 
     def do_insert(self, docs):
-        self.expect(self.table.insert(docs), {'inserted': len(docs)})
+        self.expect(self.table.insert(docs), {'inserted': 1 if isinstance(docs, dict) else len(docs)})
 
     def test_arith(self):
         expect = self.expect
@@ -160,7 +163,7 @@ class RDBTest(unittest.TestCase):
         self.expect(I.Attr({"foo": 3}, "foo"), 3)
         self.error_exec(I.Attr({"foo": 3}, "bar"), "missing")
 
-        self.expect(I.Attr({"a": {"b": 3}}, "a.b"), 3)
+        self.expect(I.Attr(I.Attr({"a": {"b": 3}}, "a"), "b"), 3)
 
     def test_extend(self):
         self.expect(I.Extend({"a": 5}, {"b": 3}), {"a": 5, "b": 3})
@@ -178,26 +181,26 @@ class RDBTest(unittest.TestCase):
         expect(I.Append([1], 2), [1, 2])
         fail(I.Append(3, 0), "array")
 
-        expect(I.Concat([1], [2]), [1, 2])
-        expect(I.Concat([1, 2], []), [1, 2])
-        fail(I.Concat(1, [1]), "array")
-        fail(I.Concat([1], 1), "array")
+        expect(I.Add([1], [2]), [1, 2])
+        expect(I.Add([1, 2], []), [1, 2])
+        fail(I.Add(1, [1]), "number")
+        fail(I.Add([1], 1), "array")
 
         arr = range(10)
-        expect(I.Slice(arr, 0, 3), arr[0: 3])
-        expect(I.Slice(arr, 0, 0), arr[0: 0])
-        expect(I.Slice(arr, 5, 15), arr[5: 15])
-        expect(I.Slice(arr, 5, -3), arr[5: -3])
-        expect(I.Slice(arr, -5, -3), arr[-5: -3])
-        fail(I.Slice(1, 0, 0), "array")
-        fail(I.Slice(arr, .5, 0), "integer")
-        fail(I.Slice(arr, 0, 1.01), "integer")
-        fail(I.Slice(arr, 5, 3), "greater")
-        expect(I.Slice(arr, 5, None), arr[5:])
-        expect(I.Slice(arr, None, 7), arr[:7])
-        expect(I.Slice(arr, None, -2), arr[:-2])
-        expect(I.Slice(arr, -2, None), arr[-2:])
-        expect(I.Slice(arr, None, None), arr[:])
+        expect(I.Slice(expr(arr), 0, 3), arr[0: 3])
+        expect(I.Slice(expr(arr), 0, 0), arr[0: 0])
+        expect(I.Slice(expr(arr), 5, 15), arr[5: 15])
+        expect(I.Slice(expr(arr), 5, -3), arr[5: -3])
+        expect(I.Slice(expr(arr), -5, -3), arr[-5: -3])
+        fail(I.Slice(expr(1), 0, 0), "array")
+        fail(I.Slice(expr(arr), .5, 0), "integer")
+        fail(I.Slice(expr(arr), 0, 1.01), "integer")
+        fail(I.Slice(expr(arr), 5, 3), "greater")
+        expect(I.Slice(expr(arr), 5, None), arr[5:])
+        expect(I.Slice(expr(arr), None, 7), arr[:7])
+        expect(I.Slice(expr(arr), None, -2), arr[:-2])
+        expect(I.Slice(expr(arr), -2, None), arr[-2:])
+        expect(I.Slice(expr(arr), None, None), arr[:])
 
         expect(I.Element(arr, 3), 3)
         expect(I.Element(arr, -1), 9)
@@ -205,34 +208,33 @@ class RDBTest(unittest.TestCase):
         fail(I.Element(arr, .1), "integer")
         fail(I.Element([0], 1), "bounds")
 
-        expect(I.Size([]), 0)
-        expect(I.Size(arr), len(arr))
-        fail(I.Size(0), "array")
-    '''
+        expect(I.Length(expr([])), 0)
+        expect(I.Length(expr(arr)), len(arr))
+        fail(I.Length(expr(0)), "array")
+
     def test_stream(self):
         expect = self.expect
         fail = self.error_exec
         arr = range(10)
 
-        expect(r.array(r.stream(arr)), arr)
-        expect(r.array(r.stream(r.array(r.stream(arr)))), arr)
+        expect(expr(arr).to_stream().to_array(), arr)
 
-        expect(r.nth(r.stream(arr), 0), 0)
-        expect(r.nth(r.stream(arr), 5), 5)
-        fail(r.nth(r.stream(arr), []), "integer")
-        fail(r.nth(r.stream(arr), .4), "integer")
-        fail(r.nth(r.stream(arr), -5), "nonnegative")
-        fail(r.nth(r.stream([0]), 1), "bounds")
+        expect(I.Nth(I.ToStream(arr), 0), 0)
+        expect(I.Nth(I.ToStream(arr), 5), 5)
+        fail(I.Nth(I.ToStream(arr), []), "integer")
+        fail(I.Nth(I.ToStream(arr), .4), "integer")
+        fail(I.Nth(I.ToStream(arr), -5), "nonnegative")
+        fail(I.Nth(I.ToStream([0]), 1), "bounds")
 
     def test_stream_fancy(self):
         expect = self.expect
         fail = self.error_exec
 
         def limit(arr, count):
-            return r.array(r.stream(arr).limit(count))
+            return expr(arr).to_stream().limit(count).to_array()
 
         def skip(arr, offset):
-            return r.array(r.stream(arr).skip(offset))
+            return expr(arr).to_stream().skip(offset).to_array()
 
         expect(limit([], 0), [])
         expect(limit([1, 2], 0), [])
@@ -260,28 +262,27 @@ class RDBTest(unittest.TestCase):
         expect = self.expect
         fail = self.error_exec
 
-        def order(arr, **kwargs):
-            return r.array(r.stream(arr).orderby(**kwargs))
+        def order(arr, *args):
+            return expr(arr).to_stream().orderby(*args)
 
         docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(10)]
 
         from operator import itemgetter as get
 
-        expect(order(docs, a=True), sorted(docs, key=get('a')))
-        expect(order(docs, a=False), sorted(docs, key=get('a'), reverse=True))
+        expect(order(docs, "a"), sorted(docs, key=get('a')))
+        expect(order(docs, "-a"), sorted(docs, key=get('a'), reverse=True))
 
         self.clear_table()
         self.do_insert(docs)
 
-        expect(self.table.orderby(a=True).array(), sorted(docs, key=get('a')))
-        expect(self.table.orderby(a=False).array(), sorted(docs, key=get('a'), reverse=True))
+        expect(self.table.orderby("a"), sorted(docs, key=get('a')))
+        expect(self.table.orderby("-a"), sorted(docs, key=get('a'), reverse=True))
 
-        expect(self.table.filter({'b': 0}).orderby(a=True).array(),
+        expect(self.table.filter({'b': 0}).orderby("a"),
                sorted(doc for doc in docs if doc['b'] == 0))
 
-        expect(self.table.filter({'b': 0}).orderby(a=True).delete(),
+        expect(self.table.filter({'b': 0}).orderby("a").delete(),
                {'deleted': len(sorted(doc for doc in docs if doc['b'] == 0))})
-
 
     def test_table_insert(self):
         self.clear_table()
@@ -291,13 +292,13 @@ class RDBTest(unittest.TestCase):
         self.do_insert(docs)
 
         for doc in docs:
-            self.expect(self.table.find(doc['id']), doc)
+            self.expect(self.table.get(doc['id']), doc)
 
-        self.expect(r.array(self.table.distinct('a')), [3, 9])
+        self.expect(self.table.distinct('a'), [3, 9])
 
-        self.expect(self.table.filter({"a": 3}), docs[0])
+        self.expect(self.table.filter({"a": 3}), [docs[0]])
 
-        self.error_exec(self.table.filter({"a": r.add(self.table.count(), "")}), "numbers")
+        self.error_exec(self.table.filter({"a": self.table.count() + ""}), "numbers")
 
         self.error_exec(self.table.insert({"a": 3}), "id")
 
@@ -306,8 +307,8 @@ class RDBTest(unittest.TestCase):
 
         doc = {"id": 100, "text": u"グルメ"}
 
-        self.expect(self.table.insert(doc), {'inserted': 1})
-        self.expect(self.table.find(100), doc)
+        self.do_insert(doc)
+        self.expect(self.table.get(100), doc)
 
     def test_view(self):
         self.clear_table()
@@ -321,11 +322,11 @@ class RDBTest(unittest.TestCase):
         self.clear_table()
 
         docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(4)]
-        self.expect(self.table.insert_stream(r.stream(docs)),
+        self.expect(self.table.insert_stream(expr(docs).to_stream()),
                     {'inserted': len(docs)})
 
         for doc in docs:
-            self.expect(self.table.find(doc['id']), doc)
+            self.expect(self.table.get(doc['id']), doc)
 
     def test_overload(self):
         self.clear_table()
@@ -334,75 +335,73 @@ class RDBTest(unittest.TestCase):
         self.do_insert(docs)
 
         def filt(exp, fn):
-            self.expect(self.table.filter(exp).orderby(id=1), *filter(fn, docs))
+            self.expect(self.table.filter(exp).orderby("id"), filter(fn, docs))
 
-        filt(r['a'] == 5, lambda r: r['a'] == 5)
-        filt(r['a'] != 5, lambda r: r['a'] != 5)
-        filt(r['a'] < 5, lambda r: r['a'] < 5)
-        filt(r['a'] <= 5, lambda r: r['a'] <= 5)
-        filt(r['a'] > 5, lambda r: r['a'] > 5)
-        filt(r['a'] >= 5, lambda r: r['a'] >= 5)
+        filt(R('a') == 5, lambda r: r['a'] == 5)
+        filt(R('a') != 5, lambda r: r['a'] != 5)
+        filt(R('a') < 5, lambda r: r['a'] < 5)
+        filt(R('a') <= 5, lambda r: r['a'] <= 5)
+        filt(R('a') > 5, lambda r: r['a'] > 5)
+        filt(R('a') >= 5, lambda r: r['a'] >= 5)
 
-        filt(5 == r['a'], lambda r: 5 == r['a'])
-        filt(5 != r['a'], lambda r: 5 != r['a'])
-        filt(5 < r['a'], lambda r: 5 < r['a'])
-        filt(5 <= r['a'], lambda r: 5 <= r['a'])
-        filt(5 > r['a'], lambda r: 5 > r['a'])
-        filt(5 >= r['a'], lambda r: 5 >= r['a'])
+        filt(5 == R('a'), lambda r: 5 == r['a'])
+        filt(5 != R('a'), lambda r: 5 != r['a'])
+        filt(5 < R('a'), lambda r: 5 < r['a'])
+        filt(5 <= R('a'), lambda r: 5 <= r['a'])
+        filt(5 > R('a'), lambda r: 5 > r['a'])
+        filt(5 >= R('a'), lambda r: 5 >= r['a'])
 
-        filt(r['a'] == r['b'], lambda r: r['a'] == r['b'])
-        filt(r['a'] == r['b'] + 1, lambda r: r['a'] == r['b'] + 1)
-        filt(r['a'] == r['b'] + 1, lambda r: r['a'] == r['b'] + 1)
+        filt(R('a') == R('b'), lambda r: r['a'] == r['b'])
+        filt(R('a') == R('b') + 1, lambda r: r['a'] == r['b'] + 1)
+        filt(R('a') == R('b') + 1, lambda r: r['a'] == r['b'] + 1)
 
         expect = self.expect
-        t = r.toTerm
 
-        expect(-t(3), -3)
-        expect(+t(3), 3)
+        expect(-expr(3), -3)
+        expect(+expr(3), 3)
 
-        expect(t(3) + 4, 7)
-        expect(t(3) - 4, -1)
-        expect(t(3) * 4, 12)
-        expect(t(3) / 4, 3./4)
-        expect(t(3) % 2, 3 % 2)
+        expect(expr(3) + 4, 7)
+        expect(expr(3) - 4, -1)
+        expect(expr(3) * 4, 12)
+        expect(expr(3) / 4, 3./4)
+        expect(expr(3) % 2, 3 % 2)
 
-        expect(3 + t(4), 7)
-        expect(3 - t(4), -1)
-        expect(3 * t(4), 12)
-        expect(3 / t(4), 3./4)
-        expect(3 % t(2), 3 % 2)
+        expect(3 + expr(4), 7)
+        expect(3 - expr(4), -1)
+        expect(3 * expr(4), 12)
+        expect(3 / expr(4), 3./4)
+        expect(3 % expr(2), 3 % 2)
 
-        expect((t(3) + 4) * -t(6) * (t(-5) + 3), 84)
+        expect((expr(3) + 4) * -expr(6) * (expr(-5) + 3), 84)
 
     def test_getitem(self):
         expect = self.expect
         fail = self.error_exec
-        t = r.toTerm
 
         arr = range(10)
-        expect(t(arr)[:], arr[:])
-        expect(t(arr)[2:], arr[2:])
-        expect(t(arr)[:2], arr[:2])
-        expect(t(arr)[-1:], arr[-1:])
-        expect(t(arr)[:-1], arr[:-1])
-        expect(t(arr)[3:5], arr[3:5])
+        expect(expr(arr)[:], arr[:])
+        expect(expr(arr)[2:], arr[2:])
+        expect(expr(arr)[:2], arr[:2])
+        expect(expr(arr)[-1:], arr[-1:])
+        expect(expr(arr)[:-1], arr[:-1])
+        expect(expr(arr)[3:5], arr[3:5])
 
-        expect(t(arr)[3], arr[3])
-        expect(t(arr)[-1], arr[-1])
+        expect(expr(arr)[3], arr[3])
+        expect(expr(arr)[-1], arr[-1])
 
         d = {'a': 3, 'b': 4}
-        expect(t(d)['a'], d['a'])
-        expect(t(d)['b'], d['b'])
-        fail(t(d)['c'], 'missing attribute')
+        expect(expr(d)['a'], d['a'])
+        expect(expr(d)['b'], d['b'])
+        fail(expr(d)['c'], 'missing attribute')
 
     def test_stream_getitem(self):
         arr = range(10)
-        s = r.stream(arr)
+        s = expr(arr).to_stream()
 
-        self.expect(s[:], *arr[:])
-        self.expect(s[3:], *arr[3:])
-        self.expect(s[:3], *arr[:3])
-        self.expect(s[4:6], *arr[4:6])
+        self.expect(s[:], arr[:])
+        self.expect(s[3:], arr[3:])
+        self.expect(s[:3], arr[:3])
+        self.expect(s[4:6], arr[4:6])
 
         self.error_exec(s[4:'a'], "integer")
 
@@ -412,7 +411,7 @@ class RDBTest(unittest.TestCase):
         docs = [{"id": n, "a": -n} for n in range(10)]
         self.do_insert(docs)
 
-        self.expect(self.table.range(2, 3), *docs[2:4])
+        self.expect(self.table.between(2, 3), docs[2:4])
 
     # def test_huge(self):
     #     self.clear_table()
@@ -422,6 +421,6 @@ class RDBTest(unittest.TestCase):
     #         r.extend(r.var('r'), {'id': r.add(r.mul(r.var('r').attr('id'), 10), r.var('y'))}), row='y'), row='r'))
 
     #     self.expect(increase, {'inserted': '10'})
-'''
+
 if __name__ == '__main__':
     unittest.main()

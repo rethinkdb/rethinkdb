@@ -58,14 +58,14 @@
 
           {{#if has_conflicts_problems}}
           <td class="problems-detected conflicts">
-              <h3>Conflicts</h3>
+              <h3>Consistency</h3>
               <p class="message">{{num_conflicts}} {{pluralize_noun "conflict" num_conflicts}} detected</p>
               <p class="details"><a href="#resolve_issues">Resolve issues</a></p>
           </td>
  
           {{else}}
           <td class="no-problems-detected conflicts">
-              <h3>Conflicts</h3>
+              <h3>Consistency</h3>
               <p class="message">No conflicts detected</p>
               <p class="details">{{num_namespaces}} of {{num_namespaces}} namespaces are operating correctly</p>
           </td>

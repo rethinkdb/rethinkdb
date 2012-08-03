@@ -20,6 +20,7 @@ template <class> class store_view_t;
 template <class> class store_subview_t;
 class traversal_progress_combiner_t;
 class order_token_t;
+class order_checkpoint_t;
 class version_range_t;
 
 template <class> struct new_and_metainfo_checker_t;
@@ -155,9 +156,9 @@ private:
     // Used by the constructors.
     void initialize(store_view_t<protocol_t> **_store_views) THROWS_NOTHING;
 
-    void switch_read_tokens(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token, signal_t *interruptor, scoped_array_t<fifo_enforcer_read_token_t> *internal_out);
+    void switch_read_tokens(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_read_token_t> *internal_out);
 
-    void switch_write_tokens(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token, signal_t *interruptor, scoped_array_t<fifo_enforcer_write_token_t> *internal_out);
+    void switch_write_tokens(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_write_token_t> *internal_out);
 
     void switch_inner_read_token(int i, fifo_enforcer_read_token_t internal_token, signal_t *interruptor, scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *store_token);
 
@@ -173,10 +174,11 @@ private:
     one_per_thread_t<fifo_enforcer_source_t> external_source_;
     one_per_thread_t<fifo_enforcer_sink_t> external_sink_;
 
+    one_per_thread_t<order_checkpoint_t> external_checkpoint_;
+
     // An internal fifo source/sink pair, for cross-thread (and
     // cross-pmap) fifo ordering.  Their tokens are never seen
     // publicly, neither by external users or inner store_ts.
-    // These are effectively 
     one_per_thread_t<scoped_array_t<fifo_enforcer_source_t> > internal_sources_;
     scoped_array_t<scoped_ptr_t<fifo_enforcer_sink_t> > internal_sinks_;
 

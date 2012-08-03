@@ -231,7 +231,7 @@ module 'NamespaceView', ->
             json = @model.toJSON()
             json = _.extend json, namespace_status
 
-            if namespace_status.reachability == 'Live'
+            if namespace_status.reachability? and namespace_status.reachability is 'Live'
                 json.reachability = true
             else
                 json.reachability = false

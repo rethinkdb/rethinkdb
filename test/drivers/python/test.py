@@ -21,11 +21,11 @@ class RDBTest(unittest.TestCase):
                                  12346 + (int(os.getenv('PORT') or 2010)))
         cls.table = r.db("").Welcome
 
-    def expect(self, query, *expected):
+    def expect(self, query, expected):
         try:
             res = self.conn.run(query)
             self.assertNotEqual(str(query), '')
-            self.assertEqual(res, list(expected))
+            self.assertEqual(res, expected)
         except Exception, e:
             root_ast = r.p.Query()
             r.toTerm(query)._finalize_query(root_ast)
@@ -297,7 +297,7 @@ class RDBTest(unittest.TestCase):
 
         self.expect(r.array(self.table.distinct('a')), [3, 9])
 
-        self.expect(self.table.filter({"a": 3}), docs[0])
+        self.expect(self.table.filter({"a": 3}), [docs[0]])
 
         self.error_exec(self.table.filter({"a": r.add(self.table.count(), "")}), "numbers")
 
@@ -336,8 +336,9 @@ class RDBTest(unittest.TestCase):
         self.do_insert(docs)
 
         def filt(exp, fn):
-            self.expect(self.table.filter(exp).orderby(id=1), *filter(fn, docs))
+            self.expect(self.table.filter(exp).orderby(id=1), filter(fn, docs))
 
+        self.conn.run(self.table.filter(r['a'] == 5).orderby(id=1), debug=True)
         filt(r['a'] == 5, lambda r: r['a'] == 5)
         filt(r['a'] != 5, lambda r: r['a'] != 5)
         filt(r['a'] < 5, lambda r: r['a'] < 5)
@@ -401,10 +402,10 @@ class RDBTest(unittest.TestCase):
         arr = range(10)
         s = r.stream(arr)
 
-        self.expect(s[:], *arr[:])
-        self.expect(s[3:], *arr[3:])
-        self.expect(s[:3], *arr[:3])
-        self.expect(s[4:6], *arr[4:6])
+        self.expect(s[:], arr[:])
+        self.expect(s[3:], arr[3:])
+        self.expect(s[:3], arr[:3])
+        self.expect(s[4:6], arr[4:6])
 
         self.error_exec(s[4:'a'], "integer")
 
@@ -414,7 +415,7 @@ class RDBTest(unittest.TestCase):
         docs = [{"id": n, "a": -n} for n in range(10)]
         self.do_insert(docs)
 
-        self.expect(self.table.range(2, 3), *docs[2:4])
+        self.expect(self.table.range(2, 3), docs[2:4])
 
     # def test_huge(self):
     #     self.clear_table()

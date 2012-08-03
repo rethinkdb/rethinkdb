@@ -7,3 +7,7 @@ extend Term {
     optional int32 inferred_type = 1000;
     optional int32 js_id = 1001;
 };
+
+extend ReadQuery {
+    optional int32 inferred_read_type = 1000;
+}
