@@ -518,7 +518,6 @@ module 'MachineView', ->
 
         make_nothing: (event) =>
             event.preventDefault()
-            console.log 'nothing'
 
         destroy: =>
             @directory_entry.on 'change:memcached_namespaces', @render
@@ -535,9 +534,18 @@ module 'MachineView', ->
         className: 'namespace-other'
 
         template: Handlebars.compile $('#machine_view-operations-template').html()
+        still_master_template: Handlebars.compile $('#reason-cannot_unassign-master-template').html()
+        unsatisfiable_goals_template: Handlebars.compile $('#reason-cannot_unassign-goals-template').html()
+
         events: ->
             'click .rename_server-button': 'rename_server'
             'click .change_datacenter-button': 'change_datacenter'
+            'click .to_assignments-link': 'to_assignments'
+
+        initialize: =>
+            @data = {}
+            machines.on 'all', @render
+            namespaces.on 'all', @render
 
         rename_server: (event) ->
             event.preventDefault()
@@ -549,7 +557,74 @@ module 'MachineView', ->
             set_datacenter_modal = new ServerView.SetDatacenterModal
             set_datacenter_modal.render [@model]
 
+        to_assignments: (event) ->
+            event.preventDefault()
+            $('#machine-assignments').addClass('active')
+            $('#machine-assignments-link').tab('show')
+            window.router.navigate @.$(event.target).attr('href')
+
+        need_update: (old_data, new_data) ->
+            for key of old_data
+                if not new_data[key]?
+                    return true
+                if new_data[key] isnt old_data[key]
+                    return true
+            for key of new_data
+                if not old_data[key]?
+                    return true
+                if new_data[key] isnt old_data[key]
+                    return true
+            return false
 
         render: =>
-            @.$el.html @template {}
+            data = {}
+            if not @model.get('datacenter_uuid')?
+                data.can_unassign = false
+                data.unassign_reason = 'This server is not part of any datacenter'
+                if @need_update(@data, data)
+                    @.$el.html @template data
+                    @data = data
+                return @
+
+
+            for namespace in namespaces.models
+                for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
+                    if machine_uuid is @model.get('id')
+                        for shard, role of peer_roles
+                            if role is 'role_primary'
+                                data.can_unassign = false
+                                data.unassign_reason = @still_master_template
+                                    server_id: @model.get 'id'
+                                if @need_update(@data, data)
+                                    @.$el.html @template data
+                                    @data = data
+                                return @
+
+            num_machines_in_datacenter = 0
+            for machine in machines.models
+                if machine.get('datacenter_uuid') is @model.get('datacenter_uuid')
+                    num_machines_in_datacenter++
+
+            namespaces_need_less_replicas = []
+            for namespace in namespaces.models
+                if @model.get('datacenter_uuid') of namespace.get('replica_affinities') # If the datacenter has responsabilities
+                    num_replica = namespace.get('replica_affinities')[@model.get('datacenter_uuid')]
+                    if namespace.get('primary_uuid') is @model.get('datacenter_uuid')
+                        num_replica++
+
+                    if num_machines_in_datacenter <= num_replica
+                        namespaces_need_less_replicas.push
+                            id: namespace.get('id')
+                            name: namespace.get('name')
+            if namespaces_need_less_replicas.length > 0
+                data.can_unassign = false
+                data.unassign_reason = @unsatisfiable_goals_template
+                    namespaces_need_less_replicas: namespaces_need_less_replicas
+                if @need_update(@data, data)
+                    @.$el.html @template data
+                    @data = data
+                return @
+
+            data.can_unassign = true
+            @.$el.html @template data
             return @
