@@ -3,25 +3,23 @@
 
 #include <map>
 
-#include "buffer_cache/mirrored/mirrored.hpp"
-#include "buffer_cache/semantic_checking.hpp"
-#include "clustering/generic/registrant.hpp"
-#include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
+#include "concurrency/semaphore.hpp"
 #include "serializer/types.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
 
-template <class T> class replier_t;
+template <class T> class branch_history_manager_t;
+template <class T> class broadcaster_t;
 template <class T> class intro_receiver_t;
 template <class T> class registrant_t;
+template <class T> class replier_t;
 template <class T> class semilattice_read_view_t;
 template <class T> class semilattice_readwrite_view_t;
-template <class T> class broadcaster_t;
 
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
 backfills from an existing mirror on a branch into the store, and as long as it
@@ -85,6 +83,8 @@ public:
             perfmon_collection_t *backfill_stats_parent,
             signal_t *interruptor,
             order_source_t *order_source) THROWS_ONLY(interrupted_exc_t);
+
+    ~listener_t();
 
     /* Returns a signal that is pulsed if the mirror is not in contact with the
     master. */
