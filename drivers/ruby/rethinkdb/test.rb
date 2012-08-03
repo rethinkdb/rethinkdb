@@ -87,10 +87,17 @@ r.expr(1).ge(2).protob ;p? :COMPARE_GE
 (r.expr(1) >= 2).protob ;p? :COMPARE_GE
 
 r.table('','Welcome').filter('row', r.eq(:id, 1)).protob ;p? :FILTER
+r.table('','Welcome').filter { r.eq(:id, 1) }.protob ;p? :FILTER
+r.table('','Welcome').filter { |row| row[:id].eq(1) }.protob ;p? :FILTER
 r.table('','Welcome').map('row', r.expr(:$row)).protob ;p? :MAP
 r.table('','Welcome').concatmap('row',
     r.table('','Other').filter('row2',
-        r.expr(:$row)[:id] > :id)).protob ;p? :CONCATMAP
+        r.var('row')[:id] > :id)).protob ;p? :CONCATMAP
+r.table('','Welcome').concatmap { |row|
+  r.table('','Other').filter {
+    row[:id] > :id
+  }
+}.protob ;p? :CONCATMAP
 
 #ORDERBY
 #DISTINCT

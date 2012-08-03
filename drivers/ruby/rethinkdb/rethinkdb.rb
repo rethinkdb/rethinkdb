@@ -8,6 +8,8 @@ require 'protob_compiler.rb'
 
 module RethinkDB
   class S #Sexp
+    @@gensym_counter = 0
+    def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
     def clean_lst lst
       case lst.class.hash
       when Array.hash then lst.map{|z| clean_lst(z)}
@@ -26,14 +28,24 @@ module RethinkDB
     end
 
     def method_missing(m, *args, &block)
-      m = C.method_aliases[m] || m
-      if P.enum_type(Builtin::Comparison, m)
-        S.new [:call, [:compare, m], [@body, *args]]
-      elsif P.enum_type(Builtin::BuiltinType, m)
-        if P.message_field(Builtin, m) then S.new [:call, [m, *args], [@body]]
-        else S.new [:call, [m], [@body, *args]]
+      if block
+        throw "Query '#{m}' takes either arguments or a block, not both." if args != []
+        case block.arity
+        when -1 then self.send(m, 'row', block.call())
+        when  1 then row = gensym; self.send(m, row, block.call(RQL.var(row)))
+        else throw "Query '#{m}' takes only blocks of arity -1 or 1, not #{block.arity}."
         end
-      else super(m, *args, &block)
+      else
+        m = C.method_aliases[m] || m
+        if P.enum_type(Builtin::Comparison, m)
+          S.new [:call, [:compare, m], [@body, *args]]
+        elsif P.enum_type(Builtin::BuiltinType, m)
+          if P.message_field(Builtin, m)
+          then S.new [:call, [m, *args], [@body]]
+          else S.new [:call, [m], [@body, *args]]
+          end
+        else super(m, *args, &block)
+        end
       end
     end
   end
