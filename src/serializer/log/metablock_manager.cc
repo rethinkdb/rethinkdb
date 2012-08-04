@@ -157,8 +157,8 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
         ~load_buffer_manager_t() {
             free(buffer);
         }
-        crc_metablock_t* get_metablock(unsigned i) {
-            return (crc_metablock_t*)(((char*)buffer) + DEVICE_BLOCK_SIZE * i);
+        crc_metablock_t *get_metablock(unsigned i) {
+            return reinterpret_cast<crc_metablock_t *>(reinterpret_cast<char *>(buffer) + DEVICE_BLOCK_SIZE * i);
         }
 
     private:

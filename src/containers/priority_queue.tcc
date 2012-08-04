@@ -138,7 +138,7 @@ T priority_queue_t<T, Less>::pop() {
 template<class T, class Less>
 void priority_queue_t<T, Less>::update(int index) {
     rassert(index >= 0);
-    rassert((unsigned) index < size());
+    rassert(static_cast<unsigned int>(index) < size());
     int i = index;
     bubble_up(&i);
     bubble_down(&i);
@@ -150,7 +150,7 @@ void priority_queue_t<T, Less>::validate() {
         if(i != 0)
             rassert(!Less()(heap[parent(i)]->data, heap[i]->data));
 
-        rassert(heap[i]->index == (int) i);
+        rassert(heap[i]->index == static_cast<int>(i));
         rassert(heap[i]->pq == this);
     }
 }

@@ -70,7 +70,7 @@ void internal_disk_backed_queue_t::push(const write_message_t& wm) {
     std::string sered_data(stream.vector().begin(), stream.vector().end());
     blob.write_from_string(sered_data, &txn, 0);
 
-    if (((char *)(head->data + head->data_size) - (char *)(head)) + blob.refsize(cache->get_block_size()) > cache->get_block_size().value()) {
+    if (((head->data + head->data_size) - reinterpret_cast<char *>(head)) + blob.refsize(cache->get_block_size()) > cache->get_block_size().value()) {
         //The data won't fit in our current head block, so it's time to make a new one
         head = NULL;
         _head.reset();

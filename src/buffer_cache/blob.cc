@@ -239,7 +239,7 @@ void compute_acquisition_offsets(block_size_t block_size, int levels, int64_t of
 
 blob_t::blob_t(char *ref, int maxreflen)
     : ref_(ref), maxreflen_(maxreflen) {
-    rassert(maxreflen >= blob::block_ids_offset(maxreflen) + int(sizeof(block_id_t)));
+    rassert(maxreflen >= blob::block_ids_offset(maxreflen) + static_cast<int>(sizeof(block_id_t)));
 }
 
 
@@ -619,12 +619,12 @@ bool deep_fsck_region(block_getter_t *getter, block_size_t bs, int levels, int64
         block_magic_t m = *reinterpret_cast<block_magic_t *>(block.get());
         if (levels == 1) {
             if (m != leaf_node_magic) {
-                *msg_out = strprintf("in block %u: bad leaf magic: '%.*s'", ids[i], int(sizeof(block_magic_t)), m.bytes);
+                *msg_out = strprintf("in block %u: bad leaf magic: '%.*s'", ids[i], static_cast<int>(sizeof(block_magic_t)), m.bytes);
                 return false;
             }
         } else {
             if (m != internal_node_magic) {
-                *msg_out = strprintf("in block %u: bad internal magic: '%.*s'", ids[i], int(sizeof(block_magic_t)), m.bytes);
+                *msg_out = strprintf("in block %u: bad internal magic: '%.*s'", ids[i], static_cast<int>(sizeof(block_magic_t)), m.bytes);
                 return false;
             }
 

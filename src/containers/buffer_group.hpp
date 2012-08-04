@@ -31,7 +31,7 @@ public:
 
     size_t get_size() const {
         size_t s = 0;
-        for (int i = 0; i < (int)buffers_.size(); ++i) {
+        for (size_t i = 0; i < buffers_.size(); ++i) {
             s += buffers_[i].size;
         }
         return s;
@@ -85,7 +85,7 @@ public:
     void print() {
         printf("Buffer group with %zu buffers\n", buffers_.size());
         for (std::vector<buffer_t>::const_iterator it = buffers_.begin(); it != buffers_.end(); ++it) {
-            fprintf(stderr, "-- Buffer %d --\n", (int) (it - buffers_.begin()));
+            fprintf(stderr, "-- Buffer %ld --\n", it - buffers_.begin());
             print_hd(it->data, 0, it->size);
         }
     }

@@ -110,7 +110,7 @@ struct ls_start_existing_fsm_t :
     bool next_starting_up_step() {
         if (state == state_read_static_header) {
             if (static_header_read(ser->dbfile,
-                    (log_serializer_on_disk_static_config_t *)&ser->static_config,
+                    &ser->static_config,
                     sizeof(log_serializer_on_disk_static_config_t),
                     this)) {
                 state = state_find_metablock;

@@ -517,7 +517,7 @@ std::string percent_unescaped_string(const std::string &s) THROWS_ONLY(std::runt
                 throw std::runtime_error("Bad hex char.");
             }
 
-            res.push_back(char((digit1 << 4) + digit2));
+            res.push_back((digit1 << 4) + digit2);
         } else {
             if (!is_safe(*it)) {
                 throw std::runtime_error("Unsafe character in string.");
