@@ -33,12 +33,12 @@ TEST(PerfmonTest, StddevComputation) {
         int_fast64_t squared_dists = 0;
         for (int64_t i = -N; i <= N; ++i) {
             squared_dists += i * i;
-            stats.add(float(i));
+            stats.add(static_cast<double>(i));
         }
 
-        float var = float(squared_dists) / datapoints;
+        double var = static_cast<double>(squared_dists) / datapoints;
         // acceptable relative difference. picked out of a hat.
-        static const float reldiff = 0.00005;
+        static const double reldiff = 0.00005;
         EXPECT_EQ(datapoints, stats.datapoints());
         EXPECT_FLOAT_EQ(0.0, stats.mean());
         EXPECT_NEAR(var, stats.standard_variance(), var * reldiff);

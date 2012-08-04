@@ -137,7 +137,7 @@ public:
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::read_response_t> responses;
-        for (int i = 0; i < (int)shards.size(); ++i) {
+        for (size_t i = 0; i < shards.size(); ++i) {
             typename protocol_t::region_t ixn = region_intersection(shards[i].region, read.get_region());
             if (!region_is_empty(ixn)) {
                 typename protocol_t::read_t subread = read.shard(ixn);
@@ -153,7 +153,7 @@ public:
     typename protocol_t::read_response_t read_outdated(typename protocol_t::read_t read, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::read_response_t> responses;
-        for (int i = 0; i < int(shards.size()); ++i) {
+        for (size_t i = 0; i < shards.size(); ++i) {
             typename protocol_t::region_t ixn = region_intersection(shards[i].region, read.get_region());
             if (!region_is_empty(ixn)) {
                 typename protocol_t::read_t subread = read.shard(ixn);
@@ -169,7 +169,7 @@ public:
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::write_response_t> responses;
-        for (int i = 0; i < (int)shards.size(); ++i) {
+        for (size_t i = 0; i < shards.size(); ++i) {
             typename protocol_t::region_t ixn = region_intersection(shards[i].region, write.get_region());
 
             if (!region_is_empty(ixn)) {
@@ -203,7 +203,7 @@ public:
         }
 
         std::vector<typename dummy_sharder_t<protocol_t>::shard_t> shards_of_this_db;
-        for (int i = 0; i < (int)shards.size(); ++i) {
+        for (size_t i = 0; i < shards.size(); ++i) {
             /* Initialize metadata everywhere */
             {
                 cond_t interruptor;

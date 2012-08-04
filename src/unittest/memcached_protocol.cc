@@ -22,7 +22,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") )));
 
     boost::ptr_vector<mock::temp_file_t> temp_files;
-    for (int i = 0; i < (int)shards.size(); ++i) {
+    for (size_t i = 0; i < shards.size(); ++i) {
         temp_files.push_back(new mock::temp_file_t("/tmp/rdb_unittest.XXXXXX"));
     }
 
@@ -30,12 +30,12 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     make_io_backender(aio_default, &io_backender);
 
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
-    for (int i = 0; i < (int)shards.size(); ++i) {
+    for (size_t i = 0; i < shards.size(); ++i) {
         underlying_stores.push_back(new memcached_protocol_t::store_t(io_backender.get(), temp_files[i].name(), true, &get_global_perfmon_collection()));
     }
 
     boost::ptr_vector<store_view_t<memcached_protocol_t> > stores;
-    for (int i = 0; i < (int)shards.size(); ++i) {
+    for (size_t i = 0; i < shards.size(); ++i) {
         stores.push_back(new store_subview_t<memcached_protocol_t>(&underlying_stores[i], shards[i]));
     }
 
@@ -111,7 +111,7 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi, order_so
         memcached_protocol_t::read_response_t result = nsi->read(read, order_source->check_in("unittest::run_get_set_test(memcached_protocol.cc-C)").with_read_mode(), &interruptor);
         if (rget_result_t *maybe_rget_result = boost::get<rget_result_t>(&result.result)) {
             ASSERT_FALSE(maybe_rget_result->truncated);
-            EXPECT_EQ(1, int(maybe_rget_result->pairs.size()));
+            EXPECT_EQ(1, maybe_rget_result->pairs.size());
             EXPECT_EQ(std::string("a"), key_to_unescaped_str(maybe_rget_result->pairs[0].key));
             EXPECT_EQ('A', maybe_rget_result->pairs[0].value_provider->buf()[0]);
         } else {
