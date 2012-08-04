@@ -11,6 +11,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/variant/get.hpp>
 
+#include "clustering/administration/namespace_interface_repository.hpp"
+#include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 
