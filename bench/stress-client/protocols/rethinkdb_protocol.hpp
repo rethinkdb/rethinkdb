@@ -76,16 +76,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
         // generate query
         Query *query = new Query;
-        query->set_type(Query::WRITE);
-        WriteQuery *write_query = query->mutable_write_query();
-        write_query->set_type(WriteQuery::POINTDELETE);
-        WriteQuery::PointDelete *point_delete = write_query->mutable_point_delete();
-        TableRef *table_ref = point_delete->mutable_table_ref();
-        table_ref->set_table_name(RDB_TABLE_NAME);
-        point_delete->set_attrname(PRIMARY_KEY_NAME);
-        Term *term_key = point_delete->mutable_key();
-        term_key->set_type(Term::STRING);
-        term_key->set_valuestring(std::string(key, key_size));
+        generate_point_delete_query(query, key, key_size);
 
         send_query(query);
 
@@ -106,22 +97,13 @@ struct rethinkdb_protocol_t : protocol_t {
 
         // generate query
         Query *query = new Query;
-        query->set_type(Query::WRITE);
-        WriteQuery *write_query = query->mutable_write_query();
-        write_query->set_type(WriteQuery::POINTUPDATE);
-        WriteQuery::PointUpdate *point_update = write_query->mutable_point_update();
-        TableRef *table_ref = point_update->mutable_table_ref();
-        table_ref->set_table_name(RDB_TABLE_NAME);
-        point_update->set_attrname(PRIMARY_KEY_NAME);
-        Term *term_key = point_update->mutable_key();
-        term_key->set_type(Term::STRING);
-        term_key->set_valuestring(std::string(key, key_size));
-        Mapping *mapping = point_update->mutable_mapping();
+        Mapping *mapping = new Mapping;
         mapping->set_arg("row"); // unused
         Term *body = mapping->mutable_body();
         body->set_type(Term::JSON);
         std::string json_update = std::string("{\"") + std::string(PRIMARY_KEY_NAME) + std::string("\" : \"") + std::string(key, key_size) + std::string("\", \"val\" : \"") + std::string(value, value_size) + std::string("\"}");
         body->set_jsonstring(json_update);
+        generate_point_update_query(query, key, key_size, value, value_size, *mapping);
 
         send_query(query);
 
@@ -142,16 +124,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
         // generate query
         Query *query = new Query;
-        query->set_type(Query::WRITE);
-        WriteQuery *write_query = query->mutable_write_query();
-        write_query->set_type(WriteQuery::INSERT);
-        WriteQuery::Insert *insert = write_query->mutable_insert();
-        TableRef *table_ref = insert->mutable_table_ref();
-        table_ref->set_table_name(RDB_TABLE_NAME);
-        Term *term = insert->add_terms();
-        term->set_type(Term::JSON);
-        std::string json_insert = std::string("{\"") + std::string(PRIMARY_KEY_NAME) + std::string("\" : \"") + std::string(key, key_size) + std::string("\", \"val\" : \"") + std::string(value, value_size) + std::string("\"}");
-        term->set_jsonstring(json_insert);
+        generate_insert_query(query, key, key_size, value, value_size);
 
         send_query(query);
 
@@ -173,17 +146,7 @@ struct rethinkdb_protocol_t : protocol_t {
         for (int i = 0; i < count; i++) {
             // generate query
             Query *query = new Query;
-            query->set_type(Query::READ);
-            ReadQuery *read_query = query->mutable_read_query();
-            Term *term = read_query->mutable_term();
-            term->set_type(Term::GETBYKEY);
-            Term::GetByKey *get_by_key = term->mutable_get_by_key();
-            TableRef *table_ref = get_by_key->mutable_table_ref();
-            table_ref->set_table_name(RDB_TABLE_NAME);
-            get_by_key->set_attrname(PRIMARY_KEY_NAME);
-            Term *term_key = get_by_key->mutable_key();
-            term_key->set_type(Term::STRING);
-            term_key->set_valuestring(std::string(keys[i].first, keys[i].second));
+            generate_read_query(query, keys[i].first, keys[i].second);
 
             send_query(query);
 
@@ -214,17 +177,7 @@ struct rethinkdb_protocol_t : protocol_t {
         for (int i = 0; i < count; i++) {
             // generate query
             Query *query = new Query;
-            query->set_type(Query::READ);
-            ReadQuery *read_query = query->mutable_read_query();
-            Term *term = read_query->mutable_term();
-            term->set_type(Term::GETBYKEY);
-            Term::GetByKey *get_by_key = term->mutable_get_by_key();
-            TableRef *table_ref = get_by_key->mutable_table_ref();
-            table_ref->set_table_name(RDB_TABLE_NAME);
-            get_by_key->set_attrname(PRIMARY_KEY_NAME);
-            Term *term_key = get_by_key->mutable_key();
-            term_key->set_type(Term::STRING);
-            term_key->set_valuestring(std::string(keys[i].first, keys[i].second));
+            generate_read_query(query, keys[i].first, keys[i].second);
 
             send_query(query);
 
@@ -267,27 +220,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
         // generate query
         Query *query = new Query;
-        query->set_type(Query::READ);
-        ReadQuery *read_query = query->mutable_read_query();
-        Term *term = read_query->mutable_term();
-        term->set_type(Term::CALL);
-        Term::Call *call = term->mutable_call();
-        Builtin *builtin = call->mutable_builtin();
-        builtin->set_type(Builtin::RANGE);
-        Builtin::Range *range = builtin->mutable_range();
-        range->set_attrname(PRIMARY_KEY_NAME);
-        Term *lowerbound = range->mutable_lowerbound();
-        lowerbound->set_type(Term::STRING);
-        lowerbound->set_valuestring(std::string(lkey, lkey_size));
-        Term *upperbound = range->mutable_upperbound();
-        upperbound->set_type(Term::STRING);
-        upperbound->set_valuestring(std::string(rkey, rkey_size));
-        Term *args = call->add_args();
-        args->set_type(Term::TABLE);
-        Term::Table *table = args->mutable_table();
-        TableRef *table_ref = table->mutable_table_ref();
-        table_ref->set_table_name(RDB_TABLE_NAME);
-
+        generate_range_read_query(query, lkey, lkey_size, rkey, rkey_size);
         send_query(query);
 
         // get response
@@ -317,7 +250,39 @@ struct rethinkdb_protocol_t : protocol_t {
 
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
-        fprintf(stderr, "APPEND NOT YET IMPLEMENTED\n");
+        assert(!exist_outstanding_pipeline_reads());
+
+        Query *query1 = new Query;
+
+        for (int i = 0; i < count; i++) {
+            // generate query
+            Query *query = new Query;
+            generate_read_query(query, keys[i].first, keys[i].second);
+
+            send_query(query);
+
+            // get response
+            Response *response = new Response;
+            get_response(response, query->token());
+            if (response->token() != query->token()) {
+                fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), query->token());
+            }
+            if (response->status_code() != Response::SUCCESS_JSON) {
+                fprintf(stderr, "Failed to read key %s: %s\n", keys[i].first, response->error_message().c_str());
+            }
+            if (values) {
+                // TODO: use some JSON parser instead of this
+                int last_quote = (int) response->response(0).find_last_of('"');
+                int second_to_last_quote = (int) response->response(0).find_last_of(last_quote - 1);
+                assert(last_quote >= 0 && last_quote < response->response(0).length());
+                assert(second_to_last_quote >= 0 && second_to_last_quote < response->response(0).length());
+                std::string result = response->response(0).substr(second_to_last_quote + 1, last_quote - second_to_last_quote - 1);
+                if (std::string(values[i].first, values[i].second) != result) {
+                    fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
+                }
+            }
+        }
+        
     }
 
     virtual void prepend(const char *key, size_t key_size,
@@ -326,6 +291,87 @@ struct rethinkdb_protocol_t : protocol_t {
     }
 
 private:
+    void generate_point_delete_query(Query *query, const char *key, size_t key_size) {
+        query->set_type(Query::WRITE);
+        WriteQuery *write_query = query->mutable_write_query();
+        write_query->set_type(WriteQuery::POINTDELETE);
+        WriteQuery::PointDelete *point_delete = write_query->mutable_point_delete();
+        TableRef *table_ref = point_delete->mutable_table_ref();
+        table_ref->set_table_name(RDB_TABLE_NAME);
+        point_delete->set_attrname(PRIMARY_KEY_NAME);
+        Term *term_key = point_delete->mutable_key();
+        term_key->set_type(Term::STRING);
+        term_key->set_valuestring(std::string(key, key_size));
+    }
+
+    void generate_point_update_query(Query *query, const char *key, size_t key_size,
+                                                   const char *value, size_t value_size, const Mapping &input_mapping) {
+        query->set_type(Query::WRITE);
+        WriteQuery *write_query = query->mutable_write_query();
+        write_query->set_type(WriteQuery::POINTUPDATE);
+        WriteQuery::PointUpdate *point_update = write_query->mutable_point_update();
+        TableRef *table_ref = point_update->mutable_table_ref();
+        table_ref->set_table_name(RDB_TABLE_NAME);
+        point_update->set_attrname(PRIMARY_KEY_NAME);
+        Term *term_key = point_update->mutable_key();
+        term_key->set_type(Term::STRING);
+        term_key->set_valuestring(std::string(key, key_size));
+        Mapping *mapping = point_update->mutable_mapping();
+        *mapping = input_mapping;
+    }
+
+    void generate_insert_query(Query *query, const char *key, size_t key_size,
+                                             const char *value, size_t value_size) {
+        query->set_type(Query::WRITE);
+        WriteQuery *write_query = query->mutable_write_query();
+        write_query->set_type(WriteQuery::INSERT);
+        WriteQuery::Insert *insert = write_query->mutable_insert();
+        TableRef *table_ref = insert->mutable_table_ref();
+        table_ref->set_table_name(RDB_TABLE_NAME);
+        Term *term = insert->add_terms();
+        term->set_type(Term::JSON);
+        std::string json_insert = std::string("{\"") + std::string(PRIMARY_KEY_NAME) + std::string("\" : \"") + std::string(key, key_size) + std::string("\", \"val\" : \"") + std::string(value, value_size) + std::string("\"}");
+        term->set_jsonstring(json_insert);
+    }
+
+    void generate_read_query(Query *query, const char *key, size_t key_size) {
+        query->set_type(Query::READ);
+        ReadQuery *read_query = query->mutable_read_query();
+        Term *term = read_query->mutable_term();
+        term->set_type(Term::GETBYKEY);
+        Term::GetByKey *get_by_key = term->mutable_get_by_key();
+        TableRef *table_ref = get_by_key->mutable_table_ref();
+        table_ref->set_table_name(RDB_TABLE_NAME);
+        get_by_key->set_attrname(PRIMARY_KEY_NAME);
+        Term *term_key = get_by_key->mutable_key();
+        term_key->set_type(Term::STRING);
+        term_key->set_valuestring(std::string(key, key_size));
+    }
+
+    void generate_range_read_query(Query *query, char *lkey, size_t lkey_size,
+                                                 char *rkey, size_t rkey_size) {
+        query->set_type(Query::READ);
+        ReadQuery *read_query = query->mutable_read_query();
+        Term *term = read_query->mutable_term();
+        term->set_type(Term::CALL);
+        Term::Call *call = term->mutable_call();
+        Builtin *builtin = call->mutable_builtin();
+        builtin->set_type(Builtin::RANGE);
+        Builtin::Range *range = builtin->mutable_range();
+        range->set_attrname(PRIMARY_KEY_NAME);
+        Term *lowerbound = range->mutable_lowerbound();
+        lowerbound->set_type(Term::STRING);
+        lowerbound->set_valuestring(std::string(lkey, lkey_size));
+        Term *upperbound = range->mutable_upperbound();
+        upperbound->set_type(Term::STRING);
+        upperbound->set_valuestring(std::string(rkey, rkey_size));
+        Term *args = call->add_args();
+        args->set_type(Term::TABLE);
+        Term::Table *table = args->mutable_table();
+        TableRef *table_ref = table->mutable_table_ref();
+        table_ref->set_table_name(RDB_TABLE_NAME);
+    }
+    
     // TODO: add timeout to send_all and recv_all?
     void send_all(const char *buf, int size) {
         int total_sent = 0, sent;
