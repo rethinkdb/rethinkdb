@@ -624,7 +624,9 @@ module 'MachineView', ->
 
         unassign_datacenter: (event) =>
             event.preventDefault()
-            #TODO
+            unassign_dialog = new MachineView.UnassignModal
+            machine_to_unassign = @model
+            unassign_dialog.render @model
 
         to_assignments: (event) ->
             event.preventDefault()
@@ -655,7 +657,6 @@ module 'MachineView', ->
                     @.$el.html @template data
                     @data = data
                 return @
-
 
             for namespace in namespaces.models
                 for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
@@ -700,3 +701,53 @@ module 'MachineView', ->
             data.can_unassign = true
             @.$el.html @template data
             return @
+
+
+    class @UnassignModal extends UIComponents.AbstractModal
+        template: Handlebars.compile $('#unassign-modal-template').html()
+        alert_tmpl: Handlebars.compile $('#unassign-alert-template').html()
+        class: 'unassign-dialog'
+
+        initialize: ->
+            super
+
+        render: (_machine_to_unassign) ->
+            @machine_to_unassign = _machine_to_unassign
+
+            super
+                modal_title: 'Remove datacenter'
+                btn_primary_text: 'Remove'
+                id: _machine_to_unassign.get('id')
+                name: _machine_to_unassign.get('name')
+
+            @.$('.btn-primary').focus()
+
+        on_submit: =>
+            super
+
+            # For when /ajax will handle post request
+            data = {}
+            data['machines'] = {}
+            for machine in machines.models
+                data['machines'][machine.get('id')] = {}
+                data['machines'][machine.get('id')]['name'] = machine.get('name')
+                data['machines'][machine.get('id')]['datacenter_uuid'] = machine.get('datacenter_uuid')
+
+            data['machines'][@machine_to_unassign.get('id')]['datacenter_uuid'] = null
+
+            $.ajax
+                url: "/ajax/semilattice"
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify data
+                dataType: 'json',
+                success: @on_success,
+                error: @on_error
+
+        on_success: (response) =>
+            machines.get(@machine_to_unassign.get('id')).set('datacenter_uuid', null)
+            clear_modals()
+            
+        on_error: (response) =>
+            #TODO implement
+

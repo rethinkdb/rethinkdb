@@ -241,3 +241,16 @@
 <script id="outdated_data-template" type="text/x-handlebars-template">
     <p>Sorry, we couldn't find any secondary up to date to replace this master.</p>
 </script>
+
+<script id="unassign-modal-template" type="text/x-handlebars-template">
+  <div class="alert alert-error">Removing this machine from its datacenter will remove all its responsabilities.</div>
+  <div class="alert alert-error error_answer"></div>
+  <p>Are you sure you want to remove this machine <a href="#servers/{{id}}">{{name}}</a> from its datacenter?</p>
+</script>
+
+<script id="unassign-alert-template" type="text/x-handlebars-template">
+  <div class="alert" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+    <p>You removed this server from its datacenter</p>
+  </div>
+</script>

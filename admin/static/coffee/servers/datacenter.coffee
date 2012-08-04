@@ -337,15 +337,8 @@ module 'DatacenterView', ->
         delete_datacenter: (event) ->
             event.preventDefault()
             remove_datacenter_dialog = new DatacenterView.RemoveDatacenterModal
-            #overwrite on_success to add a redirectiona
             datacenter_to_delete = @model
-        
-
-
             remove_datacenter_dialog.render @model
-
-
-
 
         need_update: (old_data, new_data) ->
             for key of old_data
@@ -425,8 +418,7 @@ module 'DatacenterView', ->
                 success: @on_success,
                 error: @on_error
 
-        on_success: (response) ->
-            debugger
+        on_success: (response) =>
             window.router.navigate '#servers', {'trigger': true}
             datacenters.remove @datacenter_to_delete.get('id')
             for machine in machines.models
@@ -435,12 +427,6 @@ module 'DatacenterView', ->
 
             #TODO add a feedback
             
-        ton_error: =>
-            @.$('.error_answer').html @template_remove_error
-
-            if $('.error_answer').css('display') is 'none'
-                $('.error_answer').slideDown('fast')
-            else
-                $('.error_answer').css('display', 'none')
-                $('.error_answer').fadeIn()
-            remove_namespace_dialog.reset_buttons()
+        on_error: (response) =>
+            #TODO implement
+            console.log response
