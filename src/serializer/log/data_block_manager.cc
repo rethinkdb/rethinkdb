@@ -310,7 +310,7 @@ file_account_t *data_block_manager_t::choose_gc_io_account() {
 
     // This means that we can end up oscillating between both accounts, which
     // is probably fine. TODO: Make sure it actually is in practice!
-    if (garbage_ratio() > dynamic_config->gc_high_ratio * 1.02f) {
+    if (garbage_ratio() > dynamic_config->gc_high_ratio * 1.02) {
         return gc_io_account_high.get();
     } else {
         return gc_io_account_nice.get();
@@ -855,11 +855,13 @@ bool gc_entry_less::operator() (const gc_entry *x, const gc_entry *y) {
  *Stat functions*
  ****************/
 
-float data_block_manager_t::garbage_ratio() const {
+double data_block_manager_t::garbage_ratio() const {
     if (gc_stats.old_total_blocks.get() == 0) {
         return 0.0;
     } else {
-        return (float) gc_stats.old_garbage_blocks.get() / ((float) gc_stats.old_total_blocks.get() + extent_manager->held_extents() * static_config->blocks_per_extent());
+        double old_garbage = gc_stats.old_garbage_blocks.get();
+        double old_total = gc_stats.old_total_blocks.get();
+        return old_garbage / (old_total + extent_manager->held_extents() * static_config->blocks_per_extent());
     }
 }
 
