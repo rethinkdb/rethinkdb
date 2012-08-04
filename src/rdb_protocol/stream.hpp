@@ -198,7 +198,7 @@ private:
 template <class P>
 class filter_stream_t : public json_stream_t {
 public:
-    typedef boost::function<bool(boost::shared_ptr<scoped_cJSON_t>)> predicate;
+    typedef boost::function<bool(boost::shared_ptr<scoped_cJSON_t>)> predicate;  // NOLINT
     filter_stream_t(boost::shared_ptr<json_stream_t> _stream, const P &_p)
         : stream(_stream), p(_p)
     { }

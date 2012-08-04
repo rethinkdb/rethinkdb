@@ -344,11 +344,11 @@ struct call_task_t : auto_task_t<call_task_t> {
         rassert(!obj.IsEmpty());
 
         // Construct arguments.
-        int nargs = (int) args_.size();
-        guarantee(args_.size() == (size_t) nargs); // sanity
+        size_t nargs = args_.size();
+        guarantee(args_.size() == nargs);
 
         scoped_array_t<v8::Handle<v8::Value> > handles(nargs);
-        for (int i = 0; i < nargs; ++i) {
+        for (size_t i = 0; i < nargs; ++i) {
             handles[i] = fromJSON(*args_[i]->get());
             rassert(!handles[i].IsEmpty());
         }
