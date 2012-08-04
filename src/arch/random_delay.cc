@@ -10,7 +10,7 @@ Things could be made cleaner but we're just moving this out of utils2.cc.
 TODO: Make this cleaner in v1.2.
 */
 
-void random_delay(void (*fun)(void *), void *arg) {
+void random_delay(void (*fun)(void *), void *arg) {  // NOLINT
     /* In one in ten thousand requests, we delay up to 10 seconds. In half of the remaining
     requests, we delay up to 50 milliseconds; in the other half we delay a very short time. */
     int kind = randint(10000), ms;

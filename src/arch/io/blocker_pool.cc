@@ -64,7 +64,7 @@ blocker_pool_t::blocker_pool_t(int nthreads, linux_event_queue_t *_queue)
     : threads(nthreads), shutting_down(false), queue(_queue)
 {
     // Start the worker threads
-    for (int i = 0; i < (int)threads.size(); ++i) {
+    for (size_t i = 0; i < threads.size(); ++i) {
         int res = pthread_create(&threads[i], NULL,
             &blocker_pool_t::event_loop, reinterpret_cast<void*>(this));
         guarantee(res == 0, "Could not create blocker-pool thread.");
@@ -92,7 +92,7 @@ blocker_pool_t::~blocker_pool_t() {
     }
 
     /* Wait for stuff to actually shut down */
-    for (int i = 0; i < (int)threads.size(); ++i) {
+    for (size_t i = 0; i < threads.size(); ++i) {
         int res = pthread_join(threads[i], NULL);
         guarantee(res == 0, "Could not join blocker-pool thread.");
     }
@@ -117,7 +117,7 @@ void blocker_pool_t::on_event(UNUSED int event) {
         local_completed_events.swap(completed_events);
     }
 
-    for (int i = 0; i < (int)local_completed_events.size(); ++i) {
+    for (size_t i = 0; i < local_completed_events.size(); ++i) {
         local_completed_events[i]->done();
     }
 }
