@@ -110,17 +110,14 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
          it != start_point.end();
-         it++) {
+         ++it) {
 
         version_t version = it->second.latest;
-        rassert(
-                version.branch == branch_id_ ||
-                version_is_ancestor(
-                                    branch_history_manager_,
+        rassert(version.branch == branch_id_ ||
+                version_is_ancestor(branch_history_manager_,
                                     version,
                                     version_t(branch_id_, this_branch_history.initial_timestamp),
-                                    it->first)
-                );
+                                    it->first));
     }
 #endif
 
