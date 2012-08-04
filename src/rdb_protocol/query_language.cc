@@ -849,7 +849,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
 
                 /* Get the primary key */
-                std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref()->table_name(), env, backtrace);
+                std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref()->table_name(), env, backtrace);
 
                 /* Make sure that the primary key wasn't changed. */
                 if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
