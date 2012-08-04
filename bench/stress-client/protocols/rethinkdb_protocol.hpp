@@ -396,12 +396,10 @@ private:
     }
 
 private:
-    static int token_index;
+    int token_index;
     int sockfd;
     int outstanding_reads;
     char buffer[MAX_PROTOBUF_SIZE];
 } ;
-
-int rethinkdb_protocol_t::token_index = 0;
 
 #endif // __STRESS_CLIENT_PROTOCOLS_RETHINKDB_PROTOCOL_HPP__
