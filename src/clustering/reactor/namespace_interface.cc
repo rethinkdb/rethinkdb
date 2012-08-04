@@ -63,7 +63,7 @@ op_response_type
 cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
     /* `how_to_make_token` and `how_to_run_query` have type pointer-to-
        member-function. */
-    void (master_access_t<protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),
+    void (master_access_t<protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),  // NOLINT
     op_response_type (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
     op_type op,
     order_token_t order_token,
@@ -105,7 +105,7 @@ cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
     std::vector<op_response_type> results;
-    for (int i = 0; i < int(masters_to_contact.size()); ++i) {
+    for (size_t i = 0; i < masters_to_contact.size(); ++i) {
         if (std::string *error = boost::get<std::string>(&results_or_failures[i])) {
             throw cannot_perform_query_exc_t(*error);
         } else {
@@ -198,7 +198,7 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
     std::vector<typename protocol_t::read_response_t> results;
-    for (int i = 0; i < int(direct_readers_to_contact.size()); ++i) {
+    for (size_t i = 0; i < direct_readers_to_contact.size(); ++i) {
         if (std::string *error = boost::get<std::string>(&results_or_failures[i])) {
             throw cannot_perform_query_exc_t(*error);
         } else {

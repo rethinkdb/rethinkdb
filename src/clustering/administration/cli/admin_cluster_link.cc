@@ -187,10 +187,10 @@ void admin_print_table(const std::vector<std::vector<std::string> >& table) {
 
     // Determine the maximum size of each column
     for (size_t i = 0; i < table[0].size(); ++i) {
-        int max = table[0][i].length();
+        size_t max = table[0][i].length();
 
         for (size_t j = 1; j < table.size(); ++j) {
-            if ((int)table[j][i].length() > max) {
+            if (table[j][i].length() > max) {
                 max = table[j][i].length();
             }
         }
@@ -668,7 +668,7 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(const shard_input_t& shar
                     secondaries.insert(j->second);
                 }
             }
-        } else if ((int)datacenter_use.count(i->first) <= i->second) {
+        } else if (datacenter_use.count(i->first) <= static_cast<size_t>(i->second)) {
             // Copy over all the specified machines for this datacenter
             for (std::multimap<datacenter_id_t, machine_id_t>::iterator j = datacenter_use.lower_bound(i->first);
                  j != datacenter_use.end() && j->first == i->first; ++j) {

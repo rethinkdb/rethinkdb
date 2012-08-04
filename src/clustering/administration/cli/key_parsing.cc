@@ -8,12 +8,12 @@ bool cli_str_to_key(const std::string &str, store_key_t *out) {
         *out = store_key_t::min();
         return true;
     }
-    int p = 0;
+    size_t p = 0;
     out->set_size(0);
-    while (p < int(str.length())) {
+    while (p < str.length()) {
         char c = str[p], translation;
         if (c == '\\') {
-            if (p >= int(str.length()) - 2) {
+            if (p >= str.length() - 2) {
                 return false;
             }
             int sixteens, ones;

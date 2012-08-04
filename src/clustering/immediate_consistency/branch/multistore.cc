@@ -210,7 +210,7 @@ template <class protocol_t>
 class multistore_send_backfill_should_backfill_t : public home_thread_mixin_t {
 public:
     multistore_send_backfill_should_backfill_t(int num_stores, const typename protocol_t::region_t &start_point_region,
-                                               const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill_func)
+                                               const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill_func) // NOLINT
         : countdown_(num_stores), should_backfill_func_(should_backfill_func), combined_metainfo_(start_point_region) { }
 
     bool should_backfill(const typename protocol_t::store_t::metainfo_t &metainfo) {
@@ -238,7 +238,7 @@ public:
 
 private:
     int countdown_;
-    const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill_func_;
+    const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill_func_;  // NOLINT
     promise_t<bool> result_promise_;
     typename protocol_t::store_t::metainfo_t combined_metainfo_;
 
@@ -304,7 +304,7 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
 */
 template <class protocol_t>
 bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                                                            const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,
+                                                            const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,  // NOLINT
                                                             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
                                                             traversal_progress_combiner_t *progress,
                                                             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,

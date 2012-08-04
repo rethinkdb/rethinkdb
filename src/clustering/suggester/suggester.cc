@@ -129,7 +129,7 @@ float estimate_cost_to_get_up_to_date(
 
 std::vector<machine_id_t> pick_n_best(priority_queue_t<priority_t> *candidates, int n, const datacenter_id_t &datacenter) {
     std::vector<machine_id_t> result;
-    while ((int)result.size() < n) {
+    while (result.size() < static_cast<size_t>(n)) {
         if (candidates->empty()) {
             throw cannot_satisfy_goals_exc_t(strprintf("Didn't have enough unused machines in datacenter %s, we needed %d\n", uuid_to_str(datacenter).c_str(), n));
         } else {

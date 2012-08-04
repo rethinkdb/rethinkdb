@@ -53,7 +53,7 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
                 waiter.add(grace_period_timer.get());
             }
             wait_interruptible(&waiter, keepalive.get_drain_signal());
-            retry_interval_ms = std::min(int(retry_interval_ms * retry_interval_growth_rate), max_retry_interval_ms);
+            retry_interval_ms = std::min(static_cast<int>(retry_interval_ms * retry_interval_growth_rate), max_retry_interval_ms);
         } while (!peers_not_heard_from.empty() && (!grace_period_timer.has() || !grace_period_timer->is_pulsed()));
         if (!peers_not_heard_from.empty()) {
             std::set<peer_address_t>::const_iterator it = peers_not_heard_from.begin();

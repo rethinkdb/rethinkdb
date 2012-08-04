@@ -112,7 +112,7 @@ public:
         if (it->second.get().ack_expectations.in_conflict()) return false;
         std::map<datacenter_id_t, int> expected_acks = it->second.get().ack_expectations.get();
         for (std::map<datacenter_id_t, int>::const_iterator kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
-            if (int(acks_by_dc.count(kt->first)) < kt->second) {
+            if (acks_by_dc.count(kt->first) < static_cast<size_t>(kt->second)) {
                 return false;
             }
         }
