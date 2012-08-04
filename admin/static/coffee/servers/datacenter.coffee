@@ -13,7 +13,6 @@ module 'DatacenterView', ->
         template: Handlebars.compile $('#datacenter_view-container-template').html()
         events: ->
             'click .tab-link': 'change_route'
-            'click a.rename-datacenter': 'rename_datacenter'
             'click .display_more_machines': 'expand_profile'
             'click .close': 'close_alert'
 
@@ -26,6 +25,7 @@ module 'DatacenterView', ->
             @title = new DatacenterView.Title(model: @model)
             @profile = new DatacenterView.Profile(model: @model)
             @data = new DatacenterView.Data(model: @model)
+            @operations = new DatacenterView.Operations(model: @model)
             @stats_panel = new Vis.StatsPanel(@model.get_stats_for_performance)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
 
@@ -41,11 +41,7 @@ module 'DatacenterView', ->
             # Because we are using bootstrap tab. We should remove them later.
             window.router.navigate @.$(event.target).attr('href')
 
-        rename_datacenter: (event) ->
-            event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'datacenter'
-            rename_modal.render()
-            @title.update()
+
 
         render: (tab) =>
             log_render('(rendering) datacenter view: container')
@@ -60,11 +56,16 @@ module 'DatacenterView', ->
             @.$('.profile').html @profile.render().$el
             @.$('.performance-graph').html @performance_graph.render().$el
 
-            # display the data on the machines
+            # display the data on the datacenter
             @.$('.datacenter-stats').html @stats_panel.render().$el
 
-            # display the data on the machines
+            # display the data on the datacenter
             @.$('.data').html @data.render().$el
+
+            # display the operations
+            @.$('.operations').html @operations.render().$el
+
+            @.$('.performance-graph').html @performance_graph.render().$el
 
             # Filter all the machines for those belonging to this datacenter and append logs
             machines_in_datacenter = machines.filter (machine) => return machine.get('datacenter_uuid') is @model.get('id')
@@ -83,6 +84,9 @@ module 'DatacenterView', ->
                     when 'data'
                         @.$('#datacenter-data').addClass('active')
                         @.$('#datacenter-data-link').tab('show')
+                    when 'operations'
+                        @.$('#datacenter-operations').addClass('active')
+                        @.$('#datacenter-operations-link').tab('show')
                     when 'logs'
                         @.$('#datacenter-logs').addClass('active')
                         @.$('#datacenter-logs-link').tab('show')
@@ -306,3 +310,137 @@ module 'DatacenterView', ->
             for namespace_id of @namespaces_with_listeners
                 namespaces.get(namespace_id).off 'change:key_distr', @render
                 namespaces.get(namespace_id).clear_timeout()
+
+
+    class @Operations extends Backbone.View
+        className: 'datacenter-other'
+
+        template: Handlebars.compile $('#datacenter_view-operations-template').html()
+        still_primary_template: Handlebars.compile $('#reason-cannot_delete-goals-template').html()
+
+        events: ->
+            'click .rename_datacenter-button': 'rename_datacenter'
+            'click .delete_datacenter-button': 'delete_datacenter'
+
+        initialize: =>
+            @data = {}
+            machines.on 'all', @render
+            namespaces.on 'all', @render
+
+
+        rename_datacenter: (event) =>
+            event.preventDefault()
+            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'datacenter'
+            rename_modal.render(@model)
+            @title.update()
+
+        delete_datacenter: (event) ->
+            event.preventDefault()
+            remove_datacenter_dialog = new DatacenterView.RemoveDatacenterModal
+            #overwrite on_success to add a redirectiona
+            datacenter_to_delete = @model
+        
+
+
+            remove_datacenter_dialog.render @model
+
+
+
+
+        need_update: (old_data, new_data) ->
+            for key of old_data
+                if not new_data[key]?
+                    return true
+                if new_data[key] isnt old_data[key]
+                    return true
+            for key of new_data
+                if not old_data[key]?
+                    return true
+                if new_data[key] isnt old_data[key]
+                    return true
+            return false
+
+        render: =>
+            data = {}
+            namespaces_where_primary = []
+            for namespace in namespaces.models
+                if namespace.get('primary_uuid') is @model.get('id')
+                    namespaces_where_primary.push
+                        id: namespace.get('id')
+                        name: namespace.get('name')
+            if namespaces_where_primary.length > 0
+                data.can_delete = false
+                data.delete_reason = @still_primary_template
+                    namespaces_where_primary: namespaces_where_primary
+            else
+                data.can_delete = true
+
+            @.$el.html @template data
+            return @
+
+
+    class @RemoveDatacenterModal extends UIComponents.AbstractModal
+        template: Handlebars.compile $('#remove_datacenter-modal-template').html()
+        alert_tmpl: Handlebars.compile $('#removed_datacenter-alert-template').html()
+        class: 'remove-namespace-dialog'
+
+        initialize: ->
+            log_initial '(initializing) modal dialog: remove namespace'
+            super
+
+        render: (_datacenter_to_delete) ->
+            @datacenter_to_delete = _datacenter_to_delete
+
+            super
+                modal_title: 'Remove datacenter'
+                btn_primary_text: 'Remove'
+                id: _datacenter_to_delete.get('id')
+                name: _datacenter_to_delete.get('name')
+
+            @.$('.btn-primary').focus()
+
+        on_submit: =>
+            super
+
+            # For when /ajax will handle post request
+            data = {}
+            data['datacenters'] = {}
+            for datacenter in datacenters.models
+                data['datacenters'][datacenter.get('id')] = {}
+                data['datacenters'][datacenter.get('id')]['name'] = datacenter.get('name')
+            data['datacenters'][@datacenter_to_delete.get('id')] = null
+            
+            data['machines'] = {}
+            for machine in machines.models
+                data['machines'][machine.get('id')] = {}
+                data['machines'][machine.get('id')]['name'] = machine.get('name')
+                data['machines'][machine.get('id')]['datacenter_uuid'] = if machine.get('datacenter_uuid') is @datacenter_to_delete.get('id') then null else machine.get('datacenter_uuid')
+
+            $.ajax
+                url: "/ajax/semilattice"
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify data
+                dataType: 'json',
+                success: @on_success,
+                error: @on_error
+
+        on_success: (response) ->
+            debugger
+            window.router.navigate '#servers', {'trigger': true}
+            datacenters.remove @datacenter_to_delete.get('id')
+            for machine in machines.models
+                if machine.get('datacenter_uuid') is @datacenter_to_delete.get('id')
+                    machine.set('datacenter_uuid', null)
+
+            #TODO add a feedback
+            
+        ton_error: =>
+            @.$('.error_answer').html @template_remove_error
+
+            if $('.error_answer').css('display') is 'none'
+                $('.error_answer').slideDown('fast')
+            else
+                $('.error_answer').css('display', 'none')
+                $('.error_answer').fadeIn()
+            remove_namespace_dialog.reset_buttons()

@@ -604,6 +604,7 @@ module 'MachineView', ->
         events: ->
             'click .rename_server-button': 'rename_server'
             'click .change_datacenter-button': 'change_datacenter'
+            'click .unassign_datacenter-button': 'unassign_datacenter'
             'click .to_assignments-link': 'to_assignments'
 
         initialize: =>
@@ -620,6 +621,10 @@ module 'MachineView', ->
             event.preventDefault()
             set_datacenter_modal = new ServerView.SetDatacenterModal
             set_datacenter_modal.render [@model]
+
+        unassign_datacenter: (event) =>
+            event.preventDefault()
+            #TODO
 
         to_assignments: (event) ->
             event.preventDefault()
@@ -643,6 +648,7 @@ module 'MachineView', ->
         render: =>
             data = {}
             if not @model.get('datacenter_uuid')?
+                data.can_assign = true
                 data.can_unassign = false
                 data.unassign_reason = 'This server is not part of any datacenter'
                 if @need_update(@data, data)
@@ -656,9 +662,11 @@ module 'MachineView', ->
                     if machine_uuid is @model.get('id')
                         for shard, role of peer_roles
                             if role is 'role_primary'
+                                data.can_assign = false
                                 data.can_unassign = false
                                 data.unassign_reason = @still_master_template
                                     server_id: @model.get 'id'
+                                data.assign_reason = data.unassign_reason
                                 if @need_update(@data, data)
                                     @.$el.html @template data
                                     @data = data

@@ -12,6 +12,7 @@
     <ul class="nav nav-tabs">
         <li class="active"><a href="#datacenters/{{datacenter_id}}/stats" data-target="#datacenter-stats" id="datacenter-stats-link" class="tab-link" data-toggle="tab">Statistics</a></li>
         <li><a href="#datacenters/{{datacenter_id}}/data" data-target="#datacenter-data" id="datacenter-data-link" class="tab-link" data-toggle="tab">Data</a></li>
+        <li><a href="#datacenters/{{datacenter_id}}/operations" data-target="#datacenter-operations" id="datacenter-operations-link" class="tab-link" data-toggle="tab">Operations</a></li>
         <li><a href="#datacenters/{{datacenter_id}}/logs" data-target="#datacenter-logs" id="datacenter-logs-link" class="tab-link" data-toggle="tab">Recent log entries</a></li>
     </ul>
 
@@ -23,6 +24,9 @@
         </div>
         <div class="tab-pane" id="datacenter-data">
             <div class="section data"></div>
+        </div>
+        <div class="tab-pane" id="datacenter-operations">
+            <div class="section operations"></div>
         </div>
         <div class="tab-pane" id="datacenter-logs">
             <div class="section recent-log-entries">
@@ -90,4 +94,37 @@
                 <a href="#" class="json" rel="popover" data-content="<pre>{{json}}</pre>" data-title="JSON applied to server">examine JSON</a>
         {{/if}}
     </p>
+</script>
+
+
+<script id="datacenter_view-operations-template" type="text/x-handlebars-template">
+    <h3 class="title">Operations on this datacenter</h3>
+    <div class="other_section rename_server">
+        <input type="button" class="btn other_button rename_datacenter-button" value="Rename"/>
+        <p>Rename the server</p>
+    </div>
+    <div class="other_section unassign_datacenter">
+        <input type="button" class="btn other_button delete_datacenter-button" {{#unless can_delete}}disabled="disabled"{{/unless}} value="Delete this datacenter"/>
+        <p>Delete this datacenter</p>
+        {{#unless can_delete}}
+        <div class="reason">{{print_safe delete_reason}}</div>
+        {{/unless}}
+    </div>
+</script>
+
+<script id="reason-cannot_delete-goals-template" type="text/x-handlebars-template">
+    This datacenter is a primary one for the following namespaces {{links_to_namespaces_inline namespaces_where_primary "replication"}} and therefore cannot be deleted.
+</script>
+
+<script id="remove_datacenter-modal-template" type="text/x-handlebars-template">
+  <div class="alert alert-error">Removing the datacenter will remove all the responsabilities of the machines in it.</div>
+  <div class="alert alert-error error_answer"></div>
+  <p>Are you sure you want to remove this datacenter <a href="#datacenters/{{id}}">{{name}}</a></p>
+</script>
+
+<script id="removed_namespace-alert-template" type="text/x-handlebars-template">
+  <div class="alert" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+    <p>You removed the database {{deleted_datacente}}r.</p>
+  </div>
 </script>

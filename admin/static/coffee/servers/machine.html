@@ -203,14 +203,14 @@
         <p>Rename the server</p>
     </div>
     <div class="other_section change_datacenter">
-        <input type="button" class="btn other_button change_datacenter-button" {{#unless can_unassign}}disabled="disabled"{{/unless}} value="Change datacenter"/>
+        <input type="button" class="btn other_button change_datacenter-button" {{#unless can_assign}}disabled="disabled"{{/unless}} value="Change datacenter"/>
         <p>Change the datacenter of this server</p>
-        {{#if unassign_reason}}
-        <div class="reason">{{print_safe unassign_reason}}</div>
+        {{#if assign_reason}}
+        <div class="reason">{{print_safe assign_reason}}</div>
         {{/if}}
     </div>
     <div class="other_section unassign_datacenter">
-        <input type="button" class="btn other_button change_datacenter-button" {{#unless can_unassign}}disabled="disabled"{{/unless}} value="Remove from datacenter"/>
+        <input type="button" class="btn other_button unassign_datacenter-button" {{#unless can_unassign}}disabled="disabled"{{/unless}} value="Remove from datacenter"/>
         <p>Unassign the datacenter of this server</p>
         {{#if unassign_reason}}
         <div class="reason">{{print_safe unassign_reason}}</div>
@@ -241,4 +241,3 @@
 <script id="outdated_data-template" type="text/x-handlebars-template">
     <p>Sorry, we couldn't find any secondary up to date to replace this master.</p>
 </script>
-
