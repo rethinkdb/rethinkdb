@@ -6,6 +6,7 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/string_stream.hpp"
+#include "serializer/config.hpp"
 
 namespace metadata_persistence {
 

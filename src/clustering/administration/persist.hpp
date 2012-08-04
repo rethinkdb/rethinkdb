@@ -10,7 +10,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "containers/scoped.hpp"
 #include "rpc/semilattice/view.hpp"
-#include "serializer/log/log_serializer.hpp"
+#include "serializer/types.hpp"
 
 namespace metadata_persistence {
 

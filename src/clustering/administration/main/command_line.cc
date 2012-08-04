@@ -1,8 +1,10 @@
 #include "clustering/administration/main/command_line.hpp"
 
-#include <signal.h>             // sigaction
+#include <signal.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
 
@@ -17,6 +19,7 @@
 #include "logger.hpp"
 #include "extproc/spawner.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "utils.hpp"
 
 namespace po = boost::program_options;
 
