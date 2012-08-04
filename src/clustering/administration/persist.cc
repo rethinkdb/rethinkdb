@@ -4,6 +4,7 @@
 #include <sys/types.h>
 
 #include "arch/runtime/thread_pool.hpp"
+#include "buffer_cache/blob.hpp"
 #include "containers/archive/string_stream.hpp"
 
 namespace metadata_persistence {

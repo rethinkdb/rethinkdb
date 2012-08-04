@@ -3,8 +3,6 @@
 
 #include <string>
 
-#include "buffer_cache/blob.hpp"
-#include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/types.hpp"
 #include "clustering/administration/issues/json.hpp"
 #include "clustering/administration/issues/local.hpp"
