@@ -54,12 +54,12 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
 
     int start = 0, end = int(message.length()) - 1;
     while (start < int(message.length()) && message[start] == '\n') {
-        start++;
+        ++start;
     }
     while (end >= 0 && message[end] == '\n') {
-        end--;
+        --end;
     }
-    for (int i = start; i <= end; i++) {
+    for (int i = start; i <= end; ++i) {
         if (message[i] == '\n') {
             if (for_console) {
                 message_reformatted.push_back('\n');
@@ -94,34 +94,34 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
 log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_error) {
     const char *p = s.c_str();
     const char *start_timestamp = p;
-    while (*p && *p != ' ') p++;
+    while (*p && *p != ' ') { ++p; }
     if (!*p) throw std::runtime_error("cannot parse log message (1)");
     const char *end_timestamp = p;
-    p++;
+    ++p;
     const char *start_uptime_ipart = p;
-    while (*p && *p != '.') p++;
+    while (*p && *p != '.') { ++p; }
     if (!*p) throw std::runtime_error("cannot parse log message (2)");
     const char *end_uptime_ipart = p;
-    p++;
+    ++p;
     const char *start_uptime_fpart = p;
-    while (*p && *p != 's') p++;
+    while (*p && *p != 's') { ++p; }
     if (!*p) throw std::runtime_error("cannot parse log message (3)");
     const char *end_uptime_fpart = p;
-    p++;
+    ++p;
     if (*p != ' ') throw std::runtime_error("cannot parse log message (4)");
-    p++;
+    ++p;
     const char *start_level = p;
-    while (*p && *p != ':') p++;
+    while (*p && *p != ':') { ++p; }
     if (*p != ':') throw std::runtime_error("cannot parse log message (5)");
     const char *end_level = p;
-    p++;
+    ++p;
     if (*p != ' ') throw std::runtime_error("cannot parse log message (6)");
-    p++;
+    ++p;
     const char *start_message = p;
-    while (*p && *p != '\n') p++;
+    while (*p && *p != '\n') { ++p; }
     if (!*p) throw std::runtime_error("cannot parse log message (7)");
     const char *end_message = p;
-    p++;
+    ++p;
     if (*p) throw std::runtime_error("cannot parse log message (8)");
 
     struct timespec timestamp = parse_time(std::string(start_timestamp, end_timestamp - start_timestamp));
@@ -211,7 +211,7 @@ public:
         while (true) {
             int p = remaining_in_current_chunk - 1;
             while (p > 0 && current_chunk[p - 1] != '\n') {
-                p--;
+                --p;
             }
             if (p == 0) {
                 *out = std::string(current_chunk.data(), remaining_in_current_chunk) + *out;

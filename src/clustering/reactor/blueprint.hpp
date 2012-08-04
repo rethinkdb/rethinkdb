@@ -44,8 +44,8 @@ public:
         rassert(REGION_JOIN_OK == region_join(std::vector<typename protocol_t::region_t>(ref_regions.begin(), ref_regions.end()), &join));
 
         for (typename role_map_t::const_iterator it =  peers_roles.begin();
-                                                 it != peers_roles.end();
-                                                 it++) {
+             it != peers_roles.end();
+             ++it) {
             rassert(keys(it->second) == ref_regions, "Found blueprint with different peers having different sharding schemes.");
         }
     }

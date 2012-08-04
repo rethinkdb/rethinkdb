@@ -7,7 +7,7 @@ issues_http_app_t::issues_http_app_t(global_issue_tracker_t *_issue_tracker) :
 void issues_http_app_t::get_root(scoped_cJSON_t *json_out) {
     std::list<clone_ptr_t<global_issue_t> > issues = issue_tracker->get_issues();
     json_out->reset(cJSON_CreateArray());
-    for (std::list<clone_ptr_t<global_issue_t> >::iterator it = issues.begin(); it != issues.end(); it++) {
+    for (std::list<clone_ptr_t<global_issue_t> >::iterator it = issues.begin(); it != issues.end(); ++it) {
         json_out->AddItemToArray((*it)->get_json_description());
     }
 }

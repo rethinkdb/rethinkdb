@@ -102,7 +102,7 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
 
     /* This is a slightly weird way of phrasing this; it's done this way so I can be sure it's
     equivalent to the old way of doing things */
-    for (int k = 0; k < c->n_proxies; k++) {
+    for (int k = 0; k < c->n_proxies; ++k) {
         /* Are we responsible for creating this proxy? */
         if (k % (int)underlying.size() != j)
             continue;
@@ -121,7 +121,7 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
 
 serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_serializer_t *>& underlying) {
     rassert(underlying.size() > 0);
-    for (int i = 0; i < (int)underlying.size(); i++) {
+    for (int i = 0; i < (int)underlying.size(); ++i) {
         rassert(underlying[i]);
     }
 
@@ -147,7 +147,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_se
     pmap(underlying.size(), boost::bind(&create_proxies,
         underlying, creation_timestamp, &proxies, _1));
 
-    for (int i = 0; i < (int)proxies.size(); i++) rassert(proxies[i]);
+    for (int i = 0; i < (int)proxies.size(); ++i) rassert(proxies[i]);
 }
 
 void destroy_proxy(std::vector<translator_serializer_t *> *proxies, int i) {
@@ -258,7 +258,7 @@ block_id_t translator_serializer_t::max_block_id() {
     if (x <= 0) {
         x = 0;
     } else {
-        while (x % mod_count != mod_id) x++;
+        while (x % mod_count != mod_id) { ++x; }
         x /= mod_count;
     }
     rassert(translate_block_id(x) >= inner->max_block_id());

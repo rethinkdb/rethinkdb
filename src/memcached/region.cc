@@ -16,7 +16,7 @@ region_join_result_t region_join(const std::vector<key_range_t> &vec, key_range_
         // TODO: Why the is this called a "cursor"?
         key_range_t::right_bound_t cursor = key_range_t::right_bound_t(sorted[0].left);
         // TODO: Avoid C-style casts.
-        for (int i = 0; i < (int)sorted.size(); i++) {
+        for (int i = 0; i < (int)sorted.size(); ++i) {
             if (cursor < key_range_t::right_bound_t(sorted[i].left)) {
                 return REGION_JOIN_BAD_REGION;
             } else if (cursor > key_range_t::right_bound_t(sorted[i].left)) {

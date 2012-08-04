@@ -53,7 +53,7 @@ void rwi_lock_t::unlock() {
             unreachable("Lock is not locked.");
             break;
         case rwis_reading:
-            nreaders--;
+            --nreaders;
             if(nreaders == 0)
                 state = rwis_unlocked;
             rassert(nreaders >= 0);
@@ -62,7 +62,7 @@ void rwi_lock_t::unlock() {
             state = rwis_unlocked;
             break;
         case rwis_reading_with_intent:
-            nreaders--;
+            --nreaders;
             rassert(nreaders >= 0);
             break;
         default:
@@ -124,16 +124,16 @@ bool rwi_lock_t::try_lock_read(bool from_queue) {
         case rwis_unlocked:
             rassert(nreaders == 0);
             state = rwis_reading;
-            nreaders++;
+            ++nreaders;
             return true;
         case rwis_reading:
-            nreaders++;
+            ++nreaders;
             return true;
         case rwis_writing:
             rassert(nreaders == 0);
             return false;
         case rwis_reading_with_intent:
-            nreaders++;
+            ++nreaders;
             return true;
         default:
             unreachable("Invalid state.");

@@ -29,7 +29,7 @@ void run_backfill_test() {
     /* Set up two stores */
 
     dummy_protocol_t::region_t region;
-    for (char c = 'a'; c <= 'z'; c++) {
+    for (char c = 'a'; c <= 'z'; ++c) {
         region.keys.insert(std::string(&c, 1));
     }
 
@@ -53,7 +53,7 @@ void run_backfill_test() {
 
     // initialize the metainfo in a store
     store_view_t<dummy_protocol_t> *stores[] = { &backfiller_store, &backfillee_store };
-    for (size_t i = 0; i < sizeof(stores) / sizeof(stores[0]); i++) {
+    for (size_t i = 0; i < sizeof(stores) / sizeof(stores[0]); ++i) {
         cond_t non_interruptor;
         scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> token;
         stores[i]->new_write_token(&token);
@@ -66,12 +66,12 @@ void run_backfill_test() {
     }
 
     // Insert 10 values into both stores, then another 10 into only `backfiller_store` and not `backfillee_store`
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 20; ++i) {
         dummy_protocol_t::write_t w;
         std::string key = std::string(1, 'a' + randint(26));
         w.values[key] = strprintf("%d", i);
 
-        for (int j = 0; j < (i < 10 ? 2 : 1); j++) {
+        for (int j = 0; j < (i < 10 ? 2 : 1); ++j) {
             transition_timestamp_t ts = transition_timestamp_t::starting_from(timestamp);
             timestamp = ts.timestamp_after();
 
@@ -134,7 +134,7 @@ void run_backfill_test() {
 
     /* Make sure everything got transferred properly */
 
-    for (char c = 'a'; c <= 'z'; c++) {
+    for (char c = 'a'; c <= 'z'; ++c) {
         std::string key(1, c);
         EXPECT_EQ(backfiller_store.values[key], backfillee_store.values[key]);
         EXPECT_TRUE(backfiller_store.timestamps[key] == backfillee_store.timestamps[key]);

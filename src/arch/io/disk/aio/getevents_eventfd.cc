@@ -71,7 +71,7 @@ void linux_aio_getevents_eventfd_t::on_event(int event_mask) {
         guarantee_xerr(nevents >= 1, -nevents, "Waiting for AIO event failed");
 
         // Process the events
-        for(int i = 0; i < nevents; i++) {
+        for(int i = 0; i < nevents; ++i) {
             parent->aio_notify(reinterpret_cast<iocb *>(events[i].obj), events[i].res);
         }
         nevents_total -= nevents;

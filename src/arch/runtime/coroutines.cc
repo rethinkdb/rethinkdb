@@ -128,7 +128,7 @@ coro_t::coro_t() :
     ++pm_allocated_coroutines;
 
 #ifndef NDEBUG
-    cglobals->coro_count++;
+    ++cglobals->coro_count;
     rassert(cglobals->coro_count < MAX_COROS_PER_THREAD, "Too many "
             "coroutines allocated on this thread. This is problem due to a "
             "misuse of the coroutines\n");
@@ -144,7 +144,7 @@ coro_t::~coro_t() {
     rassert(get_thread_id() == home_thread());
 
 #ifndef NDEBUG
-    cglobals->coro_count--;
+    --cglobals->coro_count;
 #endif
     --pm_allocated_coroutines;
 }
@@ -390,19 +390,19 @@ coro_t * coro_t::get_coro() {
 `ASSERT_FINITE_CORO_WAITING` */
 assert_no_coro_waiting_t::assert_no_coro_waiting_t(const std::string& filename, int line_no) {
     cglobals->no_waiting_call_sites.push(std::make_pair(filename, line_no));
-    cglobals->assert_no_coro_waiting_counter++;
+    ++cglobals->assert_no_coro_waiting_counter;
 }
 assert_no_coro_waiting_t::~assert_no_coro_waiting_t() {
     cglobals->no_waiting_call_sites.pop();
-    cglobals->assert_no_coro_waiting_counter--;
+    --cglobals->assert_no_coro_waiting_counter;
 }
 assert_finite_coro_waiting_t::assert_finite_coro_waiting_t(const std::string& filename, int line_no) {
     cglobals->finite_waiting_call_sites.push(std::make_pair(filename, line_no));
-    cglobals->assert_finite_coro_waiting_counter++;
+    ++cglobals->assert_finite_coro_waiting_counter;
 }
 assert_finite_coro_waiting_t::~assert_finite_coro_waiting_t() {
     cglobals->finite_waiting_call_sites.pop();
-    cglobals->assert_finite_coro_waiting_counter--;
+    --cglobals->assert_finite_coro_waiting_counter;
 }
 
 home_coro_mixin_t::home_coro_mixin_t()

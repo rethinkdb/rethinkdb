@@ -23,7 +23,7 @@ bool cli_str_to_key(const std::string &str, store_key_t *out) {
             p += 3;
         } else if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {
             translation = c;
-            p++;
+            ++p;
         } else {
             return false;
         }
@@ -42,7 +42,7 @@ std::string key_to_cli_str(const store_key_t &key) {
         return "-inf";
     }
     std::string s;
-    for (int i = 0; i < key.size(); i++) {
+    for (int i = 0; i < key.size(); ++i) {
         uint8_t c = key.contents()[i];
         if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {
             s.push_back(c);

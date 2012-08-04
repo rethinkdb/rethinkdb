@@ -21,7 +21,7 @@ auto_reconnector_t::auto_reconnector_t(
 
 void auto_reconnector_t::on_connect_or_disconnect() {
     std::map<peer_id_t, machine_id_t> map = machine_id_translation_table->get();
-    for (std::map<peer_id_t, machine_id_t>::iterator it = map.begin(); it != map.end(); it++) {
+    for (std::map<peer_id_t, machine_id_t>::iterator it = map.begin(); it != map.end(); ++it) {
         if (connected_peers.find(it->first) == connected_peers.end()) {
             connected_peers.insert(std::make_pair(
                 it->first,
@@ -43,7 +43,7 @@ void auto_reconnector_t::on_connect_or_disconnect() {
             connected_peers.erase(it);
             it = jt;
         } else {
-            it++;
+            ++it;
         }
     }
 }
@@ -103,7 +103,7 @@ void auto_reconnector_t::pulse_if_machine_declared_dead(machine_id_t machine, co
 
 void auto_reconnector_t::pulse_if_machine_reconnected(machine_id_t machine, cond_t *c) {
     std::map<peer_id_t, machine_id_t> map = machine_id_translation_table->get();
-    for (std::map<peer_id_t, machine_id_t>::iterator it = map.begin(); it != map.end(); it++) {
+    for (std::map<peer_id_t, machine_id_t>::iterator it = map.begin(); it != map.end(); ++it) {
         if (it->second == machine) {
             if (!c->is_pulsed()) {
                 c->pulse();

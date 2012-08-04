@@ -77,7 +77,7 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
 
         /* Now check that latest_write is also latest for all other chunks.
         Keep on validating as long as we have a latest_write candidate. */
-        for (int block = start; latest_write && block < end; block++) {
+        for (int block = start; latest_write && block < end; ++block) {
 
             it = chunk_queues->find(start);
             rassert(it != chunk_queues->end()); // Note: At least latest_write should be there!
@@ -115,14 +115,14 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
 
     /* Determine if there are conflicts and put ourself on the queues */
     action->conflict_count = 0;
-    for (int block = start; block < end; block++) {
+    for (int block = start; block < end; ++block) {
 
         typename std::map<int, std::deque<action_t*> >::iterator it;
         it = chunk_queues->find(block);
 
         if (it != chunk_queues->end()) {
             /* We conflict on this block. */
-            action->conflict_count++;
+            ++action->conflict_count;
         }
 
         /* Put ourself on the queue for this chunk */
@@ -159,7 +159,7 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
     over block indices, we iterate through the corresponding entries in the map. */
 
     typename std::map<int, std::deque<action_t*> >::iterator it = chunk_queues->find(start);
-    for (int block = start; block < end; block++) {
+    for (int block = start; block < end; ++block) {
 
         /* We can assert this because at lest we must still be on the queue */
         rassert(it != chunk_queues->end() && it->first == block);
@@ -180,7 +180,7 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
             action_t *waiter = queue.front();
 
             rassert(waiter->conflict_count > 0);
-            waiter->conflict_count--;
+            --waiter->conflict_count;
 
             if (waiter->conflict_count == 0) {
                 /* We were the last thing it was waiting on */
@@ -215,7 +215,9 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
             }
         } else {
             /* The queue is empty, erase it. */
-            chunk_queues->erase(it++);
+            typename std::map<int, std::deque<action_t*> >::iterator old_it = it;
+            ++it;
+            chunk_queues->erase(old_it);
         }
     }
 

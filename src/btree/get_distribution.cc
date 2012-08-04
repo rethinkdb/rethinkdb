@@ -42,7 +42,7 @@ public:
         /* Notice, we iterate all but the last pair because the last pair
          * doesn't actually have a key and we're looking for the split points.
          * */
-        for (int i = 0; i < (node->npairs - 1); i++) {
+        for (int i = 0; i < (node->npairs - 1); ++i) {
             const btree_internal_pair *pair = internal_node::get_pair_by_index(node, i);
             keys->push_back(store_key_t(pair->key.size, pair->key.contents));
         }

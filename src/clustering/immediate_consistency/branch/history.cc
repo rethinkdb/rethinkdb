@@ -29,7 +29,7 @@ bool version_is_ancestor(
         rassert(relevant_origin.begin() != relevant_origin.end());
         for (typename version_map_t::const_iterator it  = relevant_origin.begin();
                                                     it != relevant_origin.end();
-                                                    it++) {
+                                                    ++it) {
             rassert(!region_is_empty(it->first));
             rassert(version_is_ancestor(bhm, it->second.earliest, it->second.latest, it->first));
             if (!version_is_ancestor(bhm, ancestor, it->second.earliest, it->first)) {

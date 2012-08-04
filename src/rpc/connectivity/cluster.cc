@@ -414,7 +414,7 @@ void connectivity_cluster_t::run_t::handle(
     this step. */
     if (!drainer_lock.get_drain_signal()->is_pulsed()) {
         for (std::map<peer_id_t, peer_address_t>::iterator it = other_routing_table.begin();
-             it != other_routing_table.end(); it++) {
+             it != other_routing_table.end(); ++it) {
             if (routing_table.find(it->first) == routing_table.end()) {
                 /* `it->first` is the ID of a peer that our peer is connected
                 to, but we aren't connected to. */
@@ -506,7 +506,7 @@ std::set<peer_id_t> connectivity_cluster_t::get_peers_list() THROWS_NOTHING {
         &thread_info.get()->connection_map;
     std::set<peer_id_t> peers;
     for (std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::const_iterator it = connection_map->begin();
-            it != connection_map->end(); it++) {
+            it != connection_map->end(); ++it) {
         peers.insert((*it).first);
     }
     return peers;

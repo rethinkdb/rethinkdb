@@ -11,7 +11,7 @@ TEST(RegionMap, BasicSets) {
     rmap.set(dummy_protocol_t::region_t('n', 'z'), 2);
     for (region_map_t<dummy_protocol_t, int>::iterator it  = rmap.begin();
          it != rmap.end();
-         it++) {
+         ++it) {
         if (region_is_superset(dummy_protocol_t::region_t('a', 'm'), it->first)) {
             EXPECT_EQ(1, it->second);
         } else if (region_is_superset(dummy_protocol_t::region_t('n', 'z'), it->first)) {
@@ -33,7 +33,7 @@ TEST(RegionMap, Mask) {
 
     for (region_map_t<dummy_protocol_t, int>::iterator it  = masked_map.begin();
          it != masked_map.end();
-         it++) {
+         ++it) {
         if (region_is_superset(dummy_protocol_t::region_t('a', 'm'), it->first)) {
             EXPECT_EQ(1, it->second);
         } else if (region_is_superset(dummy_protocol_t::region_t('n', 'z'), it->first)) {

@@ -10,7 +10,7 @@ array_free_list_t::array_free_list_t(serializer_t *_serializer, mc_cache_stats_t
     on_thread_t switcher(serializer->home_thread());
     num_blocks_in_use = 0;
     next_new_block_id = serializer->max_block_id();
-    for (block_id_t i = 0; i < next_new_block_id; i++) {
+    for (block_id_t i = 0; i < next_new_block_id; ++i) {
         if (serializer->get_delete_bit(i)) {
             free_ids.push_back(i);
         } else {
@@ -25,16 +25,16 @@ array_free_list_t::~array_free_list_t() {
 
 void array_free_list_t::reserve_block_id(block_id_t id) {
     if (id >= next_new_block_id) {
-        for (block_id_t i = next_new_block_id; i < id; i++) {
+        for (block_id_t i = next_new_block_id; i < id; ++i) {
             free_ids.push_back(i);
         }
         next_new_block_id = id + 1;
-        num_blocks_in_use++;
+        ++num_blocks_in_use;
     } else {
-        for (std::deque<block_id_t>::iterator it = free_ids.begin(); it != free_ids.end(); it++) {
+        for (std::deque<block_id_t>::iterator it = free_ids.begin(); it != free_ids.end(); ++it) {
             if (*it == id) {
                 free_ids.erase(it);
-                num_blocks_in_use++;
+                ++num_blocks_in_use;
                 return;
             }
         }
@@ -45,7 +45,8 @@ void array_free_list_t::reserve_block_id(block_id_t id) {
 block_id_t array_free_list_t::gen_block_id() {
     block_id_t id;
     if (free_ids.empty()) {
-        id = next_new_block_id++;
+        id = next_new_block_id;
+        ++next_new_block_id;
     } else {
         id = free_ids.back();
         free_ids.pop_back();

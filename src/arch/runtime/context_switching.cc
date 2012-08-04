@@ -56,8 +56,8 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 
     /* Set up the instruction pointer; this will be popped off the stack by ret
     in swapcontext once all the other registers have been "restored". */
-    sp--;
-    sp--;
+    --sp;
+    --sp;
 
     // Subtracted 2*sizeof(int64_t), so sp is still 16-byte aligned.
 

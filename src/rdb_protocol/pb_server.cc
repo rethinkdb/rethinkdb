@@ -13,7 +13,7 @@ query_server_t::query_server_t(int port, extproc::pool_group_t *_pool_group, con
 
 static void put_backtrace(const query_language::backtrace_t &bt, Response *res_out) {
     std::vector<std::string> frames = bt.get_frames();
-    for (int i = 0; i < int(frames.size()); i++) {
+    for (int i = 0; i < int(frames.size()); ++i) {
         res_out->mutable_backtrace()->add_frame(frames[i]);
     }
 }

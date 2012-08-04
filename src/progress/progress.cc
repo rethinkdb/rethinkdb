@@ -14,7 +14,7 @@ progress_bar_t::~progress_bar_t() {
 }
 
 void progress_bar_t::refresh(progress_bar_draw_callback_t *cb) {
-    total_refreshes++;
+    ++total_refreshes;
     reset_bar();
     cb->draw();
     reset_bar();
@@ -30,7 +30,7 @@ void progress_bar_t::draw_bar(float progress, int eta) {
     int percent_done = int(progress * 100);
     printf("%s: ", activity.c_str());
     printf("[");
-    for (int i = 1; i < 49; i++) {
+    for (int i = 1; i < 49; ++i) {
         if (i % 5 == 0) {
             printf("%d", 2 * i);
         } else if (i == percent_done / 2) {
@@ -72,7 +72,7 @@ void counter_progress_bar_t::on_ring() {
 
 
 void counter_progress_bar_t::operator++() {
-    count++;
+    ++count;
 }
 
 file_progress_bar_t::file_progress_bar_t(const std::string& activity, FILE *_file, int redraw_interval_ms)

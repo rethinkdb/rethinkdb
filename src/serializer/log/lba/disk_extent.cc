@@ -29,7 +29,7 @@ void lba_disk_extent_t::add_entry(lba_entry_t entry, file_account_t *io_account)
     rassert(data->amount_filled + sizeof(lba_entry_t) <= em->extent_size);
 
     data->append(&entry, sizeof(lba_entry_t), io_account);
-    count++;
+    ++count;
 }
 
 void lba_disk_extent_t::sync(file_account_t *io_account, extent_t::sync_callback_t *cb) {
@@ -50,7 +50,7 @@ void lba_disk_extent_t::read_step_2(read_info_t *info, in_memory_index_t *index)
     lba_extent_t *extent = reinterpret_cast<lba_extent_t *>(info->buffer);
     rassert(memcmp(extent->header.magic, lba_magic, LBA_MAGIC_SIZE) == 0);
 
-    for (int i = 0; i < info->count; i++) {
+    for (int i = 0; i < info->count; ++i) {
         lba_entry_t *e = &extent->entries[i];
         if (!lba_entry_t::is_padding(e)) {
             index->set_block_info(e->block_id, e->recency, e->offset);

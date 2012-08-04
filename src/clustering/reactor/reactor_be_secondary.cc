@@ -14,14 +14,14 @@ bool reactor_t<protocol_t>::find_broadcaster_in_directory(const typename protoco
     typedef reactor_business_card_t<protocol_t> rb_t;
     typedef std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<rb_t> > > reactor_directory_t;
 
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
-                                                                      it != bp.peers_roles.end();
-                                                                      it++) {
+    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it = bp.peers_roles.begin();
+         it != bp.peers_roles.end();
+         ++it) {
         typename reactor_directory_t::const_iterator p_it = reactor_directory.find(it->first);
         if (p_it != reactor_directory.end() && p_it->second) {
-            for (typename rb_t::activity_map_t::const_iterator a_it  = p_it->second->internal.activities.begin();
-                                                               a_it != p_it->second->internal.activities.end();
-                                                               a_it++) {
+            for (typename rb_t::activity_map_t::const_iterator a_it = p_it->second->internal.activities.begin();
+                 a_it != p_it->second->internal.activities.end();
+                 ++a_it) {
                 if (a_it->second.first == region) {
                     if (boost::get<typename rb_t::primary_t>(&a_it->second.second)) {
                         if (!found_broadcaster) {
@@ -88,14 +88,14 @@ bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t:
     typedef reactor_business_card_t<protocol_t> rb_t;
     typedef std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<rb_t> > > reactor_directory_t;
 
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
-                                                                      it != bp.peers_roles.end();
-                                                                      it++) {
+    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it = bp.peers_roles.begin();
+         it != bp.peers_roles.end();
+         ++it) {
         typename reactor_directory_t::const_iterator p_it = reactor_directory.find(it->first);
         if (p_it != reactor_directory.end() && p_it->second) {
-            for (typename rb_t::activity_map_t::const_iterator a_it  = p_it->second->internal.activities.begin();
-                                                               a_it != p_it->second->internal.activities.end();
-                                                               a_it++) {
+            for (typename rb_t::activity_map_t::const_iterator a_it = p_it->second->internal.activities.begin();
+                 a_it != p_it->second->internal.activities.end();
+                 ++a_it) {
                 if (a_it->second.first == region) {
                     if (const typename rb_t::primary_t *primary = boost::get<typename rb_t::primary_t>(&a_it->second.second)) {
                         if (primary->replier && primary->broadcaster.branch_id == b_id) {

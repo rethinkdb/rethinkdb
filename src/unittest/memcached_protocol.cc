@@ -22,7 +22,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") )));
 
     boost::ptr_vector<mock::temp_file_t> temp_files;
-    for (int i = 0; i < (int)shards.size(); i++) {
+    for (int i = 0; i < (int)shards.size(); ++i) {
         temp_files.push_back(new mock::temp_file_t("/tmp/rdb_unittest.XXXXXX"));
     }
 
@@ -30,12 +30,12 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     make_io_backender(aio_default, &io_backender);
 
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
-    for (int i = 0; i < (int)shards.size(); i++) {
+    for (int i = 0; i < (int)shards.size(); ++i) {
         underlying_stores.push_back(new memcached_protocol_t::store_t(io_backender.get(), temp_files[i].name(), true, &get_global_perfmon_collection()));
     }
 
     boost::ptr_vector<store_view_t<memcached_protocol_t> > stores;
-    for (int i = 0; i < (int)shards.size(); i++) {
+    for (int i = 0; i < (int)shards.size(); ++i) {
         stores.push_back(new store_subview_t<memcached_protocol_t>(&underlying_stores[i], shards[i]));
     }
 

@@ -71,7 +71,7 @@ public:
                    it won't pulse `done_cond` while we're still going. The
                    latter is so that the backfill chunks acquire the
                    superblock in the correct order. */
-                num_outstanding_chunks++;
+                ++num_outstanding_chunks;
 
                 // We acquire the write token in apply_backfill_chunk.
                 apply_backfill_chunk(chunk.write_token, chunk.chunk, interruptor);
@@ -94,7 +94,7 @@ public:
                     send(mbox_manager, allocation_mailbox, chunks_to_send_out);
                 }
 
-                num_outstanding_chunks--;
+                --num_outstanding_chunks;
 
             } else {
                 /* This is a fake backfill "chunk" that just indicates
@@ -269,10 +269,10 @@ void backfillee(
 
         for (typename version_map_t::const_iterator it  = start_point.begin();
                                                     it != start_point.end();
-                                                    it++) {
+                                                    ++it) {
             for (typename version_map_t::const_iterator jt  = end_point.begin();
                                                         jt != end_point.end();
-                                                        jt++) {
+                                                        ++jt) {
                 typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
                 if (!region_is_empty(ixn)) {
                     rassert(version_is_ancestor(branch_history_manager,

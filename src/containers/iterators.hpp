@@ -119,11 +119,14 @@ public:
                 typename boost::optional<T> mergee_next = mergee->next();
                 if (mergee_next) {
                     merge_heap.push(std::make_pair(mergee_next.get(), mergee));
-                    it++;
+                    ++it;
                 } else {
                     mergee.reset();          // nothing more in this iterator, delete it
-                    mergees.erase(it++);    // Note: this increments the iterator, erases the element
-                                            // at the old iterator position, and then updates the 'it' value
+                    typename std::set<mergee_t>::iterator old_it = it;
+                    ++it;
+                    mergees.erase(old_it);    // Note: this increments the iterator, erases the
+                                              // element at the old iterator position, and then
+                                              // updates the 'it' value
                 }
             }
         } else {
@@ -150,7 +153,7 @@ public:
     }
     void prefetch() {
         typename std::set<mergee_t>::iterator it;
-        for (it = mergees.begin(); it != mergees.end(); it++) {
+        for (it = mergees.begin(); it != mergees.end(); ++it) {
             (*it)->prefetch();
         }
     }

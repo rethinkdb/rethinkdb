@@ -174,7 +174,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     res = pthread_barrier_init(&barrier, NULL, n_threads);
     guarantee(res == 0, "Could not create barrier");
 
-    for (int i = 0; i < n_threads; i++) {
+    for (int i = 0; i < n_threads; ++i) {
         thread_data_t *tdata = new thread_data_t();
         tdata->barrier = &barrier;
         tdata->thread_pool = this;
@@ -252,7 +252,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 #endif
 
     // Shut down child threads
-    for (int i = 0; i < n_threads; i++) {
+    for (int i = 0; i < n_threads; ++i) {
         // Cause child thread to break out of its loop
 #ifndef NDEBUG
         threads[i]->initiate_shut_down(&coroutine_counts[i]);
@@ -261,7 +261,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 #endif
     }
 
-    for (int i = 0; i < n_threads; i++) {
+    for (int i = 0; i < n_threads; ++i) {
         // Wait for child thread to actually exit
 
         res = pthread_join(pthreads[i], NULL);

@@ -84,8 +84,8 @@ public:
     { }
 
     ~traversal_state_t() {
-        for (int i = 0; i < int(acquisition_waiter_stacks.size()); i++) {
-            for (int j = 0; j < int(acquisition_waiter_stacks[i].size()); j++) {
+        for (int i = 0; i < int(acquisition_waiter_stacks.size()); ++i) {
+            for (int j = 0; j < int(acquisition_waiter_stacks[i].size()); ++j) {
                 acquisition_waiter_stacks[i][j]->cancel();
             }
         }
@@ -570,20 +570,20 @@ progress_completion_fraction_t parallel_traversal_progress_t::guess_completion()
      * each level. */
 
     std::vector<double> released_to_acquired_ratios;
-    for (unsigned i = 0; i < learned.size() - 1; i++) {
+    for (unsigned i = 0; i < learned.size() - 1; ++i) {
         released_to_acquired_ratios.push_back(double(acquired[i + 1]) / std::max(1.0, double(released[i])));
     }
 
     std::vector<int> population_by_level_guesses;
     population_by_level_guesses.push_back(learned[0]);
 
-    for (unsigned i = 0; i < (learned.size() - 1); i++) {
+    for (unsigned i = 0; i < (learned.size() - 1); ++i) {
         population_by_level_guesses.push_back(static_cast<int>(released_to_acquired_ratios[i] * population_by_level_guesses[i]));
     }
 
     int estimate_of_total_nodes = 0;
     int total_released_nodes = 0;
-    for (unsigned i = 0; i < population_by_level_guesses.size(); i++) {
+    for (unsigned i = 0; i < population_by_level_guesses.size(); ++i) {
         estimate_of_total_nodes += population_by_level_guesses[i];
         total_released_nodes += released[i];
     }

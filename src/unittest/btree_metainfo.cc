@@ -12,7 +12,10 @@ static const bool print_log_messages = false;
 std::string random_existing_key(const std::map<std::string, std::string> &map) {
     int i = random() % map.size();
     std::map<std::string, std::string>::const_iterator it = map.begin();
-    while (i-- > 0) it++;
+    while (i > 0) {
+        --i;
+        ++it;
+    }
     return it->first;
 }
 
@@ -67,7 +70,7 @@ void run_metainfo_test() {
 
     std::map<std::string, std::string> mirror;
 
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 1000; ++i) {
 
         order_token_t otok = order_source.check_in("metainfo unittest");
         scoped_ptr_t<transaction_t> txn;
@@ -151,7 +154,7 @@ void run_metainfo_test() {
             if (print_log_messages) {
                 puts("scan...");
             }
-            for (int i = 0; i < (int)pairs.size(); i++) {
+            for (int i = 0; i < (int)pairs.size(); ++i) {
                 std::map<std::string, std::string>::iterator it = mirror_copy.find(vector_to_string(pairs[i].first));
                 if (it == mirror_copy.end()) {
                     if (print_log_messages) {
@@ -167,7 +170,7 @@ void run_metainfo_test() {
                 }
             }
             if (print_log_messages) {
-                for (std::map<std::string, std::string>::iterator it = mirror_copy.begin(); it != mirror_copy.end(); it++) {
+                for (std::map<std::string, std::string>::iterator it = mirror_copy.begin(); it != mirror_copy.end(); ++it) {
                     printf("    '%s' = <not found> (expected '%s')\n", it->first.c_str(), it->second.c_str());
                 }
             }

@@ -37,7 +37,7 @@ public:
 
     void push(const T &value) {
         mutex_t::acq_t acq(&push_mutex);
-        items_in_queue++;
+        ++items_in_queue;
         if (disk_queue_in_use) {
             disk_queue.push(value);
         } else {
@@ -65,7 +65,7 @@ private:
     T produce_next_value() {
         T value = memory_queue.front();
         memory_queue.pop_front();
-        items_in_queue--;
+        --items_in_queue;
         if (memory_queue.empty()) {
             available_control.set_available(false);
         }

@@ -38,8 +38,10 @@ private:
         char *c = msg;
         int nlines = 0;
 
-        while (c != msg_hd)
-            if (*c++ == '\n') nlines++;
+        while (c != msg_hd) {
+            if (*c == '\n') { ++nlines; }
+            ++c;
+        }
 
         return nlines;
     }

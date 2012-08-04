@@ -188,11 +188,11 @@ public:
             do {
                 core = strcasestr(core, "cpu");
                 if (core) {
-                    stat.ncpus++;
+                    ++stat.ncpus;
                     core += 3;
                 }
             } while (core);
-            stat.ncpus--; // the first line is an aggeragate
+            ++stat.ncpus; // the first line is an aggeragate
         }
 
         // Grab network info
@@ -316,7 +316,7 @@ void proc_stats_collector_t::collect_periodically(auto_drainer_t::lock_t keepali
 
         ticks_t last_ticks = get_ticks();
         scoped_array_t<proc_pid_stat_t> last_per_thread(get_num_threads());
-        for (int i = 0; i < get_num_threads(); i++) {
+        for (int i = 0; i < get_num_threads(); ++i) {
             last_per_thread[i] = proc_pid_stat_t::for_pid_and_tid(getpid(), tids[i]);
         }
         global_sys_stat_t last_global = global_sys_stat_t::read_global_stats();
@@ -328,14 +328,14 @@ void proc_stats_collector_t::collect_periodically(auto_drainer_t::lock_t keepali
 
                 ticks_t current_ticks = get_ticks();
                 scoped_array_t<proc_pid_stat_t> current_per_thread(get_num_threads());
-                for (int i = 0; i < get_num_threads(); i++) {
+                for (int i = 0; i < get_num_threads(); ++i) {
                     current_per_thread[i] = proc_pid_stat_t::for_pid_and_tid(getpid(), tids[i]);
                 }
                 global_sys_stat_t current_global = global_sys_stat_t::read_global_stats();
 
                 double elapsed_secs = ticks_to_secs(current_ticks - last_ticks);
                 double elapsed_sys_ticks = elapsed_secs * sysconf(_SC_CLK_TCK);
-                for (int i = 0; i < get_num_threads(); i++) {
+                for (int i = 0; i < get_num_threads(); ++i) {
                     cpu_thread_user.record(
                         (current_per_thread[i].utime - last_per_thread[i].utime) / elapsed_sys_ticks);
                     cpu_thread_system.record(

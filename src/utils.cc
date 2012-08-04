@@ -59,7 +59,7 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
             if (!skipped_last) fprintf(stderr, "*\n");
         } else {
             fprintf(stderr, "%.8x  ", (unsigned int)offset);
-            for (int i = 0; i < 16; i++) {
+            for (int i = 0; i < 16; ++i) {
                 if (i < (int)length) {
                     fprintf(stderr, "%.2hhx ", buf[i]);
                 } else {
@@ -67,7 +67,7 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
                 }
             }
             fprintf(stderr, "| ");
-            for (int i = 0; i < 16; i++) {
+            for (int i = 0; i < 16; ++i) {
                 if (i < (int)length) {
                     if (isprint(buf[i])) {
                         fputc(buf[i], stderr);
@@ -337,7 +337,7 @@ std::string rand_string(int len) {
 }
 
 bool begins_with_minus(const char *string) {
-    while (isspace(*string)) string++;
+    while (isspace(*string)) { ++string; }
     return *string == '-';
 }
 
@@ -534,9 +534,9 @@ path_t parse_as_path(const std::string &path) {
 
 std::string render_as_path(const path_t &path) {
     std::string res;
-    for (std::vector<std::string>::const_iterator it =  path.nodes.begin();
-                                                  it != path.nodes.end();
-                                                  it++) {
+    for (std::vector<std::string>::const_iterator it = path.nodes.begin();
+         it != path.nodes.end();
+         ++it) {
         if (it != path.nodes.begin() || path.is_absolute) {
             res += unix_path_separator;
         }

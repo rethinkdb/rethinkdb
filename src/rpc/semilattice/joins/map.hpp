@@ -10,7 +10,7 @@ namespace std {
 
 template<class key_t, class value_t>
 void semilattice_join(std::map<key_t, value_t> *a, const std::map<key_t, value_t> &b) {
-    for (typename std::map<key_t, value_t>::const_iterator it = b.begin(); it != b.end(); it++) {
+    for (typename std::map<key_t, value_t>::const_iterator it = b.begin(); it != b.end(); ++it) {
         typename std::map<key_t, value_t>::iterator it2 = a->find((*it).first);
         if (it2 == a->end()) {
             (*a)[(*it).first] = (*it).second;

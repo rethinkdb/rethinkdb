@@ -65,7 +65,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::join(const metadata_t &adde
     it reconnects, via the `semilattice_manager_t`'s `on_connect()` handler. */
     connectivity_service_t::peers_list_freeze_t freeze(parent->message_service->get_connectivity_service());
     std::set<peer_id_t> peers = parent->message_service->get_connectivity_service()->get_peers_list();
-    for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); it++) {
+    for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); ++it) {
         if (*it != parent->message_service->get_connectivity_service()->get_me()) {
             coro_t::spawn_sometime(boost::bind(
                 &semilattice_manager_t<metadata_t>::send_metadata_to_peer, parent,
@@ -80,7 +80,8 @@ template<class metadata_t>
 void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
     rassert(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
-    sync_from_query_id_t query_id = parent->next_sync_from_query_id++;
+    sync_from_query_id_t query_id = parent->next_sync_from_query_id;
+    ++parent->next_sync_from_query_id;
     promise_t<metadata_version_t> response_cond;
     map_insertion_sentry_t<sync_from_query_id_t, promise_t<metadata_version_t> *> response_listener(&parent->sync_from_waiters, query_id, &response_cond);
     disconnect_watcher_t watcher(parent->message_service->get_connectivity_service(), peer);
@@ -98,7 +99,8 @@ template<class metadata_t>
 void semilattice_manager_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
     rassert(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
-    sync_to_query_id_t query_id = parent->next_sync_to_query_id++;
+    sync_to_query_id_t query_id = parent->next_sync_to_query_id;
+    ++parent->next_sync_to_query_id;
     cond_t response_cond;
     map_insertion_sentry_t<sync_to_query_id_t, cond_t *> response_listener(&parent->sync_to_waiters, query_id, &response_cond);
     disconnect_watcher_t watcher(parent->message_service->get_connectivity_service(), peer);
@@ -301,7 +303,7 @@ void semilattice_manager_t<metadata_t>::deliver_metadata_on_home_thread(peer_id_
         inserted.first->second = std::max(inserted.first->second, mv);
     }
     for (typename std::multimap<std::pair<peer_id_t, metadata_version_t>, cond_t *>::iterator it = version_waiters.begin();
-            it != version_waiters.end(); it++) {
+            it != version_waiters.end(); ++it) {
         if (it->first.first == sender && it->first.second <= mv && !it->second->is_pulsed()) {
             it->second->pulse();
         }

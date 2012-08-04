@@ -22,7 +22,7 @@ public:
     /* Convenience function that finds all records related to the given version
     map and copies them into `out` */
     void export_branch_history(const region_map_t<protocol_t, version_range_t> &region_map, branch_history_t<protocol_t> *out) THROWS_NOTHING {
-        for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = region_map.begin(); it != region_map.end(); it++) {
+        for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = region_map.begin(); it != region_map.end(); ++it) {
             if (!it->second.latest.branch.is_nil()) {
                 export_branch_history(it->second.latest.branch, out);
             }

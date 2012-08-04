@@ -122,8 +122,8 @@ private:
     private:
         void on_request(const request_type &request) {
             rassert(held_tickets > 0);
-            held_tickets--;
-            in_use_tickets++;
+            --held_tickets;
+            ++in_use_tickets;
             coro_t::spawn_sometime(boost::bind(
                 &client_t::perform_request, this,
                 request,
@@ -132,13 +132,13 @@ private:
         }
 
         void perform_request(const request_type &request, auto_drainer_t::lock_t keepalive) {
-            requests_since_last_qps_sample++;
+            ++requests_since_last_qps_sample;
             try {
                 registrant.perform_request(request, keepalive.get_drain_signal());
             } catch (interrupted_exc_t) {
                 /* ignore */
             }
-            in_use_tickets--;
+            --in_use_tickets;
             parent->return_tickets(1);
         }
 
