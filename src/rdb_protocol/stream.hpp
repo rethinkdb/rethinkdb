@@ -144,7 +144,9 @@ public:
                 }
             }
 
-            return parent->data[++index];
+            cJSON_vector_t::size_type old_index = index;
+            ++index;
+            return parent->data[old_index];
         }
     private:
         boost::shared_ptr<stream_multiplexer_t> parent;
