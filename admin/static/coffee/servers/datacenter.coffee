@@ -419,12 +419,13 @@ module 'DatacenterView', ->
                 error: @on_error
 
         on_success: (response) =>
-            window.router.navigate '#servers', {'trigger': true}
             datacenters.remove @datacenter_to_delete.get('id')
             for machine in machines.models
                 if machine.get('datacenter_uuid') is @datacenter_to_delete.get('id')
                     machine.set('datacenter_uuid', null)
+            datacenters.trigger 'remove'
 
+            window.router.navigate '#servers', {'trigger': true}
             #TODO add a feedback
             
         on_error: (response) =>
