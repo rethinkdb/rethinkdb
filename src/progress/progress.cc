@@ -27,7 +27,7 @@ void progress_bar_t::reset_bar() {
 
 /* progress should be in [0.0,1.0] */
 void progress_bar_t::draw_bar(float progress, int eta) {
-    int percent_done = int(progress * 100);
+    int percent_done = progress * 100;
     printf("%s: ", activity.c_str());
     printf("[");
     for (int i = 1; i < 49; ++i) {
@@ -45,7 +45,7 @@ void progress_bar_t::draw_bar(float progress, int eta) {
 
     if (eta == -1 && progress > 0) {
         //Do automatic linear interpolation for eta
-        eta = int(((1.0f / progress) - 1) * ticks_to_secs(get_ticks() - start_time));
+        eta = ((1.0 / progress) - 1) * ticks_to_secs(get_ticks() - start_time);
     }
 
     if (eta == -1) {
@@ -63,7 +63,7 @@ counter_progress_bar_t::counter_progress_bar_t(const std::string& activity, int 
     : count(0), expected_count(_expected_count), progress_bar(activity), timer(redraw_interval_ms, this) { }
 
 void counter_progress_bar_t::draw() {
-    progress_bar.draw_bar(float(count) / float(expected_count), -1);
+    progress_bar.draw_bar(static_cast<double>(count) / static_cast<double>(expected_count), -1);
 }
 
 void counter_progress_bar_t::on_ring() {
@@ -83,7 +83,7 @@ file_progress_bar_t::file_progress_bar_t(const std::string& activity, FILE *_fil
 }
 
 void file_progress_bar_t::draw() {
-    progress_bar.draw_bar(float(ftell(file)) / float(file_size), -1);
+    progress_bar.draw_bar(static_cast<double>(ftell(file)) / static_cast<double>(file_size), -1);
 }
 
 void file_progress_bar_t::on_ring() {
