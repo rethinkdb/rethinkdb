@@ -21,7 +21,7 @@ module RethinkDB
     def sexp; clean_lst @body; end
     def protob; RQL_Protob.comp(Term, sexp); end
 
-    def [](ind); S.new [:call, [:getattr, ind.to_s], [@body]]; end
+    def [](ind); self.send(:getattr, ind); end #S.new [:call, [:getattr, ind.to_s], [@body]]; end
     def getbykey(attr, key)
       throw "getbykey must be called on a table" if @body[0] != :table
       S.new [:getbykey, @body[1..3], attr, RQL.expr(key)]
@@ -55,6 +55,8 @@ module RethinkDB
 
   module RQL_Mixin
     def attr a; S.new [:call, [:implicit_getattr, a], []]; end
+    def attrs *a; S.new [:call, [:implicit_pickattrs, *a], []]; end
+    def attr? a; S.new [:call, [:implicit_hasattr, a], []]; end
     def expr x
       case x.class().hash
       when S.hash          then x

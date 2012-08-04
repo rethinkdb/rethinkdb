@@ -3,7 +3,7 @@ r = RethinkDB::RQL
 ################################################################################
 #                                  TERM TESTS                                  #
 ################################################################################
-def p? x; x; end
+def p? x; p x; end
 r.var('x').protob ;p? :VAR
 r.expr(:$x).protob ;p? :VAR
 r.let([["a", 1],
@@ -30,20 +30,30 @@ r.javascript('javascript').protob ;p? :JAVASCRIPT
 ################################################################################
 r.not(true).protob ;p? :NOT
 r.expr(true).not.protob ;p? :NOT
+
 r.var('v')['a'].protob ;p? :GETATTR
 r.var('v')[:a].protob ;p? :GETATTR
+r.var('v').attr('a').protob ;p? :GETATTR
+r.var('v').getattr('a').protob ;p? :GETATTR
 r.attr('a').protob ;p? :IMPLICIT_GETATTR
 r.expr(:a).protob ;p? :IMPLICIT_GETATTR
-#HASATTR
-#IMPLICIT_HASATTR
-#PICKATTRS
-#IMPLICIT_PICKATTRS
+
+r.var('v').hasattr('a').protob ;p? :HASATTR
+r.var('v').attr?('a').protob ;p? :HASATTR
+r.attr?('a').protob ;p? :IMPLICIT_HASATTR
+
+r.var('v').pickattrs('a').protob ;p? :PICKATTRS
+r.var('v').attrs('a').protob ;p? :PICKATTRS
+r.attrs('a').protob ;p? :IMPLICIT_PICKATTRS
+
+# These are going away?
 #MAPMERGE
 #ARRAYAPPEND
 #ARRAYCONCAT
 #ARRAYSLICE
 #ARRAYNTH
 #ARRAYLENGTH
+
 r.add(1, 2).protob ;p? :ADD
 r.expr(1).add(2).protob ;p? :ADD
 (r.expr(1) + 2).protob ;p? :ADD
@@ -114,9 +124,19 @@ r.streamtoarray(r.table('','Welcome').all).protob ;p? :STREAMTOARRAY
 r.arraytostream(r.expr [1,2,3]).protob ;p? :ARRAYTOSTREAM
 
 r.table('','Welcome').reduce(1,'a','b'){r.var('a')+r.var('b')}.protob ;p? :REDUCE
-r.table('','Welcome').reduce(1){|a,b| a+b }.protob ;p? :REDUCE
-#GROUPEDMAPREDUCE
-#ANY
-#ALL
-#RANGE
-#SKIP
+r.table('','Welcome').reduce(0){|a,b| a+b[:size] }.protob ;p? :REDUCE
+
+#GROUPEDMAPREDUCE -- how does this work?
+
+r.any(true, true, false).protob ;p? :ANY
+r.or(true, true, false).protob ;p? :ANY
+r.expr(true).or(false).protob ;p? :ANY
+r.all(true, true, false).protob ;p? :ALL
+r.and(true, true, false).protob ;p? :ALL
+r.expr(true).and(false).protob ;p? :ALL
+
+r.table('','Welcome').range('id', 1, 2).protob ;p? :RANGE
+r.table('','Welcome').range(:id, 1, 2).protob ;p? :RANGE
+r.table('','Welcome').range({:attrname => :id, :upperbound => 2}).protob ;p? :RANGE
+
+#SKIP -- how does this work?

@@ -1,15 +1,17 @@
 module RethinkDB
   module C_Mixin #Constants
     def method_aliases
-      { :equals => :eq, :neq => :neq,
+      { :attr => :getattr, :attrs => :pickattrs, :attr? => :hasattr,
+        :equals => :eq, :neq => :neq,
         :neq => :ne, :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
-        :+ => :add, :- => :subtract, :* => :multiply, :/ => :divide, :% => :modulo } end
+        :+ => :add, :- => :subtract, :* => :multiply, :/ => :divide, :% => :modulo,
+        :and => :all, :& => :all, :or => :any, :| => :any} end
     def class_types
       { Query => Query::QueryType, WriteQuery => WriteQuery::WriteQueryType,
         Term => Term::TermType, Builtin => Builtin::BuiltinType } end
     def query_rewrites
       { :getattr => :attr, :implicit_getattr => :attr,
-        :hasatter => :attr, :implicit_hasattr => :attr,
+        :hasattr => :attr, :implicit_hasattr => :attr,
         :pickattrs => :attrs, :implicit_pickattrs => :attrs,
         :string => :valuestring, :json => :jsonstring, :bool => :valuebool,
         :if => :if_, :getbykey => :get_by_key, :groupedmapreduce => :grouped_map_reduce,
