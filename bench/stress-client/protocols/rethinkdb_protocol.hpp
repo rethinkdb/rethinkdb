@@ -58,8 +58,9 @@ struct rethinkdb_protocol_t : protocol_t {
             exit(-1);
         }
 
-        // initialize send mutex
+        // initialize mutexes
         pthread_mutex_init(&send_mutex, NULL);
+        pthread_mutex_init(&recv_mutex, NULL);
     }
 
     virtual ~rethinkdb_protocol_t() {
@@ -72,8 +73,9 @@ struct rethinkdb_protocol_t : protocol_t {
             }
         }
 
-        // destroy send mutex
+        // destroy mutexes
         pthread_mutex_destroy(&send_mutex);
+        pthread_mutex_destroy(&recv_mutex);
     }
 
     virtual void remove(const char *key, size_t key_size) {
@@ -378,6 +380,7 @@ private:
         int size = int(query_serialized.length());
         send_all((char *) &size, sizeof(size));
         send_all(query_serialized.c_str(), size);
+
         printf("about to release mutex for token %d\n", token_index - 1);
         pthread_mutex_unlock(&send_mutex);
     }
@@ -387,6 +390,8 @@ private:
     // and when we want to check the response to a particular query, we wait for the storage to
     // gain the response with the token we want.
     void get_response(Response *response) {
+        pthread_mutex_lock(&recv_mutex);
+
         // get message
         int size;
         recv_all((char *) &size, sizeof(size));
@@ -401,6 +406,8 @@ private:
         // TODO: remove debug output
         printf("Received response!\n");
         printf("%s\n", response->DebugString().c_str());
+
+        pthread_mutex_unlock(&recv_mutex);
     }
 
     bool exist_outstanding_pipeline_reads() {
@@ -410,6 +417,7 @@ private:
 private:
     static int token_index;
     static pthread_mutex_t send_mutex;
+    static pthread_mutex_t recv_mutex;
     int sockfd;
     int outstanding_reads;
     char buffer[MAX_PROTOBUF_SIZE];
@@ -417,5 +425,6 @@ private:
 
 int rethinkdb_protocol_t::token_index = 0;
 pthread_mutex_t rethinkdb_protocol_t::send_mutex;
+pthread_mutex_t rethinkdb_protocol_t::recv_mutex;
 
 #endif // __STRESS_CLIENT_PROTOCOLS_RETHINKDB_PROTOCOL_HPP__
