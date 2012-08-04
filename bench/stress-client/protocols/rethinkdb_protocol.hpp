@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <netdb.h>
+#include <queue>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -16,7 +17,7 @@
 #define PRIMARY_KEY_NAME "id"
 
 struct rethinkdb_protocol_t : protocol_t {
-    rethinkdb_protocol_t(const char *conn_str) : sockfd(-1), outstanding_reads(0) {
+    rethinkdb_protocol_t(const char *conn_str) : sockfd(-1) {
         // initialize the socket
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0) {
@@ -226,7 +227,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
             send_query(query);
 
-            outstanding_reads++;
+            read_tokens.push(query->token());
         }
     }
 
@@ -256,7 +257,7 @@ struct rethinkdb_protocol_t : protocol_t {
                 }
             }
 
-            outstanding_reads--;
+            read_tokens.pop();
         }
     }
 
@@ -392,14 +393,14 @@ private:
     }
 
     bool exist_outstanding_pipeline_reads() {
-        return outstanding_reads != 0;
+        return read_tokens.size() != 0;
     }
 
 private:
     int token_index;
     int sockfd;
-    int outstanding_reads;
     char buffer[MAX_PROTOBUF_SIZE];
+    queue<int> read_tokens; // used for keeping track of enqueued reads
 } ;
 
 #endif // __STRESS_CLIENT_PROTOCOLS_RETHINKDB_PROTOCOL_HPP__
