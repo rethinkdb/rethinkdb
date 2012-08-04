@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <map>
 #include <netdb.h>
 #include <queue>
 #include <stdio.h>
@@ -90,7 +91,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
         // get response
         Response *response = new Response;
-        get_response(response);
+        get_response(response, query->token());
         if (response->token() != query->token()) {
             fprintf(stderr, "Delete response token %ld did not match query token %ld.\n", response->token(), query->token());
         }
@@ -126,7 +127,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
         // get response
         Response *response = new Response;
-        get_response(response);
+        get_response(response, query->token());
         if (response->token() != query->token()) {
             fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), query->token());
         }
@@ -156,7 +157,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
         // get response
         Response *response = new Response;
-        get_response(response);
+        get_response(response, query->token());
         if (response->token() != query->token()) {
             fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), query->token());
         }
@@ -188,7 +189,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
             // get response
             Response *response = new Response;
-            get_response(response);
+            get_response(response, query->token());
             if (response->token() != query->token()) {
                 fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), query->token());
             }
@@ -241,7 +242,7 @@ struct rethinkdb_protocol_t : protocol_t {
         for (int i = 0; i < count; i++) {
             // get response
             Response *response = new Response;
-            get_response(response);
+            get_response(response, read_tokens.front());
             if (response->status_code() != Response::SUCCESS_JSON) {
                 fprintf(stderr, "Failed to read key %s: %s\n", keys[i].first, response->error_message().c_str());
             }
@@ -291,13 +292,14 @@ struct rethinkdb_protocol_t : protocol_t {
 
         // get response
         Response *response = new Response;
-        get_response(response);
+        get_response(response, query->token());
         if (response->token() != query->token()) {
             fprintf(stderr, "Range read response token %ld did not match query token %ld.\n", response->token(), query->token());
         }
         if (response->status_code() != Response::SUCCESS_JSON) {
             fprintf(stderr, "Failed to range read key %s to key %s: %s\n", lkey, rkey, response->error_message().c_str());
         }
+
         if (values) {
             for (int i = 0; i < count_limit; i++) {
                 // TODO: use some JSON parser instead of this
@@ -371,11 +373,16 @@ private:
         send_all(query_serialized.c_str(), size);
     }
 
-    // TODO: RethinkDB apparently does not guarantee that responses come back in the same order
-    // that queries were sent. Thus, we should keep some storage of received Responses
-    // and when we want to check the response to a particular query, we wait for the storage to
-    // gain the response with the token we want.
-    void get_response(Response *response) {
+    void get_response(Response *response, int64_t target_token) {
+        map<int64_t, Response>::iterator iterator;
+        while ((iterator = response_bucket.find(target_token)) == response_bucket.end()) {
+            recv_response(response);
+        }
+        *response = iterator->second;
+        response_bucket.erase(iterator);
+    }
+
+    void recv_response(Response *response) {
         // get message
         int size;
         recv_all((char *) &size, sizeof(size));
@@ -387,6 +394,8 @@ private:
             exit(-1);
         }
 
+        response_bucket[response->token()] = *response;
+
         // TODO: remove debug output
         printf("Received response!\n");
         printf("%s\n", response->DebugString().c_str());
@@ -397,10 +406,11 @@ private:
     }
 
 private:
-    int token_index;
+    int64_t token_index;
     int sockfd;
     char buffer[MAX_PROTOBUF_SIZE];
-    queue<int> read_tokens; // used for keeping track of enqueued reads
+    queue<int64_t> read_tokens; // used for keeping track of enqueued reads
+    map<int64_t, Response> response_bucket; // maps the token number to the corresponding response
 } ;
 
 #endif // __STRESS_CLIENT_PROTOCOLS_RETHINKDB_PROTOCOL_HPP__
