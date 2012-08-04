@@ -107,7 +107,38 @@ struct rethinkdb_protocol_t : protocol_t {
 
     virtual void update(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
-        insert(key, key_size, value, value_size); // TODO: use PointUpdate or PointMutate instead?
+        assert(!exist_outstanding_pipeline_reads());
+
+        // generate query
+        Query *query = new Query;
+        query->set_type(Query::WRITE);
+        WriteQuery *write_query = query->mutable_write_query();
+        write_query->set_type(WriteQuery::POINTUPDATE);
+        WriteQuery::PointUpdate *point_update = write_query->mutable_point_update();
+        TableRef *table_ref = point_update->mutable_table_ref();
+        table_ref->set_table_name(RDB_TABLE_NAME);
+        point_update->set_attrname(PRIMARY_KEY_NAME);
+        Term *term_key = point_update->mutable_key();
+        term_key->set_type(Term::STRING);
+        term_key->set_valuestring(std::string(key, key_size));
+        Mapping *mapping = point_update->mutable_mapping();
+        mapping->set_arg("row"); // unused
+        Term *body = mapping->mutable_body();
+        body->set_type(Term::JSON);
+        std::string json_update = std::string("{\"") + std::string(PRIMARY_KEY_NAME) + std::string("\" : \"") + std::string(key, key_size) + std::string("\", \"val\" : \"") + std::string(value, value_size) + std::string("\"}");
+        body->set_jsonstring(json_update);
+
+        send_query(query);
+
+        // get response
+        Response *response = new Response;
+        get_response(response);
+        if (response->token() != query->token()) {
+            fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), query->token());
+        }
+        if (response->status_code() != Response::SUCCESS_JSON) {
+            fprintf(stderr, "Failed to insert key %s, value %s: %s\n", key, value, response->error_message().c_str());
+        }
     }
 
     virtual void insert(const char *key, size_t key_size,
