@@ -90,6 +90,7 @@ r.table('','Welcome').filter('row', r.eq(:id, 1)).protob ;p? :FILTER
 r.table('','Welcome').filter { r.eq(:id, 1) }.protob ;p? :FILTER
 r.table('','Welcome').filter { |row| row[:id].eq(1) }.protob ;p? :FILTER
 r.table('','Welcome').map('row', r.expr(:$row)).protob ;p? :MAP
+r.table('','Welcome').map { |row| row}.protob ;p? :MAP
 r.table('','Welcome').concatmap('row',
     r.table('','Other').filter('row2',
         r.var('row')[:id] > :id)).protob ;p? :CONCATMAP
@@ -104,15 +105,16 @@ r.table('','Welcome').orderby('name', 'age').protob ;p? :ORDERBY
 r.table('','Welcome').orderby([:name, false], :age).protob ;p? :ORDERBY
 r.table('','Welcome').orderby('name', ['age', false]).protob ;p? :ORDERBY
 
-r.distinct('a', 'b').protob
-#DISTINCT
-#LIMIT
-#LENGTH
-#UNION
-#NTH
-#STREAMTOARRAY
-#ARRAYTOSTREAM
-#REDUCE
+r.distinct('a', 'b').protob ;p? :DISTINCT
+r.limit(:$var).protob ;p? :LIMIT
+r.length(:$var).protob ;p? :LENGTH
+r.union(:$var1, :$var2).protob ;p? :LENGTH
+r.nth(:$var1).protob ;p? :LENGTH
+r.streamtoarray(r.table('','Welcome').all).protob ;p? :STREAMTOARRAY
+r.arraytostream(r.expr [1,2,3]).protob ;p? :ARRAYTOSTREAM
+
+r.table('','Welcome').reduce(1,'a','b'){r.var('a')+r.var('b')}.protob ;p? :REDUCE
+r.table('','Welcome').reduce(1){|a,b| a+b }.protob ;p? :REDUCE
 #GROUPEDMAPREDUCE
 #ANY
 #ALL

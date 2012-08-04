@@ -27,25 +27,28 @@ module RethinkDB
       S.new [:getbykey, @body[1..3], attr, RQL.expr(key)]
     end
 
+    def get_block_args(block)
+      args = Array.new([0, block.arity].max).map{gensym}
+      args + [block.call(*(args.map{|x| RQL.var x}))]
+    end
+
+    def default_args(m, block)
+      (m == :filter || m == :map || m == :concatmap) && block.arity == -1 ? ['row'] : []
+    end
+
     def method_missing(m, *args, &block)
-      if block
-        throw "Query '#{m}' takes either arguments or a block, not both." if args != []
-        case block.arity
-        when -1 then self.send(m, 'row', block.call())
-        when  1 then row = gensym; self.send(m, row, block.call(RQL.var(row)))
-        else throw "Query '#{m}' takes only blocks of arity -1 or 1, not #{block.arity}."
+      m = C.method_aliases[m] || m
+      if P.enum_type(Builtin::Comparison, m)
+        S.new [:call, [:compare, m], [@body, *args]]
+      elsif P.enum_type(Builtin::BuiltinType, m)
+        if block
+          args = default_args(m, block) if args == []
+          self.send(m, *(args + get_block_args(block)))
+        elsif P.message_field(Builtin, C.query_rewrites[m] || m)
+          S.new [:call, [m, *args], [@body]]
+        else S.new [:call, [m], [@body, *args]]
         end
-      else
-        m = C.method_aliases[m] || m
-        if P.enum_type(Builtin::Comparison, m)
-          S.new [:call, [:compare, m], [@body, *args]]
-        elsif P.enum_type(Builtin::BuiltinType, m)
-          if P.message_field(Builtin, C.query_rewrites[m] || m)
-          then S.new [:call, [m, *args], [@body]]
-          else S.new [:call, [m], [@body, *args]]
-          end
-        else super(m, *args, &block)
-        end
+      else super(m, *args, &block)
       end
     end
   end
@@ -65,7 +68,7 @@ module RethinkDB
       when Symbol.hash     then
         str = x.to_s
         S.new str[0] == '$'[0] ? var(str[1..str.length]) : attr(str)
-      else raise TypeError, "term.expr can't handle type `#{x.class()}`"
+      else raise TypeError, "term.expr can't handle type '#{x.class()}'"
       end
     end
     def method_missing(m, *args, &block)

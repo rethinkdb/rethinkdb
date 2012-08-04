@@ -12,7 +12,7 @@ module RethinkDB
     end
 
     def comp(message_class, args, repeating=false)
-      PP.pp(["A", message_class, args, repeating])
+      #PP.pp(["A", message_class, args, repeating])
       if repeating; return args.map {|arg| comp(message_class, arg)}; end
       args = args[0] if args.class == Array and args[0].class == Hash
       if args == []; throw "Cannot construct #{message_class} from #{args}."; end
