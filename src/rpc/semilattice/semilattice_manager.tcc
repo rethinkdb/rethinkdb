@@ -262,7 +262,7 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream
             /* We don't try to tolerate garbage on the wire. The network layer had
             better not corrupt our messages. If we need to, we'll add more
             checksums. */
-            crash("Unexpected semilattice message code: %d", (int)code);
+            crash("Unexpected semilattice message code: %u", code);
         }
     }
 }
