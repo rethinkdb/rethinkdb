@@ -15,8 +15,8 @@ std::map<peer_id_t, reactor_business_card_t<protocol_t> > get_reactor_business_c
         const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &ns_directory_metadata, namespace_id_t n_id) {
     std::map<peer_id_t, reactor_business_card_t<protocol_t> > res;
     for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it  = ns_directory_metadata.begin();
-         it != ns_directory_metadata.end();
-         ++it) {
+                                                                                                    it != ns_directory_metadata.end();
+                                                                                                    it++) {
         typename namespaces_directory_metadata_t<protocol_t>::reactor_bcards_map_t::const_iterator jt =
             it->second.reactor_bcards.find(n_id);
         if (jt != it->second.reactor_bcards.end()) {

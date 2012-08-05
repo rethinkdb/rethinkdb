@@ -37,7 +37,7 @@ void fifo_enforcer_queue_t<T>::finish_read(DEBUG_ONLY_VAR fifo_enforcer_read_tok
 
     rassert(state.timestamp == read_token.timestamp);
 
-    ++state.num_reads;
+    state.num_reads++;
     consider_changing_available();
 }
 

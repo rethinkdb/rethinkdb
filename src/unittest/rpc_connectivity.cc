@@ -51,8 +51,7 @@ private:
         if (res) { throw fake_archive_exc_t(); }
         on_thread_t th(home_thread());
         inbox[i] = peer;
-        timing[i] = sequence_number;
-        ++sequence_number;
+        timing[i] = sequence_number++;
     }
     static void write(int i, write_stream_t *stream) {
         write_message_t msg;
@@ -170,14 +169,14 @@ void run_ordering_test() {
 
     mock::let_stuff_happen();
 
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 10; i++) {
         a1.send(i, c2.get_me());
         a1.send(i, c1.get_me());
     }
 
     mock::let_stuff_happen();
 
-    for (int i = 0; i < 9; ++i) {
+    for (int i = 0; i < 9; i++) {
         a1.expect_order(i, i+1);
         a2.expect_order(i, i+1);
     }
@@ -362,11 +361,11 @@ void run_stop_mid_join_test() {
     /* Spin up `num_members` cluster-members */
     scoped_ptr_t<connectivity_cluster_t> nodes[num_members];
     scoped_ptr_t<connectivity_cluster_t::run_t> runs[num_members];
-    for (int i = 0; i < num_members; ++i) {
+    for (int i = 0; i < num_members; i++) {
         nodes[i].init(new connectivity_cluster_t);
         runs[i].init(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
     }
-    for (int i = 1; i < num_members; ++i) {
+    for (int i = 1; i < num_members; i++) {
         runs[i]->join(nodes[0]->get_peer_address(nodes[0]->get_me()));
     }
 
@@ -400,15 +399,15 @@ void run_blob_join_test() {
     /* Spin up cluster-members */
     scoped_ptr_t<connectivity_cluster_t> nodes[blob_size * 2];
     scoped_ptr_t<connectivity_cluster_t::run_t> runs[blob_size * 2];
-    for (size_t i = 0; i < blob_size * 2; ++i) {
+    for (size_t i = 0; i < blob_size * 2; i++) {
         nodes[i].init(new connectivity_cluster_t);
         runs[i].init(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
     }
 
-    for (size_t i = 1; i < blob_size; ++i) {
+    for (size_t i = 1; i < blob_size; i++) {
         runs[i]->join(nodes[0]->get_peer_address(nodes[0]->get_me()));
     }
-    for (size_t i = blob_size+1; i < blob_size*2; ++i) {
+    for (size_t i = blob_size+1; i < blob_size*2; i++) {
         runs[i]->join(nodes[blob_size]->get_peer_address(nodes[blob_size]->get_me()));
     }
 
@@ -420,7 +419,7 @@ void run_blob_join_test() {
         ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce internally
 
         pass = true;
-        for (size_t i = 0; i < blob_size * 2; ++i) {
+        for (size_t i = 0; i < blob_size * 2; i++) {
             pass &= (blob_size == nodes[i]->get_peers_list().size());
         }
     }
@@ -434,7 +433,7 @@ void run_blob_join_test() {
         ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce with each other
 
         pass = true;
-        for (size_t i = 0; i < blob_size * 2; ++i) {
+        for (size_t i = 0; i < blob_size * 2; i++) {
             pass &= ((blob_size * 2) == nodes[i]->get_peers_list().size());
         }
     }
@@ -492,7 +491,7 @@ public:
         { }
     static void dump_spectrum(write_stream_t *stream) {
         char spectrum[CHAR_MAX - CHAR_MIN + 1];
-        for (int i = CHAR_MIN; i <= CHAR_MAX; ++i) spectrum[i - CHAR_MIN] = i;
+        for (int i = CHAR_MIN; i <= CHAR_MAX; i++) spectrum[i - CHAR_MIN] = i;
         int64_t res = stream->write(spectrum, CHAR_MAX - CHAR_MIN + 1);
         if (res != CHAR_MAX - CHAR_MIN + 1) { throw fake_archive_exc_t(); }
     }
@@ -506,7 +505,7 @@ public:
 
         char blah;
         int64_t eofres = force_read(stream, &blah, 1);
-        for (int i = CHAR_MIN; i <= CHAR_MAX; ++i) {
+        for (int i = CHAR_MIN; i <= CHAR_MAX; i++) {
             EXPECT_EQ(spectrum[i - CHAR_MIN], i);
         }
         EXPECT_EQ(0, eofres);

@@ -230,7 +230,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 
         distribution_result_t res;
 
-        for (int i = 0, e = bits.size(); i < e; ++i) {
+        for (int i = 0, e = bits.size(); i < e; i++) {
             const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
             rassert(result, "Bad boost::get\n");
 
@@ -471,9 +471,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
                                                   it != dstr.key_counts.end();
                                                   /* increments done in loop */) {
             if (!dget.range.contains_key(store_key_t(it->first))) {
-                std::map<store_key_t, int>::iterator old_it = it;
-                ++it;
-                dstr.key_counts.erase(old_it);
+                dstr.key_counts.erase(it++);
             } else {
                 ++it;
             }

@@ -122,7 +122,7 @@ private:
             }
             acct = active_accounts.next(acct);
         }
-        ++selector;
+        selector++;
         return acct->source->pop();
     }
 };

@@ -128,7 +128,7 @@ protected:
             sub_superblock(sb), refcount(rc) { }
 
         void release() {
-            --refcount;
+            refcount--;
             rassert(refcount >= 0);
             if (refcount == 0) {
                 sub_superblock->release();

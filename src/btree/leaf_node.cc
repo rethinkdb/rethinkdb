@@ -745,7 +745,7 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
 
             fro_copyage += sz;
             wri_offset += sz;
-            ++fro_index;
+            fro_index++;
 
         } else {
             int sz = sizeof(repli_timestamp_t) + entry_size(sizer, get_entry(tow, tow_offset));

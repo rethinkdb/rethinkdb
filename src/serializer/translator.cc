@@ -102,7 +102,7 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
 
     /* This is a slightly weird way of phrasing this; it's done this way so I can be sure it's
     equivalent to the old way of doing things */
-    for (int k = 0; k < c->n_proxies; ++k) {
+    for (int k = 0; k < c->n_proxies; k++) {
         /* Are we responsible for creating this proxy? */
         if (k % static_cast<int>(underlying.size()) != j)
             continue;
@@ -258,7 +258,7 @@ block_id_t translator_serializer_t::max_block_id() {
     if (x <= 0) {
         x = 0;
     } else {
-        while (x % mod_count != mod_id) { ++x; }
+        while (x % mod_count != mod_id) x++;
         x /= mod_count;
     }
     rassert(translate_block_id(x) >= inner->max_block_id());

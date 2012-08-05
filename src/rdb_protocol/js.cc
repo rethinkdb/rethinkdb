@@ -225,10 +225,7 @@ struct compile_task_t : auto_task_t<compile_task_t> {
         p += begsz;
 
         for (int i = 0; i < nargs; ++i) {
-            if (i != 0) {
-                *p = ',';
-                ++p;
-            }
+            if (i) *p++ = ',';
             const std::string &s = args_[i];
             memcpy(p, s.data(), s.size());
             p += s.size();

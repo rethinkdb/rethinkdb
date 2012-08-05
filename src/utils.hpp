@@ -219,7 +219,7 @@ public:
 template <class InputIterator, class UnaryPredicate>
 bool all_match_predicate(InputIterator begin, InputIterator end, UnaryPredicate f) {
     bool res = true;
-    for (; begin != end; ++begin) {
+    for (; begin != end; begin++) {
         res &= f(*begin);
     }
     return res;

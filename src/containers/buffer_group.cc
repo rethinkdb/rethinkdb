@@ -12,11 +12,11 @@ void buffer_group_copy_data(const buffer_group_t *dest, const const_buffer_group
     int64_t source_buf = 0, source_off = 0, dest_buf = 0, dest_off = 0;
     while (bytes > 0) {
         while (source->get_buffer(source_buf).size == source_off) {
-            ++source_buf;
+            source_buf++;
             source_off = 0;
         }
         while (dest->get_buffer(dest_buf).size == dest_off) {
-            ++dest_buf;
+            dest_buf++;
             dest_off = 0;
         }
         int chunk = std::min(

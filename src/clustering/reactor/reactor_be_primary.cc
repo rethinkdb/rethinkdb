@@ -29,15 +29,15 @@ template <class protocol_t>
 void reactor_t<protocol_t>::update_best_backfiller(const region_map_t<protocol_t, version_range_t> &offered_backfill_versions,
                                                    const typename backfill_candidate_t::backfill_location_t &backfiller,
                                                    best_backfiller_map_t *best_backfiller_out) {
-    for (typename region_map_t<protocol_t, version_range_t>::const_iterator i = offered_backfill_versions.begin();
-         i != offered_backfill_versions.end();
-         ++i) {
+    for (typename region_map_t<protocol_t, version_range_t>::const_iterator i =  offered_backfill_versions.begin();
+                                                                            i != offered_backfill_versions.end();
+                                                                            i++) {
         version_range_t challenger = i->second;
 
         best_backfiller_map_t best_backfiller_map = best_backfiller_out->mask(i->first);
-        for (typename best_backfiller_map_t::iterator j = best_backfiller_map.begin();
-             j != best_backfiller_map.end();
-             ++j) {
+        for (typename best_backfiller_map_t::iterator j =  best_backfiller_map.begin();
+                                                                  j != best_backfiller_map.end();
+                                                                  j++) {
             version_range_t incumbent = j->second.version_range;
 
             if (version_is_divergent(branch_history_manager, challenger.latest, incumbent.latest, j->first)) {
@@ -126,8 +126,8 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
     /* Iterator through the peers the blueprint claims we should be able to
      * see. */
     for (typename blueprint_t<protocol_t>::role_map_t::const_iterator p_it =  blueprint.peers_roles.begin();
-         p_it != blueprint.peers_roles.end();
-         ++p_it) {
+                                                                      p_it != blueprint.peers_roles.end();
+                                                                      p_it++) {
         //The peer we are currently checking
         peer_id_t peer = p_it->first;
 
@@ -141,9 +141,9 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
         }
 
         std::vector<typename protocol_t::region_t> regions;
-        for (typename rb_t::activity_map_t::const_iterator it = bcard_it->second->internal.activities.begin();
-             it != bcard_it->second->internal.activities.end();
-             ++it) {
+        for (typename rb_t::activity_map_t::const_iterator it =  (*bcard_it->second).internal.activities.begin();
+                                                           it != (*bcard_it->second).internal.activities.end();
+                                                           it++) {
             typename protocol_t::region_t intersection = region_intersection(it->second.first, region);
             if (!region_is_empty(intersection)) {
                 regions.push_back(intersection);
@@ -200,7 +200,9 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
      * then we don't backfill it automatically. The admin must explicit "bless"
      * the incoherent data making it coherent or get rid of all incoherent data
      * until the most up to date data for a region is coherent. */
-    for (typename best_backfiller_map_t::iterator it = res.begin(); it != res.end(); ++it) {
+    for (typename best_backfiller_map_t::iterator it =  res.begin();
+                                                  it != res.end();
+                                                  it++) {
         if (!it->second.version_range.is_coherent()) {
             return false;
         }
@@ -291,9 +293,9 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
 
             std::vector<reactor_business_card_details::backfill_location_t> backfills;
 
-            for (typename best_backfiller_map_t::iterator it = best_backfillers.begin();
-                 it != best_backfillers.end();
-                 ++it) {
+            for (typename best_backfiller_map_t::iterator it =  best_backfillers.begin();
+                                                          it != best_backfillers.end();
+                                                          it++) {
                 if (it->second.present_in_our_store) {
                     continue;
                 } else {
@@ -325,7 +327,9 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
              * need to wait for acks. */
 
             bool all_succeeded = true;
-            for (typename boost::ptr_vector<promise_t<bool> >::iterator it = promises.begin(); it != promises.end(); ++it) {
+            for (typename boost::ptr_vector<promise_t<bool> >::iterator it =  promises.begin();
+                                                                        it != promises.end();
+                                                                        it++) {
                 //DO NOT switch the order of it->wait() and all_succeeded
                 all_succeeded = it->wait() && all_succeeded;
             }

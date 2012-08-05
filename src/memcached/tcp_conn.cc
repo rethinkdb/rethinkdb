@@ -133,6 +133,7 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const scoped_
 
     /* We will switch to another thread so there isn't too much load on the thread
     where the `memcache_listener_t` lives */
+    //int chosen_thread = (next_thread++) % get_num_db_threads();
     int chosen_thread = get_thread_id();
 
     /* Construct a cross-thread watcher so we will get notified on `chosen_thread`

@@ -44,7 +44,7 @@ public:
     }
 
     void set() {
-        for (unsigned int i = 0; i < size(); ++i) {
+        for (unsigned int i = 0; i < size(); i++) {
             set(i);
         }
     }
@@ -52,9 +52,9 @@ public:
     void set(unsigned int place, bool value = true) {
         rassert(place < size());
         if (value) {
-            if (!test(place)) { ++_count; }
+            if (!test(place)) _count++;
         } else {
-            if (test(place)) { --_count; }
+            if (test(place)) _count--;
         }
         set_without_updating_count(place, value);
     }
@@ -72,8 +72,8 @@ public:
         size_t old_size = _size;
 
         /* Update the count to no longer include any bits that we will chop off */
-        for (size_t i = new_size; i < old_size; ++i) {
-            if (test(i)) { --_count; }
+        for (size_t i = new_size; i < old_size; i++) {
+            if (test(i)) _count--;
         }
 
         /* Actually resize the bitset */
@@ -85,7 +85,7 @@ public:
         68 and `value` is `true`. A new 64-bit chunk will be added, and it will contain all 1s,
         which is correct. However, the contents of the top 4 bits of the old 64-bit chunk were
         garbage and we don't know what their values are, so we must manually set them. */
-        for (size_t i = old_size; i < new_size && i % 64 != 0; ++i) {
+        for (size_t i = old_size; i < new_size && i % 64 != 0; i++) {
             set_without_updating_count(i, value);
         }
 
@@ -101,8 +101,8 @@ public:
     values */
     void verify() const {
         unsigned c = 0;
-        for (unsigned i = 0; i < _size; ++i) {
-            if (test(i)) { ++c; }
+        for (unsigned i = 0; i < _size; i++) {
+            if (test(i)) c++;
         }
         rassert(c == _count);
     }

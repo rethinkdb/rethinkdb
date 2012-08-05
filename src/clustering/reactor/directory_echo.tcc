@@ -11,7 +11,7 @@ directory_echo_writer_t<internal_t>::our_value_change_t::our_value_change_t(dire
 
 template <class internal_t>
 directory_echo_version_t directory_echo_writer_t<internal_t>::our_value_change_t::commit() {
-    ++parent->version;
+    parent->version++;
     parent->value_watchable.set_value(
         directory_echo_wrapper_t<internal_t>(
             buffer,
@@ -86,7 +86,7 @@ directory_echo_mirror_t<internal_t>::directory_echo_mirror_t(
 template<class internal_t>
 void directory_echo_mirror_t<internal_t>::on_change() {
     std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > snapshot = peers->get();
-    for (typename std::map<peer_id_t, directory_echo_wrapper_t<internal_t> >::iterator it = snapshot.begin(); it != snapshot.end(); ++it) {
+    for (typename std::map<peer_id_t, directory_echo_wrapper_t<internal_t> >::iterator it = snapshot.begin(); it != snapshot.end(); it++) {
         int version = it->second.version;
         std::map<peer_id_t, directory_echo_version_t>::iterator jt = last_seen.find(it->first);
         if (jt == last_seen.end() || jt->second < version) {
@@ -109,7 +109,7 @@ void directory_echo_mirror_t<internal_t>::on_change() {
     for (typename std::map<peer_id_t, directory_echo_version_t>::iterator it = last_seen.begin();
             it != last_seen.end();) {
         if (snapshot.find(it->first) == snapshot.end()) {
-            last_seen.erase(++it);
+            last_seen.erase(it++);
         } else {
             ++it;
         }

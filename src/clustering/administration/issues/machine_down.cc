@@ -12,7 +12,7 @@ std::list<clone_ptr_t<global_issue_t> > machine_down_issue_tracker_t::get_issues
     std::list<clone_ptr_t<global_issue_t> > issues;
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
     for (std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::iterator it = metadata.machines.machines.begin();
-            it != metadata.machines.machines.end(); ++it) {
+            it != metadata.machines.machines.end(); it++) {
         peer_id_t peer = machine_id_to_peer_id(it->first, machine_id_translation_table->get());
         if (!it->second.is_deleted() && peer.is_nil()) {
             issues.push_back(clone_ptr_t<global_issue_t>(

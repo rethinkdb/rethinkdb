@@ -57,7 +57,7 @@ public:
 private:
     void recompute() {
         std::list<local_issue_t> l;
-        for (std::set<entry_t *>::iterator it = issues.begin(); it != issues.end(); ++it) {
+        for (std::set<entry_t *>::iterator it = issues.begin(); it != issues.end(); it++) {
             l.push_back((*it)->issue);
         }
         issues_watchable.set_value(l);

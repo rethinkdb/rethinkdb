@@ -55,7 +55,7 @@ public:
         std::list<clone_ptr_t<global_issue_t> > l;
         std::map<peer_id_t, std::list<local_issue_t> > issues_by_peer = issues_view->get();
         std::map<peer_id_t, machine_id_t> translation_table = machine_id_translation_table->get();
-        for (std::map<peer_id_t, std::list<local_issue_t> >::iterator it = issues_by_peer.begin(); it != issues_by_peer.end(); ++it) {
+        for (std::map<peer_id_t, std::list<local_issue_t> >::iterator it = issues_by_peer.begin(); it != issues_by_peer.end(); it++) {
             std::map<peer_id_t, machine_id_t>::const_iterator tt_it = translation_table.find(it->first);
             if (tt_it == translation_table.end()) {
                 /* This is unexpected. Did they disconnect after we got the
@@ -64,7 +64,7 @@ public:
                 continue;
             }
             std::list<local_issue_t> issues = it->second;
-            for (std::list<local_issue_t>::iterator jt = issues.begin(); jt != issues.end(); ++jt) {
+            for (std::list<local_issue_t>::iterator jt = issues.begin(); jt != issues.end(); jt++) {
                 l.push_back(clone_ptr_t<global_issue_t>(new remote_issue_t(*jt, tt_it->second)));
             }
         }

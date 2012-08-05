@@ -506,7 +506,7 @@ void check_predicate_type(const Predicate &p, type_checking_environment_t *env, 
 }
 
 void check_read_query_type(const ReadQuery &rq, type_checking_environment_t *env, bool *, const backtrace_t &backtrace) {
-    /* Read queries could return anything -- a view, a stream, a JSON, or an
+    /* Read queries could return anything--a view, a stream, a JSON, or an
     error. Views will be automatically converted to streams at evaluation time.
     */
     term_info_t res = get_term_type(rq.term(), env, backtrace);
@@ -737,10 +737,10 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                     if (!cJSON_Equal(json->GetObjectItem(view.primary_key.c_str()),
                                      val->GetObjectItem(view.primary_key.c_str()))) {
-                        ++error;
+                        error++;
                     } else {
                         insert(view.access, view.primary_key, val, env, backtrace);
-                        ++updated;
+                        updated++;
                     }
                 }
 
@@ -754,7 +754,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 int deleted = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
-                    ++deleted;
+                    deleted++;
                 }
 
                 res->add_response(strprintf("{\"deleted\": %d}", deleted));
@@ -806,7 +806,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 
                 int inserted = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    ++inserted;
+                    inserted++;
                     insert(ns_access, pk, json, env, backtrace);
                 }
 
@@ -1248,7 +1248,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(left->DeepCopy()));
 
                 // Extend with the right side (and overwrite if necessary)
-                for(int i = 0; i < right->GetArraySize(); ++i) {
+                for(int i = 0; i < right->GetArraySize(); i++) {
                     cJSON *item = right->GetArrayItem(i);
                     res->DeleteItemFromObject(item->string);
                     res->AddItemToObject(item->string, cJSON_DeepCopy(item));
@@ -1328,7 +1328,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     throw runtime_exc_t("The second argument cannot be greater than the third argument.", backtrace.with("arg:2"));
                 }
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
-                for(int i = start; i < stop; ++i) {
+                for(int i = start; i < stop; i++) {
                     res->AddItemToArray(cJSON_DeepCopy(array->GetArrayItem(i)));
                 }
 

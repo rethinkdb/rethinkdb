@@ -96,7 +96,7 @@ static void run_read_write_test() {
 
     /* Now send some reads */
     for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
-            it != inserter.values_inserted->end(); ++it) {
+            it != inserter.values_inserted->end(); it++) {
         dummy_protocol_t::read_t r;
         r.keys.keys.insert((*it).first);
         cond_t interruptor;

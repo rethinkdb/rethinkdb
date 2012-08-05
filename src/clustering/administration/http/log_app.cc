@@ -52,7 +52,7 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
         return http_res_t(HTTP_NOT_FOUND);
     }
     std::string machine_id_str = *it;
-    ++it;
+    it++;
     if (it != req.resource.end()) {
         return http_res_t(HTTP_NOT_FOUND);
     }
@@ -60,13 +60,13 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
     std::vector<machine_id_t> machine_ids;
     std::map<peer_id_t, machine_id_t> all_machines = machine_id_translation_table->get();
     if (machine_id_str == "_") {
-        for (std::map<peer_id_t, machine_id_t>::iterator it = all_machines.begin(); it != all_machines.end(); ++it) {
+        for (std::map<peer_id_t, machine_id_t>::iterator it = all_machines.begin(); it != all_machines.end(); it++) {
             machine_ids.push_back(it->second);
         }
     } else {
         const char *p = machine_id_str.c_str(), *start = p;
         while (true) {
-            while (*p && *p != '+') { ++p; }
+            while (*p && *p != '+') p++;
             try {
                 machine_ids.push_back(str_to_uuid(std::string(start, p - start)));
             } catch (std::runtime_error) {
@@ -76,7 +76,7 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
                 break;
             } else {
                 /* Step over the `+` */
-                ++p;
+                p++;
             }
         }
     }
@@ -102,7 +102,7 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
     }
 
     std::vector<peer_id_t> peer_ids;
-    for (std::vector<machine_id_t>::iterator it = machine_ids.begin(); it != machine_ids.end(); ++it) {
+    for (std::vector<machine_id_t>::iterator it = machine_ids.begin(); it != machine_ids.end(); it++) {
         peer_id_t pid = machine_id_to_peer_id(*it, machine_id_translation_table->get());
         if (pid.is_nil()) {
             return http_res_t(HTTP_NOT_FOUND);

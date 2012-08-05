@@ -94,9 +94,9 @@ public:
         next->store->do_get_metainfo(order_source->check_in("dummy_timestamper_t").with_read_mode(),
                                      &read_token, &interruptor, &metainfo);
 
-        for (typename region_map_t<protocol_t, binary_blob_t>::iterator it = metainfo.begin();
-             it != metainfo.end();
-             ++it) {
+        for (typename region_map_t<protocol_t, binary_blob_t>::iterator it  = metainfo.begin();
+                                                                        it != metainfo.end();
+                                                                        it++) {
             rassert(binary_blob_t::get<state_timestamp_t>(it->second) == current_timestamp);
         }
     }
@@ -216,9 +216,9 @@ public:
                                            &read_token, &interruptor, &metadata);
 
                 rassert(metadata.get_domain() == shards[i]);
-                for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it = metadata.begin();
-                     it != metadata.end();
-                     ++it) {
+                for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it  = metadata.begin();
+                                                                                      it != metadata.end();
+                                                                                      it++) {
                     rassert(it->second.size() == 0);
                 }
 

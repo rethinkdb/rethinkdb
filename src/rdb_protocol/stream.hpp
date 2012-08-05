@@ -144,9 +144,7 @@ public:
                 }
             }
 
-            cJSON_vector_t::size_type old_index = index;
-            ++index;
-            return parent->data[old_index];
+            return parent->data[index++];
         }
     private:
         boost::shared_ptr<stream_multiplexer_t> parent;
@@ -285,11 +283,11 @@ public:
 
     boost::shared_ptr<scoped_cJSON_t> next() {
         while (start) {
-            --start;
+            start--;
             stream->next();
         }
         if (unbounded || stop != 0) {
-            --stop;
+            stop--;
             return stream->next();
         }
         return boost::shared_ptr<scoped_cJSON_t>();

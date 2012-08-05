@@ -19,7 +19,9 @@ template <class ctx_t>
 std::string render_region_as_string(dummy_protocol_t::region_t *target, const ctx_t &) {
     std::string val;
     val += "{";
-    for (std::set<std::string>::iterator it = target->keys.begin(); it != target->keys.end(); ++it) {
+    for (std::set<std::string>::iterator it =  target->keys.begin();
+                                         it != target->keys.end();
+                                         it++) {
         val += *it;
         val += ", ";
     }

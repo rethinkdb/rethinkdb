@@ -30,7 +30,7 @@ initial_joiner_t::initial_joiner_t(
     connectivity_service_t::peers_list_freeze_t freeze(cluster);
     subs.reset(cluster, &freeze);
     std::set<peer_id_t> already_connected = cluster->get_peers_list();
-    for (std::set<peer_id_t>::iterator it = already_connected.begin(); it != already_connected.end(); ++it) {
+    for (std::set<peer_id_t>::iterator it = already_connected.begin(); it != already_connected.end(); it++) {
         on_connect(*it);
     }
 }
@@ -44,7 +44,7 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
     try {
         int retry_interval_ms = initial_retry_interval_ms;
         do {
-            for (std::set<peer_address_t>::const_iterator it = peers_not_heard_from.begin(); it != peers_not_heard_from.end(); ++it) {
+            for (std::set<peer_address_t>::const_iterator it = peers_not_heard_from.begin(); it != peers_not_heard_from.end(); it++) {
                 cluster_run->join(*it);
             }
             signal_timer_t retry_timer(retry_interval_ms);
@@ -58,8 +58,7 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
         if (!peers_not_heard_from.empty()) {
             std::set<peer_address_t>::const_iterator it = peers_not_heard_from.begin();
             std::string s = strprintf("%s:%d", it->ip.as_dotted_decimal().c_str(), it->port);
-            ++it;
-            for (; it != peers_not_heard_from.end(); ++it) {
+            for (it++; it != peers_not_heard_from.end(); it++) {
                 s += strprintf(", %s:%d", it->ip.as_dotted_decimal().c_str(), it->port);
             }
             logWRN("We were unable to connect to the following peer(s): %s", s.c_str());

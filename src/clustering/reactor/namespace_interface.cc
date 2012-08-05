@@ -43,8 +43,8 @@ template <class protocol_t>
 std::set<typename protocol_t::region_t>
 cluster_namespace_interface_t<protocol_t>::get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
     std::vector<typename protocol_t::region_t> s;
-    for (typename region_map_t<protocol_t, std::set<relationship_t *> >::iterator it = relationships.begin(); it != relationships.end(); ++it) {
-        for (typename std::set<relationship_t *>::iterator jt = it->second.begin(); jt != it->second.end(); ++jt) {
+    for (typename region_map_t<protocol_t, std::set<relationship_t *> >::iterator it = relationships.begin(); it != relationships.end(); it++) {
+        for (typename std::set<relationship_t *>::iterator jt = it->second.begin(); jt != it->second.end(); jt++) {
             s.push_back((*jt)->region);
         }
     }
@@ -74,9 +74,9 @@ cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
     boost::ptr_vector<immediate_op_info_t<fifo_enforcer_token_type> > masters_to_contact;
     {
         region_map_t<protocol_t, std::set<relationship_t *> > submap = relationships.mask(op.get_region());
-        for (typename region_map_t<protocol_t, std::set<relationship_t *> >::iterator it = submap.begin(); it != submap.end(); ++it) {
+        for (typename region_map_t<protocol_t, std::set<relationship_t *> >::iterator it = submap.begin(); it != submap.end(); it++) {
             relationship_t *chosen_relationship = NULL;
-            for (typename std::set<relationship_t *>::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt) {
+            for (typename std::set<relationship_t *>::const_iterator jt = it->second.begin(); jt != it->second.end(); jt++) {
                 if ((*jt)->master_access) {
                     if (chosen_relationship) {
                         throw cannot_perform_query_exc_t("Too many masters available");
@@ -161,10 +161,10 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
     boost::ptr_vector<outdated_read_info_t> direct_readers_to_contact;
     {
         region_map_t<protocol_t, std::set<relationship_t *> > submap = relationships.mask(op.get_region());
-        for (typename region_map_t<protocol_t, std::set<relationship_t *> >::iterator it = submap.begin(); it != submap.end(); ++it) {
+        for (typename region_map_t<protocol_t, std::set<relationship_t *> >::iterator it = submap.begin(); it != submap.end(); it++) {
             std::vector<relationship_t *> potential_relationships;
             relationship_t *chosen_relationship = NULL;
-            for (typename std::set<relationship_t *>::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt) {
+            for (typename std::set<relationship_t *>::const_iterator jt = it->second.begin(); jt != it->second.end(); jt++) {
                 if ((*jt)->direct_reader_access) {
                     if ((*jt)->is_local) {
                         chosen_relationship = *jt;
@@ -272,7 +272,7 @@ void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start
                     handled_activity_ids.insert(id);  // We said it.
 
                     if (is_start) {
-                        ++start_count;
+                        start_count++;
                     }
 
                     /* Now handle it. */
@@ -381,7 +381,7 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
 
         if (is_start) {
             rassert(start_count > 0);
-            --start_count;
+            start_count--;
             if (start_count == 0) {
                 start_cond.pulse();
             }
@@ -405,7 +405,7 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
 
     if (is_start) {
         rassert(start_count > 0);
-        --start_count;
+        start_count--;
         if (start_count == 0) {
             start_cond.pulse();
         }

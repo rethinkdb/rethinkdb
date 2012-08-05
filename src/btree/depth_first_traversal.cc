@@ -25,7 +25,7 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
             r.decrement();
             end_index = internal_node::get_offset_index(inode, r.btree_key()) + 1;
         }
-        for (int i = start_index; i < end_index; ++i) {
+        for (int i = start_index; i < end_index; i++) {
             const btree_internal_pair *pair = internal_node::get_pair_by_index(inode, i);
             buf_lock_t lock(transaction, pair->lnode, rwi_read);
             if (!btree_depth_first_traversal(slice, transaction, &lock, range, cb)) {

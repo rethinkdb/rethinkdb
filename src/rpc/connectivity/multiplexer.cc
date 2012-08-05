@@ -9,7 +9,7 @@
 message_multiplexer_t::run_t::run_t(message_multiplexer_t *p) : parent(p) {
     rassert(parent->run == NULL);
     parent->run = this;
-    for (int i = 0; i < max_tag; ++i) {
+    for (int i = 0; i < max_tag; i++) {
         if (parent->clients[i]) {
             rassert(parent->clients[i]->run);
         }
@@ -80,14 +80,14 @@ void message_multiplexer_t::client_t::send_message(peer_id_t dest, const boost::
 message_multiplexer_t::message_multiplexer_t(message_service_t *super_ms) :
     message_service(super_ms), run(NULL)
 {
-    for (int i = 0; i < max_tag; ++i) {
+    for (int i = 0; i < max_tag; i++) {
         clients[i] = NULL;
     }
 }
 
 message_multiplexer_t::~message_multiplexer_t() {
     rassert(run == NULL);
-    for (int i = 0; i < max_tag; ++i) {
+    for (int i = 0; i < max_tag; i++) {
         rassert(clients[i] == NULL);
     }
 }

@@ -501,7 +501,7 @@ void writeback_t::flush_prepare_patches() {
                     range = cache->patch_memory_storage.patches_for_block(inner_buf->block_id);
 
                 while (range.second != range.first) {
-                    // Why do we write patches in reverse order?
+                    // Why do we write patches in reverse oder?
                     // Because that way we first get the most recent patches,
                     // and can then just break out of the loop as soon as we hit
                     // the first patch that is older than last_patch_materialized.
@@ -523,7 +523,7 @@ void writeback_t::flush_prepare_patches() {
                             cache->patch_memory_storage.drop_patches(inner_buf->block_id);
                             break;
                         } else {
-                            ++patches_stored;
+                            patches_stored++;
                         }
                     } else {
                         // We hit a patch that we had written to disk before.
@@ -573,7 +573,7 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t *
     state->serializer_writes.reserve(deleted_blocks.size() + dirty_bufs.size());
 
     // Write deleted block_ids.
-    for (size_t i = 0; i < deleted_blocks.size(); ++i) {
+    for (size_t i = 0; i < deleted_blocks.size(); i++) {
         state->serializer_writes.push_back(serializer_write_t::make_delete(deleted_blocks[i]));
     }
     deleted_blocks.clear();

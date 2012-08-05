@@ -8,7 +8,7 @@ TEST(BitsetTest, ClearedAtStart) {
     bitset_t b(100);
     ASSERT_EQ(100, b.size());
     ASSERT_EQ(0, b.count());
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < 100; i++) {
         ASSERT_FALSE(b.test(i));
     }
     b.verify();

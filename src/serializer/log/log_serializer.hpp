@@ -93,7 +93,7 @@ public:
 
 public:
 
-    /* Blocks. Does not check for an existing database -- use check_existing for that. */
+    /* Blocks. Does not check for an existing database--use check_existing for that. */
     static void create(io_backender_t *backender, private_dynamic_config_t private_dynamic_config, static_config_t static_config);
 
     /* Blocks. */

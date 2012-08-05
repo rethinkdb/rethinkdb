@@ -129,7 +129,7 @@ void linux_aio_getevents_noeventfd_t::on_event(int event_mask) {
     int res = pthread_mutex_lock(&io_mutex);
     guarantee(res == 0, "Could not lock io mutex");
 
-    for(unsigned int i = 0; i < io_events.size(); ++i) {
+    for(unsigned int i = 0; i < io_events.size(); i++) {
         parent->aio_notify(reinterpret_cast<iocb *>(io_events[i].obj), io_events[i].res);
     }
     io_events.clear();

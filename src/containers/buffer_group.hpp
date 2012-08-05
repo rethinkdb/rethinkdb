@@ -54,9 +54,9 @@ public:
         }
         iterator operator++() {
             rassert(offset < it->size);
-            ++offset;
+            offset++;
             if (offset == it->size) {
-                ++it;
+                it++;
                 offset = 0;
             }
             return *this;

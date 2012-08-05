@@ -50,8 +50,8 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
 
     //Grab the exec-name
     config->exec_name = argv[0];
-    --argc;
-    ++argv;
+    argc--;
+    argv++;
 
     enum reading_list_t {
         in = 0,
@@ -179,11 +179,11 @@ int run_migrate(int argc, char **argv) {
     command_line.push_back("-r");
     command_line.push_back(cfg.exec_name);
 
-    for (std::vector<std::string>::iterator it = cfg.input_filenames.begin(); it != cfg.input_filenames.end(); ++it) {
+    for (std::vector<std::string>::iterator it = cfg.input_filenames.begin(); it != cfg.input_filenames.end(); it++) {
         command_line.push_back("-i");
         command_line.push_back(escape_spaces(*it));
     }
-    for (std::vector<std::string>::iterator it = cfg.output_filenames.begin(); it != cfg.output_filenames.end(); ++it) {
+    for (std::vector<std::string>::iterator it = cfg.output_filenames.begin(); it != cfg.output_filenames.end(); it++) {
         command_line.push_back("-o");
         command_line.push_back(escape_spaces(*it));
     }

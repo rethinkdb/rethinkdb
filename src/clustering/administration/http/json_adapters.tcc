@@ -35,7 +35,9 @@ cJSON *render_as_json(vclock_t<T> *target, const ctx_t &ctx) {
 template <class T, class ctx_t>
 cJSON *render_all_values(vclock_t<T> *target, const ctx_t &ctx) {
     cJSON *res = cJSON_CreateArray();
-    for (typename vclock_t<T>::value_map_t::iterator it = target->values.begin(); it != target->values.end(); ++it) {
+    for (typename vclock_t<T>::value_map_t::iterator it  =   target->values.begin();
+                                                             it != target->values.end();
+                                                             it++) {
         cJSON *version_value_pair = cJSON_CreateArray();
 
         //This is really bad, fix this as soon as we can render using non const references

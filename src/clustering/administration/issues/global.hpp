@@ -55,7 +55,7 @@ public:
 
     std::list<clone_ptr_t<global_issue_t> > get_issues() {
         std::list<clone_ptr_t<global_issue_t> > all;
-        for (std::set<source_t *>::iterator it = sources.begin(); it != sources.end(); ++it) {
+        for (std::set<source_t *>::iterator it = sources.begin(); it != sources.end(); it++) {
             std::list<clone_ptr_t<global_issue_t> > from_source = (*it)->source->get_issues();
             all.splice(all.end(), from_source);
         }
@@ -81,7 +81,7 @@ cJSON *render_as_json(global_issue_aggregator_t *target, const ctx_t &) {
     cJSON *res = cJSON_CreateArray();
 
     std::list<clone_ptr_t<global_issue_t> > issues = target->get_issues();
-    for (std::list<clone_ptr_t<global_issue_t> >::iterator it = issues.begin(); it != issues.end(); ++it) {
+    for (std::list<clone_ptr_t<global_issue_t> >::iterator it = issues.begin(); it != issues.end(); it++) {
         cJSON_AddItemToArray(res, (*it)->get_json_description());
     }
 

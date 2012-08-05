@@ -27,14 +27,14 @@ public:
     region_map_set_membership_t(region_map_t<protocol_t, std::set<value_t> > *m, const typename protocol_t::region_t &r, const value_t &v) :
         map(m), region(r), value(v) {
         region_map_t<protocol_t, std::set<value_t> > submap = map->mask(region);
-        for (typename region_map_t<protocol_t, std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); ++it) {
+        for (typename region_map_t<protocol_t, std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
             it->second.insert(value);
         }
         map->update(submap);
     }
     ~region_map_set_membership_t() {
         region_map_t<protocol_t, std::set<value_t> > submap = map->mask(region);
-        for (typename region_map_t<protocol_t, std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); ++it) {
+        for (typename region_map_t<protocol_t, std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
             it->second.erase(value);
         }
         map->update(submap);

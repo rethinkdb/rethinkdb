@@ -41,11 +41,10 @@ public:
         dest->clear();
         char c;
         const char *head = "\r\n";
-        while (*head && ((c = getc(file)) != EOF) && limit > 0) {
-            --limit;
+        while ((*head) && ((c = getc(file)) != EOF) && (limit--) > 0) {
             dest->push_back(c);
             if (c == *head) {
-                ++head;
+                head++;
             } else {
                 head = "\r\n";
             }

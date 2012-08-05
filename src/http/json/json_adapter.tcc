@@ -29,7 +29,9 @@ void standard_subfield_change_functor_t<T, ctx_t>::on_change(const ctx_t &ctx) {
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_if_t<ctx_t>::get_subfields(const ctx_t &ctx) {
     json_adapter_map_t res = get_subfields_impl(ctx);
-    for (typename json_adapter_map_t::iterator it = res.begin(); it != res.end(); ++it) {
+    for (typename json_adapter_map_t::iterator it  = res.begin();
+                                               it != res.end();
+                                               it++) {
 
         it->second->superfields.insert(it->second->superfields.end(),
                                       superfields.begin(),
@@ -58,9 +60,9 @@ void json_adapter_if_t<ctx_t>::apply(cJSON *change, const ctx_t &ctx) {
         get_change_callback()->on_change(ctx);
     }
 
-    for (typename std::vector<boost::shared_ptr<subfield_change_functor_t<ctx_t> > >::iterator it = superfields.begin();
-         it != superfields.end();
-         ++it) {
+    for (typename std::vector<boost::shared_ptr<subfield_change_functor_t<ctx_t> > >::iterator it  = superfields.begin();
+                                                                                             it != superfields.end();
+                                                                                             it++) {
         if (*it) {
             (*it)->on_change(ctx);
         }
@@ -76,9 +78,9 @@ void json_adapter_if_t<ctx_t>::erase(const ctx_t &ctx) {
         get_change_callback()->on_change(ctx);
     }
 
-    for (typename std::vector<boost::shared_ptr<subfield_change_functor_t<ctx_t> > >::iterator it = superfields.begin();
-         it != superfields.end();
-         ++it) {
+    for (typename std::vector<boost::shared_ptr<subfield_change_functor_t<ctx_t> > >::iterator it  = superfields.begin();
+                                                                                             it != superfields.end();
+                                                                                             it++) {
         if (*it) {
             (*it)->on_change(ctx);
         }
@@ -94,9 +96,9 @@ void json_adapter_if_t<ctx_t>::reset(const ctx_t &ctx) {
         get_change_callback()->on_change(ctx);
     }
 
-    for (typename std::vector<boost::shared_ptr<subfield_change_functor_t<ctx_t> > >::iterator it = superfields.begin();
-         it != superfields.end();
-         ++it) {
+    for (typename std::vector<boost::shared_ptr<subfield_change_functor_t<ctx_t> > >::iterator it  = superfields.begin();
+                                                                                             it != superfields.end();
+                                                                                             it++) {
         if (*it) {
             (*it)->on_change(ctx);
         }
@@ -245,7 +247,9 @@ cJSON *json_map_inserter_t<container_t, ctx_t>::render_impl(const ctx_t &ctx) {
      * something, this is kind of a weird thing so that when someone does a
      * post to this value they get a view of the things we inserted. */
     cJSON *res = cJSON_CreateObject();
-    for (typename keys_set_t::iterator it = added_keys.begin(); it != added_keys.end(); ++it) {
+    for (typename keys_set_t::iterator it =  added_keys.begin();
+                                       it != added_keys.end();
+                                       it++) {
         scoped_cJSON_t key(render_as_json(&*it, ctx));
         cJSON_AddItemToObject(res, get_string(key.get()).c_str(), render_as_json(&(target->find(*it)->second), ctx));
     }
@@ -276,7 +280,9 @@ void json_map_inserter_t<container_t, ctx_t>::reset_impl(const ctx_t &) {
 template <class container_t, class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_map_inserter_t<container_t, ctx_t>::get_subfields_impl(const ctx_t &ctx) {
     json_adapter_map_t res;
-    for (typename keys_set_t::iterator it = added_keys.begin(); it != added_keys.end(); ++it) {
+    for (typename keys_set_t::iterator it =  added_keys.begin();
+                                       it != added_keys.end();
+                                       it++) {
         scoped_cJSON_t key(render_as_json(&*it, ctx));
         res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<typename container_t::mapped_type, ctx_t>(&(target->find(*it)->second)));
     }
@@ -601,7 +607,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::ma
 
 #ifdef JSON_SHORTCUTS
         res[strprintf("%d", shortcut_index)] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&(it->second)));
-        ++shortcut_index;
+        shortcut_index++;
 #endif
     }
 
@@ -651,7 +657,9 @@ template <class V, class ctx_t>
 cJSON *render_as_json(std::set<V> *target, const ctx_t &ctx) {
     cJSON *res = cJSON_CreateArray();
 
-    for (typename std::set<V>::const_iterator it = target->begin(); it != target->end(); ++it) {
+    for (typename std::set<V>::const_iterator it =  target->begin();
+                                              it != target->end();
+                                              it++) {
         V tmp = *it;
         cJSON_AddItemToArray(res, render_as_json(&tmp, ctx));
     }
@@ -751,7 +759,9 @@ cJSON *render_as_directory(T *target, const ctx_t &ctx) {
     cJSON *res = cJSON_CreateObject();
 
     json_adapter_map_t elements = get_json_subfields(target, ctx);
-    for (typename json_adapter_map_t::iterator it = elements.begin(); it != elements.end(); ++it) {
+    for (typename json_adapter_map_t::iterator it =  elements.begin();
+                                               it != elements.end();
+                                               it++) {
         cJSON_AddItemToObject(res, it->first.c_str(), it->second->render(ctx));
     }
 

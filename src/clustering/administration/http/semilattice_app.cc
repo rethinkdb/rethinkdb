@@ -39,7 +39,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 return http_res_t(HTTP_NOT_FOUND); //someone tried to walk off the edge of the world
             }
             json_adapter_head = subfields[*it];
-            ++it;
+            it++;
         }
 
         //json_adapter_head now points to the correct part of the metadata time to build a response and be on our way
@@ -74,7 +74,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 {
                     scoped_cJSON_t absolute_change(change.release());
                     std::vector<std::string> parts(req.resource.begin(), req.resource.end());
-                    for (std::vector<std::string>::reverse_iterator it = parts.rbegin(); it != parts.rend(); ++it) {
+                    for (std::vector<std::string>::reverse_iterator it = parts.rbegin(); it != parts.rend(); it++) {
                         scoped_cJSON_t inner(absolute_change.release());
                         absolute_change.reset(cJSON_CreateObject());
                         absolute_change.AddItemToObject(it->c_str(), inner.release());
@@ -131,7 +131,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 {
                     scoped_cJSON_t absolute_change(change.release());
                     std::vector<std::string> parts(req.resource.begin(), req.resource.end());
-                    for (std::vector<std::string>::reverse_iterator it = parts.rbegin(); it != parts.rend(); ++it) {
+                    for (std::vector<std::string>::reverse_iterator it = parts.rbegin(); it != parts.rend(); it++) {
                         scoped_cJSON_t inner(absolute_change.release());
                         absolute_change.reset(cJSON_CreateObject());
                         absolute_change.AddItemToObject(it->c_str(), inner.release());

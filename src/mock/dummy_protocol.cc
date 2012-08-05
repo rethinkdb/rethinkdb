@@ -31,8 +31,8 @@ bool dummy_protocol_t::region_t::operator<(const region_t &other) const {
         } else if (it_other == other.keys.end()) {
             return false;
         } else if (*it_us == *it_other) {
-            ++it_us;
-            ++it_other;
+            it_us++;
+            it_other++;
             continue;
         } else {
             return *it_us < *it_other;
@@ -45,7 +45,7 @@ dummy_protocol_t::region_t::region_t() THROWS_NOTHING {
 
 dummy_protocol_t::region_t::region_t(char x, char y) THROWS_NOTHING {
     rassert(y >= x);
-    for (char c = x; c <= y; ++c) {
+    for (char c = x; c <= y; c++) {
         keys.insert(std::string(1, c));
     }
 }
@@ -67,7 +67,7 @@ dummy_protocol_t::read_response_t dummy_protocol_t::read_t::unshard(std::vector<
     read_response_t combined;
     for (size_t i = 0; i < resps.size(); ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].values.begin();
-                it != resps[i].values.end(); ++it) {
+                it != resps[i].values.end(); it++) {
             rassert(keys.keys.count((*it).first) != 0,
                 "We got a response that doesn't match our request");
             rassert(combined.values.count((*it).first) == 0,
@@ -87,7 +87,7 @@ dummy_protocol_t::read_t::multistore_unshard(const std::vector<read_response_t>&
 dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
     region_t region;
     for (std::map<std::string, std::string>::const_iterator it = values.begin();
-            it != values.end(); ++it) {
+            it != values.end(); it++) {
         region.keys.insert((*it).first);
     }
     return region;
@@ -98,7 +98,7 @@ dummy_protocol_t::write_t dummy_protocol_t::write_t::shard(region_t region) cons
         "Parameter to `shard()` should be a subset of the write's region.");
     write_t w;
     for (std::map<std::string, std::string>::const_iterator it = values.begin();
-            it != values.end(); ++it) {
+            it != values.end(); it++) {
         if (region.keys.count((*it).first) != 0) {
             w.values[(*it).first] = (*it).second;
         }
@@ -111,7 +111,7 @@ dummy_protocol_t::write_response_t dummy_protocol_t::write_t::unshard(std::vecto
     write_response_t combined;
     for (size_t i = 0; i < resps.size(); ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].old_values.begin();
-                it != resps[i].old_values.end(); ++it) {
+                it != resps[i].old_values.end(); it++) {
             rassert(values.find((*it).first) != values.end(),
                 "We got a response that doesn't match our request.");
             rassert(combined.old_values.count((*it).first) == 0,
@@ -129,7 +129,7 @@ dummy_protocol_t::write_t::multistore_unshard(const std::vector<write_response_t
 }
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
-    for (std::set<std::string>::const_iterator it = b.keys.begin(); it != b.keys.end(); ++it) {
+    for (std::set<std::string>::const_iterator it = b.keys.begin(); it != b.keys.end(); it++) {
         if (a.keys.count(*it) == 0) {
             return false;
         }
@@ -139,7 +139,7 @@ bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t
 
 dummy_protocol_t::region_t region_intersection(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
     dummy_protocol_t::region_t i;
-    for (std::set<std::string>::const_iterator it = a.keys.begin(); it != a.keys.end(); ++it) {
+    for (std::set<std::string>::const_iterator it = a.keys.begin(); it != a.keys.end(); it++) {
         if (b.keys.count(*it) != 0) {
             i.keys.insert(*it);
         }
@@ -149,7 +149,7 @@ dummy_protocol_t::region_t region_intersection(dummy_protocol_t::region_t a, dum
 
 region_join_result_t region_join(const std::vector<dummy_protocol_t::region_t>& vec, dummy_protocol_t::region_t *out) THROWS_NOTHING {
     dummy_protocol_t::region_t u;
-    for (std::vector<dummy_protocol_t::region_t>::const_iterator it = vec.begin(); it != vec.end(); ++it) {
+    for (std::vector<dummy_protocol_t::region_t>::const_iterator it = vec.begin(); it != vec.end(); it++) {
         for (std::set<std::string>::iterator it2 = it->keys.begin(); it2 != it->keys.end(); it2++) {
             if (u.keys.count(*it2) != 0) {
                 return REGION_JOIN_BAD_JOIN;
@@ -164,7 +164,7 @@ region_join_result_t region_join(const std::vector<dummy_protocol_t::region_t>& 
 std::vector<dummy_protocol_t::region_t> region_subtract_many(const dummy_protocol_t::region_t &a, const std::vector<dummy_protocol_t::region_t>& b) {
     std::vector<dummy_protocol_t::region_t> result(1, a);
 
-    for (size_t i = 0; i < b.size(); ++i) {
+    for (size_t i = 0; i < b.size(); i++) {
         for (std::set<std::string>::const_iterator j = b[i].keys.begin(); j != b[i].keys.end(); ++j) {
             result[0].keys.erase(*j);
         }
@@ -299,7 +299,7 @@ dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_protoc
 
         if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
         for (std::set<std::string>::iterator it = read.keys.keys.begin();
-                it != read.keys.keys.end(); ++it) {
+                it != read.keys.keys.end(); it++) {
             rassert(get_region().keys.count(*it) != 0);
             resp.values[*it] = values[*it];
         }
@@ -374,7 +374,7 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_proto
 
         if (rng.randint(2) == 0) nap(rng.randint(10));
         for (std::map<std::string, std::string>::const_iterator it = write.values.begin();
-                it != write.values.end(); ++it) {
+                it != write.values.end(); it++) {
             resp.old_values[(*it).first] = values[(*it).first];
             values[(*it).first] = (*it).second;
             timestamps[(*it).first] = timestamp.timestamp_after();
@@ -410,10 +410,10 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
 
         if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
         for (region_map_t<dummy_protocol_t, state_timestamp_t>::const_iterator r_it  = start_point.begin();
-             r_it != start_point.end();
-             ++r_it) {
+                                                                               r_it != start_point.end();
+                                                                               r_it++) {
             for (std::set<std::string>::iterator it = r_it->first.keys.begin();
-                    it != r_it->first.keys.end(); ++it) {
+                    it != r_it->first.keys.end(); it++) {
                 if (timestamps_snapshot[*it] > r_it->second) {
                     dummy_protocol_t::backfill_chunk_t chunk;
                     chunk.key = *it;
@@ -453,7 +453,7 @@ void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &sub
     wait_interruptible(local_token.get(), interruptor);
 
     rassert(region_is_superset(get_region(), subregion));
-    for (std::set<std::string>::iterator it = subregion.keys.begin(); it != subregion.keys.end(); ++it) {
+    for (std::set<std::string>::iterator it = subregion.keys.begin(); it != subregion.keys.end(); it++) {
         values[*it] = "";
         timestamps[*it] = state_timestamp_t::zero();
     }
@@ -463,7 +463,7 @@ void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &sub
 void dummy_protocol_t::store_t::initialize_empty() {
     dummy_protocol_t::region_t region = get_region();
     for (std::set<std::string>::iterator it = region.keys.begin();
-            it != region.keys.end(); ++it) {
+            it != region.keys.end(); it++) {
         values[*it] = "";
         timestamps[*it] = state_timestamp_t::zero();
     }
@@ -472,7 +472,7 @@ void dummy_protocol_t::store_t::initialize_empty() {
 
 dummy_protocol_t::region_t a_thru_z_region() {
     dummy_protocol_t::region_t r;
-    for (char c = 'a'; c <= 'z'; ++c) {
+    for (char c = 'a'; c <= 'z'; c++) {
         r.keys.insert(std::string(&c, 1));
     }
     return r;
@@ -480,7 +480,9 @@ dummy_protocol_t::region_t a_thru_z_region() {
 
 std::string region_to_debug_str(dummy_protocol_t::region_t r) {
     std::string ret = "{ ";
-    for (std::set<std::string>::iterator it = r.keys.begin(); it != r.keys.end(); ++it) {
+    for (std::set<std::string>::iterator it  = r.keys.begin();
+                                         it != r.keys.end();
+                                         it++) {
         ret += *it;
         ret += " ";
     }

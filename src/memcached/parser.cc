@@ -291,7 +291,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
 
     /* First parse all of the keys to get */
     gets.reserve(argc - 1);
-    for (int i = 1; i < argc; ++i) {
+    for (int i = 1; i < argc; i++) {
         gets.push_back(get_t());
         if (!unescaped_str_to_key(argv[i], strlen(argv[i]), &gets.back().key)) {
             pipeliner_acq.done_argparsing();
@@ -456,7 +456,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
         /* Check that we have a valid set of hash ranges, that don't use their hashing parts. */
         {
             key_range_t::right_bound_t bound(store_key_t::min());
-            for (std::set< hash_region_t<key_range_t> >::const_iterator it = shards.begin(); it != shards.end(); ++it) {
+            for (std::set< hash_region_t<key_range_t> >::const_iterator it = shards.begin(); it != shards.end(); it++) {
                 guarantee(!bound.unbounded);
                 guarantee(it->beg == 0);
                 guarantee(it->end == HASH_REGION_HASH_SIZE);
@@ -479,7 +479,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
             memcached_protocol_t::read_response_t response = rh->nsi->read(read, order_source->check_in("do_rget").with_read_mode(), &non_interruptor);
             rget_result_t results = boost::get<rget_result_t>(response.result);
 
-            for (std::vector<key_with_data_buffer_t>::iterator it = results.pairs.begin(); it != results.pairs.end(); ++it) {
+            for (std::vector<key_with_data_buffer_t>::iterator it = results.pairs.begin(); it != results.pairs.end(); it++) {
                 rh->write_value_header(reinterpret_cast<const char *>(it->key.contents()), it->key.size(), it->mcflags, it->value_provider->size());
                 rh->write_from_data_provider(it->value_provider.get());
                 rh->write_crlf();
@@ -1038,7 +1038,7 @@ void format_stats(const perfmon_result_t *stats, const std::string& name, const 
             }
             break;
         case perfmon_result_t::type_map:
-            for (perfmon_result_t::const_iterator i = stats->begin(); i != stats->end(); ++i) {
+            for (perfmon_result_t::const_iterator i = stats->begin(); i != stats->end(); i++) {
                 std::string sub_name(name.empty() ? i->first : name + "." + i->first);
                 format_stats(i->second, sub_name, names_to_match, result);
             }
@@ -1053,7 +1053,7 @@ void memcached_stats(int argc, char **argv, std::vector<std::string> *stat_respo
 
     // parse args, if any
     std::set<std::string> names_to_match;
-    for (int i = 1; i < argc; ++i) {
+    for (int i = 1; i < argc; i++) {
         names_to_match.insert(argv[i]);
     }
 

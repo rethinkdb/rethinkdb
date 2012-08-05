@@ -56,12 +56,12 @@ auto_drainer_t::lock_t::~lock_t() {
 
 void auto_drainer_t::incref() {
     assert_thread();
-    ++refcount;
+    refcount++;
 }
 
 void auto_drainer_t::decref() {
     assert_thread();
-    --refcount;
+    refcount--;
     if (refcount == 0 && draining.is_pulsed()) {
         when_done->notify_sometime();
     }

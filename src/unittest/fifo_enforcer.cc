@@ -60,7 +60,7 @@ void run_fifo_enforcer_test() {
     rng_t rng;
     int var1 = rng.randint(10000);
     test_shared_variable_t var2(var1);
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < 1000; i++) {
         if (rng.randint(4) == 0) {
             int new_value = rng.randint(10000);
             var2.spawn_write(var1, new_value);
@@ -117,15 +117,15 @@ void run_queue_equivalence_test() {
     fifo_enforcer_queue_t<boost::variant<fifo_enforcer_read_token_t, fifo_enforcer_write_token_t> > queue;
 
     int total_inserted = 0;
-    for (int i = 0; i < 1000; ++i) {
-        for (int j = 0; j < 50; ++j) {
+    for (int i = 0; i < 1000; i++) {
+        for (int j = 0; j < 50; j++) {
             fifo_enforcer_read_token_t t = source.enter_read();
             queue.push(t, t);
-            ++total_inserted;
+            total_inserted++;
         }
         fifo_enforcer_write_token_t t = source.enter_write();
         queue.push(t, t);
-        ++total_inserted;
+        total_inserted++;
     }
     while  (queue.control.get()) {
         boost::variant<fifo_enforcer_read_token_t, fifo_enforcer_write_token_t>  token = queue.produce_next_value();
@@ -138,7 +138,7 @@ void run_queue_equivalence_test() {
             EXPECT_TRUE(ew.is_pulsed());
             queue.finish_write(*write_token);
         }
-        --total_inserted;
+        total_inserted--;
     }
 
     EXPECT_EQ(total_inserted, 0);
