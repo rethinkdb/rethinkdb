@@ -59,13 +59,17 @@ private:
     cJSON_list_t data;
 };
 
-class batched_rget_stream_t : public json_stream_t {
+class batched_rget_stream_t : public parallelizable_stream_t {
 public:
-    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, signal_t *_interruptor, key_range_t _range, int _batch_size,
-        backtrace_t _backtrace)
-        : ns_access(_ns_access), interruptor(_interruptor), range(_range), batch_size(_batch_size), index(0), finished(false), backtrace(_backtrace) { }
+    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, 
+                          signal_t *_interruptor, key_range_t _range, 
+                          int _batch_size, backtrace_t _backtrace)
+        : ns_access(_ns_access), interruptor(_interruptor), 
+          range(_range), batch_size(_batch_size), index(0), 
+          finished(false), started(false), backtrace(_backtrace) { }
 
     boost::shared_ptr<scoped_cJSON_t> next() {
+        started = true;
         if (data.empty()) {
             if (finished) {
                 return boost::shared_ptr<scoped_cJSON_t>();
@@ -81,11 +85,42 @@ public:
         return ret;
     }
 
-    //void add_transformation(const rdb_protocol_details::transform_atom_t &t) { 
-    //    transform.push_back(t);
-    //}
+    void add_transformation(const rdb_protocol_details::transform_atom_t &t) { 
+        guarantee(!started);
+        transform.push_back(t);
+    }
 
-    //result_t apply_terminal(const rdb_protocol_details::terminal_t &) = 0;
+    result_t apply_terminal(const rdb_protocol_details::terminal_t &t) {
+        rdb_protocol_t::rget_read_t rget_read(range, -1);
+        rget_read.transform = transform;
+        rget_read.terminal = t;
+        rdb_protocol_t::read_t read(rget_read);
+        try {
+            rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, interruptor);
+            rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+            rassert(p_res);
+
+            // todo: just do a straight copy?
+            typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
+            stream_t *stream = boost::get<stream_t>(&p_res->result);
+            guarantee(stream);
+
+            for (stream_t::iterator i = stream->begin(); i != stream->end(); ++i) {
+                data.push_back(*i);
+                rassert(data.back());
+            }
+
+            range.left = p_res->last_considered_key;
+
+            if (!range.left.increment()) {
+                finished = true;
+            }
+        } catch (cannot_perform_query_exc_t e) {
+            throw runtime_exc_t("cannot perform read: " + std::string(e.what()), backtrace);
+        }
+        crash("unimplemented");
+        return result_t();
+    }
 
 private:
     void read_more() {
