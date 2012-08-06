@@ -15,7 +15,7 @@
 #include "stl_utils.hpp"
 #include "utils.hpp"
 
-//implementation for subfield_functor_t
+//implementation for standard_subfield_functor_t
 template<class T, class ctx_t>
 standard_subfield_change_functor_t<T, ctx_t>::standard_subfield_change_functor_t(T *_target, const ctx_t &_ctx)
     : target(_target), ctx(_ctx) { }
@@ -23,6 +23,16 @@ standard_subfield_change_functor_t<T, ctx_t>::standard_subfield_change_functor_t
 template<class T, class ctx_t>
 void standard_subfield_change_functor_t<T, ctx_t>::on_change() {
     on_subfield_change(target, ctx);
+}
+
+//implementation for standard_ctx_subfield_functor_t
+template<class T, class ctx_t>
+standard_ctx_subfield_change_functor_t<T, ctx_t>::standard_ctx_subfield_change_functor_t(T *_target, const ctx_t &_ctx)
+    : target(_target), ctx(_ctx) { }
+
+template<class T, class ctx_t>
+void standard_ctx_subfield_change_functor_t<T, ctx_t>::on_change() {
+    with_ctx_on_subfield_change(target, ctx);
 }
 
 //implementation for json_adapter_t
@@ -60,6 +70,43 @@ template <class T, class ctx_t>
 boost::shared_ptr<subfield_change_functor_t> json_adapter_t<T, ctx_t>::get_change_callback() {
     return boost::shared_ptr<subfield_change_functor_t>(new standard_subfield_change_functor_t<T, ctx_t>(target_, ctx_));
 }
+
+//implementation for json_ctx_adapter_t
+template <class T, class ctx_t>
+json_ctx_adapter_t<T, ctx_t>::json_ctx_adapter_t(T *target, const ctx_t &ctx)
+    : target_(target), ctx_(ctx) { }
+
+template <class T, class ctx_t>
+cJSON *json_ctx_adapter_t<T, ctx_t>::render_impl() {
+    return with_ctx_render_as_json(target_, ctx_);
+}
+
+template <class T, class ctx_t>
+void json_ctx_adapter_t<T, ctx_t>::apply_impl(cJSON *change) {
+    with_ctx_apply_json_to(change, target_, ctx_);
+}
+
+template <class T, class ctx_t>
+void json_ctx_adapter_t<T, ctx_t>::erase_impl() {
+    with_ctx_erase_json(target_, ctx_);
+}
+
+template <class T, class ctx_t>
+void json_ctx_adapter_t<T, ctx_t>::reset_impl() {
+    with_ctx_reset_json(target_, ctx_);
+}
+
+
+template <class T, class ctx_t>
+json_adapter_if_t::json_adapter_map_t json_ctx_adapter_t<T, ctx_t>::get_subfields_impl() {
+    return with_ctx_get_json_subfields(target_, ctx_);
+}
+
+template <class T, class ctx_t>
+boost::shared_ptr<subfield_change_functor_t> json_ctx_adapter_t<T, ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>(new standard_ctx_subfield_change_functor_t<T, ctx_t>(target_, ctx_));
+}
+
 
 //implementation for json_read_only_adapter_t
 template <class T, class ctx_t>

@@ -110,6 +110,18 @@ private:
     DISABLE_COPYING(standard_subfield_change_functor_t);
 };
 
+template <class T, class ctx_t>
+class standard_ctx_subfield_change_functor_t : public subfield_change_functor_t {
+public:
+    standard_ctx_subfield_change_functor_t(T *target, const ctx_t &ctx);
+    void on_change();
+private:
+    T *target;
+    const ctx_t ctx;
+
+    DISABLE_COPYING(standard_ctx_subfield_change_functor_t);
+};
+
 //TODO come up with a better name for this
 class json_adapter_if_t {
 public:
@@ -162,6 +174,30 @@ private:
 
     DISABLE_COPYING(json_adapter_t);
 };
+
+/* A json adapter is the most basic adapter, you can instantiate one with any
+ * type that implements the json adapter concept as T */
+template <class T, class ctx_t>
+class json_ctx_adapter_t : public json_adapter_if_t {
+private:
+    typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
+public:
+    json_ctx_adapter_t(T *, const ctx_t &);
+
+private:
+    json_adapter_map_t get_subfields_impl();
+    cJSON *render_impl();
+    virtual void apply_impl(cJSON *);
+    virtual void erase_impl();
+    virtual void reset_impl();
+    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
+
+    T *target_;
+    const ctx_t ctx_;
+
+    DISABLE_COPYING(json_ctx_adapter_t);
+};
+
 
 /* A read only adapter is like a normal adapter but it throws an exception when
  * you try to do an apply call. */
