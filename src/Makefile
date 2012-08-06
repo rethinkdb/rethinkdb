@@ -100,16 +100,16 @@ endif
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lv8
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lv8 -lcrypto
 else
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lv8
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lv8 -lcrypto
 else
 # GCC
 ifeq ($(LEGACY_GCC), 1)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio # at some point, v8 needs to be installed on the machines with LEGACY_GCC=1
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lcrypto # at some point, v8 needs to be installed on the machines with LEGACY_GCC=1
 else
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lv8
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lv8 -lcrypto
 endif
 endif
 endif
