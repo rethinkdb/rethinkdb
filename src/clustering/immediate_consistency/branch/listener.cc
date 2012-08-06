@@ -60,13 +60,13 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    DEBUG_ONLY_VAR order_source_t *order_source)
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
-    /* TODO: Put the file in the data directory, not here */
     mailbox_manager(mm),
     branch_history_manager(bhm),
     svs(_svs),
     uuid(generate_uuid()),
     perfmon_collection(),
     perfmon_collection_membership(backfill_stats_parent, &perfmon_collection, "backfill-serialization-" + uuid_to_str(uuid)),
+    /* TODO: Put the file in the data directory, not here */
     write_queue(io_backender, "backfill-serialization-" + uuid_to_str(uuid), &perfmon_collection),
     write_queue_semaphore(SEMAPHORE_NO_LIMIT,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
