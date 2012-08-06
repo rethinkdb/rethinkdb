@@ -112,6 +112,7 @@ public:
     typedef std::map<std::string, boost::shared_ptr<json_adapter_if_t> > json_adapter_map_t;
 
 public:
+    json_adapter_if_t() { }
     virtual ~json_adapter_if_t() { }
 
     json_adapter_map_t get_subfields(const ctx_t &);
@@ -131,6 +132,8 @@ private:
     virtual boost::shared_ptr<subfield_change_functor_t<ctx_t> >  get_change_callback() = 0;
 
     std::vector<boost::shared_ptr<subfield_change_functor_t<ctx_t> > > superfields;
+
+    DISABLE_COPYING(json_adapter_if_t);
 };
 
 /* A json adapter is the most basic adapter, you can instantiate one with any
