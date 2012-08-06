@@ -141,10 +141,9 @@ private:
 template <class T, class ctx_t>
 class json_adapter_t : public json_adapter_if_t<ctx_t> {
 private:
-    T *target;
     typedef typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_map_t;
 public:
-    explicit json_adapter_t(T *, const ctx_t &);
+    json_adapter_t(T *, const ctx_t &);
 
 private:
     json_adapter_map_t get_subfields_impl(const ctx_t &);
@@ -154,7 +153,10 @@ private:
     virtual void reset_impl(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 
-    
+    T *target_;
+    const ctx_t ctx_;
+
+    DISABLE_COPYING(json_adapter_t);
 };
 
 /* A read only adapter is like a normal adapter but it throws an exception when
@@ -162,11 +164,14 @@ private:
 template <class T, class ctx_t>
 class json_read_only_adapter_t : public json_adapter_t<T, ctx_t> {
 public:
-    explicit json_read_only_adapter_t(T *, const ctx_t &);
+    json_read_only_adapter_t(T *, const ctx_t &);
+
 private:
     void apply_impl(cJSON *, const ctx_t &);
     void erase_impl(const ctx_t &);
     void reset_impl(const ctx_t &);
+
+    DISABLE_COPYING(json_read_only_adapter_t);
 };
 
 /* A json temporary adapter is like a read only adapter but it stores a copy of
@@ -175,10 +180,13 @@ private:
  * id of every element in a map referenced in an id field */
 template <class T, class ctx_t>
 class json_temporary_adapter_t : public json_read_only_adapter_t<T, ctx_t> {
-private:
-    T t;
 public:
-    explicit json_temporary_adapter_t(const T &, const ctx_t &ctx);
+    json_temporary_adapter_t(const T &value, const ctx_t &ctx);
+
+private:
+    T value_;
+
+    DISABLE_COPYING(json_temporary_adapter_t);
 };
 
 /* A json_combiner_adapter_t is useful for glueing different adapters together.
@@ -188,7 +196,7 @@ class json_combiner_adapter_t : public json_adapter_if_t<ctx_t> {
 private:
     typedef typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_map_t;
 public:
-    json_combiner_adapter_t();
+    explicit json_combiner_adapter_t(const ctx_t &ctx);
     void add_adapter(std::string key, boost::shared_ptr<json_adapter_if_t<ctx_t> > adapter);
 private:
     cJSON *render_impl(const ctx_t &);
@@ -198,7 +206,10 @@ private:
     json_adapter_map_t get_subfields_impl(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 
-    json_adapter_map_t sub_adapters;
+    json_adapter_map_t sub_adapters_;
+    const ctx_t ctx_;
+
+    DISABLE_COPYING(json_combiner_adapter_t);
 };
 
 /* This adapter is a little bit different from the other ones, it's meant to

@@ -7,6 +7,10 @@ last_seen_http_app_t::last_seen_http_app_t(
 struct dummy_t {
 };
 
+inline bool operator==(UNUSED const dummy_t &x, UNUSED const dummy_t &y) {
+    return true;
+}
+
 
 void last_seen_http_app_t::get_root(scoped_cJSON_t *json_out) {
     std::map<machine_id_t, time_t> last_seen_times = last_seen_tracker->get_last_seen_times();

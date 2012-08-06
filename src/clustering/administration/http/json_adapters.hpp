@@ -21,7 +21,7 @@
 template <class T, class ctx_t>
 class json_vclock_resolver_t : public json_adapter_if_t<ctx_t> {
 public:
-    explicit json_vclock_resolver_t(vclock_t<T> *);
+    json_vclock_resolver_t(vclock_t<T> *, const ctx_t &ctx);
 
 private:
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_subfields_impl(const ctx_t &);
@@ -31,7 +31,8 @@ private:
     void erase_impl(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 
-    vclock_t<T> *target;
+    vclock_t<T> *target_;
+    const ctx_t ctx_;
 
     DISABLE_COPYING(json_vclock_resolver_t);
 };
@@ -49,7 +50,8 @@ private:
     void erase_impl(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> >  get_change_callback();
 
-    vclock_t<T> *target;
+    vclock_t<T> *target_;
+    const ctx_t ctx_;
 
     DISABLE_COPYING(json_vclock_adapter_t);
 };

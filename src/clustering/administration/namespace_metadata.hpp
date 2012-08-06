@@ -178,6 +178,10 @@ struct namespace_metadata_ctx_t {
     { }
 };
 
+inline bool operator==(const namespace_metadata_ctx_t &x, const namespace_metadata_ctx_t &y) {
+    return x.us == y.us;
+}
+
 // json adapter concept for namespaces_directory_metadata_t
 
 template <class ctx_t, class protocol_t>

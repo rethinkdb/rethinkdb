@@ -68,30 +68,35 @@ void on_subfield_change(vclock_t<T> *target, const ctx_t &ctx) {
 
 
 template <class T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_vclock_resolver_t<T, ctx_t>::get_subfields_impl(const ctx_t &) {
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_vclock_resolver_t<T, ctx_t>::get_subfields_impl(const ctx_t &ctx) {
+    rassert(ctx == ctx_);
     return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
 }
 
 template <class T, class ctx_t>
 cJSON *json_vclock_resolver_t<T, ctx_t>::render_impl(const ctx_t &ctx) {
-    return render_all_values(target, ctx);
+    rassert(ctx == ctx_);
+    return render_all_values(target_, ctx_);
 }
 
 template <class T, class ctx_t>
 void json_vclock_resolver_t<T, ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
+    rassert(ctx == ctx_);
     T new_value;
-    apply_json_to(change, &new_value, ctx);
+    apply_json_to(change, &new_value, ctx_);
 
-    *target = target->make_resolving_version(new_value, ctx.us);
+    *target_ = target_->make_resolving_version(new_value, ctx_.us);
 }
 
 template <class T, class ctx_t>
-void json_vclock_resolver_t<T, ctx_t>::reset_impl(const ctx_t &) {
+void json_vclock_resolver_t<T, ctx_t>::reset_impl(const ctx_t &ctx) {
+    rassert(ctx == ctx_);
     throw permission_denied_exc_t("Can't reset a vclock resolver.\n");
 }
 
 template <class T, class ctx_t>
-void json_vclock_resolver_t<T, ctx_t>::erase_impl(const ctx_t &) {
+void json_vclock_resolver_t<T, ctx_t>::erase_impl(const ctx_t &ctx) {
+    rassert(ctx == ctx_);
     throw permission_denied_exc_t("Can't erase a vclock resolver.\n");
 }
 
@@ -101,32 +106,33 @@ boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_vclock_resolver_t<T, c
 }
 
 template <class T, class ctx_t>
-json_vclock_resolver_t<T, ctx_t>::json_vclock_resolver_t(vclock_t<T> *_target)
-    : target(_target)
-{ }
+json_vclock_resolver_t<T, ctx_t>::json_vclock_resolver_t(vclock_t<T> *target, const ctx_t &ctx)
+    : target_(target), ctx_(ctx) { }
 
 template <class T, class ctx_t>
-json_vclock_adapter_t<T, ctx_t>::json_vclock_adapter_t(vclock_t<T> *_target, UNUSED const ctx_t &ctx)
-    : target(_target)
-{ }
+json_vclock_adapter_t<T, ctx_t>::json_vclock_adapter_t(vclock_t<T> *target, const ctx_t &ctx)
+    : target_(target), ctx_(ctx) { }
 
 template <class T, class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_vclock_adapter_t<T, ctx_t>::get_subfields_impl(const ctx_t &ctx) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res = get_json_subfields(target, ctx);
+    rassert(ctx == ctx_);
+    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res = get_json_subfields(target_, ctx_);
     rassert(!std_contains(res, "resolve"), "Programmer error: do not put anything with a \"resolve\" subfield in a vector clock.\n");
-    res["resolve"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_resolver_t<T, ctx_t>(target));
+    res["resolve"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_resolver_t<T, ctx_t>(target_, ctx_));
 
     return res;
 }
 
 template <class T, class ctx_t>
 cJSON *json_vclock_adapter_t<T, ctx_t>::render_impl(const ctx_t &ctx) {
-    return render_as_json(target, ctx);
+    rassert(ctx_ == ctx);
+    return render_as_json(target_, ctx_);
 }
 
 template <class T, class ctx_t>
 void json_vclock_adapter_t<T, ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
-    apply_json_to(change, target, ctx);
+    rassert(ctx_ == ctx);
+    apply_json_to(change, target_, ctx_);
 }
 
 template <class T, class ctx_t>
@@ -141,7 +147,7 @@ void json_vclock_adapter_t<T, ctx_t>::erase_impl(const ctx_t &) {
 
 template <class T, class ctx_t>
 boost::shared_ptr<subfield_change_functor_t<ctx_t> >  json_vclock_adapter_t<T, ctx_t>::get_change_callback() {
-    return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new standard_subfield_change_functor_t<vclock_t<T>, ctx_t>(target));
+    return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new standard_subfield_change_functor_t<vclock_t<T>, ctx_t>(target_));
 }
 
 //json adapter concept for deletable_t
