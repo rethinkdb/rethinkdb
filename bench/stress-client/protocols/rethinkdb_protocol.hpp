@@ -58,6 +58,20 @@ struct rethinkdb_protocol_t : protocol_t {
             perror("connect() failed");
             exit(-1);
         }
+
+        // wait until started up (by inserting until one is successful)
+        bool success = false;
+        do {
+            Query *query = new Query;
+            generate_insert_query(query, "0", 1, "0", 1);
+
+            send_query(query);
+
+            Response *response = new Response;
+            get_response(response, query->token());
+            success = response->status_code() == Response::SUCCESS_JSON;
+        } while (!success);
+        remove("0", 1);
     }
 
     virtual ~rethinkdb_protocol_t() {
@@ -251,7 +265,7 @@ struct rethinkdb_protocol_t : protocol_t {
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
         assert(!exist_outstanding_pipeline_reads());
-
+        /*
         Query *query1 = new Query;
 
         for (int i = 0; i < count; i++) {
@@ -282,7 +296,7 @@ struct rethinkdb_protocol_t : protocol_t {
                 }
             }
         }
-        
+        */
     }
 
     virtual void prepend(const char *key, size_t key_size,
