@@ -104,8 +104,6 @@ private:
                 exit(-1);
             }
 
-            printf("%s\n", typeid(op_to_do).name());
-
             try {
                 op_to_do->start();
                 outstanding_ops.push(op_to_do);

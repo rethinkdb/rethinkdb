@@ -2,6 +2,7 @@
 #define __STRESS_CLIENT_PROTOCOLS_RETHINKDB_PROTOCOL_HPP__
 
 #include <assert.h>
+#include <time.h>
 #include <errno.h>
 #include <map>
 #include <netdb.h>
@@ -153,7 +154,6 @@ struct rethinkdb_protocol_t : protocol_t {
         }
     }
 
-    // TODO: make this more efficient instead of just doing a bunch of reads in a row
     virtual void read(payload_t *keys, int count, payload_t *values = NULL) {
         assert(!exist_outstanding_pipeline_reads());
 
@@ -174,12 +174,7 @@ struct rethinkdb_protocol_t : protocol_t {
                 fprintf(stderr, "Failed to read key %s: %s\n", keys[i].first, response->error_message().c_str());
             }
             if (values) {
-                // TODO: use some JSON parser instead of this
-                int last_quote = (int) response->response(0).find_last_of('"');
-                int second_to_last_quote = (int) response->response(0).find_last_of(last_quote - 1);
-                assert(last_quote >= 0 && last_quote < response->response(0).length());
-                assert(second_to_last_quote >= 0 && second_to_last_quote < response->response(0).length());
-                std::string result = response->response(0).substr(second_to_last_quote + 1, last_quote - second_to_last_quote - 1);
+                std::string result = get_value(response->response(0));
                 if (std::string(values[i].first, values[i].second) != result) {
                     fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
                 }
@@ -214,12 +209,7 @@ struct rethinkdb_protocol_t : protocol_t {
                 fprintf(stderr, "Failed to read key %s: %s\n", keys[i].first, response->error_message().c_str());
             }
             if (values) {
-                // TODO: use some JSON parser instead of this
-                int last_quote = (int) response->response(0).find_last_of('"');
-                int second_to_last_quote = (int) response->response(0).find_last_of(last_quote - 1);
-                assert(last_quote >= 0 && last_quote < response->response(0).length());
-                assert(second_to_last_quote >= 0 && second_to_last_quote < response->response(0).length());
-                std::string result = response->response(0).substr(second_to_last_quote + 1, last_quote - second_to_last_quote - 1);
+                std::string result = get_value(response->response(0));
                 if (std::string(values[i].first, values[i].second) != result) {
                     fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
                 }
@@ -249,12 +239,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
         if (values) {
             for (int i = 0; i < count_limit; i++) {
-                // TODO: use some JSON parser instead of this
-                int last_quote = (int) response->response(i).find_last_of('"');
-                int second_to_last_quote = (int) response->response(i).find_last_of(last_quote - 1);
-                assert(last_quote >= 0 && last_quote < response->response(i).length());
-                assert(second_to_last_quote >= 0 && second_to_last_quote < response->response(i).length());
-                std::string result = response->response(i).substr(second_to_last_quote + 1, last_quote - second_to_last_quote - 1);
+                std::string result = get_value(response->response(i));
                 if (std::string(values[i].first, values[i].second) != result) {
                     fprintf(stderr, "Range read failed: wanted %s but got %s for some key.\n", values[i].first, result.c_str());
                 }
@@ -264,44 +249,14 @@ struct rethinkdb_protocol_t : protocol_t {
 
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
-        assert(!exist_outstanding_pipeline_reads());
-        /*
-        Query *query1 = new Query;
-
-        for (int i = 0; i < count; i++) {
-            // generate query
-            Query *query = new Query;
-            generate_read_query(query, keys[i].first, keys[i].second);
-
-            send_query(query);
-
-            // get response
-            Response *response = new Response;
-            get_response(response, query->token());
-            if (response->token() != query->token()) {
-                fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), query->token());
-            }
-            if (response->status_code() != Response::SUCCESS_JSON) {
-                fprintf(stderr, "Failed to read key %s: %s\n", keys[i].first, response->error_message().c_str());
-            }
-            if (values) {
-                // TODO: use some JSON parser instead of this
-                int last_quote = (int) response->response(0).find_last_of('"');
-                int second_to_last_quote = (int) response->response(0).find_last_of(last_quote - 1);
-                assert(last_quote >= 0 && last_quote < response->response(0).length());
-                assert(second_to_last_quote >= 0 && second_to_last_quote < response->response(0).length());
-                std::string result = response->response(0).substr(second_to_last_quote + 1, last_quote - second_to_last_quote - 1);
-                if (std::string(values[i].first, values[i].second) != result) {
-                    fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
-                }
-            }
-        }
-        */
+        fprintf(stderr, "APPEND NOT YET IMPLEMENTED. EXITING.\n");
+        exit(-1);
     }
 
     virtual void prepend(const char *key, size_t key_size,
                           const char *value, size_t value_size) {
-        fprintf(stderr, "PREPEND NOT YET IMPLEMENTED\n");
+        fprintf(stderr, "PREPEND NOT YET IMPLEMENTED. EXITING.\n");
+        exit(-1);
     }
 
 private:
@@ -387,10 +342,10 @@ private:
         read_query->set_max_chunk_size(0); // no chunking
     }
     
-    // TODO: add timeout to send_all and recv_all?
-    void send_all(const char *buf, int size) {
+    void send_all(const char *buf, int size, double timeout = 1.0) {
+        double start_time = clock();
         int total_sent = 0, sent;
-        while (total_sent < size) {
+        while (total_sent < size && (clock() - start_time) / CLOCKS_PER_SEC < timeout) {
             sent = send(sockfd, buf + total_sent, size - total_sent, 0);
             if (sent < 0) {
                 perror("send() failed");
@@ -398,17 +353,26 @@ private:
             }
             total_sent += sent;
         }
+        if (total_sent < size) {
+            fprintf(stderr, "Failed to send_all within time limit of %.3lf seconds.", timeout);
+            exit(-1);
+        }
     }
 
-    void recv_all(char *buf, int size) {
+    void recv_all(char *buf, int size, double timeout = 1.0) {
+        double start_time = clock();
         int total_received = 0, received;
-        while (total_received < size) {
+        while (total_received < size && (clock() - start_time) / CLOCKS_PER_SEC < timeout) {
             received = recv(sockfd, buf + total_received, size - total_received, 0);
             if (received < 0) {
                 perror("recv() failed");
                 exit(-1);
             }
             total_received += received;
+        }
+        if (total_received < size) {
+            fprintf(stderr, "Failed to recv_all within time limit of %.3lf seconds.", timeout);
+            exit(-1);
         }
     }
 
@@ -464,6 +428,16 @@ private:
 
     bool exist_outstanding_pipeline_reads() {
         return read_tokens.size() != 0;
+    }
+
+    // takes a JSON string and returns the string in the last set of quotes
+    // useful for retrieving the last value, and probably faster than using a JSON parser
+    std::string get_value(const std::string &json_string) {
+        int last_quote = (int) json_string.find_last_of('"');
+        int second_to_last_quote = (int) json_string.find_last_of(last_quote - 1);
+        assert(last_quote >= 0 && last_quote < json_string.length());
+        assert(second_to_last_quote >= 0 && second_to_last_quote < json_string.length());
+        return json_string.substr(second_to_last_quote + 1, last_quote - second_to_last_quote - 1);
     }
 
 private:
