@@ -588,7 +588,7 @@ class ClusterAccess(object):
                     return False
         return True
 
-    def wait_until_blueprint_satisfied(self, namespace, timeout = 60):
+    def wait_until_blueprint_satisfied(self, namespace, timeout = 600):
         start_time = time.time()
         while not self.is_blueprint_satisfied(namespace):
             time.sleep(1)
