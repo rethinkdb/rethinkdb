@@ -140,7 +140,7 @@ private:
     T *target;
     typedef typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_map_t;
 public:
-    explicit json_adapter_t(T *);
+    explicit json_adapter_t(T *, const ctx_t &);
 
 private:
     json_adapter_map_t get_subfields_impl(const ctx_t &);
@@ -149,6 +149,8 @@ private:
     virtual void erase_impl(const ctx_t &);
     virtual void reset_impl(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
+
+    
 };
 
 /* A read only adapter is like a normal adapter but it throws an exception when
@@ -156,7 +158,7 @@ private:
 template <class T, class ctx_t>
 class json_read_only_adapter_t : public json_adapter_t<T, ctx_t> {
 public:
-    explicit json_read_only_adapter_t(T *);
+    explicit json_read_only_adapter_t(T *, const ctx_t &);
 private:
     void apply_impl(cJSON *, const ctx_t &);
     void erase_impl(const ctx_t &);
@@ -172,7 +174,7 @@ class json_temporary_adapter_t : public json_read_only_adapter_t<T, ctx_t> {
 private:
     T t;
 public:
-    explicit json_temporary_adapter_t(const T &);
+    explicit json_temporary_adapter_t(const T &, const ctx_t &ctx);
 };
 
 /* A json_combiner_adapter_t is useful for glueing different adapters together.
@@ -253,7 +255,7 @@ private:
     std::string inserter_key;
 
 public:
-    json_adapter_with_inserter_t(container_t *, gen_function_t, value_t _initial_value = value_t(), std::string _inserter_key = std::string("new"));
+    json_adapter_with_inserter_t(container_t *, gen_function_t, const ctx_t &ctx, value_t _initial_value = value_t(), std::string _inserter_key = std::string("new"));
 
 private:
     json_adapter_map_t get_subfields_impl(const ctx_t &);
@@ -291,10 +293,10 @@ void reset_json(T *, const ctx_t &) {
 #endif
 }
 
+
 /* Here we have implementations of the json adapter concept for several
  * prominent types, these could in theory be relocated to a different file if
  * need be */
-
 
 //JSON adapter for int
 template <class ctx_t>

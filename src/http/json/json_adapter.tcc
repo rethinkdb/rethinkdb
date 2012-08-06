@@ -107,7 +107,7 @@ void json_adapter_if_t<ctx_t>::reset(const ctx_t &ctx) {
 
 //implementation for json_adapter_t
 template <class T, class ctx_t>
-json_adapter_t<T, ctx_t>::json_adapter_t(T *_target)
+json_adapter_t<T, ctx_t>::json_adapter_t(T *_target, UNUSED const ctx_t &ctx)
     : target(_target)
 { }
 
@@ -144,8 +144,8 @@ boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_adapter_t<T, ctx_t>::g
 
 //implementation for json_read_only_adapter_t
 template <class T, class ctx_t>
-json_read_only_adapter_t<T, ctx_t>::json_read_only_adapter_t(T *t)
-    : json_adapter_t<T, ctx_t>(t)
+json_read_only_adapter_t<T, ctx_t>::json_read_only_adapter_t(T *t, const ctx_t &ctx)
+    : json_adapter_t<T, ctx_t>(t, ctx)
 { }
 
 template <class T, class ctx_t>
@@ -165,8 +165,8 @@ void json_read_only_adapter_t<T, ctx_t>::reset_impl(const ctx_t &) {
 
 //implementation for json_temporary_adapter_t
 template <class T, class ctx_t>
-json_temporary_adapter_t<T, ctx_t>::json_temporary_adapter_t(const T &_t)
-    : json_read_only_adapter_t<T, ctx_t>(&t), t(_t)
+json_temporary_adapter_t<T, ctx_t>::json_temporary_adapter_t(const T &_t, const ctx_t &ctx)
+    : json_read_only_adapter_t<T, ctx_t>(&t, ctx), t(_t)
 { }
 
 //implementation for json_combiner_adapter_t
@@ -284,7 +284,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_map_inserter_t<contai
                                        it != added_keys.end();
                                        it++) {
         scoped_cJSON_t key(render_as_json(&*it, ctx));
-        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<typename container_t::mapped_type, ctx_t>(&(target->find(*it)->second)));
+        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<typename container_t::mapped_type, ctx_t>(&(target->find(*it)->second), ctx));
     }
     return res;
 }
@@ -296,7 +296,7 @@ boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_map_inserter_t<contain
 
 //implementation for json_adapter_with_inserter_t
 template <class container_t, class ctx_t>
-json_adapter_with_inserter_t<container_t, ctx_t>::json_adapter_with_inserter_t(container_t *_target, gen_function_t _generator, value_t _initial_value, std::string _inserter_key)
+json_adapter_with_inserter_t<container_t, ctx_t>::json_adapter_with_inserter_t(container_t *_target, gen_function_t _generator, UNUSED const ctx_t &ctx, value_t _initial_value, std::string _inserter_key)
     : target(_target), generator(_generator),
       initial_value(_initial_value), inserter_key(_inserter_key)
 { }
@@ -598,7 +598,8 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::ma
         typename std::map<K, V>::key_type key = it->first;
         try {
             scoped_cJSON_t scoped_key(render_as_json(&key, ctx));
-            res[get_string(scoped_key.get())] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&(it->second)));
+            res[get_string(scoped_key.get())]
+                = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&it->second, ctx));
         } catch (schema_mismatch_exc_t &) {
             crash("Someone tried to json adapt a std::map with a key type that"
                    "does not yield a JSON object of string type when"
@@ -685,10 +686,10 @@ void on_subfield_change(std::set<V> *, const ctx_t &) { }
 
 //JSON adapter for std::pair
 template <class F, class S, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::pair<F, S> *target, const ctx_t &) {
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::pair<F, S> *target, const ctx_t &ctx) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["first"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<F, ctx_t>(&target->first));
-    res["second"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<S, ctx_t>(&target->second));
+    res["first"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<F, ctx_t>(&target->first, ctx));
+    res["second"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<S, ctx_t>(&target->second, ctx));
     return res;
 }
 

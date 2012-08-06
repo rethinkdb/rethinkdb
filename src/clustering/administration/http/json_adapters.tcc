@@ -106,7 +106,7 @@ json_vclock_resolver_t<T, ctx_t>::json_vclock_resolver_t(vclock_t<T> *_target)
 { }
 
 template <class T, class ctx_t>
-json_vclock_adapter_t<T, ctx_t>::json_vclock_adapter_t(vclock_t<T> *_target)
+json_vclock_adapter_t<T, ctx_t>::json_vclock_adapter_t(vclock_t<T> *_target, UNUSED const ctx_t &ctx)
     : target(_target)
 { }
 

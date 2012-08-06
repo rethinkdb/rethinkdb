@@ -17,8 +17,8 @@ semilattice_http_app_t::semilattice_http_app_t(
 void semilattice_http_app_t::get_root(scoped_cJSON_t *json_out) {
     // keep this in sync with handle's behavior for getting the root
     cluster_semilattice_metadata_t cluster_metadata = metadata_change_handler->get();
-    json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t> json_adapter(&cluster_metadata);
     namespace_metadata_ctx_t json_ctx(us);
+    json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t> json_adapter(&cluster_metadata, json_ctx);
     json_out->reset(json_adapter.render(json_ctx));
 }
 
@@ -27,8 +27,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
         cluster_semilattice_metadata_t cluster_metadata = metadata_change_handler->get();
 
         //as we traverse the json sub directories this will keep track of where we are
-        boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t>(&cluster_metadata));
         namespace_metadata_ctx_t json_ctx(us);
+        boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t>(&cluster_metadata, json_ctx));
 
         http_req_t::resource_t::iterator it = req.resource.begin();
 
