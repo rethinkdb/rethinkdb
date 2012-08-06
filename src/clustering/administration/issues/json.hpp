@@ -18,7 +18,7 @@ public:
 
 //json adapter concept for issue_json_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(issue_json_t *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(issue_json_t *, const ctx_t &);
 
 template <class ctx_t>
 cJSON *render_as_json(issue_json_t *, const ctx_t &);
@@ -36,7 +36,7 @@ public:
 
 //json adapter concept for local_issue_json_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(local_issue_json_t *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(local_issue_json_t *, const ctx_t &);
 
 template <class ctx_t>
 cJSON *render_as_json(local_issue_json_t *, const ctx_t &);

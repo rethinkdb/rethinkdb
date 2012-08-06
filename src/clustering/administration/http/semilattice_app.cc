@@ -19,7 +19,7 @@ void semilattice_http_app_t::get_root(scoped_cJSON_t *json_out) {
     cluster_semilattice_metadata_t cluster_metadata = metadata_change_handler->get();
     namespace_metadata_ctx_t json_ctx(us);
     json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t> json_adapter(&cluster_metadata, json_ctx);
-    json_out->reset(json_adapter.render(json_ctx));
+    json_out->reset(json_adapter.render());
 }
 
 http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
@@ -28,13 +28,13 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
         //as we traverse the json sub directories this will keep track of where we are
         namespace_metadata_ctx_t json_ctx(us);
-        boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t>(&cluster_metadata, json_ctx));
+        boost::shared_ptr<json_adapter_if_t> json_adapter_head(new json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t>(&cluster_metadata, json_ctx));
 
         http_req_t::resource_t::iterator it = req.resource.begin();
 
         //Traverse through the subfields until we're done with the url
         while (it != req.resource.end()) {
-            json_adapter_if_t<namespace_metadata_ctx_t>::json_adapter_map_t subfields = json_adapter_head->get_subfields(json_ctx);
+            json_adapter_if_t::json_adapter_map_t subfields = json_adapter_head->get_subfields();
             if (subfields.find(*it) == subfields.end()) {
                 return http_res_t(HTTP_NOT_FOUND); //someone tried to walk off the edge of the world
             }
@@ -46,7 +46,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
         switch (req.method) {
             case GET:
             {
-                scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
+                scoped_cJSON_t json_repr(json_adapter_head->render());
                 return http_json_res(json_repr.get());
             }
             break;
@@ -69,7 +69,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     return http_res_t(HTTP_BAD_REQUEST);
                 }
 
-                json_adapter_head->apply(change.get(), json_ctx);
+                json_adapter_head->apply(change.get());
 
                 {
                     scoped_cJSON_t absolute_change(change.release());
@@ -89,13 +89,13 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 metadata_change_handler->update(cluster_metadata);
 
-                scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
+                scoped_cJSON_t json_repr(json_adapter_head->render());
                 return http_json_res(json_repr.get());
             }
             break;
             case DELETE:
             {
-                json_adapter_head->erase(json_ctx);
+                json_adapter_head->erase();
 
                 logINF("Deleting %s", req.resource.as_string().c_str());
 
@@ -105,7 +105,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 metadata_change_handler->update(cluster_metadata);
 
-                scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
+                scoped_cJSON_t json_repr(json_adapter_head->render());
                 return http_json_res(json_repr.get());
             }
             break;
@@ -139,8 +139,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }
 
-                json_adapter_head->reset(json_ctx);
-                json_adapter_head->apply(change.get(), json_ctx);
+                json_adapter_head->reset();
+                json_adapter_head->apply(change.get());
 
                 /* Fill in the blueprints */
                 try {
@@ -149,7 +149,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 metadata_change_handler->update(cluster_metadata);
 
-                scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
+                scoped_cJSON_t json_repr(json_adapter_head->render());
                 return http_json_res(json_repr.get());
             }
             break;

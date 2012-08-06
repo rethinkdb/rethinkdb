@@ -16,7 +16,7 @@ void last_seen_http_app_t::get_root(scoped_cJSON_t *json_out) {
     std::map<machine_id_t, time_t> last_seen_times = last_seen_tracker->get_last_seen_times();
     dummy_t json_ctx;
     json_read_only_adapter_t<std::map<machine_id_t, time_t>, dummy_t> json_adapter(&last_seen_times, json_ctx);
-    json_out->reset(json_adapter.render(dummy_t()));
+    json_out->reset(json_adapter.render());
 }
 
 http_res_t last_seen_http_app_t::handle(const http_req_t &req) {

@@ -10,12 +10,12 @@
 
 //json adapter concept for issue_json_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(issue_json_t *target, const ctx_t &ctx) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["critical"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<bool, ctx_t>(&target->critical, ctx));
-    res["description"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<std::string, ctx_t>(&target->description, ctx));
-    res["type"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<std::string, ctx_t>(&target->type, ctx));
-    res["time"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<ticks_t, ctx_t>(&target->time, ctx));
+json_adapter_if_t::json_adapter_map_t get_json_subfields(issue_json_t *target, const ctx_t &ctx) {
+    json_adapter_if_t::json_adapter_map_t res;
+    res["critical"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<bool, ctx_t>(&target->critical, ctx));
+    res["description"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<std::string, ctx_t>(&target->description, ctx));
+    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<std::string, ctx_t>(&target->type, ctx));
+    res["time"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<ticks_t, ctx_t>(&target->time, ctx));
 
     return res;
 }
@@ -34,10 +34,12 @@ template <class ctx_t>
 void on_subfield_change(issue_json_t *, const ctx_t &) { }
 
 //json adapter concept for local_issue_json_t
+// TODO: Is this ever instantiated?  I suddenly got a compiler warning about no return statement when making json_adapter_if_t lose its template argument.
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(local_issue_json_t *target, const ctx_t &ctx) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res = render_as_json(static_cast<issue_json_t *>(target), ctx);
-    res["machine"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<bool, ctx_t>(&target->machine, ctx));
+json_adapter_if_t::json_adapter_map_t get_json_subfields(local_issue_json_t *target, const ctx_t &ctx) {
+    json_adapter_if_t::json_adapter_map_t res = render_as_json(static_cast<issue_json_t *>(target), ctx);
+    res["machine"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<bool, ctx_t>(&target->machine, ctx));
+    return res;
 }
 
 template <class ctx_t>

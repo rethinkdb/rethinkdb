@@ -14,11 +14,11 @@
 
 //json adapter concept for vclock_t
 template <class T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(vclock_t<T> *target, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(vclock_t<T> *target, const ctx_t &ctx) {
     try {
         return get_json_subfields(&target->get_mutable(), ctx);
     } catch (in_conflict_exc_t e) {
-        return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+        return json_adapter_if_t::json_adapter_map_t();
     }
 }
 
@@ -68,8 +68,8 @@ void on_subfield_change(vclock_t<T> *target, const ctx_t &ctx) {
 
 
 template <class T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_vclock_resolver_t<T, ctx_t>::get_subfields_impl() {
-    return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+json_adapter_if_t::json_adapter_map_t json_vclock_resolver_t<T, ctx_t>::get_subfields_impl() {
+    return json_adapter_if_t::json_adapter_map_t();
 }
 
 template <class T, class ctx_t>
@@ -109,10 +109,10 @@ json_vclock_adapter_t<T, ctx_t>::json_vclock_adapter_t(vclock_t<T> *target, cons
     : target_(target), ctx_(ctx) { }
 
 template <class T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_vclock_adapter_t<T, ctx_t>::get_subfields_impl() {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res = get_json_subfields(target_, ctx_);
+json_adapter_if_t::json_adapter_map_t json_vclock_adapter_t<T, ctx_t>::get_subfields_impl() {
+    json_adapter_if_t::json_adapter_map_t res = get_json_subfields(target_, ctx_);
     rassert(!std_contains(res, "resolve"), "Programmer error: do not put anything with a \"resolve\" subfield in a vector clock.\n");
-    res["resolve"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_resolver_t<T, ctx_t>(target_, ctx_));
+    res["resolve"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_resolver_t<T, ctx_t>(target_, ctx_));
 
     return res;
 }
@@ -144,7 +144,7 @@ boost::shared_ptr<subfield_change_functor_t>  json_vclock_adapter_t<T, ctx_t>::g
 
 //json adapter concept for deletable_t
 template <class T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(deletable_t<T> *target, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(deletable_t<T> *target, const ctx_t &ctx) {
     return get_json_subfields(&target->get_mutable(), ctx);
 }
 
@@ -176,8 +176,8 @@ void on_subfield_change(deletable_t<T> *, const ctx_t &) { }
 
 //json adapter concept for peer_id_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(peer_id_t *, const ctx_t &) {
-    return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+json_adapter_if_t::json_adapter_map_t get_json_subfields(peer_id_t *, const ctx_t &) {
+    return json_adapter_if_t::json_adapter_map_t();
 }
 
 template <class ctx_t>
@@ -198,15 +198,15 @@ void on_subfield_change(peer_id_t *, const ctx_t &) { }
 
 /* A special adapter for a region_map's value */
 template <class protocol_t, class value_t, class ctx_t>
-class json_region_adapter_t : public json_adapter_if_t<ctx_t> {
+class json_region_adapter_t : public json_adapter_if_t {
 private:
     typedef region_map_t<protocol_t, value_t> target_region_map_t;
 public:
     json_region_adapter_t(target_region_map_t *_parent, typename protocol_t::region_t _target_region, const ctx_t &_ctx)
         : parent(_parent), target_region(_target_region), ctx(_ctx) { }
 private:
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_subfields_impl() {
-            return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+    json_adapter_if_t::json_adapter_map_t get_subfields_impl() {
+            return json_adapter_if_t::json_adapter_map_t();
     }
 
     cJSON *render_impl() {
@@ -244,14 +244,14 @@ private:
 
 //json adapter concept for region map
 template <class protocol_t, class value_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(region_map_t<protocol_t, value_t> *target, const ctx_t &ctx) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
+json_adapter_if_t::json_adapter_map_t get_json_subfields(region_map_t<protocol_t, value_t> *target, const ctx_t &ctx) {
+    json_adapter_if_t::json_adapter_map_t res;
     for (typename region_map_t<protocol_t, value_t>::iterator it  = target->begin();
                                                               it != target->end();
                                                               ++it) {
         scoped_cJSON_t key(render_as_json(&it->first, ctx));
         rassert(key.get()->type == cJSON_String);
-        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_region_adapter_t<protocol_t, value_t, ctx_t>(target, it->first, ctx));
+        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t>(new json_region_adapter_t<protocol_t, value_t, ctx_t>(target, it->first, ctx));
     }
 
     return res;

@@ -111,7 +111,6 @@ private:
 };
 
 //TODO come up with a better name for this
-template <class ctx_t>
 class json_adapter_if_t {
 public:
     typedef std::map<std::string, boost::shared_ptr<json_adapter_if_t> > json_adapter_map_t;
@@ -120,11 +119,11 @@ public:
     json_adapter_if_t() { }
     virtual ~json_adapter_if_t() { }
 
-    json_adapter_map_t get_subfields(const ctx_t &);
-    cJSON *render(const ctx_t &);
-    void apply(cJSON *, const ctx_t &);
-    void erase(const ctx_t &);
-    void reset(const ctx_t &);
+    json_adapter_map_t get_subfields();
+    cJSON *render();
+    void apply(cJSON *);
+    void erase();
+    void reset();
 
 private:
     virtual json_adapter_map_t get_subfields_impl() = 0;
@@ -144,9 +143,9 @@ private:
 /* A json adapter is the most basic adapter, you can instantiate one with any
  * type that implements the json adapter concept as T */
 template <class T, class ctx_t>
-class json_adapter_t : public json_adapter_if_t<ctx_t> {
+class json_adapter_t : public json_adapter_if_t {
 private:
-    typedef typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_map_t;
+    typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
 public:
     json_adapter_t(T *, const ctx_t &);
 
@@ -194,29 +193,6 @@ private:
     DISABLE_COPYING(json_temporary_adapter_t);
 };
 
-/* A json_combiner_adapter_t is useful for glueing different adapters together.
- * */
-template <class ctx_t>
-class json_combiner_adapter_t : public json_adapter_if_t<ctx_t> {
-private:
-    typedef typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_map_t;
-public:
-    explicit json_combiner_adapter_t(const ctx_t &ctx);
-    void add_adapter(std::string key, boost::shared_ptr<json_adapter_if_t<ctx_t> > adapter);
-private:
-    cJSON *render_impl();
-    void apply_impl(cJSON *);
-    void erase_impl();
-    void reset_impl();
-    json_adapter_map_t get_subfields_impl();
-    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
-
-    json_adapter_map_t sub_adapters_;
-    const ctx_t ctx_;
-
-    DISABLE_COPYING(json_combiner_adapter_t);
-};
-
 /* This adapter is a little bit different from the other ones, it's meant to
  * target a map and allow a way to insert in to it, using serveside generated
  * keys. Because of this the render and apply functions have different schemas
@@ -231,8 +207,8 @@ private:
  *  inserter gives you an empty map.
  */
 template <class container_t, class ctx_t>
-class json_map_inserter_t : public json_adapter_if_t<ctx_t> {
-    typedef typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_map_t;
+class json_map_inserter_t : public json_adapter_if_t {
+    typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
     typedef boost::function<typename container_t::key_type()> gen_function_t;
     typedef typename container_t::mapped_type value_t;
     typedef std::set<typename container_t::key_type> keys_set_t;
@@ -261,8 +237,8 @@ private:
  * thus creating an adapter for a map with which we can do normal modifications
  * and insertions */
 template <class container_t, class ctx_t>
-class json_adapter_with_inserter_t : public json_adapter_if_t<ctx_t> {
-    typedef typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_map_t;
+class json_adapter_with_inserter_t : public json_adapter_if_t {
+    typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
     typedef boost::function<typename container_t::key_type()> gen_function_t;
     typedef typename container_t::mapped_type value_t;
 public:
@@ -317,7 +293,7 @@ void reset_json(T *, const ctx_t &) {
 
 //JSON adapter for int
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(int *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(int *, const ctx_t &);
 
 template <class ctx_t>
 cJSON *render_as_json(int *, const ctx_t &);
@@ -330,7 +306,7 @@ void on_subfield_change(int *, const ctx_t &);
 
 //JSON adapter for time_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(time_t *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(time_t *, const ctx_t &);
 
 template <class ctx_t>
 cJSON *render_as_json(time_t *, const ctx_t &);
@@ -343,7 +319,7 @@ void on_subfield_change(time_t *, const ctx_t &);
 
 //JSON adapter for uint64_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(uint64_t *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(uint64_t *, const ctx_t &);
 
 template <class ctx_t>
 cJSON *render_as_json(uint64_t *, const ctx_t &);
@@ -356,7 +332,7 @@ void on_subfield_change(uint64_t *, const ctx_t &);
 
 //JSON adapter for char
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(char *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(char *, const ctx_t &);
 
 template <class ctx_t>
 cJSON *render_as_json(char *, const ctx_t &);
@@ -369,7 +345,7 @@ void on_subfield_change(char *, const ctx_t &);
 
 //JSON adapter for bool
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(bool *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(bool *, const ctx_t &);
 
 template <class ctx_t>
 cJSON *render_as_json(bool *, const ctx_t &);
@@ -382,7 +358,7 @@ void on_subfield_change(bool *, const ctx_t &);
 
 //JSON adapter for uuid_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(uuid_t *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_t *, const ctx_t &);
 
 template <class ctx_t>
 cJSON *render_as_json(const uuid_t *, const ctx_t &);
@@ -397,7 +373,7 @@ namespace boost {
 
 //JSON adapter for boost::optional
 template <class T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(boost::optional<T> *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(boost::optional<T> *, const ctx_t &);
 
 template <class T, class ctx_t>
 cJSON *render_as_json(boost::optional<T> *, const ctx_t &);
@@ -410,7 +386,7 @@ void on_subfield_change(boost::optional<T> *, const ctx_t &);
 
 //JSON adapter for boost::variant
 template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *, const ctx_t &);
 
 template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20, class ctx_t>
 cJSON *render_as_json(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *, const ctx_t &);
@@ -425,7 +401,7 @@ void on_subfield_change(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, 
 namespace std {
 //JSON adapter for std::string
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::string *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(std::string *, const ctx_t &);
 
 template <class ctx_t>
 cJSON *render_as_json(std::string *, const ctx_t &);
@@ -438,7 +414,7 @@ void  on_subfield_change(std::string *, const ctx_t &);
 
 //JSON adapter for std::map
 template <class K, class V, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::map<K, V> *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(std::map<K, V> *, const ctx_t &);
 
 template <class K, class V, class ctx_t>
 cJSON *render_as_json(std::map<K, V> *, const ctx_t &);
@@ -451,7 +427,7 @@ void on_subfield_change(std::map<K, V> *, const ctx_t &);
 
 //JSON adapter for std::set
 template <class V, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::set<V> *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(std::set<V> *, const ctx_t &);
 
 template <class V, class ctx_t>
 cJSON *render_as_json(std::set<V> *, const ctx_t &);
@@ -464,7 +440,7 @@ void on_subfield_change(std::set<V> *, const ctx_t &);
 
 //JSON adapter for std::pair
 template <class F, class S, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::pair<F, S> *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(std::pair<F, S> *, const ctx_t &);
 
 template <class F, class S, class ctx_t>
 cJSON *render_as_json(std::pair<F, S> *, const ctx_t &);
@@ -477,7 +453,7 @@ void on_subfield_change(std::pair<F, S> *, const ctx_t &);
 
 //JSON adapter for std::vector
 template <class V, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::vector<V> *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(std::vector<V> *, const ctx_t &);
 
 template <class V, class ctx_t>
 cJSON *render_as_json(std::vector<V> *, const ctx_t &);
