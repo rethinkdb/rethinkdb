@@ -24,11 +24,11 @@ public:
     json_vclock_resolver_t(vclock_t<T> *, const ctx_t &ctx);
 
 private:
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_subfields_impl(const ctx_t &);
-    cJSON *render_impl(const ctx_t &);
-    void apply_impl(cJSON *change, const ctx_t &);
-    void reset_impl(const ctx_t &);
-    void erase_impl(const ctx_t &);
+    typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_subfields_impl();
+    cJSON *render_impl();
+    void apply_impl(cJSON *change);
+    void reset_impl();
+    void erase_impl();
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 
     vclock_t<T> *target_;
@@ -43,11 +43,11 @@ public:
     explicit json_vclock_adapter_t(vclock_t<T> *, const ctx_t &ctx);
 
 private:
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_subfields_impl(const ctx_t &);
-    cJSON *render_impl(const ctx_t &);
-    void apply_impl(cJSON *, const ctx_t &);
-    void reset_impl(const ctx_t &);
-    void erase_impl(const ctx_t &);
+    typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_subfields_impl();
+    cJSON *render_impl();
+    void apply_impl(cJSON *);
+    void reset_impl();
+    void erase_impl();
     boost::shared_ptr<subfield_change_functor_t<ctx_t> >  get_change_callback();
 
     vclock_t<T> *target_;

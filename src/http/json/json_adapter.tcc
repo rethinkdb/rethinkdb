@@ -27,8 +27,8 @@ void standard_subfield_change_functor_t<T, ctx_t>::on_change(const ctx_t &ctx) {
 
 //implementation for json_adapter_if_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_if_t<ctx_t>::get_subfields(const ctx_t &ctx) {
-    json_adapter_map_t res = get_subfields_impl(ctx);
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_if_t<ctx_t>::get_subfields(UNUSED const ctx_t &ctx) {
+    json_adapter_map_t res = get_subfields_impl();
     for (typename json_adapter_map_t::iterator it  = res.begin();
                                                it != res.end();
                                                it++) {
@@ -43,14 +43,14 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_if_t<ctx_t>::
 }
 
 template <class ctx_t>
-cJSON *json_adapter_if_t<ctx_t>::render(const ctx_t &ctx) {
-    return render_impl(ctx);
+cJSON *json_adapter_if_t<ctx_t>::render(UNUSED const ctx_t &ctx) {
+    return render_impl();
 }
 
 template <class ctx_t>
 void json_adapter_if_t<ctx_t>::apply(cJSON *change, const ctx_t &ctx) {
     try {
-        apply_impl(change, ctx);
+        apply_impl(change);
     } catch (std::runtime_error e) {
         std::string s = cJSON_print_std_string(change);
         throw schema_mismatch_exc_t(strprintf("Failed to apply change: %s", s.c_str()));
@@ -71,7 +71,7 @@ void json_adapter_if_t<ctx_t>::apply(cJSON *change, const ctx_t &ctx) {
 
 template <class ctx_t>
 void json_adapter_if_t<ctx_t>::erase(const ctx_t &ctx) {
-    erase_impl(ctx);
+    erase_impl();
 
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > change_callback = get_change_callback();
     if (change_callback) {
@@ -89,7 +89,7 @@ void json_adapter_if_t<ctx_t>::erase(const ctx_t &ctx) {
 
 template <class ctx_t>
 void json_adapter_if_t<ctx_t>::reset(const ctx_t &ctx) {
-    reset_impl(ctx);
+    reset_impl();
 
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > change_callback = get_change_callback();
     if (change_callback) {
@@ -111,33 +111,28 @@ json_adapter_t<T, ctx_t>::json_adapter_t(T *target, const ctx_t &ctx)
     : target_(target), ctx_(ctx) { }
 
 template <class T, class ctx_t>
-cJSON *json_adapter_t<T, ctx_t>::render_impl(const ctx_t &ctx) {
-    rassert(ctx == ctx_);
+cJSON *json_adapter_t<T, ctx_t>::render_impl() {
     return render_as_json(target_, ctx_);
 }
 
 template <class T, class ctx_t>
-void json_adapter_t<T, ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
-    rassert(ctx == ctx_);
+void json_adapter_t<T, ctx_t>::apply_impl(cJSON *change) {
     apply_json_to(change, target_, ctx_);
 }
 
 template <class T, class ctx_t>
-void json_adapter_t<T, ctx_t>::erase_impl(const ctx_t &ctx) {
-    rassert(ctx == ctx_);
+void json_adapter_t<T, ctx_t>::erase_impl() {
     erase_json(target_, ctx_);
 }
 
 template <class T, class ctx_t>
-void json_adapter_t<T, ctx_t>::reset_impl(const ctx_t &ctx) {
-    rassert(ctx == ctx_);
+void json_adapter_t<T, ctx_t>::reset_impl() {
     reset_json(target_, ctx_);
 }
 
 
 template <class T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_t<T, ctx_t>::get_subfields_impl(const ctx_t &ctx) {
-    rassert(ctx == ctx_);
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_t<T, ctx_t>::get_subfields_impl() {
     return get_json_subfields(target_, ctx_);
 }
 
@@ -153,17 +148,17 @@ json_read_only_adapter_t<T, ctx_t>::json_read_only_adapter_t(T *t, const ctx_t &
 { }
 
 template <class T, class ctx_t>
-void json_read_only_adapter_t<T, ctx_t>::apply_impl(cJSON *, const ctx_t &) {
+void json_read_only_adapter_t<T, ctx_t>::apply_impl(cJSON *) {
     throw permission_denied_exc_t("Trying to write to a readonly value");
 }
 
 template <class T, class ctx_t>
-void json_read_only_adapter_t<T, ctx_t>::erase_impl(const ctx_t &) {
+void json_read_only_adapter_t<T, ctx_t>::erase_impl() {
     throw permission_denied_exc_t("Trying to erase a readonly value");
 }
 
 template <class T, class ctx_t>
-void json_read_only_adapter_t<T, ctx_t>::reset_impl(const ctx_t &) {
+void json_read_only_adapter_t<T, ctx_t>::reset_impl() {
     throw permission_denied_exc_t("Trying to reset a readonly value");
 }
 
@@ -184,8 +179,7 @@ void json_combiner_adapter_t<ctx_t>::add_adapter(std::string key, boost::shared_
 }
 
 template <class ctx_t>
-cJSON *json_combiner_adapter_t<ctx_t>::render_impl(const ctx_t &ctx) {
-    rassert(ctx_ == ctx);
+cJSON *json_combiner_adapter_t<ctx_t>::render_impl() {
     cJSON *res = cJSON_CreateObject();
 
     for (typename json_adapter_map_t::iterator it  = sub_adapters_.begin();
@@ -198,8 +192,7 @@ cJSON *json_combiner_adapter_t<ctx_t>::render_impl(const ctx_t &ctx) {
 }
 
 template <class ctx_t>
-void json_combiner_adapter_t<ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
-    rassert(ctx_ == ctx);
+void json_combiner_adapter_t<ctx_t>::apply_impl(cJSON *change) {
     json_object_iterator_t it = get_object_it(change);
     cJSON *hd;
 
@@ -213,8 +206,7 @@ void json_combiner_adapter_t<ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx)
 }
 
 template <class ctx_t>
-void json_combiner_adapter_t<ctx_t>::erase_impl(const ctx_t &ctx) {
-    rassert(ctx == ctx_);
+void json_combiner_adapter_t<ctx_t>::erase_impl() {
     for (typename json_adapter_map_t::iterator it  = sub_adapters_.begin();
                                                it != sub_adapters_.end();
                                                ++it) {
@@ -223,8 +215,7 @@ void json_combiner_adapter_t<ctx_t>::erase_impl(const ctx_t &ctx) {
 }
 
 template <class ctx_t>
-void json_combiner_adapter_t<ctx_t>::reset_impl(const ctx_t &ctx) {
-    rassert(ctx == ctx_);
+void json_combiner_adapter_t<ctx_t>::reset_impl() {
     for (typename json_adapter_map_t::iterator it  = sub_adapters_.begin();
                                                it != sub_adapters_.end();
                                                ++it) {
@@ -233,8 +224,7 @@ void json_combiner_adapter_t<ctx_t>::reset_impl(const ctx_t &ctx) {
 }
 
 template <class ctx_t>
-typename json_combiner_adapter_t<ctx_t>::json_adapter_map_t json_combiner_adapter_t<ctx_t>::get_subfields_impl(const ctx_t &ctx) {
-    rassert(ctx == ctx_);
+typename json_combiner_adapter_t<ctx_t>::json_adapter_map_t json_combiner_adapter_t<ctx_t>::get_subfields_impl() {
     return sub_adapters_;
 }
 
@@ -250,9 +240,7 @@ json_map_inserter_t<container_t, ctx_t>::json_map_inserter_t(container_t *_targe
 { }
 
 template <class container_t, class ctx_t>
-cJSON *json_map_inserter_t<container_t, ctx_t>::render_impl(const ctx_t &_ctx) {
-    rassert(ctx == _ctx);
-
+cJSON *json_map_inserter_t<container_t, ctx_t>::render_impl() {
     /* This is perhaps a bit confusing, json_map_inserters will generally
      * render as nothing (an empty object) unless they have been used to insert
      * something, this is kind of a weird thing so that when someone does a
@@ -268,8 +256,7 @@ cJSON *json_map_inserter_t<container_t, ctx_t>::render_impl(const ctx_t &_ctx) {
 }
 
 template <class container_t, class ctx_t>
-void json_map_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change, const ctx_t &_ctx) {
-    rassert(ctx == _ctx);
+void json_map_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change) {
     typename container_t::key_type key = generator();
     added_keys.insert(key);
 
@@ -280,20 +267,17 @@ void json_map_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change, const ct
 }
 
 template <class container_t, class ctx_t>
-void json_map_inserter_t<container_t, ctx_t>::erase_impl(const ctx_t &_ctx) {
-    rassert(ctx == _ctx);
+void json_map_inserter_t<container_t, ctx_t>::erase_impl() {
     throw permission_denied_exc_t("Trying to erase a value that can't be erase.");
 }
 
 template <class container_t, class ctx_t>
-void json_map_inserter_t<container_t, ctx_t>::reset_impl(const ctx_t &_ctx) {
-    rassert(ctx == _ctx);
+void json_map_inserter_t<container_t, ctx_t>::reset_impl() {
     throw permission_denied_exc_t("Trying to reset a value that can't be reset.");
 }
 
 template <class container_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_map_inserter_t<container_t, ctx_t>::get_subfields_impl(const ctx_t &_ctx) {
-    rassert(ctx == _ctx);
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_map_inserter_t<container_t, ctx_t>::get_subfields_impl() {
     json_adapter_map_t res;
     for (typename keys_set_t::iterator it =  added_keys.begin();
                                        it != added_keys.end();
@@ -318,32 +302,27 @@ json_adapter_with_inserter_t<container_t, ctx_t>::json_adapter_with_inserter_t(c
 { }
 
 template <class container_t, class ctx_t>
-cJSON *json_adapter_with_inserter_t<container_t, ctx_t>::render_impl(const ctx_t &_ctx) {
-    rassert(ctx == _ctx);
+cJSON *json_adapter_with_inserter_t<container_t, ctx_t>::render_impl() {
     return render_as_json(target, ctx);
 }
 
 template <class container_t, class ctx_t>
-void json_adapter_with_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change, const ctx_t &_ctx) {
-    rassert(ctx == _ctx);
+void json_adapter_with_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change) {
     apply_json_to(change, target, ctx);
 }
 
 template <class container_t, class ctx_t>
-void json_adapter_with_inserter_t<container_t, ctx_t>::erase_impl(const ctx_t &_ctx) {
-    rassert(ctx == _ctx);
+void json_adapter_with_inserter_t<container_t, ctx_t>::erase_impl() {
     erase_json(target, ctx);
 }
 
 template <class container_t, class ctx_t>
-void json_adapter_with_inserter_t<container_t, ctx_t>::reset_impl(const ctx_t &_ctx) {
-    rassert(ctx == _ctx);
+void json_adapter_with_inserter_t<container_t, ctx_t>::reset_impl() {
     reset_json(target, ctx);
 }
 
 template <class container_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_with_inserter_t<container_t, ctx_t>::get_subfields_impl(const ctx_t &_ctx) {
-    rassert(ctx == _ctx);
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_with_inserter_t<container_t, ctx_t>::get_subfields_impl() {
     json_adapter_map_t res = get_json_subfields(target, ctx);
     rassert(res.find(inserter_key) == res.end(), "Error, inserter_key %s  conflicts with another field of the target, (you probably want to change the value of inserter_key).", inserter_key.c_str());
     res[inserter_key] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_map_inserter_t<container_t, ctx_t>(target, generator, ctx, initial_value));
@@ -352,8 +331,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_with_inserter
 }
 
 template <class container_t, class ctx_t>
-void json_adapter_with_inserter_t<container_t, ctx_t>::on_change(const ctx_t &_ctx) {
-    rassert(ctx == _ctx);
+void json_adapter_with_inserter_t<container_t, ctx_t>::on_change() {
     on_subfield_change(target, ctx);
 }
 

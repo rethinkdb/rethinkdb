@@ -122,11 +122,11 @@ public:
     void reset(const ctx_t &);
 
 private:
-    virtual json_adapter_map_t get_subfields_impl(const ctx_t &) = 0;
-    virtual cJSON *render_impl(const ctx_t &) = 0;
-    virtual void apply_impl(cJSON *, const ctx_t &) = 0;
-    virtual void erase_impl(const ctx_t &) = 0;
-    virtual void reset_impl(const ctx_t &) = 0;
+    virtual json_adapter_map_t get_subfields_impl() = 0;
+    virtual cJSON *render_impl() = 0;
+    virtual void apply_impl(cJSON *) = 0;
+    virtual void erase_impl() = 0;
+    virtual void reset_impl() = 0;
     /* follows the creation paradigm, ie the caller is responsible for the
      * object this points to */
     virtual boost::shared_ptr<subfield_change_functor_t<ctx_t> >  get_change_callback() = 0;
@@ -146,11 +146,11 @@ public:
     json_adapter_t(T *, const ctx_t &);
 
 private:
-    json_adapter_map_t get_subfields_impl(const ctx_t &);
-    cJSON *render_impl(const ctx_t &);
-    virtual void apply_impl(cJSON *, const ctx_t &);
-    virtual void erase_impl(const ctx_t &);
-    virtual void reset_impl(const ctx_t &);
+    json_adapter_map_t get_subfields_impl();
+    cJSON *render_impl();
+    virtual void apply_impl(cJSON *);
+    virtual void erase_impl();
+    virtual void reset_impl();
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 
     T *target_;
@@ -167,9 +167,9 @@ public:
     json_read_only_adapter_t(T *, const ctx_t &);
 
 private:
-    void apply_impl(cJSON *, const ctx_t &);
-    void erase_impl(const ctx_t &);
-    void reset_impl(const ctx_t &);
+    void apply_impl(cJSON *);
+    void erase_impl();
+    void reset_impl();
 
     DISABLE_COPYING(json_read_only_adapter_t);
 };
@@ -199,11 +199,11 @@ public:
     explicit json_combiner_adapter_t(const ctx_t &ctx);
     void add_adapter(std::string key, boost::shared_ptr<json_adapter_if_t<ctx_t> > adapter);
 private:
-    cJSON *render_impl(const ctx_t &);
-    void apply_impl(cJSON *, const ctx_t &);
-    void erase_impl(const ctx_t &);
-    void reset_impl(const ctx_t &);
-    json_adapter_map_t get_subfields_impl(const ctx_t &);
+    cJSON *render_impl();
+    void apply_impl(cJSON *);
+    void erase_impl();
+    void reset_impl();
+    json_adapter_map_t get_subfields_impl();
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 
     json_adapter_map_t sub_adapters_;
@@ -236,11 +236,11 @@ public:
     json_map_inserter_t(container_t *, gen_function_t, const ctx_t &ctx, value_t _initial_value = value_t());
 
 private:
-    cJSON *render_impl(const ctx_t &);
-    void apply_impl(cJSON *, const ctx_t &);
-    void erase_impl(const ctx_t &);
-    void reset_impl(const ctx_t &);
-    json_adapter_map_t get_subfields_impl(const ctx_t &);
+    cJSON *render_impl();
+    void apply_impl(cJSON *);
+    void erase_impl();
+    void reset_impl();
+    json_adapter_map_t get_subfields_impl();
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 
     container_t *target;
@@ -263,12 +263,12 @@ class json_adapter_with_inserter_t : public json_adapter_if_t<ctx_t> {
 public:
     json_adapter_with_inserter_t(container_t *, gen_function_t, const ctx_t &ctx, value_t _initial_value = value_t(), std::string _inserter_key = std::string("new"));
 private:
-    json_adapter_map_t get_subfields_impl(const ctx_t &);
-    cJSON *render_impl(const ctx_t &);
-    void apply_impl(cJSON *, const ctx_t &);
-    void erase_impl(const ctx_t &);
-    void reset_impl(const ctx_t &);
-    void on_change(const ctx_t &);
+    json_adapter_map_t get_subfields_impl();
+    cJSON *render_impl();
+    void apply_impl(cJSON *);
+    void erase_impl();
+    void reset_impl();
+    void on_change();
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 private:
     container_t *target;
