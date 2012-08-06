@@ -347,7 +347,7 @@ class ProxyProcess(_Process):
         self.cluster_port = cluster.metacluster.base_port + self.id_number * 2
         self.local_cluster_port = cluster.metacluster.base_port + self.id_number * 2 + 1
         self.http_port = self.cluster_port + 1000
-        self.port_offset = self.id_number
+        self.port_offset = self.cluster_port
 
         options = ["proxy",
                    "--log-file=" + self.logfile_path,
