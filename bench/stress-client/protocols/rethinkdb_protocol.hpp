@@ -243,7 +243,7 @@ struct rethinkdb_protocol_t : protocol_t {
         if (response->token() != query->token()) {
             fprintf(stderr, "Range read response token %ld did not match query token %ld.\n", response->token(), query->token());
         }
-        if (response->status_code() != Response::SUCCESS_JSON) {
+        if (response->status_code() != Response::SUCCESS_STREAM) {
             fprintf(stderr, "Failed to range read key %s to key %s: %s\n", lkey, rkey, response->error_message().c_str());
         }
 
@@ -384,6 +384,7 @@ private:
         Term::Table *table = args->mutable_table();
         TableRef *table_ref = table->mutable_table_ref();
         table_ref->set_table_name(RDB_TABLE_NAME);
+        read_query->set_max_chunk_size(0); // no chunking
     }
     
     // TODO: add timeout to send_all and recv_all?
