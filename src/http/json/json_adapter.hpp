@@ -268,7 +268,6 @@ private:
     void apply_impl(cJSON *);
     void erase_impl();
     void reset_impl();
-    void on_change();
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 private:
     container_t *target;

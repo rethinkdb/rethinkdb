@@ -331,11 +331,6 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_with_inserter
 }
 
 template <class container_t, class ctx_t>
-void json_adapter_with_inserter_t<container_t, ctx_t>::on_change() {
-    on_subfield_change(target, ctx);
-}
-
-template <class container_t, class ctx_t>
 boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_adapter_with_inserter_t<container_t, ctx_t>::get_change_callback() {
     return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new standard_subfield_change_functor_t<container_t, ctx_t>(target));
 }
