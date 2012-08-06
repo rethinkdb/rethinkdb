@@ -82,9 +82,8 @@ template<class protocol_t>
 struct dummy_timestamper_t {
 
 public:
-    explicit dummy_timestamper_t(dummy_performer_t<protocol_t> *n, order_source_t *order_source) :
-        next(n), current_timestamp(state_timestamp_t::zero())
-    {
+    dummy_timestamper_t(dummy_performer_t<protocol_t> *n, order_source_t *order_source)
+        : next(n), current_timestamp(state_timestamp_t::zero()) {
         cond_t interruptor;
 
         scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;

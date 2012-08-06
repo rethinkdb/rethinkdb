@@ -8,12 +8,12 @@
  * implementing the rdb_protocol. */
 
 namespace query_language {
-    
+
 int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace);
 
 class shared_scoped_less {
 public:
-    explicit shared_scoped_less() { }
+    shared_scoped_less() { }
     explicit shared_scoped_less(const backtrace_t &bt) : backtrace(bt) { }
     bool operator()(const boost::shared_ptr<scoped_cJSON_t> &a,
                       const boost::shared_ptr<scoped_cJSON_t> &b) {

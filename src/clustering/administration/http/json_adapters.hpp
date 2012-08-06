@@ -40,7 +40,7 @@ private:
 template <class T, class ctx_t>
 class json_vclock_adapter_t : public json_adapter_if_t {
 public:
-    explicit json_vclock_adapter_t(vclock_t<T> *, const ctx_t &ctx);
+    json_vclock_adapter_t(vclock_t<T> *, const ctx_t &ctx);
 
 private:
     json_adapter_if_t::json_adapter_map_t get_subfields_impl();
