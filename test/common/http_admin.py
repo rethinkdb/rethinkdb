@@ -427,7 +427,7 @@ class ClusterAccess(object):
 
     def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }, check = True):
         if port is None:
-            port = random.randint(20000, 60000)
+            port = random.randint(10000, 20000)
         if name is None:
             name = str(random.randint(0, 1000000))
         if primary is not None:
