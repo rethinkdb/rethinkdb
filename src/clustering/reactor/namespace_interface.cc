@@ -191,8 +191,7 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
     }
 
     std::vector<boost::variant<typename protocol_t::read_response_t, std::string> > results_or_failures(direct_readers_to_contact.size());
-    pmap(direct_readers_to_contact.size(), boost::bind(
-                                                       &cluster_namespace_interface_t::perform_outdated_read, this,
+    pmap(direct_readers_to_contact.size(), boost::bind(&cluster_namespace_interface_t::perform_outdated_read, this,
                                                        &direct_readers_to_contact, &op, &results_or_failures, _1, interruptor));
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
