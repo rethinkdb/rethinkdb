@@ -83,26 +83,31 @@ json_array_iterator_t get_array_it(cJSON *json);
 
 json_object_iterator_t get_object_it(cJSON *json);
 
-template <class ctx_t>
 class subfield_change_functor_t {
 public:
-    virtual void on_change(const ctx_t &) = 0;
+    subfield_change_functor_t() { }
+    virtual void on_change() = 0;
     virtual ~subfield_change_functor_t() { }
+
+private:
+    DISABLE_COPYING(subfield_change_functor_t);
 };
 
-template <class ctx_t>
-class noop_subfield_change_functor_t : public subfield_change_functor_t<ctx_t> {
+class noop_subfield_change_functor_t : public subfield_change_functor_t {
 public:
-    void on_change(const ctx_t &) { }
+    void on_change() { }
 };
 
 template <class T, class ctx_t>
-class standard_subfield_change_functor_t : public subfield_change_functor_t<ctx_t>{
+class standard_subfield_change_functor_t : public subfield_change_functor_t {
+public:
+    explicit standard_subfield_change_functor_t(T *target, const ctx_t &ctx);
+    void on_change();
 private:
     T *target;
-public:
-    explicit standard_subfield_change_functor_t(T *);
-    void on_change(const ctx_t &);
+    const ctx_t ctx;
+
+    DISABLE_COPYING(standard_subfield_change_functor_t);
 };
 
 //TODO come up with a better name for this
@@ -129,9 +134,9 @@ private:
     virtual void reset_impl() = 0;
     /* follows the creation paradigm, ie the caller is responsible for the
      * object this points to */
-    virtual boost::shared_ptr<subfield_change_functor_t<ctx_t> >  get_change_callback() = 0;
+    virtual boost::shared_ptr<subfield_change_functor_t>  get_change_callback() = 0;
 
-    std::vector<boost::shared_ptr<subfield_change_functor_t<ctx_t> > > superfields;
+    std::vector<boost::shared_ptr<subfield_change_functor_t> > superfields;
 
     DISABLE_COPYING(json_adapter_if_t);
 };
@@ -151,7 +156,7 @@ private:
     virtual void apply_impl(cJSON *);
     virtual void erase_impl();
     virtual void reset_impl();
-    boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
 
     T *target_;
     const ctx_t ctx_;
@@ -204,7 +209,7 @@ private:
     void erase_impl();
     void reset_impl();
     json_adapter_map_t get_subfields_impl();
-    boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
 
     json_adapter_map_t sub_adapters_;
     const ctx_t ctx_;
@@ -241,7 +246,7 @@ private:
     void erase_impl();
     void reset_impl();
     json_adapter_map_t get_subfields_impl();
-    boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
 
     container_t *target;
     gen_function_t generator;
@@ -268,7 +273,7 @@ private:
     void apply_impl(cJSON *);
     void erase_impl();
     void reset_impl();
-    boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
 private:
     container_t *target;
     gen_function_t generator;

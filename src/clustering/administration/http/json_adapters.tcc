@@ -96,8 +96,8 @@ void json_vclock_resolver_t<T, ctx_t>::erase_impl() {
 }
 
 template <class T, class ctx_t>
-boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_vclock_resolver_t<T, ctx_t>::get_change_callback() {
-    return boost::shared_ptr<subfield_change_functor_t<ctx_t> >();
+boost::shared_ptr<subfield_change_functor_t> json_vclock_resolver_t<T, ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>();
 }
 
 template <class T, class ctx_t>
@@ -138,8 +138,8 @@ void json_vclock_adapter_t<T, ctx_t>::erase_impl() {
 }
 
 template <class T, class ctx_t>
-boost::shared_ptr<subfield_change_functor_t<ctx_t> >  json_vclock_adapter_t<T, ctx_t>::get_change_callback() {
-    return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new standard_subfield_change_functor_t<vclock_t<T>, ctx_t>(target_));
+boost::shared_ptr<subfield_change_functor_t>  json_vclock_adapter_t<T, ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>(new standard_subfield_change_functor_t<vclock_t<T>, ctx_t>(target_, ctx_));
 }
 
 //json adapter concept for deletable_t
@@ -231,8 +231,8 @@ private:
 
     /* follows the creation paradigm, ie the caller is responsible for the
      * object this points to */
-    boost::shared_ptr<subfield_change_functor_t<ctx_t> >  get_change_callback() {
-        return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new noop_subfield_change_functor_t<ctx_t>());
+    boost::shared_ptr<subfield_change_functor_t>  get_change_callback() {
+        return boost::shared_ptr<subfield_change_functor_t>(new noop_subfield_change_functor_t());
     }
 
     target_region_map_t *parent;

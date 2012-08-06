@@ -16,12 +16,11 @@
 
 //implementation for subfield_functor_t
 template<class T, class ctx_t>
-standard_subfield_change_functor_t<T, ctx_t>::standard_subfield_change_functor_t(T *_target)
-    : target(_target)
-{ }
+standard_subfield_change_functor_t<T, ctx_t>::standard_subfield_change_functor_t(T *_target, const ctx_t &_ctx)
+    : target(_target), ctx(_ctx) { }
 
 template<class T, class ctx_t>
-void standard_subfield_change_functor_t<T, ctx_t>::on_change(const ctx_t &ctx) {
+void standard_subfield_change_functor_t<T, ctx_t>::on_change() {
     on_subfield_change(target, ctx);
 }
 
@@ -48,59 +47,59 @@ cJSON *json_adapter_if_t<ctx_t>::render(UNUSED const ctx_t &ctx) {
 }
 
 template <class ctx_t>
-void json_adapter_if_t<ctx_t>::apply(cJSON *change, const ctx_t &ctx) {
+void json_adapter_if_t<ctx_t>::apply(cJSON *change, UNUSED const ctx_t &ctx) {
     try {
         apply_impl(change);
     } catch (std::runtime_error e) {
         std::string s = cJSON_print_std_string(change);
         throw schema_mismatch_exc_t(strprintf("Failed to apply change: %s", s.c_str()));
     }
-    boost::shared_ptr<subfield_change_functor_t<ctx_t> > change_callback = get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> change_callback = get_change_callback();
     if (change_callback) {
-        get_change_callback()->on_change(ctx);
+        get_change_callback()->on_change();
     }
 
-    for (typename std::vector<boost::shared_ptr<subfield_change_functor_t<ctx_t> > >::iterator it  = superfields.begin();
+    for (typename std::vector<boost::shared_ptr<subfield_change_functor_t> >::iterator it  = superfields.begin();
                                                                                              it != superfields.end();
                                                                                              it++) {
         if (*it) {
-            (*it)->on_change(ctx);
+            (*it)->on_change();
         }
     }
 }
 
 template <class ctx_t>
-void json_adapter_if_t<ctx_t>::erase(const ctx_t &ctx) {
+void json_adapter_if_t<ctx_t>::erase(UNUSED const ctx_t &ctx) {
     erase_impl();
 
-    boost::shared_ptr<subfield_change_functor_t<ctx_t> > change_callback = get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> change_callback = get_change_callback();
     if (change_callback) {
-        get_change_callback()->on_change(ctx);
+        get_change_callback()->on_change();
     }
 
-    for (typename std::vector<boost::shared_ptr<subfield_change_functor_t<ctx_t> > >::iterator it  = superfields.begin();
+    for (typename std::vector<boost::shared_ptr<subfield_change_functor_t> >::iterator it  = superfields.begin();
                                                                                              it != superfields.end();
                                                                                              it++) {
         if (*it) {
-            (*it)->on_change(ctx);
+            (*it)->on_change();
         }
     }
 }
 
 template <class ctx_t>
-void json_adapter_if_t<ctx_t>::reset(const ctx_t &ctx) {
+void json_adapter_if_t<ctx_t>::reset(UNUSED const ctx_t &ctx) {
     reset_impl();
 
-    boost::shared_ptr<subfield_change_functor_t<ctx_t> > change_callback = get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> change_callback = get_change_callback();
     if (change_callback) {
-        get_change_callback()->on_change(ctx);
+        get_change_callback()->on_change();
     }
 
-    for (typename std::vector<boost::shared_ptr<subfield_change_functor_t<ctx_t> > >::iterator it  = superfields.begin();
+    for (typename std::vector<boost::shared_ptr<subfield_change_functor_t> >::iterator it  = superfields.begin();
                                                                                              it != superfields.end();
                                                                                              it++) {
         if (*it) {
-            (*it)->on_change(ctx);
+            (*it)->on_change();
         }
     }
 }
@@ -137,8 +136,8 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_t<T, ctx_t>::
 }
 
 template <class T, class ctx_t>
-boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_adapter_t<T, ctx_t>::get_change_callback() {
-    return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new standard_subfield_change_functor_t<T, ctx_t>(target_));
+boost::shared_ptr<subfield_change_functor_t> json_adapter_t<T, ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>(new standard_subfield_change_functor_t<T, ctx_t>(target_, ctx_));
 }
 
 //implementation for json_read_only_adapter_t
@@ -229,8 +228,8 @@ typename json_combiner_adapter_t<ctx_t>::json_adapter_map_t json_combiner_adapte
 }
 
 template <class ctx_t>
-boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_combiner_adapter_t<ctx_t>::get_change_callback() {
-    return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new noop_subfield_change_functor_t<ctx_t>());
+boost::shared_ptr<subfield_change_functor_t> json_combiner_adapter_t<ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>(new noop_subfield_change_functor_t());
 }
 
 //implementation for map_inserter_t
@@ -289,8 +288,8 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_map_inserter_t<contai
 }
 
 template <class container_t, class ctx_t>
-boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_map_inserter_t<container_t, ctx_t>::get_change_callback() {
-    return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new standard_subfield_change_functor_t<container_t, ctx_t>(target));
+boost::shared_ptr<subfield_change_functor_t> json_map_inserter_t<container_t, ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>(new standard_subfield_change_functor_t<container_t, ctx_t>(target, ctx));
 }
 
 //implementation for json_adapter_with_inserter_t
@@ -331,8 +330,8 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_with_inserter
 }
 
 template <class container_t, class ctx_t>
-boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_adapter_with_inserter_t<container_t, ctx_t>::get_change_callback() {
-    return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new standard_subfield_change_functor_t<container_t, ctx_t>(target));
+boost::shared_ptr<subfield_change_functor_t> json_adapter_with_inserter_t<container_t, ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>(new standard_subfield_change_functor_t<container_t, ctx_t>(target, ctx));
 }
 
 /* Here we have implementations of the json adapter concept for several

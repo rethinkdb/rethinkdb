@@ -29,7 +29,7 @@ private:
     void apply_impl(cJSON *change);
     void reset_impl();
     void erase_impl();
-    boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
 
     vclock_t<T> *target_;
     const ctx_t ctx_;
@@ -48,7 +48,7 @@ private:
     void apply_impl(cJSON *);
     void reset_impl();
     void erase_impl();
-    boost::shared_ptr<subfield_change_functor_t<ctx_t> >  get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t>  get_change_callback();
 
     vclock_t<T> *target_;
     const ctx_t ctx_;
