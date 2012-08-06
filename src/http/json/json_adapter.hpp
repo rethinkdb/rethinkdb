@@ -227,18 +227,10 @@ private:
  */
 template <class container_t, class ctx_t>
 class json_map_inserter_t : public json_adapter_if_t<ctx_t> {
-private:
-    container_t *target;
     typedef typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_map_t;
-
     typedef boost::function<typename container_t::key_type()> gen_function_t;
-    gen_function_t generator;
-
     typedef typename container_t::mapped_type value_t;
-    value_t initial_value;
-
     typedef std::set<typename container_t::key_type> keys_set_t;
-    keys_set_t added_keys;
 
 public:
     json_map_inserter_t(container_t *, gen_function_t, value_t _initial_value = value_t());
@@ -250,6 +242,13 @@ private:
     void reset_impl(const ctx_t &);
     json_adapter_map_t get_subfields_impl(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
+
+    container_t *target;
+    gen_function_t generator;
+    value_t initial_value;
+    keys_set_t added_keys;
+
+    DISABLE_COPYING(json_map_inserter_t);
 };
 
 /* This combines the inserter json adapter with the standard adapter for a map,
@@ -257,21 +256,11 @@ private:
  * and insertions */
 template <class container_t, class ctx_t>
 class json_adapter_with_inserter_t : public json_adapter_if_t<ctx_t> {
-private:
-    container_t *target;
     typedef typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_map_t;
-
     typedef boost::function<typename container_t::key_type()> gen_function_t;
-    gen_function_t generator;
-
     typedef typename container_t::mapped_type value_t;
-    value_t initial_value;
-
-    std::string inserter_key;
-
 public:
     json_adapter_with_inserter_t(container_t *, gen_function_t, const ctx_t &ctx, value_t _initial_value = value_t(), std::string _inserter_key = std::string("new"));
-
 private:
     json_adapter_map_t get_subfields_impl(const ctx_t &);
     cJSON *render_impl(const ctx_t &);
@@ -280,6 +269,13 @@ private:
     void reset_impl(const ctx_t &);
     void on_change(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
+private:
+    container_t *target;
+    gen_function_t generator;
+    value_t initial_value;
+    std::string inserter_key;
+
+    DISABLE_COPYING(json_adapter_with_inserter_t);
 };
 
 /* Erase is a fairly rare function for an adapter to allow so we implement a
