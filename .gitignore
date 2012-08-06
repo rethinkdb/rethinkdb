@@ -20,6 +20,8 @@ rethinkdb_metadata
 test/unit/.retest
 bench/stress-client/stress
 bench/stress-client/libstress.so
+bench/stress-client/*.o
+bench/stress-client/protocols/*.o
 bench/serializer-bench/serializer-bench
 bench/serializer-bench/gmon.out
 bench/serializer-bench/main.o

@@ -14,11 +14,11 @@
 
 //json adapter concept for vclock_t
 template <class T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(vclock_t<T> *target, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(vclock_t<T> *target, const ctx_t &ctx) {
     try {
         return get_json_subfields(&target->get_mutable(), ctx);
     } catch (in_conflict_exc_t e) {
-        return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+        return json_adapter_if_t::json_adapter_map_t();
     }
 }
 
@@ -68,85 +68,83 @@ void on_subfield_change(vclock_t<T> *target, const ctx_t &ctx) {
 
 
 template <class T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_vclock_resolver_t<T, ctx_t>::get_subfields_impl(const ctx_t &) {
-    return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+json_adapter_if_t::json_adapter_map_t json_vclock_resolver_t<T, ctx_t>::get_subfields_impl() {
+    return json_adapter_if_t::json_adapter_map_t();
 }
 
 template <class T, class ctx_t>
-cJSON *json_vclock_resolver_t<T, ctx_t>::render_impl(const ctx_t &ctx) {
-    return render_all_values(target, ctx);
+cJSON *json_vclock_resolver_t<T, ctx_t>::render_impl() {
+    return render_all_values(target_, ctx_);
 }
 
 template <class T, class ctx_t>
-void json_vclock_resolver_t<T, ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
+void json_vclock_resolver_t<T, ctx_t>::apply_impl(cJSON *change) {
     T new_value;
-    apply_json_to(change, &new_value, ctx);
+    apply_json_to(change, &new_value, ctx_);
 
-    *target = target->make_resolving_version(new_value, ctx.us);
+    *target_ = target_->make_resolving_version(new_value, ctx_.us);
 }
 
 template <class T, class ctx_t>
-void json_vclock_resolver_t<T, ctx_t>::reset_impl(const ctx_t &) {
+void json_vclock_resolver_t<T, ctx_t>::reset_impl() {
     throw permission_denied_exc_t("Can't reset a vclock resolver.\n");
 }
 
 template <class T, class ctx_t>
-void json_vclock_resolver_t<T, ctx_t>::erase_impl(const ctx_t &) {
+void json_vclock_resolver_t<T, ctx_t>::erase_impl() {
     throw permission_denied_exc_t("Can't erase a vclock resolver.\n");
 }
 
 template <class T, class ctx_t>
-boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_vclock_resolver_t<T, ctx_t>::get_change_callback() {
-    return boost::shared_ptr<subfield_change_functor_t<ctx_t> >();
+boost::shared_ptr<subfield_change_functor_t> json_vclock_resolver_t<T, ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>();
 }
 
 template <class T, class ctx_t>
-json_vclock_resolver_t<T, ctx_t>::json_vclock_resolver_t(vclock_t<T> *_target)
-    : target(_target)
-{ }
+json_vclock_resolver_t<T, ctx_t>::json_vclock_resolver_t(vclock_t<T> *target, const ctx_t &ctx)
+    : target_(target), ctx_(ctx) { }
 
 template <class T, class ctx_t>
-json_vclock_adapter_t<T, ctx_t>::json_vclock_adapter_t(vclock_t<T> *_target)
-    : target(_target)
-{ }
+json_vclock_adapter_t<T, ctx_t>::json_vclock_adapter_t(vclock_t<T> *target, const ctx_t &ctx)
+    : target_(target), ctx_(ctx) { }
 
 template <class T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_vclock_adapter_t<T, ctx_t>::get_subfields_impl(const ctx_t &ctx) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res = get_json_subfields(target, ctx);
+json_adapter_if_t::json_adapter_map_t json_vclock_adapter_t<T, ctx_t>::get_subfields_impl() {
+    json_adapter_if_t::json_adapter_map_t res = get_json_subfields(target_, ctx_);
     rassert(!std_contains(res, "resolve"), "Programmer error: do not put anything with a \"resolve\" subfield in a vector clock.\n");
-    res["resolve"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_resolver_t<T, ctx_t>(target));
+    res["resolve"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_resolver_t<T, ctx_t>(target_, ctx_));
 
     return res;
 }
 
 template <class T, class ctx_t>
-cJSON *json_vclock_adapter_t<T, ctx_t>::render_impl(const ctx_t &ctx) {
-    return render_as_json(target, ctx);
+cJSON *json_vclock_adapter_t<T, ctx_t>::render_impl() {
+    return render_as_json(target_, ctx_);
 }
 
 template <class T, class ctx_t>
-void json_vclock_adapter_t<T, ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
-    apply_json_to(change, target, ctx);
+void json_vclock_adapter_t<T, ctx_t>::apply_impl(cJSON *change) {
+    apply_json_to(change, target_, ctx_);
 }
 
 template <class T, class ctx_t>
-void json_vclock_adapter_t<T, ctx_t>::reset_impl(const ctx_t &) {
+void json_vclock_adapter_t<T, ctx_t>::reset_impl() {
     throw permission_denied_exc_t("Can't reset a vclock adapter.\n");
 }
 
 template <class T, class ctx_t>
-void json_vclock_adapter_t<T, ctx_t>::erase_impl(const ctx_t &) {
+void json_vclock_adapter_t<T, ctx_t>::erase_impl() {
     throw permission_denied_exc_t("Can't erase a vclock adapter.\n");
 }
 
 template <class T, class ctx_t>
-boost::shared_ptr<subfield_change_functor_t<ctx_t> >  json_vclock_adapter_t<T, ctx_t>::get_change_callback() {
-    return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new standard_subfield_change_functor_t<vclock_t<T>, ctx_t>(target));
+boost::shared_ptr<subfield_change_functor_t>  json_vclock_adapter_t<T, ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>(new standard_subfield_change_functor_t<vclock_t<T>, ctx_t>(target_, ctx_));
 }
 
 //json adapter concept for deletable_t
 template <class T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(deletable_t<T> *target, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(deletable_t<T> *target, const ctx_t &ctx) {
     return get_json_subfields(&target->get_mutable(), ctx);
 }
 
@@ -178,8 +176,8 @@ void on_subfield_change(deletable_t<T> *, const ctx_t &) { }
 
 //json adapter concept for peer_id_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(peer_id_t *, const ctx_t &) {
-    return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+json_adapter_if_t::json_adapter_map_t get_json_subfields(peer_id_t *, const ctx_t &) {
+    return json_adapter_if_t::json_adapter_map_t();
 }
 
 template <class ctx_t>
@@ -200,58 +198,60 @@ void on_subfield_change(peer_id_t *, const ctx_t &) { }
 
 /* A special adapter for a region_map's value */
 template <class protocol_t, class value_t, class ctx_t>
-class json_region_adapter_t : public json_adapter_if_t<ctx_t> {
+class json_region_adapter_t : public json_adapter_if_t {
 private:
     typedef region_map_t<protocol_t, value_t> target_region_map_t;
 public:
-    json_region_adapter_t(target_region_map_t *_parent, typename protocol_t::region_t _target_region)
-        : parent(_parent), target_region(_target_region)
-    { }
+    json_region_adapter_t(target_region_map_t *_parent, typename protocol_t::region_t _target_region, const ctx_t &_ctx)
+        : parent(_parent), target_region(_target_region), ctx(_ctx) { }
 private:
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_subfields_impl(const ctx_t &) {
-            return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+    json_adapter_if_t::json_adapter_map_t get_subfields_impl() {
+            return json_adapter_if_t::json_adapter_map_t();
     }
 
-    cJSON *render_impl(const ctx_t &ctx) {
+    cJSON *render_impl() {
         target_region_map_t target_map = parent->mask(target_region);
         return render_as_json(&target_map, ctx);
     }
 
-    void apply_impl(cJSON *change, const ctx_t &ctx) {
+    void apply_impl(cJSON *change) {
         value_t val;
         apply_json_to(change, &val, ctx);
 
         parent->set(target_region, val);
     }
 
-    void erase_impl(const ctx_t &) {
+    void erase_impl() {
         throw permission_denied_exc_t("Can't erase from a region map.\n");
     }
 
-    void reset_impl(const ctx_t &) {
+    void reset_impl() {
         throw permission_denied_exc_t("Can't reset from a region map.\n");
     }
 
     /* follows the creation paradigm, ie the caller is responsible for the
      * object this points to */
-    boost::shared_ptr<subfield_change_functor_t<ctx_t> >  get_change_callback() {
-        return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new noop_subfield_change_functor_t<ctx_t>());
+    boost::shared_ptr<subfield_change_functor_t>  get_change_callback() {
+        return boost::shared_ptr<subfield_change_functor_t>(new noop_subfield_change_functor_t());
     }
 
     target_region_map_t *parent;
     typename protocol_t::region_t target_region;
+    const ctx_t ctx;
+
+    DISABLE_COPYING(json_region_adapter_t);
 };
 
 //json adapter concept for region map
 template <class protocol_t, class value_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(region_map_t<protocol_t, value_t> *target, const ctx_t &ctx) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
+json_adapter_if_t::json_adapter_map_t get_json_subfields(region_map_t<protocol_t, value_t> *target, const ctx_t &ctx) {
+    json_adapter_if_t::json_adapter_map_t res;
     for (typename region_map_t<protocol_t, value_t>::iterator it  = target->begin();
                                                               it != target->end();
                                                               ++it) {
         scoped_cJSON_t key(render_as_json(&it->first, ctx));
         rassert(key.get()->type == cJSON_String);
-        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_region_adapter_t<protocol_t, value_t, ctx_t>(target, it->first));
+        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t>(new json_region_adapter_t<protocol_t, value_t, ctx_t>(target, it->first, ctx));
     }
 
     return res;

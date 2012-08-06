@@ -1,6 +1,7 @@
 #ifndef RDB_PROTOCOL_JS_HPP_
 #define RDB_PROTOCOL_JS_HPP_
 
+#include <map>
 #include <set>
 #include <string>
 #include <vector>
@@ -107,6 +108,12 @@ class runner_t :
     // Calls a previously compiled function.
     boost::shared_ptr<scoped_cJSON_t> call(
         id_t func_id,
+        // The receiver object ("this") in the function body. *Can* be an empty
+        // pointer (but not an empty scoped_cJSON_t), to indicate a default
+        // empty object receiver.
+        //
+        // Note: if present, *must* be a JSON object, not eg. an integer.
+        boost::shared_ptr<scoped_cJSON_t> object,
         const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
         std::string *errmsg,
         const req_config_t *config = NULL);

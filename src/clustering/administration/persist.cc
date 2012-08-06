@@ -4,7 +4,10 @@
 #include <sys/types.h>
 
 #include "arch/runtime/thread_pool.hpp"
+#include "buffer_cache/blob.hpp"
 #include "containers/archive/string_stream.hpp"
+#include "clustering/immediate_consistency/branch/history.hpp"
+#include "serializer/config.hpp"
 
 namespace metadata_persistence {
 
@@ -41,12 +44,12 @@ static void write_blob(transaction_t *txn, char *ref, int maxreflen, const T &va
     for (write_buffer_t *p = buffers->head(); p != NULL; p = buffers->next(p)) {
         str.append(p->data, p->size);
     }
-    rassert(str.size() == slen);
+    guarantee(str.size() == slen);
     blob_t blob(ref, maxreflen);
     blob.clear(txn);
     blob.append_region(txn, str.size());
     blob.write_from_string(str, txn, 0);
-    rassert(blob.valuesize() == static_cast<int64_t>(slen));
+    guarantee(blob.valuesize() == static_cast<int64_t>(slen));
 }
 
 template<class T>
@@ -129,12 +132,12 @@ public:
 
     branch_birth_certificate_t<protocol_t> get_branch(branch_id_t branch) THROWS_NOTHING {
         typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator it = bh.branches.find(branch);
-        rassert(it != bh.branches.end(), "no such branch");
+        guarantee(it != bh.branches.end(), "no such branch");
         return it->second;
     }
 
     void create_branch(branch_id_t branch_id, const branch_birth_certificate_t<protocol_t> &bc, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(bh.branches.find(branch_id) == bh.branches.end());
+        guarantee(bh.branches.find(branch_id) == bh.branches.end());
         bh.branches[branch_id] = bc;
         flush(interruptor);
     }
@@ -148,7 +151,7 @@ public:
             branch_id_t next = *to_process.begin();
             to_process.erase(next);
             branch_birth_certificate_t<protocol_t> bc = get_branch(next);
-            rassert(out->branches.count(next) == 0);
+            guarantee(out->branches.count(next) == 0);
             out->branches[next] = bc;
             for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = bc.origin.begin(); it != bc.origin.end(); it++) {
                 if (!it->second.latest.branch.is_nil() && out->branches.count(it->second.latest.branch) == 0) {

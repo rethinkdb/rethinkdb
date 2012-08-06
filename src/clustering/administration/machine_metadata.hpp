@@ -30,10 +30,10 @@ RDB_MAKE_EQUALITY_COMPARABLE_2(machine_semilattice_metadata_t, datacenter, name)
 
 //json adapter concept for machine_semilattice_metadata_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(machine_semilattice_metadata_t *target, const ctx_t &) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["datacenter_uuid"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<datacenter_id_t, ctx_t>(&target->datacenter));
-    res["name"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<std::string, ctx_t>(&target->name));
+json_adapter_if_t::json_adapter_map_t get_json_subfields(machine_semilattice_metadata_t *target, const ctx_t &ctx) {
+    json_adapter_if_t::json_adapter_map_t res;
+    res["datacenter_uuid"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<datacenter_id_t, ctx_t>(&target->datacenter, ctx));
+    res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::string, ctx_t>(&target->name, ctx));
 
     return res;
 }
@@ -64,7 +64,7 @@ RDB_MAKE_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
 
 //json adapter concept for machines_semilattice_metadata_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(machines_semilattice_metadata_t *target, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(machines_semilattice_metadata_t *target, const ctx_t &ctx) {
     return get_json_subfields(&target->machines, ctx);
 }
 

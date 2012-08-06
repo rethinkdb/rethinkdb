@@ -82,16 +82,16 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
         fail_due_to_user_error("The files that the server was started with didn't all come from "
             "the same call to 'rethinkdb create'.");
     }
-    if (c->n_files > (int)underlying.size()) {
+    if (c->n_files > static_cast<int>(underlying.size())) {
         fail_due_to_user_error("You forgot to include one of the files/devices that you included "
             "when the database was first created.");
     }
-    if (c->n_files < (int)underlying.size()) {
+    if (c->n_files < static_cast<int>(underlying.size())) {
         fail_due_to_user_error("Got more files than expected. Did you give a file that wasn't"
             "included in the call to 'rethinkdb create'? Did you duplicate one of the files?");
     }
-    guarantee(c->this_serializer >= 0 && c->this_serializer < (int)underlying.size());
-    guarantee(c->n_proxies == (int)proxies->size());
+    guarantee(c->this_serializer >= 0 && c->this_serializer < static_cast<int>(underlying.size()));
+    guarantee(c->n_proxies == static_cast<int>(proxies->size()));
 
     /* Figure out which serializer we are (in case files were specified to 'rethinkdb serve' in a
     different order than they were specified to 'rethinkdb create') */
@@ -104,7 +104,7 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
     equivalent to the old way of doing things */
     for (int k = 0; k < c->n_proxies; k++) {
         /* Are we responsible for creating this proxy? */
-        if (k % (int)underlying.size() != j)
+        if (k % static_cast<int>(underlying.size()) != j)
             continue;
 
         rassert(!(*proxies)[k]);
@@ -121,7 +121,7 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
 
 serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_serializer_t *>& underlying) {
     rassert(underlying.size() > 0);
-    for (int i = 0; i < (int)underlying.size(); i++) {
+    for (int i = 0; i < static_cast<int>(underlying.size()); ++i) {
         rassert(underlying[i]);
     }
 
@@ -147,7 +147,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_se
     pmap(underlying.size(), boost::bind(&create_proxies,
         underlying, creation_timestamp, &proxies, _1));
 
-    for (int i = 0; i < (int)proxies.size(); i++) rassert(proxies[i]);
+    for (int i = 0; i < static_cast<int>(proxies.size()); ++i) rassert(proxies[i]);
 }
 
 void destroy_proxy(std::vector<translator_serializer_t *> *proxies, int i) {

@@ -134,7 +134,7 @@ public:
 
     MUST_USE region_map_t mask(typename protocol_t::region_t region) const {
         internal_vec_t masked_pairs;
-        for (int i = 0; i < (int)regions_and_values.size(); i++) {
+        for (size_t i = 0; i < regions_and_values.size(); ++i) {
             typename protocol_t::region_t ixn = region_intersection(regions_and_values[i].first, region);
             if (!region_is_empty(ixn)) {
                 masked_pairs.push_back(internal_pair_t(ixn, regions_and_values[i].second));
@@ -357,7 +357,7 @@ public:
     */
     virtual bool send_backfill(
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
-            const boost::function<bool(const metainfo_t&)> &should_backfill,
+            const boost::function<bool(const metainfo_t&)> &should_backfill,  // NOLINT
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
             typename protocol_t::backfill_progress_t *progress,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
@@ -498,7 +498,7 @@ public:
 
     bool send_backfill(
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
-            const boost::function<bool(const metainfo_t&)> &should_backfill,
+            const boost::function<bool(const metainfo_t&)> &should_backfill,  // NOLINT
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
             typename protocol_t::backfill_progress_t *p,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,

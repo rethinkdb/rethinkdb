@@ -16,12 +16,12 @@
 void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *offsets) {
     offsets->clear();
 
-    int metablocks_per_extent = std::min(int(extent_size / DEVICE_BLOCK_SIZE), MB_BLOCKS_PER_EXTENT);
+    off64_t metablocks_per_extent = std::min<off64_t>(extent_size / DEVICE_BLOCK_SIZE, MB_BLOCKS_PER_EXTENT);
 
     for (off64_t i = 0; i < MB_NEXTENTS; i++) {
         off64_t extent = i * extent_size * MB_EXTENT_SEPARATION;
 
-        for (int j = 0; j < metablocks_per_extent; j++) {
+        for (off64_t j = 0; j < metablocks_per_extent; ++j) {
             off64_t offset = extent + j * DEVICE_BLOCK_SIZE;
 
             /* The very first DEVICE_BLOCK_SIZE of the file is used for the static header */
@@ -157,8 +157,8 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
         ~load_buffer_manager_t() {
             free(buffer);
         }
-        crc_metablock_t* get_metablock(unsigned i) {
-            return (crc_metablock_t*)(((char*)buffer) + DEVICE_BLOCK_SIZE * i);
+        crc_metablock_t *get_metablock(unsigned i) {
+            return reinterpret_cast<crc_metablock_t *>(reinterpret_cast<char *>(buffer) + DEVICE_BLOCK_SIZE * i);
         }
 
     private:

@@ -70,29 +70,29 @@ void superblock_metainfo_iterator_t::advance(char * p) {
     if (cur == end) {
         goto check_failed;
     }
-    rassert(end - cur >= int(sizeof(sz_t)), "Superblock metainfo data is corrupted: walked past the end off the buffer");
-    if (end - cur < int(sizeof(sz_t))) {
+    rassert(end - cur >= static_cast<ptrdiff_t>(sizeof(sz_t)), "Superblock metainfo data is corrupted: walked past the end off the buffer");
+    if (end - cur < static_cast<ptrdiff_t>(sizeof(sz_t))) {
         goto check_failed;
     }
     key_size = *reinterpret_cast<sz_t*>(cur);
     cur += sizeof(sz_t);
 
-    rassert(end - cur >= int64_t(key_size), "Superblock metainfo data is corrupted: walked past the end off the buffer");
-    if (end - cur < int64_t(key_size)) {
+    rassert(end - cur >= static_cast<int64_t>(key_size), "Superblock metainfo data is corrupted: walked past the end off the buffer");
+    if (end - cur < static_cast<int64_t>(key_size)) {
         goto check_failed;
     }
     key_ptr = cur;
     cur += key_size;
 
-    rassert(end - cur >= int(sizeof(sz_t)), "Superblock metainfo data is corrupted: walked past the end off the buffer");
-    if (end - cur < int(sizeof(sz_t))) {
+    rassert(end - cur >= static_cast<ptrdiff_t>(sizeof(sz_t)), "Superblock metainfo data is corrupted: walked past the end off the buffer");
+    if (end - cur < static_cast<ptrdiff_t>(sizeof(sz_t))) {
         goto check_failed;
     }
     value_size = *reinterpret_cast<sz_t*>(cur);
     cur += sizeof(sz_t);
 
-    rassert(end - cur >= int64_t(value_size), "Superblock metainfo data is corrupted: walked past the end off the buffer");
-    if (end - cur < int64_t(value_size)) {
+    rassert(end - cur >= static_cast<int64_t>(value_size), "Superblock metainfo data is corrupted: walked past the end off the buffer");
+    if (end - cur < static_cast<int64_t>(value_size)) {
         goto check_failed;
     }
     value_ptr = cur;

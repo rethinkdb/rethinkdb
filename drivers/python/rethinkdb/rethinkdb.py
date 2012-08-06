@@ -150,7 +150,7 @@ class db(object):
         self.name = name
 
     def __getitem__(self, key):
-        return Table(key)
+        return Table(self, key)
 
     def __getattr__(self, key):
         return Table(self, key)

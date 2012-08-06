@@ -166,7 +166,7 @@ typename protocol_t::write_response_t btree_store_t<protocol_t>::write(
 template <class protocol_t>
 bool btree_store_t<protocol_t>::send_backfill(
         const region_map_t<protocol_t, state_timestamp_t> &start_point,
-        const boost::function<bool(const metainfo_t&)> &should_backfill,
+        const boost::function<bool(const metainfo_t&)> &should_backfill,  // NOLINT
         const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
         typename protocol_t::backfill_progress_t *progress,
         scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,

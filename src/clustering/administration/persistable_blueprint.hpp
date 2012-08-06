@@ -14,7 +14,7 @@ such as `blueprint_t`, should not be persisted. */
 namespace blueprint_details {
 
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(role_t *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(role_t *, const ctx_t &);
 
 template <class ctx_t>
 cJSON *render_as_json(role_t *, const ctx_t &);
@@ -47,7 +47,7 @@ public:
 };
 
 template <class protocol_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *, const ctx_t &);
 
 template <class protocol_t, class ctx_t>
 cJSON *render_as_json(persistable_blueprint_t<protocol_t> *, const ctx_t &);

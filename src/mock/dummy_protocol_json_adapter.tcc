@@ -11,8 +11,8 @@
 namespace mock {
 //json adapter concept for dummy_protocol_t::region_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(dummy_protocol_t::region_t *, const ctx_t &) {
-    return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+json_adapter_if_t::json_adapter_map_t get_json_subfields(dummy_protocol_t::region_t *, const ctx_t &) {
+    return json_adapter_if_t::json_adapter_map_t();
 }
 
 template <class ctx_t>

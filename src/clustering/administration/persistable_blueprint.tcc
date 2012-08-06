@@ -10,8 +10,8 @@
 
 namespace blueprint_details {
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(role_t *, const ctx_t &) {
-    return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+json_adapter_if_t::json_adapter_map_t get_json_subfields(role_t *, const ctx_t &) {
+    return json_adapter_if_t::json_adapter_map_t();
 }
 
 template <class ctx_t>
@@ -54,9 +54,9 @@ void on_subfield_change(role_t *, const ctx_t &) { }
 } //namespace blueprint_details
 
 template <class protocol_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *target, const ctx_t &) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["peers_roles"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<typename persistable_blueprint_t<protocol_t>::role_map_t, ctx_t>(&target->machines_roles));
+json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *target, const ctx_t &ctx) {
+    json_adapter_if_t::json_adapter_map_t res;
+    res["peers_roles"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename persistable_blueprint_t<protocol_t>::role_map_t, ctx_t>(&target->machines_roles, ctx));
     return  res;
 }
 

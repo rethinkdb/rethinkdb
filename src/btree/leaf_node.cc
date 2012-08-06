@@ -161,12 +161,12 @@ struct entry_iter_t {
 void strprint_entry(std::string *out, value_sizer_t<void> *sizer, const entry_t *entry) {
     if (entry_is_live(entry)) {
         const btree_key_t *key = entry_key(entry);
-        *out += strprintf("%.*s:", int(key->size), key->contents);
+        *out += strprintf("%.*s:", static_cast<int>(key->size), key->contents);
         *out += strprintf("[entry size=%d]", entry_size(sizer, entry));
         *out += strprintf("[value size=%d]", sizer->size(entry_value(entry)));
     } else if (entry_is_deletion(entry)) {
         const btree_key_t *key = entry_key(entry);
-        *out += strprintf("%.*s:[deletion]", int(key->size), key->contents);
+        *out += strprintf("%.*s:[deletion]", static_cast<int>(key->size), key->contents);
     } else if (entry_is_skip(entry)) {
         *out += strprintf("[skip %d]", entry_size(sizer, entry));
     } else {
@@ -214,12 +214,12 @@ std::string strprint_leaf(value_sizer_t<void> *sizer, const leaf_node_t *node) {
 void print_entry(FILE *fp, value_sizer_t<void> *sizer, const entry_t *entry) {
     if (entry_is_live(entry)) {
         const btree_key_t *key = entry_key(entry);
-        fprintf(fp, "%.*s:", int(key->size), key->contents);
+        fprintf(fp, "%.*s:", static_cast<int>(key->size), key->contents);
         fprintf(fp, "[entry size=%d]", entry_size(sizer, entry));
         fprintf(fp, "[value size=%d]", sizer->size(entry_value(entry)));
     } else if (entry_is_deletion(entry)) {
         const btree_key_t *key = entry_key(entry);
-        fprintf(fp, "%.*s:[deletion]", int(key->size), key->contents);
+        fprintf(fp, "%.*s:[deletion]", static_cast<int>(key->size), key->contents);
     } else if (entry_is_skip(entry)) {
         fprintf(fp, "[skip %d]", entry_size(sizer, entry));
     } else {

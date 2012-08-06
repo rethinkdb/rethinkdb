@@ -278,7 +278,7 @@ void linux_tcp_conn_t::write_handler_t::coro_pool_callback(write_queue_op_t *ope
         parent->perform_write(operation->buffer, operation->size);
         if (operation->dealloc != NULL) {
             parent->release_write_buffer(operation->dealloc);
-            parent->write_queue_limiter.unlock((int)operation->size);
+            parent->write_queue_limiter.unlock(operation->size);
         }
     }
 
@@ -308,7 +308,7 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
     to be released once the write is completed by the coroutine pool */
     rassert(op->size <= WRITE_CHUNK_SIZE);
     rassert(WRITE_CHUNK_SIZE < WRITE_QUEUE_MAX_SIZE);
-    write_queue_limiter.co_lock((int)op->size);
+    write_queue_limiter.co_lock(op->size);
 
     write_queue.push(op);
 }
@@ -324,7 +324,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
     }
 
     while (size > 0) {
-        int res = ::write(sock.get(), buf, size);
+        ssize_t res = ::write(sock.get(), buf, size);
 
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             /* Wait for a notification from the event queue, or for an order to
@@ -362,7 +362,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
             break;
 
         } else {
-            rassert(res <= (int)size);
+            rassert(res <= static_cast<ssize_t>(size));
             buf = reinterpret_cast<const void *>(reinterpret_cast<const char *>(buf) + res);
             size -= res;
             if (write_perfmon) write_perfmon->record(res);

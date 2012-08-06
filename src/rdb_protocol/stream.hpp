@@ -1,6 +1,7 @@
 #ifndef RDB_PROTOCOL_STREAM_HPP_
 #define RDB_PROTOCOL_STREAM_HPP_
 
+#include <algorithm>
 #include <list>
 #include <string>
 #include <vector>
@@ -10,8 +11,10 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/variant/get.hpp>
 
+#include "clustering/administration/namespace_interface_repository.hpp"
+#include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "stream_cache.hpp"
+#include "rdb_protocol/stream_cache.hpp"
 
 namespace query_language {
 
@@ -193,7 +196,7 @@ private:
 template <class P>
 class filter_stream_t : public json_stream_t {
 public:
-    typedef boost::function<bool(boost::shared_ptr<scoped_cJSON_t>)> predicate;
+    typedef boost::function<bool(boost::shared_ptr<scoped_cJSON_t>)> predicate;  // NOLINT
     filter_stream_t(boost::shared_ptr<json_stream_t> _stream, const P &_p)
         : stream(_stream), p(_p)
     { }

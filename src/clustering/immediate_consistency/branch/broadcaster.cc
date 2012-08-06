@@ -97,7 +97,7 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
 }
 
 template <class protocol_t>
-branch_id_t broadcaster_t<protocol_t>::get_branch_id() {
+branch_id_t broadcaster_t<protocol_t>::get_branch_id() const {
     return branch_id;
 }
 
@@ -106,6 +106,14 @@ broadcaster_business_card_t<protocol_t> broadcaster_t<protocol_t>::get_business_
     branch_history_t<protocol_t> branch_id_associated_branch_history;
     branch_history_manager->export_branch_history(branch_id, &branch_id_associated_branch_history);
     return broadcaster_business_card_t<protocol_t>(branch_id, branch_id_associated_branch_history, registrar.get_business_card());
+}
+
+template <class protocol_t>
+multistore_ptr_t<protocol_t> *broadcaster_t<protocol_t>::release_bootstrap_svs_for_listener() {
+    rassert(bootstrap_svs != NULL);
+    multistore_ptr_t<protocol_t> *tmp = bootstrap_svs;
+    bootstrap_svs = NULL;
+    return tmp;
 }
 
 
