@@ -245,12 +245,14 @@ boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_combiner_adapter_t<ctx
 
 //implementation for map_inserter_t
 template <class container_t, class ctx_t>
-json_map_inserter_t<container_t, ctx_t>::json_map_inserter_t(container_t *_target, gen_function_t _generator, value_t _initial_value)
-    : target(_target), generator(_generator), initial_value(_initial_value)
+json_map_inserter_t<container_t, ctx_t>::json_map_inserter_t(container_t *_target, gen_function_t _generator, const ctx_t &_ctx, value_t _initial_value)
+    : target(_target), generator(_generator), initial_value(_initial_value), ctx(_ctx)
 { }
 
 template <class container_t, class ctx_t>
-cJSON *json_map_inserter_t<container_t, ctx_t>::render_impl(const ctx_t &ctx) {
+cJSON *json_map_inserter_t<container_t, ctx_t>::render_impl(const ctx_t &_ctx) {
+    rassert(ctx == _ctx);
+
     /* This is perhaps a bit confusing, json_map_inserters will generally
      * render as nothing (an empty object) unless they have been used to insert
      * something, this is kind of a weird thing so that when someone does a
@@ -266,7 +268,8 @@ cJSON *json_map_inserter_t<container_t, ctx_t>::render_impl(const ctx_t &ctx) {
 }
 
 template <class container_t, class ctx_t>
-void json_map_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
+void json_map_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change, const ctx_t &_ctx) {
+    rassert(ctx == _ctx);
     typename container_t::key_type key = generator();
     added_keys.insert(key);
 
@@ -277,17 +280,20 @@ void json_map_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change, const ct
 }
 
 template <class container_t, class ctx_t>
-void json_map_inserter_t<container_t, ctx_t>::erase_impl(const ctx_t &) {
+void json_map_inserter_t<container_t, ctx_t>::erase_impl(const ctx_t &_ctx) {
+    rassert(ctx == _ctx);
     throw permission_denied_exc_t("Trying to erase a value that can't be erase.");
 }
 
 template <class container_t, class ctx_t>
-void json_map_inserter_t<container_t, ctx_t>::reset_impl(const ctx_t &) {
+void json_map_inserter_t<container_t, ctx_t>::reset_impl(const ctx_t &_ctx) {
+    rassert(ctx == _ctx);
     throw permission_denied_exc_t("Trying to reset a value that can't be reset.");
 }
 
 template <class container_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_map_inserter_t<container_t, ctx_t>::get_subfields_impl(const ctx_t &ctx) {
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_map_inserter_t<container_t, ctx_t>::get_subfields_impl(const ctx_t &_ctx) {
+    rassert(ctx == _ctx);
     json_adapter_map_t res;
     for (typename keys_set_t::iterator it =  added_keys.begin();
                                        it != added_keys.end();
@@ -305,42 +311,49 @@ boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_map_inserter_t<contain
 
 //implementation for json_adapter_with_inserter_t
 template <class container_t, class ctx_t>
-json_adapter_with_inserter_t<container_t, ctx_t>::json_adapter_with_inserter_t(container_t *_target, gen_function_t _generator, UNUSED const ctx_t &ctx, value_t _initial_value, std::string _inserter_key)
+json_adapter_with_inserter_t<container_t, ctx_t>::json_adapter_with_inserter_t(container_t *_target, gen_function_t _generator, const ctx_t &_ctx, value_t _initial_value, std::string _inserter_key)
     : target(_target), generator(_generator),
-      initial_value(_initial_value), inserter_key(_inserter_key)
+      initial_value(_initial_value), inserter_key(_inserter_key),
+      ctx(_ctx)
 { }
 
 template <class container_t, class ctx_t>
-cJSON *json_adapter_with_inserter_t<container_t, ctx_t>::render_impl(const ctx_t &ctx) {
+cJSON *json_adapter_with_inserter_t<container_t, ctx_t>::render_impl(const ctx_t &_ctx) {
+    rassert(ctx == _ctx);
     return render_as_json(target, ctx);
 }
 
 template <class container_t, class ctx_t>
-void json_adapter_with_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
+void json_adapter_with_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change, const ctx_t &_ctx) {
+    rassert(ctx == _ctx);
     apply_json_to(change, target, ctx);
 }
 
 template <class container_t, class ctx_t>
-void json_adapter_with_inserter_t<container_t, ctx_t>::erase_impl(const ctx_t &ctx) {
+void json_adapter_with_inserter_t<container_t, ctx_t>::erase_impl(const ctx_t &_ctx) {
+    rassert(ctx == _ctx);
     erase_json(target, ctx);
 }
 
 template <class container_t, class ctx_t>
-void json_adapter_with_inserter_t<container_t, ctx_t>::reset_impl(const ctx_t &ctx) {
+void json_adapter_with_inserter_t<container_t, ctx_t>::reset_impl(const ctx_t &_ctx) {
+    rassert(ctx == _ctx);
     reset_json(target, ctx);
 }
 
 template <class container_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_with_inserter_t<container_t, ctx_t>::get_subfields_impl(const ctx_t &ctx) {
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_with_inserter_t<container_t, ctx_t>::get_subfields_impl(const ctx_t &_ctx) {
+    rassert(ctx == _ctx);
     json_adapter_map_t res = get_json_subfields(target, ctx);
     rassert(res.find(inserter_key) == res.end(), "Error, inserter_key %s  conflicts with another field of the target, (you probably want to change the value of inserter_key).", inserter_key.c_str());
-    res[inserter_key] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_map_inserter_t<container_t, ctx_t>(target, generator, initial_value));
+    res[inserter_key] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_map_inserter_t<container_t, ctx_t>(target, generator, ctx, initial_value));
 
     return res;
 }
 
 template <class container_t, class ctx_t>
-void json_adapter_with_inserter_t<container_t, ctx_t>::on_change(const ctx_t &ctx) {
+void json_adapter_with_inserter_t<container_t, ctx_t>::on_change(const ctx_t &_ctx) {
+    rassert(ctx == _ctx);
     on_subfield_change(target, ctx);
 }
 

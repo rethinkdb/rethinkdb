@@ -233,7 +233,7 @@ class json_map_inserter_t : public json_adapter_if_t<ctx_t> {
     typedef std::set<typename container_t::key_type> keys_set_t;
 
 public:
-    json_map_inserter_t(container_t *, gen_function_t, value_t _initial_value = value_t());
+    json_map_inserter_t(container_t *, gen_function_t, const ctx_t &ctx, value_t _initial_value = value_t());
 
 private:
     cJSON *render_impl(const ctx_t &);
@@ -247,6 +247,7 @@ private:
     gen_function_t generator;
     value_t initial_value;
     keys_set_t added_keys;
+    const ctx_t ctx;
 
     DISABLE_COPYING(json_map_inserter_t);
 };
@@ -274,6 +275,7 @@ private:
     gen_function_t generator;
     value_t initial_value;
     std::string inserter_key;
+    const ctx_t ctx;
 
     DISABLE_COPYING(json_adapter_with_inserter_t);
 };
