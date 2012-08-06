@@ -118,7 +118,7 @@ struct rdb_protocol_t {
     };
 
     struct rget_read_response_t {
-        typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
+        typedef std::vector<boost::shared_ptr<scoped_cJSON_t> > stream_t; //Present if there was no terminal
         typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, query_language::shared_scoped_less> groups_t; //Present if the terminal was a groupedmapreduce
         typedef boost::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
 
@@ -138,13 +138,15 @@ struct rdb_protocol_t {
         result_t result;
         int errors;
         bool truncated;
+        store_key_t last_considered_key;
 
         rget_read_response_t() { }
-        rget_read_response_t(const key_range_t &_key_range, const result_t _result, int _errors, bool _truncated)
-            : key_range(_key_range), result(_result), errors(_errors), truncated(_truncated)
+        rget_read_response_t(const key_range_t &_key_range, const result_t _result, int _errors, bool _truncated, const store_key_t &_last_considered_key)
+            : key_range(_key_range), result(_result), errors(_errors), truncated(_truncated),
+              last_considered_key(_last_considered_key)
         { }
 
-        RDB_MAKE_ME_SERIALIZABLE_4(result, errors, key_range, truncated);
+        RDB_MAKE_ME_SERIALIZABLE_5(result, errors, key_range, truncated, last_considered_key);
     };
 
     struct read_response_t {

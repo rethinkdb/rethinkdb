@@ -179,26 +179,26 @@ size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*js
     return 250;
 }
 
-typedef std::list<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > json_list_t;
+typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
 
 /* A visitor for applying a transformation to a bit of json. */
 class transform_visitor_t : public boost::static_visitor<void> {
 public:
-    transform_visitor_t(const store_key_t &_key, boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env)
-        : key(_key), json(_json), out(_out), env(_env)
+    transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env)
+        : json(_json), out(_out), env(_env)
     { }
 
     void operator()(const Builtin_Filter &filter) const {
         query_language::backtrace_t b; //TODO get this from somewhere
         if (query_language::predicate_t(filter.predicate(), *env, b)(json)) {
-            out->push_back(std::make_pair(key, json));
+            out->push_back(json);
         }
     }
 
     void operator()(const Builtin_Map &map) const {
         query_language::backtrace_t b; //TODO get this from somewhere
         Term t = map.mapping().body();
-        out->push_back(std::make_pair(key, query_language::map(map.mapping().arg(), &t, *env, json, b)));
+        out->push_back(query_language::map(map.mapping().arg(), &t, *env, json, b));
     }
 
     void operator()(const Builtin_ConcatMap &concatmap) const {
@@ -206,7 +206,7 @@ public:
         Term t = concatmap.mapping().body();
         boost::shared_ptr<json_stream_t> stream = query_language::concatmap(concatmap.mapping().arg(), &t, *env, json, b);
         while (boost::shared_ptr<scoped_cJSON_t> data = stream->next()) {
-            out->push_back(std::make_pair(key, data));
+            out->push_back(data);
         }
     }
 
@@ -240,12 +240,11 @@ public:
         cJSON* val = json->GetObjectItem(range.attrname().c_str());
 
         if (val && key_range.contains_key(store_key_t(cJSON_print_std_string(val)))) {
-            out->push_back(std::make_pair(key, json));
+            out->push_back(json);
         }
     }
 
 private:
-    store_key_t key;
     boost::shared_ptr<scoped_cJSON_t> json;
     json_list_t *out;
     query_language::runtime_environment_t *env;
@@ -366,10 +365,15 @@ public:
           env(_env), transform(_transform), terminal(_terminal)
     { }
     bool handle_pair(const btree_key_t* key, const void *value) {
+        store_key_t store_key(key);
+        if (response.last_considered_key < store_key) {
+            response.last_considered_key = store_key;
+        }
+
         const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
 
         json_list_t data;
-        data.push_back(std::make_pair(store_key_t(key), get_data(rdb_value, transaction)));
+        data.push_back(get_data(rdb_value, transaction));
 
         //Apply transforms to the data
         typedef rdb_protocol_details::transform_t::iterator tit_t;
@@ -381,7 +385,7 @@ public:
             for (json_list_t::iterator jt  = data.begin();
                                        jt != data.end();
                                        ++jt) {
-                boost::apply_visitor(transform_visitor_t(jt->first, jt->second, &tmp, env), *it);
+                boost::apply_visitor(transform_visitor_t(*jt, &tmp, env), *it);
             }
             data.clear();
             data.splice(data.begin(), tmp);
@@ -393,14 +397,14 @@ public:
             guarantee(stream);
             stream->insert(stream->end(), data.begin(), data.end()); //why is this a vector? if it was a list we could just splice and things would be nice.
 
-            cumulative_size += estimate_rget_response_size(stream->back().second);
+            cumulative_size += estimate_rget_response_size(stream->back());
             return int(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
         } else {
             boost::apply_visitor(terminal_initializer_visitor_t(&response.result), *terminal);
             for (json_list_t::iterator jt  = data.begin();
                                        jt != data.end();
                                        ++jt) {
-                boost::apply_visitor(terminal_visitor_t(jt->second, env, &response.result), *terminal);
+                boost::apply_visitor(terminal_visitor_t(*jt, env, &response.result), *terminal);
             }
             return true;
         }

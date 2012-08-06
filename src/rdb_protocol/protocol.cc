@@ -224,7 +224,7 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
 void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
                               std::vector<read_response_t>::iterator end,
                               rget_read_response_t *response) {
-    std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > merged;
+    std::vector<boost::shared_ptr<scoped_cJSON_t> > merged;
 
     for (std::vector<read_response_t>::iterator i = begin; i != end; ++i) {
         const rget_read_response_t *delta = boost::get<rget_read_response_t>(&i->response);
@@ -233,7 +233,6 @@ void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
         guarantee(stream);
         merged.insert(merged.end(), stream->begin(), stream->end());
     }
-    std::sort(merged.begin(), merged.end(), rget_data_cmp);
     stream_t *stream = boost::get<stream_t>(&response->result);
     guarantee(stream);
     stream->insert(stream->end(), merged.begin(), merged.end());
@@ -277,12 +276,6 @@ read_response_t read_t::multistore_unshard(std::vector<read_response_t> response
 
             merge_slices_onto_result(i, shard_end, &rg_response);
             i = shard_end;
-        }
-
-        stream_t *stream = boost::get<stream_t>(&rg_response.result);
-        for (std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > >::iterator i = stream->begin();
-             i != stream->end(); ++i) {
-            rassert(i->second);
         }
 
         return read_response_t(rg_response);

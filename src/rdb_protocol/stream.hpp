@@ -7,6 +7,19 @@
 
 namespace query_language {
 
+typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
+
+/* A parallizable stream is capable of taking in transformations and terminals.
+ * These will get pushed out to other stores and be done in parallel. */
+class parallelizable_stream_t : public json_stream_t {
+public:
+    virtual void add_transformation(const rdb_protocol_details::transform_atom_t &) = 0;
+    virtual result_t apply_terminal(const rdb_protocol_details::terminal_t &) = 0;
+
+    virtual ~parallelizable_stream_t() { }
+};
+
+
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > cJSON_list_t;
 
 class in_memory_stream_t : public json_stream_t {
@@ -68,6 +81,12 @@ public:
         return ret;
     }
 
+    //void add_transformation(const rdb_protocol_details::transform_atom_t &t) { 
+    //    transform.push_back(t);
+    //}
+
+    //result_t apply_terminal(const rdb_protocol_details::terminal_t &) = 0;
+
 private:
     void read_more() {
         rdb_protocol_t::rget_read_t rget_read(range, batch_size);
@@ -83,10 +102,11 @@ private:
             guarantee(stream);
 
             for (stream_t::iterator i = stream->begin(); i != stream->end(); ++i) {
-                data.push_back(i->second);
+                data.push_back(*i);
                 rassert(data.back());
-                range.left = i->first;
             }
+
+            range.left = p_res->last_considered_key;
 
             if (!range.left.increment()) {
                 finished = true;
@@ -96,6 +116,7 @@ private:
         }
     }
 
+    rdb_protocol_details::transform_t transform;
     namespace_repo_t<rdb_protocol_t>::access_t ns_access;
     signal_t *interruptor;
     key_range_t range;
@@ -103,7 +124,7 @@ private:
 
     cJSON_list_t data;
     int index;
-    bool finished;
+    bool finished, started;
 
     backtrace_t backtrace;
 };
