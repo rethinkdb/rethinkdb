@@ -247,7 +247,7 @@ void do_backfill(
 template <class protocol_t>
 bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > &maybe_a_business_card) {
     rassert(maybe_a_business_card, "Not connected to ourselves\n");
-    return bool(maybe_a_business_card.get());
+    return maybe_a_business_card.get();
 }
 
 template<class protocol_t>

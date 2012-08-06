@@ -19,7 +19,7 @@ class RDBTest(unittest.TestCase):
     def setUpClass(cls):
         cls.conn = r.Connection(os.getenv('HOST') or 'localhost',
                                  12346 + (int(os.getenv('PORT') or 2010)))
-        cls.table = r.db("")['Welcome-rdb']
+        cls.table = r.db("").Welcome
 
     def expect(self, query, expected):
         try:
@@ -337,7 +337,6 @@ class RDBTest(unittest.TestCase):
         def filt(exp, fn):
             self.expect(self.table.filter(exp).orderby(id=1), filter(fn, docs))
 
-        self.conn.run(self.table.filter(r['a'] == 5).orderby(id=1), debug=True)
         filt(r['a'] == 5, lambda r: r['a'] == 5)
         filt(r['a'] != 5, lambda r: r['a'] != 5)
         filt(r['a'] < 5, lambda r: r['a'] < 5)

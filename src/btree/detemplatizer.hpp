@@ -25,7 +25,9 @@
             value_sizer_t<rdb_value_t> sizer(sizer_argument);     \
             op_name(&sizer, __VA_ARGS__);            \
         } else {                                                        \
-            crash("Unmatched leaf node magic: %.*s", (int)sizeof(block_magic_t), leaf_node->magic.bytes); \
+            crash("Unmatched leaf node magic: %.*s",                    \
+                  static_cast<int>(sizeof(block_magic_t)),              \
+                  leaf_node->magic.bytes);                              \
         }                                                               \
     } while(0)
 

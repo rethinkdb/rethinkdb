@@ -30,7 +30,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<dum
 
     boost::ptr_vector<dummy_protocol_t::store_t> underlying_stores;
     boost::ptr_vector<store_view_t<dummy_protocol_t> > stores;
-    for (int i = 0; i < (int)shards.size(); i++) {
+    for (size_t i = 0; i < shards.size(); ++i) {
         underlying_stores.push_back(new dummy_protocol_t::store_t);
         stores.push_back(new store_subview_t<dummy_protocol_t>(&underlying_stores[i], shards[i]));
     }

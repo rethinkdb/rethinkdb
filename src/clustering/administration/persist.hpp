@@ -3,18 +3,13 @@
 
 #include <string>
 
-#include "buffer_cache/blob.hpp"
-#include "buffer_cache/mirrored/config.hpp"
-#include "buffer_cache/mirrored/mirrored.hpp"
-#include "buffer_cache/semantic_checking.hpp"
 #include "buffer_cache/types.hpp"
-#include "clustering/administration/issues/json.hpp"
-#include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/immediate_consistency/branch/history.hpp"
 #include "containers/scoped.hpp"
 #include "rpc/semilattice/view.hpp"
-#include "serializer/log/log_serializer.hpp"
+#include "serializer/types.hpp"
+
+template <class> class branch_history_manager_t;
 
 namespace metadata_persistence {
 

@@ -1,7 +1,9 @@
 #include "rdb_protocol/pb_server.hpp"
 
+#include "errors.hpp"
 #include <boost/make_shared.hpp>
-#include "stream_cache.hpp"
+
+#include "rdb_protocol/stream_cache.hpp"
 
 query_server_t::query_server_t(int port, extproc::pool_group_t *_pool_group, const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata, namespace_repo_t<rdb_protocol_t> * _ns_repo)
     : pool_group(_pool_group),
@@ -11,7 +13,7 @@ query_server_t::query_server_t(int port, extproc::pool_group_t *_pool_group, con
 
 static void put_backtrace(const query_language::backtrace_t &bt, Response *res_out) {
     std::vector<std::string> frames = bt.get_frames();
-    for (int i = 0; i < int(frames.size()); i++) {
+    for (size_t i = 0; i < frames.size(); ++i) {
         res_out->mutable_backtrace()->add_frame(frames[i]);
     }
 }

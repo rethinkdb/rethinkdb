@@ -193,7 +193,7 @@ public:
         stream->push_back(std::make_pair(store_key_t(key), data));
 
         cumulative_size += estimate_rget_response_size(stream->back().second);
-        return int(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
+        return static_cast<ssize_t>(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
     }
     transaction_t *transaction;
     int maximum;

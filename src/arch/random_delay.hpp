@@ -10,7 +10,7 @@ the IO layer, but are safe to include from within the IO
 layer. */
 
 
-void random_delay(void (*)(void *), void *);
+void random_delay(void (*)(void *), void *);  // NOLINT
 
 template<class cb_t>
 void random_delay(cb_t *cb, void (cb_t::*method)());

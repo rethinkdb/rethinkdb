@@ -1,4 +1,4 @@
-#include "stream_cache.hpp"
+#include "rdb_protocol/stream_cache.hpp"
 #include "rdb_protocol/exceptions.hpp"
 
 bool stream_cache_t::contains(int64_t key) {

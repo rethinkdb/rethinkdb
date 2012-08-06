@@ -9,7 +9,7 @@ void cross_thread_signal_subscription_t::run() {
 
 cross_thread_signal_t::cross_thread_signal_t(signal_t *source, int dest) :
     source_thread(get_thread_id()), dest_thread(dest),
-    rethreader((signal_t *)this, dest_thread),
+    rethreader(static_cast<signal_t *>(this), dest_thread),
     subs(this, auto_drainer_t::lock_t(&drainer)) {
     rassert(source->home_thread() == source_thread);
     subs.reset(source);

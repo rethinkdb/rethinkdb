@@ -6,7 +6,7 @@
 
 template <class ctx_t>
 cJSON *render_as_json(log_message_t *message, const ctx_t &) {
-    std::string timestamp_buffer = strprintf("%d.%09ld", int(message->timestamp.tv_sec), message->timestamp.tv_nsec);
+    std::string timestamp_buffer = strprintf("%ld.%09ld", message->timestamp.tv_sec, message->timestamp.tv_nsec);
     scoped_cJSON_t json(cJSON_CreateObject());
     json.AddItemToObject("timestamp", cJSON_CreateString(timestamp_buffer.c_str()));
     json.AddItemToObject("uptime", cJSON_CreateNumber(message->uptime.tv_sec + message->uptime.tv_nsec / 1000000000.0));

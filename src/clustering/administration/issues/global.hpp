@@ -72,8 +72,8 @@ private:
 
 //json adapter concept for global_issue_aggregator_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(global_issue_aggregator_t *, const ctx_t &) {
-    return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+json_adapter_if_t::json_adapter_map_t get_json_subfields(global_issue_aggregator_t *, const ctx_t &) {
+    return json_adapter_if_t::json_adapter_map_t();
 }
 
 template <class ctx_t>

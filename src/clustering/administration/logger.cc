@@ -42,19 +42,19 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
 
     std::string prepend;
     if (!for_console) {
-        prepend = strprintf("%s %d.%06ds %s: ",
+        prepend = strprintf("%s %ld.%06lds %s: ",
                             format_time(m.timestamp).c_str(),
-                            int(m.uptime.tv_sec),
-                            int(m.uptime.tv_nsec / 1000),
+                            m.uptime.tv_sec,
+                            m.uptime.tv_nsec / 1000,
                             format_log_level(m.level).c_str());
     } else {
         prepend = strprintf("%s: ", format_log_level(m.level).c_str());
     }
-    int prepend_length = int(prepend.length());
+    ssize_t prepend_length = prepend.length();
 
-    int start = 0, end = int(message.length()) - 1;
-    while (start < int(message.length()) && message[start] == '\n') {
-        start++;
+    ssize_t start = 0, end = message.length() - 1;
+    while (start < static_cast<ssize_t>(message.length()) && message[start] == '\n') {
+        ++start;
     }
     while (end >= 0 && message[end] == '\n') {
         end--;
@@ -294,19 +294,18 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
 }
 
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {
-    int res;
     std::string formatted = format_log_message(msg);
     std::string console_formatted = format_log_message(msg, true);
 
     flockfile(stderr);
 
-    res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
-    if (res != int(console_formatted.length())) {
+    ssize_t write_res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
+    if (write_res != static_cast<ssize_t>(console_formatted.length())) {
         *error_out = std::string("cannot write to standard error: ") + strerror(errno);
         return false;
     }
 
-    res = fsync(STDERR_FILENO);
+    int res = fsync(STDERR_FILENO);
     if (res != 0 && !(errno == EROFS || errno == EINVAL)) {
         *error_out = std::string("cannot flush stderr: ") + strerror(errno);
         return false;
@@ -325,8 +324,8 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
         return false;
     }
 
-    res = ::write(fd.get(), formatted.data(), formatted.length());
-    if (res != int(formatted.length())) {
+    write_res = ::write(fd.get(), formatted.data(), formatted.length());
+    if (write_res != static_cast<ssize_t>(formatted.length())) {
         *error_out = std::string("cannot write to log file: ") + strerror(errno);
         return false;
     }
@@ -448,7 +447,7 @@ void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_
     try {
         file_reverse_reader_t reader(fallback_log_writer.filename);
         std::string line;
-        while (int(messages_out->size()) < max_lines && reader.get_next(&line) && !*cancel) {
+        while (messages_out->size() < static_cast<size_t>(max_lines) && reader.get_next(&line) && !*cancel) {
             if (line == "" || line[line.length() - 1] != '\n') {
                 continue;
             }

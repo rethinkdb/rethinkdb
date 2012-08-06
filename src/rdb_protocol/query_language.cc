@@ -605,7 +605,6 @@ void check_query_type(const Query &q, type_checking_environment_t *env, bool *is
     }
 }
 
-
 typedef boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > > > maybe_ns_info_t;
 
 maybe_ns_info_t get_namespace_info(const std::string &name, runtime_environment_t *env) {
@@ -849,7 +848,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
 
                 /* Get the primary key */
-                std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref()->table_name(), env, backtrace);
+                std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref()->table_name(), env, backtrace);
 
                 /* Make sure that the primary key wasn't changed. */
                 if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
@@ -904,6 +903,23 @@ void eval_let_binds(Term::Let *let, runtime_environment_t *env, const backtrace_
     }
 }
 
+boost::shared_ptr<scoped_cJSON_t> eval_and_check(Term *t, runtime_environment_t *env, const backtrace_t &backtrace, int type, const std::string &msg) {
+    boost::shared_ptr<scoped_cJSON_t> res = eval(t, env, backtrace);
+    if (res->type() != type) {
+        throw runtime_exc_t(msg, backtrace);
+    }
+    return res;
+}
+
+boost::shared_ptr<scoped_cJSON_t> eval_and_check_either(Term *t, runtime_environment_t *env, const backtrace_t &backtrace, int type1, int type2, const std::string &msg) {
+    boost::shared_ptr<scoped_cJSON_t> res = eval(t, env, backtrace);
+    if (res->type() != type1 && res->type() != type2) {
+        throw runtime_exc_t(msg, backtrace);
+    }
+    return res;
+}
+
+
 boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     switch (t->type()) {
         case Term::VAR:
@@ -926,10 +942,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             break;
         case Term::IF:
             {
-                boost::shared_ptr<scoped_cJSON_t> test = eval(t->mutable_if_()->mutable_test(), env, backtrace.with("test"));
-                if (test->type() != cJSON_True && test->type() != cJSON_False) {
-                    throw runtime_exc_t("The IF test must evaluate to a boolean.", backtrace.with("test"));
-                }
+                boost::shared_ptr<scoped_cJSON_t> test = eval_and_check_either(t->mutable_if_()->mutable_test(), env, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
 
                 boost::shared_ptr<scoped_cJSON_t> res;
                 if (test->type() == cJSON_True) {
@@ -1099,10 +1112,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env
             break;
         case Term::IF:
             {
-                boost::shared_ptr<scoped_cJSON_t> test = eval(t->mutable_if_()->mutable_test(), env, backtrace.with("test"));
-                if (test->type() != cJSON_True && test->type() != cJSON_False) {
-                    throw runtime_exc_t("The IF test must evaluate to a boolean.", backtrace.with("test"));
-                }
+                boost::shared_ptr<scoped_cJSON_t> test = eval_and_check_either(t->mutable_if_()->mutable_test(), env, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
 
                 if (test->type() == cJSON_True) {
                     return eval_stream(t->mutable_if_()->mutable_true_branch(), env, backtrace.with("true"));
@@ -1230,15 +1240,10 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
             break;
         case Builtin::MAPMERGE:
             {
-                boost::shared_ptr<scoped_cJSON_t> left  = eval(c->mutable_args(0), env, backtrace.with("arg:0")),
-                                                  right = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
-                if (left->type() != cJSON_Object) {
-                    throw runtime_exc_t("Data must be an object", backtrace.with("arg:0"));
-                }
-
-                if (right->type() != cJSON_Object) {
-                    throw runtime_exc_t("Data must be an object", backtrace.with("arg:1"));
-                }
+                boost::shared_ptr<scoped_cJSON_t> left  = eval_and_check(c->mutable_args(0), env, backtrace.with("arg:0"),
+                                                                         cJSON_Object, "Data must be an object"),
+                                                  right = eval_and_check(c->mutable_args(1), env, backtrace.with("arg:1"),
+                                                                         cJSON_Object, "Data must be an object");
 
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(left->DeepCopy()));
 
@@ -1255,10 +1260,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
         case Builtin::ARRAYAPPEND:
             {
                 // Check first arg type
-                boost::shared_ptr<scoped_cJSON_t> array  = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
-                if (array->type() != cJSON_Array) {
-                    throw runtime_exc_t("The first argument must be an array.", backtrace.with("arg:0"));
-                }
+                boost::shared_ptr<scoped_cJSON_t> array = eval_and_check(c->mutable_args(0), env, backtrace.with("arg:0"),
+                    cJSON_Array, "The first argument must be an array.");
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(array->DeepCopy()));
                 res->AddItemToArray(eval(c->mutable_args(1), env, backtrace.with("arg:1"))->release());
                 return res;
@@ -1269,45 +1272,35 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 int start, stop;
 
                 // Check first arg type
-                boost::shared_ptr<scoped_cJSON_t> array = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
-                if (array->type() != cJSON_Array) {
-                    throw runtime_exc_t("The first argument must be an array.", backtrace.with("arg:0"));
-                }
+                boost::shared_ptr<scoped_cJSON_t> array = eval_and_check(c->mutable_args(0), env, backtrace.with("arg:0"),
+                                                                         cJSON_Array, "The first argument must be an array.");
 
                 int length = array->GetArraySize();
 
                 // Check second arg type
                 {
-                    boost::shared_ptr<scoped_cJSON_t> start_json  = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
+                    boost::shared_ptr<scoped_cJSON_t> start_json = eval_and_check_either(c->mutable_args(1), env, backtrace.with("arg:1"), cJSON_NULL, cJSON_Number, "Slice start must be null or an integer.");
                     if (start_json->type() == cJSON_NULL) {
                         start = 0;
-                    } else {
-                        if (start_json->type() != cJSON_Number) {
-                            throw runtime_exc_t("The second argument must be null or an integer.", backtrace.with("arg:1"));
-                        }
-
+                    } else {    // cJSON_Number
                         float float_start = start_json->get()->valuedouble;
-                        start = (int)float_start;
+                        start = float_start;
                         if (float_start != start) {
-                            throw runtime_exc_t("The second argument must be null or an integer.", backtrace.with("arg:1"));
+                            throw runtime_exc_t("Slice start must be null or an integer.", backtrace.with("arg:1"));
                         }
                     }
                 }
 
                 // Check third arg type
                 {
-                    boost::shared_ptr<scoped_cJSON_t> stop_json  = eval(c->mutable_args(2), env, backtrace.with("arg:2"));
+                    boost::shared_ptr<scoped_cJSON_t> stop_json = eval_and_check_either(c->mutable_args(2), env, backtrace.with("arg:2"), cJSON_NULL, cJSON_Number, "Slice stop must be null or an integer.");
                     if (stop_json->type() == cJSON_NULL) {
                         stop = length;
                     } else {
-                        if (stop_json->type() != cJSON_Number) {
-                            throw runtime_exc_t("The third argument must be null or an integer.", backtrace.with("arg:2"));
-                        }
-
                         float float_stop = stop_json->get()->valuedouble;
-                        stop = (int)float_stop;
+                        stop = float_stop;
                         if (float_stop != stop) {
-                            throw runtime_exc_t("The third argument must be null or an integer.", backtrace.with("arg:2"));
+                            throw runtime_exc_t("Slice stop must be null or an integer.", backtrace.with("arg:2"));
                         }
                     }
                 }
@@ -1344,19 +1337,14 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
             break;
         case Builtin::ARRAYNTH:
             {
-                // Check first arg type
-                boost::shared_ptr<scoped_cJSON_t> array = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
-                if (array->type() != cJSON_Array) {
-                    throw runtime_exc_t("The first argument must be an array.", backtrace.with("arg:0"));
-                }
+                boost::shared_ptr<scoped_cJSON_t> array = eval_and_check(c->mutable_args(0), env, backtrace.with("arg:0"),
+                    cJSON_Array, "The first argument must be an array.");
 
-                // Check second arg type
-                boost::shared_ptr<scoped_cJSON_t> index_json  = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
-                if (index_json->type() != cJSON_Number) {
-                    throw runtime_exc_t("The second argument must be an integer.", backtrace.with("arg:1"));
-                }
+                boost::shared_ptr<scoped_cJSON_t> index_json = eval_and_check(c->mutable_args(1), env, backtrace.with("arg:1"),
+                    cJSON_Number, "The second argument must be an integer.");
+
                 float float_index = index_json->get()->valuedouble;
-                int index = (int)float_index;
+                int index = float_index;
                 if (float_index != index) {
                     throw runtime_exc_t("The second argument must be an integer.", backtrace.with("arg:1"));
                 }
@@ -1385,10 +1373,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     double result = arg->get()->valuedouble;
 
                     for (int i = 1; i < c->args_size(); ++i) {
-                        arg = eval(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)));
-                        if (arg->type() != cJSON_Number) {
-                            throw runtime_exc_t("Cannot ADD numbers to non-numbers", backtrace.with(strprintf("arg:%d", i)));
-                        }
+                        arg = eval_and_check(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "Cannot ADD numbers to non-numbers");
                         result += arg->get()->valuedouble;
                     }
 
@@ -1396,11 +1381,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 } else if (arg->type() == cJSON_Array) {
                     boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(arg->DeepCopy()));
                     for (int i = 1; i < c->args_size(); ++i) {
-                        boost::shared_ptr<scoped_cJSON_t> arg = eval(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)));
-                        if (arg->type() != cJSON_Array) {
-                            throw runtime_exc_t("Cannot ADD arrays to non-arrays", backtrace.with(strprintf("arg:%d", i)));
-                        }
-                        for(int j = 0; j < arg->GetArraySize(); j++) {
+                        boost::shared_ptr<scoped_cJSON_t> arg = eval_and_check(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)), cJSON_Array, "Cannot ADD arrays to non-arrays");
+                        for(int j = 0; j < arg->GetArraySize(); ++j) {
                             res->AddItemToArray(cJSON_DeepCopy(arg->GetArrayItem(j)));
                         }
                     }
@@ -1415,10 +1397,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 double result = 0.0;
 
                 if (c->args_size() > 0) {
-                    boost::shared_ptr<scoped_cJSON_t> arg = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
-                    if (arg->type() != cJSON_Number) {
-                        throw runtime_exc_t("All operands to SUBTRACT must be numbers.", backtrace.with("arg:0"));
-                    }
+                    boost::shared_ptr<scoped_cJSON_t> arg = eval_and_check(c->mutable_args(0), env, backtrace.with("arg:0"), cJSON_Number, "All operands to SUBTRACT must be numbers.");
                     if (c->args_size() == 1) {
                         result = -arg->get()->valuedouble;  // (- x) is negate
                     } else {
@@ -1426,10 +1405,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     }
 
                     for (int i = 1; i < c->args_size(); ++i) {
-                        boost::shared_ptr<scoped_cJSON_t> arg = eval(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)));
-                        if (arg->type() != cJSON_Number) {
-                            throw runtime_exc_t("All operands to SUBTRACT must be numbers.", backtrace.with(strprintf("arg:%d", i)));
-                        }
+                        boost::shared_ptr<scoped_cJSON_t> arg = eval_and_check(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands to SUBTRACT must be numbers.");
                         result -= arg->get()->valuedouble;
                     }
                 }
@@ -1443,10 +1419,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 double result = 1.0;
 
                 for (int i = 0; i < c->args_size(); ++i) {
-                    boost::shared_ptr<scoped_cJSON_t> arg = eval(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)));
-                    if (arg->type() != cJSON_Number) {
-                        throw runtime_exc_t("All operands of MULTIPLY must be numbers.", backtrace.with(strprintf("arg:%d", i)));
-                    }
+                    boost::shared_ptr<scoped_cJSON_t> arg = eval_and_check(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands of MULTIPLY must be numbers.");
                     result *= arg->get()->valuedouble;
                 }
 
@@ -1459,10 +1432,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 double result = 0.0;
 
                 if (c->args_size() > 0) {
-                    boost::shared_ptr<scoped_cJSON_t> arg = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
-                    if (arg->type() != cJSON_Number) {
-                        throw runtime_exc_t("All operands to DIVIDE must be numbers.", backtrace.with("arg:0"));
-                    }
+                    boost::shared_ptr<scoped_cJSON_t> arg = eval_and_check(c->mutable_args(0), env, backtrace.with("arg:0"), cJSON_Number, "All operands to DIVIDE must be numbers.");
                     if (c->args_size() == 1) {
                         result = 1.0 / arg->get()->valuedouble;  // (/ x) is reciprocal
                     } else {
@@ -1470,10 +1440,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     }
 
                     for (int i = 1; i < c->args_size(); ++i) {
-                        boost::shared_ptr<scoped_cJSON_t> arg = eval(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)));
-                        if (arg->type() != cJSON_Number) {
-                            throw runtime_exc_t("All operands to DIVIDE must be numbers.", backtrace.with(strprintf("arg:%d", i)));
-                        }
+                        boost::shared_ptr<scoped_cJSON_t> arg = eval_and_check(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands to DIVIDE must be numbers.");
                         result /= arg->get()->valuedouble;
                     }
                 }
@@ -1484,13 +1451,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
             break;
         case Builtin::MODULO:
             {
-                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c->mutable_args(0), env, backtrace.with("arg:0")),
-                    rhs = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
-                if (lhs->type() != cJSON_Number) {
-                    throw runtime_exc_t("First operand of MOD must be a number.", backtrace.with("arg:0"));
-                } else if (rhs->type() != cJSON_Number) {
-                    throw runtime_exc_t("Second operand of MOD must be a number.", backtrace.with("arg:1"));
-                }
+                boost::shared_ptr<scoped_cJSON_t> lhs = eval_and_check(c->mutable_args(0), env, backtrace.with("arg:0"), cJSON_Number, "First operand of MOD must be a number."),
+                                                  rhs = eval_and_check(c->mutable_args(1), env, backtrace.with("arg:1"), cJSON_Number, "Second operand of MOD must be a number.");
 
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(fmod(lhs->get()->valuedouble, rhs->get()->valuedouble))));
                 return res;
@@ -1557,10 +1519,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 if (c->args(0).GetExtension(extension::inferred_type) == TERM_TYPE_JSON)
                 {
                     // Check first arg type
-                    boost::shared_ptr<scoped_cJSON_t> array = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
-                    if (array->type() != cJSON_Array) {
-                        throw runtime_exc_t("LENGTH argument must be an array.", backtrace.with("arg:0"));
-                    }
+                    boost::shared_ptr<scoped_cJSON_t> array = eval_and_check(c->mutable_args(0), env, backtrace.with("arg:0"), cJSON_Array, "LENGTH argument must be an array.");
                     length = array->GetArraySize();
                 } else {
                     boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
@@ -1577,12 +1536,9 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 
                 // Check second arg type
-                boost::shared_ptr<scoped_cJSON_t> index_json  = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
-                if (index_json->type() != cJSON_Number) {
-                    throw runtime_exc_t("The second argument must be an integer.", backtrace.with("arg:1"));
-                }
+                boost::shared_ptr<scoped_cJSON_t> index_json = eval_and_check(c->mutable_args(1), env, backtrace.with("arg:1"), cJSON_Number, "The second argument must be an integer.");
                 float index_float = index_json->get()->valuedouble;
-                int index = (int)index_float;
+                int index = index_float;
                 if (index_float != index || index < 0) {
                     throw runtime_exc_t("The second argument must be a nonnegative integer.", backtrace.with("arg:1"));
                 }
@@ -1888,16 +1844,12 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                 bool stop_unbounded = false;
 
                 {
-                    boost::shared_ptr<scoped_cJSON_t> start_json = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
+                    boost::shared_ptr<scoped_cJSON_t> start_json = eval_and_check_either(c->mutable_args(1), env, backtrace.with("arg:1"), cJSON_NULL, cJSON_Number, "Slice start must be null or a nonnegative integer.");
                     if (start_json->type() == cJSON_NULL) {
                         start = 0;
-                    } else {
-                        if (start_json->type() != cJSON_Number) {
-                            throw runtime_exc_t("Slice start must be null or a nonnegative integer.", backtrace.with("arg:1"));
-                        }
-
+                    } else {    // cJSON_Number
                         float float_start = start_json->get()->valuedouble;
-                        start = (int)float_start;
+                        start = float_start;
                         if (float_start != start || start < 0) {
                             throw runtime_exc_t("Slice start must be null or a nonnegative integer.", backtrace.with("arg:1"));
                         }
@@ -1906,17 +1858,13 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 
                 // Check third arg type
                 {
-                    boost::shared_ptr<scoped_cJSON_t> stop_json  = eval(c->mutable_args(2), env, backtrace.with("arg:2"));
+                    boost::shared_ptr<scoped_cJSON_t> stop_json = eval_and_check_either(c->mutable_args(2), env, backtrace.with("arg:2"), cJSON_NULL, cJSON_Number, "Slice stop must be null or a nonnegative integer.");
                     if (stop_json->type() == cJSON_NULL) {
                         stop_unbounded = true;
                         stop = 0;
                     } else {
-                        if (stop_json->type() != cJSON_Number) {
-                            throw runtime_exc_t("Slice stop must be null or a nonnegative integer.", backtrace.with("arg:2"));
-                        }
-
                         float float_stop = stop_json->get()->valuedouble;
-                        stop = (int)float_stop;
+                        stop = float_stop;
                         if (float_stop != stop || stop < 0) {
                             throw runtime_exc_t("Slice stop must be null or a nonnegative integer.", backtrace.with("arg:2"));
                         }
@@ -2058,16 +2006,12 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
                 bool stop_unbounded = false;
 
                 {
-                    boost::shared_ptr<scoped_cJSON_t> start_json = eval(c->mutable_args(1), env, backtrace.with("arg:1"));
+                    boost::shared_ptr<scoped_cJSON_t> start_json = eval_and_check_either(c->mutable_args(1), env, backtrace.with("arg:1"), cJSON_NULL, cJSON_Number, "Slice start must be null or a nonnegative integer.");
                     if (start_json->type() == cJSON_NULL) {
                         start = 0;
-                    } else {
-                        if (start_json->type() != cJSON_Number) {
-                            throw runtime_exc_t("Slice start must be null or a nonnegative integer.", backtrace.with("arg:1"));
-                        }
-
+                    } else {    // cJSON_Number
                         float float_start = start_json->get()->valuedouble;
-                        start = (int)float_start;
+                        start = float_start;
                         if (float_start != start || start < 0) {
                             throw runtime_exc_t("Slice start must be null or a nonnegative integer.", backtrace.with("arg:1"));
                         }
@@ -2076,17 +2020,13 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
 
                 // Check third arg type
                 {
-                    boost::shared_ptr<scoped_cJSON_t> stop_json  = eval(c->mutable_args(2), env, backtrace.with("arg:2"));
+                    boost::shared_ptr<scoped_cJSON_t> stop_json = eval_and_check_either(c->mutable_args(2), env, backtrace.with("arg:2"), cJSON_NULL, cJSON_Number, "Slice stop must be null or a nonnegative integer.");
                     if (stop_json->type() == cJSON_NULL) {
                         stop_unbounded = true;
                         stop = 0;
                     } else {
-                        if (stop_json->type() != cJSON_Number) {
-                            throw runtime_exc_t("Slice stop must be null or a nonnegative integer.", backtrace.with("arg:2"));
-                        }
-
                         float float_stop = stop_json->get()->valuedouble;
-                        stop = (int)float_stop;
+                        stop = float_stop;
                         if (float_stop != stop || stop < 0) {
                             throw runtime_exc_t("Slice stop must be null or a nonnegative integer.", backtrace.with("arg:2"));
                         }
@@ -2131,10 +2071,7 @@ view_t eval_view(Term *t, runtime_environment_t *env, const backtrace_t &backtra
             break;
         case Term::IF:
             {
-                boost::shared_ptr<scoped_cJSON_t> test = eval(t->mutable_if_()->mutable_test(), env, backtrace.with("test"));
-                if (test->type() != cJSON_True && test->type() != cJSON_False) {
-                    throw runtime_exc_t("The IF test must evaluate to a boolean.", backtrace.with("test"));
-                }
+                boost::shared_ptr<scoped_cJSON_t> test = eval_and_check_either(t->mutable_if_()->mutable_test(), env, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
 
                 if (test->type() == cJSON_True) {
                     return eval_view(t->mutable_if_()->mutable_true_branch(), env, backtrace.with("true"));

@@ -84,8 +84,8 @@ public:
     { }
 
     ~traversal_state_t() {
-        for (int i = 0; i < int(acquisition_waiter_stacks.size()); i++) {
-            for (int j = 0; j < int(acquisition_waiter_stacks[i].size()); j++) {
+        for (size_t i = 0; i < acquisition_waiter_stacks.size(); ++i) {
+            for (size_t j = 0; j < acquisition_waiter_stacks[i].size(); ++j) {
                 acquisition_waiter_stacks[i][j]->cancel();
             }
         }
@@ -112,8 +112,8 @@ public:
 
     int64_t& level_count(int level) {
         rassert(level >= 0);
-        if (level >= int(level_counts.size())) {
-            rassert(level == int(level_counts.size()), "Somehow we skipped a level! (level = %d, slice = %p)", level, slice);
+        if (size_t(level) >= level_counts.size()) {
+            rassert(size_t(level) == level_counts.size(), "Somehow we skipped a level! (level = %d, slice = %p)", level, slice);
             level_counts.resize(level + 1, 0);
         }
         return level_counts[level];
@@ -187,8 +187,10 @@ public:
 
     std::vector<acquisition_waiter_callback_t *>& acquisition_waiter_stack(int level) {
         rassert(level >= 0);
-        if (level >= int(acquisition_waiter_stacks.size())) {
-            rassert(level == int(acquisition_waiter_stacks.size()), "Somehow we skipped a level! (level = %d, stacks.size() = %d, slice = %p)", level, int(acquisition_waiter_stacks.size()), slice);
+        if (level >= static_cast<int>(acquisition_waiter_stacks.size())) {
+            rassert(level == static_cast<int>(acquisition_waiter_stacks.size()),
+                    "Somehow we skipped a level! (level = %d, stacks.size() = %d, slice = %p)",
+                    level, static_cast<int>(acquisition_waiter_stacks.size()), slice);
             acquisition_waiter_stacks.resize(level + 1);
         }
         return acquisition_waiter_stacks[level];
@@ -570,14 +572,15 @@ progress_completion_fraction_t parallel_traversal_progress_t::guess_completion()
      * each level. */
 
     std::vector<double> released_to_acquired_ratios;
-    for (unsigned i = 0; i < learned.size() - 1; i++) {
-        released_to_acquired_ratios.push_back(double(acquired[i + 1]) / std::max(1.0, double(released[i])));
+    for (unsigned i = 0; i + 1 < learned.size(); ++i) {
+        released_to_acquired_ratios.push_back(static_cast<double>(acquired[i + 1]) / std::max<double>(1.0, released[i]));
     }
 
     std::vector<int> population_by_level_guesses;
     population_by_level_guesses.push_back(learned[0]);
 
-    for (unsigned i = 0; i < (learned.size() - 1); i++) {
+    rassert(learned.size() != 0);
+    for (unsigned i = 0; i + 1 < learned.size(); i++) {
         population_by_level_guesses.push_back(static_cast<int>(released_to_acquired_ratios[i] * population_by_level_guesses[i]));
     }
 

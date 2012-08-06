@@ -94,12 +94,12 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
 
     void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size) {
         writef("VALUE %*.*s %u %zu\r\n",
-               int(key_size), int(key_size), key, mcflags, value_size);
+               static_cast<int>(key_size), static_cast<int>(key_size), key, mcflags, value_size);
     }
 
     void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size, cas_t cas) {
         writef("VALUE %*.*s %u %zu %" PRIu64 "\r\n",
-               int(key_size), int(key_size), key, mcflags, value_size, cas);
+               static_cast<int>(key_size), static_cast<int>(key_size), key, mcflags, value_size, cas);
     }
 
     void error() {
@@ -300,7 +300,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
             pipeliner_acq.end_write();
             return;
         }
-        rh->stats->pm_get_key_size.record((float) gets.back().key.size());
+        rh->stats->pm_get_key_size.record(gets.back().key.size());
     }
     if (gets.size() == 0) {
         pipeliner_acq.done_argparsing();
@@ -320,7 +320,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
     pipeliner_acq.begin_write();
 
     /* Check if any failed */
-    for (int i = 0; i < (int)gets.size(); i++) {
+    for (size_t i = 0; i < gets.size(); ++i) {
         if (!gets[i].ok) {
             rh->server_error("%s", gets[i].error_message.c_str());
             pipeliner_acq.end_write();
@@ -329,7 +329,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
     }
 
     /* Handle the results in sequence */
-    for (int i = 0; i < (int)gets.size(); i++) {
+    for (size_t i = 0; i < gets.size(); ++i) {
         get_result_t &res = gets[i].res;
 
         /* If res.value is NULL that means the value was not found so we don't write
@@ -718,7 +718,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->end_write();
         return;
     }
-    rh->stats->pm_storage_key_size.record((float) key.size());
+    rh->stats->pm_storage_key_size.record(key.size());
 
     /* Next parse the flags */
     mcflags_t mcflags = strtou64_strict(argv[2], &invalid_char, 10);
@@ -768,7 +768,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->end_write();
         return;
     }
-    rh->stats->pm_storage_value_size.record((float) value_size);
+    rh->stats->pm_storage_value_size.record(value_size);
 
     /* If a "cas", parse the cas_command unique */
     cas_t unique = NO_CAS_SUPPLIED;
@@ -991,7 +991,7 @@ void do_delete(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, ch
         pipeliner_acq.end_write();
         return;
     }
-    rh->stats->pm_delete_key_size.record((float) key.size());
+    rh->stats->pm_delete_key_size.record(key.size());
 
     /* Parse "noreply" */
     bool noreply;

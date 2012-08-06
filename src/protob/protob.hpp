@@ -18,7 +18,7 @@ enum protob_server_callback_mode_t {
 template <class request_t, class response_t>
 class protob_server_t {
 public:
-    explicit protob_server_t(int port, boost::function<response_t(request_t *, stream_cache_t *)> _f, protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
+    protob_server_t(int port, boost::function<response_t(request_t *, stream_cache_t *)> _f, protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
     ~protob_server_t();
 private:
 

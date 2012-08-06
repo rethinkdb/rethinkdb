@@ -13,8 +13,12 @@
 
 class json_stream_t {
 public:
+    json_stream_t() { }
     virtual boost::shared_ptr<scoped_cJSON_t> next() = 0; //MAY THROW
     virtual ~json_stream_t() { }
+
+private:
+    DISABLE_COPYING(json_stream_t);
 };
 
 class stream_cache_t {

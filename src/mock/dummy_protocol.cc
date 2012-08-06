@@ -65,7 +65,7 @@ dummy_protocol_t::read_t dummy_protocol_t::read_t::shard(region_t region) const 
 dummy_protocol_t::read_response_t dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, UNUSED temporary_cache_t *cache) const {
     rassert(cache != NULL);
     read_response_t combined;
-    for (int i = 0; i < (int)resps.size(); i++) {
+    for (size_t i = 0; i < resps.size(); ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].values.begin();
                 it != resps[i].values.end(); it++) {
             rassert(keys.keys.count((*it).first) != 0,
@@ -109,7 +109,7 @@ dummy_protocol_t::write_t dummy_protocol_t::write_t::shard(region_t region) cons
 dummy_protocol_t::write_response_t dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, UNUSED temporary_cache_t *cache) const {
     rassert(cache != NULL);
     write_response_t combined;
-    for (int i = 0; i < (int)resps.size(); i++) {
+    for (size_t i = 0; i < resps.size(); ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].old_values.begin();
                 it != resps[i].old_values.end(); it++) {
             rassert(values.find((*it).first) != values.end(),
@@ -386,8 +386,12 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_proto
     return resp;
 }
 
-bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
-        const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, backfill_progress_t *, scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
+                                              const boost::function<bool(const metainfo_t&)> &should_backfill,  // NOLINT
+                                              const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun,
+                                              backfill_progress_t *,
+                                              scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), start_point.get_domain()));
 
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());

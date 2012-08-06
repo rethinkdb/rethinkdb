@@ -43,15 +43,15 @@ RDB_MAKE_EQUALITY_COMPARABLE_6(cluster_semilattice_metadata_t, dummy_namespaces,
 
 //json adapter concept for cluster_semilattice_metadata_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster_semilattice_metadata_t *target, const ctx_t &ctx) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t>, ctx_t>(&target->dummy_namespaces));
-    res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces));
-    res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<rdb_protocol_t>, ctx_t>(&target->rdb_namespaces));
-    res["machines"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machines_semilattice_metadata_t, ctx_t>(&target->machines));
-    res["datacenters"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<datacenters_semilattice_metadata_t, ctx_t>(&target->datacenters));
-    res["databases"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<databases_semilattice_metadata_t, ctx_t>(&target->databases));
-    res["me"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<uuid_t, ctx_t>(ctx.us));
+json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_semilattice_metadata_t *target, const ctx_t &ctx) {
+    json_adapter_if_t::json_adapter_map_t res;
+    res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t>, ctx_t>(&target->dummy_namespaces, ctx));
+    res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<namespaces_semilattice_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces, ctx));
+    res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<namespaces_semilattice_metadata_t<rdb_protocol_t>, ctx_t>(&target->rdb_namespaces, ctx));
+    res["machines"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<machines_semilattice_metadata_t, ctx_t>(&target->machines, ctx));
+    res["datacenters"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<datacenters_semilattice_metadata_t, ctx_t>(&target->datacenters, ctx));
+    res["databases"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<databases_semilattice_metadata_t, ctx_t>(&target->databases, ctx));
+    res["me"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<uuid_t, ctx_t>(ctx.us, ctx));
     return res;
 }
 
@@ -110,7 +110,7 @@ public:
 
 // json adapter concept for directory_echo_wrapper_t
 template <typename T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
     return get_json_subfields(&target->internal, ctx);
 }
 
@@ -131,14 +131,14 @@ void on_subfield_change(directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
 
 //  json adapter concept for cluster_directory_metadata_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target, const ctx_t &) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_read_only_adapter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, ctx_t>(&target->dummy_namespaces));
-    res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_directory_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces));
-    res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_directory_metadata_t<rdb_protocol_t>, ctx_t>(&target->rdb_namespaces));
-    res["machine_id"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machine_id_t, ctx_t>(&target->machine_id)); // TODO: should be 'me'?
-    res["ips"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<std::vector<std::string>, ctx_t>(&target->ips));
-    res["peer_type"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<cluster_directory_peer_type_t, ctx_t>(&target->peer_type));
+json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target, const ctx_t &ctx) {
+    json_adapter_if_t::json_adapter_map_t res;
+    res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_read_only_adapter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, ctx_t>(&target->dummy_namespaces, ctx));
+    res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<namespaces_directory_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces, ctx));
+    res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<namespaces_directory_metadata_t<rdb_protocol_t>, ctx_t>(&target->rdb_namespaces, ctx));
+    res["machine_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<machine_id_t, ctx_t>(&target->machine_id, ctx)); // TODO: should be 'me'?
+    res["ips"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<std::vector<std::string>, ctx_t>(&target->ips, ctx));
+    res["peer_type"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<cluster_directory_peer_type_t, ctx_t>(&target->peer_type, ctx));
     return res;
 }
 
@@ -157,9 +157,9 @@ void on_subfield_change(cluster_directory_metadata_t *, const ctx_t &) { }
 
 // json adapter for cluster_directory_peer_type_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster_directory_peer_type_t *, const ctx_t &)
+json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_peer_type_t *, const ctx_t &)
 {
-    return std::map<std::string, boost::shared_ptr<json_adapter_if_t<ctx_t> > >();
+    return std::map<std::string, boost::shared_ptr<json_adapter_if_t> >();
 }
 
 template <class ctx_t>

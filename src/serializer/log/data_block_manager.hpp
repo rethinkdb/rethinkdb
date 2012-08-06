@@ -321,9 +321,8 @@ private:
     } gc_stats;
 
 public:
-    /* \brief ratio of garbage to blocks in the system
-     */
-    float garbage_ratio() const;
+    // ratio of garbage to blocks in the system
+    double garbage_ratio() const;
 
     int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks.get(); }
     int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks.get(); }
