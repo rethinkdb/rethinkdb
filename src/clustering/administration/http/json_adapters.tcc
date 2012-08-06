@@ -14,7 +14,7 @@
 
 //json adapter concept for vclock_t
 template <class T, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(vclock_t<T> *target, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(vclock_t<T> *target, const ctx_t &ctx) {
     try {
         return get_json_subfields(&target->get_mutable(), ctx);
     } catch (in_conflict_exc_t e) {
@@ -23,7 +23,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(vclock_t<T> *target, co
 }
 
 template <class T, class ctx_t>
-cJSON *render_as_json(vclock_t<T> *target, const ctx_t &ctx) {
+cJSON *with_ctx_render_as_json(vclock_t<T> *target, const ctx_t &ctx) {
     try {
         T t = target->get();
         return render_as_json(&t, ctx);
@@ -33,7 +33,7 @@ cJSON *render_as_json(vclock_t<T> *target, const ctx_t &ctx) {
 }
 
 template <class T, class ctx_t>
-cJSON *render_all_values(vclock_t<T> *target, const ctx_t &ctx) {
+cJSON *with_ctx_render_all_values(vclock_t<T> *target, const ctx_t &ctx) {
     cJSON *res = cJSON_CreateArray();
     for (typename vclock_t<T>::value_map_t::iterator it  =   target->values.begin();
                                                              it != target->values.end();
@@ -52,7 +52,7 @@ cJSON *render_all_values(vclock_t<T> *target, const ctx_t &ctx) {
 }
 
 template <class T, class ctx_t>
-void apply_json_to(cJSON *change, vclock_t<T> *target, const ctx_t &ctx) {
+void with_ctx_apply_json_to(cJSON *change, vclock_t<T> *target, const ctx_t &ctx) {
     try {
         apply_json_to(change, &target->get_mutable(), ctx);
         target->upgrade_version(ctx.us);
@@ -62,7 +62,7 @@ void apply_json_to(cJSON *change, vclock_t<T> *target, const ctx_t &ctx) {
 }
 
 template <class T, class ctx_t>
-void on_subfield_change(vclock_t<T> *target, const ctx_t &ctx) {
+void with_ctx_on_subfield_change(vclock_t<T> *target, const ctx_t &ctx) {
     target->upgrade_version(ctx.us);
 }
 
@@ -74,7 +74,7 @@ json_adapter_if_t::json_adapter_map_t json_vclock_resolver_t<T, ctx_t>::get_subf
 
 template <class T, class ctx_t>
 cJSON *json_vclock_resolver_t<T, ctx_t>::render_impl() {
-    return render_all_values(target_, ctx_);
+    return with_ctx_render_all_values(target_, ctx_);
 }
 
 template <class T, class ctx_t>
@@ -110,7 +110,7 @@ json_vclock_adapter_t<T, ctx_t>::json_vclock_adapter_t(vclock_t<T> *target, cons
 
 template <class T, class ctx_t>
 json_adapter_if_t::json_adapter_map_t json_vclock_adapter_t<T, ctx_t>::get_subfields_impl() {
-    json_adapter_if_t::json_adapter_map_t res = get_json_subfields(target_, ctx_);
+    json_adapter_if_t::json_adapter_map_t res = with_ctx_get_json_subfields(target_, ctx_);
     rassert(!std_contains(res, "resolve"), "Programmer error: do not put anything with a \"resolve\" subfield in a vector clock.\n");
     res["resolve"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_resolver_t<T, ctx_t>(target_, ctx_));
 
@@ -119,12 +119,12 @@ json_adapter_if_t::json_adapter_map_t json_vclock_adapter_t<T, ctx_t>::get_subfi
 
 template <class T, class ctx_t>
 cJSON *json_vclock_adapter_t<T, ctx_t>::render_impl() {
-    return render_as_json(target_, ctx_);
+    return with_ctx_render_as_json(target_, ctx_);
 }
 
 template <class T, class ctx_t>
 void json_vclock_adapter_t<T, ctx_t>::apply_impl(cJSON *change) {
-    apply_json_to(change, target_, ctx_);
+    with_ctx_apply_json_to(change, target_, ctx_);
 }
 
 template <class T, class ctx_t>
@@ -139,7 +139,7 @@ void json_vclock_adapter_t<T, ctx_t>::erase_impl() {
 
 template <class T, class ctx_t>
 boost::shared_ptr<subfield_change_functor_t>  json_vclock_adapter_t<T, ctx_t>::get_change_callback() {
-    return boost::shared_ptr<subfield_change_functor_t>(new standard_subfield_change_functor_t<vclock_t<T>, ctx_t>(target_, ctx_));
+    return boost::shared_ptr<subfield_change_functor_t>(new standard_ctx_subfield_change_functor_t<vclock_t<T>, ctx_t>(target_, ctx_));
 }
 
 //json adapter concept for deletable_t

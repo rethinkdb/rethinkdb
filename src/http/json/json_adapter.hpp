@@ -214,6 +214,19 @@ private:
     DISABLE_COPYING(json_read_only_adapter_t);
 };
 
+template <class T, class ctx_t>
+class json_ctx_read_only_adapter_t : public json_ctx_adapter_t<T, ctx_t> {
+public:
+    json_ctx_read_only_adapter_t(T *, const ctx_t &);
+
+private:
+    void apply_impl(cJSON *);
+    void erase_impl();
+    void reset_impl();
+
+    DISABLE_COPYING(json_ctx_read_only_adapter_t);
+};
+
 /* A json temporary adapter is like a read only adapter but it stores a copy of
  * the what it's adapting inside it. This is convenient when we want to have
  * json data that's not actually reflected in our structures such as having the
@@ -309,7 +322,13 @@ void erase_json(T *, const ctx_t &) {
 #endif
 }
 
-/* Erase is a fairly rare function for an adapter to allow so we implement a
+template <class T, class ctx_t>
+void with_ctx_erase_json(T *target, const ctx_t &ctx) {
+    return erase_json(target, ctx);
+}
+
+
+/* Reset is a fairly rare function for an adapter to allow so we implement a
  * generic version of it. */
 template <class T, class ctx_t>
 void reset_json(T *, const ctx_t &) {
@@ -320,6 +339,11 @@ void reset_json(T *, const ctx_t &) {
 #else
     throw permission_denied_exc_t("Can't reset this object.");
 #endif
+}
+
+template <class T, class ctx_t>
+void with_ctx_reset_json(T *target, const ctx_t &ctx) {
+    reset_json(target, ctx);
 }
 
 

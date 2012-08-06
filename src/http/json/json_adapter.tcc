@@ -129,6 +129,27 @@ void json_read_only_adapter_t<T, ctx_t>::reset_impl() {
     throw permission_denied_exc_t("Trying to reset a readonly value");
 }
 
+//implementation for json_ctx_read_only_adapter_t
+template <class T, class ctx_t>
+json_ctx_read_only_adapter_t<T, ctx_t>::json_ctx_read_only_adapter_t(T *t, const ctx_t &ctx)
+    : json_ctx_adapter_t<T, ctx_t>(t, ctx)
+{ }
+
+template <class T, class ctx_t>
+void json_ctx_read_only_adapter_t<T, ctx_t>::apply_impl(cJSON *) {
+    throw permission_denied_exc_t("Trying to write to a readonly value");
+}
+
+template <class T, class ctx_t>
+void json_ctx_read_only_adapter_t<T, ctx_t>::erase_impl() {
+    throw permission_denied_exc_t("Trying to erase a readonly value");
+}
+
+template <class T, class ctx_t>
+void json_ctx_read_only_adapter_t<T, ctx_t>::reset_impl() {
+    throw permission_denied_exc_t("Trying to reset a readonly value");
+}
+
 //implementation for json_temporary_adapter_t
 template <class T, class ctx_t>
 json_temporary_adapter_t<T, ctx_t>::json_temporary_adapter_t(const T &value, const ctx_t &ctx)

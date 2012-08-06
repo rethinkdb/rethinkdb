@@ -60,7 +60,7 @@ RDB_MAKE_EQUALITY_COMPARABLE_11(namespace_semilattice_metadata_t<protocol_t>, bl
 template <class ctx_t, class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(namespace_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["blueprint"] = boost::shared_ptr<json_adapter_if_t>(new json_read_only_adapter_t<vclock_t<persistable_blueprint_t<protocol_t> >, ctx_t>(&target->blueprint, ctx));
+    res["blueprint"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<vclock_t<persistable_blueprint_t<protocol_t> >, ctx_t>(&target->blueprint, ctx));
     res["primary_uuid"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<datacenter_id_t, ctx_t>(&target->primary_datacenter, ctx));
     res["replica_affinities"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int>, ctx_t>(&target->replica_affinities, ctx));
     res["ack_expectations"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int>, ctx_t>(&target->ack_expectations, ctx));
@@ -69,7 +69,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(namespace_semilattice_m
     res["port"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<int, ctx_t>(&target->port, ctx));
     res["primary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<protocol_t, machine_id_t>, ctx_t>(&target->primary_pinnings, ctx));
     res["secondary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<protocol_t, std::set<machine_id_t> >, ctx_t>(&target->secondary_pinnings, ctx));
-    res["primary_key"] = boost::shared_ptr<json_adapter_if_t>(new json_read_only_adapter_t<vclock_t<std::string>, ctx_t>(&target->primary_key, ctx));
+    res["primary_key"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<vclock_t<std::string>, ctx_t>(&target->primary_key, ctx));
     res["database"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<database_id_t, ctx_t>(&target->database, ctx));
     return res;
 }
