@@ -405,7 +405,7 @@ private:
             total_sent += sent;
         }
         if (total_sent < size) {
-            fprintf(stderr, "Failed to send_all within time limit of %.3lf seconds.", timeout);
+            fprintf(stderr, "Failed to send_all within time limit of %.3lf seconds.\n", timeout);
             exit(-1);
         }
     }
@@ -422,7 +422,7 @@ private:
             total_received += received;
         }
         if (total_received < size) {
-            fprintf(stderr, "Failed to recv_all within time limit of %.3lf seconds.", timeout);
+            fprintf(stderr, "Failed to recv_all within time limit of %.3lf seconds.\n", timeout);
             exit(-1);
         }
     }
