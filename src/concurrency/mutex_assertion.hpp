@@ -205,6 +205,7 @@ struct rwi_lock_assertion_t {
     };
     explicit rwi_lock_assertion_t(int) { }
     rwi_lock_assertion_t() { }
+    void rethread(int) { }
 private:
     friend struct read_acq_t;
     friend struct write_acq_t;
