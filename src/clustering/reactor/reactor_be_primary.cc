@@ -382,6 +382,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
             ));
 
         interruptor->wait_lazily_unordered();
+
     } catch (interrupted_exc_t) {
         /* ignore */
     }

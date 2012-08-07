@@ -26,14 +26,14 @@ public:
     uint8_t *data() { return data_; }
     const uint8_t *data() const { return data_; }
 
+    static const size_t kStaticSize = 16;
+
     static size_t static_size() {
         CT_ASSERT(sizeof(uuid_t) == kStaticSize);
         return kStaticSize;
     }
 
 private:
-    static const size_t kStaticSize = 16;
-
     uint8_t data_[kStaticSize];
 };
 
