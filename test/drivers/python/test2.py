@@ -302,6 +302,10 @@ class RDBTest(unittest.TestCase):
 
         self.error_exec(self.table.insert({"a": 3}), "id")
 
+    def test_nonexistent_key(self):
+        self.clear_table()
+        self.expect(self.table.get(0), None)
+
     def test_unicode(self):
         self.clear_table()
 

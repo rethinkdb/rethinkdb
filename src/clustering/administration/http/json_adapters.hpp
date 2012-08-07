@@ -58,21 +58,21 @@ private:
 
 //json adapter concept for vclock_t
 template <class T, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(vclock_t<T> *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(vclock_t<T> *, const ctx_t &);
 
 template <class T, class ctx_t>
-cJSON *render_as_json(vclock_t<T> *, const ctx_t &);
+cJSON *with_ctx_render_as_json(vclock_t<T> *, const ctx_t &);
 
 //Note this is not actually part of the json_adapter concept but is a special
 //purpose rendering function which is needed by the json_vclock_resolver_t
 template <class T, class ctx_t>
-cJSON *render_all_values(vclock_t<T> *, const ctx_t &);
+cJSON *with_ctx_render_all_values(vclock_t<T> *, const ctx_t &);
 
 template <class T, class ctx_t>
-void apply_json_to(cJSON *, vclock_t<T> *, const ctx_t &);
+void with_ctx_apply_json_to(cJSON *, vclock_t<T> *, const ctx_t &);
 
 template <class T, class ctx_t>
-void on_subfield_change(vclock_t<T> *, const ctx_t &);
+void with_ctx_on_subfield_change(vclock_t<T> *, const ctx_t &);
 
 //json adapter concept for deletable_t
 template <class T, class ctx_t>
