@@ -33,6 +33,12 @@ module RethinkDB
 
     #TODO: Arity Checking
     def method_missing(m, *args, &block)
+      if m == :run || m == :iter
+        if Connection.last
+        then return Connection.last.send(m, *(args + [self]), &block)
+        else raise RuntimeError, "No last connection, open a new one."
+        end
+      end
       return self.send(m, *(args + [block])) if block
       m = C.method_aliases[m] || m
       if P.enum_type(Builtin::Comparison, m)
@@ -56,6 +62,7 @@ module RethinkDB
     def getattr a; S.new [:call, [:implicit_getattr, a], []]; end
     def pickattrs *a; S.new [:call, [:implicit_pickattrs, *a], []]; end
     def hasattr? a; S.new [:call, [:implicit_hasattr, a], []]; end
+    def [](ind); expr ind; end
     def db x; Tbl.new x; end
     def expr x
       case x.class().hash
@@ -67,7 +74,7 @@ module RethinkDB
       when NilClass.hash   then S.new [:json_null]
       when Array.hash      then S.new [:array, *x.map{|y| expr(y)}]
       when Hash.hash       then S.new [:object, *x.map{|var,term| [var, expr(term)]}]
-      when Symbol.hash     then S.new x.to_s[0] == '$'[0] ? var(x.to_s[1..-1]) : attr(x)
+      when Symbol.hash     then S.new x.to_s[0]=='$'[0] ? var(x.to_s[1..-1]) : getattr(x)
                            else raise TypeError, "term.expr can't handle '#{x.class()}'"
       end
     end

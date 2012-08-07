@@ -3,26 +3,7 @@ r = RethinkDB::RQL
 ################################################################################
 #                                  TERM TESTS                                  #
 ################################################################################
-def p? x; p x; end
-r.var('x').query ;p? :VAR
-r.expr(:$x).query ;p? :VAR
-r.let([["a", 1],
-       ["b", 2]],
-      r.all(r.var('a').eq(1), r.var('b').eq(2))).query ;p? :LET
-#CALL not done explicitly
-r.if(r.var('a'), 1, '2').query ;p? :IF
-r.error('e').query ;p? :ERROR
-r.expr(5).query ;p? :NUMBER
-r.expr('s').query ;p? :STRING
-r.json('{type : "json"}').query ;p? :JSON
-r.expr(true).query ;p? :BOOL
-r.expr(false).query ;p? :BOOL
-r.expr(nil).query ;p? :JSON_NULL
-r.expr([1, 2, [4, 5]]).query ;p? :ARRAY
-r.expr({'a' => 1, 'b' => '2', 'c' => { 'nested' => true }}).query ;p? :OBJECT
-r.table('a', 'b').getbykey('attr', 5).query ;p? :GETBYKEY
-r.table('a', 'b').query ;p? :TABLE
-r.table({:table_name => 'b'}).query ;p? :TABLE
+def p? x; x; end
 r.javascript('javascript').query ;p? :JAVASCRIPT
 
 ################################################################################
@@ -30,13 +11,6 @@ r.javascript('javascript').query ;p? :JAVASCRIPT
 ################################################################################
 r.not(true).query ;p? :NOT
 r.expr(true).not.query ;p? :NOT
-
-r.var('v')['a'].query ;p? :GETATTR
-r.var('v')[:a].query ;p? :GETATTR
-r.var('v').attr('a').query ;p? :GETATTR
-r.var('v').getattr('a').query ;p? :GETATTR
-r.attr('a').query ;p? :IMPLICIT_GETATTR
-r.expr(:a).query ;p? :IMPLICIT_GETATTR
 
 r.var('v').hasattr('a').query ;p? :HASATTR
 r.var('v').attr?('a').query ;p? :HASATTR
@@ -54,9 +28,6 @@ r.attrs('a').query ;p? :IMPLICIT_PICKATTRS
 #ARRAYNTH
 #ARRAYLENGTH
 
-r.add(1, 2).query ;p? :ADD
-r.expr(1).add(2).query ;p? :ADD
-(r.expr(1) + 2).query ;p? :ADD
 r.subtract(1, 2).query ;p? :SUBTRACT
 r.expr(1).subtract(2).query ;p? :SUBTRACT
 (r.expr(1) - 2).query ;p? :SUBTRACT
@@ -115,7 +86,6 @@ r.length(:$var).query ;p? :LENGTH
 r.union(:$var1, :$var2).query ;p? :LENGTH
 r.nth(:$var1).query ;p? :LENGTH
 r.streamtoarray(r.table('','Welcome').all).query ;p? :STREAMTOARRAY
-r.arraytostream(r.expr [1,2,3]).query ;p? :ARRAYTOSTREAM
 
 r.table('','Welcome').reduce(1,'a','b'){r.var('a')+r.var('b')}.query ;p? :REDUCE
 r.table('','Welcome').reduce(0){|a,b| a+b[:size]}.query ;p? :REDUCE
@@ -176,18 +146,64 @@ r.db('').Welcome.pointmutate(:address, 'Bob'){|addr| nil}.query ;p? :POINTMUTATE
 ################################################################################
 
 require 'test/unit'
-$r = RethinkDB::RQL
 class ClientTest < Test::Unit::TestCase
+  def r; RethinkDB::RQL; end
   @@c = RethinkDB::Connection.new('localhost', 64346)
-  def test_let
-    assert_equal(@@c.run($r.add(1,2)), 3)
+  def c; @@c; end
+
+  def test_let #LET, CALL, ADD, VAR, NUMBER, STRING
+    query = r.let([['a', r.add(1,2)], ['b', r.add(:$a,2)]], r.var('a') + :$b)
+    assert_equal(query.run, 8)
+  end
+
+  def test_easy_read #TABLE
+    assert_equal($welcome_data, r.db('').Welcome.run)
+    assert_equal($welcome_data, r.table('', 'Welcome').run)
+    assert_equal($welcome_data, r.table({:table_name => 'Welcome'}).run)
+  end
+
+  def test_error #IF, JSON, ERROR
+    query = r.if(r.add(1,2) >= 3, r.json('[1,2,3]'), r.error('unreachable'))
+    query_err = r.if(r.add(1,2) > 3, r.json('[1,2,3]'), r.error('unreachable'))
+    assert_equal(query.run, [1,2,3])
+    assert_raise(RuntimeError){assert_equal(query_err.run)}
+  end
+
+  def test_array #BOOL, JSON_NULL, ARRAY, ARRAYTOSTREAM
+    assert_equal(r.expr([true, false, nil]).run, [true, false, nil])
+    assert_equal(r.arraytostream(r.expr([true, false, nil])).run, [true, false, nil])
+  end
+
+  def test_getbykey #OBJECT, GETBYKEY
+    query = r.expr({'obj' => r.db('').Welcome.getbykey(:id, 0)})
+    query2 = r[{'obj' => r.db('').Welcome.getbykey(:id, 0)}]
+    assert_equal(query.run['obj'], $welcome_data[0])
+    assert_equal(query2.run['obj'], $welcome_data[0])
+  end
+
+  def test_map #MAP, FILTER, LT, GETATTR, IMPLICIT_GETATTR
+    query = r.db('').Welcome.map { |outer_row|
+      r.streamtoarray(r.db('').Welcome.filter{r[:id] < outer_row[:id]})
+    }
+    query2 = r.db('').Welcome.map { |outer_row|
+      r.streamtoarray(r.db('').Welcome.filter{r.attr('id') < outer_row.getattr(:id)})
+    }
+    assert_equal(query.run[2], $welcome_data[0..1])
+    assert_equal(query2.run[2], $welcome_data[0..1])
   end
 end
 
-# welcome_data = []
-# Array.new(10).each_index{|i| welcome_data << {:id => i, :name => i.to_s}}
-# c.run(r.db('').Welcome.insert(welcome_data).query)
 
+c = RethinkDB::Connection.new('localhost', 64346)
+$welcome_data = []
+Array.new(10).each_index{|i| $welcome_data << {'id' => i, 'name' => i.to_s}}
+c.run(r.db('').Welcome.insert($welcome_data).query)
+c.run(r.db('').Welcome)
+r.db('').Welcome.run
+query = r.db('').Welcome.map { |row|
+  r.streamtoarray(r.db('').Welcome.filter{row[:id] < r[:id]})
+}
+query.run
 # # c.run(r.db('').Welcome).length
 # # c.run(r.add(1,2))
 # # c.run(r.let([['a', r.add(1,2)],

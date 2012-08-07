@@ -319,9 +319,9 @@
 #         SUCCESS_PARTIAL = 2; //need to send CONTINUE repeatedly until SUCCESS_STREAM
 #         SUCCESS_STREAM = 3;
 # 
-#         BROKEN_CLIENT = -1; // Means the client is misbehaving, not the user
-#         BAD_QUERY = -2;
-#         RUNTIME_ERROR = -3;
+#         BROKEN_CLIENT = 101; // Means the client is misbehaving, not the user
+#         BAD_QUERY = 102;
+#         RUNTIME_ERROR = 103;
 #     }
 #     required StatusCode status_code = 1;
 # 
@@ -627,9 +627,9 @@ class Response < ::Protobuf::Message
     SUCCESS_JSON = value(:SUCCESS_JSON, 1)
     SUCCESS_PARTIAL = value(:SUCCESS_PARTIAL, 2)
     SUCCESS_STREAM = value(:SUCCESS_STREAM, 3)
-    BROKEN_CLIENT = value(:BROKEN_CLIENT, -1)
-    BAD_QUERY = value(:BAD_QUERY, -2)
-    RUNTIME_ERROR = value(:RUNTIME_ERROR, -3)
+    BROKEN_CLIENT = value(:BROKEN_CLIENT, 101)
+    BAD_QUERY = value(:BAD_QUERY, 102)
+    RUNTIME_ERROR = value(:RUNTIME_ERROR, 103)
   end
   required :StatusCode, :status_code, 1
   required :int64, :token, 2
