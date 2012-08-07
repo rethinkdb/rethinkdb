@@ -4,8 +4,9 @@ module RethinkDB
       { :attr => :getattr, :attrs => :pickattrs, :attr? => :hasattr,
         :equals => :eq, :neq => :neq,
         :neq => :ne, :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
+        :sub => :subtract, :mul => :multiply, :div => :divide, :mod => :modulo,
         :+ => :add, :- => :subtract, :* => :multiply, :/ => :divide, :% => :modulo,
-        :and => :all, :& => :all, :or => :any, :| => :any} end
+        :and => :all, :& => :all, :or => :any, :| => :any } end
     def class_types
       { Query => Query::QueryType, WriteQuery => WriteQuery::WriteQueryType,
         Term => Term::TermType, Builtin => Builtin::BuiltinType } end
@@ -17,10 +18,12 @@ module RethinkDB
         :if => :if_, :getbykey => :get_by_key, :groupedmapreduce => :grouped_map_reduce,
         :insertstream => :insert_stream, :foreach => :for_each, :orderby => :order_by,
         :pointupdate => :point_update, :pointdelete => :point_delete,
-        :pointmutate => :point_mutate
-      } end
-    def trampolines
-      [:table, :map, :filter, :concatmap] end
+        :pointmutate => :point_mutate,
+        :read => :read_query, :write => :write_query } end
+    def trampolines; [:table, :map, :concatmap, :filter] end
+    def repeats; [:insert, :foreach]; end
+    def table_directs
+      [:insert, :insertstream, :pointupdate, :pointdelete, :pointmutate] end
   end
   module C; extend C_Mixin; end
 
