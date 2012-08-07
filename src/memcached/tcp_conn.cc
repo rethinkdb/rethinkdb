@@ -95,8 +95,8 @@ void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t
 }
 
 
-memcache_listener_t::memcache_listener_t(int _port, namespace_interface_t<memcached_protocol_t> *namespace_if_, perfmon_collection_t *_parent)
-    : port(_port), namespace_if(namespace_if_),
+memcache_listener_t::memcache_listener_t(int _port, namespace_repo_t<memcached_protocol_t>::access_t *_ns_access, perfmon_collection_t *_parent)
+    : port(_port), ns_access(_ns_access),
       next_thread(0),
       parent(_parent),
       stats(parent),
@@ -133,8 +133,7 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const scoped_
 
     /* We will switch to another thread so there isn't too much load on the thread
     where the `memcache_listener_t` lives */
-    //int chosen_thread = (next_thread++) % get_num_db_threads();
-    int chosen_thread = get_thread_id();
+    int chosen_thread = (next_thread++) % get_num_db_threads();
 
     /* Construct a cross-thread watcher so we will get notified on `chosen_thread`
     when a shutdown command is delivered on the main thread. */
@@ -151,5 +150,5 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const scoped_
 
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */
-    serve_memcache(conn.get(), namespace_if, &stats);
+    serve_memcache(conn.get(), ns_access->get_namespace_if(), &stats);
 }
