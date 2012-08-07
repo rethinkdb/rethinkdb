@@ -2,6 +2,7 @@ module RethinkDB
   module C_Mixin #Constants
     def method_aliases
       { :attr => :getattr, :attrs => :pickattrs, :attr? => :hasattr,
+        :get => :getattr, :pick => :pickattrs, :has => :hasattr,
         :equals => :eq, :neq => :neq,
         :neq => :ne, :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
         :sub => :subtract, :mul => :multiply, :div => :divide, :mod => :modulo,
@@ -24,6 +25,9 @@ module RethinkDB
     def repeats; [:insert, :foreach]; end
     def table_directs
       [:insert, :insertstream, :pointupdate, :pointdelete, :pointmutate] end
+    def arity
+      { :map => 1, :concatmap => 1, :filter => 1, :reduce => 2, :update => 1,
+        :mutate => 1, :foreach => 1, :pointupdate => 1, :pointmutate => 1 } end
   end
   module C; extend C_Mixin; end
 

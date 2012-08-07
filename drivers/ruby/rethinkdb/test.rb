@@ -96,13 +96,8 @@ r.ge(1, 2).query ;p? :COMPARE_GE
 r.expr(1).ge(2).query ;p? :COMPARE_GE
 (r.expr(1) >= 2).query ;p? :COMPARE_GE
 
-r.table('','Welcome').filter('row', r.eq(:id, 1)).query ;p? :FILTER
 r.table('','Welcome').filter { |row| row[:id].eq(1) }.query ;p? :FILTER
-r.table('','Welcome').map('row', r.expr(:$row)).query ;p? :MAP
 r.table('','Welcome').map { |row| row}.query ;p? :MAP
-r.table('','Welcome').concatmap('row',
-    r.table('','Other').filter('row2',
-        r.var('row')[:id] > :id)).query ;p? :CONCATMAP
 r.table('','Welcome').concatmap { |row|
   r.table('','Other').filter { |row2|
     row[:id] > row2[:id]
@@ -153,20 +148,26 @@ r.db('').Welcome.filter{|x| x[:id] < 5}.delete.query ;p? :DELETE
 r.db('').Welcome.mutate{|x| nil}.query ;p? :MUTATE
 r.db('').Welcome.filter{|x| x[:id] < 5}.mutate{|x| nil}.query ;p? :MUTATE
 
-#TODO: Better errors
-#r.db('').Welcome.insert(r.expr({:id => 1, :name => 'tst'})).query ;p? :INSERT
 r.db('').Welcome.insert([{:id => 1, :name => 'tst'}]).query ;p? :INSERT
 r.db('').Welcome.insert({:id => 1, :name => 'tst'}).query ;p? :INSERT
 
 r.db('').Welcome.insertstream(r.db('').other_tbl).query ;p? :INSERTSTREAM
 
 r.db('').Welcome.foreach {|row|
-  [r.db('').other_tbl.insert(row), r.db('').other_tbl2.insert(row)]
+  [r.db('').other_tbl1.insert(row),
+   r.db('').other_tbl2.insert(row)]
 }.query ;p? :FOREACH
 r.db('').Welcome.foreach {|x| [r.db('').other_tbl.insert [x]]}.query ;p? :FOREACH
 r.db('').Welcome.foreach {|row| [r.db('').other_tbl.insert row]}.query ;p? :FOREACH
 r.db('').Welcome.foreach {|row| r.db('').other_tbl.insert row}.query ;p? :FOREACH
 
-#POINTUPDATE
-#POINTDELETE
-#POINTMUTATE
+r.db('').Welcome.pointupdate(:address, 'Bob'){'addr2'}.query ;p? :POINTUPDATE
+r.db('').Welcome.pointupdate(:address, 'Bob'){|addr| addr}.query ;p? :POINTUPDATE
+
+r.db('').Welcome.pointdelete(:address, 'Bob').query ;p? :POINTDELETE
+
+r.db('').Welcome.pointmutate(:address, 'Bob'){'addr2'}.query ;p? :POINTMUTATE
+r.db('').Welcome.pointmutate(:address, 'Bob'){nil}.query ;p? :POINTMUTATE
+r.db('').Welcome.pointmutate(:address, 'Bob'){|addr| addr}.query ;p? :POINTMUTATE
+r.db('').Welcome.pointmutate(:address, 'Bob'){|addr| nil}.query ;p? :POINTMUTATE
+
