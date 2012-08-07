@@ -351,27 +351,6 @@ void with_ctx_reset_json(T *target, const ctx_t &ctx) {
  * prominent types, these could in theory be relocated to a different file if
  * need be */
 
-// ctx-dropping adapters
-template <class T, class ctx_t>
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(T *target, const ctx_t &ctx) {
-    return get_json_subfields(target, ctx);
-}
-
-template <class T, class ctx_t>
-cJSON *with_ctx_render_as_json(T *target, const ctx_t &ctx) {
-    return render_as_json(target, ctx);
-}
-
-template <class T, class ctx_t>
-void with_ctx_apply_json_to(cJSON *json, T *target, const ctx_t &ctx) {
-    apply_json_to(json, target, ctx);
-}
-
-template <class T, class ctx_t>
-void with_ctx_on_subfield_change(T *target, const ctx_t &ctx) {
-    on_subfield_change(target, ctx);
-}
-
 //JSON adapter for int
 template <class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(int *, const ctx_t &);
@@ -563,6 +542,27 @@ std::string render_as_json_string(const T &t, const cxt_t cxt) {
 template<class T>
 std::string render_as_json_string(const T &t) {
     return render_as_json_string(t, 0);
+}
+
+// ctx-dropping adapters, eventually.
+template <class T, class ctx_t>
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(T *target, const ctx_t &ctx) {
+    return get_json_subfields(target, ctx);
+}
+
+template <class T, class ctx_t>
+cJSON *with_ctx_render_as_json(T *target, const ctx_t &ctx) {
+    return render_as_json(target, ctx);
+}
+
+template <class T, class ctx_t>
+void with_ctx_apply_json_to(cJSON *json, T *target, const ctx_t &ctx) {
+    apply_json_to(json, target, ctx);
+}
+
+template <class T, class ctx_t>
+void with_ctx_on_subfield_change(T *target, const ctx_t &ctx) {
+    on_subfield_change(target, ctx);
 }
 
 #include "http/json/json_adapter.tcc"
