@@ -491,7 +491,6 @@ private:
         }
         *response = iterator->second;
         response_bucket.erase(iterator);
-        printf("%s\n", response->DebugString().c_str());
     }
 
     bool get_response_maybe(Response *response, int64_t target_token) {
