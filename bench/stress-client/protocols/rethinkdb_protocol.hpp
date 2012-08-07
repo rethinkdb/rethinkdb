@@ -60,6 +60,10 @@ struct rethinkdb_protocol_t : protocol_t {
             exit(-1);
         }
 
+        // set up readfds for socket_ready()
+        FD_ZERO(&readfds);
+        FD_SET(sockfd, &readfds);
+
         // wait until started up (by inserting until one is successful)
         bool success = false;
         do {
@@ -194,14 +198,55 @@ struct rethinkdb_protocol_t : protocol_t {
         }
     }
 
-    // TODO: implement this method properly
+    // returns whether all the reads were completed
     virtual bool dequeue_read_maybe(payload_t *keys, int count, payload_t *values = NULL) { 
-        dequeue_read(keys, count, values);
-        return true;
+        bool done = true;
+        for (int i = 0; i < count; i++) {
+            if (read_tokens.front() == -1) {
+                read_tokens.push(-1);
+                read_tokens.pop();
+            }
+
+            // get response
+            Response *response = new Response;
+            bool received = get_response_maybe(response, read_tokens.front());
+            if (!received) {
+                done = false;
+                read_tokens.push(read_tokens.front());
+                read_tokens.pop();
+                continue;
+            }
+
+            if (response->status_code() != Response::SUCCESS_JSON) {
+                fprintf(stderr, "Failed to read key %s: %s\n", keys[i].first, response->error_message().c_str());
+            }
+            if (values) {
+                std::string result = get_value(response->response(0));
+                if (std::string(values[i].first, values[i].second) != result) {
+                    fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
+                }
+            }
+
+            read_tokens.push(-1); // signifies a completed read
+            read_tokens.pop();
+        }
+
+        // empty the read queue if done
+        if (done) {
+            while (read_tokens.size()) {
+                read_tokens.pop();
+            }
+        }
+
+        return done;
     }
 
     virtual void dequeue_read(payload_t *keys, int count, payload_t *values = NULL) {
         for (int i = 0; i < count; i++) {
+            if (read_tokens.front() == -1) {
+                continue;
+            }
+
             // get response
             Response *response = new Response;
             get_response(response, read_tokens.front());
@@ -341,6 +386,12 @@ private:
         table_ref->set_table_name(RDB_TABLE_NAME);
         read_query->set_max_chunk_size(0); // no chunking
     }
+
+    // Returns true if there is something to be read
+    bool socket_ready() {
+        select(sockfd + 1, &readfds, NULL, NULL, NULL);
+        return FD_ISSET(sockfd, &readfds);
+    }
     
     void send_all(const char *buf, int size, double timeout = 1.0) {
         double start_time = clock();
@@ -388,10 +439,6 @@ private:
             exit(-1);
         }
 
-        // TODO: remove debug output
-        printf("About to send query.\n");
-        printf("%s\n", query->DebugString().c_str());
-
         // send message
         int size = int(query_serialized.length());
         send_all((char *) &size, sizeof(size));
@@ -402,6 +449,19 @@ private:
         map<int64_t, Response>::iterator iterator;
         while ((iterator = response_bucket.find(target_token)) == response_bucket.end()) {
             recv_response(response);
+        }
+        *response = iterator->second;
+        response_bucket.erase(iterator);
+    }
+
+    bool get_response_maybe(Response *response, int64_t target_token) {
+        map<int64_t, Response>::iterator iterator;
+        while ((iterator = response_bucket.find(target_token)) == response_bucket.end()) {
+            if (socket_ready()) {
+                recv_response(response);
+            } else {
+                return false;
+            }
         }
         *response = iterator->second;
         response_bucket.erase(iterator);
@@ -420,10 +480,6 @@ private:
         }
 
         response_bucket[response->token()] = *response;
-
-        // TODO: remove debug output
-        printf("Received response!\n");
-        printf("%s\n", response->DebugString().c_str());
     }
 
     bool exist_outstanding_pipeline_reads() {
@@ -443,6 +499,7 @@ private:
 private:
     int64_t token_index;
     int sockfd;
+    fd_set readfds;
     char buffer[MAX_PROTOBUF_SIZE];
     queue<int64_t> read_tokens; // used for keeping track of enqueued reads
     map<int64_t, Response> response_bucket; // maps the token number to the corresponding response
