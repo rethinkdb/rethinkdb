@@ -90,7 +90,7 @@ void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name, na
 
         wait_any_t interruptor(&namespaces_being_handled.find(ns)->second->stopper, keepalive.get_drain_signal());
         typename namespace_repo_t<protocol_t>::access_t access(repo, ns, &interruptor);
-        parser_t parser(port, access.get_namespace_if(), &perfmon_collection_repo->get_perfmon_collections_for_namespace(ns)->namespace_collection);
+        parser_t parser(port, &access, &perfmon_collection_repo->get_perfmon_collections_for_namespace(ns)->namespace_collection);
 
         signal_t *is_bound = parser.get_bound_signal();
 
