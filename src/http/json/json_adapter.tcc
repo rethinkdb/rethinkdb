@@ -15,7 +15,7 @@
 #include "stl_utils.hpp"
 #include "utils.hpp"
 
-//implementation for subfield_functor_t
+//implementation for standard_subfield_functor_t
 template<class T, class ctx_t>
 standard_subfield_change_functor_t<T, ctx_t>::standard_subfield_change_functor_t(T *_target, const ctx_t &_ctx)
     : target(_target), ctx(_ctx) { }
@@ -23,6 +23,16 @@ standard_subfield_change_functor_t<T, ctx_t>::standard_subfield_change_functor_t
 template<class T, class ctx_t>
 void standard_subfield_change_functor_t<T, ctx_t>::on_change() {
     on_subfield_change(target, ctx);
+}
+
+//implementation for standard_ctx_subfield_functor_t
+template<class T, class ctx_t>
+standard_ctx_subfield_change_functor_t<T, ctx_t>::standard_ctx_subfield_change_functor_t(T *_target, const ctx_t &_ctx)
+    : target(_target), ctx(_ctx) { }
+
+template<class T, class ctx_t>
+void standard_ctx_subfield_change_functor_t<T, ctx_t>::on_change() {
+    with_ctx_on_subfield_change(target, ctx);
 }
 
 //implementation for json_adapter_t
@@ -61,6 +71,43 @@ boost::shared_ptr<subfield_change_functor_t> json_adapter_t<T, ctx_t>::get_chang
     return boost::shared_ptr<subfield_change_functor_t>(new standard_subfield_change_functor_t<T, ctx_t>(target_, ctx_));
 }
 
+//implementation for json_ctx_adapter_t
+template <class T, class ctx_t>
+json_ctx_adapter_t<T, ctx_t>::json_ctx_adapter_t(T *target, const ctx_t &ctx)
+    : target_(target), ctx_(ctx) { }
+
+template <class T, class ctx_t>
+cJSON *json_ctx_adapter_t<T, ctx_t>::render_impl() {
+    return with_ctx_render_as_json(target_, ctx_);
+}
+
+template <class T, class ctx_t>
+void json_ctx_adapter_t<T, ctx_t>::apply_impl(cJSON *change) {
+    with_ctx_apply_json_to(change, target_, ctx_);
+}
+
+template <class T, class ctx_t>
+void json_ctx_adapter_t<T, ctx_t>::erase_impl() {
+    with_ctx_erase_json(target_, ctx_);
+}
+
+template <class T, class ctx_t>
+void json_ctx_adapter_t<T, ctx_t>::reset_impl() {
+    with_ctx_reset_json(target_, ctx_);
+}
+
+
+template <class T, class ctx_t>
+json_adapter_if_t::json_adapter_map_t json_ctx_adapter_t<T, ctx_t>::get_subfields_impl() {
+    return with_ctx_get_json_subfields(target_, ctx_);
+}
+
+template <class T, class ctx_t>
+boost::shared_ptr<subfield_change_functor_t> json_ctx_adapter_t<T, ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>(new standard_ctx_subfield_change_functor_t<T, ctx_t>(target_, ctx_));
+}
+
+
 //implementation for json_read_only_adapter_t
 template <class T, class ctx_t>
 json_read_only_adapter_t<T, ctx_t>::json_read_only_adapter_t(T *t, const ctx_t &ctx)
@@ -79,6 +126,27 @@ void json_read_only_adapter_t<T, ctx_t>::erase_impl() {
 
 template <class T, class ctx_t>
 void json_read_only_adapter_t<T, ctx_t>::reset_impl() {
+    throw permission_denied_exc_t("Trying to reset a readonly value");
+}
+
+//implementation for json_ctx_read_only_adapter_t
+template <class T, class ctx_t>
+json_ctx_read_only_adapter_t<T, ctx_t>::json_ctx_read_only_adapter_t(T *t, const ctx_t &ctx)
+    : json_ctx_adapter_t<T, ctx_t>(t, ctx)
+{ }
+
+template <class T, class ctx_t>
+void json_ctx_read_only_adapter_t<T, ctx_t>::apply_impl(cJSON *) {
+    throw permission_denied_exc_t("Trying to write to a readonly value");
+}
+
+template <class T, class ctx_t>
+void json_ctx_read_only_adapter_t<T, ctx_t>::erase_impl() {
+    throw permission_denied_exc_t("Trying to erase a readonly value");
+}
+
+template <class T, class ctx_t>
+void json_ctx_read_only_adapter_t<T, ctx_t>::reset_impl() {
     throw permission_denied_exc_t("Trying to reset a readonly value");
 }
 
@@ -134,7 +202,7 @@ json_adapter_if_t::json_adapter_map_t json_map_inserter_t<container_t, ctx_t>::g
     json_adapter_map_t res;
     for (typename keys_set_t::iterator it = added_keys.begin(); it != added_keys.end(); ++it) {
         scoped_cJSON_t key(render_as_json(&*it, ctx));
-        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename container_t::mapped_type, ctx_t>(&(target->find(*it)->second), ctx));
+        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<typename container_t::mapped_type, ctx_t>(&(target->find(*it)->second), ctx));
     }
     return res;
 }
@@ -445,7 +513,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(std::map<K, V> *map, co
         try {
             scoped_cJSON_t scoped_key(render_as_json(&key, ctx));
             res[get_string(scoped_key.get())]
-                = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<V, ctx_t>(&it->second, ctx));
+                = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<V, ctx_t>(&it->second, ctx));
         } catch (schema_mismatch_exc_t &) {
             crash("Someone tried to json adapt a std::map with a key type that"
                    "does not yield a JSON object of string type when"
@@ -453,7 +521,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(std::map<K, V> *map, co
         }
 
 #ifdef JSON_SHORTCUTS
-        res[strprintf("%d", shortcut_index)] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<V, ctx_t>(&(it->second)));
+        res[strprintf("%d", shortcut_index)] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<V, ctx_t>(&(it->second)));
         shortcut_index++;
 #endif
     }
@@ -532,8 +600,8 @@ void on_subfield_change(std::set<V> *, const ctx_t &) { }
 template <class F, class S, class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(std::pair<F, S> *target, const ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["first"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<F, ctx_t>(&target->first, ctx));
-    res["second"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<S, ctx_t>(&target->second, ctx));
+    res["first"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<F, ctx_t>(&target->first, ctx));
+    res["second"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<S, ctx_t>(&target->second, ctx));
     return res;
 }
 

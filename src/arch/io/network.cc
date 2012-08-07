@@ -42,13 +42,13 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
         // Set the socket to reusable so we don't block out other sockets from this port
         int reuse = 1;
         if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
-            logINF("Failed to set socket reuse to true: %s", strerror(errno));
+            logWRN("Failed to set socket reuse to true: %s", strerror(errno));
         addr.sin_family = AF_INET;
         addr.sin_port = htons(local_port);
         addr.sin_addr.s_addr = INADDR_ANY;
         bzero(addr.sin_zero, sizeof(addr.sin_zero));
         if (bind(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0)
-            logINF("Failed to bind to local port %d: %s", local_port, strerror(errno));
+            logWRN("Failed to bind to local port %d: %s", local_port, strerror(errno));
     }
 
     addr.sin_family = AF_INET;

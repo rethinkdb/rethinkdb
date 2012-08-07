@@ -80,13 +80,16 @@ public:
           transaction_ptr(txn),
           stat_block(NULL_BLOCK_ID),
           helper(_helper),
-          interruptor(_interruptor)
-    { }
+          interrupted(false)
+    {
+        interruptor_watcher.parent = this;
+        interruptor_watcher.reset(_interruptor);
+    }
 
     ~traversal_state_t() {
-        for (size_t i = 0; i < acquisition_waiter_stacks.size(); ++i) {
-            for (size_t j = 0; j < acquisition_waiter_stacks[i].size(); ++j) {
-                acquisition_waiter_stacks[i][j]->cancel();
+        if (!interrupted) {
+            for (size_t i = 0; i < acquisition_waiter_stacks.size(); i++) {
+                rassert(acquisition_waiter_stacks[i].empty());
             }
         }
     }
@@ -103,12 +106,19 @@ public:
     // The helper.
     btree_traversal_helper_t *helper;
 
-    signal_t *interruptor;
-
+    bool interrupted;
     cond_t finished_cond;
 
     // The number of pending + acquired blocks, by level.
     std::vector<int64_t> level_counts;
+
+    class interruptor_watcher_t : public signal_t::subscription_t {
+    public:
+        void run() {
+            parent->interrupt();
+        }
+        traversal_state_t *parent;
+    } interruptor_watcher;
 
     int64_t& level_count(int level) {
         rassert(level >= 0);
@@ -150,7 +160,7 @@ public:
         level_counts.resize(acquisition_waiter_stacks.size(), 0);
 
         // If we're trying to stop, don't spawn any new jobs.
-        if (!interruptor->is_pulsed()) {
+        if (!interrupted) {
             for (int i = level_counts.size() - 1; i >= 0; --i) {
                 if (level_counts[i] < level_max(i)) {
                     int diff = level_max(i) - level_counts[i];
@@ -171,6 +181,16 @@ public:
 
         if (total_level_count() == 0) {
             finished_cond.pulse();
+        }
+    }
+
+    void interrupt() {
+        rassert(interrupted == false);
+        interrupted = true;
+        for (int i = 0; i < int(acquisition_waiter_stacks.size()); i++) {
+            for (int j = 0; j < int(acquisition_waiter_stacks[i].size()); j++) {
+                acquisition_waiter_stacks[i][j]->cancel();
+            }
         }
     }
 
@@ -199,7 +219,6 @@ public:
     void wait() {
         finished_cond.wait();
     }
-
 
 private:
     DISABLE_COPYING(traversal_state_t);
