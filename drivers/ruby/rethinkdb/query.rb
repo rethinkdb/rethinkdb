@@ -12,7 +12,7 @@ module RethinkDB
     def initialize(init_body); @body = init_body; end
     def sexp; clean_lst @body; end
     def as _class; RQL_Protob.comp(_class, sexp); end
-    def query;  RQL_Protob.query sexp; end
+    def query; RQL_Protob.query sexp; end
 
     def [](ind); self.send(:getattr, ind); end
     def getbykey(attr, key)

@@ -171,3 +171,28 @@ r.db('').Welcome.pointmutate(:address, 'Bob'){nil}.query ;p? :POINTMUTATE
 r.db('').Welcome.pointmutate(:address, 'Bob'){|addr| addr}.query ;p? :POINTMUTATE
 r.db('').Welcome.pointmutate(:address, 'Bob'){|addr| nil}.query ;p? :POINTMUTATE
 
+################################################################################
+#                                 CONNECTION                                   #
+################################################################################
+
+require 'test/unit'
+$r = RethinkDB::RQL
+class ClientTest < Test::Unit::TestCase
+  @@c = RethinkDB::Connection.new('localhost', 64346)
+  def test_let
+    assert_equal(@@c.run($r.add(1,2)), 3)
+  end
+end
+
+# welcome_data = []
+# Array.new(10).each_index{|i| welcome_data << {:id => i, :name => i.to_s}}
+# c.run(r.db('').Welcome.insert(welcome_data).query)
+
+# # c.run(r.db('').Welcome).length
+# # c.run(r.add(1,2))
+# # c.run(r.let([['a', r.add(1,2)],
+# #              ['b', r.add(:$a, 3)]],
+# #             r.add(:$a, :$b)))
+# c.run(r.add(1,2))
+
+
