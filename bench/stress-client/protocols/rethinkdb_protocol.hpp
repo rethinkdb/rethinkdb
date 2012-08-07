@@ -531,7 +531,6 @@ private:
     std::string get_value(const std::string &json_string) {
         int last_quote = (int) json_string.find_last_of('"');
         int second_to_last_quote = (int) json_string.find_last_of('"', last_quote - 1);
-        printf("%s %d %d\n", json_string.c_str(), last_quote, second_to_last_quote);
         assert(last_quote >= 0 && last_quote < json_string.length());
         assert(second_to_last_quote >= 0 && second_to_last_quote < json_string.length());
         return json_string.substr(second_to_last_quote + 1, last_quote - second_to_last_quote - 1);
