@@ -529,6 +529,9 @@ private:
     // takes a JSON string and returns the string in the last set of quotes
     // useful for retrieving the last value, and probably faster than using a JSON parser
     std::string get_value(const std::string &json_string) {
+        if (json_string == "null") {
+            return json_string;
+        }
         int last_quote = (int) json_string.find_last_of('"');
         int second_to_last_quote = (int) json_string.find_last_of('"', last_quote - 1);
         assert(last_quote >= 0 && last_quote < json_string.length());
