@@ -50,7 +50,9 @@ void stream_cache_t::maybe_evict() {
     while (it != streams.end()) {
         it_old = it++;
         entry_t *entry = &it_old->second;
-        if (cur_time - entry->last_activity > entry->max_age) streams.erase(it_old);
+        if (entry->max_age && cur_time - entry->last_activity > entry->max_age) {
+            streams.erase(it_old);
+        }
     }
 }
 
@@ -60,7 +62,7 @@ void stream_cache_t::maybe_evict() {
 bool valid_chunk_size(int64_t chunk_size) {
     return 0 <= chunk_size && chunk_size <= INT_MAX;
 }
-bool valid_age(int64_t age) { return 0 < age; }
+bool valid_age(int64_t age) { return 0 <= age; }
 stream_cache_t::entry_t::entry_t(time_t _last_activity,
                                  boost::shared_ptr<query_language::json_stream_t> _stream,
                                  ReadQuery *r)

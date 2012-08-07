@@ -23,8 +23,8 @@ private:
     void maybe_evict();
 
     struct entry_t {
-        static const int DEFAULT_MAX_CHUNK_SIZE = 10;
-        static const time_t DEFAULT_MAX_AGE = 60;
+        static const int DEFAULT_MAX_CHUNK_SIZE = 1000; // 0 = unbounded
+        static const time_t DEFAULT_MAX_AGE = 0; // 0 = never evict
         entry_t(time_t _last_activity, boost::shared_ptr<query_language::json_stream_t> _stream,
                 ReadQuery *r);
         time_t last_activity;
