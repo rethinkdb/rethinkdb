@@ -30,7 +30,7 @@ EXEC_NAME = stress
 SO_NAME = libstress.so
 CXX = g++
 CFLAGS = -fPIC
-CXXFLAGS = -g $(INCLUDE) -I . $(DEFINES) -fPIC # -O3
+CXXFLAGS = $(INCLUDE) -I . $(DEFINES) -fPIC # -O3
 #TODO: remove -g flag
 PROTO_DIR = ../../src/rdb_protocol
 
