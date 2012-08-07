@@ -13,17 +13,16 @@ class runtime_environment_t;
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
 typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 
-/* A parallizable stream is capable of taking in transformations and terminals.
- * These will get pushed out to other stores and be done in parallel. */
-class parallelizable_stream_t : public json_stream_t {
+class json_stream_t {
 public:
+    virtual boost::shared_ptr<scoped_cJSON_t> next() = 0; //MAY THROW
     virtual void add_transformation(const rdb_protocol_details::transform_atom_t &) = 0;
     virtual result_t apply_terminal(const rdb_protocol_details::terminal_t &) = 0;
 
-    virtual ~parallelizable_stream_t() { }
+    virtual ~json_stream_t() { }
 };
 
-class in_memory_stream_t : public parallelizable_stream_t {
+class in_memory_stream_t : public json_stream_t {
 public:
     template <class iterator>
     in_memory_stream_t(const iterator &begin, const iterator &end, runtime_environment_t *_env)
@@ -53,7 +52,7 @@ private:
     runtime_environment_t *env;
 };
 
-class batched_rget_stream_t : public parallelizable_stream_t {
+class batched_rget_stream_t : public json_stream_t {
 public:
     batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, 
                           signal_t *_interruptor, key_range_t _range, 
@@ -108,6 +107,16 @@ public:
 
             return parent->data[index++];
         }
+
+        //TODO these methods are probably going to go away.. in actuality
+        //assigning streams to variables should just go away
+        void add_transformation(const rdb_protocol_details::transform_atom_t &) {
+            crash("notimplemented");
+        }
+
+        result_t apply_terminal(const rdb_protocol_details::terminal_t &) {
+            crash("notimplemented");
+        }
     private:
         boost::shared_ptr<stream_multiplexer_t> parent;
         cJSON_vector_t::size_type index;
@@ -135,20 +144,13 @@ class union_stream_t : public json_stream_t {
 public:
     typedef std::list<boost::shared_ptr<json_stream_t> > stream_list_t;
 
-    explicit union_stream_t(const stream_list_t &_streams)
-        : streams(_streams), hd(streams.begin())
-    { }
+    explicit union_stream_t(const stream_list_t &_streams);
 
-    boost::shared_ptr<scoped_cJSON_t> next() {
-        while (hd != streams.end()) {
-            if (boost::shared_ptr<scoped_cJSON_t> json = (*hd)->next()) {
-                return json;
-            } else {
-                ++hd;
-            }
-        }
-        return boost::shared_ptr<scoped_cJSON_t>();
-    }
+    boost::shared_ptr<scoped_cJSON_t> next();
+
+    void add_transformation(const rdb_protocol_details::transform_atom_t &);
+
+    result_t apply_terminal(const rdb_protocol_details::terminal_t &);
 
 private:
     stream_list_t streams;
@@ -249,6 +251,14 @@ public:
         }
     }
 
+    void add_transformation(const rdb_protocol_details::transform_atom_t &t) {
+        stream->add_transformation(t);
+    }
+
+    result_t apply_terminal(const rdb_protocol_details::terminal_t &) {
+        crash("not implemented");
+    }
+
 private:
     boost::shared_ptr<json_stream_t> stream;
     int limit;
@@ -268,6 +278,14 @@ public:
             stream->next();
         }
         return stream->next();
+    }
+
+    void add_transformation(const rdb_protocol_details::transform_atom_t &t) {
+        stream->add_transformation(t);
+    }
+
+    result_t apply_terminal(const rdb_protocol_details::terminal_t &) {
+        crash("not implemented");
     }
 
 private:
@@ -294,6 +312,14 @@ public:
             }
         }
         return boost::shared_ptr<scoped_cJSON_t>();
+    }
+
+    void add_transformation(const rdb_protocol_details::transform_atom_t &t) {
+        stream->add_transformation(t);
+    }
+
+    result_t apply_terminal(const rdb_protocol_details::terminal_t &) {
+        crash("not implemented");
     }
 
 private:
