@@ -104,9 +104,11 @@ struct rethinkdb_protocol_t : protocol_t {
         get_response(response, query->token());
         if (response->token() != query->token()) {
             fprintf(stderr, "Delete response token %ld did not match query token %ld.\n", response->token(), query->token());
+            throw protocol_error_t("Delete response token mismatch.");
         }
         if (response->status_code() != Response::SUCCESS_JSON) {
             fprintf(stderr, "Failed to remove key %s: %s\n", key, response->error_message().c_str());
+            throw protocol_error_t("Failed to successfully delete.");
         }
     }
 
@@ -131,9 +133,11 @@ struct rethinkdb_protocol_t : protocol_t {
         get_response(response, query->token());
         if (response->token() != query->token()) {
             fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), query->token());
+            throw protocol_error_t("Update response token mismatch.");
         }
         if (response->status_code() != Response::SUCCESS_JSON) {
             fprintf(stderr, "Failed to insert key %s, value %s: %s\n", key, value, response->error_message().c_str());
+            throw protocol_error_t("Failed to successfully update.");
         }
     }
 
@@ -152,9 +156,11 @@ struct rethinkdb_protocol_t : protocol_t {
         get_response(response, query->token());
         if (response->token() != query->token()) {
             fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), query->token());
+            throw protocol_error_t("Insert response token mismatch.");
         }
         if (response->status_code() != Response::SUCCESS_JSON) {
             fprintf(stderr, "Failed to insert key %s, value %s: %s\n", key, value, response->error_message().c_str());
+            throw protocol_error_t("Failed to successfully insert.");
         }
     }
 
@@ -173,9 +179,11 @@ struct rethinkdb_protocol_t : protocol_t {
             get_response(response, query->token());
             if (response->token() != query->token()) {
                 fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), query->token());
+                throw protocol_error_t("Read response token mismatch.");
             }
             if (response->status_code() != Response::SUCCESS_JSON) {
                 fprintf(stderr, "Failed to read key %s: %s\n", keys[i].first, response->error_message().c_str());
+                throw protocol_error_t("Failed to successfully read.");
             }
             if (values) {
                 std::string result = get_value(response->response(0));
@@ -219,6 +227,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
             if (response->status_code() != Response::SUCCESS_JSON) {
                 fprintf(stderr, "Failed to read key %s: %s\n", keys[i].first, response->error_message().c_str());
+                throw protocol_error_t("Failed to successfully read.");
             }
             if (values) {
                 std::string result = get_value(response->response(0));
@@ -252,6 +261,7 @@ struct rethinkdb_protocol_t : protocol_t {
             get_response(response, read_tokens.front());
             if (response->status_code() != Response::SUCCESS_JSON) {
                 fprintf(stderr, "Failed to read key %s: %s\n", keys[i].first, response->error_message().c_str());
+                throw protocol_error_t("Failed to successfully read.");
             }
             if (values) {
                 std::string result = get_value(response->response(0));
@@ -269,7 +279,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
         // generate query
         Query *query = new Query;
-        generate_range_read_query(query, lkey, lkey_size, rkey, rkey_size);
+        generate_range_read_query(query, lkey, lkey_size, rkey, rkey_size, count_limit);
         send_query(query);
 
         // get response
@@ -277,9 +287,26 @@ struct rethinkdb_protocol_t : protocol_t {
         get_response(response, query->token());
         if (response->token() != query->token()) {
             fprintf(stderr, "Range read response token %ld did not match query token %ld.\n", response->token(), query->token());
+            throw protocol_error_t("Range read response token mismatch.");
         }
-        if (response->status_code() != Response::SUCCESS_STREAM) {
+        if (response->status_code() == Response::SUCCESS_PARTIAL) {
+            Query *stop_query = new Query;
+            generate_stop_query(stop_query);
+            send_query(stop_query, query->token());
+
+            Response *stop_response = new Response;
+            get_response(stop_response, stop_query->token());
+            if (stop_response->token() != stop_query->token()) {
+                fprintf(stderr, "Stop response token %ld did not match query token %ld.\n", stop_response->token(), stop_query->token());
+                throw protocol_error_t("Stop response token mismatch.");
+            }
+            if (stop_response->status_code() != Response::SUCCESS_EMPTY) {
+                fprintf(stderr, "Failed to stop partial stream.");
+                throw protocol_error_t("Failed to successfully stop.");
+            }
+        } else if (response->status_code() != Response::SUCCESS_STREAM) {
             fprintf(stderr, "Failed to range read key %s to key %s: %s\n", lkey, rkey, response->error_message().c_str());
+            throw protocol_error_t("Failed to successfully range read.");
         }
 
         if (values) {
@@ -305,6 +332,10 @@ struct rethinkdb_protocol_t : protocol_t {
     }
 
 private:
+    void generate_stop_query(Query *query) {
+        query->set_type(Query::STOP);
+    }
+
     void generate_point_delete_query(Query *query, const char *key, size_t key_size) {
         query->set_type(Query::WRITE);
         WriteQuery *write_query = query->mutable_write_query();
@@ -363,7 +394,7 @@ private:
     }
 
     void generate_range_read_query(Query *query, char *lkey, size_t lkey_size,
-                                                 char *rkey, size_t rkey_size) {
+                                                 char *rkey, size_t rkey_size, int count_limit) {
         query->set_type(Query::READ);
         ReadQuery *read_query = query->mutable_read_query();
         Term *term = read_query->mutable_term();
@@ -384,12 +415,16 @@ private:
         Term::Table *table = args->mutable_table();
         TableRef *table_ref = table->mutable_table_ref();
         table_ref->set_table_name(RDB_TABLE_NAME);
-        read_query->set_max_chunk_size(0); // no chunking
+        read_query->set_max_chunk_size(count_limit);
     }
 
     // Returns true if there is something to be read
     bool socket_ready() {
-        select(sockfd + 1, &readfds, NULL, NULL, NULL);
+        int res = select(sockfd + 1, &readfds, NULL, NULL, NULL);
+        if (res < 0) {
+            perror("select() failed");
+            exit(-1);
+        }
         return FD_ISSET(sockfd, &readfds);
     }
     
@@ -406,7 +441,7 @@ private:
         }
         if (total_sent < size) {
             fprintf(stderr, "Failed to send_all within time limit of %.3lf seconds.\n", timeout);
-            exit(-1);
+            throw protocol_error_t("Failed to send_all within time limit.");
         }
     }
 
@@ -423,20 +458,24 @@ private:
         }
         if (total_received < size) {
             fprintf(stderr, "Failed to recv_all within time limit of %.3lf seconds.\n", timeout);
-            exit(-1);
+            throw protocol_error_t("Failed to recv_all within time limit.");
         }
     }
 
-    void send_query(Query *query) {
+    void send_query(Query *query, int set_token_index = -1) {
         // set token
-        query->set_token(token_index++);
+        if (set_token_index < 0) {
+            query->set_token(token_index++);
+        } else {
+            query->set_token(set_token_index);
+        }
 
         // serialize query
         std::string query_serialized;
         if (!query->SerializeToString(&query_serialized)) {
-            fprintf(stderr, "faild to serialize query\n");
+            fprintf(stderr, "Failed to serialize query.\n");
             fprintf(stderr, "%s\n", query->DebugString().c_str());
-            exit(-1);
+            throw protocol_error_t("Failed to serialize query.");
         }
 
         // send message
@@ -452,6 +491,7 @@ private:
         }
         *response = iterator->second;
         response_bucket.erase(iterator);
+        printf("%s\n", response->DebugString().c_str());
     }
 
     bool get_response_maybe(Response *response, int64_t target_token) {
@@ -475,8 +515,8 @@ private:
 
         // unserialize
         if (!response->ParseFromString(std::string(buffer, size))) {
-            fprintf(stderr, "failed to unserialize response\n");
-            exit(-1);
+            fprintf(stderr, "Failed to unserialize response.\n");
+            throw protocol_error_t("Failed to unserialize response.");
         }
 
         response_bucket[response->token()] = *response;
