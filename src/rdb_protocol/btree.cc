@@ -15,6 +15,8 @@
 #include "rdb_protocol/query_language.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 
+typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
+
 boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction_t *txn) {
     blob_t blob(const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
 
@@ -210,7 +212,7 @@ public:
             for (json_list_t::iterator jt  = data.begin();
                                        jt != data.end();
                                        ++jt) {
-                boost::apply_visitor(transform_visitor_t(*jt, &tmp, env), *it);
+                boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env), *it);
             }
             data.clear();
             data.splice(data.begin(), tmp);
@@ -225,11 +227,11 @@ public:
             cumulative_size += estimate_rget_response_size(stream->back());
             return int(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
         } else {
-            boost::apply_visitor(terminal_initializer_visitor_t(&response.result), *terminal);
+            boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result), *terminal);
             for (json_list_t::iterator jt  = data.begin();
                                        jt != data.end();
                                        ++jt) {
-                boost::apply_visitor(terminal_visitor_t(*jt, env, &response.result), *terminal);
+                boost::apply_visitor(query_language::terminal_visitor_t(*jt, env, &response.result), *terminal);
             }
             return true;
         }

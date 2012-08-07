@@ -1803,7 +1803,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                     res.push_back((*it).second);
                 }
 
-                return boost::shared_ptr<in_memory_stream_t>(new in_memory_stream_t(res.begin(), res.end()));
+                return boost::shared_ptr<in_memory_stream_t>(new in_memory_stream_t(res.begin(), res.end(), env));
             }
             break;
         case Builtin::FILTER:
@@ -1834,7 +1834,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                 ordering_t o(c->builtin().order_by(), backtrace.with("order_by"));
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 
-                boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(stream));
+                boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(stream, env));
                 sorted_stream->sort(o);
                 return sorted_stream;
             }
@@ -1850,7 +1850,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                     seen.insert(json);
                 }
 
-                return boost::shared_ptr<in_memory_stream_t>(new in_memory_stream_t(seen.begin(), seen.end()));
+                return boost::shared_ptr<in_memory_stream_t>(new in_memory_stream_t(seen.begin(), seen.end(), env));
             }
             break;
         case Builtin::LIMIT:
@@ -1905,7 +1905,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                 boost::shared_ptr<scoped_cJSON_t> array = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
                 json_array_iterator_t it(array->get());
 
-                return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it));
+                return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it, env));
             }
             break;
         case Builtin::RANGE:
@@ -2008,7 +2008,7 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
                 ordering_t o(c->builtin().order_by(), backtrace.with("order_by"));
                 view_t view = eval_view(c->mutable_args(0), env, backtrace.with("arg:0"));
 
-                boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(view.stream));
+                boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(view.stream, env));
                 sorted_stream->sort(o);
                 return view_t(view.access, view.primary_key, sorted_stream);
             }

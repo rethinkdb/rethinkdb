@@ -5,8 +5,12 @@
 #include "rdb_protocol/protocol.hpp"
 #include "stream_cache.hpp"
 
+
 namespace query_language {
 
+class runtime_environment_t;
+
+typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
 typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 
 /* A parallizable stream is capable of taking in transformations and terminals.
@@ -19,137 +23,50 @@ public:
     virtual ~parallelizable_stream_t() { }
 };
 
-
-typedef std::list<boost::shared_ptr<scoped_cJSON_t> > cJSON_list_t;
-
-class in_memory_stream_t : public json_stream_t {
+class in_memory_stream_t : public parallelizable_stream_t {
 public:
     template <class iterator>
-    in_memory_stream_t(const iterator &begin, const iterator &end)
-        : data(begin, end)
+    in_memory_stream_t(const iterator &begin, const iterator &end, runtime_environment_t *_env)
+        : started(false), raw_data(begin, end), env(_env)
     { }
 
-    explicit in_memory_stream_t(json_array_iterator_t it) {
-        while (cJSON *json = it.next()) {
-            data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
-        }
-    }
 
-    explicit in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
-        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            data.push_back(json);
-        }
-    }
+    in_memory_stream_t(json_array_iterator_t it, runtime_environment_t *env);
+    in_memory_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *env);
 
     template <class Ordering>
     void sort(const Ordering &o) {
+        guarantee(!started);
         data.sort(o);
     }
 
-    boost::shared_ptr<scoped_cJSON_t> next() {
-        if (data.empty()) {
-            return boost::shared_ptr<scoped_cJSON_t>();
-        } else {
-            boost::shared_ptr<scoped_cJSON_t> res = data.front();
-            data.pop_front();
-            return res;
-        }
-    }
+
+    boost::shared_ptr<scoped_cJSON_t> next();
+    void add_transformation(const rdb_protocol_details::transform_atom_t &t);
+    result_t apply_terminal(const rdb_protocol_details::terminal_t &t);
 private:
-    cJSON_list_t data;
+    bool started; //We just use this to make sure people don't consume some of the list and then apply a transformation.
+    rdb_protocol_details::transform_t transform;
+
+    json_list_t raw_data;
+    json_list_t data;
+    runtime_environment_t *env;
 };
 
 class batched_rget_stream_t : public parallelizable_stream_t {
 public:
     batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, 
                           signal_t *_interruptor, key_range_t _range, 
-                          int _batch_size, backtrace_t _backtrace)
-        : ns_access(_ns_access), interruptor(_interruptor), 
-          range(_range), batch_size(_batch_size), index(0), 
-          finished(false), started(false), backtrace(_backtrace) { }
+                          int _batch_size, backtrace_t _backtrace);
 
-    boost::shared_ptr<scoped_cJSON_t> next() {
-        started = true;
-        if (data.empty()) {
-            if (finished) {
-                return boost::shared_ptr<scoped_cJSON_t>();
-            }
-            read_more();
-            if (data.empty()) {
-                finished = true;
-                return boost::shared_ptr<scoped_cJSON_t>();
-            }
-        }
-        boost::shared_ptr<scoped_cJSON_t> ret = data.front();
-        data.pop_front();
-        return ret;
-    }
+    boost::shared_ptr<scoped_cJSON_t> next();
 
-    void add_transformation(const rdb_protocol_details::transform_atom_t &t) { 
-        guarantee(!started);
-        transform.push_back(t);
-    }
+    void add_transformation(const rdb_protocol_details::transform_atom_t &t);
 
-    result_t apply_terminal(const rdb_protocol_details::terminal_t &t) {
-        rdb_protocol_t::rget_read_t rget_read(range, -1);
-        rget_read.transform = transform;
-        rget_read.terminal = t;
-        rdb_protocol_t::read_t read(rget_read);
-        try {
-            rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, interruptor);
-            rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
-            rassert(p_res);
-
-            // todo: just do a straight copy?
-            typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
-            stream_t *stream = boost::get<stream_t>(&p_res->result);
-            guarantee(stream);
-
-            for (stream_t::iterator i = stream->begin(); i != stream->end(); ++i) {
-                data.push_back(*i);
-                rassert(data.back());
-            }
-
-            range.left = p_res->last_considered_key;
-
-            if (!range.left.increment()) {
-                finished = true;
-            }
-        } catch (cannot_perform_query_exc_t e) {
-            throw runtime_exc_t("cannot perform read: " + std::string(e.what()), backtrace);
-        }
-        crash("unimplemented");
-        return result_t();
-    }
+    result_t apply_terminal(const rdb_protocol_details::terminal_t &t);
 
 private:
-    void read_more() {
-        rdb_protocol_t::rget_read_t rget_read(range, batch_size);
-        rdb_protocol_t::read_t read(rget_read);
-        try {
-            rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, interruptor);
-            rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
-            rassert(p_res);
-
-            // todo: just do a straight copy?
-            typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
-            stream_t *stream = boost::get<stream_t>(&p_res->result);
-            guarantee(stream);
-
-            for (stream_t::iterator i = stream->begin(); i != stream->end(); ++i) {
-                data.push_back(*i);
-                rassert(data.back());
-            }
-
-            range.left = p_res->last_considered_key;
-
-            if (!range.left.increment()) {
-                finished = true;
-            }
-        } catch (cannot_perform_query_exc_t e) {
-            throw runtime_exc_t("cannot perform read: " + std::string(e.what()), backtrace);
-        }
-    }
+    void read_more();
 
     rdb_protocol_details::transform_t transform;
     namespace_repo_t<rdb_protocol_t>::access_t ns_access;
@@ -157,7 +74,7 @@ private:
     key_range_t range;
     int batch_size;
 
-    cJSON_list_t data;
+    json_list_t data;
     int index;
     bool finished, started;
 
