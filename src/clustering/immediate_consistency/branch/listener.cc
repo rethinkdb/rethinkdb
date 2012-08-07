@@ -16,6 +16,14 @@ when draining the write queue after completing a backfill. */
 to be up-to-date. */
 #define WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY 5
 
+/* When we are draining the write queue, we allow new objects to be added to the
+write queue at (this rate) * (the rate at which objects are being popped). If
+this number is high, then the backfill will take longer but the cluster will
+serve queries at a high rate during the backfill. If this number is low, then
+the backfill will be faster but the cluster will only serve queries slowly
+during the backfill. */
+#define WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION 0.5
+
 #ifndef NDEBUG
 template <class protocol_t>
 struct version_leq_metainfo_checker_callback_t : public metainfo_checker_callback_t<protocol_t> {
@@ -60,7 +68,8 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     perfmon_collection(),
     perfmon_collection_membership(backfill_stats_parent, &perfmon_collection, "backfill-serialization-" + uuid_to_str(uuid)),
     write_queue(io_backender, "backfill-serialization-" + uuid_to_str(uuid), &perfmon_collection),
-    write_queue_semaphore(SEMAPHORE_NO_LIMIT),
+    write_queue_semaphore(SEMAPHORE_NO_LIMIT,
+        WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox(mailbox_manager,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
@@ -209,7 +218,8 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     perfmon_collection_membership(backfill_stats_parent, &perfmon_collection, "backfill-serialization-" + uuid_to_str(uuid)),
     /* TODO: Put the file in the data directory, not here */
     write_queue(io_backender, "backfill-serialization-" + uuid_to_str(uuid), &perfmon_collection),
-    write_queue_semaphore(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY),
+    write_queue_semaphore(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY,
+        WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox(mailbox_manager,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
