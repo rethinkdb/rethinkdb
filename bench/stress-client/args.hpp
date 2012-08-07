@@ -237,7 +237,7 @@ void list_protocols() {
 #ifdef USE_LIBMEMCACHED
     printf("libmemcached,");
 #endif
-    printf("sqlite,");
+    printf("sqlite");
 }
 
 /* Usage */

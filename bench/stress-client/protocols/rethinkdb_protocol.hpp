@@ -280,6 +280,7 @@ struct rethinkdb_protocol_t : protocol_t {
         // generate query
         Query *query = new Query;
         generate_range_read_query(query, lkey, lkey_size, rkey, rkey_size, count_limit);
+
         send_query(query);
 
         // get response

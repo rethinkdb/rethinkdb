@@ -5,10 +5,7 @@
 #include <stdint.h>
 #include "op.hpp"
 #include <queue>
-#include <set>
 #include <signal.h>
-#include <string>
-#include <typeinfo>
 
 using namespace std;
 
@@ -69,12 +66,6 @@ private:
 
     // Main thread sets this to false in order to stop the client
     bool keep_running;
-
-    // Store which keys have been inserted, because
-    // at the moment we don't want to read unused keys.
-    // TODO: remove this once RethinkDB no longer crashes on unknown keys
-    std::set<std::string> keys;
-    // (not yet implemented)
 
     static void* run_client(void* data) {
         static_cast<client_t*>(data)->run();
