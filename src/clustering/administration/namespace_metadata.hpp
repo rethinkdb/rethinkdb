@@ -187,7 +187,7 @@ inline bool operator==(const namespace_metadata_ctx_t &x, const namespace_metada
 template <class ctx_t, class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t<protocol_t> *target, const ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["reactor_bcards"] = boost::shared_ptr<json_adapter_if_t>(new json_read_only_adapter_t<std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >, ctx_t>(&target->reactor_bcards, ctx));
+    res["reactor_bcards"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >, ctx_t>(&target->reactor_bcards, ctx));
     return res;
 }
 

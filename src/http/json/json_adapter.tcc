@@ -202,7 +202,7 @@ json_adapter_if_t::json_adapter_map_t json_map_inserter_t<container_t, ctx_t>::g
     json_adapter_map_t res;
     for (typename keys_set_t::iterator it = added_keys.begin(); it != added_keys.end(); ++it) {
         scoped_cJSON_t key(render_as_json(&*it, ctx));
-        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename container_t::mapped_type, ctx_t>(&(target->find(*it)->second), ctx));
+        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<typename container_t::mapped_type, ctx_t>(&(target->find(*it)->second), ctx));
     }
     return res;
 }
@@ -513,7 +513,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(std::map<K, V> *map, co
         try {
             scoped_cJSON_t scoped_key(render_as_json(&key, ctx));
             res[get_string(scoped_key.get())]
-                = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<V, ctx_t>(&it->second, ctx));
+                = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<V, ctx_t>(&it->second, ctx));
         } catch (schema_mismatch_exc_t &) {
             crash("Someone tried to json adapt a std::map with a key type that"
                    "does not yield a JSON object of string type when"
@@ -521,7 +521,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(std::map<K, V> *map, co
         }
 
 #ifdef JSON_SHORTCUTS
-        res[strprintf("%d", shortcut_index)] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<V, ctx_t>(&(it->second)));
+        res[strprintf("%d", shortcut_index)] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<V, ctx_t>(&(it->second)));
         shortcut_index++;
 #endif
     }
@@ -600,8 +600,8 @@ void on_subfield_change(std::set<V> *, const ctx_t &) { }
 template <class F, class S, class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(std::pair<F, S> *target, const ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["first"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<F, ctx_t>(&target->first, ctx));
-    res["second"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<S, ctx_t>(&target->second, ctx));
+    res["first"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<F, ctx_t>(&target->first, ctx));
+    res["second"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<S, ctx_t>(&target->second, ctx));
     return res;
 }
 

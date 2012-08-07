@@ -12,10 +12,10 @@
 template <class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(issue_json_t *target, const ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["critical"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<bool, ctx_t>(&target->critical, ctx));
-    res["description"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<std::string, ctx_t>(&target->description, ctx));
-    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<std::string, ctx_t>(&target->type, ctx));
-    res["time"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<ticks_t, ctx_t>(&target->time, ctx));
+    res["critical"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<bool, ctx_t>(&target->critical, ctx));
+    res["description"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<std::string, ctx_t>(&target->description, ctx));
+    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<std::string, ctx_t>(&target->type, ctx));
+    res["time"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<ticks_t, ctx_t>(&target->time, ctx));
 
     return res;
 }
@@ -38,7 +38,7 @@ void on_subfield_change(issue_json_t *, const ctx_t &) { }
 template <class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(local_issue_json_t *target, const ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res = render_as_json(static_cast<issue_json_t *>(target), ctx);
-    res["machine"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<bool, ctx_t>(&target->machine, ctx));
+    res["machine"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<bool, ctx_t>(&target->machine, ctx));
     return res;
 }
 
