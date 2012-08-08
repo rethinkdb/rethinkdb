@@ -61,8 +61,8 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(primary_t<protocol_t> *
     res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("primary"));
     res["replier_present"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<bool>(target->replier.is_initialized()));
     // TODO: git blame this and ask the person why the code is commented out.
-    //res["broadcaster"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<broadcaster_business_card_t<protocol_t>, ctx_t>(&target->broadcaster));
-    //res["replier"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<boost::optional<replier_business_card_t<protocol_t> >, ctx_t>(&target->replier));
+    //res["broadcaster"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<broadcaster_business_card_t<protocol_t> >(&target->broadcaster));
+    //res["replier"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<boost::optional<replier_business_card_t<protocol_t> > >(&target->replier));
     return res;
 }
 
@@ -86,7 +86,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(secondary_up_to_date_t<
     res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("secondary_up_to_date"));
     res["branch_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<branch_id_t>(&target->branch_id));
     // TODO: git blame this and ask why it's commented out.
-    //res["replier"] =   boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<replier_business_card_t<protocol_t>, ctx_t>(&target->replier));
+    //res["replier"] =   boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<replier_business_card_t<protocol_t> >(&target->replier));
     return res;
 }
 
@@ -110,8 +110,8 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(secondary_without_prima
     json_adapter_if_t::json_adapter_map_t res;
     res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("secondary_without_primary"));
     // TODO: git blame this and ask why it's commented out.
-    //res["current_state"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<region_map_t<protocol_t, version_range_t>, ctx_t>(&target->current_state));
-    //res["backfiller"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<backfiller_business_card_t<protocol_t>, ctx_t>(&target->backfiller));
+    //res["current_state"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<region_map_t<protocol_t, version_range_t> >(&target->current_state));
+    //res["backfiller"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<backfiller_business_card_t<protocol_t> >(&target->backfiller));
     return res;
 }
 
@@ -156,8 +156,8 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(nothing_when_safe_t<pro
     json_adapter_if_t::json_adapter_map_t res;
     res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("nothing_when_safe"));
     // TODO: git blame this and ask why this is commented out.
-    //res["current_state"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<region_map_t<protocol_t, version_range_t>, ctx_t>(&target->current_state));
-    //res["backfiller"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<backfiller_business_card_t<protocol_t>, ctx_t>(&target->backfiller));
+    //res["current_state"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<region_map_t<protocol_t, version_range_t> >(&target->current_state));
+    //res["backfiller"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<backfiller_business_card_t<protocol_t> >(&target->backfiller));
     return res;
 }
 
