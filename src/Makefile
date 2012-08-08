@@ -268,7 +268,12 @@ PROTO_DIR:=$(BUILD_DIR)/proto
 CXXFLAGS += -I$(PROTO_DIR)
 
 ifeq ($(NO_TCMALLOC),0)
+ifeq ($(DEBUG),1)
+STATIC_LIBRARIES+=unwind
+STATIC_LIBRARIES+=tcmalloc_debug
+else
 STATIC_LIBRARIES+=tcmalloc_minimal
+endif
 endif
 
 # look for the static library in the same directory as the .so file
