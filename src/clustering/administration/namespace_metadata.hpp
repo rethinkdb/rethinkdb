@@ -143,7 +143,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_semilattice_
     default_namespace.database = default_namespace.database.make_new_version(nil_uuid(), ctx.us);
 
     deletable_t<namespace_semilattice_metadata_t<protocol_t> > default_ns_in_deletable(default_namespace);
-    return json_adapter_with_inserter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, ctx_t>(&target->namespaces, generate_uuid, ctx, default_ns_in_deletable).get_subfields();
+    return json_ctx_adapter_with_inserter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, ctx_t>(&target->namespaces, generate_uuid, ctx, default_ns_in_deletable).get_subfields();
 }
 
 template <class ctx_t, class protocol_t>
