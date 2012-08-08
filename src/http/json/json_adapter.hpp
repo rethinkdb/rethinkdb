@@ -17,7 +17,7 @@
 #include "http/json.hpp"
 
 /* A note about json adapter exceptions: When an operation throws an exception
- * there is no guaruntee that the target object has been left in tact.
+ * there is no guarantee that the target object has been left in tact.
  * Generally this is okay because we first apply changes and then join them in
  * to semilattice metadata. Generally once a particular object has thrown one
  * of these exceptions it should probably not be used anymore. */
@@ -110,6 +110,18 @@ private:
     DISABLE_COPYING(standard_subfield_change_functor_t);
 };
 
+template <class T, class ctx_t>
+class standard_ctx_subfield_change_functor_t : public subfield_change_functor_t {
+public:
+    standard_ctx_subfield_change_functor_t(T *target, const ctx_t &ctx);
+    void on_change();
+private:
+    T *target;
+    const ctx_t ctx;
+
+    DISABLE_COPYING(standard_ctx_subfield_change_functor_t);
+};
+
 //TODO come up with a better name for this
 class json_adapter_if_t {
 public:
@@ -163,6 +175,30 @@ private:
     DISABLE_COPYING(json_adapter_t);
 };
 
+/* A json adapter is the most basic adapter, you can instantiate one with any
+ * type that implements the json adapter concept as T */
+template <class T, class ctx_t>
+class json_ctx_adapter_t : public json_adapter_if_t {
+private:
+    typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
+public:
+    json_ctx_adapter_t(T *, const ctx_t &);
+
+private:
+    json_adapter_map_t get_subfields_impl();
+    cJSON *render_impl();
+    virtual void apply_impl(cJSON *);
+    virtual void erase_impl();
+    virtual void reset_impl();
+    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
+
+    T *target_;
+    const ctx_t ctx_;
+
+    DISABLE_COPYING(json_ctx_adapter_t);
+};
+
+
 /* A read only adapter is like a normal adapter but it throws an exception when
  * you try to do an apply call. */
 template <class T, class ctx_t>
@@ -176,6 +212,19 @@ private:
     void reset_impl();
 
     DISABLE_COPYING(json_read_only_adapter_t);
+};
+
+template <class T, class ctx_t>
+class json_ctx_read_only_adapter_t : public json_ctx_adapter_t<T, ctx_t> {
+public:
+    json_ctx_read_only_adapter_t(T *, const ctx_t &);
+
+private:
+    void apply_impl(cJSON *);
+    void erase_impl();
+    void reset_impl();
+
+    DISABLE_COPYING(json_ctx_read_only_adapter_t);
 };
 
 /* A json temporary adapter is like a read only adapter but it stores a copy of
@@ -273,7 +322,13 @@ void erase_json(T *, const ctx_t &) {
 #endif
 }
 
-/* Erase is a fairly rare function for an adapter to allow so we implement a
+template <class T, class ctx_t>
+void with_ctx_erase_json(T *target, const ctx_t &ctx) {
+    return erase_json(target, ctx);
+}
+
+
+/* Reset is a fairly rare function for an adapter to allow so we implement a
  * generic version of it. */
 template <class T, class ctx_t>
 void reset_json(T *, const ctx_t &) {
@@ -284,6 +339,11 @@ void reset_json(T *, const ctx_t &) {
 #else
     throw permission_denied_exc_t("Can't reset this object.");
 #endif
+}
+
+template <class T, class ctx_t>
+void with_ctx_reset_json(T *target, const ctx_t &ctx) {
+    reset_json(target, ctx);
 }
 
 
@@ -482,6 +542,27 @@ std::string render_as_json_string(const T &t, const cxt_t cxt) {
 template<class T>
 std::string render_as_json_string(const T &t) {
     return render_as_json_string(t, 0);
+}
+
+// ctx-dropping adapters, eventually.
+template <class T, class ctx_t>
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(T *target, const ctx_t &ctx) {
+    return get_json_subfields(target, ctx);
+}
+
+template <class T, class ctx_t>
+cJSON *with_ctx_render_as_json(T *target, const ctx_t &ctx) {
+    return render_as_json(target, ctx);
+}
+
+template <class T, class ctx_t>
+void with_ctx_apply_json_to(cJSON *json, T *target, const ctx_t &ctx) {
+    apply_json_to(json, target, ctx);
+}
+
+template <class T, class ctx_t>
+void with_ctx_on_subfield_change(T *target, const ctx_t &ctx) {
+    on_subfield_change(target, ctx);
 }
 
 #include "http/json/json_adapter.tcc"
