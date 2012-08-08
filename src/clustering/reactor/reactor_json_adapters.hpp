@@ -199,6 +199,20 @@ void apply_json_to(cJSON *, nothing_t<protocol_t> *, const ctx_t &);
 template <class protocol_t, class ctx_t>
 void on_subfield_change(nothing_t<protocol_t> *, const ctx_t &);
 
+// ctx-less json adapter for nothing_t
+template <class protocol_t>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(nothing_t<protocol_t> *);
+
+template <class protocol_t>
+cJSON *render_as_json(nothing_t<protocol_t> *);
+
+template <class protocol_t>
+void apply_json_to(cJSON *, nothing_t<protocol_t> *);
+
+template <class protocol_t>
+void on_subfield_change(nothing_t<protocol_t> *);
+
+
 //json adapter for nothing_when_done_erasing
 template <class protocol_t, class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(nothing_when_done_erasing_t<protocol_t>*, const ctx_t &);
@@ -211,6 +225,19 @@ void apply_json_to(cJSON *, nothing_when_done_erasing_t<protocol_t> *, const ctx
 
 template <class protocol_t, class ctx_t>
 void on_subfield_change(nothing_when_done_erasing_t<protocol_t> *, const ctx_t &);
+
+// ctx-less json adapter for nothing_when_done_erasing
+template <class protocol_t>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(nothing_when_done_erasing_t<protocol_t> *);
+
+template <class protocol_t>
+cJSON *render_as_json(nothing_when_done_erasing_t<protocol_t> *);
+
+template <class protocol_t>
+void apply_json_to(cJSON *, nothing_when_done_erasing_t<protocol_t> *);
+
+template <class protocol_t>
+void on_subfield_change(nothing_when_done_erasing_t<protocol_t> *);
 
 } //namespace reactor_business_card_details
 

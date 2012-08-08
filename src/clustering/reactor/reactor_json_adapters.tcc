@@ -342,26 +342,72 @@ void apply_json_to(cJSON *, nothing_t<protocol_t> *, const ctx_t &) {
 template <class protocol_t, class ctx_t>
 void on_subfield_change(nothing_t<protocol_t> *, const ctx_t &) { }
 
+// ctx-less json adapter for nothing_t
+template <class protocol_t>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(nothing_t<protocol_t> *) {
+    json_adapter_if_t::json_adapter_map_t res;
+    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("nothing"));
+    return res;
+}
+
+template <class protocol_t>
+cJSON *render_as_json(nothing_t<protocol_t> *target) {
+    return render_as_directory(target);
+}
+
+template <class protocol_t>
+void apply_json_to(cJSON *, nothing_t<protocol_t> *) {
+    throw permission_denied_exc_t("Can't write to nothing_t objects.\n");
+}
+
+template <class protocol_t>
+void on_subfield_change(nothing_t<protocol_t> *) { }
+
+
 //json adapter for nothing_when_done_erasing_t
 template <class protocol_t, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(nothing_when_done_erasing_t<protocol_t>*, UNUSED const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(nothing_when_done_erasing_t<protocol_t> *target, UNUSED const ctx_t &ctx) {
+    return get_json_subfields(target);
+}
+
+template <class protocol_t, class ctx_t>
+cJSON *render_as_json(nothing_when_done_erasing_t<protocol_t> *target, UNUSED const ctx_t &ctx) {
+    return render_as_json(target);
+}
+
+template <class protocol_t, class ctx_t>
+void apply_json_to(cJSON *json, nothing_when_done_erasing_t<protocol_t> *target, const ctx_t &) {
+    apply_json_to(json, target);
+}
+
+template <class protocol_t, class ctx_t>
+void on_subfield_change(nothing_when_done_erasing_t<protocol_t> *target, const ctx_t &) {
+    on_subfield_change(target);
+}
+
+// ctx-less json adapter for nothing_when_done_erasing_t
+template <class protocol_t>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(nothing_when_done_erasing_t<protocol_t> *) {
     json_adapter_if_t::json_adapter_map_t res;
     res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("nothing_when_done_erasing"));
     return res;
 }
 
-template <class protocol_t, class ctx_t>
-cJSON *render_as_json(nothing_when_done_erasing_t<protocol_t> *target, const ctx_t &ctx) {
-    return render_as_directory(target, ctx);
+template <class protocol_t>
+cJSON *render_as_json(nothing_when_done_erasing_t<protocol_t> *target) {
+    return render_as_directory(target);
 }
 
-template <class protocol_t, class ctx_t>
-void apply_json_to(cJSON *, nothing_when_done_erasing_t<protocol_t> *, const ctx_t &) {
+template <class protocol_t>
+void apply_json_to(cJSON *, nothing_when_done_erasing_t<protocol_t> *) {
     throw permission_denied_exc_t("Can't write to nothing_when_done_erasing_t objects.\n");
 }
 
-template <class protocol_t, class ctx_t>
-void on_subfield_change(nothing_when_done_erasing_t<protocol_t> *, const ctx_t &) { }
+template <class protocol_t>
+void on_subfield_change(nothing_when_done_erasing_t<protocol_t> *) { }
+
+
+
 } //namespace reactor_business_card_details
 
 //json adapter for reactor_business_card_t
