@@ -640,7 +640,7 @@ cJSON *render_as_directory(T *target, const ctx_t &ctx) {
 
     cJSON *res = cJSON_CreateObject();
 
-    json_adapter_map_t elements = get_json_subfields(target, ctx);
+    json_adapter_map_t elements = with_ctx_get_json_subfields(target, ctx);
     for (json_adapter_map_t::iterator it = elements.begin(); it != elements.end(); ++it) {
         cJSON_AddItemToObject(res, it->first.c_str(), it->second->render());
     }
@@ -666,7 +666,7 @@ cJSON *render_as_directory(T *target) {
 template <class T, class ctx_t>
 void apply_as_directory(cJSON *change, T *target, const ctx_t &ctx) {
     typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
-    json_adapter_map_t elements = get_json_subfields(target, ctx);
+    json_adapter_map_t elements = with_ctx_get_json_subfields(target, ctx);
 
     json_object_iterator_t it = get_object_it(change);
     cJSON *val;

@@ -43,7 +43,7 @@ RDB_MAKE_EQUALITY_COMPARABLE_6(cluster_semilattice_metadata_t, dummy_namespaces,
 
 //json adapter concept for cluster_semilattice_metadata_t
 // TODO: deinline these?
-inline json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
+inline json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
     res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t>, vclock_ctx_t>(&target->dummy_namespaces, ctx));
     res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<namespaces_semilattice_metadata_t<memcached_protocol_t>, vclock_ctx_t>(&target->memcached_namespaces, ctx));
@@ -55,15 +55,15 @@ inline json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_semilatt
     return res;
 }
 
-inline cJSON *render_as_json(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
+inline cJSON *with_ctx_render_as_json(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     return render_as_directory(target, ctx);
 }
 
-inline void apply_json_to(cJSON *change, cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
+inline void with_ctx_apply_json_to(cJSON *change, cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     apply_as_directory(change, target, ctx);
 }
 
-inline void on_subfield_change(cluster_semilattice_metadata_t *, const vclock_ctx_t &) { }
+inline void with_ctx_on_subfield_change(cluster_semilattice_metadata_t *, const vclock_ctx_t &) { }
 
 enum cluster_directory_peer_type_t {
     ADMIN_PEER,

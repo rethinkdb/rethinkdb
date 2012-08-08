@@ -30,7 +30,7 @@ RDB_MAKE_EQUALITY_COMPARABLE_2(machine_semilattice_metadata_t, datacenter, name)
 
 //json adapter concept for machine_semilattice_metadata_t
 // TODO: deinline these?
-inline json_adapter_if_t::json_adapter_map_t get_json_subfields(machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
+inline json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
     res["datacenter_uuid"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<datacenter_id_t>(&target->datacenter, ctx));
     res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::string>(&target->name, ctx));
@@ -38,15 +38,15 @@ inline json_adapter_if_t::json_adapter_map_t get_json_subfields(machine_semilatt
     return res;
 }
 
-inline cJSON *render_as_json(machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
+inline cJSON *with_ctx_render_as_json(machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     return render_as_directory(target, ctx);
 }
 
-inline void apply_json_to(cJSON *change, machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
+inline void with_ctx_apply_json_to(cJSON *change, machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     apply_as_directory(change, target, ctx);
 }
 
-inline void on_subfield_change(machine_semilattice_metadata_t *, const vclock_ctx_t &) { }
+inline void with_ctx_on_subfield_change(machine_semilattice_metadata_t *, const vclock_ctx_t &) { }
 
 class machines_semilattice_metadata_t {
 public:
@@ -61,18 +61,18 @@ RDB_MAKE_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
 
 //json adapter concept for machines_semilattice_metadata_t
 // TODO: deinline these
-inline json_adapter_if_t::json_adapter_map_t get_json_subfields(machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    return get_json_subfields(&target->machines, ctx);
+inline json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
+    return with_ctx_get_json_subfields(&target->machines, ctx);
 }
 
-inline cJSON *render_as_json(machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
+inline cJSON *with_ctx_render_as_json(machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     return render_as_json(&target->machines, ctx);
 }
 
-inline void apply_json_to(cJSON *change, machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    apply_json_to(change, &target->machines, ctx);
+inline void with_ctx_apply_json_to(cJSON *change, machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
+    with_ctx_apply_json_to(change, &target->machines, ctx);
 }
 
-inline void on_subfield_change(machines_semilattice_metadata_t *, const vclock_ctx_t &) { }
+inline void with_ctx_on_subfield_change(machines_semilattice_metadata_t *, const vclock_ctx_t &) { }
 
 #endif /* CLUSTERING_ADMINISTRATION_MACHINE_METADATA_HPP_ */
