@@ -1228,11 +1228,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 boost::shared_ptr<scoped_cJSON_t> res = shared_scoped_json(cJSON_CreateObject());
 
                 for (int i = 0; i < c->builtin().attrs_size(); ++i) {
-                    cJSON *item = cJSON_DeepCopy(data->GetObjectItem(c->builtin().attrs(i).c_str()));
+                    cJSON *item = data->GetObjectItem(c->builtin().attrs(i).c_str());
                     if (!item) {
                         throw runtime_exc_t("Attempting to pick missing attribute.", backtrace.with(strprintf("attrs:%d", i)));
                     } else {
-                        res->AddItemToObject(item->string, item);
+                        res->AddItemToObject(item->string, cJSON_DeepCopy(item));
                     }
                 }
                 return res;
