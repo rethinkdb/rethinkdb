@@ -1,10 +1,12 @@
-#ifndef RDB_PROTOCOL_STREAM_CACHE_HPP
-#define RDB_PROTOCOL_STREAM_CACHE_HPP
+#ifndef RDB_PROTOCOL_STREAM_CACHE_HPP_
+#define RDB_PROTOCOL_STREAM_CACHE_HPP_
+
+#include <time.h>
+
+#include <map>
 
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
-#include <map>
-#include <time.h>
 
 #include "rdb_protocol/json.hpp"
 #include "rdb_protocol/query_language.pb.h"
@@ -35,4 +37,4 @@ private:
     std::map<int64_t, entry_t> streams;
 };
 
-#endif
+#endif  // RDB_PROTOCOL_STREAM_CACHE_HPP_

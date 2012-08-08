@@ -15,7 +15,7 @@ template <class request_t, class response_t>
 protob_server_t<request_t, response_t>::~protob_server_t() { }
 
 template <class request_t, class response_t>
-void protob_server_t<request_t, response_t>::handle_conn(scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t) {
+void protob_server_t<request_t, response_t>::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t) {
     stream_cache_t stream_cache;
     scoped_ptr_t<tcp_conn_t> conn;
     nconn->ennervate(&conn);

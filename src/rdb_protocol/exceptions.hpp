@@ -12,7 +12,7 @@ namespace query_language {
    unknown token). */
 class broken_client_exc_t : public std::exception {
 public:
-    broken_client_exc_t(const std::string &_what) : message(_what) { }
+    explicit broken_client_exc_t(const std::string &_what) : message(_what) { }
     ~broken_client_exc_t() throw () { }
 
     const char *what() const throw () {

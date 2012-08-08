@@ -103,4 +103,4 @@ public:
 
 } //namespace query_language 
 
-#endif
+#endif  // RDB_PROTOCOL_ENVIRONMENT_HPP_

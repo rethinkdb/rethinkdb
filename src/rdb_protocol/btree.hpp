@@ -1,6 +1,10 @@
 #ifndef RDB_PROTOCOL_BTREE_HPP_
 #define RDB_PROTOCOL_BTREE_HPP_
 
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "errors.hpp"
 
 #include "btree/backfill.hpp"

@@ -1,8 +1,9 @@
 #include "rdb_protocol/query_language.hpp"
 
+#include <math.h>
+
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
-#include <math.h>
 
 #include "http/json.hpp"
 #include "rdb_protocol/internal_extensions.pb.h"
@@ -1007,6 +1008,17 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             crash("Term::TABLE must be evaluated with eval_stream or eval_view");
 
         case Term::JAVASCRIPT: {
+            // TODO(rntz): optimize map/reduce/filter queries whose
+            // mappings/reductions/predicates are just javascript terms by
+            // streaming arguments to them and streaming results back. Should
+            // wait to do this until it's established it's a bottleneck, but
+            // it's a reasonably good bet that it is. Putting this comment here
+            // not because the changes will need to be made here but because
+            // it's the most logical place to put it.
+
+            // TODO (rntz): implicitly bound argument should become receiver
+            // ("this") object on javascript side.
+
             boost::shared_ptr<js::runner_t> js = env->get_js_runner();
             std::string errmsg;
             boost::shared_ptr<scoped_cJSON_t> result;

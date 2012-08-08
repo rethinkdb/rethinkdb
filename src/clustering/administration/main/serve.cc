@@ -39,7 +39,6 @@ bool do_serve(
     extproc::spawner_t::info_t *spawner_info,
     io_backender_t *io_backender,
     bool i_am_a_server,
-    const std::string &logfilepath,
     // NB. filepath & persistent_file are used iff i_am_a_server is true.
     const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file,
     const std::set<peer_address_t> &joins,
@@ -52,7 +51,7 @@ try {
 
     local_issue_tracker_t local_issue_tracker;
 
-    log_writer_t log_writer(logfilepath, &local_issue_tracker);
+    thread_pool_log_writer_t log_writer(&local_issue_tracker);
 
     connectivity_cluster_t connectivity_cluster;
     message_multiplexer_t message_multiplexer(&connectivity_cluster);
@@ -104,7 +103,7 @@ try {
     } else {
         rassert(ports.port == connectivity_cluster_run.get_port());
     }
-    printf("Listening for intracluster traffic on port %d...\n", ports.port);
+    logINF("Listening for intracluster traffic on port %d...\n", ports.port);
 
     auto_reconnector_t auto_reconnector(
         &connectivity_cluster,
@@ -274,7 +273,7 @@ try {
         // TODO: Pardon me what, but is this how we fail here?
         guarantee(ports.http_port < 65536);
 
-        printf("Starting up administrative HTTP server on port %d...\n", ports.http_port);
+        logINF("Starting up administrative HTTP server on port %d...\n", ports.http_port);
         administrative_http_server_manager_t administrative_http_interface(
             ports.http_port,
             &mailbox_manager,
@@ -287,11 +286,11 @@ try {
             machine_id,
             web_assets);
 
-        printf("Server started; send SIGINT to stop.\n");
+        logINF("Server started; send SIGINT to stop.\n");
 
         stop_cond->wait_lazily_unordered();
 
-        printf("Server got SIGINT; shutting down...\n");
+        logINF("Server got SIGINT; shutting down...\n");
     }
 
     cond_t non_interruptor;
@@ -302,16 +301,15 @@ try {
     return true;
 
 } catch (address_in_use_exc_t e) {
-    printf("%s. Cannot bind to cluster port. Exiting.\n", e.what());
+    logINF("%s. Cannot bind to cluster port. Exiting.\n", e.what());
     exit(1);
 }
 
 bool serve(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
-    std::string logfilepath = filepath + "/log_file";
-    return do_serve(spawner_info, io_backender, true, logfilepath, filepath, persistent_file, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
+    return do_serve(spawner_info, io_backender, true, filepath, persistent_file, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
 
-bool serve_proxy(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::string &logfilepath, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve_proxy(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
-    return do_serve(spawner_info, io_backender, false, logfilepath, "", NULL, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
+    return do_serve(spawner_info, io_backender, false, "", NULL, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }

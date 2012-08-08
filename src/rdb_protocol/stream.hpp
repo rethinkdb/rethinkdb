@@ -1,6 +1,15 @@
 #ifndef RDB_PROTOCOL_STREAM_HPP_
 #define RDB_PROTOCOL_STREAM_HPP_
 
+#include <list>
+#include <string>
+#include <vector>
+
+#include "errors.hpp"
+#include <boost/function.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/variant/get.hpp>
+
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "stream_cache.hpp"
@@ -331,4 +340,4 @@ private:
 
 } //namespace query_language 
 
-#endif
+#endif  // RDB_PROTOCOL_STREAM_HPP_

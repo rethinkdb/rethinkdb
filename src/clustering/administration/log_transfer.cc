@@ -6,7 +6,7 @@
 RDB_IMPL_SERIALIZABLE_1(log_server_business_card_t, address);
 
 
-log_server_t::log_server_t(mailbox_manager_t *mm, log_writer_t *lw) :
+log_server_t::log_server_t(mailbox_manager_t *mm, thread_pool_log_writer_t *lw) :
     mailbox_manager(mm), writer(lw),
     request_mailbox(mailbox_manager, boost::bind(&log_server_t::handle_request, this, _1, _2, _3, _4, auto_drainer_t::lock_t(&drainer)))
     { }
