@@ -267,48 +267,6 @@ void apply_json_to(cJSON *change, int *target, const ctx_t &) {
 template <class ctx_t>
 void on_subfield_change(int *, const ctx_t &) { }
 
-//JSON adapter for time_t
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(time_t *target, const ctx_t &) {
-    return get_json_subfields(target);
-}
-
-template <class ctx_t>
-cJSON *render_as_json(time_t *target, const ctx_t &) {
-    return render_as_json(target);
-}
-
-template <class ctx_t>
-void apply_json_to(cJSON *change, time_t *target, const ctx_t &) {
-    apply_json_to(change, target);
-}
-
-template <class ctx_t>
-void on_subfield_change(time_t *target, const ctx_t &) {
-    on_subfield_change(target);
-}
-
-//JSON adapter for uint64_t
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(uint64_t *target, const ctx_t &) {
-    return get_json_subfields(target);
-}
-
-template <class ctx_t>
-cJSON *render_as_json(uint64_t *target, const ctx_t &) {
-    return render_as_json(target);
-}
-
-template <class ctx_t>
-void apply_json_to(cJSON *change, uint64_t *target, const ctx_t &) {
-    apply_json_to(change, target);
-}
-
-template <class ctx_t>
-void on_subfield_change(uint64_t *target, const ctx_t &) {
-    on_subfield_change(target);
-}
-
 //JSON adapter for char
 template <class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(char *, const ctx_t &) {
@@ -330,27 +288,6 @@ void apply_json_to(cJSON *change, char *target, const ctx_t &) {
         *target = str[0];
     }
 }
-
-//JSON adapter for bool
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(bool *target, const ctx_t &) {
-    return get_json_subfields(target);
-}
-
-template <class ctx_t>
-cJSON *render_as_json(bool *target, const ctx_t &) {
-    return render_as_json(target);
-}
-
-template <class ctx_t>
-void apply_json_to(cJSON *change, bool *target, const ctx_t &) {
-    apply_json_to(change, target);
-}
-
-template <class ctx_t>
-void on_subfield_change(bool *target, const ctx_t &) { on_subfield_change(target); }
-
-
 
 //JSON adapter for uuid_t
 template <class ctx_t>
