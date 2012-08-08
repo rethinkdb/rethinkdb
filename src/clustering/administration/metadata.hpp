@@ -136,9 +136,9 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metad
     res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, ctx_t>(&target->dummy_namespaces, ctx));
     res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<namespaces_directory_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces, ctx));
     res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<namespaces_directory_metadata_t<rdb_protocol_t>, ctx_t>(&target->rdb_namespaces, ctx));
-    res["machine_id"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<machine_id_t, ctx_t>(&target->machine_id, ctx)); // TODO: should be 'me'?
-    res["ips"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<std::vector<std::string>, ctx_t>(&target->ips, ctx));
-    res["peer_type"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<cluster_directory_peer_type_t, ctx_t>(&target->peer_type, ctx));
+    res["machine_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<machine_id_t>(&target->machine_id)); // TODO: should be 'me'?
+    res["ips"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<std::vector<std::string> >(&target->ips));
+    res["peer_type"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<cluster_directory_peer_type_t>(&target->peer_type));
     return res;
 }
 
@@ -155,16 +155,13 @@ void apply_json_to(cJSON *change, cluster_directory_metadata_t *target, const ct
 template <class ctx_t>
 void on_subfield_change(cluster_directory_metadata_t *, const ctx_t &) { }
 
-// json adapter for cluster_directory_peer_type_t
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_peer_type_t *, const ctx_t &)
-{
+// ctx-less json adapter for cluster_directory_peer_type_t
+// TODO: de-inline these?
+inline json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_peer_type_t *) {
     return std::map<std::string, boost::shared_ptr<json_adapter_if_t> >();
 }
 
-template <class ctx_t>
-cJSON *render_as_json(cluster_directory_peer_type_t *peer_type, const ctx_t &)
-{
+inline cJSON *render_as_json(cluster_directory_peer_type_t *peer_type) {
     switch (*peer_type) {
     case ADMIN_PEER:
         return cJSON_CreateString("admin");
@@ -178,12 +175,8 @@ cJSON *render_as_json(cluster_directory_peer_type_t *peer_type, const ctx_t &)
     return cJSON_CreateString("unknown");
 }
 
-template <class ctx_t>
-void apply_json_to(cJSON *, cluster_directory_peer_type_t *, const ctx_t &)
-{ }
+inline void apply_json_to(cJSON *, cluster_directory_peer_type_t *) { }
 
-template <class ctx_t>
-void  on_subfield_change(cluster_directory_peer_type_t *, const ctx_t &)
-{ }
+inline void on_subfield_change(cluster_directory_peer_type_t *) { }
 
 #endif  // CLUSTERING_ADMINISTRATION_METADATA_HPP_

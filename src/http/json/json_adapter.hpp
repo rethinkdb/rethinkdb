@@ -564,6 +564,20 @@ void apply_json_to(cJSON *, std::vector<V> *, const ctx_t &);
 
 template <class V, class ctx_t>
 void on_subfield_change(std::vector<V> *, const ctx_t &);
+
+// ctx-less JSON adapter for std::vector
+template <class V>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(std::vector<V> *);
+
+template <class V>
+cJSON *render_as_json(std::vector<V> *);
+
+template <class V>
+void apply_json_to(cJSON *, std::vector<V> *);
+
+template <class V>
+void on_subfield_change(std::vector<V> *);
+
 } //namespace std
 
 //some convenience functions

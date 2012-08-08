@@ -708,6 +708,40 @@ void apply_json_to(cJSON *change, std::vector<V> *target, const ctx_t &ctx) {
 template <class V, class ctx_t>
 void on_subfield_change(std::vector<V> *, const ctx_t &) { }
 
+// ctx-less JSON adapter for std::vector
+template <class V>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(std::vector<V> *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+
+template <class V>
+cJSON *render_as_json(std::vector<V> *target) {
+    cJSON *res = cJSON_CreateArray();
+    for (typename std::vector<V>::iterator it = target->begin(); it != target->end(); ++it) {
+        cJSON_AddItemToArray(res, render_as_json(&*it));
+    }
+
+    return res;
+}
+
+template <class V>
+void apply_json_to(cJSON *change, std::vector<V> *target) {
+    std::vector<V> val;
+    json_array_iterator_t it = get_array_it(change);
+    cJSON *hd;
+    while ((hd = it.next())) {
+        V v;
+        apply_json_to(hd, &v);
+        val.push_back(v);
+    }
+
+    *target = val;
+}
+
+template <class V>
+void on_subfield_change(std::vector<V> *) { }
+
+
 } //namespace std
 
 //some convenience functions
