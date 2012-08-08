@@ -73,7 +73,7 @@ struct rethinkdb_protocol_t : protocol_t {
             send_query(query);
 
             Response *response = new Response;
-            get_response(response, query->token());
+            get_response(response);
             success = response->status_code() == Response::SUCCESS_JSON;
         } while (!success);
         remove("0", 1);
@@ -101,7 +101,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
         // get response
         Response *response = new Response;
-        get_response(response, query->token());
+        get_response(response);
 
         if (response->token() != query->token()) {
             fprintf(stderr, "Delete response token %ld did not match query token %ld.\n", response->token(), query->token());
@@ -132,7 +132,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
         // get response
         Response *response = new Response;
-        get_response(response, query->token());
+        get_response(response);
 
         if (response->token() != query->token()) {
             fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), query->token());
@@ -157,7 +157,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
         // get response
         Response *response = new Response;
-        get_response(response, query->token());
+        get_response(response);
 
         if (response->token() != query->token()) {
             fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), query->token());
@@ -179,7 +179,7 @@ struct rethinkdb_protocol_t : protocol_t {
         send_query(query);
 
         Response *response = new Response;
-        get_response(response, query->token());
+        get_response(response);
 
         if (response->token() != query->token()) {
             fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), query->token());
@@ -220,7 +220,7 @@ struct rethinkdb_protocol_t : protocol_t {
         bool done = true;
 
         Response *response = new Response;
-        bool received = get_response_maybe(response, queued_read);
+        bool received = get_response_maybe(response);
         if (!received) {
             done = false;
         } else {
@@ -253,7 +253,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
     virtual void dequeue_read(payload_t *keys, int count, payload_t *values = NULL) {
         Response *response = new Response;
-        get_response(response, queued_read);
+        get_response(response);
 
         if (response->token() != queued_read) {
             fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), queued_read);
@@ -291,7 +291,7 @@ struct rethinkdb_protocol_t : protocol_t {
 
         // get response
         Response *response = new Response;
-        get_response(response, query->token());
+        get_response(response);
         if (response->token() != query->token()) {
             fprintf(stderr, "Range read response token %ld did not match query token %ld.\n", response->token(), query->token());
             throw protocol_error_t("Range read response token mismatch.");
@@ -303,7 +303,7 @@ struct rethinkdb_protocol_t : protocol_t {
             send_query(stop_query, query->token());
 
             Response *stop_response = new Response;
-            get_response(stop_response, stop_query->token());
+            get_response(stop_response);
 
             if (stop_response->token() != stop_query->token()) {
                 fprintf(stderr, "Stop response token %ld did not match query token %ld.\n", stop_response->token(), stop_query->token());
@@ -520,29 +520,7 @@ private:
         send_all(query_serialized.c_str(), size);
     }
 
-    void get_response(Response *response, int64_t target_token) {
-        map<int64_t, Response>::iterator iterator;
-        while ((iterator = response_bucket.find(target_token)) == response_bucket.end()) {
-            recv_response(response);
-        }
-        *response = iterator->second;
-        response_bucket.erase(iterator);
-    }
-
-    bool get_response_maybe(Response *response, int64_t target_token) {
-        map<int64_t, Response>::iterator iterator;
-        while ((iterator = response_bucket.find(target_token)) == response_bucket.end()) {
-            if (socket_ready()) {
-                recv_response(response);
-            } else {
-                return false;
-            }
-        }
-        *response = iterator->second;
-        response_bucket.erase(iterator);
-    }
-
-    void recv_response(Response *response) {
+    void get_response(Response *response) {
         // get message
         int size;
         recv_all((char *) &size, sizeof(size));
@@ -553,8 +531,14 @@ private:
             fprintf(stderr, "Failed to unserialize response.\n");
             throw protocol_error_t("Failed to unserialize response.");
         }
+    }
 
-        response_bucket[response->token()] = *response;
+    bool get_response_maybe(Response *response) {
+        if (socket_ready()) {
+            get_response(response);
+        } else {
+            return false;
+        }
     }
 
     bool exist_outstanding_pipeline_reads() {
@@ -583,7 +567,6 @@ private:
     int64_t queued_read; // used for enqueue/dequeue read (stores a token number)
     fd_set readfds;
     char buffer[MAX_PROTOBUF_SIZE];
-    map<int64_t, Response> response_bucket; // maps the token number to the corresponding response
 } ;
 
 #endif // __STRESS_CLIENT_PROTOCOLS_RETHINKDB_PROTOCOL_HPP__
