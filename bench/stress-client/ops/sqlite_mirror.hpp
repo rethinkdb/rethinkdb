@@ -5,6 +5,7 @@
 #include "ops/watcher_and_tracker.hpp"
 #include "protocols/sqlite_protocol.hpp"
 #include "op.hpp"
+#include <vector>
 
 /* sqlite_mirror_t keeps key-value pairs in a SQLite database on the side,
 and uses that mirror to allow verification operations to be run against the
@@ -75,12 +76,20 @@ struct sqlite_mirror_verify_op_t : public op_t {
 
         payload_t key;
         payload_t value;
+        std::vector<payload_t> keys;
+        std::vector<payload_t> values;
+
         m->sqlite->dump_start();
-        ticks_t start_time = get_ticks();
+
         while (m->sqlite->dump_next(&key, &value)) {
-            proto->read(&key, 1, &value);
+            keys.push_back(key);
+            values.push_back(value);
         }
+
+        ticks_t start_time = get_ticks();
+        proto->read(&keys[0], (int) keys.size(), &values[0]);
         ticks_t end_time = get_ticks();
+
         m->sqlite->dump_end();
 
         push_stats(end_time - start_time, 1);

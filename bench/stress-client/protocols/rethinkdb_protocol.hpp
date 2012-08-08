@@ -19,7 +19,7 @@
 #define PRIMARY_KEY_NAME "id"
 
 struct rethinkdb_protocol_t : protocol_t {
-    rethinkdb_protocol_t(const char *conn_str) : sockfd(-1) {
+    rethinkdb_protocol_t(const char *conn_str) : token_index(0), sockfd(-1), queued_read(-1) {
         // initialize the socket
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0) {
@@ -102,10 +102,12 @@ struct rethinkdb_protocol_t : protocol_t {
         // get response
         Response *response = new Response;
         get_response(response, query->token());
+
         if (response->token() != query->token()) {
             fprintf(stderr, "Delete response token %ld did not match query token %ld.\n", response->token(), query->token());
             throw protocol_error_t("Delete response token mismatch.");
         }
+
         if (response->status_code() != Response::SUCCESS_JSON) {
             fprintf(stderr, "Failed to remove key %s: %s\n", key, response->error_message().c_str());
             throw protocol_error_t("Failed to successfully delete.");
@@ -131,10 +133,12 @@ struct rethinkdb_protocol_t : protocol_t {
         // get response
         Response *response = new Response;
         get_response(response, query->token());
+
         if (response->token() != query->token()) {
             fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), query->token());
             throw protocol_error_t("Update response token mismatch.");
         }
+
         if (response->status_code() != Response::SUCCESS_JSON) {
             fprintf(stderr, "Failed to insert key %s, value %s: %s\n", key, value, response->error_message().c_str());
             throw protocol_error_t("Failed to successfully update.");
@@ -154,10 +158,12 @@ struct rethinkdb_protocol_t : protocol_t {
         // get response
         Response *response = new Response;
         get_response(response, query->token());
+
         if (response->token() != query->token()) {
             fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), query->token());
             throw protocol_error_t("Insert response token mismatch.");
         }
+
         if (response->status_code() != Response::SUCCESS_JSON) {
             fprintf(stderr, "Failed to insert key %s, value %s: %s\n", key, value, response->error_message().c_str());
             throw protocol_error_t("Failed to successfully insert.");
@@ -167,111 +173,111 @@ struct rethinkdb_protocol_t : protocol_t {
     virtual void read(payload_t *keys, int count, payload_t *values = NULL) {
         assert(!exist_outstanding_pipeline_reads());
 
-        for (int i = 0; i < count; i++) {
-            // generate query
-            Query *query = new Query;
-            generate_read_query(query, keys[i].first, keys[i].second);
+        Query *query = new Query;
+        generate_batched_read_query(query, keys, count);
 
-            send_query(query);
+        send_query(query);
 
-            // get response
-            Response *response = new Response;
-            get_response(response, query->token());
-            if (response->token() != query->token()) {
-                fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), query->token());
-                throw protocol_error_t("Read response token mismatch.");
-            }
-            if (response->status_code() != Response::SUCCESS_JSON) {
-                fprintf(stderr, "Failed to read key %s: %s\n", keys[i].first, response->error_message().c_str());
-                throw protocol_error_t("Failed to successfully read.");
-            }
-            if (values) {
-                std::string result = get_value(response->response(0));
+        Response *response = new Response;
+        get_response(response, query->token());
+
+        if (response->token() != query->token()) {
+            fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), query->token());
+            throw protocol_error_t("Read response token mismatch.");
+        }
+
+        if (response->status_code() != Response::SUCCESS_JSON) {
+            fprintf(stderr, "Failed to read a batch of %d keys: %s\n", count, response->error_message().c_str());
+            throw protocol_error_t("Failed to successfully read.");
+        }
+
+        if (values) {
+            int last = response->response(0).find_last_of("}");
+            for (int i = count - 1; i >= 0; i--) {
+                assert(last >= 0 && last < response->response(0).length());
+                std::string result = get_value(response->response(0), last);
                 if (std::string(values[i].first, values[i].second) != result) {
                     fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
                 }
+                last = response->response(0).find_last_of("}", last - 1);
             }
         }
     }
 
     virtual void enqueue_read(payload_t *keys, int count, payload_t *values = NULL) {
-        for (int i = 0; i < count; i++) {
-            // generate query
-            Query *query = new Query;
-            generate_read_query(query, keys[i].first, keys[i].second);
+        assert(!exist_outstanding_pipeline_reads());
 
-            send_query(query);
+        Query *query = new Query;
+        generate_batched_read_query(query, keys, count);
 
-            read_tokens.push(query->token());
-        }
+        send_query(query);
+
+        queued_read = query->token();
     }
 
     // returns whether all the reads were completed
     virtual bool dequeue_read_maybe(payload_t *keys, int count, payload_t *values = NULL) { 
         bool done = true;
-        for (int i = 0; i < count; i++) {
-            if (read_tokens.front() == -1) {
-                read_tokens.push(-1);
-                read_tokens.pop();
-            }
 
-            // get response
-            Response *response = new Response;
-            bool received = get_response_maybe(response, read_tokens.front());
-            if (!received) {
-                done = false;
-                read_tokens.push(read_tokens.front());
-                read_tokens.pop();
-                continue;
+        Response *response = new Response;
+        bool received = get_response_maybe(response, queued_read);
+        if (!received) {
+            done = false;
+        } else {
+            if (response->token() != queued_read) {
+                fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), queued_read);
+                throw protocol_error_t("Read response token mismatch.");
             }
 
             if (response->status_code() != Response::SUCCESS_JSON) {
-                fprintf(stderr, "Failed to read key %s: %s\n", keys[i].first, response->error_message().c_str());
+                fprintf(stderr, "Failed to read a batch of %d keys: %s\n", count, response->error_message().c_str());
                 throw protocol_error_t("Failed to successfully read.");
             }
+
             if (values) {
-                std::string result = get_value(response->response(0));
-                if (std::string(values[i].first, values[i].second) != result) {
-                    fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
+                int last = response->response(0).find_last_of("}");
+                for (int i = count - 1; i >= 0; i--) {
+                    assert(last >= 0 && last < response->response(0).length());
+                    std::string result = get_value(response->response(0), last);
+                    if (std::string(values[i].first, values[i].second) != result) {
+                        fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
+                    }
+                    last = response->response(0).find_last_of("}", last);
                 }
             }
-
-            read_tokens.push(-1); // signifies a completed read
-            read_tokens.pop();
-        }
-
-        // empty the read queue if done
-        if (done) {
-            while (read_tokens.size()) {
-                read_tokens.pop();
-            }
+            queued_read = -1;
         }
 
         return done;
     }
 
     virtual void dequeue_read(payload_t *keys, int count, payload_t *values = NULL) {
-        for (int i = 0; i < count; i++) {
-            if (read_tokens.front() == -1) {
-                continue;
-            }
+        Response *response = new Response;
+        get_response(response, queued_read);
 
-            // get response
-            Response *response = new Response;
-            get_response(response, read_tokens.front());
-            if (response->status_code() != Response::SUCCESS_JSON) {
-                fprintf(stderr, "Failed to read key %s: %s\n", keys[i].first, response->error_message().c_str());
-                throw protocol_error_t("Failed to successfully read.");
-            }
-            if (values) {
-                std::string result = get_value(response->response(0));
+        if (response->token() != queued_read) {
+            fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), queued_read);
+            throw protocol_error_t("Read response token mismatch.");
+        }
+
+        if (response->status_code() != Response::SUCCESS_JSON) {
+            fprintf(stderr, "Failed to read a batch of %d keys: %s\n", count, response->error_message().c_str());
+            throw protocol_error_t("Failed to successfully read.");
+        }
+
+        if (values) {
+            int last = response->response(0).find_last_of("}");
+            for (int i = count - 1; i >= 0; i--) {
+                assert(last >= 0 && last < response->response(0).length());
+                std::string result = get_value(response->response(0), last);
                 if (std::string(values[i].first, values[i].second) != result) {
                     fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
                 }
+                last = response->response(0).find_last_of("}", last);
             }
-
-            read_tokens.pop();
         }
+
+        queued_read = -1;
     }
 
     virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) {
@@ -290,6 +296,7 @@ struct rethinkdb_protocol_t : protocol_t {
             fprintf(stderr, "Range read response token %ld did not match query token %ld.\n", response->token(), query->token());
             throw protocol_error_t("Range read response token mismatch.");
         }
+
         if (response->status_code() == Response::SUCCESS_PARTIAL) {
             Query *stop_query = new Query;
             generate_stop_query(stop_query);
@@ -297,10 +304,12 @@ struct rethinkdb_protocol_t : protocol_t {
 
             Response *stop_response = new Response;
             get_response(stop_response, stop_query->token());
+
             if (stop_response->token() != stop_query->token()) {
                 fprintf(stderr, "Stop response token %ld did not match query token %ld.\n", stop_response->token(), stop_query->token());
                 throw protocol_error_t("Stop response token mismatch.");
             }
+
             if (stop_response->status_code() != Response::SUCCESS_EMPTY) {
                 fprintf(stderr, "Failed to stop partial stream.");
                 throw protocol_error_t("Failed to successfully stop.");
@@ -375,9 +384,35 @@ private:
         TableRef *table_ref = insert->mutable_table_ref();
         table_ref->set_table_name(RDB_TABLE_NAME);
         Term *term = insert->add_terms();
-        term->set_type(Term::JSON);
-        std::string json_insert = std::string("{\"") + std::string(PRIMARY_KEY_NAME) + std::string("\" : \"") + std::string(key, key_size) + std::string("\", \"val\" : \"") + std::string(value, value_size) + std::string("\"}");
-        term->set_jsonstring(json_insert);
+        term->set_type(Term::OBJECT);
+        VarTermTuple *object_key = term->add_object();
+        object_key->set_var("id");
+        Term *key_term = object_key->mutable_term();
+        key_term->set_type(Term::STRING);
+        key_term->set_valuestring(std::string(key, key_size));
+        VarTermTuple *object_value = term->add_object();
+        object_value->set_var("val");
+        Term *object_term = object_value->mutable_term();
+        object_term->set_type(Term::STRING);
+        object_term->set_valuestring(std::string(value, value_size));
+    }
+
+    void generate_batched_read_query(Query *query, payload_t *keys, int count) {
+        query->set_type(Query::READ);
+        ReadQuery *read_query = query->mutable_read_query();
+        Term *term = read_query->mutable_term();
+        term->set_type(Term::ARRAY);
+        for (int i = 0; i < count; i++) {
+            Term *array_term = term->add_array();
+            array_term->set_type(Term::GETBYKEY);
+            Term::GetByKey *get_by_key = array_term->mutable_get_by_key();
+            TableRef *table_ref = get_by_key->mutable_table_ref();
+            table_ref->set_table_name(RDB_TABLE_NAME);
+            get_by_key->set_attrname(PRIMARY_KEY_NAME);
+            Term *term_key = get_by_key->mutable_key();
+            term_key->set_type(Term::STRING);
+            term_key->set_valuestring(std::string(keys[i].first, keys[i].second));
+        }
     }
 
     void generate_read_query(Query *query, const char *key, size_t key_size) {
@@ -523,16 +558,19 @@ private:
     }
 
     bool exist_outstanding_pipeline_reads() {
-        return read_tokens.size() != 0;
+        return queued_read >= 0;
     }
 
     // takes a JSON string and returns the string in the last set of quotes
     // useful for retrieving the last value, and probably faster than using a JSON parser
-    std::string get_value(const std::string &json_string) {
-        if (json_string == "null") {
+    std::string get_value(const std::string &json_string, int last = -1) {
+        if (json_string == "null" || json_string == "[null]") {
             return json_string;
         }
-        int last_quote = (int) json_string.find_last_of('"');
+        if (last < 0) {
+            last = json_string.length() - 1;
+        }
+        int last_quote = (int) json_string.find_last_of('"', last);
         int second_to_last_quote = (int) json_string.find_last_of('"', last_quote - 1);
         assert(last_quote >= 0 && last_quote < json_string.length());
         assert(second_to_last_quote >= 0 && second_to_last_quote < json_string.length());
@@ -542,9 +580,9 @@ private:
 private:
     int64_t token_index;
     int sockfd;
+    int64_t queued_read; // used for enqueue/dequeue read (stores a token number)
     fd_set readfds;
     char buffer[MAX_PROTOBUF_SIZE];
-    queue<int64_t> read_tokens; // used for keeping track of enqueued reads
     map<int64_t, Response> response_bucket; // maps the token number to the corresponding response
 } ;
 
