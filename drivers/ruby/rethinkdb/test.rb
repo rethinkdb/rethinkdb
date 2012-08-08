@@ -168,6 +168,20 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.not(r.equals(3,3)).run, false)
     assert_equal(r.equals(3,2).not.run, true)
     assert_equal(r.equals(3,3).not.run, false)
+
+    assert_equal(r.all(true, true, true), true)
+    assert_equal(r.all(true, false, true), false)
+    assert_equal(r.and(true, true, true), true)
+    assert_equal(r.and(true, false, true), false)
+    assert_equal((r[true].and(true)), true)
+    assert_equal((r[true].and(false)), false)
+
+    assert_equal(r.any(false, false, false), false)
+    assert_equal(r.any(false, true, false), true)
+    assert_equal(r.or(false, false, false), false)
+    assert_equal(r.or(false, true, false), true)
+    assert_equal((r[true].or(true)), false)
+    assert_equal((r[true].or(false)), true)
   end
 
   def test_let #LET, CALL, ADD, VAR, NUMBER, STRING
