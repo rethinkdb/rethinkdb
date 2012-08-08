@@ -1,4 +1,5 @@
-load '/home/mlucy/rethinkdb_ruby/drivers/ruby/rethinkdb/rethinkdb.rb'
+#load '/home/mlucy/rethinkdb_ruby/drivers/ruby/rethinkdb/rethinkdb.rb'
+load 'rethinkdb_shortcuts.rb'
 r = RethinkDB::RQL
 # TODO:
 # Confirm these are going away:
@@ -25,7 +26,7 @@ r = RethinkDB::RQL
 
 require 'test/unit'
 class ClientTest < Test::Unit::TestCase
-  def r; RethinkDB::RQL; end
+  include RethinkDB::Shortcuts_Mixin
   def rdb; r.db('').Welcome; end
   @@c = RethinkDB::Connection.new('localhost', 64346)
   def c; @@c; end
