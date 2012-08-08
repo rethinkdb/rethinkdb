@@ -9,7 +9,7 @@
 #include <boost/shared_array.hpp>
 #include <boost/optional.hpp>
 
-#include "arch/types.hpp"
+#include "arch/io/network.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "containers/scoped.hpp"
 #include "parsing/util.hpp"
@@ -116,7 +116,7 @@ void test_header_parser();
 class tcp_http_msg_parser_t {
 public:
     tcp_http_msg_parser_t() {}
-    bool parse(tcp_conn_t *conn, http_req_t *req);
+    bool parse(tcp_conn_t *conn, http_req_t *req, signal_t *closer) THROWS_ONLY(tcp_conn_t::read_closed_exc_t);
 private:
     struct version_parser_t {
         std::string version;

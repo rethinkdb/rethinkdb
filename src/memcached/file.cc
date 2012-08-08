@@ -11,32 +11,30 @@ class file_memcached_interface_t : public memcached_interface_t {
 private:
     FILE *file;
     file_progress_bar_t progress_bar;
-    signal_t *interrupt;
 
 public:
-    file_memcached_interface_t(const char *filename, signal_t *_interrupt) :
+    file_memcached_interface_t(const char *filename) :
         file(fopen(filename, "r")),
-        progress_bar(std::string("Import"), file),
-        interrupt(_interrupt)
+        progress_bar(std::string("Import"), file)
     { }
     ~file_memcached_interface_t() {
         fclose(file);
     }
 
     /* We throw away the responses */
-    void write(UNUSED const char *buffer, UNUSED size_t bytes) { }
-    void write_unbuffered(UNUSED const char *buffer, UNUSED size_t bytes) { }
-    void flush_buffer() { }
+    void write(UNUSED const char *buffer, UNUSED size_t bytes, UNUSED signal_t *interruptor) { }
+    void write_unbuffered(UNUSED const char *buffer, UNUSED size_t bytes, UNUSED signal_t *interruptor) { }
+    void flush_buffer(UNUSED signal_t *interruptor) { }
     bool is_write_open() { return false; }
 
-    void read(void *buf, size_t nbytes) {
-        if (interrupt->is_pulsed()) throw no_more_data_exc_t();
+    void read(void *buf, size_t nbytes, UNUSED signal_t *interruptor) {
+        if (interruptor->is_pulsed()) throw no_more_data_exc_t();
         if (fread(buf, nbytes, 1, file) == 0)
             throw no_more_data_exc_t();
     }
 
-    void read_line(std::vector<char> *dest) {
-        if (interrupt->is_pulsed()) throw no_more_data_exc_t();
+    void read_line(std::vector<char> *dest, UNUSED signal_t *interruptor) {
+        if (interruptor->is_pulsed()) throw no_more_data_exc_t();
         int limit = MEGABYTE;
         dest->clear();
         char c;
@@ -58,7 +56,7 @@ void import_memcache(const char *filename, namespace_interface_t<memcached_proto
     rassert(interrupt);
     interrupt->assert_thread();
 
-    file_memcached_interface_t interface(filename, interrupt);
+    file_memcached_interface_t interface(filename);
 
-    handle_memcache(&interface, nsi, MAX_CONCURRENT_QUEURIES_ON_IMPORT, NULL);
+    handle_memcache(&interface, nsi, MAX_CONCURRENT_QUEURIES_ON_IMPORT, NULL, interrupt);
 }
