@@ -41,4 +41,9 @@ module RethinkDB
     def message_set(message, key, val); message.send((key.to_s+'=').to_sym, val); end
   end
   module P; extend P_Mixin; end
+
+  module S_Mixin #S-expression Utils
+    def _ x; RQL_Query.new x; end
+  end
+  module S; extend S_Mixin; end
 end

@@ -1,6 +1,11 @@
 #load '/home/mlucy/rethinkdb_ruby/drivers/ruby/rethinkdb/rethinkdb.rb'
 load 'rethinkdb_shortcuts.rb'
 r = RethinkDB::RQL
+# BIG TODO:
+#   * Make Connection work with clusters, minimize network hops,
+#     etc. etc. like python client does.
+#   * CREATE, DROP, LIST, etc. for table creation
+
 # TODO:
 # Confirm these are going away:
 #   * MAPMERGE
@@ -211,6 +216,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_range #RANGE
+    assert_equal(rdb.between(1,3).run, $data[1..3])
+    assert_equal(rdb.between(2,nil).run, $data[2..-1])
     assert_equal(rdb.range(:id, 1, 3).run, $data[1..3])
     assert_equal(rdb.range({:attrname => :id, :upperbound => 4}).run,$data[0..4])
   end
