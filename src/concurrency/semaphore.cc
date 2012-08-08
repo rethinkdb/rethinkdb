@@ -45,7 +45,7 @@ void semaphore_t::unlock(int count) {
     rassert(!in_callback);
     rassert(current >= count);
     current -= count;
-    if (lock_request_t *h = waiters.head()) {
+    while (lock_request_t *h = waiters.head()) {
         if (current + h->count <= capacity) {
             waiters.remove(h);
             current += h->count;
@@ -54,6 +54,8 @@ void semaphore_t::unlock(int count) {
             h->on_available();
             rassert(in_callback);
             DEBUG_ONLY_CODE(in_callback = false);
+        } else {
+            break;
         }
     }
 }
