@@ -207,25 +207,6 @@ template <class T>
 void on_subfield_change(deletable_t<T> *) { }
 
 
-//json adapter concept for peer_id_t
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(peer_id_t *target, const ctx_t &) {
-    return get_json_subfields(target);
-}
-
-template <class ctx_t>
-cJSON *render_as_json(peer_id_t *target, const ctx_t &) {
-    return render_as_json(target);
-}
-
-template <class ctx_t>
-void apply_json_to(cJSON *change, peer_id_t *target, const ctx_t &) {
-    apply_json_to(change, target);
-}
-
-template <class ctx_t>
-void on_subfield_change(peer_id_t *target, const ctx_t &) { on_subfield_change(target); }
-
 // ctx-less json adapter concept for peer_id_t
 // TODO: de-inline these?
 inline json_adapter_if_t::json_adapter_map_t get_json_subfields(peer_id_t *) {
