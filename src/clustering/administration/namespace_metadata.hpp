@@ -149,7 +149,7 @@ inline json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespa
 
 template <class protocol_t>
 cJSON *with_ctx_render_as_json(namespaces_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx) {
-    return render_as_json(&target->namespaces, ctx);
+    return with_ctx_render_as_json(&target->namespaces, ctx);
 }
 
 template <class protocol_t>
@@ -159,7 +159,7 @@ void with_ctx_apply_json_to(cJSON *change, namespaces_semilattice_metadata_t<pro
 
 template <class protocol_t>
 void with_ctx_on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx) {
-    on_subfield_change(&target->namespaces, ctx);
+    with_ctx_on_subfield_change(&target->namespaces, ctx);
 }
 
 template <class protocol_t>

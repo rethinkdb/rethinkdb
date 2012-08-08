@@ -216,7 +216,7 @@ cJSON *json_ctx_map_inserter_t<container_t, ctx_t>::render_impl() {
     cJSON *res = cJSON_CreateObject();
     for (typename keys_set_t::iterator it = added_keys.begin(); it != added_keys.end(); ++it) {
         scoped_cJSON_t key(render_as_json(&*it));
-        cJSON_AddItemToObject(res, get_string(key.get()).c_str(), render_as_json(&(target->find(*it)->second), ctx));
+        cJSON_AddItemToObject(res, get_string(key.get()).c_str(), with_ctx_render_as_json(&(target->find(*it)->second), ctx));
     }
     return res;
 }
@@ -227,7 +227,7 @@ void json_ctx_map_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change) {
     added_keys.insert(key);
 
     typename container_t::mapped_type val = initial_value;
-    apply_json_to(change, &val, ctx);
+    with_ctx_apply_json_to(change, &val, ctx);
 
     target->insert(typename container_t::value_type(key, val));
 }
@@ -308,27 +308,27 @@ json_ctx_adapter_with_inserter_t<container_t, ctx_t>::json_ctx_adapter_with_inse
 
 template <class container_t, class ctx_t>
 cJSON *json_ctx_adapter_with_inserter_t<container_t, ctx_t>::render_impl() {
-    return render_as_json(target, ctx);
+    return with_ctx_render_as_json(target, ctx);
 }
 
 template <class container_t, class ctx_t>
 void json_ctx_adapter_with_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change) {
-    apply_json_to(change, target, ctx);
+    with_ctx_apply_json_to(change, target, ctx);
 }
 
 template <class container_t, class ctx_t>
 void json_ctx_adapter_with_inserter_t<container_t, ctx_t>::erase_impl() {
-    erase_json(target, ctx);
+    with_ctx_erase_json(target, ctx);
 }
 
 template <class container_t, class ctx_t>
 void json_ctx_adapter_with_inserter_t<container_t, ctx_t>::reset_impl() {
-    reset_json(target, ctx);
+    with_ctx_reset_json(target, ctx);
 }
 
 template <class container_t, class ctx_t>
 json_adapter_if_t::json_adapter_map_t json_ctx_adapter_with_inserter_t<container_t, ctx_t>::get_subfields_impl() {
-    json_adapter_map_t res = get_json_subfields(target, ctx);
+    json_adapter_map_t res = with_ctx_get_json_subfields(target, ctx);
     rassert(res.find(inserter_key) == res.end(), "Error, inserter_key %s  conflicts with another field of the target, (you probably want to change the value of inserter_key).", inserter_key.c_str());
     res[inserter_key] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_map_inserter_t<container_t, ctx_t>(target, generator, ctx, initial_value));
 
@@ -401,7 +401,7 @@ namespace std {
 // should be serialized as an array of key, value pairs.  No?
 
 template <class K, class V, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(std::map<K, V> *map, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(std::map<K, V> *map, const ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
 
 #ifdef JSON_SHORTCUTS
@@ -430,15 +430,15 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(std::map<K, V> *map, co
 }
 
 template <class K, class V, class ctx_t>
-cJSON *render_as_json(std::map<K, V> *map, const ctx_t &ctx) {
+cJSON *with_ctx_render_as_json(std::map<K, V> *map, const ctx_t &ctx) {
     return render_as_directory(map, ctx);
 }
 
 template <class K, class V, class ctx_t>
-void apply_json_to(cJSON *change, std::map<K, V> *map, const ctx_t &ctx) {
+void with_ctx_apply_json_to(cJSON *change, std::map<K, V> *map, const ctx_t &ctx) {
     typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
 
-    json_adapter_map_t elements = get_json_subfields(map, ctx);
+    json_adapter_map_t elements = with_ctx_get_json_subfields(map, ctx);
 
     json_object_iterator_t it = get_object_it(change);
 
@@ -452,7 +452,7 @@ void apply_json_to(cJSON *change, std::map<K, V> *map, const ctx_t &ctx) {
             apply_json_to(key.get(), &k);
 
             V v;
-            apply_json_to(val, &v, ctx);
+            with_ctx_apply_json_to(val, &v, ctx);
 
             (*map)[k] = v;
         }
@@ -460,7 +460,7 @@ void apply_json_to(cJSON *change, std::map<K, V> *map, const ctx_t &ctx) {
 }
 
 template <class K, class V, class ctx_t>
-void on_subfield_change(std::map<K, V> *, const ctx_t &) { }
+void with_ctx_on_subfield_change(std::map<K, V> *, const ctx_t &) { }
 
 // ctx-less JSON adapter for std::map
 

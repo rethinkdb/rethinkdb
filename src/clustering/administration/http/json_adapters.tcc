@@ -144,12 +144,12 @@ boost::shared_ptr<subfield_change_functor_t>  json_vclock_adapter_t<T>::get_chan
 
 //json adapter concept for deletable_t
 template <class T, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(deletable_t<T> *target, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(deletable_t<T> *target, const ctx_t &ctx) {
     return with_ctx_get_json_subfields(&target->get_mutable(), ctx);
 }
 
 template <class T, class ctx_t>
-cJSON *render_as_json(deletable_t<T> *target, const ctx_t &ctx) {
+cJSON *with_ctx_render_as_json(deletable_t<T> *target, const ctx_t &ctx) {
     if (target->is_deleted()) {
         return cJSON_CreateNull();
     } else {
@@ -158,7 +158,7 @@ cJSON *render_as_json(deletable_t<T> *target, const ctx_t &ctx) {
 }
 
 template <class T, class ctx_t>
-void apply_json_to(cJSON *change, deletable_t<T> *target, const ctx_t &ctx) {
+void with_ctx_apply_json_to(cJSON *change, deletable_t<T> *target, const ctx_t &ctx) {
     if (is_null(change)) {
         target->mark_deleted();
     } else {
@@ -167,12 +167,12 @@ void apply_json_to(cJSON *change, deletable_t<T> *target, const ctx_t &ctx) {
 }
 
 template <class T, class ctx_t>
-void erase_json(deletable_t<T> *target, const ctx_t &) {
+void with_ctx_erase_json(deletable_t<T> *target, const ctx_t &) {
     *target = target->get_deletion();
 }
 
 template <class T, class ctx_t>
-void on_subfield_change(deletable_t<T> *, const ctx_t &) { }
+void with_ctx_on_subfield_change(deletable_t<T> *, const ctx_t &) { }
 
 // ctx-less json adapter concept for deletable_t
 template <class T>

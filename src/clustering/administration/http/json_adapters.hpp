@@ -76,19 +76,19 @@ void with_ctx_on_subfield_change(vclock_t<T> *, const vclock_ctx_t &);
 
 //json adapter concept for deletable_t
 template <class T, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(deletable_t<T> *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(deletable_t<T> *, const ctx_t &);
 
 template <class T, class ctx_t>
-cJSON *render_as_json(deletable_t<T> *, const ctx_t &);
+cJSON *with_ctx_render_as_json(deletable_t<T> *, const ctx_t &);
 
 template <class T, class ctx_t>
-void apply_json_to(cJSON *, deletable_t<T> *, const ctx_t &);
+void with_ctx_apply_json_to(cJSON *, deletable_t<T> *, const ctx_t &);
 
 template <class T, class ctx_t>
-void erase_json(deletable_t<T> *, const ctx_t &);
+void with_ctx_erase_json(deletable_t<T> *, const ctx_t &);
 
 template <class T, class ctx_t>
-void on_subfield_change(deletable_t<T> *, const ctx_t &);
+void with_ctx_on_subfield_change(deletable_t<T> *, const ctx_t &);
 
 // ctx-less json adapter concept for deletable_t
 template <class T>

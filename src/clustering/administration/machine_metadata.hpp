@@ -66,7 +66,7 @@ inline json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(machine
 }
 
 inline cJSON *with_ctx_render_as_json(machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
-    return render_as_json(&target->machines, ctx);
+    return with_ctx_render_as_json(&target->machines, ctx);
 }
 
 inline void with_ctx_apply_json_to(cJSON *change, machines_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {

@@ -472,16 +472,16 @@ void  on_subfield_change(std::string *);
 
 //JSON adapter for std::map
 template <class K, class V, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(std::map<K, V> *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(std::map<K, V> *, const ctx_t &);
 
 template <class K, class V, class ctx_t>
-cJSON *render_as_json(std::map<K, V> *, const ctx_t &);
+cJSON *with_ctx_render_as_json(std::map<K, V> *, const ctx_t &);
 
 template <class K, class V, class ctx_t>
-void apply_json_to(cJSON *, std::map<K, V> *, const ctx_t &);
+void with_ctx_apply_json_to(cJSON *, std::map<K, V> *, const ctx_t &);
 
 template <class K, class V, class ctx_t>
-void on_subfield_change(std::map<K, V> *, const ctx_t &);
+void with_ctx_on_subfield_change(std::map<K, V> *, const ctx_t &);
 
 // ctx-less JSON adapter for std::map
 template <class K, class V>
@@ -564,27 +564,6 @@ std::string render_as_json_string(const T &t, const cxt_t cxt) {
 template<class T>
 std::string render_as_json_string(const T &t) {
     return render_as_json_string(t, 0);
-}
-
-// ctx-dropping adapters, eventually.
-template <class T, class ctx_t>
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(T *target, const ctx_t &ctx) {
-    return get_json_subfields(target, ctx);
-}
-
-template <class T, class ctx_t>
-cJSON *with_ctx_render_as_json(T *target, const ctx_t &ctx) {
-    return render_as_json(target, ctx);
-}
-
-template <class T, class ctx_t>
-void with_ctx_apply_json_to(cJSON *change, T *target, const ctx_t &ctx) {
-    apply_json_to(change, target, ctx);
-}
-
-template <class T, class ctx_t>
-void with_ctx_on_subfield_change(T *target, const ctx_t &ctx) {
-    on_subfield_change(target, ctx);
 }
 
 #include "http/json/json_adapter.tcc"
