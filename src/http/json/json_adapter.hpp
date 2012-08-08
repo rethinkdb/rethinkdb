@@ -407,6 +407,13 @@ void apply_json_to(cJSON *, uint64_t *, const ctx_t &);
 template <class ctx_t>
 void on_subfield_change(uint64_t *, const ctx_t &);
 
+// ctx-less JSON adapter for uint64_t
+json_adapter_if_t::json_adapter_map_t get_json_subfields(uint64_t *);
+cJSON *render_as_json(uint64_t *);
+void apply_json_to(cJSON *, uint64_t *);
+void on_subfield_change(uint64_t *);
+
+
 //JSON adapter for char
 template <class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(char *, const ctx_t &);
