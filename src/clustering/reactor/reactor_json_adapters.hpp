@@ -243,17 +243,17 @@ void on_subfield_change(nothing_when_done_erasing_t<protocol_t> *);
 
 
 //json adapter for reactor_business_card_t
-template <class protocol_t, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(reactor_business_card_t<protocol_t>*, const ctx_t &);
+template <class protocol_t>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(reactor_business_card_t<protocol_t> *);
+
+template <class protocol_t>
+cJSON *render_as_json(reactor_business_card_t<protocol_t> *);
+
+template <class protocol_t>
+void apply_json_to(cJSON *, reactor_business_card_t<protocol_t> *);
 
 template <class protocol_t, class ctx_t>
-cJSON *render_as_json(reactor_business_card_t<protocol_t> *, const ctx_t &);
-
-template <class protocol_t, class ctx_t>
-void apply_json_to(cJSON *, reactor_business_card_t<protocol_t> *, const ctx_t &);
-
-template <class protocol_t, class ctx_t>
-void on_subfield_change(reactor_business_card_t<protocol_t> *, const ctx_t &);
+void on_subfield_change(reactor_business_card_t<protocol_t> *);
 
 #include "clustering/reactor/reactor_json_adapters.tcc"
 
