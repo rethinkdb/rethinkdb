@@ -14,26 +14,26 @@
 
 //json adapter concept for vclock_t
 template <class T, class ctx_t>
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(vclock_t<T> *target, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(vclock_t<T> *target, UNUSED const ctx_t &ctx) {
     try {
-        return with_ctx_get_json_subfields(&target->get_mutable(), ctx);
+        return get_json_subfields(&target->get_mutable());
     } catch (in_conflict_exc_t e) {
         return json_adapter_if_t::json_adapter_map_t();
     }
 }
 
 template <class T, class ctx_t>
-cJSON *with_ctx_render_as_json(vclock_t<T> *target, const ctx_t &ctx) {
+cJSON *with_ctx_render_as_json(vclock_t<T> *target, UNUSED const ctx_t &ctx) {
     try {
         T t = target->get();
-        return with_ctx_render_as_json(&t, ctx);
+        return render_as_json(&t);
     } catch (in_conflict_exc_t e) {
         return cJSON_CreateString("VALUE_IN_CONFLICT");
     }
 }
 
 template <class T, class ctx_t>
-cJSON *with_ctx_render_all_values(vclock_t<T> *target, const ctx_t &ctx) {
+cJSON *with_ctx_render_all_values(vclock_t<T> *target, UNUSED const ctx_t &ctx) {
     cJSON *res = cJSON_CreateArray();
     for (typename vclock_t<T>::value_map_t::iterator it  =   target->values.begin();
                                                              it != target->values.end();
@@ -42,8 +42,8 @@ cJSON *with_ctx_render_all_values(vclock_t<T> *target, const ctx_t &ctx) {
 
         //This is really bad, fix this as soon as we can render using non const references
         vclock_details::version_map_t tmp = it->first;
-        cJSON_AddItemToArray(version_value_pair, with_ctx_render_as_json(&tmp, ctx));
-        cJSON_AddItemToArray(version_value_pair, with_ctx_render_as_json(&it->second, ctx));
+        cJSON_AddItemToArray(version_value_pair, render_as_json(&tmp));
+        cJSON_AddItemToArray(version_value_pair, render_as_json(&it->second));
 
         cJSON_AddItemToArray(res, version_value_pair);
     }
@@ -54,7 +54,7 @@ cJSON *with_ctx_render_all_values(vclock_t<T> *target, const ctx_t &ctx) {
 template <class T, class ctx_t>
 void with_ctx_apply_json_to(cJSON *change, vclock_t<T> *target, const ctx_t &ctx) {
     try {
-        with_ctx_apply_json_to(change, &target->get_mutable(), ctx);
+        apply_json_to(change, &target->get_mutable());
         target->upgrade_version(ctx.us);
     } catch (in_conflict_exc_t e) {
         throw multiple_choices_exc_t();
