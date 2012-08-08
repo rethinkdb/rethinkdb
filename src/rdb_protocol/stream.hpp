@@ -1,6 +1,7 @@
 #ifndef RDB_PROTOCOL_STREAM_HPP_
 #define RDB_PROTOCOL_STREAM_HPP_
 
+#include <algorithm>
 #include <list>
 #include <string>
 #include <vector>
@@ -12,7 +13,7 @@
 
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "stream_cache.hpp"
+#include "rdb_protocol/stream_cache.hpp"
 
 
 namespace query_language {

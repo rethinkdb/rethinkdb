@@ -1,7 +1,9 @@
 #include "rdb_protocol/pb_server.hpp"
 
+#include "errors.hpp"
 #include <boost/make_shared.hpp>
-#include "stream_cache.hpp"
+
+#include "rdb_protocol/stream_cache.hpp"
 
 query_server_t::query_server_t(int port, extproc::pool_group_t *_pool_group, const boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > &_semilattice_metadata, namespace_repo_t<rdb_protocol_t> * _ns_repo)
     : pool_group(_pool_group),

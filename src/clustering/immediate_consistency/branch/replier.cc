@@ -7,7 +7,7 @@ template <class protocol_t>
 replier_t<protocol_t>::replier_t(listener_t<protocol_t> *l) :
     listener(l),
 
-    synchronize_mailbox(listener->mailbox_manager,
+    synchronize_mailbox(listener->mailbox_manager_,
                         boost::bind(&replier_t<protocol_t>::on_synchronize,
                                     this,
                                     _1,
@@ -15,29 +15,29 @@ replier_t<protocol_t>::replier_t(listener_t<protocol_t> *l) :
                                     auto_drainer_t::lock_t(&drainer))),
 
     /* Start serving backfills */
-    backfiller(listener->mailbox_manager,
-               listener->branch_history_manager,
-               listener->svs)
+    backfiller(listener->mailbox_manager_,
+               listener->branch_history_manager_,
+               listener->svs_)
 {
-    rassert(listener->svs->get_multistore_joined_region() ==
-            listener->branch_history_manager->get_branch(listener->branch_id).region,
+    rassert(listener->svs_->get_multistore_joined_region() ==
+            listener->branch_history_manager_->get_branch(listener->branch_id_).region,
             "Even though you can have a listener that only watches some subset "
             "of a branch, you can't have a replier for some subset of a "
             "branch.");
 
     /* Notify the broadcaster that we can reply to queries */
-    send(listener->mailbox_manager,
-         listener->registration_done_cond.get_value().upgrade_mailbox,
-         listener->writeread_mailbox.get_address(),
-         listener->read_mailbox.get_address()
+    send(listener->mailbox_manager_,
+         listener->registration_done_cond_.get_value().upgrade_mailbox,
+         listener->writeread_mailbox_.get_address(),
+         listener->read_mailbox_.get_address()
          );
 }
 
 template <class protocol_t>
 replier_t<protocol_t>::~replier_t() {
     if (listener->get_broadcaster_lost_signal()->is_pulsed()) {
-        send(listener->mailbox_manager,
-             listener->registration_done_cond.get_value().downgrade_mailbox,
+        send(listener->mailbox_manager_,
+             listener->registration_done_cond_.get_value().downgrade_mailbox,
              /* We don't want a confirmation */
              mailbox_addr_t<void()>()
              );
@@ -53,7 +53,7 @@ template <class protocol_t>
 void replier_t<protocol_t>::on_synchronize(state_timestamp_t timestamp, mailbox_addr_t<void()> ack_mbox, auto_drainer_t::lock_t keepalive) {
     try {
         listener->wait_for_version(timestamp, keepalive.get_drain_signal());
-        send(listener->mailbox_manager, ack_mbox);
+        send(listener->mailbox_manager_, ack_mbox);
     } catch (interrupted_exc_t) {
     }
 }
