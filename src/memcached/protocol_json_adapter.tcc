@@ -9,28 +9,7 @@
 #include "http/http.hpp"
 #include "http/json.hpp"
 
-//json adapter concept for `store_key_t`
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(store_key_t *target, const ctx_t &) {
-    return get_json_subfields(target);
-}
-
-template<class ctx_t>
-cJSON *render_as_json(store_key_t *target, const ctx_t &) {
-    return render_as_json(target);
-}
-
-template <class ctx_t>
-void apply_json_to(cJSON *change, store_key_t *target, const ctx_t &) {
-    apply_json_to(change, target);
-}
-
-template <class ctx_t>
-void on_subfield_change(store_key_t *target, const ctx_t &) {
-    on_subfield_change(target);
-}
-
-// ctx-less json adapter concept for `store_key_t`
+// json adapter concept for `store_key_t`
 // TODO: deinline these
 inline json_adapter_if_t::json_adapter_map_t get_json_subfields(store_key_t *) {
     return json_adapter_if_t::json_adapter_map_t();
@@ -52,32 +31,6 @@ inline void on_subfield_change(store_key_t *) { }
 
 
 // json adapter for key_range_t
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(key_range_t *target, const ctx_t &) {
-    return get_json_subfields(target);
-}
-
-template <class ctx_t>
-std::string render_region_as_string(key_range_t *target, UNUSED const ctx_t &c) {
-    return render_region_as_string(target);
-}
-
-template <class ctx_t>
-cJSON *render_as_json(key_range_t *target, UNUSED const ctx_t &c) {
-    return render_as_json(target);
-}
-
-template <class ctx_t>
-void apply_json_to(cJSON *change, key_range_t *target, UNUSED const ctx_t &c) {
-    apply_json_to(change, target);
-}
-
-template <class ctx_t>
-void on_subfield_change(key_range_t *target, const ctx_t &) {
-    on_subfield_change(target);
-}
-
-// ctx-less json adapter for key_range_t
 // TODO: deinline these
 inline json_adapter_if_t::json_adapter_map_t get_json_subfields(key_range_t *) {
     return json_adapter_if_t::json_adapter_map_t();
@@ -149,38 +102,6 @@ inline void on_subfield_change(key_range_t *) { }
 
 
 // json adapter for hash_region_t<key_range_t>
-
-// TODO: This is extremely ghetto: we assert that the hash region isn't split by hash value (because why should the UI ever be exposed to that?) and then only serialize the key range.
-
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(UNUSED hash_region_t<key_range_t> *target, UNUSED const ctx_t &) {
-    return json_adapter_if_t::json_adapter_map_t();
-}
-
-template <class ctx_t>
-std::string render_region_as_string(hash_region_t<key_range_t> *target, const ctx_t &c) {
-    // TODO: ghetto low level hash_region_t assertion.
-    guarantee(target->beg == 0 && target->end == HASH_REGION_HASH_SIZE);
-
-    return render_region_as_string(&target->inner, c);
-}
-
-template <class ctx_t>
-cJSON *render_as_json(hash_region_t<key_range_t> *target, const ctx_t &c) {
-    return cJSON_CreateString(render_region_as_string(target, c).c_str());
-}
-
-template <class ctx_t>
-void apply_json_to(cJSON *change, hash_region_t<key_range_t> *target, const ctx_t &ctx) {
-    target->beg = 0;
-    target->end = HASH_REGION_HASH_SIZE;
-    apply_json_to(change, &target->inner, ctx);
-}
-
-template <class ctx_t>
-void on_subfield_change(hash_region_t<key_range_t> *, const ctx_t &) { }
-
-// ctx-less json adapter for hash_region_t<key_range_t>
 
 // TODO: This is extremely ghetto: we assert that the hash region isn't split by hash value (because why should the UI ever be exposed to that?) and then only serialize the key range.
 // TODO: shall we deinline these?
