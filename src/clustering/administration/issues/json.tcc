@@ -10,50 +10,48 @@
 
 //json adapter concept for issue_json_t
 template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(issue_json_t *target, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(issue_json_t *target, UNUSED const ctx_t &ctx) {
+    return get_json_subfields(target);
+}
+
+template <class ctx_t>
+cJSON *render_as_json(issue_json_t *target, UNUSED const ctx_t &ctx) {
+    return render_as_json(target);
+}
+
+template <class ctx_t>
+void apply_json_to(cJSON *change, issue_json_t *target, UNUSED const ctx_t &ctx) {
+    apply_json_to(change, target);
+}
+
+template <class ctx_t>
+void on_subfield_change(issue_json_t *target, const ctx_t &) {
+    on_subfield_change(target);
+}
+
+
+// ctx-less json adapter concept for issue_json_t
+// TODO: deinline these?
+inline json_adapter_if_t::json_adapter_map_t get_json_subfields(issue_json_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["critical"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<bool, ctx_t>(&target->critical, ctx));
-    res["description"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<std::string, ctx_t>(&target->description, ctx));
-    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<std::string, ctx_t>(&target->type, ctx));
-    res["time"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<ticks_t, ctx_t>(&target->time, ctx));
+    res["critical"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<bool>(&target->critical));
+    res["description"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<std::string>(&target->description));
+    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<std::string>(&target->type));
+    res["time"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<ticks_t>(&target->time));
 
     return res;
 }
 
-template <class ctx_t>
-cJSON *render_as_json(issue_json_t *target, const ctx_t &ctx) {
-    return render_as_directory(target, ctx);
+inline cJSON *render_as_json(issue_json_t *target) {
+    return render_as_directory(target);
 }
 
-template <class ctx_t>
-void apply_json_to(cJSON *change, issue_json_t *target, const ctx_t &ctx) {
-    apply_as_directory(change, target, ctx);
+inline void apply_json_to(cJSON *change, issue_json_t *target) {
+    apply_as_directory(change, target);
 }
 
-template <class ctx_t>
-void on_subfield_change(issue_json_t *, const ctx_t &) { }
+inline void on_subfield_change(issue_json_t *) { }
 
-//json adapter concept for local_issue_json_t
-// TODO: Is this ever instantiated?  I suddenly got a compiler warning about no return statement when making json_adapter_if_t lose its template argument.
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(local_issue_json_t *target, const ctx_t &ctx) {
-    json_adapter_if_t::json_adapter_map_t res = render_as_json(static_cast<issue_json_t *>(target), ctx);
-    res["machine"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<bool, ctx_t>(&target->machine, ctx));
-    return res;
-}
-
-template <class ctx_t>
-cJSON *render_as_json(local_issue_json_t *target, const ctx_t &ctx) {
-    return render_as_directory(target, ctx);
-}
-
-template <class ctx_t>
-void apply_json_to(cJSON *, local_issue_json_t *target, const ctx_t &ctx) {
-    apply_as_directory(target, ctx);
-}
-
-template <class ctx_t>
-void on_subfield_change(local_issue_json_t *, const ctx_t &) { }
 
 
 

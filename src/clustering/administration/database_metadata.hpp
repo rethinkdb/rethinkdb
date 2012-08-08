@@ -60,7 +60,7 @@ RDB_MAKE_EQUALITY_COMPARABLE_1(databases_semilattice_metadata_t, databases);
 //json adapter concept for databases_semilattice_metadata_t
 template <class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(databases_semilattice_metadata_t *target, const ctx_t &ctx) {
-    return json_adapter_with_inserter_t<databases_semilattice_metadata_t::database_map_t, ctx_t>(&target->databases, generate_uuid, ctx).get_subfields();
+    return json_ctx_adapter_with_inserter_t<databases_semilattice_metadata_t::database_map_t, ctx_t>(&target->databases, generate_uuid, ctx).get_subfields();
 }
 
 template <class ctx_t>

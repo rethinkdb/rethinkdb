@@ -15,7 +15,7 @@
 #include "clustering/administration/persistable_blueprint.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
-#include "clustering/reactor/json_adapters.hpp"
+#include "clustering/reactor/reactor_json_adapters.hpp"
 #include "clustering/reactor/metadata.hpp"
 #include "containers/uuid.hpp"
 #include "http/json/json_adapter.hpp"
@@ -143,7 +143,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_semilattice_
     default_namespace.database = default_namespace.database.make_new_version(nil_uuid(), ctx.us);
 
     deletable_t<namespace_semilattice_metadata_t<protocol_t> > default_ns_in_deletable(default_namespace);
-    return json_adapter_with_inserter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, ctx_t>(&target->namespaces, generate_uuid, ctx, default_ns_in_deletable).get_subfields();
+    return json_ctx_adapter_with_inserter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, ctx_t>(&target->namespaces, generate_uuid, ctx, default_ns_in_deletable).get_subfields();
 }
 
 template <class ctx_t, class protocol_t>
@@ -182,26 +182,25 @@ inline bool operator==(const namespace_metadata_ctx_t &x, const namespace_metada
     return x.us == y.us;
 }
 
-// json adapter concept for namespaces_directory_metadata_t
-
-template <class ctx_t, class protocol_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t<protocol_t> *target, const ctx_t &ctx) {
+// ctx-less json adapter concept for namespaces_directory_metadata_t
+template <class protocol_t>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t<protocol_t> *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["reactor_bcards"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >, ctx_t>(&target->reactor_bcards, ctx));
+    res["reactor_bcards"] = boost::shared_ptr<json_adapter_if_t>(new json_read_only_adapter_t<std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > >(&target->reactor_bcards));
     return res;
 }
 
-template <class ctx_t, class protocol_t>
-cJSON *render_as_json(namespaces_directory_metadata_t<protocol_t> *target, const ctx_t &ctx) {
-    return render_as_directory(target, ctx);
+template <class protocol_t>
+cJSON *render_as_json(namespaces_directory_metadata_t<protocol_t> *target) {
+    return render_as_directory(target);
 }
 
-template <class ctx_t, class protocol_t>
-void apply_json_to(cJSON *change, namespaces_directory_metadata_t<protocol_t> *target, const ctx_t &ctx) {
-    apply_as_directory(change, target, ctx);
+template <class protocol_t>
+void apply_json_to(cJSON *change, namespaces_directory_metadata_t<protocol_t> *target) {
+    apply_as_directory(change, target);
 }
 
-template <class ctx_t, class protocol_t>
-void on_subfield_change(UNUSED namespaces_directory_metadata_t<protocol_t> *target, UNUSED const ctx_t &ctx) { }
+template <class protocol_t>
+void on_subfield_change(UNUSED namespaces_directory_metadata_t<protocol_t> *target) { }
 
 #endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_ */

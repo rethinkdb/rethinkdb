@@ -24,11 +24,11 @@ cJSON *name_conflict_issue_t::get_json_description() {
     json.type = "NAME_CONFLICT_ISSUE";
     json.time = get_secs();
 
-    cJSON *res = render_as_json(&json, 0);
+    cJSON *res = render_as_json(&json);
 
-    cJSON_AddItemToObject(res, "contested_type", render_as_json(&type, 0));
-    cJSON_AddItemToObject(res, "contested_name", render_as_json(&contested_name, 0));
-    cJSON_AddItemToObject(res, "contestants", render_as_json(&contestants, 0));
+    cJSON_AddItemToObject(res, "contested_type", render_as_json(&type));
+    cJSON_AddItemToObject(res, "contested_name", render_as_json(&contested_name));
+    cJSON_AddItemToObject(res, "contestants", render_as_json(&contestants));
 
     return res;
 }
