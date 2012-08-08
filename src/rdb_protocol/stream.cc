@@ -5,7 +5,7 @@
 namespace query_language {
 
 in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it, runtime_environment_t *_env) 
-    : env(_env)
+    : started(false), env(_env)
 {
     while (cJSON *json = it.next()) {
         raw_data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
@@ -13,7 +13,7 @@ in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it, runtime_environ
 }
 
 in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *_env) 
-    : env(_env)
+    : started(false), env(_env)
 {
     while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
         raw_data.push_back(json);
@@ -110,6 +110,7 @@ void batched_rget_stream_t::read_more() {
     rdb_protocol_t::rget_read_t rget_read(range, batch_size);
     rdb_protocol_t::read_t read(rget_read);
     try {
+        guarantee(ns_access.get_namespace_if());
         rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, interruptor);
         rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         rassert(p_res);
