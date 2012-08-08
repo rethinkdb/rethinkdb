@@ -11,38 +11,23 @@ r = RethinkDB::RQL
 # Figure out how to use:
 #   * JAVASCRIPT
 #   * GROUPEDMAPREDUCE
+# Add tests once completed/fixed:
+#   * REDUCE
+#   * MUTATE
+#   * FOREACH
+#   * POINTUPDATE
+#   * POINTMUTATE
 
 ################################################################################
 #                                 WRITE QUERY                                  #
 ################################################################################
 def p? x; x; end
 
-r.db('').Welcome.update{|x| x}.query ;p? :UPDATE
-r.db('').Welcome.filter{|x| x[:id] < 5}.update{|x| x}.query ;p? :UPDATE
-
-r.db('').Welcome.delete.query ;p? :DELETE
-r.db('').Welcome.filter{|x| x[:id] < 5}.delete.query ;p? :DELETE
-
 r.db('').Welcome.mutate{|x| nil}.query ;p? :MUTATE
 r.db('').Welcome.filter{|x| x[:id] < 5}.mutate{|x| nil}.query ;p? :MUTATE
 
-r.db('').Welcome.insert([{:id => 1, :name => 'tst'}]).query ;p? :INSERT
-r.db('').Welcome.insert({:id => 1, :name => 'tst'}).query ;p? :INSERT
-
-r.db('').Welcome.insertstream(r.db('').other_tbl).query ;p? :INSERTSTREAM
-
-r.db('').Welcome.foreach {|row|
-  [r.db('').other_tbl1.insert(row),
-   r.db('').other_tbl2.insert(row)]
-}.query ;p? :FOREACH
-r.db('').Welcome.foreach {|x| [r.db('').other_tbl.insert [x]]}.query ;p? :FOREACH
-r.db('').Welcome.foreach {|row| [r.db('').other_tbl.insert row]}.query ;p? :FOREACH
-r.db('').Welcome.foreach {|row| r.db('').other_tbl.insert row}.query ;p? :FOREACH
-
 r.db('').Welcome.pointupdate(:address, 'Bob'){'addr2'}.query ;p? :POINTUPDATE
 r.db('').Welcome.pointupdate(:address, 'Bob'){|addr| addr}.query ;p? :POINTUPDATE
-
-r.db('').Welcome.pointdelete(:address, 'Bob').query ;p? :POINTDELETE
 
 r.db('').Welcome.pointmutate(:address, 'Bob'){'addr2'}.query ;p? :POINTMUTATE
 r.db('').Welcome.pointmutate(:address, 'Bob'){nil}.query ;p? :POINTMUTATE
@@ -263,19 +248,54 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(q1v.map{|o| o['name']}[len..2*len-1], Array.new(len,nil))
   end
 
-  def test__write #two underscores so it runs first
+  def test__setup; rdb.insert($data).run; end
+
+  def test___write #three underscores so it runs first
+    rdb.delete.run
     $data = []
     len = 10
     Array.new(len).each_index{|i| $data << {'id'=>i,'num'=>i,'name'=>i.to_s}}
+
+    #INSERT, UPDATE
     assert_equal(rdb.insert($data).run['inserted'], $data.length)
     assert_equal(rdb.run, $data)
     assert_equal(rdb.insert({:id => 0, :broken => true}).run['inserted'], 1)
-    assert_equal(rdb.run[1..len-1], $data[1..len-1])
+    assert_equal(rdb.insert({:id => 1, :broken => true}).run['inserted'], 1)
+    assert_equal(rdb.run[2..len-1], $data[2..len-1])
     assert_equal(rdb.run[0]['broken'], true)
+    assert_equal(rdb.run[1]['broken'], true)
     #PP.pp rdb.update{|x| r.if(x.attr?(:broken), $data[0], nil)}.run
-    update = rdb.update{|x| r.if(x.attr?(:broken), $data[0], x)}.run
-    assert_equal(update, {'errors' => 0, 'updated' => 10})
+    update = rdb.filter{r[:id].eq(0)}.update{$data[0]}.run
+    assert_equal(update, {'errors' => 0, 'updated' => 1})
+    update = rdb.update{|x| r.if(x.attr?(:broken), $data[1], x)}.run
+    assert_equal(update, {'errors' => 0, 'updated' => len})
     assert_equal(rdb.run, $data)
+
+    #DELETE
+    assert_equal(rdb.filter{r[:id] < 5}.delete.run['deleted'], 5)
+    assert_equal(rdb.run, $data[5..-1])
+    assert_equal(rdb.delete.run['deleted'], len-5)
+    assert_equal(rdb.run, [])
+
+    #INSERTSTREAM
+    assert_equal(rdb.insertstream(r.arraytostream r[$data]).run['inserted'], len)
+    assert_equal(rdb.run, $data)
+
+    #MUTATE -- need fix
+
+    #FOREACH, POINTDELETE
+    #PP.pp rdb.foreach{rdb.pointdelete(:id, r[:id])}.run
+    #PP.pp rdb.foreach{|x| rdb.foreach{|y| rdb.insert({:id => x[:id]*y[:id]})}}.run
+    # RETURN VALUE SHOULD CHANGE
+    rdb.foreach{|row| [rdb.pointdelete(:id, row[:id]), rdb.insert(row)]}.run
+    assert_equal(rdb.run, $data)
+    rdb.foreach{|row| rdb.pointdelete(:id, row[:id])}.run
+    assert_equal(rdb.run, [])
+
+    rdb.insert($data).run
+    #PP.pp rdb.pointupdate(:id, 0){|x| x}.query
+
+    #POINTMUTATE -- unimplemented
 
     assert_equal(rdb.run, $data)
   end
