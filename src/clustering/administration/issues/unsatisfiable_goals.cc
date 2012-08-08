@@ -18,12 +18,12 @@ cJSON *unsatisfiable_goals_issue_t::get_json_description() {
     json.type = "UNSATISFIABLE_GOALS";
     json.time = get_secs();
 
-    cJSON *res = render_as_json(&json, 0);
+    cJSON *res = render_as_json(&json);
 
-    cJSON_AddItemToObject(res, "namespace_id", render_as_json(&namespace_id, 0));
-    cJSON_AddItemToObject(res, "primary_datacenter", render_as_json(&primary_datacenter, 0));
-    cJSON_AddItemToObject(res, "replica_affinities", render_as_json(&replica_affinities, 0));
-    cJSON_AddItemToObject(res, "actual_machines_in_datacenters", render_as_json(&actual_machines_in_datacenters, 0));
+    cJSON_AddItemToObject(res, "namespace_id", render_as_json(&namespace_id));
+    cJSON_AddItemToObject(res, "primary_datacenter", render_as_json(&primary_datacenter));
+    cJSON_AddItemToObject(res, "replica_affinities", render_as_json(&replica_affinities));
+    cJSON_AddItemToObject(res, "actual_machines_in_datacenters", render_as_json(&actual_machines_in_datacenters));
 
     return res;
 }

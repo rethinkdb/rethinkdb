@@ -347,22 +347,24 @@ boost::shared_ptr<subfield_change_functor_t> json_ctx_adapter_with_inserter_t<co
 
 //JSON adapter for int
 template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(int *, const ctx_t &) {
-    return json_adapter_if_t::json_adapter_map_t();
+json_adapter_if_t::json_adapter_map_t get_json_subfields(int *target, const ctx_t &) {
+    return get_json_subfields(target);
 }
 
 template <class ctx_t>
 cJSON *render_as_json(int *target, const ctx_t &) {
-    return cJSON_CreateNumber(*target);
+    return render_as_json(target);
 }
 
 template <class ctx_t>
 void apply_json_to(cJSON *change, int *target, const ctx_t &) {
-    *target = get_int(change);
+    apply_json_to(change, target);
 }
 
 template <class ctx_t>
-void on_subfield_change(int *, const ctx_t &) { }
+void on_subfield_change(int *target, const ctx_t &) {
+    on_subfield_change(target);
+}
 
 //JSON adapter for char
 template <class ctx_t>

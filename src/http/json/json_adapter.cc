@@ -226,3 +226,18 @@ void apply_json_to(cJSON *change, uint64_t *target) {
 
 void on_subfield_change(uint64_t *) { }
 
+
+// ctx-less JSON adapter for int
+json_adapter_if_t::json_adapter_map_t get_json_subfields(int *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+
+cJSON *render_as_json(int *target) {
+    return cJSON_CreateNumber(*target);
+}
+
+void apply_json_to(cJSON *change, int *target) {
+    *target = get_int(change);
+}
+
+void on_subfield_change(int *) { }

@@ -424,6 +424,13 @@ void apply_json_to(cJSON *, int *, const ctx_t &);
 template <class ctx_t>
 void on_subfield_change(int *, const ctx_t &);
 
+// ctx-less JSON adapter for int
+json_adapter_if_t::json_adapter_map_t get_json_subfields(int *);
+cJSON *render_as_json(int *);
+void apply_json_to(cJSON *, int *);
+void on_subfield_change(int *);
+
+
 // ctx-less JSON adapter for time_t;
 json_adapter_if_t::json_adapter_map_t get_json_subfields(time_t *);
 cJSON *render_as_json(time_t *);
