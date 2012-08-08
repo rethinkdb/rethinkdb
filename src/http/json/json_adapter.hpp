@@ -309,8 +309,8 @@ private:
 
 /* Erase is a fairly rare function for an adapter to allow so we implement a
  * generic version of it. */
-template <class T, class ctx_t>
-void erase_json(T *, const ctx_t &) {
+template <class T>
+void erase_json(T *) {
 #ifndef NDEBUG
     throw permission_denied_exc_t("Can't erase this object.. by default"
             "json_adapters disallow deletion. if you'd like to be able to please"
@@ -321,6 +321,12 @@ void erase_json(T *, const ctx_t &) {
 }
 
 template <class T, class ctx_t>
+void erase_json(T *target, const ctx_t &) {
+    erase_json(target);
+}
+
+
+template <class T, class ctx_t>
 void with_ctx_erase_json(T *target, const ctx_t &ctx) {
     return erase_json(target, ctx);
 }
@@ -328,8 +334,8 @@ void with_ctx_erase_json(T *target, const ctx_t &ctx) {
 
 /* Reset is a fairly rare function for an adapter to allow so we implement a
  * generic version of it. */
-template <class T, class ctx_t>
-void reset_json(T *, const ctx_t &) {
+template <class T>
+void reset_json(T *) {
 #ifndef NDEBUG
     throw permission_denied_exc_t("Can't reset this object.. by default"
             "json_adapters disallow deletion. if you'd like to be able to please"
@@ -337,6 +343,11 @@ void reset_json(T *, const ctx_t &) {
 #else
     throw permission_denied_exc_t("Can't reset this object.");
 #endif
+}
+
+template <class T, class ctx_t>
+void reset_json(T *target, const ctx_t &) {
+    reset_json(target);
 }
 
 template <class T, class ctx_t>
@@ -414,6 +425,12 @@ void apply_json_to(cJSON *, bool *, const ctx_t &);
 template <class ctx_t>
 void on_subfield_change(bool *, const ctx_t &);
 
+// ctx-less JSON adapter for bool
+json_adapter_if_t::json_adapter_map_t get_json_subfields(bool *);
+cJSON *render_as_json(bool *);
+void apply_json_to(cJSON *, bool *);
+void on_subfield_change(bool *);
+
 //JSON adapter for uuid_t
 template <class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_t *, const ctx_t &);
@@ -426,6 +443,13 @@ void apply_json_to(cJSON *, uuid_t *, const ctx_t &);
 
 template <class ctx_t>
 void on_subfield_change(uuid_t *, const ctx_t &);
+
+// ctx-less JSON adapter for uuid_t
+json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_t *);
+cJSON *render_as_json(const uuid_t *);
+void apply_json_to(cJSON *, uuid_t *);
+void on_subfield_change(uuid_t *);
+
 
 namespace boost {
 
@@ -468,7 +492,12 @@ template <class ctx_t>
 void apply_json_to(cJSON *, std::string *, const ctx_t &);
 
 template <class ctx_t>
-void  on_subfield_change(std::string *, const ctx_t &);
+void on_subfield_change(std::string *, const ctx_t &);
+
+json_adapter_if_t::json_adapter_map_t get_json_subfields(std::string *);
+cJSON *render_as_json(std::string *);
+void apply_json_to(cJSON *, std::string *);
+void  on_subfield_change(std::string *);
 
 //JSON adapter for std::map
 template <class K, class V, class ctx_t>
@@ -482,6 +511,20 @@ void apply_json_to(cJSON *, std::map<K, V> *, const ctx_t &);
 
 template <class K, class V, class ctx_t>
 void on_subfield_change(std::map<K, V> *, const ctx_t &);
+
+// ctx-less JSON adapter for std::map
+template <class K, class V>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(std::map<K, V> *);
+
+template <class K, class V>
+cJSON *render_as_json(std::map<K, V> *);
+
+template <class K, class V>
+void apply_json_to(cJSON *, std::map<K, V> *);
+
+template <class K, class V>
+void on_subfield_change(std::map<K, V> *);
+
 
 //JSON adapter for std::set
 template <class V, class ctx_t>
@@ -526,6 +569,9 @@ void on_subfield_change(std::vector<V> *, const ctx_t &);
 //some convenience functions
 template <class T, class ctx_t>
 cJSON *render_as_directory(T *, const ctx_t &);
+
+template <class T>
+cJSON *render_as_directory(T *);
 
 template <class T, class ctx_t>
 void apply_as_directory(cJSON *change, T *, const ctx_t &);
