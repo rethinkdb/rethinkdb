@@ -287,6 +287,9 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 }
 
 template <class protocol_t>
+listener_t<protocol_t>::~listener_t() { }
+
+template <class protocol_t>
 signal_t *listener_t<protocol_t>::get_broadcaster_lost_signal() {
     return registrant->get_failed_signal();
 }
