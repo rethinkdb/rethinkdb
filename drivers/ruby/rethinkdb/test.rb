@@ -21,51 +21,11 @@ r.attrs('a').query ;p? :IMPLICIT_PICKATTRS
 #ARRAYNTH
 #ARRAYLENGTH
 
-r.subtract(1, 2).query ;p? :SUBTRACT
-r.expr(1).subtract(2).query ;p? :SUBTRACT
-(r.expr(1) - 2).query ;p? :SUBTRACT
-r.multiply(1, 2).query ;p? :MULTIPLY
-r.expr(1).multiply(2).query ;p? :MULTIPLY
-(r.expr(1) * 2).query ;p? :MULTIPLY
-r.divide(1, 2).query ;p? :DIVIDE
-r.expr(1).divide(2).query ;p? :DIVIDE
-(r.expr(1) / 2).query ;p? :DIVIDE
-r.modulo(1, 2).query ;p? :MODULO
-r.expr(1).modulo(2).query ;p? :MODULO
-(r.expr(1) % 2).query ;p? :MODULO
-
-r.ne(1, 2).query ;p? :COMPARE_NE
-r.expr(1).ne(2).query ;p? :COMPARE_NE
-r.neq(1, 2).query ;p? :COMPARE_NE
-r.expr(1).neq(2).query ;p? :COMPARE_NE
-
-r.le(1, 2).query ;p? :COMPARE_LE
-r.expr(1).le(2).query ;p? :COMPARE_LE
-(r.expr(1) <= 2).query ;p? :COMPARE_LE
-
-r.gt(1, 2).query ;p? :COMPARE_GT
-r.expr(1).gt(2).query ;p? :COMPARE_GT
-(r.expr(1) > 2).query ;p? :COMPARE_GT
-
-r.ge(1, 2).query ;p? :COMPARE_GE
-r.expr(1).ge(2).query ;p? :COMPARE_GE
-(r.expr(1) >= 2).query ;p? :COMPARE_GE
-
-r.table('','Welcome').concatmap { |row|
-  r.table('','Other').filter { |row2|
-    row[:id] > row2[:id]
-  }
-}.query ;p? :CONCATMAP
-
-r.distinct('a', 'b').query ;p? :DISTINCT
 r.limit(:$var).query ;p? :LIMIT
 r.length(:$var).query ;p? :LENGTH
 r.union(:$var1, :$var2).query ;p? :LENGTH
 r.nth(:$var1).query ;p? :LENGTH
 r.streamtoarray(r.table('','Welcome').all).query ;p? :STREAMTOARRAY
-
-r.table('','Welcome').reduce(1,'a','b'){r.var('a')+r.var('b')}.query ;p? :REDUCE
-r.table('','Welcome').reduce(0){|a,b| a+b[:size]}.query ;p? :REDUCE
 
 #GROUPEDMAPREDUCE -- how does this work?
 
@@ -202,9 +162,96 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.orderby([:id,true]).run, $welcome_data)
     assert_equal(rdb.orderby([:id,false]).run, $welcome_data.reverse)
     query = rdb.map{r[{:id => r[:id],:num => r[:id].mod(2)}]}.orderby(:num,['id',false])
-    want = $welcome_data.map {|o| o['id']}.sort_by{|n| (n%2)*$welcome_data.length - n}
+    want = $welcome_data.map{|o| o['id']}.sort_by{|n| (n%2)*$welcome_data.length - n}
     assert_equal(query.run.map{|o| o['id']}, want)
   end
+
+  def test_concatmap #CONCATMAP, DISTINCT, MULTIPLY
+    query = rdb.concatmap{|row| rdb.map{r[:id] * row[:id]}}.distinct
+    nums = $welcome_data.map{|o| o['id']}
+    want = nums.map{|n| nums.map{|m| n*m}}.flatten(1).uniq
+    assert_equal(query.run.sort, want.sort)
+  end
+
+  def test_ops #+,-,%,*,/,<,>,<=,>=
+    assert_equal((r[5] + 3).run, 8)
+    assert_equal((r[5].add(3)).run, 8)
+    assert_equal(r.add(5,3).run, 8)
+
+    assert_equal((r[5] - 3).run, 2)
+    assert_equal((r[5].sub(3)).run, 2)
+    assert_equal((r[5].subtract(3)).run, 2)
+    assert_equal(r.sub(5,3).run, 2)
+    assert_equal(r.subtract(5,3).run, 2)
+
+    assert_equal((r[5] % 3).run, 2)
+    assert_equal((r[5].mod(3)).run, 2)
+    assert_equal((r[5].modulo(3)).run, 2)
+    assert_equal(r.mod(5,3).run, 2)
+    assert_equal(r.modulo(5,3).run, 2)
+
+    assert_equal((r[5] * 3).run, 15)
+    assert_equal((r[5].mul(3)).run, 15)
+    assert_equal((r[5].multiply(3)).run, 15)
+    assert_equal(r.mul(5,3).run, 15)
+    assert_equal(r.multiply(5,3).run, 15)
+
+    assert_equal((r[15] / 3).run, 5)
+    assert_equal((r[15].div(3)).run, 5)
+    assert_equal((r[15].divide(3)).run, 5)
+    assert_equal(r.div(15,3).run, 5)
+    assert_equal(r.divide(15,3).run, 5)
+
+    assert_equal(r.lt(3,2).run,false)
+    assert_equal(r.lt(3,3).run,false)
+    assert_equal(r.lt(3,4).run,true)
+    assert_equal(r[3].lt(2).run,false)
+    assert_equal(r[3].lt(3).run,false)
+    assert_equal(r[3].lt(4).run,true)
+    assert_equal((r[3] < 2).run,false)
+    assert_equal((r[3] < 3).run,false)
+    assert_equal((r[3] < 4).run,true)
+
+    assert_equal(r.le(3,2).run,false)
+    assert_equal(r.le(3,3).run,true)
+    assert_equal(r.le(3,4).run,true)
+    assert_equal(r[3].le(2).run,false)
+    assert_equal(r[3].le(3).run,true)
+    assert_equal(r[3].le(4).run,true)
+    assert_equal((r[3] <= 2).run,false)
+    assert_equal((r[3] <= 3).run,true)
+    assert_equal((r[3] <= 4).run,true)
+
+    assert_equal(r.gt(3,2).run,true)
+    assert_equal(r.gt(3,3).run,false)
+    assert_equal(r.gt(3,4).run,false)
+    assert_equal(r[3].gt(2).run,true)
+    assert_equal(r[3].gt(3).run,false)
+    assert_equal(r[3].gt(4).run,false)
+    assert_equal((r[3] > 2).run,true)
+    assert_equal((r[3] > 3).run,false)
+    assert_equal((r[3] > 4).run,false)
+
+    assert_equal(r.ge(3,2).run,true)
+    assert_equal(r.ge(3,3).run,true)
+    assert_equal(r.ge(3,4).run,false)
+    assert_equal(r[3].ge(2).run,true)
+    assert_equal(r[3].ge(3).run,true)
+    assert_equal(r[3].ge(4).run,false)
+    assert_equal((r[3] >= 2).run,true)
+    assert_equal((r[3] >= 3).run,true)
+    assert_equal((r[3] >= 4).run,false)
+
+    assert_equal(r.eq(3,2).run, false)
+    assert_equal(r.eq(3,3).run, true)
+    assert_equal(r.equals(3,2).run, false)
+    assert_equal(r.equals(3,3).run, true)
+
+    assert_equal(r.ne(3,2).run, true)
+    assert_equal(r.ne(3,3).run, false)
+    assert_equal(r.not(r.equals(3,2)).run, true)
+    assert_equal(r.not(r.equals(3,3)).run, false)
+end
 end
 
 

@@ -19,7 +19,7 @@ module RethinkDB
         :if => :if_, :getbykey => :get_by_key, :groupedmapreduce => :grouped_map_reduce,
         :insertstream => :insert_stream, :foreach => :for_each, :orderby => :order_by,
         :pointupdate => :point_update, :pointdelete => :point_delete,
-        :pointmutate => :point_mutate,
+        :pointmutate => :point_mutate, :concatmap => :concat_map,
         :read => :read_query, :write => :write_query } end
     def trampolines; [:table, :map, :concatmap, :filter] end
     def repeats; [:insert, :foreach]; end
