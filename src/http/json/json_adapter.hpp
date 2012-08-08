@@ -253,7 +253,7 @@ private:
  *  created using this inserter. Thus rendering with a newly constructed
  *  inserter gives you an empty map.
  */
-template <class container_t, class ctx_t>
+template <class container_t>
 class json_map_inserter_t : public json_adapter_if_t {
     typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
     typedef boost::function<typename container_t::key_type()> gen_function_t;
@@ -261,7 +261,7 @@ class json_map_inserter_t : public json_adapter_if_t {
     typedef std::set<typename container_t::key_type> keys_set_t;
 
 public:
-    json_map_inserter_t(container_t *, gen_function_t, const ctx_t &ctx, value_t _initial_value = value_t());
+    json_map_inserter_t(container_t *, gen_function_t, value_t _initial_value = value_t());
 
 private:
     cJSON *render_impl();
@@ -275,7 +275,6 @@ private:
     gen_function_t generator;
     value_t initial_value;
     keys_set_t added_keys;
-    const ctx_t ctx;
 
     DISABLE_COPYING(json_map_inserter_t);
 };
@@ -311,13 +310,13 @@ private:
 /* This combines the inserter json adapter with the standard adapter for a map,
  * thus creating an adapter for a map with which we can do normal modifications
  * and insertions */
-template <class container_t, class ctx_t>
+template <class container_t>
 class json_adapter_with_inserter_t : public json_adapter_if_t {
     typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
     typedef boost::function<typename container_t::key_type()> gen_function_t;
     typedef typename container_t::mapped_type value_t;
 public:
-    json_adapter_with_inserter_t(container_t *, gen_function_t, const ctx_t &ctx, value_t _initial_value = value_t(), std::string _inserter_key = std::string("new"));
+    json_adapter_with_inserter_t(container_t *, gen_function_t, value_t _initial_value = value_t(), std::string _inserter_key = std::string("new"));
 private:
     json_adapter_map_t get_subfields_impl();
     cJSON *render_impl();
@@ -330,7 +329,6 @@ private:
     gen_function_t generator;
     value_t initial_value;
     std::string inserter_key;
-    const ctx_t ctx;
 
     DISABLE_COPYING(json_adapter_with_inserter_t);
 };
