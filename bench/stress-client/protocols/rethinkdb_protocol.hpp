@@ -17,6 +17,22 @@
 #define MAX_PROTOBUF_SIZE (1024*1024)
 #define RDB_TABLE_NAME "Welcome-rdb"
 #define PRIMARY_KEY_NAME "id"
+#define SECONDARY_KEY_NAME "val"
+
+#define prepare_point_delete_query(Q) generate_point_delete_query(Q, NULL, 0, PREPARE)
+#define finalize_point_delete_query(Q, K, KS) generate_point_delete_query(Q, K, KS, FINALIZE)
+#define prepare_point_update_query(Q) generate_point_update_query(Q, NULL, 0, NULL, 0, PREPARE)
+#define finalize_point_update_query(Q, K, KS, V, VS) generate_point_update_query(Q, K, KS, V, VS, FINALIZE)
+#define prepare_insert_query(Q) generate_insert_query(Q, NULL, 0, NULL, 0, PREPARE)
+#define finalize_insert_query(Q, K, KS, V, VS) generate_insert_query(Q, K, KS, V, VS, FINALIZE)
+#define prepare_batched_read_query(Q) generate_batched_read_query(Q, NULL, 0, PREPARE)
+#define finalize_batched_read_query(Q, K, KS) generate_batched_read_query(Q, K, KS, FINALIZE)
+#define prepare_read_query(Q) generate_read_query(Q, NULL, 0, PREPARE)
+#define finalize_read_query(Q, K, KS) generate_read_query(Q, K, KS, FINALIZE)
+#define prepare_range_read_query(Q) generate_range_read_query(Q, NULL, 0, NULL, 0, 0, PREPARE)
+#define finalize_range_read_query(Q, A, AS, B, BS, C) generate_range_read_query(Q, A, AS, B, BS, C, FINALIZE)
+#define prepare_stop_query(Q) generate_stop_query(Q, PREPARE)
+#define finalize_stop_query(Q) generate_stop_query(Q, FINALIZE)
 
 struct rethinkdb_protocol_t : protocol_t {
     rethinkdb_protocol_t(const char *conn_str) : token_index(0), sockfd(-1), queued_read(-1) {
@@ -64,15 +80,31 @@ struct rethinkdb_protocol_t : protocol_t {
         FD_ZERO(&readfds);
         FD_SET(sockfd, &readfds);
 
+        // set up base protocol buffers
+        response = new Response;
+        stop_response = new Response;
+        base_point_delete_query = new Query;
+        prepare_point_delete_query(base_point_delete_query);
+        base_point_update_query = new Query;
+        prepare_point_update_query(base_point_update_query);
+        base_insert_query = new Query;
+        prepare_insert_query(base_insert_query);
+        base_batched_read_query = new Query;
+        prepare_batched_read_query(base_batched_read_query);
+        base_read_query = new Query;
+        prepare_read_query(base_read_query);
+        base_range_read_query = new Query;
+        prepare_range_read_query(base_range_read_query);
+        base_stop_query = new Query;
+        prepare_stop_query(base_stop_query);
+
         // wait until started up (by inserting until one is successful)
         bool success = false;
         do {
-            Query *query = new Query;
-            generate_insert_query(query, "0", 1, "0", 1);
+            finalize_insert_query(base_insert_query, "0", 1, "0", 1);
 
-            send_query(query);
+            send_query(base_insert_query);
 
-            Response *response = new Response;
             get_response(response);
             success = response->status_code() == Response::SUCCESS_JSON;
         } while (!success);
@@ -94,17 +126,15 @@ struct rethinkdb_protocol_t : protocol_t {
         assert(!exist_outstanding_pipeline_reads());
 
         // generate query
-        Query *query = new Query;
-        generate_point_delete_query(query, key, key_size);
+        finalize_point_delete_query(base_point_delete_query, key, key_size);
 
-        send_query(query);
+        send_query(base_point_delete_query);
 
         // get response
-        Response *response = new Response;
         get_response(response);
 
-        if (response->token() != query->token()) {
-            fprintf(stderr, "Delete response token %ld did not match query token %ld.\n", response->token(), query->token());
+        if (response->token() != base_point_delete_query->token()) {
+            fprintf(stderr, "Delete response token %ld did not match query token %ld.\n", response->token(), base_point_delete_query->token());
             throw protocol_error_t("Delete response token mismatch.");
         }
 
@@ -119,23 +149,15 @@ struct rethinkdb_protocol_t : protocol_t {
         assert(!exist_outstanding_pipeline_reads());
 
         // generate query
-        Query *query = new Query;
-        Mapping *mapping = new Mapping;
-        mapping->set_arg("row"); // unused
-        Term *body = mapping->mutable_body();
-        body->set_type(Term::JSON);
-        std::string json_update = std::string("{\"") + std::string(PRIMARY_KEY_NAME) + std::string("\" : \"") + std::string(key, key_size) + std::string("\", \"val\" : \"") + std::string(value, value_size) + std::string("\"}");
-        body->set_jsonstring(json_update);
-        generate_point_update_query(query, key, key_size, value, value_size, *mapping);
+        finalize_point_update_query(base_point_update_query, key, key_size, value, value_size);
 
-        send_query(query);
+        send_query(base_point_update_query);
 
         // get response
-        Response *response = new Response;
         get_response(response);
 
-        if (response->token() != query->token()) {
-            fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), query->token());
+        if (response->token() != base_point_update_query->token()) {
+            fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), base_point_update_query->token());
             throw protocol_error_t("Update response token mismatch.");
         }
 
@@ -150,17 +172,15 @@ struct rethinkdb_protocol_t : protocol_t {
         assert(!exist_outstanding_pipeline_reads());
 
         // generate query
-        Query *query = new Query;
-        generate_insert_query(query, key, key_size, value, value_size);
+        finalize_insert_query(base_insert_query, key, key_size, value, value_size);
 
-        send_query(query);
+        send_query(base_insert_query);
 
         // get response
-        Response *response = new Response;
         get_response(response);
 
-        if (response->token() != query->token()) {
-            fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), query->token());
+        if (response->token() != base_insert_query->token()) {
+            fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), base_insert_query->token());
             throw protocol_error_t("Insert response token mismatch.");
         }
 
@@ -173,16 +193,14 @@ struct rethinkdb_protocol_t : protocol_t {
     virtual void read(payload_t *keys, int count, payload_t *values = NULL) {
         assert(!exist_outstanding_pipeline_reads());
 
-        Query *query = new Query;
-        generate_batched_read_query(query, keys, count);
+        finalize_batched_read_query(base_batched_read_query, keys, count);
 
-        send_query(query);
+        send_query(base_batched_read_query);
 
-        Response *response = new Response;
         get_response(response);
 
-        if (response->token() != query->token()) {
-            fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), query->token());
+        if (response->token() != base_batched_read_query->token()) {
+            fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), base_batched_read_query->token());
             throw protocol_error_t("Read response token mismatch.");
         }
 
@@ -207,19 +225,17 @@ struct rethinkdb_protocol_t : protocol_t {
     virtual void enqueue_read(payload_t *keys, int count, payload_t *values = NULL) {
         assert(!exist_outstanding_pipeline_reads());
 
-        Query *query = new Query;
-        generate_batched_read_query(query, keys, count);
+        generate_batched_read_query(base_batched_read_query, keys, count);
 
-        send_query(query);
+        send_query(base_batched_read_query);
 
-        queued_read = query->token();
+        queued_read = base_batched_read_query->token();
     }
 
     // returns whether all the reads were completed
     virtual bool dequeue_read_maybe(payload_t *keys, int count, payload_t *values = NULL) { 
         bool done = true;
 
-        Response *response = new Response;
         bool received = get_response_maybe(response);
         if (!received) {
             done = false;
@@ -252,7 +268,6 @@ struct rethinkdb_protocol_t : protocol_t {
     }
 
     virtual void dequeue_read(payload_t *keys, int count, payload_t *values = NULL) {
-        Response *response = new Response;
         get_response(response);
 
         if (response->token() != queued_read) {
@@ -284,29 +299,25 @@ struct rethinkdb_protocol_t : protocol_t {
         assert(!exist_outstanding_pipeline_reads());
 
         // generate query
-        Query *query = new Query;
-        generate_range_read_query(query, lkey, lkey_size, rkey, rkey_size, count_limit);
+        finalize_range_read_query(base_range_read_query, lkey, lkey_size, rkey, rkey_size, count_limit);
 
-        send_query(query);
+        send_query(base_range_read_query);
 
         // get response
-        Response *response = new Response;
         get_response(response);
-        if (response->token() != query->token()) {
-            fprintf(stderr, "Range read response token %ld did not match query token %ld.\n", response->token(), query->token());
+        if (response->token() != base_range_read_query->token()) {
+            fprintf(stderr, "Range read response token %ld did not match query token %ld.\n", response->token(), base_range_read_query->token());
             throw protocol_error_t("Range read response token mismatch.");
         }
 
         if (response->status_code() == Response::SUCCESS_PARTIAL) {
-            Query *stop_query = new Query;
-            generate_stop_query(stop_query);
-            send_query(stop_query, query->token());
+            finalize_stop_query(base_stop_query);
+            send_query(base_stop_query, base_range_read_query->token());
 
-            Response *stop_response = new Response;
             get_response(stop_response);
 
-            if (stop_response->token() != stop_query->token()) {
-                fprintf(stderr, "Stop response token %ld did not match query token %ld.\n", stop_response->token(), stop_query->token());
+            if (stop_response->token() != base_stop_query->token()) {
+                fprintf(stderr, "Stop response token %ld did not match query token %ld.\n", stop_response->token(), base_stop_query->token());
                 throw protocol_error_t("Stop response token mismatch.");
             }
 
@@ -342,116 +353,180 @@ struct rethinkdb_protocol_t : protocol_t {
     }
 
 private:
-    void generate_stop_query(Query *query) {
-        query->set_type(Query::STOP);
-    }
+    /* There are three kinds of methods for generating queries. The most intuitive kind is
+    the "generate" kind. It takes a blank query and fills in all the information necessary to create
+    the desired query. However, this can be slow, as the query must be generated from scratch each
+    time. The stress client holds "base" queries, which are partially formed queries. Each time
+    a new query must be sent, only a minimal number of fields are filled in before sending. The
+    base queries can be prepared using the "prepare" methods and then before being sent off,
+    the "finalize" methods can be used to fill in the important information. The combination of
+    "prepare" and "finalize" should do the same thing as a single call to "generate". */
 
-    void generate_point_delete_query(Query *query, const char *key, size_t key_size) {
-        query->set_type(Query::WRITE);
-        WriteQuery *write_query = query->mutable_write_query();
-        write_query->set_type(WriteQuery::POINTDELETE);
-        WriteQuery::PointDelete *point_delete = write_query->mutable_point_delete();
-        TableRef *table_ref = point_delete->mutable_table_ref();
-        table_ref->set_table_name(RDB_TABLE_NAME);
-        point_delete->set_attrname(PRIMARY_KEY_NAME);
-        Term *term_key = point_delete->mutable_key();
-        term_key->set_type(Term::STRING);
-        term_key->set_valuestring(std::string(key, key_size));
+    enum query_build_options_t {
+        GENERATE = 0,
+        PREPARE = 1,
+        FINALIZE = 2
+    };
+
+    void generate_point_delete_query(Query *query, const char *key, size_t key_size, int option = GENERATE) {
+        if (option == PREPARE || option == GENERATE) {
+            query->set_type(Query::WRITE);
+            WriteQuery *write_query = query->mutable_write_query();
+            write_query->set_type(WriteQuery::POINTDELETE);
+            WriteQuery::PointDelete *point_delete = write_query->mutable_point_delete();
+            TableRef *table_ref = point_delete->mutable_table_ref();
+            table_ref->set_table_name(RDB_TABLE_NAME);
+            point_delete->set_attrname(PRIMARY_KEY_NAME);
+        }
+        if (option == FINALIZE || option == GENERATE) {
+            Term *term_key = query->mutable_write_query()->mutable_point_delete()->mutable_key();
+            term_key->set_type(Term::STRING);
+            term_key->set_valuestring(std::string(key, key_size));
+        }
     }
 
     void generate_point_update_query(Query *query, const char *key, size_t key_size,
-                                                   const char *value, size_t value_size, const Mapping &input_mapping) {
-        query->set_type(Query::WRITE);
-        WriteQuery *write_query = query->mutable_write_query();
-        write_query->set_type(WriteQuery::POINTUPDATE);
-        WriteQuery::PointUpdate *point_update = write_query->mutable_point_update();
-        TableRef *table_ref = point_update->mutable_table_ref();
-        table_ref->set_table_name(RDB_TABLE_NAME);
-        point_update->set_attrname(PRIMARY_KEY_NAME);
-        Term *term_key = point_update->mutable_key();
-        term_key->set_type(Term::STRING);
-        term_key->set_valuestring(std::string(key, key_size));
-        Mapping *mapping = point_update->mutable_mapping();
-        *mapping = input_mapping;
+                                                   const char *value, size_t value_size, int option = GENERATE) {
+        if (option == PREPARE || option == GENERATE) {
+            query->set_type(Query::WRITE);
+            WriteQuery *write_query = query->mutable_write_query();
+            write_query->set_type(WriteQuery::POINTUPDATE);
+            WriteQuery::PointUpdate *point_update = write_query->mutable_point_update();
+            TableRef *table_ref = point_update->mutable_table_ref();
+            table_ref->set_table_name(RDB_TABLE_NAME);
+            point_update->set_attrname(PRIMARY_KEY_NAME);
+            Term *term_key = point_update->mutable_key();
+            term_key->set_type(Term::STRING);
+            Mapping *mapping = point_update->mutable_mapping();
+            mapping->set_arg("row"); // unused
+            Term *body = mapping->mutable_body();
+            body->set_type(Term::OBJECT);
+            VarTermTuple *object_key = body->add_object();
+            object_key->set_var(PRIMARY_KEY_NAME);
+            Term *key_term = object_key->mutable_term();
+            key_term->set_type(Term::STRING);
+            VarTermTuple *object_value = body->add_object();
+            object_value->set_var(SECONDARY_KEY_NAME);
+            Term *object_term = object_value->mutable_term();
+            object_term->set_type(Term::STRING);
+        }
+        if (option == FINALIZE || option == GENERATE) {
+            Term *term_key = query->mutable_write_query()->mutable_point_update()->mutable_key();
+            term_key->set_valuestring(std::string(key, key_size));
+            Term *key_term = query->mutable_write_query()->mutable_point_update()->mutable_mapping()->mutable_body()->mutable_object(0)->mutable_term();
+            key_term->set_valuestring(std::string(key, key_size));
+            Term *object_term = query->mutable_write_query()->mutable_point_update()->mutable_mapping()->mutable_body()->mutable_object(1)->mutable_term();
+            object_term->set_valuestring(std::string(value, value_size));
+        }
     }
 
     void generate_insert_query(Query *query, const char *key, size_t key_size,
-                                             const char *value, size_t value_size) {
-        query->set_type(Query::WRITE);
-        WriteQuery *write_query = query->mutable_write_query();
-        write_query->set_type(WriteQuery::INSERT);
-        WriteQuery::Insert *insert = write_query->mutable_insert();
-        TableRef *table_ref = insert->mutable_table_ref();
-        table_ref->set_table_name(RDB_TABLE_NAME);
-        Term *term = insert->add_terms();
-        term->set_type(Term::OBJECT);
-        VarTermTuple *object_key = term->add_object();
-        object_key->set_var("id");
-        Term *key_term = object_key->mutable_term();
-        key_term->set_type(Term::STRING);
-        key_term->set_valuestring(std::string(key, key_size));
-        VarTermTuple *object_value = term->add_object();
-        object_value->set_var("val");
-        Term *object_term = object_value->mutable_term();
-        object_term->set_type(Term::STRING);
-        object_term->set_valuestring(std::string(value, value_size));
+                                             const char *value, size_t value_size, int option = GENERATE) {
+        if (option == PREPARE || option == GENERATE) {
+            query->set_type(Query::WRITE);
+            WriteQuery *write_query = query->mutable_write_query();
+            write_query->set_type(WriteQuery::INSERT);
+            WriteQuery::Insert *insert = write_query->mutable_insert();
+            TableRef *table_ref = insert->mutable_table_ref();
+            table_ref->set_table_name(RDB_TABLE_NAME);
+            Term *term = insert->add_terms();
+            term->set_type(Term::OBJECT);
+            VarTermTuple *object_key = term->add_object();
+            object_key->set_var(PRIMARY_KEY_NAME);
+            Term *key_term = object_key->mutable_term();
+            key_term->set_type(Term::STRING);
+            VarTermTuple *object_value = term->add_object();
+            object_value->set_var(SECONDARY_KEY_NAME);
+            Term *object_term = object_value->mutable_term();
+            object_term->set_type(Term::STRING);
+        }
+        if (option == FINALIZE || option == GENERATE) {
+            Term *key_term = query->mutable_write_query()->mutable_insert()->mutable_terms(0)->mutable_object(0)->mutable_term();
+            key_term->set_valuestring(std::string(key, key_size));
+            Term *object_term = query->mutable_write_query()->mutable_insert()->mutable_terms(0)->mutable_object(1)->mutable_term();
+            object_term->set_valuestring(std::string(value, value_size));
+        }
     }
 
-    void generate_batched_read_query(Query *query, payload_t *keys, int count) {
-        query->set_type(Query::READ);
-        ReadQuery *read_query = query->mutable_read_query();
-        Term *term = read_query->mutable_term();
-        term->set_type(Term::ARRAY);
-        for (int i = 0; i < count; i++) {
-            Term *array_term = term->add_array();
-            array_term->set_type(Term::GETBYKEY);
-            Term::GetByKey *get_by_key = array_term->mutable_get_by_key();
+    void generate_batched_read_query(Query *query, payload_t *keys, int count, int option = GENERATE) {
+        if (option == PREPARE || option == GENERATE) {
+            query->set_type(Query::READ);
+            ReadQuery *read_query = query->mutable_read_query();
+            Term *term = read_query->mutable_term();
+            term->set_type(Term::ARRAY);
+        }
+        if (option == FINALIZE || option == GENERATE) {
+            Term *term = query->mutable_read_query()->mutable_term();
+            term->clear_array();
+            for (int i = 0; i < count; i++) {
+                Term *array_term = term->add_array();
+                array_term->set_type(Term::GETBYKEY);
+                Term::GetByKey *get_by_key = array_term->mutable_get_by_key();
+                TableRef *table_ref = get_by_key->mutable_table_ref();
+                table_ref->set_table_name(RDB_TABLE_NAME);
+                get_by_key->set_attrname(PRIMARY_KEY_NAME);
+                Term *term_key = get_by_key->mutable_key();
+                term_key->set_type(Term::STRING);
+                term_key->set_valuestring(std::string(keys[i].first, keys[i].second));
+            }
+        }
+    }
+
+    void generate_read_query(Query *query, const char *key, size_t key_size, int option = GENERATE) {
+        if (option == PREPARE || option == GENERATE) {
+            query->set_type(Query::READ);
+            ReadQuery *read_query = query->mutable_read_query();
+            Term *term = read_query->mutable_term();
+            term->set_type(Term::GETBYKEY);
+            Term::GetByKey *get_by_key = term->mutable_get_by_key();
             TableRef *table_ref = get_by_key->mutable_table_ref();
             table_ref->set_table_name(RDB_TABLE_NAME);
             get_by_key->set_attrname(PRIMARY_KEY_NAME);
             Term *term_key = get_by_key->mutable_key();
             term_key->set_type(Term::STRING);
-            term_key->set_valuestring(std::string(keys[i].first, keys[i].second));
+        }
+        if (option == FINALIZE || option == GENERATE) {
+            Term *term_key = query->mutable_read_query()->mutable_term()->mutable_get_by_key()->mutable_key();
+            term_key->set_valuestring(std::string(key, key_size));
         }
     }
 
-    void generate_read_query(Query *query, const char *key, size_t key_size) {
-        query->set_type(Query::READ);
-        ReadQuery *read_query = query->mutable_read_query();
-        Term *term = read_query->mutable_term();
-        term->set_type(Term::GETBYKEY);
-        Term::GetByKey *get_by_key = term->mutable_get_by_key();
-        TableRef *table_ref = get_by_key->mutable_table_ref();
-        table_ref->set_table_name(RDB_TABLE_NAME);
-        get_by_key->set_attrname(PRIMARY_KEY_NAME);
-        Term *term_key = get_by_key->mutable_key();
-        term_key->set_type(Term::STRING);
-        term_key->set_valuestring(std::string(key, key_size));
+    void generate_range_read_query(Query *query, char *lkey, size_t lkey_size,
+                                                 char *rkey, size_t rkey_size, int count_limit, int option = GENERATE) {
+        if (option == PREPARE || option == GENERATE) {
+            query->set_type(Query::READ);
+            ReadQuery *read_query = query->mutable_read_query();
+            Term *term = read_query->mutable_term();
+            term->set_type(Term::CALL);
+            Term::Call *call = term->mutable_call();
+            Builtin *builtin = call->mutable_builtin();
+            builtin->set_type(Builtin::RANGE);
+            Builtin::Range *range = builtin->mutable_range();
+            range->set_attrname(PRIMARY_KEY_NAME);
+            Term *lowerbound = range->mutable_lowerbound();
+            lowerbound->set_type(Term::STRING);
+            Term *upperbound = range->mutable_upperbound();
+            upperbound->set_type(Term::STRING);
+            Term *args = call->add_args();
+            args->set_type(Term::TABLE);
+            Term::Table *table = args->mutable_table();
+            TableRef *table_ref = table->mutable_table_ref();
+            table_ref->set_table_name(RDB_TABLE_NAME);
+        }
+        if (option == FINALIZE || option == GENERATE) {
+            Term *lowerbound = query->mutable_read_query()->mutable_term()->mutable_call()->mutable_builtin()->mutable_range()->mutable_lowerbound();
+            lowerbound->set_valuestring(std::string(lkey, lkey_size));
+            Term *upperbound = query->mutable_read_query()->mutable_term()->mutable_call()->mutable_builtin()->mutable_range()->mutable_upperbound();
+            upperbound->set_valuestring(std::string(rkey, rkey_size));
+            ReadQuery *read_query = query->mutable_read_query();
+            read_query->set_max_chunk_size(count_limit);
+        }
     }
 
-    void generate_range_read_query(Query *query, char *lkey, size_t lkey_size,
-                                                 char *rkey, size_t rkey_size, int count_limit) {
-        query->set_type(Query::READ);
-        ReadQuery *read_query = query->mutable_read_query();
-        Term *term = read_query->mutable_term();
-        term->set_type(Term::CALL);
-        Term::Call *call = term->mutable_call();
-        Builtin *builtin = call->mutable_builtin();
-        builtin->set_type(Builtin::RANGE);
-        Builtin::Range *range = builtin->mutable_range();
-        range->set_attrname(PRIMARY_KEY_NAME);
-        Term *lowerbound = range->mutable_lowerbound();
-        lowerbound->set_type(Term::STRING);
-        lowerbound->set_valuestring(std::string(lkey, lkey_size));
-        Term *upperbound = range->mutable_upperbound();
-        upperbound->set_type(Term::STRING);
-        upperbound->set_valuestring(std::string(rkey, rkey_size));
-        Term *args = call->add_args();
-        args->set_type(Term::TABLE);
-        Term::Table *table = args->mutable_table();
-        TableRef *table_ref = table->mutable_table_ref();
-        table_ref->set_table_name(RDB_TABLE_NAME);
-        read_query->set_max_chunk_size(count_limit);
+    void generate_stop_query(Query *query, int option = GENERATE) {
+        if (option == PREPARE || option == GENERATE) {
+            query->set_type(Query::STOP);
+        }
     }
 
     // Returns true if there is something to be read
@@ -567,6 +642,17 @@ private:
     int64_t queued_read; // used for enqueue/dequeue read (stores a token number)
     fd_set readfds;
     char buffer[MAX_PROTOBUF_SIZE];
+
+    // the following are used to lower the extra time used to create each query before sending
+    Response *response;
+    Response *stop_response;
+    Query *base_point_delete_query;
+    Query *base_point_update_query;
+    Query *base_insert_query;
+    Query *base_batched_read_query;
+    Query *base_read_query;
+    Query *base_range_read_query;
+    Query *base_stop_query;
 } ;
 
 #endif // __STRESS_CLIENT_PROTOCOLS_RETHINKDB_PROTOCOL_HPP__
