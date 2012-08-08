@@ -86,6 +86,10 @@ struct sqlite_mirror_verify_op_t : public op_t {
             values.push_back(value);
         }
 
+        if (keys.size() == 0) {
+            return;
+        }
+
         ticks_t start_time = get_ticks();
         proto->read(&keys[0], (int) keys.size(), &values[0]);
         ticks_t end_time = get_ticks();
