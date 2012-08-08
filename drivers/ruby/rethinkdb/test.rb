@@ -34,9 +34,6 @@ r.modulo(1, 2).query ;p? :MODULO
 r.expr(1).modulo(2).query ;p? :MODULO
 (r.expr(1) % 2).query ;p? :MODULO
 
-r.eq(1, 2).query ;p? :COMPARE_EQ
-r.equals(1, 2).query ;p? :COMPARE_EQ
-
 r.ne(1, 2).query ;p? :COMPARE_NE
 r.expr(1).ne(2).query ;p? :COMPARE_NE
 r.neq(1, 2).query ;p? :COMPARE_NE
@@ -59,11 +56,6 @@ r.table('','Welcome').concatmap { |row|
     row[:id] > row2[:id]
   }
 }.query ;p? :CONCATMAP
-
-r.table('','Welcome').orderby([:name], :age).query ;p? :ORDERBY
-r.table('','Welcome').orderby('name', 'age').query ;p? :ORDERBY
-r.table('','Welcome').orderby([:name, false], :age).query ;p? :ORDERBY
-r.table('','Welcome').orderby('name', ['age', false]).query ;p? :ORDERBY
 
 r.distinct('a', 'b').query ;p? :DISTINCT
 r.limit(:$var).query ;p? :LIMIT
@@ -195,9 +187,23 @@ class ClientTest < Test::Unit::TestCase
     query_2345 = rdb.filter{|row| r.and r[:id] >= 2,row[:id] <= 5}
     query_234 = query_2345.filter{r[:num].neq(5)}
     query_23 = query_234.filter{|row| r.any row[:num].eq(2),row[:num].equals(3)}
+    query_23_alt =
+      query_234.filter{|row| r.any((r.eq(row[:num],2)),(r.equals(row[:num],3)))}
     assert_equal(query_2345.run, $welcome_data[2..5])
     assert_equal(query_234.run, $welcome_data[2..4])
     assert_equal(query_23.run, $welcome_data[2..3])
+    assert_equal(query_23_alt.run, $welcome_data[2..3])
+  end
+
+  def test_orderby #ORDERBY, MAP
+    assert_equal(rdb.orderby(:id).run, $welcome_data)
+    assert_equal(rdb.orderby('id').run, $welcome_data)
+    assert_equal(rdb.orderby([:id]).run, $welcome_data)
+    assert_equal(rdb.orderby([:id,true]).run, $welcome_data)
+    assert_equal(rdb.orderby([:id,false]).run, $welcome_data.reverse)
+    query = rdb.map{r[{:id => r[:id],:num => r[:id].mod(2)}]}.orderby(:num,['id',false])
+    want = $welcome_data.map {|o| o['id']}.sort_by{|n| (n%2)*$welcome_data.length - n}
+    assert_equal(query.run.map{|o| o['id']}, want)
   end
 end
 
