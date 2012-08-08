@@ -64,7 +64,19 @@ module RethinkDB
     # will still be added to the new row.
     def update; with_var {|vname,v| S._ [:update, @body, [vname, yield(v)]]}; end
 
-    #TODO: start_inclusive, end_inclusive in python -- what do these do?
+    # TODO: start_inclusive, end_inclusive in python -- what do these do?
+    # Construct a query which yields all rows of the invoking query with keys
+    # between <b>+start_key+</b> and <b>+end_key+</b> (inclusive).  You may also
+    # optionally specify the name of the attribute to use as your key
+    # (<b>+keyname+</b>), but note that your table must be indexed by that
+    # attribute.  Either <b>+start_key+</b> and <b>+end_key+</b> may be nil, in
+    # which case that side of the range is unbounded.  For example, if we have a
+    # table <b>+table+</b>, these are equivalent:
+    #   table.between(3,7)
+    #   table.filter{|row| (row[:id] >= 3) & (row[:id] <= 7)}
+    # as are these:
+    #   table.between(nil,7,:index)
+    #   table.filter{|row| row[:index] <= y}
     def between(start_key, end_key, keyname=:id)
       opts = {:attrname => keyname}
       opts[:lowerbound] = start_key if start_key != nil
