@@ -530,40 +530,6 @@ template <class K, class V>
 void on_subfield_change(std::map<K, V> *) { }
 
 
-//JSON adapter for std::set
-template <class V, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(std::set<V> *, const ctx_t &) {
-    return json_adapter_if_t::json_adapter_map_t();
-}
-
-template <class V, class ctx_t>
-cJSON *render_as_json(std::set<V> *target, const ctx_t &ctx) {
-    cJSON *res = cJSON_CreateArray();
-
-    for (typename std::set<V>::const_iterator it = target->begin(); it != target->end(); ++it) {
-        V tmp = *it;
-        cJSON_AddItemToArray(res, render_as_json(&tmp, ctx));
-    }
-    return res;
-}
-
-template <class V, class ctx_t>
-void apply_json_to(cJSON *change, std::set<V> *target, const ctx_t &ctx) {
-    std::set<V> res;
-    json_array_iterator_t it = get_array_it(change);
-    cJSON *val;
-    while ((val = it.next())) {
-        V v;
-        apply_json_to(val, &v, ctx);
-        res.insert(v);
-    }
-
-    *target = res;
-}
-
-template <class V, class ctx_t>
-void on_subfield_change(std::set<V> *, const ctx_t &) { }
-
 // ctx-less JSON adapter for std::set
 template <class V>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(std::set<V> *) {
