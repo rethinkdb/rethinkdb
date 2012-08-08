@@ -80,7 +80,7 @@ cJSON *json_vclock_resolver_t<T, ctx_t>::render_impl() {
 template <class T, class ctx_t>
 void json_vclock_resolver_t<T, ctx_t>::apply_impl(cJSON *change) {
     T new_value;
-    apply_json_to(change, &new_value, ctx_);
+    apply_json_to(change, &new_value);
 
     *target_ = target_->make_resolving_version(new_value, ctx_.us);
 }

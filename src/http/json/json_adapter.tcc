@@ -345,27 +345,6 @@ boost::shared_ptr<subfield_change_functor_t> json_ctx_adapter_with_inserter_t<co
  * prominent types, these could in theory be relocated to a different file if
  * need be */
 
-//JSON adapter for int
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(int *target, const ctx_t &) {
-    return get_json_subfields(target);
-}
-
-template <class ctx_t>
-cJSON *render_as_json(int *target, const ctx_t &) {
-    return render_as_json(target);
-}
-
-template <class ctx_t>
-void apply_json_to(cJSON *change, int *target, const ctx_t &) {
-    apply_json_to(change, target);
-}
-
-template <class ctx_t>
-void on_subfield_change(int *target, const ctx_t &) {
-    on_subfield_change(target);
-}
-
 //JSON adapter for char
 template <class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(char *, const ctx_t &) {
