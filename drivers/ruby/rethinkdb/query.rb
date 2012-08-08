@@ -61,7 +61,7 @@ module RethinkDB
   module RQL_Mixin
     def getattr a; S.new [:call, [:implicit_getattr, a], []]; end
     def pickattrs *a; S.new [:call, [:implicit_pickattrs, *a], []]; end
-    def hasattr? a; S.new [:call, [:implicit_hasattr, a], []]; end
+    def hasattr a; S.new [:call, [:implicit_hasattr, a], []]; end
     def [](ind); expr ind; end
     def db x; Tbl.new x; end
     def expr x

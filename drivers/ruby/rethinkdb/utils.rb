@@ -33,7 +33,11 @@ module RethinkDB
 
   module P_Mixin #Protobuf Utils
     def enum_type(_class, _type); _class.values[_type.to_s.upcase.to_sym]; end
-    def message_field(_class, _type); _class.fields.select{|x,y| y.name == _type}[0]; end
+    def message_field(_class, _type); _class.fields.select{|x,y|
+        y.instance_eval{@name} == _type
+        #TODO: why did the bottom one stop working?
+        #y.name == _type
+      }[0]; end
     def message_set(message, key, val); message.send((key.to_s+'=').to_sym, val); end
   end
   module P; extend P_Mixin; end

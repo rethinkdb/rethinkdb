@@ -9,13 +9,6 @@ r.javascript('javascript').query ;p? :JAVASCRIPT
 ################################################################################
 #                                 BUILTIN TESTS                                #
 ################################################################################
-r.not(true).query ;p? :NOT
-r.expr(true).not.query ;p? :NOT
-
-r.var('v').hasattr('a').query ;p? :HASATTR
-r.var('v').attr?('a').query ;p? :HASATTR
-r.attr?('a').query ;p? :IMPLICIT_HASATTR
-
 r.var('v').pickattrs('a').query ;p? :PICKATTRS
 r.var('v').attrs('a').query ;p? :PICKATTRS
 r.attrs('a').query ;p? :IMPLICIT_PICKATTRS
@@ -42,18 +35,12 @@ r.expr(1).modulo(2).query ;p? :MODULO
 (r.expr(1) % 2).query ;p? :MODULO
 
 r.eq(1, 2).query ;p? :COMPARE_EQ
-r.expr(1).eq(2).query ;p? :COMPARE_EQ
 r.equals(1, 2).query ;p? :COMPARE_EQ
-r.expr(1).equals(2).query ;p? :COMPARE_EQ
 
 r.ne(1, 2).query ;p? :COMPARE_NE
 r.expr(1).ne(2).query ;p? :COMPARE_NE
 r.neq(1, 2).query ;p? :COMPARE_NE
 r.expr(1).neq(2).query ;p? :COMPARE_NE
-
-r.lt(1, 2).query ;p? :COMPARE_LT
-r.expr(1).lt(2).query ;p? :COMPARE_LT
-(r.expr(1) < 2).query ;p? :COMPARE_LT
 
 r.le(1, 2).query ;p? :COMPARE_LE
 r.expr(1).le(2).query ;p? :COMPARE_LE
@@ -67,8 +54,6 @@ r.ge(1, 2).query ;p? :COMPARE_GE
 r.expr(1).ge(2).query ;p? :COMPARE_GE
 (r.expr(1) >= 2).query ;p? :COMPARE_GE
 
-r.table('','Welcome').filter { |row| row[:id].eq(1) }.query ;p? :FILTER
-r.table('','Welcome').map { |row| row}.query ;p? :MAP
 r.table('','Welcome').concatmap { |row|
   r.table('','Other').filter { |row2|
     row[:id] > row2[:id]
@@ -92,11 +77,9 @@ r.table('','Welcome').reduce(0){|a,b| a+b[:size]}.query ;p? :REDUCE
 
 #GROUPEDMAPREDUCE -- how does this work?
 
-r.any(true, true, false).query ;p? :ANY
 r.or(true, true, false).query ;p? :ANY
 r.expr(true).or(false).query ;p? :ANY
 r.all(true, true, false).query ;p? :ALL
-r.and(true, true, false).query ;p? :ALL
 r.expr(true).and(false).query ;p? :ALL
 
 r.table('','Welcome').range('id', 1, 2).query ;p? :RANGE
@@ -148,6 +131,7 @@ r.db('').Welcome.pointmutate(:address, 'Bob'){|addr| nil}.query ;p? :POINTMUTATE
 require 'test/unit'
 class ClientTest < Test::Unit::TestCase
   def r; RethinkDB::RQL; end
+  def rdb; r.db('').Welcome; end
   @@c = RethinkDB::Connection.new('localhost', 64346)
   def c; @@c; end
 
@@ -157,7 +141,7 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_easy_read #TABLE
-    assert_equal($welcome_data, r.db('').Welcome.run)
+    assert_equal($welcome_data, rdb.run)
     assert_equal($welcome_data, r.table('', 'Welcome').run)
     assert_equal($welcome_data, r.table({:table_name => 'Welcome'}).run)
   end
@@ -175,40 +159,51 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_getbykey #OBJECT, GETBYKEY
-    query = r.expr({'obj' => r.db('').Welcome.getbykey(:id, 0)})
-    query2 = r[{'obj' => r.db('').Welcome.getbykey(:id, 0)}]
+    query = r.expr({'obj' => rdb.getbykey(:id, 0)})
+    query2 = r[{'obj' => rdb.getbykey(:id, 0)}]
     assert_equal(query.run['obj'], $welcome_data[0])
     assert_equal(query2.run['obj'], $welcome_data[0])
   end
 
   def test_map #MAP, FILTER, LT, GETATTR, IMPLICIT_GETATTR
-    query = r.db('').Welcome.map { |outer_row|
-      r.streamtoarray(r.db('').Welcome.filter{r[:id] < outer_row[:id]})
+    query = rdb.map { |outer_row|
+      r.streamtoarray(rdb.filter{r[:id] < outer_row[:id]})
     }
-    query2 = r.db('').Welcome.map { |outer_row|
-      r.streamtoarray(r.db('').Welcome.filter{r.attr('id') < outer_row.getattr(:id)})
+    query2 = rdb.map { |outer_row|
+      r.streamtoarray(rdb.filter{r.lt(r[:id],outer_row[:id])})
+    }
+    query3 = rdb.map { |outer_row|
+      r.streamtoarray(rdb.filter{r.attr('id').lt(outer_row.getattr(:id))})
     }
     assert_equal(query.run[2], $welcome_data[0..1])
     assert_equal(query2.run[2], $welcome_data[0..1])
+    assert_equal(query3.run[2], $welcome_data[0..1])
+  end
+
+  def test_reduce #REDUCE, NOT, HASATTR, IMPLICIT_HASATTR
+    #REDUCE NOT IMPLEMENTED
+    #query = rdb.map{r.hasattr(:id)}.reduce(true){|a,b| r.all a,b}
+    assert_equal(rdb.map{r.hasattr(:id)}.run, $welcome_data.map{true})
+    assert_equal(rdb.map{|row| r.not row.hasattr('id')}.run, $welcome_data.map{false})
+    assert_equal(rdb.map{r.attr?(:id)}.run, $welcome_data.map{true})
+    assert_equal(rdb.map{r.attr?('id').not}.run, $welcome_data.map{false})
+  end
+
+  def test_filter #FILTER, ANY, ALL, EQ
+    #BROKEN: Can't filter on strings
+    #query_5 = rdb.filter{r[:name].eq('5')}
+    query_2345 = rdb.filter{|row| r.and r[:id] >= 2,row[:id] <= 5}
+    query_234 = query_2345.filter{r[:num].neq(5)}
+    query_23 = query_234.filter{|row| r.any row[:num].eq(2),row[:num].equals(3)}
+    assert_equal(query_2345.run, $welcome_data[2..5])
+    assert_equal(query_234.run, $welcome_data[2..4])
+    assert_equal(query_23.run, $welcome_data[2..3])
   end
 end
 
 
 c = RethinkDB::Connection.new('localhost', 64346)
+rdb = r.db('').Welcome
 $welcome_data = []
-Array.new(10).each_index{|i| $welcome_data << {'id' => i, 'name' => i.to_s}}
-c.run(r.db('').Welcome.insert($welcome_data).query)
-c.run(r.db('').Welcome)
-r.db('').Welcome.run
-query = r.db('').Welcome.map { |row|
-  r.streamtoarray(r.db('').Welcome.filter{row[:id] < r[:id]})
-}
-query.run
-# # c.run(r.db('').Welcome).length
-# # c.run(r.add(1,2))
-# # c.run(r.let([['a', r.add(1,2)],
-# #              ['b', r.add(:$a, 3)]],
-# #             r.add(:$a, :$b)))
-# c.run(r.add(1,2))
-
-
+Array.new(10).each_index{|i| $welcome_data << {'id' => i, 'num' => i, 'name' => i.to_s}}
+c.run(rdb.insert($welcome_data).query)
