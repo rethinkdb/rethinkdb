@@ -57,4 +57,15 @@ module RethinkDB
       end
     end
   end
+
+  class Tbl
+    def initialize (name, table=nil); @db = name; @table = table; end
+    def sexp; [:table, @db, @table]; end
+    def method_missing(m, *a, &b)
+      if    not @table                 then @table = m; return self
+      elsif C.table_directs.include? m then S.new([@db, @table]).send(m, *a, &b)
+                                       else S.new([:table, @db, @table]).send(m, *a, &b)
+      end
+    end
+  end
 end
