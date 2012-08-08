@@ -130,6 +130,22 @@ void json_adapter_if_t::reset() {
     }
 }
 
+// ctx-less JSON adapter for time_t
+json_adapter_if_t::json_adapter_map_t get_json_subfields(time_t *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+
+cJSON *render_as_json(time_t *target) {
+    return cJSON_CreateNumber(*target);
+}
+
+void apply_json_to(cJSON *change, time_t *target) {
+    *target = get_int(change);
+}
+
+void on_subfield_change(time_t *) { }
+
+
 // ctx-less JSON adapter for bool
 json_adapter_if_t::json_adapter_map_t get_json_subfields(bool *) {
     return json_adapter_if_t::json_adapter_map_t();
