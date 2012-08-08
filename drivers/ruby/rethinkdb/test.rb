@@ -147,12 +147,9 @@ class ClientTest < Test::Unit::TestCase
     query_2345 = rdb.filter{|row| r.and r[:id] >= 2,row[:id] <= 5}
     query_234 = query_2345.filter{r[:num].neq(5)}
     query_23 = query_234.filter{|row| r.any row[:num].eq(2),row[:num].equals(3)}
-    query_23_alt =
-      query_234.filter{|row| r.any((r.eq(row[:num],2)),(r.equals(row[:num],3)))}
     assert_equal(query_2345.run, $welcome_data[2..5])
     assert_equal(query_234.run, $welcome_data[2..4])
     assert_equal(query_23.run, $welcome_data[2..3])
-    assert_equal(query_23_alt.run, $welcome_data[2..3])
   end
 
   def test_orderby #ORDERBY, MAP
@@ -173,7 +170,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(query.run.sort, want.sort)
   end
 
-  def test_ops #+,-,%,*,/,<,>,<=,>=
+  def test_ops #+,-,%,*,/,<,>,<=,>=,eq,ne
     assert_equal((r[5] + 3).run, 8)
     assert_equal((r[5].add(3)).run, 8)
     assert_equal(r.add(5,3).run, 8)
@@ -251,7 +248,9 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.ne(3,3).run, false)
     assert_equal(r.not(r.equals(3,2)).run, true)
     assert_equal(r.not(r.equals(3,3)).run, false)
-end
+    assert_equal(r.equals(3,2).not.run, true)
+    assert_equal(r.equals(3,3).not.run, false)
+  end
 end
 
 
