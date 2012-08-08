@@ -17,22 +17,7 @@ r = RethinkDB::RQL
 #   * FOREACH
 #   * POINTUPDATE
 #   * POINTMUTATE
-
-################################################################################
-#                                 WRITE QUERY                                  #
-################################################################################
-def p? x; x; end
-
-r.db('').Welcome.mutate{|x| nil}.query ;p? :MUTATE
-r.db('').Welcome.filter{|x| x[:id] < 5}.mutate{|x| nil}.query ;p? :MUTATE
-
-r.db('').Welcome.pointupdate(:address, 'Bob'){'addr2'}.query ;p? :POINTUPDATE
-r.db('').Welcome.pointupdate(:address, 'Bob'){|addr| addr}.query ;p? :POINTUPDATE
-
-r.db('').Welcome.pointmutate(:address, 'Bob'){'addr2'}.query ;p? :POINTMUTATE
-r.db('').Welcome.pointmutate(:address, 'Bob'){nil}.query ;p? :POINTMUTATE
-r.db('').Welcome.pointmutate(:address, 'Bob'){|addr| addr}.query ;p? :POINTMUTATE
-r.db('').Welcome.pointmutate(:address, 'Bob'){|addr| nil}.query ;p? :POINTMUTATE
+#   * SOME MERGE
 
 ################################################################################
 #                                 CONNECTION                                   #
@@ -154,7 +139,7 @@ class ClientTest < Test::Unit::TestCase
 
   def test_error #IF, JSON, ERROR
     query = r.if(r.add(1,2) >= 3, r.json('[1,2,3]'), r.error('unreachable'))
-    query_err = r.if(r.add(1,2) > 3, r.json('[1,2,3]'), r.error('unreachable'))
+    query_err = r.if(r.add(1,2) > 3, r.json('[1,2,3]'), r.error('reachable'))
     assert_equal(query.run, [1,2,3])
     assert_raise(RuntimeError){assert_equal(query_err.run)}
   end
@@ -293,19 +278,16 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.run, [])
 
     rdb.insert($data).run
-    #PP.pp rdb.pointupdate(:id, 0){|x| x}.query
+    assert_equal(rdb.run, $data)
+    query = rdb.pointupdate(:id, 0){r[{:id => 0, :broken => 5}]}
+    assert_equal(query.run, {'updated'=>1,'errors'=>0})
+    query = rdb.pointupdate(:id, 0){|row|
+      r.if(row.attr?(:broken), $data[0], r.error('unreachable'))}
+    assert_equal(query.run, {'updated'=>1,'errors'=>0})
+    assert_equal(rdb.run, $data)
 
     #POINTMUTATE -- unimplemented
 
     assert_equal(rdb.run, $data)
   end
 end
-
-# c = RethinkDB::Connection.new('localhost', 64346)
-# rdb = r.db('').Welcome
-# $welcome_data = []
-# Array.new(10).each_index{|i| $welcome_data << {'id' => i, 'num' => i, 'name' => i.to_s}}
-# c.run(rdb.insert($welcome_data).query)
-# rdb.map{|row|row.pickattrs(:id,:name)}.query
-#r[{:a => 1}].pickattrs(:id).run
-
