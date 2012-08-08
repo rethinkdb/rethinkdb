@@ -677,6 +677,38 @@ void apply_json_to(cJSON *change, std::pair<F, S> *target, const ctx_t &ctx) {
 template <class F, class S, class ctx_t>
 void on_subfield_change(std::pair<F, S> *, const ctx_t &) { }
 
+// ctx-less JSON adapter for std::pair
+template <class F, class S>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(std::pair<F, S> *target) {
+    json_adapter_if_t::json_adapter_map_t res;
+    res["first"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<F>(&target->first));
+    res["second"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<S>(&target->second));
+    return res;
+}
+
+template <class F, class S>
+cJSON *render_as_json(std::pair<F, S> *target) {
+    cJSON *res = cJSON_CreateArray();
+    cJSON_AddItemToArray(res, render_as_json(&target->first));
+    cJSON_AddItemToArray(res, render_as_json(&target->second));
+    return res;
+}
+
+template <class F, class S>
+void apply_json_to(cJSON *change, std::pair<F, S> *target) {
+    json_array_iterator_t it = get_array_it(change);
+    cJSON *first = it.next(), *second = it.next();
+    if (!first || !second || it.next()) {
+        throw schema_mismatch_exc_t("Expected an array with exactly 2 elements in it");
+    }
+    apply_json_to(first, &target->first);
+    apply_json_to(second, &target->second);
+}
+
+template <class F, class S>
+void on_subfield_change(std::pair<F, S> *) { }
+
+
 //JSON adapter for std::vector
 template <class V, class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(std::vector<V> *, const ctx_t &) {

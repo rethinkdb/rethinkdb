@@ -560,6 +560,20 @@ void apply_json_to(cJSON *, std::pair<F, S> *, const ctx_t &);
 template <class F, class S, class ctx_t>
 void on_subfield_change(std::pair<F, S> *, const ctx_t &);
 
+// ctx-less JSON adapter for std::pair
+template <class F, class S>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(std::pair<F, S> *);
+
+template <class F, class S>
+cJSON *render_as_json(std::pair<F, S> *);
+
+template <class F, class S>
+void apply_json_to(cJSON *, std::pair<F, S> *);
+
+template <class F, class S>
+void on_subfield_change(std::pair<F, S> *);
+
+
 //JSON adapter for std::vector
 template <class V, class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(std::vector<V> *, const ctx_t &);
