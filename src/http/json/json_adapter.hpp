@@ -98,14 +98,13 @@ public:
     void on_change() { }
 };
 
-template <class T, class ctx_t>
+template <class T>
 class standard_subfield_change_functor_t : public subfield_change_functor_t {
 public:
-    standard_subfield_change_functor_t(T *target, const ctx_t &ctx);
+    standard_subfield_change_functor_t(T *target);
     void on_change();
 private:
     T *target;
-    const ctx_t ctx;
 
     DISABLE_COPYING(standard_subfield_change_functor_t);
 };
@@ -154,12 +153,12 @@ private:
 
 /* A json adapter is the most basic adapter, you can instantiate one with any
  * type that implements the json adapter concept as T */
-template <class T, class ctx_t>
+template <class T>
 class json_adapter_t : public json_adapter_if_t {
 private:
     typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
 public:
-    json_adapter_t(T *, const ctx_t &);
+    json_adapter_t(T *);
 
 private:
     json_adapter_map_t get_subfields_impl();
@@ -170,7 +169,6 @@ private:
     boost::shared_ptr<subfield_change_functor_t> get_change_callback();
 
     T *target_;
-    const ctx_t ctx_;
 
     DISABLE_COPYING(json_adapter_t);
 };
@@ -201,10 +199,10 @@ private:
 
 /* A read only adapter is like a normal adapter but it throws an exception when
  * you try to do an apply call. */
-template <class T, class ctx_t>
-class json_read_only_adapter_t : public json_adapter_t<T, ctx_t> {
+template <class T>
+class json_read_only_adapter_t : public json_adapter_t<T> {
 public:
-    json_read_only_adapter_t(T *, const ctx_t &);
+    json_read_only_adapter_t(T *);
 
 private:
     void apply_impl(cJSON *);
@@ -231,10 +229,10 @@ private:
  * the what it's adapting inside it. This is convenient when we want to have
  * json data that's not actually reflected in our structures such as having the
  * id of every element in a map referenced in an id field */
-template <class T, class ctx_t>
-class json_temporary_adapter_t : public json_read_only_adapter_t<T, ctx_t> {
+template <class T>
+class json_temporary_adapter_t : public json_read_only_adapter_t<T> {
 public:
-    json_temporary_adapter_t(const T &value, const ctx_t &ctx);
+    json_temporary_adapter_t(const T &value);
 
 private:
     T value_;
