@@ -51,6 +51,4 @@ void apply_json_to(cJSON *, persistable_blueprint_t<protocol_t> *);
 template <class protocol_t>
 void on_subfield_change(persistable_blueprint_t<protocol_t> *);
 
-#include "clustering/administration/persistable_blueprint.tcc"
-
 #endif /* CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_HPP_ */
