@@ -84,7 +84,7 @@ public:
 
     void submit_action_to_stack_stats(action_t *a) {
         assert_thread();
-        outstanding_txn++;
+        ++outstanding_txn;
         stack_stats.submit(a);
     }
 
@@ -114,7 +114,7 @@ public:
 
     void done(typename stack_stats_t::action_t *a) {
         assert_thread();
-        outstanding_txn--;
+        --outstanding_txn;
         action_t *a2 = static_cast<action_t *>(a);
         do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_complete, a2->cb));
         delete a2;
@@ -129,8 +129,8 @@ private:
     to which account they are part of. Finally the backend (which may be either AIO-based
     or thread-pool-based) pops the IO operations from the queue.
 
-    At two points in the process--once as soon as it is submitted, and again right
-    as the backend pops it off the queue--its statistics are recorded. The "stack stats"
+    At two points in the process -- once as soon as it is submitted, and again right
+    as the backend pops it off the queue -- its statistics are recorded. The "stack stats"
     will tell you how many IO operations are queued. The "backend stats" will tell you
     how long the OS takes to perform the operations. Note that it's not perfect, because
     it counts operations that have been queued by the backend but not sent to the OS yet

@@ -46,9 +46,10 @@ bool stream_cache_t::serve(int64_t key, Response *res) {
 
 void stream_cache_t::maybe_evict() {
     time_t cur_time = time(0);
-    std::map<int64_t, entry_t>::iterator it_old, it = streams.begin();
+    std::map<int64_t, entry_t>::iterator it = streams.begin();
     while (it != streams.end()) {
-        it_old = it++;
+        std::map<int64_t, entry_t>::iterator it_old = it;
+        ++it;
         entry_t *entry = &it_old->second;
         if (entry->max_age && cur_time - entry->last_activity > entry->max_age) {
             streams.erase(it_old);

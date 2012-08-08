@@ -12,7 +12,8 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
 
     std::map<machine_id_t, reactor_business_card_t<protocol_t> > directory;
     for (std::map<machine_id_t, datacenter_id_t>::const_iterator it = machine_data_centers.begin();
-            it != machine_data_centers.end(); it++) {
+         it != machine_data_centers.end();
+         ++it) {
         machine_id_t machine = it->first;
         peer_id_t peer = machine_id_to_peer_id(machine, machine_id_translation_table);
         if (peer.is_nil()) {
@@ -61,7 +62,7 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
         if (!it->second.is_deleted()) {
             std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > reactor_directory;
             for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator jt =
-                    namespaces_directory.begin(); jt != namespaces_directory.end(); jt++) {
+                    namespaces_directory.begin(); jt != namespaces_directory.end(); ++jt) {
                 typename std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::const_iterator kt =
                     jt->second.reactor_bcards.find(it->first);
                 if (kt != jt->second.reactor_bcards.end()) {
@@ -123,7 +124,7 @@ void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
 
     for (std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::iterator it = cluster_metadata->machines.machines.begin();
             it != cluster_metadata->machines.machines.end();
-            it++) {
+            ++it) {
         if (!it->second.is_deleted()) {
             machine_assignments[it->first] = it->second.get().datacenter.get();
         }
@@ -132,7 +133,7 @@ void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
     std::map<peer_id_t, namespaces_directory_metadata_t<memcached_protocol_t> > reactor_directory_memcached;
     std::map<peer_id_t, namespaces_directory_metadata_t<rdb_protocol_t> > reactor_directory_rdb;
     std::map<peer_id_t, machine_id_t> machine_id_translation_table;
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator it = directory.begin(); it != directory.end(); it++) {
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator it = directory.begin(); it != directory.end(); ++it) {
         reactor_directory_memcached.insert(std::make_pair(it->first, it->second.memcached_namespaces));
         reactor_directory_rdb.insert(std::make_pair(it->first, it->second.rdb_namespaces));
         machine_id_translation_table.insert(std::make_pair(it->first, it->second.machine_id));

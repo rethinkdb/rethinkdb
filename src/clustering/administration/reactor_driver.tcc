@@ -29,7 +29,7 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
 
     blueprint_t<protocol_t> output;
     for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator it = input.machines_roles.begin();
-            it != input.machines_roles.end(); it++) {
+            it != input.machines_roles.end(); ++it) {
         peer_id_t peer = machine_id_to_peer_id(it->first, translation_table);
         if (peer.is_nil()) {
             /* We can't determine the peer ID that belongs or belonged to this
@@ -96,7 +96,7 @@ public:
         enough acks. That's a bit weird, but fortunately it can't lead to data
         corruption. */
         std::multiset<datacenter_id_t> acks_by_dc;
-        for (std::set<peer_id_t>::const_iterator it = acks.begin(); it != acks.end(); it++) {
+        for (std::set<peer_id_t>::const_iterator it = acks.begin(); it != acks.end(); ++it) {
             std::map<peer_id_t, machine_id_t> translation_table_snapshot = parent->machine_id_translation_table->get();
             std::map<peer_id_t, machine_id_t>::iterator tt_it = translation_table_snapshot.find(*it);
             if (tt_it == translation_table_snapshot.end()) continue;
@@ -115,7 +115,7 @@ public:
         if (it->second.is_deleted()) return false;
         if (it->second.get().ack_expectations.in_conflict()) return false;
         std::map<datacenter_id_t, int> expected_acks = it->second.get().ack_expectations.get();
-        for (std::map<datacenter_id_t, int>::const_iterator kt = expected_acks.begin(); kt != expected_acks.end(); kt++) {
+        for (std::map<datacenter_id_t, int>::const_iterator kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
             if (int(acks_by_dc.count(kt->first)) < kt->second) {
                 return false;
             }
@@ -127,7 +127,7 @@ private:
     std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > extract_reactor_directory(
             const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &nss) {
         std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > out;
-        for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it = nss.begin(); it != nss.end(); it++) {
+        for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it = nss.begin(); it != nss.end(); ++it) {
             typename std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::const_iterator jt =
                 it->second.reactor_bcards.find(namespace_id);
             if (jt == it->second.reactor_bcards.end()) {
@@ -248,7 +248,7 @@ void reactor_driver_t<protocol_t>::on_change() {
             namespaces = namespaces_view->get().namespaces;
 
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator 
-                it =  namespaces.begin(); it != namespaces.end(); it++) {
+                it =  namespaces.begin(); it != namespaces.end(); ++it) {
         if (it->second.is_deleted() && std_contains(reactor_data, it->first)) {
             /* on_change cannot block because it is called as part of
              * semilattice subscription, however the

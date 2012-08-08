@@ -73,13 +73,13 @@ struct rwi_lock_assertion_t : public home_thread_mixin_t {
             if (lock) {
                 lock->assert_thread();
                 rassert(lock->state > 0);
-                lock->state--;
+                --lock->state;
             }
             lock = l;
             if (lock) {
                 lock->assert_thread();
                 rassert(lock->state != rwi_lock_assertion_t::write_locked);
-                lock->state++;
+                ++lock->state;
             }
         }
         void assert_is_holding(rwi_lock_assertion_t *l) {
@@ -143,11 +143,11 @@ struct semaphore_assertion_t : public home_thread_mixin_t {
         explicit acq_t(semaphore_assertion_t *p) : parent(p) {
             parent->assert_thread();
             rassert(parent->capacity > 0);
-            parent->capacity--;
+            --parent->capacity;
         }
         void reset() {
             parent->assert_thread();
-            parent->capacity++;
+            ++parent->capacity;
             parent = NULL;
         }
         ~acq_t() {

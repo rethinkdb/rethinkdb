@@ -67,7 +67,7 @@ cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &no
     std::map<machine_id_t, peer_id_t> machine_id_to_peer_id(invert_bijection_map(peer_id_to_machine_id));
 
     machines_semilattice_metadata_t::machine_map_t machines_ids = semilattice->get().machines.machines;
-    for (machines_semilattice_metadata_t::machine_map_t::const_iterator it = machines_ids.begin(); it != machines_ids.end(); it++) {
+    for (machines_semilattice_metadata_t::machine_map_t::const_iterator it = machines_ids.begin(); it != machines_ids.end(); ++it) {
         const machine_id_t &machine_id = it->first;
         bool peer_exists = machine_id_to_peer_id.count(machine_id) != 0;
 

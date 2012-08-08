@@ -16,9 +16,9 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_
 
     /* Iterator through the peers the blueprint claims we should be able to
      * see. */
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator p_it =  blueprint.peers_roles.begin();
-                                                                      p_it != blueprint.peers_roles.end();
-                                                                      p_it++) {
+    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator p_it = blueprint.peers_roles.begin();
+         p_it != blueprint.peers_roles.end();
+         ++p_it) {
         typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > >::const_iterator bcard_it = reactor_directory.find(p_it->first);
         if (bcard_it == reactor_directory.end() || !bcard_it->second) {
             //The peer is down or has no reactor
@@ -30,9 +30,9 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_
 
         /* Whether or not we found a directory entry for this peer */
         bool found = false;
-        for (typename rb_t::activity_map_t::const_iterator it =  (*bcard_it->second).internal.activities.begin();
-                                                           it != (*bcard_it->second).internal.activities.end();
-                                                           it++) {
+        for (typename rb_t::activity_map_t::const_iterator it = bcard_it->second->internal.activities.begin();
+             it != (*bcard_it->second).internal.activities.end();
+             ++it) {
             if (it->second.first == region) {
                 if (r_it->second == blueprint_details::role_primary) {
                     if (!boost::get<typename rb_t::primary_t>(&it->second.second)) {

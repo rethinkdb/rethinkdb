@@ -50,7 +50,7 @@ struct extent_block_t :
     }
 
     void done() {
-        for (unsigned i = 0; i < sync_cbs.size(); i++) {
+        for (unsigned i = 0; i < sync_cbs.size(); ++i) {
             sync_cbs[i]->on_extent_sync();
         }
         if (is_last_block) {

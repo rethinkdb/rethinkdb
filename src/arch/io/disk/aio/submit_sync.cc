@@ -22,7 +22,7 @@ void linux_aio_submit_sync_t::notify_done() {
     /* notify_done() is called by the linux_diskmgr_aio_t when an operation is completed.
     We use it to keep the OS's IO queue always at a certain depth. */
 
-    n_pending--;
+    --n_pending;
     pump();
 }
 

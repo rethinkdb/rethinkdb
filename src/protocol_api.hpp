@@ -107,7 +107,7 @@ public:
 public:
     typename protocol_t::region_t get_domain() const THROWS_NOTHING {
         std::vector<typename protocol_t::region_t> regions;
-        for (const_iterator it = begin(); it != end(); it++) {
+        for (const_iterator it = begin(); it != end(); ++it) {
             regions.push_back(it->first);
         }
         typename protocol_t::region_t join;
@@ -134,7 +134,7 @@ public:
 
     MUST_USE region_map_t mask(typename protocol_t::region_t region) const {
         internal_vec_t masked_pairs;
-        for (int i = 0; i < (int)regions_and_values.size(); i++) {
+        for (int i = 0; i < (int)regions_and_values.size(); ++i) {
             typename protocol_t::region_t ixn = region_intersection(regions_and_values[i].first, region);
             if (!region_is_empty(ixn)) {
                 masked_pairs.push_back(internal_pair_t(ixn, regions_and_values[i].second));
@@ -218,9 +218,9 @@ bool operator!=(const region_map_t<P, V> &left, const region_map_t<P, V> &right)
 template<class protocol_t, class old_t, class new_t, class callable_t>
 region_map_t<protocol_t, new_t> region_map_transform(const region_map_t<protocol_t, old_t> &original, const callable_t &callable) {
     std::vector<std::pair<typename protocol_t::region_t, new_t> > new_pairs;
-    for (typename region_map_t<protocol_t, old_t>::const_iterator it =  original.begin();
-                                                                  it != original.end();
-                                                                  it++) {
+    for (typename region_map_t<protocol_t, old_t>::const_iterator it = original.begin();
+         it != original.end();
+         ++it) {
         new_pairs.push_back(std::pair<typename protocol_t::region_t, new_t>(
                 it->first,
                 callable(it->second)

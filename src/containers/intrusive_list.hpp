@@ -80,7 +80,7 @@ public:
         if(_tail == NULL) {
             _tail = _value;
         }
-        _size++;
+        ++_size;
     }
 
     void push_back(node_t *_value) {
@@ -99,7 +99,7 @@ public:
         if(_head == NULL) {
             _head = _value;
         }
-        _size++;
+        ++_size;
     }
 
     void remove(node_t *_value) {
@@ -122,7 +122,7 @@ public:
             _head = value->next;
         }
         value->next = value->prev = NULL;
-        _size--;
+        --_size;
     }
 
     void pop_front() {
@@ -171,7 +171,7 @@ public:
         node_t *last_node = NULL;
         unsigned int count = 0;
         for (node_t *node = _head; node; node = static_cast<intrusive_list_node_t<node_t> *>(node)->next) {
-            count++;
+            ++count;
             rassert(static_cast<intrusive_list_node_t<node_t> *>(node)->parent_list == this);
             rassert(static_cast<intrusive_list_node_t<node_t> *>(node)->prev == last_node);
             last_node = node;

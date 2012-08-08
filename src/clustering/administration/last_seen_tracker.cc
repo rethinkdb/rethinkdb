@@ -22,11 +22,11 @@ last_seen_tracker_t::last_seen_tracker_t(
 void last_seen_tracker_t::update() {
     std::set<machine_id_t> visible;
     std::map<peer_id_t, machine_id_t> machine_ids = machine_id_map->get();
-    for (std::map<peer_id_t, machine_id_t>::iterator it = machine_ids.begin(); it != machine_ids.end(); it++) {
+    for (std::map<peer_id_t, machine_id_t>::iterator it = machine_ids.begin(); it != machine_ids.end(); ++it) {
         visible.insert(it->second);
     }
     machines_semilattice_metadata_t machine_metadata = machines_view->get();
-    for (machines_semilattice_metadata_t::machine_map_t::iterator it = machine_metadata.machines.begin(); it != machine_metadata.machines.end(); it++) {
+    for (machines_semilattice_metadata_t::machine_map_t::iterator it = machine_metadata.machines.begin(); it != machine_metadata.machines.end(); ++it) {
         if (!it->second.is_deleted() && visible.find(it->first) == visible.end()) {
             /* If it was already present, this will have no effect. */
             last_seen.insert(std::make_pair(it->first, time(NULL)));

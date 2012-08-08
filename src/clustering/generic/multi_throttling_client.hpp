@@ -21,7 +21,7 @@ public:
         explicit ticket_acq_t(multi_throttling_client_t *p) : parent(p) {
             if (parent->free_tickets > 0) {
                 state = state_acquired_ticket;
-                parent->free_tickets--;
+                --parent->free_tickets;
                 pulse();
             } else {
                 state = state_waiting_for_ticket;
@@ -34,7 +34,7 @@ public:
                 parent->ticket_queue.remove(this);
                 break;
             case state_acquired_ticket:
-                parent->free_tickets++;
+                ++parent->free_tickets;
                 break;
             case state_used_ticket:
                 break;
@@ -117,7 +117,7 @@ private:
             ticket_queue.remove(lucky_winner);
             lucky_winner->state = ticket_acq_t::state_acquired_ticket;
             lucky_winner->pulse();
-            count--;
+            --count;
         }
         free_tickets += count;
     }

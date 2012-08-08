@@ -120,7 +120,7 @@ public:
                 }
             }
 
-            return parent->data[index++];
+            return parent->data[++index];
         }
 
         //TODO these methods are probably going to go away.. in actuality
@@ -262,11 +262,11 @@ public:
 
     boost::shared_ptr<scoped_cJSON_t> next() {
         while (start) {
-            start--;
+            --start;
             stream->next();
         }
         if (unbounded || stop != 0) {
-            stop--;
+            --stop;
             return stream->next();
         }
         return boost::shared_ptr<scoped_cJSON_t>();

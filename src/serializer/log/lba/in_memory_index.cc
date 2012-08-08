@@ -36,7 +36,7 @@ void in_memory_index_t::set_block_info(block_id_t id, repli_timestamp_t recency,
 #ifndef NDEBUG
 void in_memory_index_t::print() {
     printf("LBA:\n");
-    for (unsigned int i = 0; i < blocks.get_size(); i++) {
+    for (unsigned int i = 0; i < blocks.get_size(); ++i) {
         printf("%d %" PRId64 "\n", i, int64_t(blocks[i].the_value_));
     }
 }

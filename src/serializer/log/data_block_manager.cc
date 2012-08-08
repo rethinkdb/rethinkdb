@@ -35,7 +35,7 @@ data_block_manager_t::~data_block_manager_t() {
 
 void data_block_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
 
-    for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
+    for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; ++i) {
         mb->active_extents[i] = NULL_OFFSET;
         mb->blocks_in_active_extent[i] = 0;
     }
@@ -80,7 +80,7 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
 
     /* Reconstruct the active data block extents from the metablock. */
 
-    for (unsigned int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
+    for (unsigned int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; ++i) {
         off64_t offset = last_metablock->active_extents[i];
 
         if (offset != NULL_OFFSET) {
@@ -221,7 +221,7 @@ void data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *i
         new dbm_read_ahead_fsm_t(this, off_in, buf_out, io_account, cb);
     } else {
         ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(buf_out);
-        data--;
+        --data;
         dbfile->read_async(off_in, static_config->block_size().ser_value(), data, io_account, cb);
     }
 }
@@ -529,13 +529,13 @@ void data_block_manager_t::run_gc() {
                 // will do if the refcount is not zero).  So we
                 // increment the refcount here and set the step to
                 // gc_read, before any calls to read_async.
-                gc_state.refcount++;
+                ++gc_state.refcount;
 
                 gc_state.set_step(gc_read);
 #ifndef NDEBUG
                 bool some_read_happened = false;
 #endif
-                for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
+                for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; ++i) {
                     if (!gc_state.current_entry->g_array[i]) {
                         dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
                                            static_config->block_size().ser_value(),
@@ -545,7 +545,7 @@ void data_block_manager_t::run_gc() {
 #ifndef NDEBUG
                         some_read_happened = true;
 #endif
-                        gc_state.refcount++;
+                        ++gc_state.refcount;
                     }
                 }
 
@@ -556,7 +556,7 @@ void data_block_manager_t::run_gc() {
                 // for loop.
             }
             case gc_read: {
-                gc_state.refcount--;
+                --gc_state.refcount;
                 if (gc_state.refcount > 0) {
                     /* We got a block, but there are still more to go */
                     break;
@@ -575,7 +575,7 @@ void data_block_manager_t::run_gc() {
 #endif
 
                 gc_writes.clear();
-                for (unsigned int i = 0; i < static_config->blocks_per_extent(); i++) {
+                for (unsigned int i = 0; i < static_config->blocks_per_extent(); ++i) {
 
                     /* We re-check the bit array here in case a write came in for one of the
                     blocks we are GCing. We wouldn't want to overwrite the new valid data with
@@ -636,7 +636,7 @@ void data_block_manager_t::run_gc() {
 void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
     rassert(state == state_ready || state == state_shutting_down);
 
-    for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
+    for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; ++i) {
         if (active_extents[i]) {
             metablock->active_extents[i] = active_extents[i]->offset;
             metablock->blocks_in_active_extent[i] = blocks_in_active_extent[i];
@@ -668,7 +668,7 @@ void data_block_manager_t::actually_shutdown() {
 
     rassert(!reconstructed_extents.head());
 
-    for (unsigned int i = 0; i < dynamic_config->num_active_data_extents; i++) {
+    for (unsigned int i = 0; i < dynamic_config->num_active_data_extents; ++i) {
         if (active_extents[i]) {
             delete active_extents[i];
             active_extents[i] = NULL;
@@ -818,7 +818,7 @@ void gc_entry::destroy() {
 void gc_entry::print() {
     debugf("gc_entry:\n");
     debugf("offset: %ld\n", offset);
-    for (unsigned int i = 0; i < g_array.size(); i++)
+    for (unsigned int i = 0; i < g_array.size(); ++i)
         debugf("%.8x:\t%d\n", (unsigned int) (offset + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
     debugf("\n");
     debugf("\n");
@@ -884,7 +884,7 @@ void data_block_manager_t::enable_gc() {
 
 
 void data_block_manager_t::gc_stat_t::operator++() {
-    val++;
+    ++val;
     ++*perfmon;
 }
 
@@ -894,8 +894,8 @@ void data_block_manager_t::gc_stat_t::operator+=(int64_t num) {
 }
 
 void data_block_manager_t::gc_stat_t::operator--() {
-    val--;
-    perfmon--;
+    --val;
+    --perfmon;
 }
 
 void data_block_manager_t::gc_stat_t::operator-=(int64_t num) {

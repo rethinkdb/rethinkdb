@@ -40,7 +40,7 @@ void pmap(int count, const callable_t &c) {
 
     cond_t cond;
     int outstanding = count - 1;
-    for (int i = 0; i < count - 1; i++) {
+    for (int i = 0; i < count - 1; ++i) {
         coro_t::spawn_now_dangerously(pmap_runner_one_arg_t<callable_t, int>(i, &c, &outstanding, &cond));
     }
     c(count - 1);
@@ -52,11 +52,11 @@ void pmap(iterator_t start, iterator_t end, const callable_t &c) {
     cond_t cond;
     int outstanding = 1;
     while (start != end) {
-        outstanding++;
+        ++outstanding;
         spawn_pmap_runner_one_arg(*start, &c, &outstanding, &cond);
-        start++;
+        ++start;
     }
-    outstanding--;
+    --outstanding;
     if (outstanding) {
         cond.wait();
     }
@@ -93,12 +93,12 @@ void pimap(iterator_t start, iterator_t end, const callable_t &c) {
     int outstanding = 1;
     int i = 0;
     while (start != end) {
-        outstanding++;
+        ++outstanding;
         spawn_pmap_runner_two_arg(*start, i, &c, &outstanding, &cond);
-        i++;
-        start++;
+        ++i;
+        ++start;
     }
-    outstanding--;
+    --outstanding;
     if (outstanding) {
         cond.wait();
     }

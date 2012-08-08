@@ -34,7 +34,7 @@ static void main_jsproc_test(test_t func) {
 // ----- Tests
 void run_timeout_test(js::runner_t *runner) {
     // TODO(rntz): there must be a better way to do this.
-    const std::string longloop = "for (var x = 0; x < 4e8; x++) {}";
+    const std::string longloop = "for (var x = 0; x < 4e8; ++x) {}";
 
     std::string errmsg;
     id_t id = runner->compile(std::vector<std::string>(), longloop, &errmsg);

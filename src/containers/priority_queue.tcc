@@ -70,7 +70,7 @@ priority_queue_t<T, Less>::priority_queue_t() {}
 
 template<class T, class Less>
 priority_queue_t<T, Less>::~priority_queue_t() {
-    for (unsigned int i = 0; i < heap.size(); i++)
+    for (unsigned int i = 0; i < heap.size(); ++i)
         delete heap[i];
 }
 
@@ -146,7 +146,7 @@ void priority_queue_t<T, Less>::update(int index) {
 
 template<class T, class Less>
 void priority_queue_t<T, Less>::validate() {
-    for (unsigned int i = 0; i < heap.size(); i++) {
+    for (unsigned int i = 0; i < heap.size(); ++i) {
         if(i != 0)
             rassert(!Less()(heap[parent(i)]->data, heap[i]->data));
 

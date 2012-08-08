@@ -183,7 +183,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     }
     read_response_t operator()(rget_query_t rget) {
         std::map<store_key_t, const rget_result_t *> sorted_bits;
-        for (int i = 0; i < int(bits.size()); i++) {
+        for (int i = 0; i < int(bits.size()); ++i) {
             const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
             if (!bit->pairs.empty()) {
                 const store_key_t &key = bit->pairs.front().key;
@@ -196,11 +196,11 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 #endif
         rget_result_t result;
         size_t cumulative_size = 0;
-        for (std::map<store_key_t, const rget_result_t *>::iterator it = sorted_bits.begin(); it != sorted_bits.end(); it++) {
+        for (std::map<store_key_t, const rget_result_t *>::iterator it = sorted_bits.begin(); it != sorted_bits.end(); ++it) {
             if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
                 break;
             }
-            for (std::vector<key_with_data_buffer_t>::const_iterator jt = it->second->pairs.begin(); jt != it->second->pairs.end(); jt++) {
+            for (std::vector<key_with_data_buffer_t>::const_iterator jt = it->second->pairs.begin(); jt != it->second->pairs.end(); ++jt) {
                 if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
                     break;
                 }
@@ -230,7 +230,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 
         distribution_result_t res;
 
-        for (int i = 0, e = bits.size(); i < e; i++) {
+        for (int i = 0, e = bits.size(); i < e; ++i) {
             const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
             rassert(result, "Bad boost::get\n");
 
@@ -471,7 +471,9 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
                                                   it != dstr.key_counts.end();
                                                   /* increments done in loop */) {
             if (!dget.range.contains_key(store_key_t(it->first))) {
-                dstr.key_counts.erase(it++);
+                std::map<store_key_t, int>::iterator old_it = it;
+                ++it;
+                dstr.key_counts.erase(old_it);
             } else {
                 ++it;
             }

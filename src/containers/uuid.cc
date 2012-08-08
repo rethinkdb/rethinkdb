@@ -43,7 +43,7 @@ uuid_t generate_uuid() {
 
     uuid_t ret;
     uint8_t *dat = ret.data();
-    for (size_t i = 0; i < uuid_t::static_size(); i++) {
+    for (size_t i = 0; i < uuid_t::static_size(); ++i) {
         dat[i] = static_cast<uint8_t>(randint(256));
     }
     return ret;

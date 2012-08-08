@@ -32,9 +32,9 @@ inline void generate_sample_region(int i, int n, dummy_protocol_t::region_t *out
 template<class protocol_t>
 bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
                             const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory) {
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
-                                                                      it != bp.peers_roles.end();
-                                                                      it++) {
+    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it = bp.peers_roles.begin();
+         it != bp.peers_roles.end();
+         ++it) {
 
         if (reactor_directory.find(it->first) == reactor_directory.end() ||
             !reactor_directory.find(it->first)->second) {
@@ -42,13 +42,13 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
         }
         reactor_business_card_t<protocol_t> bcard = reactor_directory.find(it->first)->second.get();
 
-        for (typename blueprint_t<protocol_t>::region_to_role_map_t::const_iterator jt  = it->second.begin();
-                                                                                    jt != it->second.end();
-                                                                                    jt++) {
+        for (typename blueprint_t<protocol_t>::region_to_role_map_t::const_iterator jt = it->second.begin();
+             jt != it->second.end();
+             ++jt) {
             bool found = false;
             for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator kt  = bcard.activities.begin();
-                                                                                              kt != bcard.activities.end();
-                                                                                              kt++) {
+                 kt != bcard.activities.end();
+                 ++kt) {
                 if (jt->first == kt->second.first) {
                     if (jt->second == blueprint_details::role_primary &&
                             boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(&kt->second.second) &&
@@ -162,7 +162,7 @@ private:
     static std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > extract_reactor_directory(
             const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &bcards) {
         std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > out;
-        for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = bcards.begin(); it != bcards.end(); it++) {
+        for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = bcards.begin(); it != bcards.end(); ++it) {
             out.insert(std::make_pair(it->first, it->second.reactor_directory));
         }
         return out;
@@ -186,7 +186,7 @@ public:
         int port = randport();
         make_io_backender(aio_default, &io_backender);
 
-        for (int i = 0; i < n_machines; i++) {
+        for (int i = 0; i < n_machines; ++i) {
             files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
             stores.push_back(new typename protocol_t::store_t(io_backender.get(), files[i].name(), true, NULL));
             store_view_t<protocol_t> *store_ptr = &stores[i];
@@ -201,7 +201,7 @@ public:
     }
 
     void construct_all_reactors(const blueprint_t<protocol_t> &bp) {
-        for (unsigned i = 0; i < test_clusters.size(); i++) {
+        for (unsigned i = 0; i < test_clusters.size(); ++i) {
             test_reactors.push_back(new test_reactor_t<protocol_t>(io_backender.get(), &test_clusters[i], bp, &svses[i]));
         }
     }
@@ -222,11 +222,11 @@ public:
 
         unsigned peer = 0;
         for (tok_iterator it =  tokens.begin();
-                          it != tokens.end();
-                          it++) {
+             it != tokens.end();
+             ++it) {
 
             blueprint.add_peer(get_peer_id(peer));
-            for (unsigned i = 0; i < it->size(); i++) {
+            for (unsigned i = 0; i < it->size(); ++i) {
                 typename protocol_t::region_t region;
                 generate_sample_region(i, it->size(), &region);
 
@@ -245,13 +245,13 @@ public:
                         break;
                 }
             }
-            peer++;
+            ++peer;
         }
         return blueprint;
     }
 
     void set_all_blueprints(const blueprint_t<protocol_t> &bp) {
-        for (unsigned i = 0; i < test_clusters.size(); i++) {
+        for (unsigned i = 0; i < test_clusters.size(); ++i) {
             test_reactors[i].blueprint_watchable.set_value(bp);
         }
     }
@@ -263,7 +263,7 @@ public:
     static std::map<peer_id_t, reactor_business_card_t<protocol_t> > extract_reactor_business_cards_no_optional(
             const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input) {
         std::map<peer_id_t, reactor_business_card_t<protocol_t> > out;
-        for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = input.begin(); it != input.end(); it++) {
+        for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = input.begin(); it != input.end(); ++it) {
             if (it->second.reactor_directory) {
                 out.insert(std::make_pair(it->first, it->second.reactor_directory->internal));
             } else {
@@ -284,7 +284,7 @@ public:
 
     void run_queries() {
         nap(200);
-        for (unsigned i = 0; i < test_clusters.size(); i++) {
+        for (unsigned i = 0; i < test_clusters.size(); ++i) {
             scoped_ptr_t<cluster_namespace_interface_t<protocol_t> > namespace_if;
             make_namespace_interface(i, &namespace_if);
 
@@ -300,7 +300,7 @@ public:
     static std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > extract_reactor_business_cards(
             const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input) {
         std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > out;
-        for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = input.begin(); it != input.end(); it++) {
+        for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = input.begin(); it != input.end(); ++it) {
             if (it->second.reactor_directory) {
                 out.insert(std::make_pair(it->first, boost::optional<reactor_business_card_t<protocol_t> >(it->second.reactor_directory->internal)));
             } else {

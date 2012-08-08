@@ -47,7 +47,7 @@ private:
         // create a fake buffer (be careful with populating it with data
         void *fake_buf = serializer->malloc();
         ls_buf_data_t *ser_data = reinterpret_cast<ls_buf_data_t *>(fake_buf);
-        ser_data--;
+        --ser_data;
         ser_data->block_id = serializer->translate_block_id(block_A);
         ser_data->block_sequence_id = 1;
 

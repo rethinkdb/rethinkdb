@@ -8,7 +8,7 @@ name_conflict_issue_t::name_conflict_issue_t(
 
 std::string name_conflict_issue_t::get_description() const {
     std::string message = "The following " + type + "s are all named '" + contested_name + "': ";
-    for (std::set<uuid_t>::iterator it = contestants.begin(); it != contestants.end(); it++) {
+    for (std::set<uuid_t>::iterator it = contestants.begin(); it != contestants.end(); ++it) {
         message += uuid_to_str(*it) + "; ";
     }
     return message;
@@ -18,7 +18,7 @@ cJSON *name_conflict_issue_t::get_json_description() {
     issue_json_t json;
     json.critical = false;
     json.description = "The following " + type + "s are all named '" + contested_name + "': ";
-    for (std::set<uuid_t>::iterator it = contestants.begin(); it != contestants.end(); it++) {
+    for (std::set<uuid_t>::iterator it = contestants.begin(); it != contestants.end(); ++it) {
         json.description += uuid_to_str(*it) + "; ";
     }
     json.type = "NAME_CONFLICT_ISSUE";
@@ -42,7 +42,7 @@ public:
     template<class object_metadata_t>
     void file_away(const std::map<uuid_t, deletable_t<object_metadata_t> > &map) {
         for (typename std::map<uuid_t, deletable_t<object_metadata_t> >::const_iterator it = map.begin();
-                it != map.end(); it++) {
+                it != map.end(); ++it) {
             if (!it->second.is_deleted()) {
                 if (!it->second.get().name.in_conflict()) {
                     by_name[it->second.get().name.get()].insert(it->first);
@@ -54,7 +54,7 @@ public:
     void report(const std::string &type,
             std::list<clone_ptr_t<global_issue_t> > *out) {
         for (std::map<std::string, std::set<uuid_t>, case_insensitive_less_t>::iterator it =
-                by_name.begin(); it != by_name.end(); it++) {
+                by_name.begin(); it != by_name.end(); ++it) {
             if (it->second.size() > 1) {
                 out->push_back(clone_ptr_t<global_issue_t>(
                     new name_conflict_issue_t(type, it->first, it->second)

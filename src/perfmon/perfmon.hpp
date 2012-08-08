@@ -73,9 +73,9 @@ protected:
 public:
     perfmon_counter_t();
     virtual ~perfmon_counter_t();
-    void operator++() { get()++; }
+    void operator++() { ++get(); }
     void operator+=(int64_t num) { get() += num; }
-    void operator--() { get()--; }
+    void operator--() { --get(); }
     void operator-=(int64_t num) { get() -= num; }
 };
 
@@ -98,7 +98,7 @@ struct stats_t {
         max(std::numeric_limits<double>::min())
         { }
     void record(double v) {
-        count++;
+        ++count;
         sum += v;
         if (count) {
             min = std::min(min, v);

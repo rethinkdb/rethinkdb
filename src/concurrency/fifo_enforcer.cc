@@ -6,7 +6,7 @@
 fifo_enforcer_read_token_t fifo_enforcer_source_t::enter_read() THROWS_NOTHING {
     assert_thread();
     mutex_assertion_t::acq_t freeze(&lock);
-    state.num_reads++;
+    ++state.num_reads;
     return fifo_enforcer_read_token_t(state.timestamp);
 }
 
@@ -109,7 +109,7 @@ void fifo_enforcer_sink_t::pump() THROWS_NOTHING {
         std::pair<reader_queue_t::iterator, reader_queue_t::iterator> bounds =
             waiting_readers.equal_range(state.timestamp);
         for (reader_queue_t::iterator it = bounds.first;
-                it != bounds.second; it++) {
+                it != bounds.second; ++it) {
             exit_read_t *read = it->second;
             if (read) {
                 read->pulse();
@@ -145,7 +145,7 @@ void fifo_enforcer_sink_t::finish_a_reader(DEBUG_ONLY_VAR state_timestamp_t time
 
     rassert(state.timestamp == timestamp);
 
-    state.num_reads++;
+    ++state.num_reads;
 }
 
 void fifo_enforcer_sink_t::finish_a_writer(transition_timestamp_t timestamp, DEBUG_ONLY_VAR int64_t num_preceding_reads) THROWS_NOTHING {

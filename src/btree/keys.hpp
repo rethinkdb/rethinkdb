@@ -79,7 +79,7 @@ public:
 
     static store_key_t max() {
         uint8_t buf[MAX_KEY_SIZE];
-        for (int i = 0; i < MAX_KEY_SIZE; i++) {
+        for (int i = 0; i < MAX_KEY_SIZE; ++i) {
             buf[i] = 255;
         }
         return store_key_t(MAX_KEY_SIZE, buf);
@@ -109,7 +109,7 @@ public:
             return false;
         } else if ((reinterpret_cast<uint8_t *>(contents()))[size()-1] > 0) {
             (reinterpret_cast<uint8_t *>(contents()))[size()-1]--;
-            for (int i = size(); i < MAX_KEY_SIZE; i++) {
+            for (int i = size(); i < MAX_KEY_SIZE; ++i) {
                 contents()[i] = 255;
             }
             set_size(MAX_KEY_SIZE);

@@ -21,7 +21,7 @@ void network_logger_t::on_change() {
 
     std::set<machine_id_t> servers_seen;
     std::set<peer_id_t> proxies_seen;
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = directory.begin(); it != directory.end(); it++) {
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = directory.begin(); it != directory.end(); ++it) {
         if (it->first == us) {
             continue;
         }
@@ -55,7 +55,7 @@ void network_logger_t::on_change() {
     }
 
     std::set<machine_id_t> connected_servers_copy = connected_servers;
-    for (std::set<machine_id_t>::iterator it = connected_servers_copy.begin(); it != connected_servers_copy.end(); it++) {
+    for (std::set<machine_id_t>::iterator it = connected_servers_copy.begin(); it != connected_servers_copy.end(); ++it) {
         if (servers_seen.count(*it) == 0) {
             connected_servers.erase(*it);
             logINF("Disconnected from server %s", pretty_print_machine(*it).c_str());
@@ -63,7 +63,7 @@ void network_logger_t::on_change() {
     }
 
     std::set<peer_id_t> connected_proxies_copy = connected_proxies;
-    for (std::set<peer_id_t>::iterator it = connected_proxies_copy.begin(); it != connected_proxies_copy.end(); it++) {
+    for (std::set<peer_id_t>::iterator it = connected_proxies_copy.begin(); it != connected_proxies_copy.end(); ++it) {
         if (proxies_seen.count(*it) == 0) {
             connected_proxies.erase(*it);
             logINF("Disconnected from proxy %s", uuid_to_str(it->get_uuid()).c_str());

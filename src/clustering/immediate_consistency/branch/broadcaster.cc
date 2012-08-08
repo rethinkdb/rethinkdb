@@ -58,7 +58,7 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
 
     for (typename version_map_t::const_iterator it =  origins.begin();
          it != origins.end();
-         it++) {
+         ++it) {
         state_timestamp_t part_timestamp = it->second.latest.timestamp;
         if (part_timestamp > initial_timestamp) {
             initial_timestamp = part_timestamp;
@@ -153,16 +153,16 @@ public:
     incomplete_write_ref_t() { }
     explicit incomplete_write_ref_t(const boost::shared_ptr<incomplete_write_t> &w) : write(w) {
         rassert(w);
-        w->incomplete_count++;
+        ++w->incomplete_count;
     }
     incomplete_write_ref_t(const incomplete_write_ref_t &r) : write(r.write) {
         if (r.write) {
-            r.write->incomplete_count++;
+            ++r.write->incomplete_count;
         }
     }
     ~incomplete_write_ref_t() {
         if (write) {
-            write->incomplete_count--;
+            --write->incomplete_count;
             if (write->incomplete_count == 0) {
                 write->parent->end_write(write);
             }
@@ -170,10 +170,10 @@ public:
     }
     incomplete_write_ref_t &operator=(const incomplete_write_ref_t &r) {
         if (r.write) {
-            r.write->incomplete_count++;
+            ++r.write->incomplete_count;
         }
         if (write) {
-            write->incomplete_count--;
+            --write->incomplete_count;
             if (write->incomplete_count == 0) {
                 write->parent->end_write(write);
             }
@@ -226,7 +226,7 @@ public:
             d, controller->newest_complete_timestamp, auto_drainer_t::lock_t(&drainer)));
 
         for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
-                it != controller->incomplete_writes.end(); it++) {
+                it != controller->incomplete_writes.end(); ++it) {
 
             coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, controller,
                                                this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it), order_source.check_in("dispatchee_t"), fifo_source.enter_write()));
@@ -461,7 +461,7 @@ void broadcaster_t<protocol_t>::spawn_write(typename protocol_t::write_t write, 
     /* As long as we hold the lock, take a snapshot of the dispatchee map
     and grab order tokens */
     for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
-            it != dispatchees.end(); it++) {
+            it != dispatchees.end(); ++it) {
         /* Once we call `enter_write()`, we have committed to sending
         the write to every dispatchee. In particular, it's important
         that we don't check `interruptor` until the write is on its way
@@ -554,7 +554,7 @@ void broadcaster_t<protocol_t>::sanity_check() {
     mutex_assertion_t::acq_t acq(&mutex);
     state_timestamp_t ts = newest_complete_timestamp;
     for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
-         it != incomplete_writes.end(); it++) {
+         it != incomplete_writes.end(); ++it) {
         rassert(ts == (*it)->timestamp.timestamp_before());
         ts = (*it)->timestamp.timestamp_after();
     }

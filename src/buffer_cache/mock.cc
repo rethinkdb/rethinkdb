@@ -211,7 +211,7 @@ mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_con
     struct read_callback_t : public iocallback_t, public cond_t {
         read_callback_t() : count(0) { }
         void on_io_complete() {
-            count--;
+            --count;
             if (count == 0) pulse();
         }
         int count;
@@ -219,10 +219,10 @@ mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_con
 
     block_id_t end_block_id = serializer->max_block_id();
     bufs->set_size(end_block_id, NULL);
-    for (block_id_t i = 0; i < end_block_id; i++) {
+    for (block_id_t i = 0; i < end_block_id; ++i) {
         if (!serializer->get_delete_bit(i)) {
             internal_buf_t *internal_buf = bufs->get(i) = new internal_buf_t(this, i, serializer->get_recency(i));
-            read_cb.count++;
+            ++read_cb.count;
             serializer->block_read(serializer->index_read(i), internal_buf->data, DEFAULT_DISK_ACCOUNT, &read_cb);
         }
     }
@@ -242,7 +242,7 @@ mock_cache_t::~mock_cache_t() {
     {
         on_thread_t thread_switcher(serializer->home_thread());
         std::vector<serializer_write_t> writes;
-        for (block_id_t i = 0; i < bufs->get_size(); i++)
+        for (block_id_t i = 0; i < bufs->get_size(); ++i)
             writes.push_back(
                              bufs->get(i)
                              ? serializer_write_t::make_update(i, bufs->get(i)->subtree_recency, bufs->get(i)->data)
@@ -250,7 +250,7 @@ mock_cache_t::~mock_cache_t() {
         do_writes(serializer, writes, DEFAULT_DISK_ACCOUNT);
     }
 
-    for (block_id_t i = 0; i < bufs->get_size(); i++) {
+    for (block_id_t i = 0; i < bufs->get_size(); ++i) {
         delete bufs->get(i);
     }
 }
