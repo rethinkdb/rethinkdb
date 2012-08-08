@@ -454,6 +454,53 @@ void apply_json_to(cJSON *, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T
 
 template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20, class ctx_t>
 void on_subfield_change(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *, const ctx_t &) { }
+
+
+// ctx-less JSON adapter for boost::variant
+class noctx_variant_json_subfield_getter_t : public boost::static_visitor<json_adapter_if_t::json_adapter_map_t> {
+public:
+    noctx_variant_json_subfield_getter_t() { }
+
+    template <class T>
+    json_adapter_if_t::json_adapter_map_t operator()(const T &t) {
+        T _t = t;
+        return get_json_subfields(&_t);
+    }
+};
+
+class noctx_variant_json_renderer_t : public boost::static_visitor<cJSON *> {
+public:
+    noctx_variant_json_renderer_t() { }
+
+    template <class T>
+    cJSON *operator()(const T &t) {
+        T _t = t;
+        return render_as_json(&_t);
+    }
+};
+
+template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *target) {
+    noctx_variant_json_subfield_getter_t visitor;
+    return boost::apply_visitor(visitor, *target);
+}
+
+template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
+cJSON *render_as_json(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *target) {
+    noctx_variant_json_renderer_t visitor;
+    return boost::apply_visitor(visitor, *target);
+}
+
+template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
+void apply_json_to(cJSON *, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *) {
+    throw permission_denied_exc_t("Can't write to a boost::variant.");
+}
+
+template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
+void on_subfield_change(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *) { }
+
+
+
 } //namespace boost
 
 namespace std {
@@ -646,6 +693,41 @@ void apply_json_to(cJSON *change, std::set<V> *target, const ctx_t &ctx) {
 template <class V, class ctx_t>
 void on_subfield_change(std::set<V> *, const ctx_t &) { }
 
+// ctx-less JSON adapter for std::set
+template <class V>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(std::set<V> *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+
+template <class V>
+cJSON *render_as_json(std::set<V> *target) {
+    cJSON *res = cJSON_CreateArray();
+
+    for (typename std::set<V>::const_iterator it = target->begin(); it != target->end(); ++it) {
+        V tmp = *it;
+        cJSON_AddItemToArray(res, render_as_json(&tmp));
+    }
+    return res;
+}
+
+template <class V>
+void apply_json_to(cJSON *change, std::set<V> *target) {
+    std::set<V> res;
+    json_array_iterator_t it = get_array_it(change);
+    cJSON *val;
+    while ((val = it.next())) {
+        V v;
+        apply_json_to(val, &v);
+        res.insert(v);
+    }
+
+    *target = res;
+}
+
+template <class V>
+void on_subfield_change(std::set<V> *) { }
+
+
 //JSON adapter for std::pair
 template <class F, class S, class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(std::pair<F, S> *target, const ctx_t &ctx) {
@@ -827,5 +909,26 @@ void apply_as_directory(cJSON *change, T *target, const ctx_t &ctx) {
         }
     }
 }
+
+template <class T>
+void apply_as_directory(cJSON *change, T *target) {
+    typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
+    json_adapter_map_t elements = get_json_subfields(target);
+
+    json_object_iterator_t it = get_object_it(change);
+    cJSON *val;
+    while ((val = it.next())) {
+        if (elements.find(val->string) == elements.end()) {
+#ifndef NDEBUG
+            logERR("Error, couldn't find element %s in adapter map.", val->string);
+#else
+            throw schema_mismatch_exc_t(strprintf("Couldn't find element %s.", val->string));
+#endif
+        } else {
+            elements[val->string]->apply(val);
+        }
+    }
+}
+
 
 #endif  // HTTP_JSON_JSON_ADAPTER_TCC_

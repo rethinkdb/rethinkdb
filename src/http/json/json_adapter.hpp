@@ -486,6 +486,20 @@ void apply_json_to(cJSON *, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T
 
 template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20, class ctx_t>
 void on_subfield_change(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *, const ctx_t &);
+
+// ctx-less JSON adapter for boost::variant
+template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *);
+
+template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
+cJSON *render_as_json(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *);
+
+template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
+void apply_json_to(cJSON *, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *);
+
+template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
+void on_subfield_change(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *);
+
 } //namespace boost
 
 namespace std {
@@ -546,6 +560,20 @@ void apply_json_to(cJSON *, std::set<V> *, const ctx_t &);
 
 template <class V, class ctx_t>
 void on_subfield_change(std::set<V> *, const ctx_t &);
+
+// ctx-less JSON adapter for std::set
+template <class V>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(std::set<V> *);
+
+template <class V>
+cJSON *render_as_json(std::set<V> *);
+
+template <class V>
+void apply_json_to(cJSON *, std::set<V> *);
+
+template <class V>
+void on_subfield_change(std::set<V> *);
+
 
 //JSON adapter for std::pair
 template <class F, class S, class ctx_t>
@@ -611,6 +639,10 @@ cJSON *render_as_directory(T *);
 
 template <class T, class ctx_t>
 void apply_as_directory(cJSON *change, T *, const ctx_t &);
+
+template <class T>
+void apply_as_directory(cJSON *change, T *);
+
 
 template<class T, class cxt_t>
 std::string render_as_json_string(const T &t, const cxt_t cxt) {

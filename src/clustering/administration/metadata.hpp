@@ -109,6 +109,7 @@ public:
 };
 
 // json adapter concept for directory_echo_wrapper_t
+// TODO: Make this used the ctx-less version, if it exists.
 template <typename T, class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
     return get_json_subfields(&target->internal, ctx);
@@ -128,6 +129,28 @@ template <typename T, class ctx_t>
 void on_subfield_change(directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
     on_subfield_change(&target->internal, ctx);
 }
+
+// ctx-less json adapter for directory_echo_wrapper_t
+template <typename T>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(directory_echo_wrapper_t<T> *target) {
+    return get_json_subfields(&target->internal);
+}
+
+template <typename T>
+cJSON *render_as_json(directory_echo_wrapper_t<T> *target) {
+    return render_as_json(&target->internal);
+}
+
+template <typename T>
+void apply_json_to(cJSON *change, directory_echo_wrapper_t<T> *target) {
+    apply_json_to(change, &target->internal);
+}
+
+template <typename T>
+void on_subfield_change(directory_echo_wrapper_t<T> *target) {
+    on_subfield_change(&target->internal);
+}
+
 
 //  json adapter concept for cluster_directory_metadata_t
 template <class ctx_t>
