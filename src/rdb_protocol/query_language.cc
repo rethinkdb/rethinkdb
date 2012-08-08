@@ -676,8 +676,12 @@ void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const back
         } else {
             stream_cache->insert(r, key, stream);
         }
+#ifndef DEBUG
+        stream_cache->serve(key, res);
+#else
         bool b = stream_cache->serve(key, res);
         rassert(b);
+#endif
         break; //status code set in [serve]
     }
     case TERM_TYPE_ARBITRARY: {
