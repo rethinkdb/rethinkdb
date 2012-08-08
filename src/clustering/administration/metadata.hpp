@@ -108,28 +108,6 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_10(dummy_namespaces, memcached_namespaces, rdb_namespaces, machine_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, log_mailbox, local_issues, peer_type);
 };
 
-// json adapter concept for directory_echo_wrapper_t
-// TODO: Make this used the ctx-less version, if it exists.
-template <typename T, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
-    return get_json_subfields(&target->internal, ctx);
-}
-
-template <typename T, class ctx_t>
-cJSON *render_as_json(directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
-    return render_as_json(&target->internal, ctx);
-}
-
-template <typename T, class ctx_t>
-void apply_json_to(cJSON *change, directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
-    apply_json_to(change, &target->internal, ctx);
-}
-
-template <typename T, class ctx_t>
-void on_subfield_change(directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
-    on_subfield_change(&target->internal, ctx);
-}
-
 // ctx-less json adapter for directory_echo_wrapper_t
 template <typename T>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(directory_echo_wrapper_t<T> *target) {
