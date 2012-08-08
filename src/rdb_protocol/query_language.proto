@@ -10,16 +10,16 @@ message VarTermTuple {
 
 message Term {
     enum TermType {
-        VAR = 0;
-        LET = 1;
-        CALL = 2;
-        IF = 3;
-        ERROR = 4;
-        NUMBER = 5;
-        STRING = 6;
-        JSON = 7;
-        BOOL = 8;
-        JSON_NULL = 9; //can't use just "NULL" here we get in trouble
+        JSON_NULL = 0; //can't use just "NULL" here we get in trouble
+        VAR = 1;
+        LET = 2;
+        CALL = 3;
+        IF = 4;
+        ERROR = 5;
+        NUMBER = 6;
+        STRING = 7;
+        JSON = 8;
+        BOOL = 9;
         ARRAY = 10;
         OBJECT = 11;
         GETBYKEY = 12;
@@ -97,10 +97,8 @@ message Builtin {
         IMPLICIT_PICKATTRS = 7;
         MAPMERGE = 8;
         ARRAYAPPEND = 9;
-        ARRAYCONCAT = 10;
-        ARRAYSLICE = 11;
+        SLICE = 11;         // slice(thing_to_slice, None/left extent, None/right extent)
         ARRAYNTH = 12;
-        ARRAYLENGTH = 13;
         ADD = 14;
         SUBTRACT = 15;
         MULTIPLY = 16;
@@ -112,7 +110,6 @@ message Builtin {
         CONCATMAP = 22;
         ORDERBY = 23;
         DISTINCT = 24;
-        LIMIT = 25;
         LENGTH = 26;
         UNION = 27;
         NTH = 28;
@@ -123,7 +120,6 @@ message Builtin {
         ANY = 35;
         ALL = 36;
         RANGE = 37;
-        SKIP = 38;
     };
 
     enum Comparison {
@@ -208,6 +204,9 @@ message ReadQuery {
     required Term term = 1;
     optional int64 max_chunk_size = 2; //may be 0 for unlimited
     optional int64 max_age = 3;
+
+    // reserved for RethinkDB internal use.
+    extensions 1000 to 1099;
 };
 
 message WriteQuery {

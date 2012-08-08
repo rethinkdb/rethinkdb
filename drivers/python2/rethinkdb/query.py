@@ -63,12 +63,15 @@ def R(name):
     >>> table('users').filter(fn('row', R('$age') == 30)) # error - no variable 'age' is defined
     >>> table('users').filter(R('$age') == 30) # error - no variable '$age' is defined, use 'age'
     """
-    if name.startwith('$'):
+    if name.startswith('$'):
         if '.' not in name:
             return internal.Var(name[1:])
-        var = internal.Var()
-    is_var = name.startswith('$')
-    is_implicit = name.startswith('@')
+        raise NotImplementedError("$ with . not handled")
+    if name.startswith('@'):
+        raise NotImplementedError("@ not handled")
+    if '.' in name:
+        raise NotImplementedError(". not handled")
+    return internal.ImplicitAttr(name)
 
 def fn(arg, *args):
     """Create a function.
@@ -92,7 +95,7 @@ def fn(arg, *args):
 #####################################
 # SELECTORS - QUERYING THE DATABASE #
 #####################################
-class Expression(object):
+class BaseExpression(object):
     """A base class for all ReQL expressions. An expression encodes an
     operation that can be evaluated on the server via
     :func:`rethinkdb.net.Connection.run` or
@@ -100,7 +103,6 @@ class Expression(object):
     get evaluated to themselves, or as complex as queries with
     multiple subqueries with table joins.
     """
-
     def run(conn=None):
         """Evaluate the expression on the server using the connection
         specified by `conn`. If `conn` is empty, uses the last created
@@ -120,6 +122,11 @@ class Expression(object):
         >>> res = table('db_name.table_name').all().run() # uses conn since it's the last created connection
         """
         raise NotImplementedError
+
+class Expression(BaseExpression):
+    def _finalize_query(self, root):
+        root.type = p.Query.READ
+        self._write_ast(root.read_query.term)
 
     def _write_call(self, parent, builtin, *args):
         parent.type = p.Term.CALL
@@ -204,11 +211,21 @@ class Expression(object):
         :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
         """
         if isinstance(selector, dict):
-            selector = internal.Conjunction(*[R(k) == v for k, v in selector.iteritems()])
+            selector = internal.All(*[R(k) == v for k, v in selector.iteritems()])
         if not isinstance(selector, internal.Function):
             selector = internal.Function(selector)
 
         return internal.Filter(self, selector)
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            if index.step is not None:
+                raise ValueError("slice stepping is unsupported")
+            return internal.Slice(self, index.start, index.stop)
+        elif isinstance(index, int):
+            return internal.Nth(self, index)
+        else:
+            raise TypeError("stream indices must be integers, not " + index.__class__.__name__)
 
     def nth(self, index):
         """Select the element at `index`.
@@ -269,7 +286,13 @@ class Expression(object):
         >>> table('users').orderby('name')  # order users by name A-Z
         >>> table('users').orderby('-level', 'name') # levels high-low, then names A-Z
         """
-        raise NotImplementedError
+        order = []
+        for attr in ordering:
+            if attr.startswith('-'):
+                order.append((attr[1:], False))
+            else:
+                order.append((attr, True))
+        return internal.OrderBy(self, order)
 
     def random(self):
         """Select a random element.
@@ -285,7 +308,8 @@ class Expression(object):
 
         This is a Selector.
 
-        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)"""
+        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
+        """
         raise NotImplementedError
 
     def map(self, mapping):
@@ -298,8 +322,11 @@ class Expression(object):
 
         >>> expr([1, 2, 3]).map(R('@') * 2) # gives [2, 4, 6]
         >>> table('users').map(R('age'))
-        >>> table('users').map(fn('user', table('posts').filter({'userid': R('$user.id')})))"""
-
+        >>> table('users').map(fn('user', table('posts').filter({'userid': R('$user.id')})))
+        """
+        if not isinstance(mapping, internal.Function):
+            mapping = internal.Function(mapping)
+        return internal.Map(self, mapping)
 
     def reduce(self, base, func):
         """Build up a result by repeatedly applying `func` to pairs of elements. Returns
@@ -318,10 +345,24 @@ class Expression(object):
         raise NotImplementedError
 
     def distinct(self, *attrs):
-        pass
+        """Select distinct elements of the input.
 
-    def pluck(self, *attrs):
-        pass
+        If attribute names are passed, it will first pluck the given attributes
+        and then limit to distinct elements.
+
+        :param attrs: The attributes to find distinct combinations of.
+        :type attrs: str
+        :returns: :class:`Stream`, class `JSONExpression` (depends on input)
+        """
+        if attrs:
+            return self.pluck(*attrs).distinct()
+        return internal.Distinct(self)
+
+    def pluck(self, attr, *attrs):
+        if not attrs:
+            return self.map(internal.ImplicitAttr(attr))
+        else:
+            return self.map([internal.ImplicitAttr(x) for x in (attr,) + attrs])
 
 ##########################################
 # DATA OBJECTS - SELECTION, STREAM, ETC. #
@@ -330,11 +371,16 @@ class Stream(Expression):
     """A sequence of JSON values which can be read."""
     def to_array(self):
         """Convert the stream into a JSON array."""
+        return internal.ToArray(self)
+
+    def count(self):
+        return internal.Count(self)
 
 class BaseSelection(object):
     """Something which can be read or written."""
     def delete(self):
         """Delete all rows in the selection from the database."""
+        return internal.Delete(self)
 
     def update(self, mapping):
         """Update all rows in the selection by merging the current contents
@@ -345,6 +391,7 @@ class BaseSelection(object):
         >>> table('users').filter(R('warnings') > 5).update({'banned': True})
 
         """
+        raise NotImplementedError
 
 class MultiRowSelection(Stream, BaseSelection):
     """A sequence of rows which can be read or written."""
@@ -368,11 +415,6 @@ class JSONExpression(Expression):
     >>> expr(1) < 2 # We can also do `>`, `<=`, `>=`, `==`, etc.
     >>> expr(1) < 2 & 3 < 4 # We use `&` and `|` to encode `and` and `or` since we can't overload
                             # these in Python"""
-
-
-    def _finalize_query(self, root):
-        root.type = p.Query.READ
-        self._write_ast(root.read_query.term)
 
     def to_stream(self):
         """Convert a JSON array into a stream."""
@@ -440,7 +482,7 @@ class JSONLiteral(JSONExpression):
             self.type = p.Term.JSON_NULL
         else:
             raise TypeError("argument must be a JSON-compatible type (bool/int/float/str/unicode/dict/list),"
-                            "not %r" % value.__class__.__name__)
+                            " not %r" % value.__class__.__name__)
 
     def _write_ast(self, parent):
         parent.type = self.type
@@ -467,6 +509,12 @@ def expr(val):
     >>> expr({ 'name': 'Joe', 'age': 30 })
     """
     if isinstance(val, JSONExpression):
+        return val
+    return JSONLiteral(val)
+
+def _baseexpr(val):
+    """Like expr(), but just coerces to :class:`BaseExpression`"""
+    if isinstance(val, Expression):
         return val
     return JSONLiteral(val)
 
@@ -553,9 +601,9 @@ class Database(object):
         """Use :func:`rethinkdb.query.db` to create this object.
 
         :param db_name: Name of the databases to access.
-        :type db_expr: str
+        :type db_name: str
         """
-        raise NotImplementedError
+        self.db_name = db_name
 
     def create(self, table_name, primary_key=None):
         """Create a ReQL expression that creates a table within this
@@ -632,7 +680,7 @@ class Database(object):
         :returns: :class:`Table` -- a ReQL expression that encodes the
           table expression.
         """
-        raise NotImplementedError
+        return Table(table_name, self)
 
 def db(db_name):
     """Create a ReQL expression that encodes a database within a
@@ -646,7 +694,7 @@ def db(db_name):
 
     >>> q = db('db_name')
     """
-    raise NotImplementedError
+    return Database(db_name)
 
 class Table(MultiRowSelection):
     """A ReQL expression that encodes a RethinkDB table. Most data
@@ -667,6 +715,20 @@ class Table(MultiRowSelection):
         self.table_name = table_name
         self.db_expr = db_expr
 
+    def insert(self, docs):
+        """Insert documents into the table.
+
+        :param docs: the document(s) to insert
+        :type docs: dict/list(dict)
+        """
+        if isinstance(docs, dict):
+            return internal.Insert(self, [docs])
+        else:
+            return internal.Insert(self, docs)
+
+    def insert_stream(self, stream):
+        return internal.InsertStream(self, stream)
+
     def get(self, key):
         """Select a row by primary key. If the key doesn't exist, returns null.
 
@@ -676,7 +738,15 @@ class Table(MultiRowSelection):
 
         >>> q = table('users').get(10)  # get user with primary key 10
         """
-        raise NotImplementedError
+        return internal.Get(self, key)
+
+    def _write_ref_ast(self, parent):
+        parent.db_name = self.db_expr.db_name
+        parent.table_name = self.table_name
+
+    def _write_ast(self, parent):
+        parent.type = p.Term.TABLE
+        self._write_ref_ast(parent.table.table_ref)
 
 def table(table_ref):
     """Get a reference to a table within a RethinkDB cluster.
