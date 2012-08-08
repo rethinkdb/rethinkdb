@@ -35,12 +35,6 @@ cJSON *render_as_json(issue_json_t *);
 void apply_json_to(cJSON *, issue_json_t *);
 void on_subfield_change(issue_json_t *);
 
-
-class local_issue_json_t : public issue_json_t {
-public:
-    uuid_t machine;
-};
-
 #include "clustering/administration/issues/json.tcc"
 
 
