@@ -106,18 +106,14 @@ public:
     }
 
 private:
-    friend int send_write_message(write_stream_t *s, write_message_t *msg);
+    friend int send_write_message(write_stream_t *s, const write_message_t *msg);
 
     intrusive_list_t<write_buffer_t> buffers_;
 
     DISABLE_COPYING(write_message_t);
 };
 
-// Hack for older versions of GCC, which seem to not find the declaration
-// it's outside of the write_message_t class.
-int send_write_message(write_stream_t *s, write_message_t *msg);
-
-MUST_USE int send_message(write_stream_t *s, write_message_t *msg);
+MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
 
 #define ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2)                \
     inline write_message_t &operator<<(write_message_t &msg, typ1 x) {  \

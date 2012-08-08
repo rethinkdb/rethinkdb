@@ -3,6 +3,9 @@
 #include <exception>
 #include <vector>
 
+#include "errors.hpp"
+#include <boost/ptr_container/ptr_vector.hpp>
+
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
