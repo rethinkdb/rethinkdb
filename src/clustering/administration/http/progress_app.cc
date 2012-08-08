@@ -149,6 +149,7 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_prot
             (*promise_map)[m_id][n_id][a_id].insert(std::make_pair(region, req_rec));
             things_to_destroy->push_back(req_rec);
         } else {
+            // TODO: Why is this commented out?
             //scoped_cJSON_t scoped_region(render_as_json(region_activity_pair.first, 0));
             //cJSON_AddItemToObject(backfills, get_string(scoped_region.get()).c_str(), cJSON_CreateString("backfiller not found"));
         }
@@ -187,6 +188,7 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_prot
         (*promise_map)[m_id][n_id][a_id].insert(std::make_pair(region, req_rec));
         things_to_destroy->push_back(req_rec);
     } else {
+        // TODO: Why is this commented out?
         //scoped_cJSON_t scoped_region(render_as_json(region_activity_pair.first, 0));
         //cJSON_AddItemToObject(backfills, get_string(scoped_region.get()).c_str(), cJSON_CreateString("backfiller not found"));
     }
@@ -356,7 +358,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                     if (!std_contains(backfills_for_region, r)) {
                         region_info = cJSON_CreateArray();
                         backfills_for_region.insert(std::make_pair(r, region_info));
-                        scoped_cJSON_t scoped_region(render_as_json(&r, 0));
+                        scoped_cJSON_t scoped_region(render_as_json(&r));
                         cJSON_AddItemToObject(activity_info, get_string(scoped_region.get()).c_str(), region_info);
                     } else {
                         region_info = backfills_for_region[r];

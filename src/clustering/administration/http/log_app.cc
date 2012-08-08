@@ -4,8 +4,7 @@
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "utils.hpp"
 
-template <class ctx_t>
-cJSON *render_as_json(log_message_t *message, const ctx_t &) {
+cJSON *render_as_json(log_message_t *message) {
     std::string timestamp_buffer = strprintf("%ld.%09ld", message->timestamp.tv_sec, message->timestamp.tv_nsec);
     scoped_cJSON_t json(cJSON_CreateObject());
     json.AddItemToObject("timestamp", cJSON_CreateString(timestamp_buffer.c_str()));
@@ -138,7 +137,7 @@ void log_http_app_t::fetch_logs(int i,
             mailbox_manager, bcards[peers[i]],
             max_messages, min_timestamp, max_timestamp,
             interruptor);
-        cJSON_AddItemToObject(map_to_fill, key.c_str(), render_as_json(&messages, 0));
+        cJSON_AddItemToObject(map_to_fill, key.c_str(), render_as_json(&messages));
     } catch (interrupted_exc_t) {
         /* ignore */
     } catch (std::runtime_error e) {
