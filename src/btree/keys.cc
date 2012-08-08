@@ -17,7 +17,7 @@ std::string key_to_unescaped_str(const store_key_t &key) {
 std::string key_to_debug_str(const store_key_t &key) {
     std::string s;
     s.push_back('"');
-    for (int i = 0; i < key.size(); ++i) {
+    for (int i = 0; i < key.size(); i++) {
         uint8_t c = key.contents()[i];
         if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {
             s.push_back(c);

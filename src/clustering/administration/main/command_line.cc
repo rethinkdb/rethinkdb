@@ -1,8 +1,10 @@
 #include "clustering/administration/main/command_line.hpp"
 
-#include <signal.h>             // sigaction
+#include <signal.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
 
@@ -17,6 +19,7 @@
 #include "logger.hpp"
 #include "extproc/spawner.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "utils.hpp"
 
 namespace po = boost::program_options;
 
@@ -71,7 +74,7 @@ void run_rethinkdb_create(const std::string &filepath, const std::string &machin
 
 std::set<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t> names) {
     std::set<peer_address_t> peers;
-    for (int i = 0; i < (int)names.size(); ++i) {
+    for (size_t i = 0; i < names.size(); ++i) {
         peers.insert(peer_address_t(ip_address_t(names[i].host), names[i].port));
     }
     return peers;

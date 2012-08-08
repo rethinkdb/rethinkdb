@@ -11,15 +11,17 @@
 namespace mock {
 //json adapter concept for dummy_protocol_t::region_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(dummy_protocol_t::region_t *, const ctx_t &) {
-    return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+json_adapter_if_t::json_adapter_map_t get_json_subfields(dummy_protocol_t::region_t *, const ctx_t &) {
+    return json_adapter_if_t::json_adapter_map_t();
 }
 
 template <class ctx_t>
 std::string render_region_as_string(dummy_protocol_t::region_t *target, const ctx_t &) {
     std::string val;
     val += "{";
-    for (std::set<std::string>::iterator it = target->keys.begin(); it != target->keys.end(); ++it) {
+    for (std::set<std::string>::iterator it =  target->keys.begin();
+                                         it != target->keys.end();
+                                         it++) {
         val += *it;
         val += ", ";
     }

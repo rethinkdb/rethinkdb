@@ -87,7 +87,7 @@ float estimate_cost_to_get_up_to_date(
     typedef reactor_business_card_t<protocol_t> rb_t;
     region_map_t<protocol_t, float> costs(shard, 3);
     for (typename rb_t::activity_map_t::const_iterator it = business_card.activities.begin();
-            it != business_card.activities.end(); ++it) {
+            it != business_card.activities.end(); it++) {
         typename protocol_t::region_t intersection = region_intersection(it->second.first, shard);
         if (!region_is_empty(intersection)) {
             int cost;
@@ -119,17 +119,17 @@ float estimate_cost_to_get_up_to_date(
     }
     float sum = 0;
     int count = 0;
-    for (typename region_map_t<protocol_t, float>::iterator it = costs.begin(); it != costs.end(); ++it) {
+    for (typename region_map_t<protocol_t, float>::iterator it = costs.begin(); it != costs.end(); it++) {
         /* TODO: Scale by how much data is in `it->first` */
         sum += it->second;
-        ++count;
+        count++;
     }
     return sum / count;
 }
 
 std::vector<machine_id_t> pick_n_best(priority_queue_t<priority_t> *candidates, int n, const datacenter_id_t &datacenter) {
     std::vector<machine_id_t> result;
-    while ((int)result.size() < n) {
+    while (result.size() < static_cast<size_t>(n)) {
         if (candidates->empty()) {
             throw cannot_satisfy_goals_exc_t(strprintf("Didn't have enough unused machines in datacenter %s, we needed %d\n", uuid_to_str(datacenter).c_str(), n));
         } else {
@@ -155,7 +155,7 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
 
     priority_queue_t<priority_t> primary_candidates;
     for (std::map<machine_id_t, datacenter_id_t>::const_iterator it = machine_data_centers.begin();
-            it != machine_data_centers.end(); ++it) {
+            it != machine_data_centers.end(); it++) {
         if (it->second == primary_datacenter) {
             bool pinned = std_contains(primary_pinnings, it->first);
 
@@ -179,11 +179,10 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
     //Update primary_usage
     get_with_default(*primary_usage, primary, 0)++;
 
-    for (std::map<datacenter_id_t, int>::const_iterator it = datacenter_affinities.begin(); it != datacenter_affinities.end(); ++it) {
+    for (std::map<datacenter_id_t, int>::const_iterator it = datacenter_affinities.begin(); it != datacenter_affinities.end(); it++) {
         priority_queue_t<priority_t> secondary_candidates;
         for (std::map<machine_id_t, datacenter_id_t>::const_iterator jt = machine_data_centers.begin();
-             jt != machine_data_centers.end();
-             ++jt) {
+                jt != machine_data_centers.end(); jt++) {
             if (jt->second == it->first && jt->first != primary) {
                 bool pinned = std_contains(secondary_pinnings, jt->first);
 
@@ -202,7 +201,7 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
             }
         }
         std::vector<machine_id_t> secondaries = pick_n_best(&secondary_candidates, it->second, it->first);
-        for (std::vector<machine_id_t>::iterator jt = secondaries.begin(); jt != secondaries.end(); ++jt) {
+        for (std::vector<machine_id_t>::iterator jt = secondaries.begin(); jt != secondaries.end(); jt++) {
             //Update secondary usage
             get_with_default(*secondary_usage, *jt, 0)++;
             sub_blueprint[*jt] = blueprint_details::role_secondary;
@@ -210,8 +209,7 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
     }
 
     for (std::map<machine_id_t, datacenter_id_t>::const_iterator it = machine_data_centers.begin();
-         it != machine_data_centers.end();
-         ++it) {
+            it != machine_data_centers.end(); it++) {
         /* This will set the value to `role_nothing` iff the peer is not already
         in the blueprint. */
         sub_blueprint.insert(std::make_pair(it->first, blueprint_details::role_nothing));
@@ -238,8 +236,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
     //Maps to keep track of how much we're using each machine
     std::map<machine_id_t, int> primary_usage, secondary_usage;
     for (typename std::set<typename protocol_t::region_t>::const_iterator it = shards.begin();
-         it != shards.end();
-         ++it) {
+            it != shards.end(); it++) {
         std::set<machine_id_t> machines_shard_primary_is_pinned_to;
         primary_pinnings_map_t primary_masked_map = primary_pinnings.mask(*it);
 
@@ -264,8 +261,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
                                         machines_shard_secondary_is_pinned_to, &primary_usage,
                                         &secondary_usage);
         for (typename std::map<machine_id_t, typename blueprint_details::role_t>::iterator jt = shard_blueprint.begin();
-             jt != shard_blueprint.end();
-             ++jt) {
+                jt != shard_blueprint.end(); jt++) {
             blueprint.machines_roles[jt->first][*it] = jt->second;
         }
     }

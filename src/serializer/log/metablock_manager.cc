@@ -16,12 +16,12 @@
 void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *offsets) {
     offsets->clear();
 
-    int metablocks_per_extent = std::min(int(extent_size / DEVICE_BLOCK_SIZE), MB_BLOCKS_PER_EXTENT);
+    off64_t metablocks_per_extent = std::min<off64_t>(extent_size / DEVICE_BLOCK_SIZE, MB_BLOCKS_PER_EXTENT);
 
-    for (off64_t i = 0; i < MB_NEXTENTS; ++i) {
+    for (off64_t i = 0; i < MB_NEXTENTS; i++) {
         off64_t extent = i * extent_size * MB_EXTENT_SEPARATION;
 
-        for (int j = 0; j < metablocks_per_extent; ++j) {
+        for (off64_t j = 0; j < metablocks_per_extent; ++j) {
             off64_t offset = extent + j * DEVICE_BLOCK_SIZE;
 
             /* The very first DEVICE_BLOCK_SIZE of the file is used for the static header */
@@ -40,7 +40,7 @@ metablock_manager_t<metablock_t>::metablock_manager_t::head_t::head_t(metablock_
 
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::operator++() {
-    ++mb_slot;
+    mb_slot++;
     wraparound = false;
 
     if (mb_slot >= mgr->metablock_offsets.size()) {
@@ -78,7 +78,7 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
 
     /* Build the list of metablock locations in the file */
 
-    for (off64_t i = 0; i < MB_NEXTENTS; ++i) {
+    for (off64_t i = 0; i < MB_NEXTENTS; i++) {
         off64_t extent = i * extent_manager->extent_size * MB_EXTENT_SEPARATION;
 
         /* The reason why we don't reserve extent 0 is that it has already been reserved for the
@@ -116,12 +116,12 @@ void metablock_manager_t<metablock_t>::create(direct_file_t *dbfile, off64_t ext
     struct : public iocallback_t, public cond_t {
         int refcount;
         void on_io_complete() {
-            --refcount;
+            refcount--;
             if (refcount == 0) pulse();
         }
     } callback;
     callback.refcount = metablock_offsets.size();
-    for (unsigned i = 0; i < metablock_offsets.size(); ++i) {
+    for (unsigned i = 0; i < metablock_offsets.size(); i++) {
         dbfile->write_async(metablock_offsets[i], DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT, &callback);
     }
     callback.wait();
@@ -157,8 +157,8 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
         ~load_buffer_manager_t() {
             free(buffer);
         }
-        crc_metablock_t* get_metablock(unsigned i) {
-            return (crc_metablock_t*)(((char*)buffer) + DEVICE_BLOCK_SIZE * i);
+        crc_metablock_t *get_metablock(unsigned i) {
+            return reinterpret_cast<crc_metablock_t *>(reinterpret_cast<char *>(buffer) + DEVICE_BLOCK_SIZE * i);
         }
 
     private:
@@ -167,12 +167,12 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
     struct : public iocallback_t, public cond_t {
         int refcount;
         void on_io_complete() {
-            --refcount;
+            refcount--;
             if (refcount == 0) pulse();
         }
     } callback;
     callback.refcount = metablock_offsets.size();
-    for(unsigned i = 0; i < metablock_offsets.size(); ++i) {
+    for(unsigned i = 0; i < metablock_offsets.size(); i++) {
         dbfile->read_async(metablock_offsets[i], DEVICE_BLOCK_SIZE, lbm.get_metablock(i),
                            DEFAULT_DISK_ACCOUNT, &callback);
     }
@@ -185,7 +185,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
 
     // We've read everything from disk. Now find the last good metablock.
     crc_metablock_t *last_good_mb = NULL;
-    for(unsigned i = 0; i < metablock_offsets.size(); ++i) {
+    for(unsigned i = 0; i < metablock_offsets.size(); i++) {
         crc_metablock_t *mb_temp = lbm.get_metablock(i);
         if (mb_temp->check_crc()) {
             if (mb_temp->version > startup_values.version) {
@@ -247,9 +247,7 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_
     rassert(state == state_ready);
     rassert(!mb_buffer_in_use);
 
-    int64_t version_number = next_version_number;
-    ++next_version_number;
-    mb_buffer->prepare(mb, version_number);
+    mb_buffer->prepare(mb, next_version_number++);
     rassert(mb_buffer->check_crc());
 
     mb_buffer_in_use = true;

@@ -14,19 +14,19 @@ TEST(ClusteringSuggester, NewNamespace) {
         secondary_datacenter = generate_uuid();
 
     std::vector<machine_id_t> machines;
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 10; i++) {
         machines.push_back(generate_uuid());
     }
 
     std::map<machine_id_t, reactor_business_card_t<dummy_protocol_t> > directory;
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 10; i++) {
         reactor_business_card_t<dummy_protocol_t> rb;
         rb.activities[generate_uuid()] = std::make_pair(a_thru_z_region(), reactor_business_card_t<dummy_protocol_t>::nothing_t());
         directory[machines[i]] = rb;
     }
 
     std::map<machine_id_t, datacenter_id_t> machine_data_centers;
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 10; i++) {
         machine_data_centers[machines[i]] = i % 2 == 0 ? primary_datacenter : secondary_datacenter;
     }
 

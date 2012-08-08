@@ -183,7 +183,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     }
     read_response_t operator()(rget_query_t rget) {
         std::map<store_key_t, const rget_result_t *> sorted_bits;
-        for (int i = 0; i < int(bits.size()); ++i) {
+        for (size_t i = 0; i < bits.size(); ++i) {
             const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
             if (!bit->pairs.empty()) {
                 const store_key_t &key = bit->pairs.front().key;
@@ -197,11 +197,11 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
         rget_result_t result;
         size_t cumulative_size = 0;
         for (std::map<store_key_t, const rget_result_t *>::iterator it = sorted_bits.begin(); it != sorted_bits.end(); ++it) {
-            if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
+            if (cumulative_size >= rget_max_chunk_size || result.pairs.size() > static_cast<size_t>(rget.maximum)) {
                 break;
             }
             for (std::vector<key_with_data_buffer_t>::const_iterator jt = it->second->pairs.begin(); jt != it->second->pairs.end(); ++jt) {
-                if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
+                if (cumulative_size >= rget_max_chunk_size || result.pairs.size() > static_cast<size_t>(rget.maximum)) {
                     break;
                 }
                 result.pairs.push_back(*jt);
@@ -230,7 +230,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 
         distribution_result_t res;
 
-        for (int i = 0, e = bits.size(); i < e; ++i) {
+        for (int i = 0, e = bits.size(); i < e; i++) {
             const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
             rassert(result, "Bad boost::get\n");
 
@@ -238,7 +238,8 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
             for (std::map<store_key_t, int>::const_iterator it = result->key_counts.begin();
                  it != result->key_counts.end();
                  ++it) {
-                rassert(!std_contains(res.key_counts, it->first), "repeated key '%*.*s'", int(it->first.size()), int(it->first.size()), it->first.contents());
+                rassert(!std_contains(res.key_counts, it->first), "repeated key '%*.*s'",
+                        static_cast<int>(it->first.size()), static_cast<int>(it->first.size()), it->first.contents());
             }
 #endif
             res.key_counts.insert(result->key_counts.begin(), result->key_counts.end());
@@ -264,7 +265,7 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_res
     }
     read_response_t operator()(rget_query_t rget) {
         std::vector<key_with_data_buffer_t> pairs;
-        for (int i = 0; i < int(bits.size()); ++i) {
+        for (size_t i = 0; i < bits.size(); ++i) {
             const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
             pairs.insert(pairs.end(), bit->pairs.begin(), bit->pairs.end());
         }
@@ -328,7 +329,7 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_res
             return read_response_t(res);
         }
 
-        double scale_factor = double(total_num_keys) / double(total_keys_in_res);
+        double scale_factor = static_cast<double>(total_num_keys) / static_cast<double>(total_keys_in_res);
 
         rassert(scale_factor >= 1.0);  // Directly provable from the code above.
 
@@ -471,9 +472,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
                                                   it != dstr.key_counts.end();
                                                   /* increments done in loop */) {
             if (!dget.range.contains_key(store_key_t(it->first))) {
-                std::map<store_key_t, int>::iterator old_it = it;
-                ++it;
-                dstr.key_counts.erase(old_it);
+                dstr.key_counts.erase(it++);
             } else {
                 ++it;
             }

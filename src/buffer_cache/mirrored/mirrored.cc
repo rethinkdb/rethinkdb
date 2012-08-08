@@ -105,7 +105,7 @@ public:
     // We are safe to unload if we are saved to disk and have no mc_buf_lock_ts actively referencing us.
     bool safe_to_unload() {
         cache->assert_thread();
-        return bool(token) && !active_refcount;
+        return token && !active_refcount;
     }
 
     void unload() {
@@ -201,12 +201,12 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_ac
 
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
     ++_cache->stats->pm_n_blocks_in_memory;
-    ++refcount; // Make the refcount nonzero so this block won't be considered safe to unload.
+    refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
     _cache->page_repl.make_space();
     _cache->maybe_unregister_read_ahead_callback();
 
-    --refcount;
+    refcount--;
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
@@ -229,10 +229,10 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_
     array_map_t::constructing_inner_buf(this);
 
     ++_cache->stats->pm_n_blocks_in_memory;
-    ++refcount; // Make the refcount nonzero so this block won't be considered safe to unload.
+    refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     _cache->page_repl.make_space();
     _cache->maybe_unregister_read_ahead_callback();
-    --refcount;
+    refcount--;
 
     // Read the block sequence id
     block_sequence_id = _cache->serializer->get_block_sequence_id(_block_id, data.get());
@@ -548,7 +548,7 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
                                lock_in_line_callback_t *call_when_in_line)
 {
     inner_buf->cache->assert_thread();
-    ++inner_buf->refcount;
+    inner_buf->refcount++;
     patches_serialized_size_at_start = -1;
 
     if (snapshotted) {
@@ -912,9 +912,7 @@ patch_counter_t mc_buf_lock_t::get_next_patch_counter() {
     rassert(mode == rwi_write);
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
-    patch_counter_t old_patch_counter = inner_buf->next_patch_counter;
-    ++inner_buf->next_patch_counter;
-    return old_patch_counter;
+    return inner_buf->next_patch_counter++;
 }
 
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
@@ -1086,7 +1084,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
     cache->assert_thread();
     rassert(!cache->shutting_down);
     rassert(access == rwi_write || expected_change_count == 0);
-    ++cache->num_live_non_writeback_transactions;
+    cache->num_live_non_writeback_transactions++;
     cache->writeback.begin_transaction(this);
 
     cache->stats->pm_transactions_active.begin(&start_time);
@@ -1110,7 +1108,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
 
     cache->assert_thread();
     rassert(dont_assert_about_shutting_down || !cache->shutting_down);
-    ++cache->num_live_non_writeback_transactions;
+    cache->num_live_non_writeback_transactions++;
     cache->writeback.begin_transaction(this);
     cache->stats->pm_transactions_active.begin(&start_time);
 }
@@ -1129,7 +1127,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     rassert(access == rwi_read || access == rwi_read_sync);
 
     cache->assert_thread();
-    ++cache->num_live_writeback_transactions;
+    cache->num_live_writeback_transactions++;
     cache->writeback.begin_transaction(this);
     cache->stats->pm_transactions_active.begin(&start_time);
 }
@@ -1405,8 +1403,7 @@ void mc_cache_t::register_snapshot(mc_transaction_t *txn) {
     ++stats->pm_registered_snapshots;
     rassert(txn->snapshot_version == mc_inner_buf_t::faux_version_id, "Snapshot has been already created for this transaction");
 
-    txn->snapshot_version = next_snapshot_version;
-    ++next_snapshot_version;
+    txn->snapshot_version = next_snapshot_version++;
     active_snapshots[txn->snapshot_version] = txn;
 }
 
@@ -1426,8 +1423,8 @@ size_t mc_cache_t::calculate_snapshots_affected(mc_inner_buf_t::version_id_t sna
     for (std::map<mc_inner_buf_t::version_id_t, mc_transaction_t *>::iterator it = active_snapshots.lower_bound(snapshotted_version),
              itend = active_snapshots.lower_bound(new_version);
          it != itend;
-         ++it) {
-        ++num_snapshots_affected;
+         it++) {
+        num_snapshots_affected++;
     }
     return num_snapshots_affected;
 }
@@ -1438,9 +1435,9 @@ size_t mc_cache_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf
     for (std::map<mc_inner_buf_t::version_id_t, mc_transaction_t *>::iterator it = active_snapshots.lower_bound(snapshotted_version),
              itend = active_snapshots.lower_bound(new_version);
          it != itend;
-         ++it) {
-        it->second->register_buf_snapshot(inner_buf, snap);
-        ++num_snapshots_affected;
+         it++) {
+        (*it).second->register_buf_snapshot(inner_buf, snap);
+        num_snapshots_affected++;
     }
     return num_snapshots_affected;
 }
@@ -1485,9 +1482,9 @@ void mc_cache_t::on_transaction_commit(mc_transaction_t *txn) {
     writeback.on_transaction_commit(txn);
 
     if (txn->is_writeback_transaction) {
-        --num_live_writeback_transactions;
+        num_live_writeback_transactions--;
     } else {
-        --num_live_non_writeback_transactions;
+        num_live_non_writeback_transactions--;
     }
 
     if (to_pulse_when_last_transaction_commits && num_live_writeback_transactions + num_live_non_writeback_transactions == 0) {
@@ -1539,7 +1536,7 @@ void mc_cache_t::maybe_unregister_read_ahead_callback() {
 
 void mc_cache_t::adjust_max_patches_size_ratio_toward_minimum() {
     rassert(MAX_PATCHES_SIZE_RATIO_MAX <= MAX_PATCHES_SIZE_RATIO_MIN);  // just to make things clear.
-    max_patches_size_ratio = (unsigned int)(0.9f * float(max_patches_size_ratio) + 0.1f * float(MAX_PATCHES_SIZE_RATIO_MIN));
+    max_patches_size_ratio = static_cast<unsigned int>(0.9 * max_patches_size_ratio + 0.1 * MAX_PATCHES_SIZE_RATIO_MIN);
     rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MIN);
     rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MAX);
 }
@@ -1549,7 +1546,7 @@ void mc_cache_t::adjust_max_patches_size_ratio_toward_maximum() {
     // We should be paranoid that if max_patches_size_ratio ==
     // MAX_PATCHES_SIZE_RATIO_MAX, (i.e. that 2 == 2) then 0.9f * 2 +
     // 0.1f * 2 will be less than 2 (and then round down to 1).
-    max_patches_size_ratio = (unsigned int)(0.9f * float(max_patches_size_ratio) + 0.1f * float(MAX_PATCHES_SIZE_RATIO_MAX));
+    max_patches_size_ratio = static_cast<unsigned int>(0.9 * max_patches_size_ratio + 0.1 * MAX_PATCHES_SIZE_RATIO_MAX);
     if (max_patches_size_ratio < MAX_PATCHES_SIZE_RATIO_MAX) {
         max_patches_size_ratio = MAX_PATCHES_SIZE_RATIO_MAX;
     }

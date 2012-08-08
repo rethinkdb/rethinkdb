@@ -33,7 +33,7 @@ void pool_diskmgr_t::action_t::run() {
 
 void pool_diskmgr_t::action_t::done() {
     parent->assert_thread();
-    --parent->n_pending;
+    parent->n_pending--;
     parent->pump();
     parent->done_fun(this);
 }
@@ -50,7 +50,7 @@ void pool_diskmgr_t::pump() {
     while (source->available->get() && n_pending < BLOCKER_POOL_QUEUE_DEPTH) {
         action_t *a = source->pop();
         a->parent = this;
-        ++n_pending;
+        n_pending++;
         blocker_pool.do_job(a);
     }
 }

@@ -10,12 +10,12 @@ lba_list_t::lba_list_t(extent_manager_t *em)
     : shutdown_callback(NULL), gc_count(0), extent_manager(em),
       state(state_unstarted)
 {
-    for (int i = 0; i < LBA_SHARD_FACTOR; ++i) disk_structures[i] = NULL;
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) disk_structures[i] = NULL;
 }
 
 void lba_list_t::prepare_initial_metablock(metablock_mixin_t *mb) {
 
-    for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
         mb->shards[i].lba_superblock_offset = NULL_OFFSET;
         mb->shards[i].lba_superblock_entries_count = 0;
         mb->shards[i].last_lba_extent_offset = NULL_OFFSET;
@@ -39,7 +39,7 @@ public:
         owner->state = lba_list_t::state_starting_up;
 
         cbs_out = LBA_SHARD_FACTOR;
-        for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
+        for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
             owner->disk_structures[i] = new lba_disk_structure_t(
                 owner->extent_manager, owner->dbfile,
                 &last_metablock->shards[i]);
@@ -49,10 +49,10 @@ public:
 
     void on_lba_load() {
         rassert(cbs_out > 0);
-        --cbs_out;
+        cbs_out--;
         if (cbs_out == 0) {
             cbs_out = LBA_SHARD_FACTOR;
-            for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
+            for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
                 owner->disk_structures[i]->read(&owner->in_memory_index, this);
             }
         }
@@ -60,7 +60,7 @@ public:
 
     void on_lba_read() {
         rassert(cbs_out > 0);
-        --cbs_out;
+        cbs_out--;
         if (cbs_out == 0) {
             owner->state = lba_list_t::state_ready;
             if (callback) callback->on_lba_ready();
@@ -127,14 +127,14 @@ public:
         : owner(_owner), done(false), should_delete_self(false), callback(NULL)
     {
         structures_unsynced = LBA_SHARD_FACTOR;
-        for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
+        for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
             owner->disk_structures[i]->sync(io_account, this);
         }
     }
 
     void on_lba_sync() {
         rassert(structures_unsynced > 0);
-        --structures_unsynced;
+        structures_unsynced--;
         if (structures_unsynced == 0) {
             done = true;
             if (callback) callback->on_lba_sync();
@@ -158,13 +158,13 @@ bool lba_list_t::sync(file_account_t *io_account, sync_callback_t *cb) {
 }
 
 void lba_list_t::prepare_metablock(metablock_mixin_t *mb_out) {
-    for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
         disk_structures[i]->prepare_metablock(&mb_out->shards[i]);
     }
 }
 
 void lba_list_t::consider_gc(file_account_t *io_account) {
-    for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
         if (we_want_to_gc(i)) gc(i, io_account);
     }
 }
@@ -207,7 +207,7 @@ public:
 
     void on_lba_sync() {
         rassert(owner->gc_count > 0);
-        --owner->gc_count;
+        owner->gc_count--;
 
         if(owner->state == lba_list_t::state_shutting_down && owner->gc_count == 0)
             owner->__shutdown();
@@ -236,7 +236,7 @@ bool lba_list_t::we_want_to_gc(int i) {
     int entries_per_extent = disk_structures[i]->num_entries_that_can_fit_in_an_extent();
     int64_t entries_total = disk_structures[i]->extents_in_superblock.size() * entries_per_extent;
     int64_t entries_live = end_block_id() / LBA_SHARD_FACTOR;
-    if ((entries_live / (float)entries_total) > LBA_MIN_UNGARBAGE_FRACTION) {
+    if ((entries_live / static_cast<double>(entries_total)) > LBA_MIN_UNGARBAGE_FRACTION) {  // TODO: multiply both sides by common denominator
         return false;
     }
 
@@ -264,7 +264,7 @@ bool lba_list_t::shutdown(shutdown_callback_t *cb) {
 }
 
 bool lba_list_t::__shutdown() {
-    for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
         disk_structures[i]->shutdown();   // Also deletes it
         disk_structures[i] = NULL;
     }
@@ -279,5 +279,5 @@ bool lba_list_t::__shutdown() {
 
 lba_list_t::~lba_list_t() {
     rassert(state == state_unstarted || state == state_shut_down);
-    for (int i = 0; i < LBA_SHARD_FACTOR; ++i) rassert(disk_structures[i] == NULL);
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) rassert(disk_structures[i] == NULL);
 }

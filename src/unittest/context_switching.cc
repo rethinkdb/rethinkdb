@@ -28,7 +28,7 @@ static __thread context_ref_t
 static __thread int test_int;
 
 static void switch_context_test(void) {
-    ++test_int;
+    test_int++;
     context_switch(artificial_stack_1_context, original_context);
     test_int += 2;
     context_switch(artificial_stack_1_context, original_context);
@@ -61,12 +61,12 @@ TEST(ContextSwitchingTest, SwitchToContextRepeatedly) {
 }
 
 static void first_switch(void) {
-    ++test_int;
+    test_int++;
     context_switch(artificial_stack_1_context, artificial_stack_2_context);
 }
 
 static void second_switch(void) {
-    ++test_int;
+    test_int++;
     context_switch(artificial_stack_2_context, original_context);
 }
 

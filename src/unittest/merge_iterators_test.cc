@@ -35,7 +35,7 @@ public:
         return boost::optional<int>(result);
     }
     void prefetch() {
-        ++prefetches_count;
+        prefetches_count++;
         if (!data_blocks.empty() && data_blocks.front().empty()) {
             data_blocks.pop_front();
         }

@@ -51,7 +51,7 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
         int length = string->Utf8Length() + 1; // +1 for null byte
 
         p->type = cJSON_String;
-        p->valuestring = (char*)malloc(length);
+        p->valuestring = reinterpret_cast<char *>(malloc(length));
         if (NULL == p->valuestring) {
             *errmsg = "failed to allocate space for string";
             return NULL;
@@ -123,7 +123,7 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
 
                 // Create string key.
                 int length = keyh->Utf8Length() + 1; // +1 for null byte.
-                char *str = valuej.get()->string = (char*)malloc(length);
+                char *str = valuej.get()->string = reinterpret_cast<char *>(malloc(length));
                 if (NULL == str) {
                     *errmsg = "could not allocate space for string";
                     return NULL;

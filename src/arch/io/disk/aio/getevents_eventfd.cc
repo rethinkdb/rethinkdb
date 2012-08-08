@@ -49,6 +49,7 @@ void linux_aio_getevents_eventfd_t::on_event(int event_mask) {
         logERR("Unexpected event mask: %d", event_mask);
     }
 
+    // TODO: What exactly is an eventfd_t?
     eventfd_t nevents_total;
     int res = eventfd_read(aio_notify_fd, &nevents_total);
     guarantee_err(res == 0, "Could not read aio_notify_fd value");
@@ -65,13 +66,14 @@ void linux_aio_getevents_eventfd_t::on_event(int event_mask) {
         // event and getting an eventfd for this read event later due
         // to the way the kernel is structured. Better avoid this
         // complexity (hence std::min below).
+        // TODO: The man page says io_getevents takes four arguments.  WTF?  man page io_getevents(3)
         int nevents = io_getevents(parent->aio_context.id, 0,
-                                   std::min(int(nevents_total), MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
+                                   std::min(static_cast<int>(nevents_total), MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
                                    events, NULL);
         guarantee_xerr(nevents >= 1, -nevents, "Waiting for AIO event failed");
 
         // Process the events
-        for(int i = 0; i < nevents; ++i) {
+        for(int i = 0; i < nevents; i++) {
             parent->aio_notify(reinterpret_cast<iocb *>(events[i].obj), events[i].res);
         }
         nevents_total -= nevents;

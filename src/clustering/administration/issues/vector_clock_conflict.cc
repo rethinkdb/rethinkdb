@@ -20,7 +20,7 @@ void check_namespaces_for_protocol(
         std::list<clone_ptr_t<vector_clock_conflict_issue_t> > *out) {
 
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
-            namespaces.namespaces.begin(); it != namespaces.namespaces.end(); ++it) {
+            namespaces.namespaces.begin(); it != namespaces.namespaces.end(); it++) {
         if (!it->second.is_deleted()) {
             check("namespace", it->first, "blueprint", it->second.get().blueprint, out);
             check("namespace", it->first, "primary_datacenter", it->second.get().primary_datacenter, out);
@@ -48,21 +48,21 @@ std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_iss
     check_namespaces_for_protocol(metadata.rdb_namespaces, &issues);
 
     for (datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator it =
-            metadata.datacenters.datacenters.begin(); it != metadata.datacenters.datacenters.end(); ++it) {
+            metadata.datacenters.datacenters.begin(); it != metadata.datacenters.datacenters.end(); it++) {
         if (!it->second.is_deleted()) {
             check("datacenter", it->first, "name", it->second.get().name, &issues);
         }
     }
 
     for (databases_semilattice_metadata_t::database_map_t::const_iterator it =
-            metadata.databases.databases.begin(); it != metadata.databases.databases.end(); ++it) {
+            metadata.databases.databases.begin(); it != metadata.databases.databases.end(); it++) {
         if (!it->second.is_deleted()) {
             check("database", it->first, "name", it->second.get().name, &issues);
         }
     }
 
     for (machines_semilattice_metadata_t::machine_map_t::const_iterator it =
-            metadata.machines.machines.begin(); it != metadata.machines.machines.end(); ++it) {
+            metadata.machines.machines.begin(); it != metadata.machines.machines.end(); it++) {
         if (!it->second.is_deleted()) {
             check("machine", it->first, "datacenter", it->second.get().datacenter, &issues);
             check("machine", it->first, "name", it->second.get().name, &issues);

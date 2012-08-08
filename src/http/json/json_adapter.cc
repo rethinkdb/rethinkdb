@@ -56,3 +56,77 @@ json_object_iterator_t get_object_it(cJSON *json) {
         throw schema_mismatch_exc_t(strprintf("Expected object instead got: %s\n", cJSON_print_std_string(json).c_str()).c_str());
     }
 }
+
+
+//implementation for json_adapter_if_t
+json_adapter_if_t::json_adapter_map_t json_adapter_if_t::get_subfields() {
+    json_adapter_map_t res = get_subfields_impl();
+    for (json_adapter_map_t::iterator it = res.begin(); it != res.end(); it++) {
+        it->second->superfields.insert(it->second->superfields.end(),
+                                      superfields.begin(),
+                                      superfields.end());
+
+        it->second->superfields.push_back(get_change_callback());
+    }
+    return res;
+}
+
+cJSON *json_adapter_if_t::render() {
+    return render_impl();
+}
+
+void json_adapter_if_t::apply(cJSON *change) {
+    try {
+        apply_impl(change);
+    } catch (std::runtime_error e) {
+        std::string s = cJSON_print_std_string(change);
+        throw schema_mismatch_exc_t(strprintf("Failed to apply change: %s", s.c_str()));
+    }
+    boost::shared_ptr<subfield_change_functor_t> change_callback = get_change_callback();
+    if (change_callback) {
+        get_change_callback()->on_change();
+    }
+
+    for (std::vector<boost::shared_ptr<subfield_change_functor_t> >::iterator it = superfields.begin();
+         it != superfields.end();
+         ++it) {
+        if (*it) {
+            (*it)->on_change();
+        }
+    }
+}
+
+void json_adapter_if_t::erase() {
+    erase_impl();
+
+    boost::shared_ptr<subfield_change_functor_t> change_callback = get_change_callback();
+    if (change_callback) {
+        get_change_callback()->on_change();
+    }
+
+    for (std::vector<boost::shared_ptr<subfield_change_functor_t> >::iterator it = superfields.begin();
+         it != superfields.end();
+         ++it) {
+        if (*it) {
+            (*it)->on_change();
+        }
+    }
+}
+
+void json_adapter_if_t::reset() {
+    reset_impl();
+
+    boost::shared_ptr<subfield_change_functor_t> change_callback = get_change_callback();
+    if (change_callback) {
+        get_change_callback()->on_change();
+    }
+
+    for (std::vector<boost::shared_ptr<subfield_change_functor_t> >::iterator it = superfields.begin();
+         it != superfields.end();
+         ++it) {
+        if (*it) {
+            (*it)->on_change();
+        }
+    }
+}
+

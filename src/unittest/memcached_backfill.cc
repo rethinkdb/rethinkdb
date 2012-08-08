@@ -169,7 +169,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     nap(100000);
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
-            it != inserter_state.end(); ++it) {
+            it != inserter_state.end(); it++) {
         get_query_t get;
         get.key = store_key_t(it->first);
         memcached_protocol_t::read_t read(get, time(NULL));
@@ -181,7 +181,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
         get_result_t get_result = boost::get<get_result_t>(response.result);
         EXPECT_TRUE(get_result.value.get() != NULL);
         EXPECT_EQ(it->second.size(), get_result.value->size());
-        if (get_result.value->size() == (int)it->second.size()) {
+        if (static_cast<size_t>(get_result.value->size()) == it->second.size()) {
             EXPECT_EQ(it->second, std::string(get_result.value->buf(), get_result.value->size()));
         }
     }

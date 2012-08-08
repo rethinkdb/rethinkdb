@@ -23,6 +23,7 @@ struct test_driver_t {
         fd_t get_fd() const { return fd; }
         void *get_buf() const { return buf; }
         size_t get_count() const { return count; }
+        // TODO: sizeof(off_t) seems to be 8 on linux but let's use off64_t, neh?
         off_t get_offset() const { return offset; }
 
         bool is_read;
@@ -72,8 +73,8 @@ struct test_driver_t {
         conflicting actions */
         for (core_action_t *p = running_actions.head(); p; p = running_actions.next(p)) {
             if (!(a->is_read && p->is_read)) {
-                ASSERT_TRUE((int)a->offset >= (int)(p->offset + p->count) ||
-                            (int)p->offset >= (int)(a->offset + a->count));
+                ASSERT_TRUE(a->offset >= static_cast<int64_t>(p->offset + p->count)
+                            || p->offset >= static_cast<int64_t>(a->offset + a->count));
             }
         }
 

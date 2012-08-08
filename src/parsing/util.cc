@@ -13,7 +13,7 @@ LineParser::LineParser(tcp_conn_t *conn_) : conn(conn_) {
 // blocks until a full line is available
 std::string LineParser::readLine() {
     while(!readCRLF()) {
-        ++bytes_read;
+        bytes_read++;
     }
 
     // Construct a string of everything upto the CRLF
@@ -50,14 +50,14 @@ std::string LineParser::readLineOf(size_t bytes) {
 
 std::string LineParser::readWord() {
     while(current() != ' ') {
-        ++bytes_read;
+        bytes_read++;
     }
 
     std::string word(start_position, bytes_read);
 
     // Remove spaces to leave the conn in a clean state for the next call
     while(current() == ' ') {
-        ++bytes_read;
+        bytes_read++;
     }
     pop();
     return word;
@@ -86,11 +86,11 @@ char LineParser::current() {
 // Attempts to read a crlf at the current position
 // possibily advanes the current position in its attempt to do so
 bool LineParser::readCRLF() {
-    if (current() == '\r') {
-        ++bytes_read;
+    if(current() == '\r') {
+        bytes_read++;
 
-        if (current() == '\n') {
-            ++bytes_read;
+        if(current() == '\n') {
+            bytes_read++;
             return true;
         }
     }

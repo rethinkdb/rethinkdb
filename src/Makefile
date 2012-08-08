@@ -602,9 +602,9 @@ rpm-suse10:
 endif
 
 # Build rules
-drivers: rdb_protocol/query_language.proto
+drivers: ./rdb_protocol/query_language.proto
 ifeq ($(VERBOSE),0)
-	@echo "    PROTOC $@"
+	@echo "    PROTOC1 $@"
 endif
 	$(QUIET) protoc $(PROTOCFLAGS) --python_out ../drivers/python/rethinkdb/ rdb_protocol/query_language.proto
 
@@ -672,7 +672,7 @@ endif
 $(PROTO_DIR)/dummy: $(PROTO_SOURCES)
 	$(QUIET) mkdir -p $(PROTO_DIR)
 ifeq ($(VERBOSE),0)
-	@echo "    PROTOC $^"
+	@echo "    PROTOC2 $^"
 endif
 	$(QUIET) protoc $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $^
 	$(QUIET) touch $@

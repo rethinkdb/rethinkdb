@@ -110,7 +110,7 @@ struct ls_start_existing_fsm_t :
     bool next_starting_up_step() {
         if (state == state_read_static_header) {
             if (static_header_read(ser->dbfile,
-                    (log_serializer_on_disk_static_config_t *)&ser->static_config,
+                    &ser->static_config,
                     sizeof(log_serializer_on_disk_static_config_t),
                     this)) {
                 state = state_find_metablock;
@@ -151,7 +151,7 @@ struct ls_start_existing_fsm_t :
 
         if (state == state_reconstruct) {
             ser->data_block_manager->start_reconstruct();
-            for (block_id_t id = 0; id < ser->lba_index->end_block_id(); ++id) {
+            for (block_id_t id = 0; id < ser->lba_index->end_block_id(); id++) {
                 flagged_off64_t offset = ser->lba_index->get_block_offset(id);
                 if (offset.has_value()) {
                     ser->data_block_manager->mark_live(offset.get_value());
@@ -407,7 +407,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 }
 
 void log_serializer_t::index_write_prepare(index_write_context_t *context, file_account_t *io_account) {
-    ++active_write_count;
+    active_write_count++;
 
     /* Start an extent manager transaction so we can allocate and release extents */
     extent_manager->begin_transaction(&context->extent_txn);
@@ -464,7 +464,7 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
 
     if (!done_with_metablock) on_metablock_write.wait();
 
-    --active_write_count;
+    active_write_count--;
 
     /* End the extent manager transaction so the extents can actually get reused. */
     extent_manager->commit_transaction(&context->extent_txn);
@@ -605,7 +605,7 @@ void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t
 // buf.
 block_sequence_id_t log_serializer_t::get_block_sequence_id(UNUSED block_id_t block_id, const void* buf) {
     const ls_buf_data_t *ser_data = reinterpret_cast<const ls_buf_data_t *>(buf);
-    --ser_data;
+    ser_data--;
     rassert(ser_data->block_id == block_id);
     return ser_data->block_sequence_id;
 }

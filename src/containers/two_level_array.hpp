@@ -53,12 +53,12 @@ private:
 
 public:
     two_level_array_t() : count(0), chunks(new chunk_t*[num_chunks]) {
-        for (unsigned int i = 0; i < num_chunks; ++i) {
+        for (unsigned int i = 0; i < num_chunks; i++) {
             chunks[i] = NULL;
         }
     }
     ~two_level_array_t() {
-        for (unsigned int i = 0; i < num_chunks; ++i) {
+        for (unsigned int i = 0; i < num_chunks; i++) {
             delete chunks[i];
         }
         delete[] chunks;
@@ -87,7 +87,7 @@ public:
         unsigned int chunk_id = chunk_for_key(key);
         chunk_t *chunk = chunks[chunk_id];
 
-        if (!bool(value) && !chunk) {
+        if (!value && !chunk) {
             /* If the user is inserting a zero value into an already-empty chunk, exit early so we
             don't create a new empty chunk */
             return;
@@ -95,12 +95,12 @@ public:
 
         if (!chunk) chunk = chunks[chunk_id] = new chunk_t;
 
-        if (bool(chunk->values[index_for_key(key)])) {
+        if (chunk->values[index_for_key(key)]) {
             --chunk->count;
             --count;
         }
         chunk->values[index_for_key(key)] = value;
-        if (bool(value)) {
+        if (value) {
             ++chunk->count;
             ++count;
         }

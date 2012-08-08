@@ -27,14 +27,14 @@ public:
     region_map_set_membership_t(region_map_t<protocol_t, std::set<value_t> > *m, const typename protocol_t::region_t &r, const value_t &v) :
         map(m), region(r), value(v) {
         region_map_t<protocol_t, std::set<value_t> > submap = map->mask(region);
-        for (typename region_map_t<protocol_t, std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); ++it) {
+        for (typename region_map_t<protocol_t, std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
             it->second.insert(value);
         }
         map->update(submap);
     }
     ~region_map_set_membership_t() {
         region_map_t<protocol_t, std::set<value_t> > submap = map->mask(region);
-        for (typename region_map_t<protocol_t, std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); ++it) {
+        for (typename region_map_t<protocol_t, std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
             it->second.erase(value);
         }
         map->update(submap);
@@ -110,7 +110,7 @@ private:
     op_response_type dispatch_immediate_op(
             /* `how_to_make_token` and `how_to_run_query` have type pointer-to-
             member-function. */
-            void (master_access_t<protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),
+            void (master_access_t<protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),  // NOLINT
             op_response_type (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
             op_type op,
             order_token_t order_token,

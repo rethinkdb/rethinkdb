@@ -189,9 +189,9 @@ void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) 
 
     rassert(state == state_reserving_extents);
     current_transaction = NULL;
-    for (boost::ptr_vector<extent_zone_t>::iterator it = zones.begin();
-         it != zones.end();
-         ++it) {
+    for (boost::ptr_vector<extent_zone_t>::iterator it  = zones.begin();
+                                                      it != zones.end();
+                                                      it++) {
         it->reconstruct_free_list();
     }
     state = state_running;
@@ -292,7 +292,7 @@ void extent_manager_t::end_transaction(DEBUG_ONLY_VAR const transaction_t &t) {
 }
 
 void extent_manager_t::commit_transaction(transaction_t *t) {
-    for (std::deque<off64_t>::iterator it = t->free_queue().begin(); it != t->free_queue().end(); ++it) {
+    for (std::deque<off64_t>::iterator it = t->free_queue().begin(); it != t->free_queue().end(); it++) {
         off64_t extent = *it;
         zone_for_offset(extent)->release_extent(extent);
     }
@@ -302,7 +302,9 @@ void extent_manager_t::commit_transaction(transaction_t *t) {
 int extent_manager_t::held_extents() {
     int total = 0;
 
-    for (boost::ptr_vector<extent_zone_t>::iterator it = zones.begin(); it != zones.end(); ++it) {
+    for (boost::ptr_vector<extent_zone_t>::iterator it  = zones.begin();
+                                                    it != zones.end();
+                                                    it++) {
         total += it->held_extents();
     }
     return total;

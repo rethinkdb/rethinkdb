@@ -37,7 +37,7 @@ void directory_write_manager_t<metadata_t>::on_change() THROWS_NOTHING {
     connectivity_service_t::peers_list_freeze_t freeze(message_service->get_connectivity_service());
     fifo_enforcer_write_token_t metadata_fifo_token = metadata_fifo_source.enter_write();
     std::set<peer_id_t> peers = message_service->get_connectivity_service()->get_peers_list();
-    for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); ++it) {
+    for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); it++) {
         coro_t::spawn_sometime(boost::bind(
             &directory_write_manager_t::send_update, this,
             *it,

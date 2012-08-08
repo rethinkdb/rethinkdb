@@ -88,10 +88,10 @@ public:
         if (!key_in_range(k, left_excl, right_incl)) {
             debugf("Assert key in range failing:\n");
             if (left_excl) {
-                debugf("left_excl(%d): %*.*s, key(%d): %*.*s\n", int(left_excl->size), int(left_excl->size), int(left_excl->size), left_excl->contents, int(k->size), int(k->size), int(k->size), k->contents);
+                debugf("left_excl(%d): %*.*s, key(%d): %*.*s\n", left_excl->size, left_excl->size, left_excl->size, left_excl->contents, k->size, k->size, k->size, k->contents);
             }
             if (right_incl) {
-                debugf("right_incl(%d): %*.*s, key(%d): %*.*s\n", int(right_incl->size), int(right_incl->size), int(right_incl->size), right_incl->contents, int(k->size), int(k->size), int(k->size), k->contents);
+                debugf("right_incl(%d): %*.*s, key(%d): %*.*s\n", right_incl->size, right_incl->size, right_incl->size, right_incl->contents, k->size, k->size, k->size, k->contents);
             }
         }
 

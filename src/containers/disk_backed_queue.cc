@@ -70,7 +70,7 @@ void internal_disk_backed_queue_t::push(const write_message_t& wm) {
     std::string sered_data(stream.vector().begin(), stream.vector().end());
     blob.write_from_string(sered_data, &txn, 0);
 
-    if (((char *)(head->data + head->data_size) - (char *)(head)) + blob.refsize(cache->get_block_size()) > cache->get_block_size().value()) {
+    if (((head->data + head->data_size) - reinterpret_cast<char *>(head)) + blob.refsize(cache->get_block_size()) > cache->get_block_size().value()) {
         //The data won't fit in our current head block, so it's time to make a new one
         head = NULL;
         _head.reset();
@@ -82,7 +82,7 @@ void internal_disk_backed_queue_t::push(const write_message_t& wm) {
     memcpy(head->data + head->data_size, buffer, blob.refsize(cache->get_block_size()));
     head->data_size += blob.refsize(cache->get_block_size());
 
-    ++queue_size;
+    queue_size++;
 }
 
 void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
@@ -106,7 +106,7 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
 
     blob.clear(&txn);
 
-    --queue_size;
+    queue_size--;
 
     /* If that was the last blob in this block move on to the next one. */
     if (tail->live_data_offset == tail->data_size) {

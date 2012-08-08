@@ -82,9 +82,8 @@ template<class protocol_t>
 struct dummy_timestamper_t {
 
 public:
-    explicit dummy_timestamper_t(dummy_performer_t<protocol_t> *n, order_source_t *order_source) :
-        next(n), current_timestamp(state_timestamp_t::zero())
-    {
+    dummy_timestamper_t(dummy_performer_t<protocol_t> *n, order_source_t *order_source)
+        : next(n), current_timestamp(state_timestamp_t::zero()) {
         cond_t interruptor;
 
         scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
@@ -94,9 +93,9 @@ public:
         next->store->do_get_metainfo(order_source->check_in("dummy_timestamper_t").with_read_mode(),
                                      &read_token, &interruptor, &metainfo);
 
-        for (typename region_map_t<protocol_t, binary_blob_t>::iterator it = metainfo.begin();
-             it != metainfo.end();
-             ++it) {
+        for (typename region_map_t<protocol_t, binary_blob_t>::iterator it  = metainfo.begin();
+                                                                        it != metainfo.end();
+                                                                        it++) {
             rassert(binary_blob_t::get<state_timestamp_t>(it->second) == current_timestamp);
         }
     }
@@ -137,7 +136,7 @@ public:
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::read_response_t> responses;
-        for (int i = 0; i < (int)shards.size(); ++i) {
+        for (size_t i = 0; i < shards.size(); ++i) {
             typename protocol_t::region_t ixn = region_intersection(shards[i].region, read.get_region());
             if (!region_is_empty(ixn)) {
                 typename protocol_t::read_t subread = read.shard(ixn);
@@ -153,7 +152,7 @@ public:
     typename protocol_t::read_response_t read_outdated(typename protocol_t::read_t read, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::read_response_t> responses;
-        for (int i = 0; i < int(shards.size()); ++i) {
+        for (size_t i = 0; i < shards.size(); ++i) {
             typename protocol_t::region_t ixn = region_intersection(shards[i].region, read.get_region());
             if (!region_is_empty(ixn)) {
                 typename protocol_t::read_t subread = read.shard(ixn);
@@ -169,7 +168,7 @@ public:
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::write_response_t> responses;
-        for (int i = 0; i < (int)shards.size(); ++i) {
+        for (size_t i = 0; i < shards.size(); ++i) {
             typename protocol_t::region_t ixn = region_intersection(shards[i].region, write.get_region());
 
             if (!region_is_empty(ixn)) {
@@ -203,7 +202,7 @@ public:
         }
 
         std::vector<typename dummy_sharder_t<protocol_t>::shard_t> shards_of_this_db;
-        for (int i = 0; i < (int)shards.size(); ++i) {
+        for (size_t i = 0; i < shards.size(); ++i) {
             /* Initialize metadata everywhere */
             {
                 cond_t interruptor;
@@ -216,9 +215,9 @@ public:
                                            &read_token, &interruptor, &metadata);
 
                 rassert(metadata.get_domain() == shards[i]);
-                for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it = metadata.begin();
-                     it != metadata.end();
-                     ++it) {
+                for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it  = metadata.begin();
+                                                                                      it != metadata.end();
+                                                                                      it++) {
                     rassert(it->second.size() == 0);
                 }
 

@@ -49,7 +49,7 @@ void lba_disk_structure_t::on_extent_read() {
 
     /* We just read the superblock extent. */
 
-    for (int i = 0; i < startup_superblock_count; ++i) {
+    for (int i = 0; i < startup_superblock_count; i++) {
         extents_in_superblock.push_back(
             new lba_disk_extent_t(em, file,
                 startup_superblock_buffer->entries[i].offset,
@@ -94,7 +94,7 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t rece
         for (lba_disk_extent_t *e = extents_in_superblock.head(); e; e = extents_in_superblock.next(e)) {
             new_superblock->entries[i].offset = e->offset;
             new_superblock->entries[i].lba_entries_count = e->count;
-            ++i;
+            i++;
         }
 
         /* Write the new superblock */
@@ -126,7 +126,7 @@ public:
     }
 
     void on_extent_sync() {
-        --outstanding_cbs;
+        outstanding_cbs--;
         if (outstanding_cbs == 0) {
             if (callback) callback->on_lba_sync();
             delete this;
@@ -138,8 +138,8 @@ void lba_disk_structure_t::sync(file_account_t *io_account, sync_callback_t *cb)
     lba_writer_t *writer = new lba_writer_t(cb);
 
     /* Count how many things need to be synced */
-    if (last_extent) { ++writer->outstanding_cbs; }
-    if (superblock_extent) { ++writer->outstanding_cbs; }
+    if (last_extent) writer->outstanding_cbs++;
+    if (superblock_extent) writer->outstanding_cbs++;
     writer->outstanding_cbs += extents_in_superblock.size();
 
     /* Sync the things that need to be synced */
@@ -191,7 +191,7 @@ struct reader_t
             }
         }
         void start_reading() {
-            ++parent->active_readers;
+            parent->active_readers++;
             extent->read_step_1(&read_info, this);
         }
         void on_extent_read() {   // Called when our extent has been read from disk
@@ -206,9 +206,9 @@ struct reader_t
         }
         void done() {
             extent->read_step_2(&read_info, parent->index);
-            --parent->active_readers;
+            parent->active_readers--;
             parent->start_more_readers();
-            if (index == (int)parent->readers.size() - 1) {
+            if (index == static_cast<int>(parent->readers.size()) - 1) {
                 parent->done();
             } else {
                 parent->readers[index+1]->on_prev_done();
@@ -247,10 +247,8 @@ struct reader_t
 
     void start_more_readers() {
         int limit = std::max(LBA_READ_BUFFER_SIZE / ds->em->extent_size / LBA_SHARD_FACTOR, 1ul);
-        while (next_reader != (int)readers.size() && active_readers < limit) {
-            int old_next_reader = next_reader;
-            ++next_reader;
-            readers[old_next_reader]->start_reading();
+        while (next_reader != static_cast<int>(readers.size()) && active_readers < limit) {
+            readers[next_reader++]->start_reading();
         }
     }
 

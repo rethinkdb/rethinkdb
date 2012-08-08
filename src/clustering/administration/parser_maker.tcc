@@ -45,9 +45,9 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
 
     namespaces_semilattice_metadata_t<protocol_t> snapshot = namespaces_semilattice_metadata->get();
 
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::iterator it = snapshot.namespaces.begin();
-         it != snapshot.namespaces.end();
-         ++it) {
+    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::iterator it  = snapshot.namespaces.begin();
+                                                                                           it != snapshot.namespaces.end();
+                                                                                           it++) {
         typename boost::ptr_map<namespace_id_t, ns_record_t>::iterator handled_ns = namespaces_being_handled.find(it->first);
 
         /* Destroy parsers as necessary, by pulsing the `stopper` cond on the

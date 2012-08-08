@@ -63,7 +63,7 @@ public:
                            signal_t *interruptor);
 
     bool send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                                  const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,
+                                  const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,  // NOLINT
                                   const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
                                   traversal_progress_combiner_t *progress,
                                   scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,

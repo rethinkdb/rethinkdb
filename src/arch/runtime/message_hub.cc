@@ -16,7 +16,7 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *_queue, linux_thre
     // notify_t) does.
     notify = new notify_t[thread_pool->n_threads];
 
-    for (int i = 0; i < thread_pool->n_threads; ++i) {
+    for (int i = 0; i < thread_pool->n_threads; i++) {
         int res = pthread_spin_init(&incoming_messages_lock, PTHREAD_PROCESS_PRIVATE);
         guarantee(res == 0, "Could not initialize spin lock");
 
@@ -31,7 +31,7 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *_queue, linux_thre
 linux_message_hub_t::~linux_message_hub_t() {
     int res;
 
-    for (int i = 0; i < thread_pool->n_threads; ++i) {
+    for (int i = 0; i < thread_pool->n_threads; i++) {
         rassert(queues[i].msg_local_list.empty());
 
         res = pthread_spin_destroy(&incoming_messages_lock);
@@ -93,7 +93,7 @@ void linux_message_hub_t::notify_t::on_event(int events) {
 // Pushes messages collected locally global lists available to all
 // threads.
 void linux_message_hub_t::push_messages() {
-    for (int i = 0; i < thread_pool->n_threads; ++i) {
+    for (int i = 0; i < thread_pool->n_threads; i++) {
         // Append the local list for ith thread to that thread's global
         // message list.
         thread_queue_t *queue = &queues[i];

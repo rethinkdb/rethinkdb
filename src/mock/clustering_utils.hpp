@@ -22,10 +22,9 @@ struct fake_fifo_enforcement_t {
 template<class protocol_t>
 class test_store_t {
 public:
-    explicit test_store_t(io_backender_t *io_backender, order_source_t *order_source) :
+    test_store_t(io_backender_t *io_backender, order_source_t *order_source) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
-            store(io_backender, temp_file.name(), true, &get_global_perfmon_collection(), NULL)
-    {
+            store(io_backender, temp_file.name(), true, &get_global_perfmon_collection(), NULL) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> token;
@@ -148,7 +147,7 @@ private:
             auto_drainer_t::lock_t keepalive) {
         try {
             std::string tag = strprintf("insert_forever(%p,%s)", this, msg.c_str());
-            for (int i = 0; ; ++i) {
+            for (int i = 0; ; i++) {
                 if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
 
                 dummy_protocol_t::write_t w;
@@ -167,10 +166,12 @@ private:
 
 public:
     void validate() {
-        for (state_t::iterator it = values_inserted->begin(); it != values_inserted->end(); ++it) {
+        for (state_t::iterator it = values_inserted->begin();
+                               it != values_inserted->end();
+                               it++) {
             cond_t interruptor;
-            std::string response = rfun(it->first, osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this)), &interruptor);
-            rassert(it->second == response);
+            std::string response = rfun((*it).first, osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this)), &interruptor);
+            rassert((*it).second == response);
         }
     }
 
@@ -189,7 +190,7 @@ inline std::string dummy_key_gen() {
 
 inline std::string mc_key_gen() {
     std::string key;
-    for (int j = 0; j < 100; ++j) {
+    for (int j = 0; j < 100; j++) {
         key.push_back('a' + randint(26));
     }
     return key;

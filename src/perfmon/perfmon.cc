@@ -28,7 +28,7 @@ perfmon_counter_t::perfmon_counter_t()
     : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t>(),
       thread_data(new padded_int64_t[MAX_THREADS])
 {
-    for (int i = 0; i < MAX_THREADS; ++i) thread_data[i].value = 0;
+    for (int i = 0; i < MAX_THREADS; i++) thread_data[i].value = 0;
 }
 
 perfmon_counter_t::~perfmon_counter_t() {
@@ -46,7 +46,7 @@ void perfmon_counter_t::get_thread_stat(padded_int64_t *stat) {
 
 int64_t perfmon_counter_t::combine_stats(padded_int64_t *data) {
     int64_t value = 0;
-    for (int i = 0; i < get_num_threads(); ++i) value += data[i].value;
+    for (int i = 0; i < get_num_threads(); i++) value += data[i].value;
     return value;
 }
 
@@ -59,7 +59,7 @@ perfmon_result_t *perfmon_counter_t::output_stat(const int64_t &stat) {
 perfmon_sampler_t::perfmon_sampler_t(ticks_t _length, bool _include_rate)
     : perfmon_perthread_t<stats_t>(), thread_data(new thread_info_t[MAX_THREADS]), length(_length), include_rate(_include_rate)
 {
-    for (int i = 0; i < MAX_THREADS; ++i) {
+    for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].current_interval = get_ticks() / length;
     }
 }
@@ -79,7 +79,7 @@ void perfmon_sampler_t::update(ticks_t now) {
         /* We're one step behind */
         thread->last_stats = thread->current_stats;
         thread->current_stats = stats_t();
-        ++thread->current_interval;
+        thread->current_interval++;
     } else {
         /* We're more than one step behind */
         thread->last_stats = thread->current_stats = stats_t();
@@ -106,7 +106,7 @@ void perfmon_sampler_t::get_thread_stat(stats_t *stat) {
 
 perfmon_sampler_t::stats_t perfmon_sampler_t::combine_stats(stats_t *stats) {
     stats_t aggregated;
-    for (int i = 0; i < get_num_threads(); ++i) {
+    for (int i = 0; i < get_num_threads(); i++) {
         aggregated.aggregate(stats[i]);
     }
     return aggregated;
@@ -231,7 +231,7 @@ void perfmon_stddev_t::record(float value) {
 perfmon_rate_monitor_t::perfmon_rate_monitor_t(ticks_t _length)
     : perfmon_perthread_t<double>(), length(_length)
 {
-    for (int i = 0; i < MAX_THREADS; ++i) {
+    for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].current_interval = get_ticks() / length;
     }
 }
@@ -247,7 +247,7 @@ void perfmon_rate_monitor_t::update(ticks_t now) {
         /* We're one step behind */
         thread.last_count = thread.current_count;
         thread.current_count = 0;
-        ++thread.current_interval;
+        thread.current_interval++;
     } else {
         /* We're more than one step behind */
         thread.last_count = thread.current_count = 0;
@@ -274,7 +274,7 @@ void perfmon_rate_monitor_t::get_thread_stat(double *stat) {
 
 double perfmon_rate_monitor_t::combine_stats(double *stats) {
     double total = 0;
-    for (int i = 0; i < get_num_threads(); ++i) total += stats[i];
+    for (int i = 0; i < get_num_threads(); i++) total += stats[i];
     return total;
 }
 

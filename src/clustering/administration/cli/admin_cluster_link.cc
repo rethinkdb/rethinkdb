@@ -187,10 +187,10 @@ void admin_print_table(const std::vector<std::vector<std::string> >& table) {
 
     // Determine the maximum size of each column
     for (size_t i = 0; i < table[0].size(); ++i) {
-        int max = table[0][i].length();
+        size_t max = table[0][i].length();
 
         for (size_t j = 1; j < table.size(); ++j) {
-            if ((int)table[j][i].length() > max) {
+            if (table[j][i].length() > max) {
                 max = table[j][i].length();
             }
         }
@@ -668,7 +668,7 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(const shard_input_t& shar
                     secondaries.insert(j->second);
                 }
             }
-        } else if ((int)datacenter_use.count(i->first) <= i->second) {
+        } else if (datacenter_use.count(i->first) <= static_cast<size_t>(i->second)) {
             // Copy over all the specified machines for this datacenter
             for (std::multimap<datacenter_id_t, machine_id_t>::iterator j = datacenter_use.lower_bound(i->first);
                  j != datacenter_use.end() && j->first == i->first; ++j) {
@@ -1256,7 +1256,7 @@ void admin_cluster_link_t::do_admin_list_directory(const admin_command_parser_t:
     delta.push_back("ips");
     table.push_back(delta);
 
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.begin(); i != directory.end(); ++i) {
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.begin(); i != directory.end(); i++) {
         delta.clear();
 
         switch (i->second.peer_type) {
@@ -2922,7 +2922,7 @@ size_t admin_cluster_link_t::available_machine_count() {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     size_t count = 0;
 
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.begin(); i != directory.end(); ++i) {
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.begin(); i != directory.end(); i++) {
         // Check uuids vs machines in cluster
         machines_semilattice_metadata_t::machine_map_t::const_iterator machine = cluster_metadata.machines.machines.find(i->second.machine_id);
         if (machine != cluster_metadata.machines.machines.end() && !machine->second.is_deleted()) {

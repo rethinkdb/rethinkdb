@@ -232,7 +232,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
     case cJSON_Number:
         res = deserialize(s, &cjson->valuedouble);
         CHECK_RES(res);
-        cjson->valueint = int(cjson->valuedouble);
+        cjson->valueint = cjson->valuedouble;
         return ARCHIVE_SUCCESS;
         break;
     case cJSON_String:

@@ -325,8 +325,8 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
     uint64_t file_size = *knog->filesize;
 
     printf("Pre-scanning file %s:\n", knog->filename.c_str());
-    printf("static_header software_name: %.*s\n", int(sizeof(SOFTWARE_NAME_STRING)), buf->software_name);
-    printf("static_header version: %.*s\n", int(sizeof(VERSION_STRING)), buf->version);
+    printf("static_header software_name: %.*s\n", static_cast<int>(sizeof(SOFTWARE_NAME_STRING)), buf->software_name);
+    printf("static_header version: %.*s\n", static_cast<int>(sizeof(VERSION_STRING)), buf->version);
     printf("              DEVICE_BLOCK_SIZE: %lu\n", DEVICE_BLOCK_SIZE);
     printf("static_header block_size: %u\n", block_size.ser_value());
     printf("static_header extent_size: %lu\n", extent_size);
@@ -363,7 +363,7 @@ std::string extract_static_config_version(nondirect_file_t *file, UNUSED file_kn
         return "(not available, could not load first block of file)";
     }
     static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
-    return std::string(buf->version, int(sizeof(VERSION_STRING)));
+    return std::string(buf->version, sizeof(VERSION_STRING));
 }
 
 std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_knowledge_t *knog) {
@@ -426,7 +426,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
 
         block_t b;
         if (!b.init(DEVICE_BLOCK_SIZE, file, off)) {
-            ++errs->unloadable_count;
+            errs->unloadable_count++;
         }
         crc_metablock_t *metablock = reinterpret_cast<crc_metablock_t *>(b.realbuf);
 
@@ -435,7 +435,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
                 || 0 != memcmp(metablock->crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC))
                 || 0 != memcmp(metablock->version_marker, MB_MARKER_VERSION, sizeof(MB_MARKER_VERSION))) {
 
-                ++errs->bad_markers_count;
+                errs->bad_markers_count++;
             }
 
             manager_t::metablock_version_t version = metablock->version;
@@ -444,7 +444,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
             if (version == MB_BAD_VERSION || version < MB_START_VERSION ||
                 seqid == NULL_BLOCK_SEQUENCE_ID || seqid < FIRST_BLOCK_SEQUENCE_ID)
                 {
-                    ++errs->bad_content_count;
+                    errs->bad_content_count++;
                 } else {
                 if (high_version < version) {
                     high_version = version;
@@ -466,9 +466,9 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
                 all_zero &= (buf[i] == 0);
             }
             if (all_zero) {
-                ++errs->zeroed_count;
+                errs->zeroed_count++;
             } else {
-                ++errs->bad_crc_count;
+                errs->bad_crc_count++;
             }
         }
     }
@@ -550,11 +550,11 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned i
         if (entry.block_id == NULL_BLOCK_ID) {
             // do nothing, this is ok.
         } else if (entry.block_id > MAX_BLOCK_ID) {
-            ++errs->bad_block_id_count;
+            errs->bad_block_id_count++;
         } else if (entry.block_id % LBA_SHARD_FACTOR != shard_number) {
-            ++errs->wrong_shard_count;
+            errs->wrong_shard_count++;
         } else if (!is_valid_btree_offset(knog, entry.offset)) {
-            ++errs->bad_offset_count;
+            errs->bad_offset_count++;
         } else {
             write_locker_t locker(knog);
             if (locker.block_info().get_size() <= entry.block_id) {
@@ -688,7 +688,7 @@ check_mc_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_blo
 
     const mc_config_block_t *buf = reinterpret_cast<mc_config_block_t *>(block->buf);
     if (buf->magic != mc_config_block_t::expected_magic) {
-        debugf("mc_bad_magic happened.  Magic is %.*s\n", int(sizeof(buf->magic)), reinterpret_cast<const char *>(&buf->magic));
+        debugf("mc_bad_magic happened.  Magic is %.*s\n", static_cast<int>(sizeof(buf->magic)), reinterpret_cast<const char *>(&buf->magic));
         errs->mc_bad_magic = true;
         return NULL;
     }
@@ -1375,7 +1375,7 @@ void report_rogue_block_description(const char *title, const rogue_block_descrip
     if (desc.loading_error != btree_block_t::none) {
         printf("could not load: %s\n", btree_block_t::error_name(desc.loading_error));
     } else {
-        printf("magic = '%.*s'\n", int(sizeof(block_magic_t)), desc.magic.bytes);
+        printf("magic = '%.*s'\n", static_cast<int>(sizeof(block_magic_t)), desc.magic.bytes);
     }
 }
 

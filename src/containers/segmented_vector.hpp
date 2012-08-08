@@ -71,7 +71,7 @@ public:
     void set_size(size_t new_size, element_t fill) {
         size_t old_size = size;
         set_size(new_size);
-        for (; old_size < new_size; ++old_size) { (*this)[old_size] = fill; }
+        for (; old_size < new_size; old_size++) (*this)[old_size] = fill;
     }
 
 private:

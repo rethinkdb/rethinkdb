@@ -25,7 +25,9 @@ void vclock_t<T>::cull_old_values() {
         }
     }
 
-    for (typename value_map_t::iterator d_it = to_delete.begin(); d_it != to_delete.end(); ++d_it) {
+    for (typename value_map_t::iterator d_it =  to_delete.begin();
+                                        d_it != to_delete.end();
+                                        d_it++) {
         values.erase(d_it->first);
     }
     rassert(!values.empty(), "As a postcondition, values should never be empty\n");
@@ -69,7 +71,9 @@ template <class T>
 vclock_t<T> vclock_t<T>::make_resolving_version(const T& t, const uuid_t &us) {
     vclock_details::version_map_t vmap; //construct a vmap that dominates all the others
 
-    for (typename value_map_t::iterator it = values.begin(); it != values.end(); ++it) {
+    for (typename value_map_t::iterator it  = values.begin();
+                                        it != values.end();
+                                        it++) {
         vmap = vclock_details::vmap_max(vmap, it->first);
     }
 

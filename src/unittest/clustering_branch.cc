@@ -119,7 +119,7 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
 
     /* Send some writes via the broadcaster to the mirror */
     std::map<std::string, std::string> values_inserted;
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 10; i++) {
         mock::fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
 
@@ -142,7 +142,7 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
 
     /* Now send some reads */
     for (std::map<std::string, std::string>::iterator it = values_inserted.begin();
-            it != values_inserted.end(); ++it) {
+            it != values_inserted.end(); it++) {
         mock::fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
 
@@ -236,7 +236,7 @@ void run_backfill_test(io_backender_t *io_backender,
 
     /* Confirm that both mirrors have all of the writes */
     for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
-            it != inserter.values_inserted->end(); ++it) {
+            it != inserter.values_inserted->end(); it++) {
         EXPECT_EQ((*it).second, store1->store.values[(*it).first]);
         EXPECT_EQ((*it).second, store2.store.values[(*it).first]);
     }
@@ -304,7 +304,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
 
     /* Confirm that both mirrors have all of the writes */
     for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
-            it != inserter.values_inserted->end(); ++it) {
+            it != inserter.values_inserted->end(); it++) {
         if (subregion.keys.count((*it).first) > 0) {
             EXPECT_EQ((*it).second, store1->store.values[(*it).first]);
             EXPECT_EQ((*it).second, store2.store.values[(*it).first]);

@@ -77,7 +77,7 @@ void epoll_event_queue_t::run() {
 
 #ifndef NDEBUG
         /* Sanity check: Make sure epoll() didn't give us any events we didn't ask for */
-        for (int i = 0; i < nevents; ++i) {
+        for (int i = 0; i < nevents; i++) {
             int events_gotten = epoll_to_user(events[i].events);
             int events_wanted = events_requested[reinterpret_cast<linux_event_callback_t *>(events[i].data.ptr)];
             if (events_gotten & poll_event_in) rassert(events_wanted & poll_event_in);
@@ -95,7 +95,7 @@ void epoll_event_queue_t::run() {
 
         block_pm_duration event_loop_timer(&pm_eventloop);
 
-        for (int i = 0; i < nevents; ++i) {
+        for (int i = 0; i < nevents; i++) {
             if (events[i].data.ptr == NULL) {
                 // The event was queued for a resource that's
                 // been destroyed, so forget_resource is kindly
@@ -149,7 +149,7 @@ void epoll_event_queue_t::adjust_resource(fd_t resource, int watch_mode, linux_e
 
     // Go through the queue of messages in the current poll cycle and if any are referring
     // to the resource we are adjusting, remove any events that we are no longer requesting.
-    for (int i = 0; i < nevents; ++i) {
+    for (int i = 0; i < nevents; i++) {
         if (events[i].data.ptr == cb) {
             events[i].events &= EPOLLET | user_to_epoll(watch_mode);
         }
@@ -172,7 +172,7 @@ void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t 
     // Go through the queue of messages in the current poll cycle and
     // clean out the ones that are referencing the resource we're
     // being asked to forget.
-    for (int i = 0; i < nevents; ++i) {
+    for (int i = 0; i < nevents; i++) {
         if (events[i].data.ptr == cb) {
             events[i].data.ptr = NULL;
         }

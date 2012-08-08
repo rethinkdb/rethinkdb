@@ -120,7 +120,7 @@ public:
                 }
             }
 
-            return parent->data[++index];
+            return parent->data[index++];
         }
 
         //TODO these methods are probably going to go away.. in actuality
@@ -175,7 +175,7 @@ private:
 template <class P>
 class filter_stream_t : public json_stream_t {
 public:
-    typedef boost::function<bool(boost::shared_ptr<scoped_cJSON_t>)> predicate;
+    typedef boost::function<bool(boost::shared_ptr<scoped_cJSON_t>)> predicate;  // NOLINT
     filter_stream_t(boost::shared_ptr<json_stream_t> _stream, const P &_p)
         : stream(_stream), p(_p)
     { }
@@ -262,11 +262,11 @@ public:
 
     boost::shared_ptr<scoped_cJSON_t> next() {
         while (start) {
-            --start;
+            start--;
             stream->next();
         }
         if (unbounded || stop != 0) {
-            --stop;
+            stop--;
             return stream->next();
         }
         return boost::shared_ptr<scoped_cJSON_t>();

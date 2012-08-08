@@ -21,7 +21,7 @@ auto_reconnector_t::auto_reconnector_t(
 
 void auto_reconnector_t::on_connect_or_disconnect() {
     std::map<peer_id_t, machine_id_t> map = machine_id_translation_table->get();
-    for (std::map<peer_id_t, machine_id_t>::iterator it = map.begin(); it != map.end(); ++it) {
+    for (std::map<peer_id_t, machine_id_t>::iterator it = map.begin(); it != map.end(); it++) {
         if (connected_peers.find(it->first) == connected_peers.end()) {
             connected_peers.insert(std::make_pair(
                 it->first,
@@ -43,14 +43,14 @@ void auto_reconnector_t::on_connect_or_disconnect() {
             connected_peers.erase(it);
             it = jt;
         } else {
-            ++it;
+            it++;
         }
     }
 }
 
 static const int initial_backoff_ms = 50;
 static const int max_backoff_ms = 1000 * 15;
-static const float backoff_growth_rate = 1.5;
+static const double backoff_growth_rate = 1.5;
 
 void auto_reconnector_t::try_reconnect(machine_id_t machine, peer_address_t last_known_address, auto_drainer_t::lock_t keepalive) {
 
@@ -75,8 +75,8 @@ void auto_reconnector_t::try_reconnect(machine_id_t machine, peer_address_t last
             connectivity_cluster_run->join(last_known_address);
             signal_timer_t timer(backoff_ms);
             wait_interruptible(&timer, &interruptor);
-            rassert(int(backoff_ms * backoff_growth_rate) > backoff_ms, "rounding screwed it up");
-            backoff_ms = std::min(int(backoff_ms * backoff_growth_rate), max_backoff_ms);
+            rassert(backoff_ms * backoff_growth_rate > backoff_ms, "rounding screwed it up");
+            backoff_ms = std::min(static_cast<int>(backoff_ms * backoff_growth_rate), max_backoff_ms);
         }
     } catch (interrupted_exc_t) {
         /* ignore; this is how we escape the loop */
@@ -103,7 +103,7 @@ void auto_reconnector_t::pulse_if_machine_declared_dead(machine_id_t machine, co
 
 void auto_reconnector_t::pulse_if_machine_reconnected(machine_id_t machine, cond_t *c) {
     std::map<peer_id_t, machine_id_t> map = machine_id_translation_table->get();
-    for (std::map<peer_id_t, machine_id_t>::iterator it = map.begin(); it != map.end(); ++it) {
+    for (std::map<peer_id_t, machine_id_t>::iterator it = map.begin(); it != map.end(); it++) {
         if (it->second == machine) {
             if (!c->is_pulsed()) {
                 c->pulse();

@@ -21,16 +21,16 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<dum
     std::vector<dummy_protocol_t::region_t> shards;
 
     dummy_protocol_t::region_t region1;
-    for (char c = 'a'; c <= 'm'; ++c) region1.keys.insert(std::string(&c, 1));
+    for (char c = 'a'; c <= 'm'; c++) region1.keys.insert(std::string(&c, 1));
     shards.push_back(region1);
 
     dummy_protocol_t::region_t region2;
-    for (char c = 'n'; c <= 'z'; ++c) region2.keys.insert(std::string(&c, 1));
+    for (char c = 'n'; c <= 'z'; c++) region2.keys.insert(std::string(&c, 1));
     shards.push_back(region2);
 
     boost::ptr_vector<dummy_protocol_t::store_t> underlying_stores;
     boost::ptr_vector<store_view_t<dummy_protocol_t> > stores;
-    for (int i = 0; i < (int)shards.size(); ++i) {
+    for (size_t i = 0; i < shards.size(); ++i) {
         underlying_stores.push_back(new dummy_protocol_t::store_t);
         stores.push_back(new store_subview_t<dummy_protocol_t>(&underlying_stores[i], shards[i]));
     }
