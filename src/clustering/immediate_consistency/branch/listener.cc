@@ -372,6 +372,7 @@ void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
         mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
     rassert(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
+    order_token.assert_write_mode();
 
     coro_t::spawn_sometime(boost::bind(
         &listener_t<protocol_t>::enqueue_write, this,
@@ -453,6 +454,7 @@ void listener_t<protocol_t>::on_writeread(typename protocol_t::write_t write,
     rassert(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
     rassert(region_is_superset(svs_->get_multistore_joined_region(), write.get_region()));
+    order_token.assert_write_mode();
 
     coro_t::spawn_sometime(boost::bind(
         &listener_t<protocol_t>::perform_writeread, this,
@@ -532,6 +534,7 @@ void listener_t<protocol_t>::on_read(typename protocol_t::read_t read,
     rassert(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, read.get_region()));
     rassert(!region_is_empty(read.get_region()));
     rassert(region_is_superset(svs_->get_multistore_joined_region(), read.get_region()));
+    order_token.assert_read_mode();
 
     coro_t::spawn_sometime(boost::bind(
         &listener_t<protocol_t>::perform_read, this,

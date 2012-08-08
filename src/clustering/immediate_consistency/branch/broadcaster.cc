@@ -392,6 +392,8 @@ typename protocol_t::read_response_t listener_read(
 template<class protocol_t>
 typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename protocol_t::read_t read, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
 
+    order_token.assert_read_mode();
+
     dispatchee_t *reader;
     auto_drainer_t::lock_t reader_lock;
     state_timestamp_t timestamp;
@@ -427,6 +429,8 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
 
 template<class protocol_t>
 void broadcaster_t<protocol_t>::spawn_write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, order_token_t order_token, write_callback_t *cb, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+
+    order_token.assert_write_mode();
 
     wait_interruptible(lock, interruptor);
     ASSERT_FINITE_CORO_WAITING;

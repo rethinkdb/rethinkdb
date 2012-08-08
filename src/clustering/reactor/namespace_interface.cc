@@ -24,7 +24,8 @@ typename protocol_t::read_response_t
 cluster_namespace_interface_t<protocol_t>::read(typename protocol_t::read_t r,
                                                 order_token_t order_token,
                                                 signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    order_token.assert_read_mode();
     return dispatch_immediate_op<typename protocol_t::read_t, fifo_enforcer_sink_t::exit_read_t, typename protocol_t::read_response_t>(&master_access_t<protocol_t>::new_read_token, &master_access_t<protocol_t>::read,
                                                                                                                                        r, order_token, interruptor);
 }
@@ -32,11 +33,22 @@ cluster_namespace_interface_t<protocol_t>::read(typename protocol_t::read_t r,
 template <class protocol_t>
 typename protocol_t::read_response_t
 cluster_namespace_interface_t<protocol_t>::read_outdated(typename protocol_t::read_t r, signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     /* This seems kind of silly. We do it this way because
        `dispatch_outdated_read` needs to be able to see `outdated_read_info_t`,
        which is defined in the `private` section. */
     return dispatch_outdated_read(r, interruptor);
+}
+
+template <class protocol_t>
+typename protocol_t::write_response_t
+cluster_namespace_interface_t<protocol_t>::write(typename protocol_t::write_t w,
+                                                order_token_t order_token,
+                                                signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    order_token.assert_write_mode();
+    return dispatch_immediate_op<typename protocol_t::write_t, fifo_enforcer_sink_t::exit_write_t, typename protocol_t::write_response_t>(&master_access_t<protocol_t>::new_write_token, &master_access_t<protocol_t>::write,
+                                                                                                                                          w, order_token, interruptor);
 }
 
 template <class protocol_t>

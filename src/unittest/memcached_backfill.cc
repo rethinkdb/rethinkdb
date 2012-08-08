@@ -177,7 +177,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
         memcached_protocol_t::read_response_t response =
-            broadcaster->get()->read(read, &exiter, order_source->check_in("unittest::(memcached)run_partial_backfill_test"), &non_interruptor);
+            broadcaster->get()->read(read, &exiter, order_source->check_in("unittest::(memcached)run_partial_backfill_test").with_read_mode(), &non_interruptor);
         get_result_t get_result = boost::get<get_result_t>(response.result);
         EXPECT_TRUE(get_result.value.get() != NULL);
         EXPECT_EQ(it->second.size(), get_result.value->size());
