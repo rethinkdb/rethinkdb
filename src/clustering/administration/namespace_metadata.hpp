@@ -15,7 +15,7 @@
 #include "clustering/administration/persistable_blueprint.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
-#include "clustering/reactor/json_adapters.hpp"
+#include "clustering/reactor/reactor_json_adapters.hpp"
 #include "clustering/reactor/metadata.hpp"
 #include "containers/uuid.hpp"
 #include "http/json/json_adapter.hpp"

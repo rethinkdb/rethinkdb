@@ -1,7 +1,7 @@
 #ifndef CLUSTERING_REACTOR_JSON_ADAPTERS_TCC_
 #define CLUSTERING_REACTOR_JSON_ADAPTERS_TCC_
 
-#include "clustering/reactor/json_adapters.hpp"
+#include "clustering/reactor/reactor_json_adapters.hpp"
 
 #include <string>
 #include <vector>
