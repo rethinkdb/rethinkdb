@@ -202,6 +202,63 @@ boost::shared_ptr<subfield_change_functor_t> json_map_inserter_t<container_t, ct
     return boost::shared_ptr<subfield_change_functor_t>(new standard_ctx_subfield_change_functor_t<container_t, ctx_t>(target, ctx));
 }
 
+//implementation for json_ctx_map_inserter_t
+template <class container_t, class ctx_t>
+json_ctx_map_inserter_t<container_t, ctx_t>::json_ctx_map_inserter_t(container_t *_target, gen_function_t _generator, const ctx_t &_ctx, value_t _initial_value)
+    : target(_target), generator(_generator), initial_value(_initial_value), ctx(_ctx)
+{ }
+
+template <class container_t, class ctx_t>
+cJSON *json_ctx_map_inserter_t<container_t, ctx_t>::render_impl() {
+    /* This is perhaps a bit confusing, json_map_inserters will generally
+     * render as nothing (an empty object) unless they have been used to insert
+     * something, this is kind of a weird thing so that when someone does a
+     * post to this value they get a view of the things we inserted. */
+    cJSON *res = cJSON_CreateObject();
+    for (typename keys_set_t::iterator it = added_keys.begin(); it != added_keys.end(); ++it) {
+        scoped_cJSON_t key(render_as_json(&*it, ctx));
+        cJSON_AddItemToObject(res, get_string(key.get()).c_str(), render_as_json(&(target->find(*it)->second), ctx));
+    }
+    return res;
+}
+
+template <class container_t, class ctx_t>
+void json_ctx_map_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change) {
+    typename container_t::key_type key = generator();
+    added_keys.insert(key);
+
+    typename container_t::mapped_type val = initial_value;
+    apply_json_to(change, &val, ctx);
+
+    target->insert(typename container_t::value_type(key, val));
+}
+
+template <class container_t, class ctx_t>
+void json_ctx_map_inserter_t<container_t, ctx_t>::erase_impl() {
+    throw permission_denied_exc_t("Trying to erase a value that can't be erase.");
+}
+
+template <class container_t, class ctx_t>
+void json_ctx_map_inserter_t<container_t, ctx_t>::reset_impl() {
+    throw permission_denied_exc_t("Trying to reset a value that can't be reset.");
+}
+
+template <class container_t, class ctx_t>
+json_adapter_if_t::json_adapter_map_t json_ctx_map_inserter_t<container_t, ctx_t>::get_subfields_impl() {
+    json_adapter_map_t res;
+    for (typename keys_set_t::iterator it = added_keys.begin(); it != added_keys.end(); ++it) {
+        scoped_cJSON_t key(render_as_json(&*it, ctx));
+        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<typename container_t::mapped_type, ctx_t>(&(target->find(*it)->second), ctx));
+    }
+    return res;
+}
+
+template <class container_t, class ctx_t>
+boost::shared_ptr<subfield_change_functor_t> json_ctx_map_inserter_t<container_t, ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>(new standard_ctx_subfield_change_functor_t<container_t, ctx_t>(target, ctx));
+}
+
+
 //implementation for json_adapter_with_inserter_t
 template <class container_t, class ctx_t>
 json_adapter_with_inserter_t<container_t, ctx_t>::json_adapter_with_inserter_t(container_t *_target, gen_function_t _generator, const ctx_t &_ctx, value_t _initial_value, std::string _inserter_key)
@@ -243,6 +300,49 @@ template <class container_t, class ctx_t>
 boost::shared_ptr<subfield_change_functor_t> json_adapter_with_inserter_t<container_t, ctx_t>::get_change_callback() {
     return boost::shared_ptr<subfield_change_functor_t>(new standard_ctx_subfield_change_functor_t<container_t, ctx_t>(target, ctx));
 }
+
+//implementation for json_ctx_adapter_with_inserter_t
+template <class container_t, class ctx_t>
+json_ctx_adapter_with_inserter_t<container_t, ctx_t>::json_ctx_adapter_with_inserter_t(container_t *_target, gen_function_t _generator, const ctx_t &_ctx, value_t _initial_value, std::string _inserter_key)
+    : target(_target), generator(_generator),
+      initial_value(_initial_value), inserter_key(_inserter_key),
+      ctx(_ctx)
+{ }
+
+template <class container_t, class ctx_t>
+cJSON *json_ctx_adapter_with_inserter_t<container_t, ctx_t>::render_impl() {
+    return render_as_json(target, ctx);
+}
+
+template <class container_t, class ctx_t>
+void json_ctx_adapter_with_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change) {
+    apply_json_to(change, target, ctx);
+}
+
+template <class container_t, class ctx_t>
+void json_ctx_adapter_with_inserter_t<container_t, ctx_t>::erase_impl() {
+    erase_json(target, ctx);
+}
+
+template <class container_t, class ctx_t>
+void json_ctx_adapter_with_inserter_t<container_t, ctx_t>::reset_impl() {
+    reset_json(target, ctx);
+}
+
+template <class container_t, class ctx_t>
+json_adapter_if_t::json_adapter_map_t json_ctx_adapter_with_inserter_t<container_t, ctx_t>::get_subfields_impl() {
+    json_adapter_map_t res = get_json_subfields(target, ctx);
+    rassert(res.find(inserter_key) == res.end(), "Error, inserter_key %s  conflicts with another field of the target, (you probably want to change the value of inserter_key).", inserter_key.c_str());
+    res[inserter_key] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_map_inserter_t<container_t, ctx_t>(target, generator, ctx, initial_value));
+
+    return res;
+}
+
+template <class container_t, class ctx_t>
+boost::shared_ptr<subfield_change_functor_t> json_ctx_adapter_with_inserter_t<container_t, ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>(new standard_ctx_subfield_change_functor_t<container_t, ctx_t>(target, ctx));
+}
+
 
 /* Here we have implementations of the json adapter concept for several
  * prominent types, these could in theory be relocated to a different file if
