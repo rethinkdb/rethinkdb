@@ -194,13 +194,7 @@ class Stream(Common):
         if isinstance(index, slice):
             if index.step is not None:
                 raise ValueError("slice stepping is unsupported")
-            if index.start is None:
-                if index.stop is None:
-                    return self                 # [:]
-                return limit(self, index.stop)  # [:x]
-            if index.stop is None:
-                return skip(self, index.start)  # [x:]
-            return skip(limit(self, index.stop), index.start) # [x:y]
+            return slice_(self, index.start, index.stop) # [x:y]
         elif isinstance(index, int):
             return nth(self, index)
         else:
@@ -238,10 +232,10 @@ class Stream(Common):
         return GroupedMapReduce(self, group_mapping, value_mapping, reduction, row)
 
     def limit(self, count):
-        return limit(self, count)
+        return slice_(self, None, count)
 
     def skip(self, offset):
-        return skip(self, offset)
+        return slice_(self, offset, None)
 
     def count(self):
         return count(self)
@@ -864,10 +858,8 @@ def _make_builtin(name, builtin, *args):
 
 not_ = _make_builtin("not_", p.Builtin.NOT, "term")
 element = _make_builtin("element", p.Builtin.ARRAYNTH, "array", "index")
-size = _make_builtin("size", p.Builtin.ARRAYLENGTH, "array")
 append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
-concat = _make_builtin("concat", p.Builtin.ARRAYCONCAT, "array1", "array2")
-slice_ = _make_builtin("slice_", p.Builtin.ARRAYSLICE, "array", "start", "end")
+length = _make_builtin("length", p.Builtin.LENGTH, "sequence")
 array = _make_builtin("array", p.Builtin.STREAMTOARRAY, "stream")
 count = _make_builtin("count", p.Builtin.LENGTH, "stream")
 nth = _make_builtin("nth", p.Builtin.NTH, "stream", "index")
@@ -895,7 +887,6 @@ def _make_stream_builtin(name, builtin, *args, **kwargs):
     return StreamBuiltin
 
 distinct = _make_stream_builtin("distinct", p.Builtin.DISTINCT, "stream")
-limit = _make_stream_builtin("limit", p.Builtin.LIMIT, "stream", "count", view=True)
-skip = _make_stream_builtin("skip", p.Builtin.SKIP, "stream", "offset", view=True)
 union = _make_stream_builtin("union", p.Builtin.UNION, "a", "b")
 stream = _make_stream_builtin("stream", p.Builtin.ARRAYTOSTREAM, "array")
+slice_ = _make_stream_builtin("slice_", p.Builtin.SLICE, "sequence", "start", "end", view=True)
