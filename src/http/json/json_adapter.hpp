@@ -686,8 +686,8 @@ cJSON *with_ctx_render_as_json(T *target, const ctx_t &ctx) {
 }
 
 template <class T, class ctx_t>
-void with_ctx_apply_json_to(cJSON *json, T *target, const ctx_t &ctx) {
-    apply_json_to(json, target, ctx);
+void with_ctx_apply_json_to(cJSON *change, T *target, const ctx_t &ctx) {
+    apply_json_to(change, target, ctx);
 }
 
 template <class T, class ctx_t>

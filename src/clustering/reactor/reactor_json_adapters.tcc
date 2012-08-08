@@ -21,8 +21,8 @@ cJSON *render_as_json(backfill_location_t *target, UNUSED const ctx_t &ctx) {
 }
 
 template <class ctx_t>
-void apply_json_to(cJSON *json, backfill_location_t *target, const ctx_t &) {
-    apply_json_to(json, target);
+void apply_json_to(cJSON *change, backfill_location_t *target, const ctx_t &) {
+    apply_json_to(change, target);
 }
 
 template <class ctx_t>
@@ -61,8 +61,8 @@ cJSON *render_as_json(primary_when_safe_t<protocol_t> *target, UNUSED const ctx_
 }
 
 template <class protocol_t, class ctx_t>
-void apply_json_to(cJSON *json, primary_when_safe_t<protocol_t> *target, const ctx_t &) {
-    apply_json_to(json, target);
+void apply_json_to(cJSON *change, primary_when_safe_t<protocol_t> *target, const ctx_t &) {
+    apply_json_to(change, target);
 }
 
 template <class protocol_t, class ctx_t>
@@ -105,8 +105,8 @@ cJSON *render_as_json(primary_t<protocol_t> *target, UNUSED const ctx_t &ctx) {
 }
 
 template <class protocol_t, class ctx_t>
-void apply_json_to(cJSON *json, primary_t<protocol_t> *target, const ctx_t &) {
-    apply_json_to(json, target);
+void apply_json_to(cJSON *change, primary_t<protocol_t> *target, const ctx_t &) {
+    apply_json_to(change, target);
 }
 
 template <class protocol_t, class ctx_t>
@@ -151,8 +151,8 @@ cJSON *render_as_json(secondary_up_to_date_t<protocol_t> *target, UNUSED const c
 }
 
 template <class protocol_t, class ctx_t>
-void apply_json_to(cJSON *json, secondary_up_to_date_t<protocol_t> *target, const ctx_t &) {
-    apply_json_to(json, target);
+void apply_json_to(cJSON *change, secondary_up_to_date_t<protocol_t> *target, const ctx_t &) {
+    apply_json_to(change, target);
 }
 
 template <class protocol_t, class ctx_t>
@@ -197,8 +197,8 @@ cJSON *render_as_json(secondary_without_primary_t<protocol_t> *target, UNUSED co
 }
 
 template <class protocol_t, class ctx_t>
-void apply_json_to(cJSON *json, secondary_without_primary_t<protocol_t> *target, const ctx_t &) {
-    apply_json_to(json, target);
+void apply_json_to(cJSON *change, secondary_without_primary_t<protocol_t> *target, const ctx_t &) {
+    apply_json_to(change, target);
 }
 
 template <class protocol_t, class ctx_t>
@@ -242,8 +242,8 @@ cJSON *render_as_json(secondary_backfilling_t<protocol_t> *target, UNUSED const 
 }
 
 template <class protocol_t, class ctx_t>
-void apply_json_to(cJSON *json, secondary_backfilling_t<protocol_t> *target, const ctx_t &) {
-    apply_json_to(json, target);
+void apply_json_to(cJSON *change, secondary_backfilling_t<protocol_t> *target, const ctx_t &) {
+    apply_json_to(change, target);
 }
 
 template <class protocol_t, class ctx_t>
@@ -286,8 +286,8 @@ cJSON *render_as_json(nothing_when_safe_t<protocol_t> *target, UNUSED const ctx_
 }
 
 template <class protocol_t, class ctx_t>
-void apply_json_to(cJSON *json, nothing_when_safe_t<protocol_t> *target, const ctx_t &) {
-    apply_json_to(json, target);
+void apply_json_to(cJSON *change, nothing_when_safe_t<protocol_t> *target, const ctx_t &) {
+    apply_json_to(change, target);
 }
 
 template <class protocol_t, class ctx_t>
@@ -376,8 +376,8 @@ cJSON *render_as_json(nothing_when_done_erasing_t<protocol_t> *target, UNUSED co
 }
 
 template <class protocol_t, class ctx_t>
-void apply_json_to(cJSON *json, nothing_when_done_erasing_t<protocol_t> *target, const ctx_t &) {
-    apply_json_to(json, target);
+void apply_json_to(cJSON *change, nothing_when_done_erasing_t<protocol_t> *target, const ctx_t &) {
+    apply_json_to(change, target);
 }
 
 template <class protocol_t, class ctx_t>
