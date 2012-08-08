@@ -39,17 +39,17 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(machines_roles);
 };
 
-template <class protocol_t, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *, const ctx_t &);
+template <class protocol_t>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *);
 
-template <class protocol_t, class ctx_t>
-cJSON *render_as_json(persistable_blueprint_t<protocol_t> *, const ctx_t &);
+template <class protocol_t>
+cJSON *render_as_json(persistable_blueprint_t<protocol_t> *);
 
-template <class protocol_t, class ctx_t>
-void apply_json_to(cJSON *, persistable_blueprint_t<protocol_t> *, const ctx_t &);
+template <class protocol_t>
+void apply_json_to(cJSON *, persistable_blueprint_t<protocol_t> *);
 
-template <class protocol_t, class ctx_t>
-void on_subfield_change(persistable_blueprint_t<protocol_t> *, const ctx_t &);
+template <class protocol_t>
+void on_subfield_change(persistable_blueprint_t<protocol_t> *);
 
 #include "clustering/administration/persistable_blueprint.tcc"
 

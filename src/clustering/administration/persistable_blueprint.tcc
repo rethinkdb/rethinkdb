@@ -50,24 +50,24 @@ inline void apply_json_to(cJSON *change, role_t *target) {
 inline void on_subfield_change(role_t *) { }
 } //namespace blueprint_details
 
-template <class protocol_t, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *target, UNUSED const ctx_t &ctx) {
+template <class protocol_t>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *target) {
     json_adapter_if_t::json_adapter_map_t res;
     res["peers_roles"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename persistable_blueprint_t<protocol_t>::role_map_t>(&target->machines_roles));
     return  res;
 }
 
-template <class protocol_t, class ctx_t>
-cJSON *render_as_json(persistable_blueprint_t<protocol_t> *target, const ctx_t &ctx) {
-    return render_as_directory(target, ctx);
+template <class protocol_t>
+cJSON *render_as_json(persistable_blueprint_t<protocol_t> *target) {
+    return render_as_directory(target);
 }
 
-template <class protocol_t, class ctx_t>
-void apply_json_to(cJSON *change, persistable_blueprint_t<protocol_t> *target, const ctx_t &ctx) {
-    apply_as_directory(change, target, ctx);
+template <class protocol_t>
+void apply_json_to(cJSON *change, persistable_blueprint_t<protocol_t> *target) {
+    apply_as_directory(change, target);
 }
 
-template <class protocol_t, class ctx_t>
-void on_subfield_change(persistable_blueprint_t<protocol_t> *, const ctx_t &) { }
+template <class protocol_t>
+void on_subfield_change(persistable_blueprint_t<protocol_t> *) { }
 
 #endif /* CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_TCC_ */
