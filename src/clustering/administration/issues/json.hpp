@@ -22,8 +22,4 @@ cJSON *render_as_json(issue_json_t *);
 void apply_json_to(cJSON *, issue_json_t *);
 void on_subfield_change(issue_json_t *);
 
-#include "clustering/administration/issues/json.tcc"
-
-
-
 #endif  // CLUSTERING_ADMINISTRATION_ISSUES_JSON_HPP_
