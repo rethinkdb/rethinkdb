@@ -1,42 +1,36 @@
-#ifndef MEMCACHED_PROTOCOL_JSON_ADAPTER_TCC_
-#define MEMCACHED_PROTOCOL_JSON_ADAPTER_TCC_
-
 #include "memcached/protocol_json_adapter.hpp"
 
-#include <exception>
 #include <string>
 
 #include "http/http.hpp"
 #include "http/json.hpp"
 
 // json adapter concept for `store_key_t`
-// TODO: deinline these
-inline json_adapter_if_t::json_adapter_map_t get_json_subfields(store_key_t *) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(store_key_t *) {
     return json_adapter_if_t::json_adapter_map_t();
 }
 
-inline cJSON *render_as_json(store_key_t *target) {
+cJSON *render_as_json(store_key_t *target) {
     return cJSON_CreateString(percent_escaped_string(key_to_unescaped_str(*target)).c_str());
 }
 
-inline void apply_json_to(cJSON *change, store_key_t *target) {
+void apply_json_to(cJSON *change, store_key_t *target) {
     std::string str(percent_unescaped_string(get_string(change)));
     if (!unescaped_str_to_key(str.c_str(), str.length(), target)) {
         throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a store_key_t.\n", get_string(change).c_str()));
     }
 }
 
-inline void on_subfield_change(store_key_t *) { }
+void on_subfield_change(store_key_t *) { }
 
 
 
 // json adapter for key_range_t
-// TODO: deinline these
-inline json_adapter_if_t::json_adapter_map_t get_json_subfields(key_range_t *) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(key_range_t *) {
     return json_adapter_if_t::json_adapter_map_t();
 }
 
-inline std::string render_region_as_string(key_range_t *target) {
+std::string render_region_as_string(key_range_t *target) {
     scoped_cJSON_t res(cJSON_CreateArray());
 
     res.AddItemToArray(render_as_json(&target->left));
@@ -50,11 +44,11 @@ inline std::string render_region_as_string(key_range_t *target) {
     return res.PrintUnformatted();
 }
 
-inline cJSON *render_as_json(key_range_t *target) {
+cJSON *render_as_json(key_range_t *target) {
     return cJSON_CreateString(render_region_as_string(target).c_str());
 }
 
-inline void apply_json_to(cJSON *change, key_range_t *target) {
+void apply_json_to(cJSON *change, key_range_t *target) {
     // TODO: Can we so casually call get_string on a cJSON object?  What if it's not a string?
     scoped_cJSON_t js(cJSON_Parse(get_string(change).c_str()));
     if (js.get() == NULL) {
@@ -96,7 +90,7 @@ inline void apply_json_to(cJSON *change, key_range_t *target) {
     }
 }
 
-inline void on_subfield_change(key_range_t *) { }
+void on_subfield_change(key_range_t *) { }
 
 
 
@@ -104,30 +98,26 @@ inline void on_subfield_change(key_range_t *) { }
 // json adapter for hash_region_t<key_range_t>
 
 // TODO: This is extremely ghetto: we assert that the hash region isn't split by hash value (because why should the UI ever be exposed to that?) and then only serialize the key range.
-// TODO: shall we deinline these?
-inline json_adapter_if_t::json_adapter_map_t get_json_subfields(UNUSED hash_region_t<key_range_t> *target) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(UNUSED hash_region_t<key_range_t> *target) {
     return json_adapter_if_t::json_adapter_map_t();
 }
 
-inline std::string render_region_as_string(hash_region_t<key_range_t> *target) {
+std::string render_region_as_string(hash_region_t<key_range_t> *target) {
     // TODO: ghetto low level hash_region_t assertion.
     guarantee(target->beg == 0 && target->end == HASH_REGION_HASH_SIZE);
 
     return render_region_as_string(&target->inner);
 }
 
-inline cJSON *render_as_json(hash_region_t<key_range_t> *target) {
+cJSON *render_as_json(hash_region_t<key_range_t> *target) {
     return cJSON_CreateString(render_region_as_string(target).c_str());
 }
 
-inline void apply_json_to(cJSON *change, hash_region_t<key_range_t> *target) {
+void apply_json_to(cJSON *change, hash_region_t<key_range_t> *target) {
     target->beg = 0;
     target->end = HASH_REGION_HASH_SIZE;
     apply_json_to(change, &target->inner);
 }
 
-inline void on_subfield_change(hash_region_t<key_range_t> *) { }
+void on_subfield_change(hash_region_t<key_range_t> *) { }
 
-
-
-#endif  // MEMCACHED_PROTOCOL_JSON_ADAPTER_TCC_

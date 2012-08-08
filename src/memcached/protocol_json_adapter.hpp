@@ -34,7 +34,4 @@ void apply_json_to(cJSON *, hash_region_t<key_range_t> *);
 void  on_subfield_change(hash_region_t<key_range_t> *);
 std::string render_region_as_string(hash_region_t<key_range_t> *target);
 
-
-#include "memcached/protocol_json_adapter.tcc"
-
 #endif /* MEMCACHED_PROTOCOL_JSON_ADAPTER_HPP_ */
