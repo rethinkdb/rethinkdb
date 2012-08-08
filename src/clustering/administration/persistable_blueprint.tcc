@@ -9,13 +9,12 @@
 #include "http/json/json_adapter.hpp"
 
 namespace blueprint_details {
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(role_t *, const ctx_t &) {
+// TODO: deinline these?
+inline json_adapter_if_t::json_adapter_map_t get_json_subfields(role_t *) {
     return json_adapter_if_t::json_adapter_map_t();
 }
 
-template <class ctx_t>
-cJSON *render_as_json(role_t *target, const ctx_t &) {
+inline cJSON *render_as_json(role_t *target) {
     switch (*target) {
     case role_primary:
         return cJSON_CreateString("role_primary");
@@ -32,8 +31,7 @@ cJSON *render_as_json(role_t *target, const ctx_t &) {
     };
 }
 
-template <class ctx_t>
-void apply_json_to(cJSON *change, role_t *target, const ctx_t &) {
+inline void apply_json_to(cJSON *change, role_t *target) {
     std::string val = get_string(change);
 
     if (val == "role_primary" || val == "P") {
@@ -49,14 +47,13 @@ void apply_json_to(cJSON *change, role_t *target, const ctx_t &) {
     }
 }
 
-template <class ctx_t>
-void on_subfield_change(role_t *, const ctx_t &) { }
+inline void on_subfield_change(role_t *) { }
 } //namespace blueprint_details
 
 template <class protocol_t, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *target, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *target, UNUSED const ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["peers_roles"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<typename persistable_blueprint_t<protocol_t>::role_map_t, ctx_t>(&target->machines_roles, ctx));
+    res["peers_roles"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename persistable_blueprint_t<protocol_t>::role_map_t>(&target->machines_roles));
     return  res;
 }
 

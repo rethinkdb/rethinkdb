@@ -13,17 +13,10 @@ such as `blueprint_t`, should not be persisted. */
 
 namespace blueprint_details {
 
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(role_t *, const ctx_t &);
-
-template <class ctx_t>
-cJSON *render_as_json(role_t *, const ctx_t &);
-
-template <class ctx_t>
-void apply_json_to(cJSON *, role_t *, const ctx_t &);
-
-template <class ctx_t>
-void on_subfield_change(role_t *, const ctx_t &);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(role_t *);
+cJSON *render_as_json(role_t *);
+void apply_json_to(cJSON *, role_t *);
+void on_subfield_change(role_t *);
 
 } //namespace blueprint_details
 

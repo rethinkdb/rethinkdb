@@ -16,7 +16,7 @@
 template <class T, class ctx_t>
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(vclock_t<T> *target, const ctx_t &ctx) {
     try {
-        return get_json_subfields(&target->get_mutable(), ctx);
+        return with_ctx_get_json_subfields(&target->get_mutable(), ctx);
     } catch (in_conflict_exc_t e) {
         return json_adapter_if_t::json_adapter_map_t();
     }
@@ -26,7 +26,7 @@ template <class T, class ctx_t>
 cJSON *with_ctx_render_as_json(vclock_t<T> *target, const ctx_t &ctx) {
     try {
         T t = target->get();
-        return render_as_json(&t, ctx);
+        return with_ctx_render_as_json(&t, ctx);
     } catch (in_conflict_exc_t e) {
         return cJSON_CreateString("VALUE_IN_CONFLICT");
     }
@@ -42,8 +42,8 @@ cJSON *with_ctx_render_all_values(vclock_t<T> *target, const ctx_t &ctx) {
 
         //This is really bad, fix this as soon as we can render using non const references
         vclock_details::version_map_t tmp = it->first;
-        cJSON_AddItemToArray(version_value_pair, render_as_json(&tmp, ctx));
-        cJSON_AddItemToArray(version_value_pair, render_as_json(&it->second, ctx));
+        cJSON_AddItemToArray(version_value_pair, with_ctx_render_as_json(&tmp, ctx));
+        cJSON_AddItemToArray(version_value_pair, with_ctx_render_as_json(&it->second, ctx));
 
         cJSON_AddItemToArray(res, version_value_pair);
     }
@@ -54,7 +54,7 @@ cJSON *with_ctx_render_all_values(vclock_t<T> *target, const ctx_t &ctx) {
 template <class T, class ctx_t>
 void with_ctx_apply_json_to(cJSON *change, vclock_t<T> *target, const ctx_t &ctx) {
     try {
-        apply_json_to(change, &target->get_mutable(), ctx);
+        with_ctx_apply_json_to(change, &target->get_mutable(), ctx);
         target->upgrade_version(ctx.us);
     } catch (in_conflict_exc_t e) {
         throw multiple_choices_exc_t();
