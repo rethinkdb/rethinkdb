@@ -18,10 +18,10 @@
 /* The vclock_t type needs a special apapter which allows it to be resolved.
  * When the vector clock goes in to conflict all of the other requests will
  * fail. */
-template <class T, class ctx_t>
+template <class T>
 class json_vclock_resolver_t : public json_adapter_if_t {
 public:
-    json_vclock_resolver_t(vclock_t<T> *, const ctx_t &ctx);
+    json_vclock_resolver_t(vclock_t<T> *, const vclock_ctx_t &ctx);
 
 private:
     json_adapter_if_t::json_adapter_map_t get_subfields_impl();
@@ -32,15 +32,15 @@ private:
     boost::shared_ptr<subfield_change_functor_t> get_change_callback();
 
     vclock_t<T> *target_;
-    const ctx_t ctx_;
+    const vclock_ctx_t ctx_;
 
     DISABLE_COPYING(json_vclock_resolver_t);
 };
 
-template <class T, class ctx_t>
+template <class T>
 class json_vclock_adapter_t : public json_adapter_if_t {
 public:
-    json_vclock_adapter_t(vclock_t<T> *, const ctx_t &ctx);
+    json_vclock_adapter_t(vclock_t<T> *, const vclock_ctx_t &ctx);
 
 private:
     json_adapter_if_t::json_adapter_map_t get_subfields_impl();
@@ -51,28 +51,28 @@ private:
     boost::shared_ptr<subfield_change_functor_t>  get_change_callback();
 
     vclock_t<T> *target_;
-    const ctx_t ctx_;
+    const vclock_ctx_t ctx_;
 
     DISABLE_COPYING(json_vclock_adapter_t);
 };
 
 //json adapter concept for vclock_t
-template <class T, class ctx_t>
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(vclock_t<T> *, const ctx_t &);
+template <class T>
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(vclock_t<T> *, const vclock_ctx_t &);
 
-template <class T, class ctx_t>
-cJSON *with_ctx_render_as_json(vclock_t<T> *, const ctx_t &);
+template <class T>
+cJSON *with_ctx_render_as_json(vclock_t<T> *, const vclock_ctx_t &);
 
 //Note this is not actually part of the json_adapter concept but is a special
 //purpose rendering function which is needed by the json_vclock_resolver_t
-template <class T, class ctx_t>
-cJSON *with_ctx_render_all_values(vclock_t<T> *, const ctx_t &);
+template <class T>
+cJSON *with_ctx_render_all_values(vclock_t<T> *, const vclock_ctx_t &);
 
-template <class T, class ctx_t>
-void with_ctx_apply_json_to(cJSON *, vclock_t<T> *, const ctx_t &);
+template <class T>
+void with_ctx_apply_json_to(cJSON *, vclock_t<T> *, const vclock_ctx_t &);
 
-template <class T, class ctx_t>
-void with_ctx_on_subfield_change(vclock_t<T> *, const ctx_t &);
+template <class T>
+void with_ctx_on_subfield_change(vclock_t<T> *, const vclock_ctx_t &);
 
 //json adapter concept for deletable_t
 template <class T, class ctx_t>

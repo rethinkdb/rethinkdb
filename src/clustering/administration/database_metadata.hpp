@@ -26,25 +26,22 @@ public:
 RDB_MAKE_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);
 RDB_MAKE_EQUALITY_COMPARABLE_1(database_semilattice_metadata_t, name);
 
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(database_semilattice_metadata_t *target, const ctx_t &ctx) {
+// TODO: deinline these?
+inline json_adapter_if_t::json_adapter_map_t get_json_subfields(database_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::string, ctx_t>(&target->name, ctx));
+    res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::string>(&target->name, ctx));
     return res;
 }
 
-template <class ctx_t>
-cJSON *render_as_json(database_semilattice_metadata_t *target, const ctx_t &ctx) {
+inline cJSON *render_as_json(database_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     return render_as_directory(target, ctx);
 }
 
-template <class ctx_t>
-void apply_json_to(cJSON *change, database_semilattice_metadata_t *target, const ctx_t &ctx) {
+inline void apply_json_to(cJSON *change, database_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     apply_as_directory(change, target, ctx);
 }
 
-template <class ctx_t>
-void on_subfield_change(database_semilattice_metadata_t *, const ctx_t &) { }
+inline void on_subfield_change(database_semilattice_metadata_t *, const vclock_ctx_t &) { }
 
 class databases_semilattice_metadata_t {
 public:
@@ -58,23 +55,20 @@ RDB_MAKE_SEMILATTICE_JOINABLE_1(databases_semilattice_metadata_t, databases);
 RDB_MAKE_EQUALITY_COMPARABLE_1(databases_semilattice_metadata_t, databases);
 
 //json adapter concept for databases_semilattice_metadata_t
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(databases_semilattice_metadata_t *target, const ctx_t &ctx) {
-    return json_ctx_adapter_with_inserter_t<databases_semilattice_metadata_t::database_map_t, ctx_t>(&target->databases, generate_uuid, ctx).get_subfields();
+// TODO: deinline these?
+inline json_adapter_if_t::json_adapter_map_t get_json_subfields(databases_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
+    return json_ctx_adapter_with_inserter_t<databases_semilattice_metadata_t::database_map_t, vclock_ctx_t>(&target->databases, generate_uuid, ctx).get_subfields();
 }
 
-template <class ctx_t>
-cJSON *render_as_json(databases_semilattice_metadata_t *target, const ctx_t &ctx) {
+inline cJSON *render_as_json(databases_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     return render_as_json(&target->databases, ctx);
 }
 
-template <class ctx_t>
-void apply_json_to(cJSON *change, databases_semilattice_metadata_t *target, const ctx_t &ctx) {
+inline void apply_json_to(cJSON *change, databases_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     apply_as_directory(change, &target->databases, ctx);
 }
 
-template <class ctx_t>
-void on_subfield_change(databases_semilattice_metadata_t *target, const ctx_t &ctx) {
+inline void on_subfield_change(databases_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     on_subfield_change(&target->databases, ctx);
 }
 
