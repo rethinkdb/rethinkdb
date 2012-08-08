@@ -347,60 +347,6 @@ boost::shared_ptr<subfield_change_functor_t> json_ctx_adapter_with_inserter_t<co
 
 namespace boost {
 
-//JSON adapter for boost::variant
-template <class ctx_t>
-class variant_json_subfield_getter_t : public boost::static_visitor<json_adapter_if_t::json_adapter_map_t> {
-public:
-    explicit variant_json_subfield_getter_t(ctx_t _ctx)
-        : ctx(_ctx)
-    { }
-
-    template <class T>
-    json_adapter_if_t::json_adapter_map_t operator()(const T &t) {
-        T _t = t;
-        return get_json_subfields(&_t, ctx);
-    }
-private:
-    ctx_t ctx;
-};
-
-template <class ctx_t>
-class variant_json_renderer_t : public boost::static_visitor<cJSON *> {
-public:
-    explicit variant_json_renderer_t(ctx_t _ctx)
-        : ctx(_ctx)
-    { }
-
-    template <class T>
-    cJSON *operator()(const T &t) {
-        T _t = t;
-        return render_as_json(&_t, ctx);
-    }
-private:
-    ctx_t ctx;
-};
-
-template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *target, const ctx_t &ctx) {
-    variant_json_subfield_getter_t<ctx_t> visitor(ctx);
-    return boost::apply_visitor(visitor, *target);
-}
-
-template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20, class ctx_t>
-cJSON *render_as_json(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *target, const ctx_t &ctx) {
-    variant_json_renderer_t<ctx_t> visitor(ctx);
-    return boost::apply_visitor(visitor, *target);
-}
-
-template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20, class ctx_t>
-void apply_json_to(cJSON *, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *, const ctx_t &) {
-    throw permission_denied_exc_t("Can't write to a boost::variant.");
-}
-
-template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20, class ctx_t>
-void on_subfield_change(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *, const ctx_t &) { }
-
-
 // ctx-less JSON adapter for boost::variant
 class noctx_variant_json_subfield_getter_t : public boost::static_visitor<json_adapter_if_t::json_adapter_map_t> {
 public:
@@ -449,26 +395,6 @@ void on_subfield_change(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, 
 } //namespace boost
 
 namespace std {
-//JSON adapter for std::string
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(std::string *target, const ctx_t &) {
-    return get_json_subfields(target);
-}
-
-template <class ctx_t>
-cJSON *render_as_json(std::string *target, const ctx_t &) {
-    return render_as_json(target);
-}
-
-template <class ctx_t>
-void apply_json_to(cJSON *change, std::string *target, const ctx_t &) {
-    apply_json_to(change, target);
-}
-
-template <class ctx_t>
-void on_subfield_change(std::string *target, const ctx_t &) { on_subfield_change(target); }
-
-
 //JSON adapter for std::map
 
 // TODO: User-specified data shouldn't produce fields.  A std::map
