@@ -1830,6 +1830,8 @@ namespace_id_t admin_cluster_link_t::do_admin_create_namespace_internal(const st
     region_map_t<protocol_t, machine_id_t> default_primary_pinnings(protocol_t::region_t::universe(), nil_uuid());
     obj.primary_pinnings.get_mutable() = default_primary_pinnings;
     obj.primary_pinnings.upgrade_version(change_request_id);
+    obj.database.get_mutable() = nil_uuid();
+    obj.database.upgrade_version(change_request_id);
 
     return id;
 }
