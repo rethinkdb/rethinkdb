@@ -8,28 +8,6 @@
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
 
-//json adapter concept for issue_json_t
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(issue_json_t *target, UNUSED const ctx_t &ctx) {
-    return get_json_subfields(target);
-}
-
-template <class ctx_t>
-cJSON *render_as_json(issue_json_t *target, UNUSED const ctx_t &ctx) {
-    return render_as_json(target);
-}
-
-template <class ctx_t>
-void apply_json_to(cJSON *change, issue_json_t *target, UNUSED const ctx_t &ctx) {
-    apply_json_to(change, target);
-}
-
-template <class ctx_t>
-void on_subfield_change(issue_json_t *target, const ctx_t &) {
-    on_subfield_change(target);
-}
-
-
 // ctx-less json adapter concept for issue_json_t
 // TODO: deinline these?
 inline json_adapter_if_t::json_adapter_map_t get_json_subfields(issue_json_t *target) {
