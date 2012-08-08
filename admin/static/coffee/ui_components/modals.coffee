@@ -161,6 +161,7 @@ module 'UIComponents', ->
                 when 'datacenter' then return datacenters.get(@item_uuid)
                 when 'namespace' then return namespaces.get(@item_uuid)
                 when 'machine' then return machines.get(@item_uuid)
+                when 'database' then return databases.get(@item_uuid)
                 else return null
 
         get_item_url: ->
@@ -168,6 +169,7 @@ module 'UIComponents', ->
                 when 'datacenter' then return 'datacenters'
                 when 'namespace' then return namespaces.get(@item_uuid).get('protocol') + '_namespaces'
                 when 'machine' then return 'machines'
+                when 'database' then return 'databases'
                 else return null
 
         render: ->
