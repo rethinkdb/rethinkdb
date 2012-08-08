@@ -171,14 +171,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(reactor_bcards);
 };
 
-struct namespace_metadata_ctx_t {
+struct vclock_ctx_t {
     const uuid_t us;
-    explicit namespace_metadata_ctx_t(uuid_t _us)
+    explicit vclock_ctx_t(uuid_t _us)
         : us(_us)
     { }
 };
 
-inline bool operator==(const namespace_metadata_ctx_t &x, const namespace_metadata_ctx_t &y) {
+inline bool operator==(const vclock_ctx_t &x, const vclock_ctx_t &y) {
     return x.us == y.us;
 }
 
