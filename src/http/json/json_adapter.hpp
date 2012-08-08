@@ -433,37 +433,11 @@ void apply_json_to(cJSON *, uint64_t *);
 void on_subfield_change(uint64_t *);
 
 
-//JSON adapter for char
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(char *, const ctx_t &);
-
-template <class ctx_t>
-cJSON *render_as_json(char *, const ctx_t &);
-
-template <class ctx_t>
-void apply_json_to(cJSON *, char *, const ctx_t &);
-
-template <class ctx_t>
-void on_subfield_change(char *, const ctx_t &);
-
 // ctx-less JSON adapter for bool
 json_adapter_if_t::json_adapter_map_t get_json_subfields(bool *);
 cJSON *render_as_json(bool *);
 void apply_json_to(cJSON *, bool *);
 void on_subfield_change(bool *);
-
-//JSON adapter for uuid_t
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_t *, const ctx_t &);
-
-template <class ctx_t>
-cJSON *render_as_json(const uuid_t *, const ctx_t &);
-
-template <class ctx_t>
-void apply_json_to(cJSON *, uuid_t *, const ctx_t &);
-
-template <class ctx_t>
-void on_subfield_change(uuid_t *, const ctx_t &);
 
 // ctx-less JSON adapter for uuid_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_t *);
