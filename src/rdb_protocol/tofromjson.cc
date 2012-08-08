@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "errors.hpp"
 #include <boost/scoped_array.hpp>
 #include <boost/make_shared.hpp>
@@ -9,25 +11,15 @@
 
 namespace js {
 
-static void get_string(boost::scoped_array<char> *out, const v8::Handle<v8::String> string) {
-    // Create buffer to hold string contents.
-    //
-    // It's really stupid that we have to do this, because it involves a double
-    // copy: once from the v8::String to our buffer, then from our buffer to a
-    // cJSON buffer, because cJSON strdup()s the strings its given.
-    //
-    // NB. v8::String::Length() gives us the number of logical characters, which
-    // we don't want. Instead, we use v8::String::Utf8Length(), which us the
-    // number of bytes in the utf-8 representation.
-    //
-    // We add 1 because cJSON is stupid and needs a terminating null byte.
-    //
-    // TODO(rntz): What if the string contains a null character? cJSON
-    // assumes null termination, which means it'll cut off the string. We
-    // should switch away from cJSON.
-    int length = string->Utf8Length() + 1;
-    out->reset(new char[length]);
-    string->WriteUtf8(out->get(), length);
+// Returns new "last" pointer.
+static cJSON *append_cJSON(cJSON *root, cJSON *last, cJSON *append) {
+    if (last) {
+        last->next = append;
+        append->prev = last;
+    } else {
+        root->child = append;
+    }
+    return append;
 }
 
 // Returns NULL & sets `*errmsg` on failure.
@@ -45,13 +37,28 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
     v8::HandleScope handle_scope;
 
     if (value->IsString()) {
-        boost::scoped_array<char> buf;
-        get_string(&buf, value->ToString());
+        cJSON *p = cJSON_CreateBlank();
+        if (NULL == p) {
+            *errmsg = "cJSON_CreateBlank() failed";
+            return NULL;
+        }
+        scoped_cJSON_t result(p);
 
-        // NB. cJSON_CreateString strdup()s the buffer it's given.
-        cJSON *r = cJSON_CreateString(buf.get());
-        if (NULL == r) *errmsg = "cJSON_CreateString() failed";
-        return r;
+        // Copy in the string. TODO(rntz): cJSON requires null termination. We
+        // should switch away from cJSON.
+        v8::Handle<v8::String> string = value->ToString();
+        rassert(!string.IsEmpty());
+        int length = string->Utf8Length() + 1; // +1 for null byte
+
+        p->type = cJSON_String;
+        p->valuestring = (char*)malloc(length);
+        if (NULL == p->valuestring) {
+            *errmsg = "failed to allocate space for string";
+            return NULL;
+        }
+        string->WriteUtf8(p->valuestring, length);
+
+        return result.release();
 
     } else if (value->IsObject()) {
         // This case is kinda weird. Objects can have stuff in them that isn't
@@ -65,19 +72,17 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
                 return NULL;
             }
 
+            cJSON *last = NULL;
             uint32_t len = arrayh->Length();
             for (uint32_t i = 0; i < len; ++i) {
                 v8::Handle<v8::Value> elth = arrayh->Get(i);
-                // FIXME: theoretically this could raise a JS error, and then
-                // elt would be empty.
-                rassert(!elth.IsEmpty());
+                rassert(!elth.IsEmpty()); // FIXME
 
                 cJSON *eltj = mkJSON(elth, recursion_limit, errmsg);
                 if (NULL == eltj) return NULL;
 
-                // TODO (rntz) FIXME: this is O(n). do this better by explicitly
-                // manipulating object chains.
-                arrayj.AddItemToArray(eltj);
+                // Append it to the array.
+                last = append_cJSON(arrayj.get(), last, eltj);
             }
 
             return arrayj.release();
@@ -105,6 +110,7 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
                 return NULL;
             }
 
+            cJSON *last = NULL;
             uint32_t len = props->Length();
             for (uint32_t i = 0; i < len; ++i) {
                 v8::Handle<v8::String> keyh = props->Get(i)->ToString();
@@ -112,13 +118,20 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
                 v8::Handle<v8::Value> valueh = objh->Get(keyh);
                 rassert(!valueh.IsEmpty()); // FIXME
 
-                cJSON *valuej = mkJSON(valueh, recursion_limit, errmsg);
-                if (NULL == valuej) return NULL;
+                scoped_cJSON_t valuej(mkJSON(valueh, recursion_limit, errmsg));
+                if (NULL == valuej.get()) return NULL;
 
-                boost::scoped_array<char> buf;
-                get_string(&buf, keyh);
+                // Create string key.
+                int length = keyh->Utf8Length() + 1; // +1 for null byte.
+                char *str = valuej.get()->string = (char*)malloc(length);
+                if (NULL == str) {
+                    *errmsg = "could not allocate space for string";
+                    return NULL;
+                }
+                keyh->WriteUtf8(str, length);
 
-                objj.AddItemToObject(buf.get(), valuej);
+                // Append to object.
+                last = append_cJSON(objj.get(), last, valuej.release());
             }
 
             return objj.release();

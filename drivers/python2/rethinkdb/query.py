@@ -128,11 +128,6 @@ class Expression(object):
             arg._write_ast(parent.call.args.add())
         return parent.call.builtin
 
-    def _chain(self, func, cls, **kwargs):
-        kwargs['parent'] = self
-        kwargs['_write_ast'] = func
-        return type(cls.__name__, (cls,), kwargs)()
-
     def between(self, start_key, end_key, start_inclusive=True, end_inclusive=True):
         """Select all elements between two keys.
 
@@ -151,6 +146,7 @@ class Expression(object):
         >>> table('users').between(10, 20) # all users with ids between 10 and 20
         >>> expr([1, 2, 3, 4]).between(2, 4) # [2, 3, 4]
         """
+        return internal.Between(self, start_key, end_key, start_inclusive, end_inclusive)
 
     def filter(self, selector):
         """Select all elements that fit the specified condition.
@@ -209,14 +205,10 @@ class Expression(object):
         """
         if isinstance(selector, dict):
             selector = internal.Conjunction(*[R(k) == v for k, v in selector.iteritems()])
-        if not isistance(selector, internal.Function):
+        if not isinstance(selector, internal.Function):
             selector = internal.Function(selector)
 
-        def _write_ast(self, parent):
-            builtin = self._write_call(parent, p.Term.FILTER, self.parent)
-            self.selector._write_ast(builtin.filter.predicate)
-
-        return self._chain(_write_ast, self.__class__, selector=selector)
+        return internal.Filter(self, selector)
 
     def nth(self, index):
         """Select the element at `index`.
@@ -331,21 +323,6 @@ class Expression(object):
     def pluck(self, *attrs):
         pass
 
-def expr(val):
-    """Converts a python value to a ReQL :class:`JSONExpression`.
-
-    :param val: Any Python value that can be converted to JSON.
-    :returns: :class:`JSON`
-
-    >>> expr(1)
-    >>> expr("foo")
-    >>> expr(["foo", 1])
-    >>> expr({ 'name': 'Joe', 'age': 30 })
-    """
-    if isinstance(val, JSONExpression):
-        return val
-    return JSONExpression.fromvalue(val)
-
 ##########################################
 # DATA OBJECTS - SELECTION, STREAM, ETC. #
 ##########################################
@@ -392,43 +369,6 @@ class JSONExpression(Expression):
     >>> expr(1) < 2 & 3 < 4 # We use `&` and `|` to encode `and` and `or` since we can't overload
                             # these in Python"""
 
-    @classmethod
-    def fromvalue(cls, value):
-        ret = cls()
-        ret.value = value
-        if isinstance(value, bool):
-            ret.type = p.Term.BOOL
-            ret.valueattr = 'valuebool'
-        elif isinstance(value, (int, float)):
-            ret.type = p.Term.NUMBER
-            ret.valueattr = 'number'
-        elif isinstance(value, (str, unicode)):
-            ret.type = p.Term.STRING
-            ret.valueattr = 'valuestring'
-        elif isinstance(value, dict):
-            ret.type = p.Term.OBJECT
-        elif isinstance(value, list):
-            ret.type = p.Term.ARRAY
-        elif value is None:
-            ret.type = p.Term.JSON_NULL
-        else:
-            raise TypeError("argument must be a JSON-compatible type (bool/int/float/str/unicode/dict/list),"
-                            "not %r" % value.__class__.__name__)
-
-        return ret
-
-    def _write_ast(self, parent):
-        parent.type = self.type
-        if self.type == p.Term.ARRAY:
-            for value in self.value:
-                expr(value)._write_ast(parent.array.add())
-        elif self.type == p.Term.OBJECT:
-            for key, value in self.value.iteritems():
-                pair = parent.object.add()
-                pair.var = key
-                expr(value)._write_ast(pair.term)
-        elif self.value is not None:
-            setattr(parent, self.valueattr, self.value)
 
     def _finalize_query(self, root):
         root.type = p.Query.READ
@@ -436,6 +376,7 @@ class JSONExpression(Expression):
 
     def to_stream(self):
         """Convert a JSON array into a stream."""
+        return internal.ToStream(self)
 
     def __lt__(self, other):
         return internal.CompareLT(self, other)
@@ -476,6 +417,58 @@ class JSONExpression(Expression):
         return internal.Sub(self)
     def __pos__(self):
         return self
+
+class JSONLiteral(JSONExpression):
+    """A literal JSON value."""
+
+    def __init__(self, value):
+        self.value = value
+        if isinstance(value, bool):
+            self.type = p.Term.BOOL
+            self.valueattr = 'valuebool'
+        elif isinstance(value, (int, float)):
+            self.type = p.Term.NUMBER
+            self.valueattr = 'number'
+        elif isinstance(value, (str, unicode)):
+            self.type = p.Term.STRING
+            self.valueattr = 'valuestring'
+        elif isinstance(value, dict):
+            self.type = p.Term.OBJECT
+        elif isinstance(value, list):
+            self.type = p.Term.ARRAY
+        elif value is None:
+            self.type = p.Term.JSON_NULL
+        else:
+            raise TypeError("argument must be a JSON-compatible type (bool/int/float/str/unicode/dict/list),"
+                            "not %r" % value.__class__.__name__)
+
+    def _write_ast(self, parent):
+        parent.type = self.type
+        if self.type == p.Term.ARRAY:
+            for value in self.value:
+                expr(value)._write_ast(parent.array.add())
+        elif self.type == p.Term.OBJECT:
+            for key, value in self.value.iteritems():
+                pair = parent.object.add()
+                pair.var = key
+                expr(value)._write_ast(pair.term)
+        elif self.value is not None:
+            setattr(parent, self.valueattr, self.value)
+
+def expr(val):
+    """Converts a python value to a ReQL :class:`JSONExpression`.
+
+    :param val: Any Python value that can be converted to JSON.
+    :returns: :class:`JSON`
+
+    >>> expr(1)
+    >>> expr("foo")
+    >>> expr(["foo", 1])
+    >>> expr({ 'name': 'Joe', 'age': 30 })
+    """
+    if isinstance(val, JSONExpression):
+        return val
+    return JSONLiteral(val)
 
 class RowSelection(JSONExpression, BaseSelection):
     """A single row from a table which can be read or written."""
