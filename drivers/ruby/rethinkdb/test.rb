@@ -9,6 +9,7 @@ r.javascript('javascript').query ;p? :JAVASCRIPT
 ################################################################################
 #                                 BUILTIN TESTS                                #
 ################################################################################
+#TODO: Does pickattrs even work?
 r.var('v').pickattrs('a').query ;p? :PICKATTRS
 r.var('v').attrs('a').query ;p? :PICKATTRS
 r.attrs('a').query ;p? :IMPLICIT_PICKATTRS
@@ -86,6 +87,88 @@ class ClientTest < Test::Unit::TestCase
   def rdb; r.db('').Welcome; end
   @@c = RethinkDB::Connection.new('localhost', 64346)
   def c; @@c; end
+
+  def test_ops #+,-,%,*,/,<,>,<=,>=,eq,ne
+    assert_equal((r[5] + 3).run, 8)
+    assert_equal((r[5].add(3)).run, 8)
+    assert_equal(r.add(5,3).run, 8)
+
+    assert_equal((r[5] - 3).run, 2)
+    assert_equal((r[5].sub(3)).run, 2)
+    assert_equal((r[5].subtract(3)).run, 2)
+    assert_equal(r.sub(5,3).run, 2)
+    assert_equal(r.subtract(5,3).run, 2)
+
+    assert_equal((r[5] % 3).run, 2)
+    assert_equal((r[5].mod(3)).run, 2)
+    assert_equal((r[5].modulo(3)).run, 2)
+    assert_equal(r.mod(5,3).run, 2)
+    assert_equal(r.modulo(5,3).run, 2)
+
+    assert_equal((r[5] * 3).run, 15)
+    assert_equal((r[5].mul(3)).run, 15)
+    assert_equal((r[5].multiply(3)).run, 15)
+    assert_equal(r.mul(5,3).run, 15)
+    assert_equal(r.multiply(5,3).run, 15)
+
+    assert_equal((r[15] / 3).run, 5)
+    assert_equal((r[15].div(3)).run, 5)
+    assert_equal((r[15].divide(3)).run, 5)
+    assert_equal(r.div(15,3).run, 5)
+    assert_equal(r.divide(15,3).run, 5)
+
+    assert_equal(r.lt(3,2).run,false)
+    assert_equal(r.lt(3,3).run,false)
+    assert_equal(r.lt(3,4).run,true)
+    assert_equal(r[3].lt(2).run,false)
+    assert_equal(r[3].lt(3).run,false)
+    assert_equal(r[3].lt(4).run,true)
+    assert_equal((r[3] < 2).run,false)
+    assert_equal((r[3] < 3).run,false)
+    assert_equal((r[3] < 4).run,true)
+
+    assert_equal(r.le(3,2).run,false)
+    assert_equal(r.le(3,3).run,true)
+    assert_equal(r.le(3,4).run,true)
+    assert_equal(r[3].le(2).run,false)
+    assert_equal(r[3].le(3).run,true)
+    assert_equal(r[3].le(4).run,true)
+    assert_equal((r[3] <= 2).run,false)
+    assert_equal((r[3] <= 3).run,true)
+    assert_equal((r[3] <= 4).run,true)
+
+    assert_equal(r.gt(3,2).run,true)
+    assert_equal(r.gt(3,3).run,false)
+    assert_equal(r.gt(3,4).run,false)
+    assert_equal(r[3].gt(2).run,true)
+    assert_equal(r[3].gt(3).run,false)
+    assert_equal(r[3].gt(4).run,false)
+    assert_equal((r[3] > 2).run,true)
+    assert_equal((r[3] > 3).run,false)
+    assert_equal((r[3] > 4).run,false)
+
+    assert_equal(r.ge(3,2).run,true)
+    assert_equal(r.ge(3,3).run,true)
+    assert_equal(r.ge(3,4).run,false)
+    assert_equal(r[3].ge(2).run,true)
+    assert_equal(r[3].ge(3).run,true)
+    assert_equal(r[3].ge(4).run,false)
+    assert_equal((r[3] >= 2).run,true)
+    assert_equal((r[3] >= 3).run,true)
+    assert_equal((r[3] >= 4).run,false)
+
+    assert_equal(r.eq(3,2).run, false)
+    assert_equal(r.eq(3,3).run, true)
+    assert_equal(r.equals(3,2).run, false)
+    assert_equal(r.equals(3,3).run, true)
+
+    assert_equal(r.ne(3,2).run, true)
+    assert_equal(r.ne(3,3).run, false)
+    assert_equal(r.not(r.equals(3,2)).run, true)
+    assert_equal(r.not(r.equals(3,3)).run, false)
+    assert_equal(r.equals(3,2).not.run, true)
+    assert_equal(r.equals(3,3).not.run, false)
+  end
 
   def test_let #LET, CALL, ADD, VAR, NUMBER, STRING
     query = r.let([['a', r.add(1,2)], ['b', r.add(:$a,2)]], r.var('a') + :$b)
@@ -170,87 +253,6 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(query.run.sort, want.sort)
   end
 
-  def test_ops #+,-,%,*,/,<,>,<=,>=,eq,ne
-    assert_equal((r[5] + 3).run, 8)
-    assert_equal((r[5].add(3)).run, 8)
-    assert_equal(r.add(5,3).run, 8)
-
-    assert_equal((r[5] - 3).run, 2)
-    assert_equal((r[5].sub(3)).run, 2)
-    assert_equal((r[5].subtract(3)).run, 2)
-    assert_equal(r.sub(5,3).run, 2)
-    assert_equal(r.subtract(5,3).run, 2)
-
-    assert_equal((r[5] % 3).run, 2)
-    assert_equal((r[5].mod(3)).run, 2)
-    assert_equal((r[5].modulo(3)).run, 2)
-    assert_equal(r.mod(5,3).run, 2)
-    assert_equal(r.modulo(5,3).run, 2)
-
-    assert_equal((r[5] * 3).run, 15)
-    assert_equal((r[5].mul(3)).run, 15)
-    assert_equal((r[5].multiply(3)).run, 15)
-    assert_equal(r.mul(5,3).run, 15)
-    assert_equal(r.multiply(5,3).run, 15)
-
-    assert_equal((r[15] / 3).run, 5)
-    assert_equal((r[15].div(3)).run, 5)
-    assert_equal((r[15].divide(3)).run, 5)
-    assert_equal(r.div(15,3).run, 5)
-    assert_equal(r.divide(15,3).run, 5)
-
-    assert_equal(r.lt(3,2).run,false)
-    assert_equal(r.lt(3,3).run,false)
-    assert_equal(r.lt(3,4).run,true)
-    assert_equal(r[3].lt(2).run,false)
-    assert_equal(r[3].lt(3).run,false)
-    assert_equal(r[3].lt(4).run,true)
-    assert_equal((r[3] < 2).run,false)
-    assert_equal((r[3] < 3).run,false)
-    assert_equal((r[3] < 4).run,true)
-
-    assert_equal(r.le(3,2).run,false)
-    assert_equal(r.le(3,3).run,true)
-    assert_equal(r.le(3,4).run,true)
-    assert_equal(r[3].le(2).run,false)
-    assert_equal(r[3].le(3).run,true)
-    assert_equal(r[3].le(4).run,true)
-    assert_equal((r[3] <= 2).run,false)
-    assert_equal((r[3] <= 3).run,true)
-    assert_equal((r[3] <= 4).run,true)
-
-    assert_equal(r.gt(3,2).run,true)
-    assert_equal(r.gt(3,3).run,false)
-    assert_equal(r.gt(3,4).run,false)
-    assert_equal(r[3].gt(2).run,true)
-    assert_equal(r[3].gt(3).run,false)
-    assert_equal(r[3].gt(4).run,false)
-    assert_equal((r[3] > 2).run,true)
-    assert_equal((r[3] > 3).run,false)
-    assert_equal((r[3] > 4).run,false)
-
-    assert_equal(r.ge(3,2).run,true)
-    assert_equal(r.ge(3,3).run,true)
-    assert_equal(r.ge(3,4).run,false)
-    assert_equal(r[3].ge(2).run,true)
-    assert_equal(r[3].ge(3).run,true)
-    assert_equal(r[3].ge(4).run,false)
-    assert_equal((r[3] >= 2).run,true)
-    assert_equal((r[3] >= 3).run,true)
-    assert_equal((r[3] >= 4).run,false)
-
-    assert_equal(r.eq(3,2).run, false)
-    assert_equal(r.eq(3,3).run, true)
-    assert_equal(r.equals(3,2).run, false)
-    assert_equal(r.equals(3,3).run, true)
-
-    assert_equal(r.ne(3,2).run, true)
-    assert_equal(r.ne(3,3).run, false)
-    assert_equal(r.not(r.equals(3,2)).run, true)
-    assert_equal(r.not(r.equals(3,3)).run, false)
-    assert_equal(r.equals(3,2).not.run, true)
-    assert_equal(r.equals(3,3).not.run, false)
-  end
 end
 
 
@@ -259,3 +261,6 @@ rdb = r.db('').Welcome
 $welcome_data = []
 Array.new(10).each_index{|i| $welcome_data << {'id' => i, 'num' => i, 'name' => i.to_s}}
 c.run(rdb.insert($welcome_data).query)
+rdb.map{|row|row.pickattrs(:id,:name)}.query
+#r[{:a => 1}].pickattrs(:id).run
+
