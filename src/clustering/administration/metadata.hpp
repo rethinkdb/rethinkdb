@@ -130,9 +130,9 @@ void on_subfield_change(directory_echo_wrapper_t<T> *target) {
 }
 
 
-//  json adapter concept for cluster_directory_metadata_t
-template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target, UNUSED const ctx_t &ctx) {
+// ctx-less json adapter concept for cluster_directory_metadata_t
+// TODO: deinline these?
+inline json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
     res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_read_only_adapter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t> >(&target->dummy_namespaces));
     res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<namespaces_directory_metadata_t<memcached_protocol_t> >(&target->memcached_namespaces));
@@ -143,18 +143,37 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metad
     return res;
 }
 
+inline cJSON *render_as_json(cluster_directory_metadata_t *target) {
+    return render_as_directory(target);
+}
+
+inline void apply_json_to(cJSON *change, cluster_directory_metadata_t *target) {
+    apply_as_directory(change, target);
+}
+
+inline void on_subfield_change(cluster_directory_metadata_t *) { }
+
+
+//  json adapter concept for cluster_directory_metadata_t
 template <class ctx_t>
-cJSON *render_as_json(cluster_directory_metadata_t *target, const ctx_t &ctx) {
-    return render_as_directory(target, ctx);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target, UNUSED const ctx_t &ctx) {
+    return get_json_subfields(target);
 }
 
 template <class ctx_t>
-void apply_json_to(cJSON *change, cluster_directory_metadata_t *target, const ctx_t &ctx) {
-    apply_as_directory(change, target, ctx);
+cJSON *render_as_json(cluster_directory_metadata_t *target, UNUSED const ctx_t &ctx) {
+    return render_as_json(target);
 }
 
 template <class ctx_t>
-void on_subfield_change(cluster_directory_metadata_t *, const ctx_t &) { }
+void apply_json_to(cJSON *change, cluster_directory_metadata_t *target, UNUSED const ctx_t &ctx) {
+    apply_json_to(change, target);
+}
+
+template <class ctx_t>
+void on_subfield_change(cluster_directory_metadata_t *target, const ctx_t &) {
+    on_subfield_change(target);
+}
 
 // ctx-less json adapter for cluster_directory_peer_type_t
 // TODO: de-inline these?
