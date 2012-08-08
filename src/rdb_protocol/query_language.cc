@@ -718,7 +718,7 @@ void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::s
 
 void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     //TODO: When writes can return different responses, be more clever.
-    res->set_status_code(Response::SUCCESS_STREAM);
+    res->set_status_code(Response::SUCCESS_JSON);
     switch (w->type()) {
         case WriteQuery::UPDATE:
             {
