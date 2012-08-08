@@ -130,23 +130,6 @@ void apply_json_to(cJSON *, peer_id_t *);
 void on_subfield_change(peer_id_t *);
 
 
-//json adapter concept for region map
-template <class protocol_t, class value_t, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(region_map_t<protocol_t, value_t> *, const ctx_t &);
-
-template <class protocol_t, class value_t, class ctx_t>
-cJSON *render_as_json(region_map_t<protocol_t, value_t> *, const ctx_t &);
-
-template <class protocol_t, class value_t, class ctx_t>
-void apply_json_to(cJSON *, region_map_t<protocol_t, value_t> *, const ctx_t &);
-
-template <class protocol_t, class value_t, class ctx_t>
-void on_subfield_change(region_map_t<protocol_t, value_t> *, const ctx_t &);
-
-// FIXME: this should probably be moved to a different file
-template <class protocol_t, class ctx_t>
-std::string render_region_as_string(typename protocol_t::region_t *region, const ctx_t &ctx);
-
 // ctx-less json adapter concepto for region map
 template <class protocol_t, class value_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(region_map_t<protocol_t, value_t> *);
@@ -159,10 +142,6 @@ void apply_json_to(cJSON *, region_map_t<protocol_t, value_t> *);
 
 template <class protocol_t, class value_t>
 void on_subfield_change(region_map_t<protocol_t, value_t> *);
-
-// TODO: is this (and the one above) actually used?
-template <class protocol_t>
-std::string render_region_as_string(typename protocol_t::region_t *region);
 
 #include "clustering/administration/http/json_adapters.tcc"
 
