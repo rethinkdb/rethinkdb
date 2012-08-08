@@ -285,6 +285,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
 }
 
 write_message_t &operator<<(write_message_t &msg, const boost::shared_ptr<scoped_cJSON_t> &cjson) {
+    rassert(NULL != cjson.get() && NULL != cjson->get());
     msg << *cjson->get();
     return msg;
 }

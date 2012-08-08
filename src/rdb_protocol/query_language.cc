@@ -1052,8 +1052,19 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
                 t->SetExtension(extension::js_id, (int32_t) id);
             }
 
+            // Figure out whether to bind "this" to the implicit object.
+            boost::shared_ptr<scoped_cJSON_t> object;
+            if (env->implicit_attribute_value.has_value()) {
+                object = env->implicit_attribute_value.get_value();
+                if (object->type() != cJSON_Object) {
+                    // If it's not a JSON object, we have to ignore it ("this"
+                    // can't be bound to a non-object).
+                    object.reset();
+                }
+            }
+
             // Evaluate the source.
-            result = js->call(id, argvals, &errmsg);
+            result = js->call(id, object, argvals, &errmsg);
             if (!result) {
                 throw runtime_exc_t("failed to evaluate javascript: " + errmsg, backtrace);
             }
