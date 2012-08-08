@@ -11,6 +11,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/variant/get.hpp>
 
+#include "clustering/administration/namespace_interface_repository.hpp"
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/stream_cache.hpp"
@@ -25,11 +26,15 @@ typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 
 class json_stream_t {
 public:
+    json_stream_t() { }
     virtual boost::shared_ptr<scoped_cJSON_t> next() = 0; //MAY THROW
     virtual void add_transformation(const rdb_protocol_details::transform_atom_t &) = 0;
     virtual result_t apply_terminal(const rdb_protocol_details::terminal_t &) = 0;
 
     virtual ~json_stream_t() { }
+
+private:
+    DISABLE_COPYING(json_stream_t);
 };
 
 class in_memory_stream_t : public json_stream_t {
