@@ -296,7 +296,10 @@ module 'MachineView', ->
                                     for machine in machines.models
                                         if machine.get('datacenter_uuid') is @model.get('datacenter_uuid')
                                             num_machines_in_datacenter++
-                                    if num_machines_in_datacenter > namespace.get('ack_expectations')
+                                    num_replicas = namespace.get('replica_affinities')[@model.get('datacenter_uuid')]
+                                    if @model.get('datacenter_uuid') is namespace.get('primary_uuid')
+                                        num_replicas++
+                                    if num_machines_in_datacenter > num_replicas
                                         new_shard.display_nothing = true
                                     else
                                         new_shard.display_nothing = true
@@ -518,7 +521,76 @@ module 'MachineView', ->
 
         make_nothing: (event) =>
             event.preventDefault()
-            console.log 'nothing'
+            shard = $(event.target).data('shard')
+            namespace_id = $(event.target).data('namespace_id')
+            namespace = namespaces.get(namespace_id)
+            shard_key = JSON.stringify(shard)
+            model = @model
+
+            confirmation_modal = new UIComponents.ConfirmationDialogModal
+            confirmation_modal.on_submit = ->
+                @.$('.btn-primary').button('loading')
+                @.$('.cancel').button('loading')
+
+                post_data = {}
+                post_data[namespace.get('protocol')+'_namespaces'] = {}
+                post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = {}
+                post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'] = namespace.get('secondary_pinnings')
+
+                replica_requirement = namespace.get('replica_affinities')[model.get('datacenter_uuid')]
+                if namespace.get('primary_uuid') is model.get('datacenter_uuid')
+                    replica_requirement--
+
+                for machine_id, i in post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key]
+                    if machine_id is model.get('id')
+                        post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].splice(i, 1)
+                        break
+
+                for machine in machines.models
+                    # Skip the machine we are changing role
+                    if machine.get('id') is model.get('id')
+                        continue
+
+                    if post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'].length >= replica_requirement
+                        break
+
+                    if machine.get('datacenter_uuid') is model.get('datacenter_uuid') # Check if in the same datacenter
+                        already_secondary = false
+                        for secondary_id in post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key]
+                            if machine.get('id') is secondary_id
+                                already_secondary = true
+                                break
+
+                        if already_secondary is false
+                            post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')]['secondary_pinnings'][shard_key].push machine.get('id')
+
+                $.ajax
+                    processData: false
+                    url: @url
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify(post_data)
+                    success: @on_success
+                    error: @on_error
+
+
+            #TODO Double check if can become secondary
+            confirmation_modal.render("Are you sure you want to make the machine <strong>#{@model.get('name')}</strong> a primary machine for the shard <strong>#{JSON.stringify(shard)}</strong> of the namespace <strong>#{namespace.get('name')}</strong>?",
+                "/ajax/semilattice",
+                '',
+                (response) =>
+                    apply_diffs(response)
+
+                    $link = @.$('a.make-master')
+                    $link.text $link.data('loading-text')
+
+                    clear_modals()
+                    $('#user-alert-space').html @alert_set_server_template
+                        role: 'nothing'
+                        shard: shard_key
+                        namespace_name: namespace.get('name')
+                    @render()
+            )
 
         destroy: =>
             @directory_entry.on 'change:memcached_namespaces', @render
@@ -535,9 +607,18 @@ module 'MachineView', ->
         className: 'namespace-other'
 
         template: Handlebars.compile $('#machine_view-operations-template').html()
+        still_master_template: Handlebars.compile $('#reason-cannot_unassign-master-template').html()
+        unsatisfiable_goals_template: Handlebars.compile $('#reason-cannot_unassign-goals-template').html()
+
         events: ->
             'click .rename_server-button': 'rename_server'
             'click .change_datacenter-button': 'change_datacenter'
+            'click .to_assignments-link': 'to_assignments'
+
+        initialize: =>
+            @data = {}
+            machines.on 'all', @render
+            namespaces.on 'all', @render
 
         rename_server: (event) ->
             event.preventDefault()
@@ -549,7 +630,74 @@ module 'MachineView', ->
             set_datacenter_modal = new ServerView.SetDatacenterModal
             set_datacenter_modal.render [@model]
 
+        to_assignments: (event) ->
+            event.preventDefault()
+            $('#machine-assignments').addClass('active')
+            $('#machine-assignments-link').tab('show')
+            window.router.navigate @.$(event.target).attr('href')
+
+        need_update: (old_data, new_data) ->
+            for key of old_data
+                if not new_data[key]?
+                    return true
+                if new_data[key] isnt old_data[key]
+                    return true
+            for key of new_data
+                if not old_data[key]?
+                    return true
+                if new_data[key] isnt old_data[key]
+                    return true
+            return false
 
         render: =>
-            @.$el.html @template {}
+            data = {}
+            if not @model.get('datacenter_uuid')?
+                data.can_unassign = false
+                data.unassign_reason = 'This server is not part of any datacenter'
+                if @need_update(@data, data)
+                    @.$el.html @template data
+                    @data = data
+                return @
+
+
+            for namespace in namespaces.models
+                for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
+                    if machine_uuid is @model.get('id')
+                        for shard, role of peer_roles
+                            if role is 'role_primary'
+                                data.can_unassign = false
+                                data.unassign_reason = @still_master_template
+                                    server_id: @model.get 'id'
+                                if @need_update(@data, data)
+                                    @.$el.html @template data
+                                    @data = data
+                                return @
+
+            num_machines_in_datacenter = 0
+            for machine in machines.models
+                if machine.get('datacenter_uuid') is @model.get('datacenter_uuid')
+                    num_machines_in_datacenter++
+
+            namespaces_need_less_replicas = []
+            for namespace in namespaces.models
+                if @model.get('datacenter_uuid') of namespace.get('replica_affinities') # If the datacenter has responsabilities
+                    num_replica = namespace.get('replica_affinities')[@model.get('datacenter_uuid')]
+                    if namespace.get('primary_uuid') is @model.get('datacenter_uuid')
+                        num_replica++
+
+                    if num_machines_in_datacenter <= num_replica
+                        namespaces_need_less_replicas.push
+                            id: namespace.get('id')
+                            name: namespace.get('name')
+            if namespaces_need_less_replicas.length > 0
+                data.can_unassign = false
+                data.unassign_reason = @unsatisfiable_goals_template
+                    namespaces_need_less_replicas: namespaces_need_less_replicas
+                if @need_update(@data, data)
+                    @.$el.html @template data
+                    @data = data
+                return @
+
+            data.can_unassign = true
+            @.$el.html @template data
             return @

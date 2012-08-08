@@ -198,14 +198,27 @@
         <input type="button" class="btn other_button rename_server-button" value="Rename"/>
         <p>Rename the server</p>
     </div>
-    <div class="other_section rename_namespace">
-        <input type="button" class="btn other_button change_datacenter-button" value="Change datacenter"/>
+    <div class="other_section change_datacenter">
+        <input type="button" class="btn other_button change_datacenter-button" {{#unless can_unassign}}disabled="disabled"{{/unless}} value="Change datacenter"/>
         <p>Change the datacenter of this server</p>
+        {{#if unassign_reason}}
+        <div class="reason">{{print_safe unassign_reason}}</div>
+        {{/if}}
     </div>
-    <div class="other_section rename_namespace">
-        <input type="button" class="btn other_button change_datacenter-button" value="Change datacenter"/>
+    <div class="other_section unassign_datacenter">
+        <input type="button" class="btn other_button change_datacenter-button" {{#unless can_unassign}}disabled="disabled"{{/unless}} value="Change datacenter"/>
         <p>Unassign the datacenter of this server</p>
+        {{#if unassign_reason}}
+        <div class="reason">{{print_safe unassign_reason}}</div>
+        {{/if}}
     </div>
+</script>
+
+<script id="reason-cannot_unassign-master-template" type="text/x-handlebars-template">
+    This server is master for some data. Please <a href="#machines/{{server_id}}/assignments" class="to_assignments-link">make</a> it at least secondary.
+</script>
+<script id="reason-cannot_unassign-goals-template" type="text/x-handlebars-template">
+    You have to lower the number of replicas of the following namespaces to avoid unsatisfiable goals: {{links_to_namespaces_inline namespaces_need_less_replicas "replication"}}
 </script>
 
 <script id="machine_view-recent_log_entry-template" type="text/x-handlebars-template">
