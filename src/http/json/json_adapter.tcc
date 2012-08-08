@@ -565,37 +565,6 @@ template <class V>
 void on_subfield_change(std::set<V> *) { }
 
 
-//JSON adapter for std::pair
-template <class F, class S, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(std::pair<F, S> *target, const ctx_t &ctx) {
-    json_adapter_if_t::json_adapter_map_t res;
-    res["first"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<F, ctx_t>(&target->first, ctx));
-    res["second"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<S, ctx_t>(&target->second, ctx));
-    return res;
-}
-
-template <class F, class S, class ctx_t>
-cJSON *render_as_json(std::pair<F, S> *target, const ctx_t &ctx) {
-    cJSON *res = cJSON_CreateArray();
-    cJSON_AddItemToArray(res, render_as_json(&target->first, ctx));
-    cJSON_AddItemToArray(res, render_as_json(&target->second, ctx));
-    return res;
-}
-
-template <class F, class S, class ctx_t>
-void apply_json_to(cJSON *change, std::pair<F, S> *target, const ctx_t &ctx) {
-    json_array_iterator_t it = get_array_it(change);
-    cJSON *first = it.next(), *second = it.next();
-    if (!first || !second || it.next()) {
-        throw schema_mismatch_exc_t("Expected an array with exactly 2 elements in it");
-    }
-    apply_json_to(first, &target->first, ctx);
-    apply_json_to(second, &target->second, ctx);
-}
-
-template <class F, class S, class ctx_t>
-void on_subfield_change(std::pair<F, S> *, const ctx_t &) { }
-
 // ctx-less JSON adapter for std::pair
 template <class F, class S>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(std::pair<F, S> *target) {
@@ -627,39 +596,6 @@ void apply_json_to(cJSON *change, std::pair<F, S> *target) {
 template <class F, class S>
 void on_subfield_change(std::pair<F, S> *) { }
 
-
-//JSON adapter for std::vector
-template <class V, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(std::vector<V> *, const ctx_t &) {
-    return json_adapter_if_t::json_adapter_map_t();
-}
-
-template <class V, class ctx_t>
-cJSON *render_as_json(std::vector<V> *target, const ctx_t &ctx) {
-    cJSON *res = cJSON_CreateArray();
-    for (typename std::vector<V>::iterator it = target->begin(); it != target->end(); ++it) {
-        cJSON_AddItemToArray(res, render_as_json(&*it, ctx));
-    }
-
-    return res;
-}
-
-template <class V, class ctx_t>
-void apply_json_to(cJSON *change, std::vector<V> *target, const ctx_t &ctx) {
-    std::vector<V> val;
-    json_array_iterator_t it = get_array_it(change);
-    cJSON *hd;
-    while ((hd = it.next())) {
-        V v;
-        apply_json_to(hd, &v, ctx);
-        val.push_back(v);
-    }
-
-    *target = val;
-}
-
-template <class V, class ctx_t>
-void on_subfield_change(std::vector<V> *, const ctx_t &) { }
 
 // ctx-less JSON adapter for std::vector
 template <class V>
