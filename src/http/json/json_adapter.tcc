@@ -347,37 +347,6 @@ boost::shared_ptr<subfield_change_functor_t> json_ctx_adapter_with_inserter_t<co
 
 namespace boost {
 
-//JSON adapter for boost::optional
-template <class T, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(boost::optional<T> *target, const ctx_t &ctx) {
-    if (*target) {
-        return get_json_subfields(&**target, ctx);
-    } else {
-        return json_adapter_if_t::json_adapter_map_t();
-    }
-}
-
-template <class T, class ctx_t>
-cJSON *render_as_json(boost::optional<T> *target, const ctx_t &ctx) {
-    if (*target) {
-        return render_as_json(&**target, ctx);
-    } else {
-        // TODO: This is obviously broken?
-        return cJSON_CreateString("Unset value");
-    }
-}
-
-template <class T, class ctx_t>
-void apply_json_to(cJSON *change, boost::optional<T> *target, const ctx_t &ctx) {
-    if (!*target) {
-        *target = T();
-    }
-    apply_json_to(change, &**target, ctx);
-}
-
-template <class T, class ctx_t>
-void on_subfield_change(boost::optional<T> *, const ctx_t &) { }
-
 //JSON adapter for boost::variant
 template <class ctx_t>
 class variant_json_subfield_getter_t : public boost::static_visitor<json_adapter_if_t::json_adapter_map_t> {
