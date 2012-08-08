@@ -5,7 +5,8 @@
     </head>
     <body>
         <script>
-            var conn = new rethinkdb.net.HttpConnection();
+            var conn = new rethinkdb.net.HttpConnection('/test.html');
+            conn.run('bob');
         </script>
     </body>
 </html>

@@ -21,8 +21,9 @@ lib: query_language.pb.js
 		--compiler_flags="--accept_const_keyword" \
 		--compiler_flags="--generate_exports" \
 		--compiler_flags="--externs=externs.js" \
+		--compiler_flags="--warning_level=DEFAULT" \
 		--output_mode=compiled > rethinkdb.js
 
 # Compile the javascript stubs for the rethinkdb protocol
 query_language.pb.js: $(PROTO_FILE)
-	$(PROTOC_JS) -I $(PROTO_FILE_DIR)  --js_out=. $(PROTO_FILE)
+	$(PROTOC_JS) -I $(PROTO_FILE_DIR)  --js_out=rethinkdb $(PROTO_FILE)
