@@ -19,6 +19,13 @@ void apply_json_to(cJSON *, backfill_location_t *, const ctx_t &);
 template <class ctx_t>
 void on_subfield_change(backfill_location_t *, const ctx_t &);
 
+// ctx-less json adapter concept for backfill location
+json_adapter_if_t::json_adapter_map_t get_json_subfields(backfill_location_t *target);
+cJSON *render_as_json(backfill_location_t *target);
+void apply_json_to(cJSON *, backfill_location_t *);
+void on_subfield_change(backfill_location_t *);
+
+
 //json adapter for primary_when_safe
 template <class protocol_t, class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(primary_when_safe_t<protocol_t>*, const ctx_t &);

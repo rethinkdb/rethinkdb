@@ -11,26 +11,42 @@
 namespace reactor_business_card_details {
 //json adapter concept for backfill location
 template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(backfill_location_t *target, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(backfill_location_t *target, UNUSED const ctx_t &ctx) {
+    return get_json_subfields(target);
+}
+
+template <class ctx_t>
+cJSON *render_as_json(backfill_location_t *target, UNUSED const ctx_t &ctx) {
+    return render_as_json(target);
+}
+
+template <class ctx_t>
+void apply_json_to(cJSON *json, backfill_location_t *target, const ctx_t &) {
+    apply_json_to(json, target);
+}
+
+template <class ctx_t>
+void on_subfield_change(backfill_location_t *target, const ctx_t &) { on_subfield_change(target); }
+
+// ctx-less json adapter concept for backfill location
+// TODO: de-inline these?
+inline json_adapter_if_t::json_adapter_map_t get_json_subfields(backfill_location_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["backfill_session_id"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<backfill_session_id_t, ctx_t>(&target->backfill_session_id, ctx));
-    res["peer_id"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<peer_id_t, ctx_t>(&target->peer_id, ctx));
-    res["activity_id"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<reactor_activity_id_t, ctx_t>(&target->activity_id, ctx));
+    res["backfill_session_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<backfill_session_id_t>(&target->backfill_session_id));
+    res["peer_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<peer_id_t>(&target->peer_id));
+    res["activity_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<reactor_activity_id_t>(&target->activity_id));
     return res;
 }
 
-template <class ctx_t>
-cJSON *render_as_json(backfill_location_t *target, const ctx_t &ctx) {
-    return render_as_directory(target, ctx);
+inline cJSON *render_as_json(backfill_location_t *target) {
+    return render_as_directory(target);
 }
 
-template <class ctx_t>
-void apply_json_to(cJSON *, backfill_location_t *, const ctx_t &) {
+inline void apply_json_to(cJSON *, backfill_location_t *) {
     throw permission_denied_exc_t("Can't write to backfill_location_t  objects.\n");
 }
 
-template <class ctx_t>
-void on_subfield_change(backfill_location_t *, const ctx_t &) { }
+inline void on_subfield_change(backfill_location_t *) { }
 
 
 //json adapter for primary_when_safe
@@ -82,10 +98,10 @@ void on_subfield_change(primary_t<protocol_t> *, const ctx_t &) { }
 
 //json adapter for secondary_up_to_date
 template <class protocol_t, class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(secondary_up_to_date_t<protocol_t> *target, const ctx_t &ctx) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(secondary_up_to_date_t<protocol_t> *target, UNUSED const ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
     res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("secondary_up_to_date"));
-    res["branch_id"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<branch_id_t, ctx_t>(&target->branch_id, ctx));
+    res["branch_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<branch_id_t>(&target->branch_id));
     // TODO: git blame this and ask why it's commented out.
     //res["replier"] =   boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<replier_business_card_t<protocol_t>, ctx_t>(&target->replier));
     return res;

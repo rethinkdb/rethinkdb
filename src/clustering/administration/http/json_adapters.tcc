@@ -176,25 +176,42 @@ void on_subfield_change(deletable_t<T> *, const ctx_t &) { }
 
 //json adapter concept for peer_id_t
 template <class ctx_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(peer_id_t *, const ctx_t &) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(peer_id_t *target, const ctx_t &) {
+    return get_json_subfields(target);
+}
+
+template <class ctx_t>
+cJSON *render_as_json(peer_id_t *target, const ctx_t &) {
+    return render_as_json(target);
+}
+
+template <class ctx_t>
+void apply_json_to(cJSON *change, peer_id_t *target, const ctx_t &) {
+    apply_json_to(change, target);
+}
+
+template <class ctx_t>
+void on_subfield_change(peer_id_t *target, const ctx_t &) { on_subfield_change(target); }
+
+// ctx-less json adapter concept for peer_id_t
+// TODO: de-inline these?
+inline json_adapter_if_t::json_adapter_map_t get_json_subfields(peer_id_t *) {
     return json_adapter_if_t::json_adapter_map_t();
 }
 
-template <class ctx_t>
-cJSON *render_as_json(peer_id_t *target, const ctx_t &ctx) {
+inline cJSON *render_as_json(peer_id_t *target) {
     uuid_t uuid = target->get_uuid();
-    return render_as_json(&uuid, ctx);
+    return render_as_json(&uuid);
 }
 
-template <class ctx_t>
-void apply_json_to(cJSON *change, peer_id_t *target, const ctx_t &ctx) {
+inline void apply_json_to(cJSON *change, peer_id_t *target) {
     uuid_t uuid;
-    apply_json_to(change, &uuid, ctx);
+    apply_json_to(change, &uuid);
     *target = peer_id_t(uuid);
 }
 
-template <class ctx_t>
-void on_subfield_change(peer_id_t *, const ctx_t &) { }
+inline void on_subfield_change(peer_id_t *) { }
+
 
 /* A special adapter for a region_map's value */
 template <class protocol_t, class value_t, class ctx_t>

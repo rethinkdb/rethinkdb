@@ -103,6 +103,16 @@ void apply_json_to(cJSON *, peer_id_t *, const ctx_t &);
 template <class ctx_t>
 void on_subfield_change(peer_id_t *, const ctx_t &);
 
+// ctx-less json adapter concept for peer_id_t
+json_adapter_if_t::json_adapter_map_t get_json_subfields(peer_id_t *);
+
+cJSON *render_as_json(peer_id_t *);
+
+void apply_json_to(cJSON *, peer_id_t *);
+
+void on_subfield_change(peer_id_t *);
+
+
 //json adapter concept for region map
 template <class protocol_t, class value_t, class ctx_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(region_map_t<protocol_t, value_t> *, const ctx_t &);
