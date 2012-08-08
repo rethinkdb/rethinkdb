@@ -46,7 +46,7 @@ point_read_response_t rdb_get(const store_key_t &store_key, btree_slice_t *slice
     find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location, slice->root_eviction_priority, &slice->stats);
 
     if (!kv_location.value.has()) {
-        return point_read_response_t();
+        return point_read_response_t(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNull())));
     }
 
     boost::shared_ptr<scoped_cJSON_t> data = get_data(kv_location.value.get(), txn);
