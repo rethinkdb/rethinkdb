@@ -33,7 +33,10 @@ protected:
     virtual ~backfill_callback_t() { }
 };
 
-void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
-                    transaction_t *txn, superblock_t *superblock, parallel_traversal_progress_t *p);
+void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range,
+        repli_timestamp_t since_when, backfill_callback_t *callback,
+        transaction_t *txn, superblock_t *superblock,
+        parallel_traversal_progress_t *p,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 #endif /* MEMCACHED_BTREE_BACKFILL_HPP_ */

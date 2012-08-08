@@ -4,6 +4,7 @@
 #include "btree/node.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
+#include "concurrency/signal.hpp"
 #include "containers/data_buffer.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
@@ -28,6 +29,7 @@ class parallel_traversal_progress_t;
 class superblock_t;
 
 void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
-                                agnostic_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, parallel_traversal_progress_t *);
+                                agnostic_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, parallel_traversal_progress_t *,
+                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 #endif  // BTREE_BACKFILL_HPP_

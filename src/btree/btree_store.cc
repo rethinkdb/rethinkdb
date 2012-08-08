@@ -182,7 +182,7 @@ bool btree_store_t<protocol_t>::send_backfill(
     get_metainfo_internal(txn.get(), superblock->get(), &unmasked_metainfo);
     region_map_t<protocol_t, binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
     if (should_backfill(metainfo)) {
-        protocol_send_backfill(start_point, chunk_fun, superblock.get(), btree.get(), txn.get(), progress);
+        protocol_send_backfill(start_point, chunk_fun, superblock.get(), btree.get(), txn.get(), progress, interruptor);
         return true;
     }
     return false;

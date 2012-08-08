@@ -455,12 +455,18 @@ private:
 };
 
 static void call_rdb_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
-        rdb_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, backfill_progress_t *progress) {
+        rdb_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, backfill_progress_t *progress,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owned(p);
     progress->add_constituent(&p_owned);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
-    rdb_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p);
+    try {
+        rdb_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p, interruptor);
+    } catch (interrupted_exc_t) {
+        /* do nothing; `protocol_send_backfill()` will notice that interruptor
+        has been pulsed */
+    }
 }
 
 void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
@@ -468,12 +474,20 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
                                      superblock_t *superblock,
                                      btree_slice_t *btree,
                                      transaction_t *txn,
-                                     backfill_progress_t *progress) {
+                                     backfill_progress_t *progress,
+                                     signal_t *interruptor)
+                                     THROWS_ONLY(interrupted_exc_t) {
     rdb_backfill_callback_impl_t callback(chunk_fun);
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
     refcount_superblock_t refcount_wrapper(superblock, regions.size());
     pmap(regions.size(), boost::bind(&call_rdb_backfill, _1,
-        btree, regions, &callback, txn, &refcount_wrapper, progress));
+        btree, regions, &callback, txn, &refcount_wrapper, progress, interruptor));
+
+    /* If interruptor was pulsed, `call_rdb_backfill()` exited silently, so we
+    have to check directly. */
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
 }
 
 struct receive_backfill_visitor_t : public boost::static_visitor<> {

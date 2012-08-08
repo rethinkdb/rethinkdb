@@ -376,7 +376,9 @@ struct rdb_protocol_t {
                                     superblock_t *superblock,
                                     btree_slice_t *btree,
                                     transaction_t *txn,
-                                    backfill_progress_t *progress);
+                                    backfill_progress_t *progress,
+                                    signal_t *interruptor)
+                                    THROWS_ONLY(interrupted_exc_t);
 
         void protocol_receive_backfill(btree_slice_t *btree,
                                        transaction_t *txn,

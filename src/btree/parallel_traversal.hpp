@@ -11,6 +11,7 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"
+#include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
 
 struct btree_superblock_t;
@@ -122,7 +123,12 @@ struct btree_traversal_helper_t {
     parallel_traversal_progress_t *progress;
 };
 
-void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper);
+void btree_parallel_traversal(transaction_t *txn,
+        superblock_t *superblock,
+        btree_slice_t *slice,
+        btree_traversal_helper_t *helper,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
 
 
 class parallel_traversal_progress_t : public traversal_progress_t {
