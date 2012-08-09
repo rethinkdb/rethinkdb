@@ -428,9 +428,20 @@ module RethinkDB
     #   table.filter {|row| row[:id] < 5}
     #   table.filter {r[:id] < 5} # uses implicit variable
     def filter(stream)
-      S.with_var { |vname,v|
-        S._ [:call, [:filter, vname, yield(v)], [stream]]
-      }
+      S.with_var{|vname,v| S._ [:call, [:filter, vname, yield(v)], [stream]]}
+    end
+
+    # Map a function over a query returning a stream.  May also be called as if
+    # it were a member function of RQL_Query for convenience.  The provided
+    # block should take a single variable, a row in the stream, and return
+    # either <b>+true+</b> if it should be in the resulting stream of
+    # <b>+false+</b> otherwise.  If you have a table <b>+table+</b>, the
+    # following are all equivalent:
+    #   r.map(table) {|row| row[:id]}
+    #   table.map {|row| row[:id]}
+    #   table.map {r[:id]} # uses implicit variable
+    def map(stream)
+      S.with_var{|vname,v| S._ [:call, [:map, vname, yield(v)], [stream]]}
     end
   end
 end
