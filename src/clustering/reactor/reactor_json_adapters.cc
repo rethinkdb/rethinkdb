@@ -1,18 +1,15 @@
-#ifndef CLUSTERING_REACTOR_JSON_ADAPTERS_TCC_
-#define CLUSTERING_REACTOR_JSON_ADAPTERS_TCC_
-
 #include "clustering/reactor/reactor_json_adapters.hpp"
 
 #include <string>
 #include <vector>
 
 #include "http/json.hpp"
+#include "clustering/administration/http/json_adapters.hpp"
 
 namespace reactor_business_card_details {
 
 // ctx-less json adapter concept for backfill location
-// TODO: de-inline these?
-inline json_adapter_if_t::json_adapter_map_t get_json_subfields(backfill_location_t *target) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(backfill_location_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
     res["backfill_session_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<backfill_session_id_t>(&target->backfill_session_id));
     res["peer_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<peer_id_t>(&target->peer_id));
@@ -20,15 +17,15 @@ inline json_adapter_if_t::json_adapter_map_t get_json_subfields(backfill_locatio
     return res;
 }
 
-inline cJSON *render_as_json(backfill_location_t *target) {
+cJSON *render_as_json(backfill_location_t *target) {
     return render_as_directory(target);
 }
 
-inline void apply_json_to(cJSON *, backfill_location_t *) {
+void apply_json_to(cJSON *, backfill_location_t *) {
     throw permission_denied_exc_t("Can't write to backfill_location_t  objects.\n");
 }
 
-inline void on_subfield_change(backfill_location_t *) { }
+void on_subfield_change(backfill_location_t *) { }
 
 
 // ctx-less json adapter for primary_when_safe
@@ -244,4 +241,22 @@ void apply_json_to(cJSON *change, reactor_business_card_t<protocol_t> *target) {
 template <class protocol_t>
 void on_subfield_change(reactor_business_card_t<protocol_t> *) { }
 
-#endif  // CLUSTERING_REACTOR_JSON_ADAPTERS_TCC_
+
+#include "memcached/protocol_json_adapter.hpp"
+template json_adapter_if_t::json_adapter_map_t get_json_subfields<memcached_protocol_t>(reactor_business_card_t<memcached_protocol_t> *target);
+template cJSON *render_as_json<memcached_protocol_t>(reactor_business_card_t<memcached_protocol_t> *target);
+template void apply_json_to<memcached_protocol_t>(cJSON *change, reactor_business_card_t<memcached_protocol_t> *target);
+template void on_subfield_change<memcached_protocol_t>(reactor_business_card_t<memcached_protocol_t> *);
+
+#include "rdb_protocol/protocol.hpp"
+template json_adapter_if_t::json_adapter_map_t get_json_subfields<rdb_protocol_t>(reactor_business_card_t<rdb_protocol_t> *target);
+template cJSON *render_as_json<rdb_protocol_t>(reactor_business_card_t<rdb_protocol_t> *target);
+template void apply_json_to<rdb_protocol_t>(cJSON *change, reactor_business_card_t<rdb_protocol_t> *target);
+template void on_subfield_change<rdb_protocol_t>(reactor_business_card_t<rdb_protocol_t> *);
+
+#include "mock/dummy_protocol_json_adapter.hpp"
+template json_adapter_if_t::json_adapter_map_t get_json_subfields<mock::dummy_protocol_t>(reactor_business_card_t<mock::dummy_protocol_t> *target);
+template cJSON *render_as_json<mock::dummy_protocol_t>(reactor_business_card_t<mock::dummy_protocol_t> *target);
+template void apply_json_to<mock::dummy_protocol_t>(cJSON *change, reactor_business_card_t<mock::dummy_protocol_t> *target);
+template void on_subfield_change<mock::dummy_protocol_t>(reactor_business_card_t<mock::dummy_protocol_t> *);
+
