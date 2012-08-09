@@ -289,7 +289,7 @@ std::string human_readable_status(int code) {
     }
 }
 
-void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) THROWS_ONLY(tcp_conn_t::write_closed_exc_t) {
+void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     conn->writef(closer, "HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
     for (std::vector<header_line_t>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); it++) {
         conn->writef(closer, "%s: %s\r\n", it->key.c_str(), it->val.c_str());
@@ -318,17 +318,17 @@ void http_server_t::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, a
             res.code = 400;
             write_http_msg(conn.get(), res, keepalive.get_drain_signal());
         }
-    } catch (const linux_tcp_conn_t::read_closed_exc_t &) {
+    } catch (const tcp_conn_read_closed_exc_t &) {
         //Someone disconnected before sending us all the information we
         //needed... oh well.
-    } catch (const linux_tcp_conn_t::write_closed_exc_t &) {
+    } catch (const tcp_conn_write_closed_exc_t &) {
         //We were trying to write to someone and they didn't stick around long
         //enough to write it.
     }
 }
 
 // Parse a http request off of the tcp conn and stuff it into the http_req_t object. Returns parse success.
-bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *closer) THROWS_ONLY(tcp_conn_t::read_closed_exc_t) {
+bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     LineParser parser(conn);
 
     std::string method = parser.readWord(closer);
