@@ -137,6 +137,60 @@ makeComparison('GreaterThanOrEqualsExpression', Builtin.Comparison.GE, 'ge');
 
 /**
  * @return {rethinkdb.reql.query.Expression}
+ * @param {*} start_key
+ * @param {*} end_key
+ * @param {boolean=} start_inclusive 
+ * @param {boolean=} end_inclusive 
+ */
+rethinkdb.reql.query.Expression.prototype.between =
+        function(start_key, end_key, start_inclusive, end_inclusive) {
+    return new rethinkdb.reql.query.RangeExpression(this,
+                                                    start_key,
+                                                    end_key,
+                                                    start_inclusive,
+                                                    end_inclusive);
+};
+goog.exportProperty(rethinkdb.reql.query.Expression.prototype, 'between',
+                    rethinkdb.reql.query.Expression.prototype.between);
+
+/**
+ * @constructor
+ * @extends {rethinkdb.reql.query.Expression}
+ */
+rethinkdb.reql.query.RangeExpression = function(leftExpr,
+                                                start_key,
+                                                end_key,
+                                                start_inclusive,
+                                                end_inclusive) {
+    this.leftExpr_ = leftExpr;
+    this.startKey_ = start_key;
+    this.endKey_ = end_key;
+    this.startInclusive_ = (typeof start_inclusive === 'undefined') ?
+                                false : start_inclusive;
+    this.endInclusive_ = (typeof end_inclusive === 'undefined') ?
+                                false : end_inclusive;
+};
+
+rethinkdb.reql.query.RangeExpression.prototype.compile = function() {
+    var term = new Term();
+    term.setType(Term.TermType.CALL);
+
+    var call = new Term.Call();
+    var builtin = new Builtin();
+    builtin.setType(Builtin.BuiltinType.RANGE);
+    call.setBuiltin(builtin);
+    call.addArgs(this.leftExpr_.compile());
+    call.addArgs(this.startKey_.compile());
+    call.addArgs(this.endKey_.compile());
+    call.addArgs(rethinkdb.reql.query.expr(this.startInclusive_).compile());
+    call.addArgs(rethinkdb.reql.query.expr(this.endInclusive_).compile());
+
+    term.setCall(call);
+    return term;
+};
+
+/**
+ * @return {rethinkdb.reql.query.Expression}
  */
 rethinkdb.reql.query.Expression.prototype.filter = function(selector) {
 
