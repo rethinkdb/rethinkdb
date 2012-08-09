@@ -1,9 +1,20 @@
-# TODO: toplevel documentation
-# TODO: Error, let, if, javascript, builtins, comparators
+# Right now, this is a place to record high-level spec changes that need to
+# happen.  TODO:
+# * UPDATE needs to be changed to do an implicit mapmerge on its righthand side
+#   (this will make its behavior line up with the Python documentation).
+# * MUTATE needs to be renamed to REPLACE (Joe and Tim and I just talked about
+#   this) and maintain its current behavior rather than changing to match UPDATE.
+# * The following are currently unimplemented or buggy: REDUCE, GROUPEDMAPREDUCE,
+#   MUTATE, FOREACH, POINTUPDATE, POINTMUTATE.
+# * The following are going away: ARRAYAPPEND, ARRAYCONCAT, ARRAYSLICE,
+#   ARRAYNTH, ARRAYLENGTH (to be replaced with APPEND, UNION, SLICE, NTH, and
+#   LENGTH (all polymorphic, some of which already work for streams)).
+# * I don't understand where JAVASCRIPT is used, or how GROUPEDMAPREDUCE works.
 module RethinkDB
   # A network connection to the RethinkDB cluster.
   class Connection
-    # Create a new connection to <b>+host+</b> on port <b>+port+</b>.
+    # Create a new connection to <b>+host+</b> on port <b>+port+</b>.  Example:
+    #   c = Connection.new('localhost')
     def initialize(host, port=12346)
       @@last = self
       @socket = TCPSocket.open(host, port)
@@ -16,6 +27,11 @@ module RethinkDB
     # Run the RQL query <b>+query+</b>.  Returns either a list of JSON values or
     # a single JSON value depending on <b>+query+</b>.  (Note that JSON values
     # will be converted to Ruby datatypes by the time you receive them.)
+    # Example (assuming a connection <b>+c+</b> and that you've mixed in
+    # shortcut <b>+r+</b>):
+    #   c.run(r.add(1,2))                         => 3
+    #   c.run(r.expr([r.add(1,2)]))               => [3]
+    #   c.run(r.expr([r.add(1,2), r.add(10,20)])) => [3, 30]
     def run query
       a = []
       token_iter(dispatch query){|row| a.push row} ? a : a[0]
@@ -27,6 +43,13 @@ module RethinkDB
     # <b>+true+</b> if your query returned a sequence of values or
     # <b>+false+</b> if your query returned a single value.  (Note that JSON
     # values will be converted to Ruby datatypes by the time you receive them.)
+    # Example (assuming a connection <b>+c+</b> and that you've mixed in
+    # shortcut <b>+r+</b>):
+    #   a = []
+    #   c.iter(r.add(1,2)) {|val| a.push val} => false
+    #   a                                     => [3]
+    #   c.iter(r.expr([r.add(1,2), r.add(10,20)])) {|val| a.push val} => false
+    #   a                                     => [3]
     def iter(query, &block)
       token_iter(dispatch(query), &block)
     end
@@ -200,6 +223,10 @@ module RethinkDB
     # Note: this function is idempotent, so the following are equivalent:
     #   r[5]
     #   r[r[5]]
+    # Note 2: the implicit variable can be dangerous.  Never pass it to a
+    # Ruby function, as it might enter a different scope without your
+    # knowledge.  In general, if you're doing something complicated, consider
+    # naming your variables.
     def expr x
       case x.class().hash
       when RQL_Query.hash  then x
@@ -259,7 +286,6 @@ module RethinkDB
     #   r[true].not
     def not(pred); S._ [:call, [:not], [pred]]; end
 
-
     # Explicitly construct a reference to an attribute of the implicit
     # variable.  This is useful if for some reason you named an attribute that's
     # hard to express as a symbol, or an attribute starting with a '$'.  The
@@ -284,5 +310,112 @@ module RethinkDB
     #   r.has('name')
     #   r.attr?('name')
     def hasattr(attrname); S._ [:call, [:implicit_hasattr, attrname], []]; end
+
+    # Construct an object that is a subset of the object stored in the implicit
+    # variable by extracting certain attributes.  Synonyms are <b>+pick+</b> and
+    # <b>+attrs+</b>.  The following are all equivalent:
+    #   r[{:id => r[:id], :name => r[:name]}]
+    #   r.pickattrs(:id, :name)
+    #   r.pick(:id, :name)
+    #   r.attrs(:id, :name)
+    def pickattrs(*attrnames); [:call, [:implicit_pickattrs, *attrnames], []]; end
+
+    # Add the results of two or more queries together.  (Those queries should
+    # return numbers.)  May also be called as if it were a member function of
+    # RQL_Query for convenience, and overloads <b><tt>+</tt></b> if the lefthand
+    # side is a query.  The following are all equivalent:
+    #   r.add(1,2)
+    #   r[1].add(2)
+    #   (r[1] + 2) # Note that (1 + r[2]) is *incorrect* because Ruby only
+    #              # overloads based on the lefthand side.
+    # The following is also legal:
+    #   r.add(1,2,3)
+    def add(a, b, *rest); S._ [:call, [:add], [a, b, *rest]]; end
+
+    # Subtract one query from another.  (Those queries should return numbers.)
+    # May also be called as if it were a member function of RQL_Query for
+    # convenience, and overloads <b><tt>-</tt></b> if the lefthand side is a
+    # query.  Also has the shorter synonym <b>+sub+</b>. The following are all
+    # equivalent:
+    #   r.subtract(1,2)
+    #   r[1].subtract(2)
+    #   r.sub(1,2)
+    #   r[1].sub(2)
+    #   (r[1] - 2) # Note that (1 - r[2]) is *incorrect* because Ruby only
+    #              # overloads based on the lefthand side.
+    def subtract(a, b); S._ [:call, [:subtract], [a, b]]; end
+
+    # Multiply the results of two or more queries together.  (Those queries should
+    # return numbers.)  May also be called as if it were a member function of
+    # RQL_Query for convenience, and overloads <b><tt>+</tt></b> if the lefthand
+    # side is a query.  Also has the shorter synonym <b>+mul+</b>.  The
+    # following are all equivalent:
+    #   r.multiply(1,2)
+    #   r[1].multiply(2)
+    #   r.mul(1,2)
+    #   r[1].mul(2)
+    #   (r[1] * 2) # Note that (1 * r[2]) is *incorrect* because Ruby only
+    #              # overloads based on the lefthand side.
+    # The following is also legal:
+    #   r.multiply(1,2,3)
+    def multiply(a, b, *rest); S._ [:call, [:multiply], [a, b, *rest]]; end
+
+    # Divide one query by another.  (Those queries should return numbers.)
+    # May also be called as if it were a member function of RQL_Query for
+    # convenience, and overloads <b><tt>/</tt></b> if the lefthand side is a
+    # query.  Also has the shorter synonym <b>+div+</b>. The following are all
+    # equivalent:
+    #   r.divide(1,2)
+    #   r[1].divide(2)
+    #   r.div(1,2)
+    #   r[1].div(2)
+    #   (r[1] / 2) # Note that (1 / r[2]) is *incorrect* because Ruby only
+    #              # overloads based on the lefthand side.
+    def divide(a, b); S._ [:call, [:divide], [a, b]]; end
+
+    # Take one query modulo another.  (Those queries should return numbers.)
+    # May also be called as if it were a member function of RQL_Query for
+    # convenience, and overloads <b><tt>%</tt></b> if the lefthand side is a
+    # query.  Also has the shorter synonym <b>+mod+</b>. The following are all
+    # equivalent:
+    #   r.modulo(1,2)
+    #   r[1].modulo(2)
+    #   r.mod(1,2)
+    #   r[1].mod(2)
+    #   (r[1] - 2) # Note that (1 - r[2]) is *incorrect* because Ruby only
+    #              # overloads based on the lefthand side.
+    def modulo(a, b); S._ [:call, [:modulo], [a, b]]; end
+
+    # Take one or more predicate queries and construct a query that returns true
+    # if any of them evaluate to true.  Sort of like <b>+or+</b> in ruby, but
+    # takes arbitrarily many arguments and is *not* guaranteed to
+    # short-circuit.  May also be called as if it were a member function of
+    # RQL_Query for convenience, and overloads <b><tt>&</tt></b> if the lefthand
+    # side is a query.  Also has the synonym <b>+or+</b>.  The following are
+    # all equivalent:
+    #   r[true]
+    #   r.any(false, true)
+    #   r.or(false, true)
+    #   r[false].any(true)
+    #   r[false].or(true)
+    #   (r[false] & true) # Note that (false & r[true]) is *incorrect* because
+    #                     # Ruby only overloads based on the lefthand side
+    def any(pred, *rest); S._ [:call, [:any], [pred, *rest]]; end
+
+    # Take one or more predicate queries and construct a query that returns true
+    # if all of them evaluate to true.  Sort of like <b>+or+</b> in ruby, but
+    # takes arbitrarily many arguments and is *not* guaranteed to
+    # short-circuit.  May also be called as if it were a member function of
+    # RQL_Query for convenience, and overloads <b><tt>|</tt></b> if the lefthand
+    # side is a query.  Also has the synonym <b>+or+</b>.  The following are
+    # all equivalent:
+    #   r[true]
+    #   r.all(false, true)
+    #   r.and(false, true)
+    #   r[false].all(true)
+    #   r[false].and(true)
+    #   (r[false] | true) # Note that (false | r[true]) is *incorrect* because
+    #                     # Ruby only overloads based on the lefthand side
+    def all(pred, *rest); S._ [:call, [:all], [pred, *rest]]; end
   end
 end
