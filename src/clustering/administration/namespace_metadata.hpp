@@ -57,35 +57,36 @@ template<class protocol_t>
 RDB_MAKE_EQUALITY_COMPARABLE_11(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
 
 //json adapter concept for namespace_semilattice_metadata_t
-template <class ctx_t, class protocol_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(namespace_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
+// TODO: deinline these?  that is, put them in cc and explicitly instantiate these?
+template <class protocol_t>
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespace_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["blueprint"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<vclock_t<persistable_blueprint_t<protocol_t> >, ctx_t>(&target->blueprint, ctx));
-    res["primary_uuid"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<datacenter_id_t, ctx_t>(&target->primary_datacenter, ctx));
-    res["replica_affinities"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int>, ctx_t>(&target->replica_affinities, ctx));
-    res["ack_expectations"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int>, ctx_t>(&target->ack_expectations, ctx));
-    res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::string, ctx_t>(&target->name, ctx));
-    res["shards"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::set<typename protocol_t::region_t>, ctx_t>(&target->shards, ctx));
-    res["port"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<int, ctx_t>(&target->port, ctx));
-    res["primary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<protocol_t, machine_id_t>, ctx_t>(&target->primary_pinnings, ctx));
-    res["secondary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<protocol_t, std::set<machine_id_t> >, ctx_t>(&target->secondary_pinnings, ctx));
-    res["primary_key"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<vclock_t<std::string>, ctx_t>(&target->primary_key, ctx));
-    res["database"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<database_id_t, ctx_t>(&target->database, ctx));
+    res["blueprint"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<vclock_t<persistable_blueprint_t<protocol_t> >, vclock_ctx_t>(&target->blueprint, ctx));
+    res["primary_uuid"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<datacenter_id_t>(&target->primary_datacenter, ctx));
+    res["replica_affinities"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int> >(&target->replica_affinities, ctx));
+    res["ack_expectations"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int> >(&target->ack_expectations, ctx));
+    res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::string>(&target->name, ctx));
+    res["shards"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::set<typename protocol_t::region_t> >(&target->shards, ctx));
+    res["port"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<int>(&target->port, ctx));
+    res["primary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<protocol_t, machine_id_t> >(&target->primary_pinnings, ctx));
+    res["secondary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<protocol_t, std::set<machine_id_t> > >(&target->secondary_pinnings, ctx));
+    res["primary_key"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<vclock_t<std::string>, vclock_ctx_t>(&target->primary_key, ctx));
+    res["database"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<database_id_t>(&target->database, ctx));
     return res;
 }
 
-template <class ctx_t, class protocol_t>
-cJSON *render_as_json(namespace_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
+template <class protocol_t>
+cJSON *with_ctx_render_as_json(namespace_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx) {
     return render_as_directory(target, ctx);
 }
 
-template <class ctx_t, class protocol_t>
-void apply_json_to(cJSON *change, namespace_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
+template <class protocol_t>
+void with_ctx_apply_json_to(cJSON *change, namespace_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx) {
     apply_as_directory(change, target, ctx);
 }
 
-template <class ctx_t, class protocol_t>
-void on_subfield_change(namespace_semilattice_metadata_t<protocol_t> *, const ctx_t &) { }
+template <class protocol_t>
+void with_ctx_on_subfield_change(namespace_semilattice_metadata_t<protocol_t> *, const vclock_ctx_t &) { }
 
 /* This is the metadata for all of the namespaces of a specific protocol. */
 template <class protocol_t>
@@ -126,9 +127,9 @@ template<class protocol_t>
 RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t<protocol_t>, namespaces);
 
 // json adapter concept for namespaces_semilattice_metadata_t
-
-template <class ctx_t, class protocol_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
+// TODO: deinline these?  that is, explicitly instantiate in a cc these?
+template <class protocol_t>
+inline json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespaces_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx) {
     namespace_semilattice_metadata_t<protocol_t> default_namespace;
 
     std::set<typename protocol_t::region_t> default_shards;
@@ -143,22 +144,22 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_semilattice_
     default_namespace.database = default_namespace.database.make_new_version(nil_uuid(), ctx.us);
 
     deletable_t<namespace_semilattice_metadata_t<protocol_t> > default_ns_in_deletable(default_namespace);
-    return json_ctx_adapter_with_inserter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, ctx_t>(&target->namespaces, generate_uuid, ctx, default_ns_in_deletable).get_subfields();
+    return json_ctx_adapter_with_inserter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, vclock_ctx_t>(&target->namespaces, generate_uuid, ctx, default_ns_in_deletable).get_subfields();
 }
 
-template <class ctx_t, class protocol_t>
-cJSON *render_as_json(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
-    return render_as_json(&target->namespaces, ctx);
+template <class protocol_t>
+cJSON *with_ctx_render_as_json(namespaces_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx) {
+    return with_ctx_render_as_json(&target->namespaces, ctx);
 }
 
-template <class ctx_t, class protocol_t>
-void apply_json_to(cJSON *change, namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
+template <class protocol_t>
+void with_ctx_apply_json_to(cJSON *change, namespaces_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx) {
     apply_as_directory(change, &target->namespaces, ctx);
 }
 
-template <class ctx_t, class protocol_t>
-void on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
-    on_subfield_change(&target->namespaces, ctx);
+template <class protocol_t>
+void with_ctx_on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx) {
+    with_ctx_on_subfield_change(&target->namespaces, ctx);
 }
 
 template <class protocol_t>
@@ -171,18 +172,8 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(reactor_bcards);
 };
 
-struct namespace_metadata_ctx_t {
-    const uuid_t us;
-    explicit namespace_metadata_ctx_t(uuid_t _us)
-        : us(_us)
-    { }
-};
-
-inline bool operator==(const namespace_metadata_ctx_t &x, const namespace_metadata_ctx_t &y) {
-    return x.us == y.us;
-}
-
 // ctx-less json adapter concept for namespaces_directory_metadata_t
+// TODO: deinline these?  that is, explicit instantiation.
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t<protocol_t> *target) {
     json_adapter_if_t::json_adapter_map_t res;
