@@ -9,7 +9,8 @@
 
 #include "http/json/cJSON.hpp"
 #include "containers/archive/archive.hpp"
-#include "http/http.hpp"
+
+class http_res_t;
 
 http_res_t http_json_res(cJSON *json);
 
@@ -178,6 +179,7 @@ cJSON *merge(cJSON *, cJSON *);
 write_message_t &operator<<(write_message_t &msg, const cJSON &cjson);
 MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson);
 
+// TODO: Get rid of this shared_ptr crap.
 write_message_t &operator<<(write_message_t &msg, const boost::shared_ptr<scoped_cJSON_t> &cjson);
 MUST_USE archive_result_t deserialize(read_stream_t *s, boost::shared_ptr<scoped_cJSON_t> *cjson);
 
