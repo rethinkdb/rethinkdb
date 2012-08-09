@@ -229,7 +229,9 @@ class ClientTest < Test::Unit::TestCase
 
   def test_range #RANGE
     assert_equal(rdb.between(1,3).run, $data[1..3])
+    assert_equal(r.between(rdb, 1, 3).run, $data[1..3])
     assert_equal(rdb.between(2,nil).run, $data[2..-1])
+    assert_equal(r.between(rdb, 2, nil).run, $data[2..-1])
     assert_equal(rdb.range(:id, 1, 3).run, $data[1..3])
     assert_equal(rdb.range({:attrname => :id, :upperbound => 4}).run,$data[0..4])
   end

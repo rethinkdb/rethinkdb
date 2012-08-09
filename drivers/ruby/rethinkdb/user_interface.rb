@@ -88,27 +88,6 @@ module RethinkDB
     # will still be added to the new row.
     def update; S.with_var {|vname,v| S._ [:update, @body, [vname, yield(v)]]}; end
 
-    # TODO: start_inclusive, end_inclusive in python -- what do these do?
-    #
-    # Construct a query which yields all rows of the invoking query with keys
-    # between <b>+start_key+</b> and <b>+end_key+</b> (inclusive).  You may also
-    # optionally specify the name of the attribute to use as your key
-    # (<b>+keyname+</b>), but note that your table must be indexed by that
-    # attribute.  Either <b>+start_key+</b> and <b>+end_key+</b> may be nil, in
-    # which case that side of the range is unbounded.  For example, if we have a
-    # table <b>+table+</b>, these are equivalent:
-    #   table.between(3,7)
-    #   table.filter{|row| (row[:id] >= 3) & (row[:id] <= 7)}
-    # as are these:
-    #   table.between(nil,7,:index)
-    #   table.filter{|row| row[:index] <= 7}
-    def between(start_key, end_key, keyname=:id)
-      opts = {:attrname => keyname}
-      opts[:lowerbound] = start_key if start_key != nil
-      opts[:upperbound] = end_key if end_key != nil
-      S._ [:call, [:range, opts], [@body]]
-    end
-
     # Construct a query which filters the invoking query using some predicate.
     # You may either specify the predicate explicitly by providing a block which
     # takes a single argument (the row you're testing), or provide an object
@@ -457,5 +436,28 @@ module RethinkDB
       S.with_var{|vname,v| S._ [:call, [:concatmap, vname, yield(v)], [stream]]}
     end
 
+
+    # TODO: start_inclusive, end_inclusive in python -- what do these do?
+    #
+    # Construct a query which yields all rows of <b>+stream+</b> with keys
+    # between <b>+start_key+</b> and <b>+end_key+</b> (inclusive).  You may also
+    # optionally specify the name of the attribute to use as your key
+    # (<b>+keyname+</b>), but note that your table must be indexed by that
+    # attribute.  Either <b>+start_key+</b> and <b>+end_key+</b> may be nil, in
+    # which case that side of the range is unbounded.  This function may also be
+    # called as if it were a member function of RQL_Query, for convenience.  For
+    # example, if we have a table <b>+table+</b>, these are equivalent:
+    #   r.between(table, 3, 7)
+    #   table.between(3,7)
+    #   table.filter{|row| (row[:id] >= 3) & (row[:id] <= 7)}
+    # as are these:
+    #   table.between(nil,7,:index)
+    #   table.filter{|row| row[:index] <= 7}
+    def between(stream, start_key, end_key, keyname=:id)
+      opts = {:attrname => keyname}
+      opts[:lowerbound] = start_key if start_key != nil
+      opts[:upperbound] = end_key if end_key != nil
+      S._ [:call, [:range, opts], [stream]]
+    end
   end
 end

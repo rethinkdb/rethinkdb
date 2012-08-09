@@ -38,8 +38,11 @@ module RethinkDB
 
     #TODO: Arity Checking
     def method_missing(m, *args, &block)
-      return self.send(m, *(args + [block])) if block
       m = C.method_aliases[m] || m
+      if (RQL.methods.include? m.to_s) && (not m.to_s.grep(/.*attr/)[0])
+        return RQL.send(m, *[@body, *args], &block)
+      end
+      return self.send(m, *(args + [block])) if block
       if P.enum_type(Builtin::Comparison, m)
         S._ [:call, [:compare, m], [@body, *args]]
       elsif P.enum_type(Builtin::BuiltinType, m)
