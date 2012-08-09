@@ -94,7 +94,8 @@ enum http_status_code_t {
     HTTP_INTERNAL_SERVER_ERROR = 500
 };
 
-struct http_res_t {
+class http_res_t {
+public:
     std::string version;
     int code;
     std::vector<header_line_t> header_lines;
