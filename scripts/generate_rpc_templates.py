@@ -45,7 +45,7 @@ def generate_async_message_template(nargs):
     print "        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))"
     print "        { }"
     print
-    print "    address_t get_address() {"
+    print "    address_t get_address() const {"
     print "        address_t a;"
     print "        a.addr = mailbox.get_address();"
     print "        return a;"

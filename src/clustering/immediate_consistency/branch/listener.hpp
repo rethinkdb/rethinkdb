@@ -99,9 +99,36 @@ public:
     master. */
     signal_t *get_broadcaster_lost_signal();
 
-private:
-    friend class replier_t<protocol_t>;
+    // Getters used by the replier :(
+    // TODO: Some of these can and should be passed directly to the replier?
+    mailbox_manager_t *mailbox_manager() const { return mailbox_manager_; }
+    branch_history_manager_t<protocol_t> *branch_history_manager() const { return branch_history_manager_; }
+    multistore_ptr_t<protocol_t> *svs() const {
+        rassert(svs_ != NULL);
+        return svs_;
+    }
 
+    branch_id_t branch_id() const {
+        rassert(branch_id_ != nil_uuid());
+        return branch_id_;
+    }
+
+    typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t writeread_address() const {
+        return writeread_mailbox_.get_address();
+    }
+
+    typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t read_address() const {
+        return read_mailbox_.get_address();
+    }
+
+    void wait_for_version(state_timestamp_t timestamp, signal_t *interruptor);
+
+    const listener_intro_t<protocol_t> &registration_done_cond_value() const {
+        return registration_done_cond_.get_value();
+    }
+
+
+private:
     class write_queue_entry_t {
     public:
         write_queue_entry_t() { }
@@ -182,8 +209,6 @@ private:
             mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,
             auto_drainer_t::lock_t keepalive)
         THROWS_NOTHING;
-
-    void wait_for_version(state_timestamp_t timestamp, signal_t *interruptor);
 
     void advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp);
 
