@@ -89,8 +89,7 @@ void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name, na
         logINF("Listening for queries for the namespace '%s' %s on port %d.\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
 
         wait_any_t interruptor(&namespaces_being_handled.find(ns)->second->stopper, keepalive.get_drain_signal());
-        typename namespace_repo_t<protocol_t>::access_t access(repo, ns, &interruptor);
-        parser_t parser(port, &access, &perfmon_collection_repo->get_perfmon_collections_for_namespace(ns)->namespace_collection);
+        parser_t parser(port, repo, ns, &perfmon_collection_repo->get_perfmon_collections_for_namespace(ns)->namespace_collection);
 
         signal_t *is_bound = parser.get_bound_signal();
 
