@@ -6,6 +6,7 @@ goog.require('rethinkdb.net.Connection');
 
 /**
  * @constructor
+ * @extends {rethinkdb.net.Connection}
  * @export
  */
 rethinkdb.net.HttpConnection = function(url, db_name) {

@@ -13,44 +13,65 @@ goog.require('Query');
 rethinkdb.reql.query.Expression = function() {};
 
 /**
- * @constructor
+ * @param {function()} callback The callback to invoke with the result.
+ * @param {rethinkdb.net.Connection} conn The connection to run this expression on.
  */
-rethinkdb.reql.query.JSONExpression = function(value) {
+rethinkdb.reql.query.Expression.prototype.run = function(callback, conn) {
+    conn = conn || rethinkdb.net.last_connection;
+    conn.run(this, callback);
+};
+goog.exportProperty(rethinkdb.reql.query.Expression.prototype, 'run',
+    rethinkdb.reql.query.Expression.prototype.run);
+
+/**
+ * @return {!Term}
+ */
+rethinkdb.reql.query.Expression.prototype.compile = goog.abstractMethod;
+
+/**
+ * @constructor
+ * @extends {rethinkdb.reql.query.Expression}
+ */
+rethinkdb.reql.query.JSONExpression = function(json_value) {
     this.value_ = json_value;
 };
 goog.inherits(rethinkdb.reql.query.JSONExpression, rethinkdb.reql.query.Expression);
 
 /**
- * @return {Term}
+ * @override
+ * @return {!Term}
  */
 rethinkdb.reql.query.JSONExpression.prototype.compile = function() {
     var term = new Term();
-    term.setTermType(Term.JSON);
+    term.setType(Term.TermType.JSON);
     term.setJsonstring(JSON.stringify(this.value_));
     return term;
 };
 
 /**
  * @constructor
+ * @extends {rethinkdb.reql.query.Expression}
  */
 rethinkdb.reql.query.AddExpression = function(left, right) {
     this.left_ = left;
     this.right_ = right;
 };
-goog.inherits(rethinkdb.reql.query.JSONExpression, rethinkdb.reql.query.Expression);
+goog.inherits(rethinkdb.reql.query.AddExpression, rethinkdb.reql.query.Expression);
 
 /**
- * @return {Term}
+ * @override
+ * @return {!Term}
  */
 rethinkdb.reql.query.AddExpression.prototype.compile = function() {
     var term = new Term();
-    term.setTermType(Term.CALL);
+    term.setType(Term.TermType.CALL);
 
-    var call = new Call();
+    var call = new Term.Call();
     var builtin = new Builtin();
-    builtin.setBuiltinType(BUILTIN.BuiltinType.ADD);
-    builtin.addArgs(this.left_.compile(), this.right.compile());
+    builtin.setType(Builtin.BuiltinType.ADD);
     call.setBuiltin(builtin);
+    call.addArgs(this.left_.compile());
+    call.addArgs(this.right_.compile());
 
     term.setCall(call);
     return term;
@@ -58,26 +79,28 @@ rethinkdb.reql.query.AddExpression.prototype.compile = function() {
 
 /**
  * @constructor
+ * @extends {rethinkdb.reql.query.Expression}
  */
 rethinkdb.reql.query.LessThanExpression = function(left, right) {
     this.left_ = left;
     this.right_ = right;
 };
-goog.inherits(rethinkdb.reql.query.JSONExpression, rethinkdb.reql.query.Expression);
+goog.inherits(rethinkdb.reql.query.LessThanExpression, rethinkdb.reql.query.Expression);
 
 /**
- * @return {Term}
+ * @return {!Term}
  */
 rethinkdb.reql.query.LessThanExpression.prototype.compile = function() {
     var term = new Term();
-    term.setTermType(Term.CALL);
+    term.setType(Term.TermType.CALL);
 
-    var call = new Call();
+    var call = new Term.Call();
     var builtin = new Builtin();
-    builtin.setBuiltinType(Builtin.BuiltinType.COMPARE);
+    builtin.setType(Builtin.BuiltinType.COMPARE);
     builtin.setComparison(Builtin.Comparison.LT);
-    builtin.addArgs(this.left_.compile(), this.right.compile());
     call.setBuiltin(builtin);
+    call.addArgs(this.left_.compile());
+    call.addArgs(this.right_.compile());
 
     term.setCall(call);
     return term;
@@ -108,17 +131,4 @@ rethinkdb.reql.query.Expression.prototype.filter = function(selector) {
 
 };
 
-/**
- * @export
- */
-rethinkdb.reql.query.Expression.prototype.run = function(conn, callback) {
-    conn = conn || rethinkdb.net.last_connection;
-    conn.run(this, callback);
-};
 
-/**
- * @return {goog.proto2.Message}
- */
-rethinkdb.reql.query.Expression.prototype.compile = function() {
-    //TODO
-};

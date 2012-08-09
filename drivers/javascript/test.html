@@ -1,12 +1,18 @@
 <html>
     <head>
         <!-- Harness for testing in browser -->
+        <script src="encoding.js"></script>
         <script src="rethinkdb.js"></script>
     </head>
     <body>
         <script>
-            var conn = new rethinkdb.net.HttpConnection('/test.html');
-            conn.run('bob');
+            var re = rethinkdb;
+            var q = re.reql.query;
+
+            var conn = new re.net.HttpConnection('/test.html');
+            q.expr(['bob']).add(q.expr(1)).run(function(){
+                console.log('done');
+            });
         </script>
     </body>
 </html>

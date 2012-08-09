@@ -8,14 +8,14 @@ goog.require('rethinkdb.net.Connection');
  * TcpConnection, a connection which uses a TCP connection to communicate
  * with the rethinkdb server.
  * @constructor
- * @extends rethinkdb.net.Connection
+ * @extends {rethinkdb.net.Connection}
  * @export
  */
 rethinkdb.net.TcpConnection = function(host_or_list, onConnect, onFailure) {
 	var /** @const */ DEFAULT_PORT = 11211;
 	var /** @const */ DEFAULT_HOST = 'localhost';
 
-    goog.base(this);
+    goog.base(this, null);
 	var self = this;
 
 	// Will be set when connection established
@@ -51,7 +51,6 @@ rethinkdb.net.TcpConnection = function(host_or_list, onConnect, onFailure) {
 			var socket_node_ = net_node_.connect(port, host, function() {
                 socket_node_.on('data', self.recv_);
 				self.socket_ = socket_node_;
-				rethinkdb.net.last_connection = self;
 				onConnect(self);
 			});
 

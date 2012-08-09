@@ -2,6 +2,7 @@
 
 goog.provide('rethinkdb.net.Connection');
 
+goog.require('goog.math.Long');
 goog.require('goog.proto2.WireFormatSerializer');
 
 /**
@@ -11,28 +12,45 @@ goog.require('goog.proto2.WireFormatSerializer');
  * @constructor
  */
 rethinkdb.net.Connection = function(db_name) {
-	this.defaultDb_ = db_name || null;
+	this.defaultDbName_ = db_name || null;
     this.outstandingQueries_ = {};
+    rethinkdb.net.last_connection = this;
 };
 
-/** @override */
 rethinkdb.net.Connection.prototype.send_ = goog.abstractMethod;
 
-/** @override */
 rethinkdb.net.Connection.prototype.close = goog.nullFunction;
 
 /**
  * Evaluates the given ReQL expression on the server and invokes
  * callback with the result.
- * @param {rethinkdb.query.Expression} expr The expression to run.
- * @param {function(ArrayBuffer)}
+ * @param {rethinkdb.reql.query.Expression} expr The expression to run.
+ * @param {function(ArrayBuffer)} callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.run = function(expr, callback) {
-    var query = expr.compile();
-    this.outstandingQueries_[query.token] = callback;
+    var term = expr.compile();
+
+    console.log(term);
+
+    // Wrap in query
+    var query = new Query();
+    query.setType(Query.QueryType.READ);
+
+    var readQuery = new ReadQuery();
+    readQuery.setTerm(term);
+
+    // Assign a token
+    var token = new goog.math.Long(Math.random(), Math.random());
+    query.setToken(token.toString());
+    query.setReadQuery(readQuery);
+
+    this.outstandingQueries_[query.getToken()] = callback;
 
     var serializer = new goog.proto2.WireFormatSerializer();
     var data = serializer.serialize(query);
+
+    console.log(data);
+
     this.send_(data);
 };
 goog.exportProperty(rethinkdb.net.Connection.prototype, 'run',
@@ -44,14 +62,19 @@ goog.exportProperty(rethinkdb.net.Connection.prototype, 'run',
  */
 rethinkdb.net.Connection.prototype.recv_ = function(data) {
     var serializer = new goog.proto2.WireFormatSerializer();
-    var response = serializer.deserialize(data);
-    var callback = this.outstandingQueries_[response.token];
-    delete this.outstandingQueries_[response.token]
+    var response = new Response();
+    serializer.deserializeTo(response, data);
+    var callback = this.outstandingQueries_[response.getToken()];
+    delete this.outstandingQueries_[response.getToken()]
 
     //TODO transform message object into appropriate object
-    callback(response);
+    if (callback) callback(response);
 };
 
 rethinkdb.net.Connection.prototype.use = function(db_name) {
-	this.defaultDb_ = db_name;
+	this.defaultDbName_ = db_name;
+};
+
+rethinkdb.net.Connection.prototype.getDefaultDb = function() {
+    return new rethinkdb.reql.query.Database(this.defaultDbName_);
 };

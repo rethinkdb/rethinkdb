@@ -2,6 +2,7 @@
 
 goog.provide('rethinkdb.reql.query');
 
+goog.require('goog.asserts');
 goog.require('rethinkdb.reql.query.Database');
 
 /**
@@ -24,6 +25,7 @@ rethinkdb.reql.query.db_list = function() {
     
 };
 
+/** @export */
 rethinkdb.reql.query.expr = function(value) {
     return new rethinkdb.reql.query.JSONExpression(value);
 };
@@ -33,8 +35,7 @@ rethinkdb.reql.query.expr = function(value) {
  */
 rethinkdb.reql.query.fn = function(/** variable */) {
     for (var i = 0; i < arguments.length - 1; ++i) {
-        goog.assert(typeof arguments[i] === 'string'); 
-        var v = new rethinkdb.reql.query.Variable(arguments[i]);
+        goog.asserts.assertString(arguments[i]); 
     }
 };
 
@@ -44,7 +45,7 @@ rethinkdb.reql.query.table = function(table_identifier) {
     var db_name = db_table_array[0];
     var table_name = db_table_array[1];
     var db;
-    if (table === undefined) {
+    if (table_name === undefined) {
         table_name = db_name;
         db = undefined;
     } else {

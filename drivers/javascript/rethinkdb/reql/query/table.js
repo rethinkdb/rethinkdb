@@ -8,7 +8,7 @@ goog.require('rethinkdb.net');
  * @constructor
  */
 rethinkdb.reql.query.Table = function(table_name, db_expr) {
-    db_expr = db_expr || rethinkdb.net.last_connection.defalut_db;
+    db_expr = db_expr || rethinkdb.net.last_connection.getDefaultDb();
 };
 
 /** @export */
