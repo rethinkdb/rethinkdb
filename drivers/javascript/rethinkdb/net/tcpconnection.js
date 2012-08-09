@@ -49,12 +49,12 @@ rethinkdb.net.TcpConnection = function(host_or_list, onConnect, onFailure) {
 			var socket_node_ = net_node_.connect(port, host, function() {
                 socket_node_.on('data', self.recv_);
 				self.socket_ = socket_node_;
-				onConnect(self);
+				if (onConnect) onConnect(self);
 			});
 
 			socket_node_.on('error', tryNext);
 		} else {
-			onFailure();
+			if (onFailure) onFailure();
 		}
 	})();
 };
