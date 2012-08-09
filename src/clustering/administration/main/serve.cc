@@ -105,7 +105,7 @@ try {
     } else {
         rassert(ports.port == connectivity_cluster_run.get_port());
     }
-    logINF("Listening for intracluster traffic on port %d...\n", ports.port);
+    logINF("Listening for intracluster traffic on port %d.\n", ports.port);
 
     auto_reconnector_t auto_reconnector(
         &connectivity_cluster,
@@ -253,16 +253,15 @@ try {
     rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
     // TODO: make this not be shitty (port offsets and such)
 #ifdef NDEBUG
-    //http_server_t server(12345, &rdb_parser);
-    query_server_t rdb_pb_server(12346, &extproc_pool_group, 
-                                 metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()), 
-                                 &rdb_namespace_repo);
+    int rdb_protocol_port = 12346;
+>>>>>>> 84e93dd
 #else
-    //http_server_t server(12345 + ports.port_offset, &rdb_parser);
-    query_server_t rdb_pb_server(12346 + ports.port_offset, &extproc_pool_group, 
+    int rdb_protocol_port = 12346 + ports.port_offset;
+#endif
+    query_server_t rdb_pb_server(rdb_protocol_port, &extproc_pool_group, 
                                  metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()), 
                                  &rdb_namespace_repo);
-#endif
+    logINF("Listening for RDB protocol traffic on port %d.\n", rdb_protocol_port);
 
     scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
         new metadata_persistence::semilattice_watching_persister_t(
@@ -275,7 +274,6 @@ try {
         // TODO: Pardon me what, but is this how we fail here?
         guarantee(ports.http_port < 65536);
 
-        logINF("Starting up administrative HTTP server on port %d...\n", ports.http_port);
         administrative_http_server_manager_t administrative_http_interface(
             ports.http_port,
             &mailbox_manager,
@@ -287,6 +285,7 @@ try {
             &local_issue_tracker,
             machine_id,
             web_assets);
+        logINF("Listening for administrative HTTP connections on port %d.\n", ports.http_port);
 
         logINF("Server started; send SIGINT to stop.\n");
 
