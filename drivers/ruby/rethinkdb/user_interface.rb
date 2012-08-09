@@ -433,9 +433,8 @@ module RethinkDB
 
     # Map a function over a query returning a stream.  May also be called as if
     # it were a member function of RQL_Query for convenience.  The provided
-    # block should take a single variable, a row in the stream, and return
-    # either <b>+true+</b> if it should be in the resulting stream of
-    # <b>+false+</b> otherwise.  If you have a table <b>+table+</b>, the
+    # block should take a single variable, a row in the stream, and return a row
+    # in the resulting stream.  If you have a table <b>+table+</b>, the
     # following are all equivalent:
     #   r.map(table) {|row| row[:id]}
     #   table.map {|row| row[:id]}
@@ -443,5 +442,20 @@ module RethinkDB
     def map(stream)
       S.with_var{|vname,v| S._ [:call, [:map, vname, yield(v)], [stream]]}
     end
+
+    # Map a function over a query returning a stream, then concatenate the
+    # results together.  May also be called as if it were a member function of
+    # RQL_Query for convenience.  The provided block should take a single
+    # variable, a row in the stream, and return a list of rows to include in the
+    # resulting stream.  If you have a table <b>+table+</b>, the following are
+    # all equivalent:
+    #   r.concatmap(table) {|row| r.expr([row[:id], row[:id]*2])}
+    #   table.concatmap {|row| r.expr([row[:id], row[:id]*2])}
+    #   table.concatmap {r.expr([r[:id], r[:id]*2])} # uses implicit variable
+    #   table.map{|row| r.expr([row[:id], row[:id]*2])}.reduce([]){|a,b| r.union(a,b)}
+    def concatmap(stream)
+      S.with_var{|vname,v| S._ [:call, [:concatmap, vname, yield(v)], [stream]]}
+    end
+
   end
 end

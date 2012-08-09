@@ -220,6 +220,8 @@ class ClientTest < Test::Unit::TestCase
 
   def test_concatmap #CONCATMAP, DISTINCT
     query = rdb.concatmap{|row| rdb.map{r[:id] * row[:id]}}.distinct
+    query_alt = r.concatmap(rdb){|row| rdb.map{r[:id] * row[:id]}}.distinct
+    assert_equal(query.run, query_alt.run)
     nums = $data.map{|o| o['id']}
     want = nums.map{|n| nums.map{|m| n*m}}.flatten(1).uniq
     assert_equal(query.run.sort, want.sort)
