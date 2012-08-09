@@ -160,7 +160,7 @@ module RethinkDB
   # access these functions by extending/including <b>+Shortcuts_Mixin+</b> and
   # then using the shortcut <b>+r+</b> that it provides.  For example, assuming
   # you have <b>+r+</b> available and have opened a connection to a cluster with
-  # the namespace 'Welcome", you could do something like:
+  # the namespace 'Welcome', you could do something like:
   #   r.db('').Welcome.limit(4).run
   # to get the first 4 elements of that namespace.
   module RQL_Mixin
