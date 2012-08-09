@@ -149,6 +149,7 @@ module RethinkDB
     # attribute.  Calling this function on anything except a table is an error:
     #   good = table.get(0)
     #   bad  = table.filter{|row| row[:name] = 'Bob'}.get(0)
+    # TODO: get().delete() => pointdelete
     def get(key, keyname=:id)
       if @body[0] == :table then S._ [:getbykey, @body[1..-1], keyname, key]
                             else raise SyntaxError, "Get must be called on a table."
