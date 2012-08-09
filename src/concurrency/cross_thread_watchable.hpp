@@ -3,13 +3,13 @@
 
 #include "concurrency/watchable.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "timestamps.hpp"
 
 template <class value_t>
 class cross_thread_watchable_variable_t
 {
 public:
     cross_thread_watchable_variable_t(const clone_ptr_t<watchable_t<value_t> > &watchable, int _dest_thread);
-    ~cross_thread_watchable_variable_t();
 
     clone_ptr_t<watchable_t<value_t> > get_watchable() {
         return clone_ptr_t<watchable_t<value_t> >(watchable.clone());
@@ -20,7 +20,7 @@ public:
 private:
     friend class cross_thread_watcher_subscription_t;
     void on_value_changed(auto_drainer_t::lock_t keepalive);
-    void deliver(value_t new_value, auto_drainer_t::lock_t keepalive);
+    void deliver(value_t new_value, transition_timestamp_t ts, auto_drainer_t::lock_t keepalive);
 
     static void call(const boost::function<void()> &f) {
         f();
@@ -51,7 +51,29 @@ private:
     value_t value;
     w_t watchable;
 
+    state_timestamp_t watchable_thread_timestamp, dest_thread_timestamp;
+
     int watchable_thread, dest_thread;
+
+    /* This object's constructor rethreads our internal components to our other
+    thread, and then reverses it in the destructor. It must be a separate object
+    instead of logic in the constructor/destructor because its destructor must
+    be run after `drainer`'s destructor. */
+    class rethreader_t {
+    public:
+        rethreader_t(cross_thread_watchable_variable_t *p) :
+            parent(p)
+        {
+            parent->rwi_lock_assertion.rethread(parent->dest_thread);
+            parent->publisher_controller.rethread(parent->dest_thread);
+        }
+        ~rethreader_t() {
+            parent->rwi_lock_assertion.rethread(parent->watchable_thread);
+            parent->publisher_controller.rethread(parent->watchable_thread);
+        }
+    private:
+        cross_thread_watchable_variable_t *parent;
+    } rethreader;
 
     /* `drainer` makes sure we don't shut down with an update still in flight */
     auto_drainer_t drainer;
