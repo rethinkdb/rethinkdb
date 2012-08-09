@@ -1,4 +1,3 @@
-
 goog.provide('rethinkd.reql.query.MultiRowSelection');
 
 /**

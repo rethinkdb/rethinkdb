@@ -1,5 +1,3 @@
-// Copyright 2012 Hexagram 49 Inc. All rights reserved.
-
 goog.provide('rethinkdb.net.Connection');
 
 goog.require('goog.math.Long');

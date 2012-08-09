@@ -1,5 +1,3 @@
-// Copyright 2012 Hexagram 49 Inc. All rights reserved.
-
 goog.provide('rethinkdb.reql.query.Database');
 
 goog.require('rethinkdb.reql.query.Table');

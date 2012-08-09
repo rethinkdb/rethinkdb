@@ -1,5 +1,3 @@
-// Copyright 2012 Hexagram 49 Inc. All rights reserved.
-
 /**
  * This file contains no publically exported functions but does
  * coordinate compilation and loading.
