@@ -15,26 +15,26 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
 
     tcp_conn_t *conn;
 
-    void write(const char *buffer, size_t bytes) {
+    void write(const char *buffer, size_t bytes, signal_t *interruptor) {
         try {
             assert_thread();
-            conn->write_buffered(buffer, bytes);
+            conn->write_buffered(buffer, bytes, interruptor);
         } catch (tcp_conn_t::write_closed_exc_t) {
             /* Ignore */
         }
     }
 
-    void write_unbuffered(const char *buffer, size_t bytes) {
+    void write_unbuffered(const char *buffer, size_t bytes, signal_t *interruptor) {
         try {
-            conn->write(buffer, bytes);
+            conn->write(buffer, bytes, interruptor);
         } catch (tcp_conn_t::write_closed_exc_t) {
             /* Ignore */
         }
     }
 
-    void flush_buffer() {
+    void flush_buffer(signal_t *interruptor) {
         try {
-            conn->flush_buffer();
+            conn->flush_buffer(interruptor);
         } catch (tcp_conn_t::write_closed_exc_t) {
             /* Ignore errors; it's OK for the write end of the connection to be closed. */
         }
@@ -44,15 +44,15 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
         return conn->is_write_open();
     }
 
-    void read(void *buf, size_t nbytes) {
+    void read(void *buf, size_t nbytes, signal_t *interruptor) {
         try {
-            conn->read(buf, nbytes);
+            conn->read(buf, nbytes, interruptor);
         } catch(tcp_conn_t::read_closed_exc_t) {
             throw no_more_data_exc_t();
         }
     }
 
-    void read_line(std::vector<char> *dest) {
+    void read_line(std::vector<char> *dest, signal_t *interruptor) {
         try {
             for (;;) {
                 const_charslice sl = conn->peek();
@@ -65,7 +65,7 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
 
                     dest->resize(line_size + 2);  // +2 for CRLF
                     memcpy(dest->data(), sl.beg, line_size + 2);
-                    conn->pop(line_size + 2);
+                    conn->pop(line_size + 2, interruptor);
                     return;
                 } else if (sl.end - sl.beg > threshold) {
                     // If a malfunctioning client sends a lot of data without a
@@ -80,7 +80,7 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
                 }
 
                 // Keep trying until we get a complete line.
-                conn->read_more_buffered();
+                conn->read_more_buffered(interruptor);
             }
 
         } catch(tcp_conn_t::read_closed_exc_t) {
@@ -89,9 +89,9 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
     }
 };
 
-void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t> *nsi, memcached_stats_t *stats) {
+void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t> *nsi, memcached_stats_t *stats, signal_t *interruptor) {
     tcp_conn_memcached_interface_t interface(conn);
-    handle_memcache(&interface, nsi, MAX_CONCURRENT_QUERIES_PER_CONNECTION, stats);
+    handle_memcache(&interface, nsi, MAX_CONCURRENT_QUERIES_PER_CONNECTION, stats, interruptor);
 }
 
 
@@ -112,20 +112,6 @@ signal_t *memcache_listener_t::get_bound_signal() {
 
 memcache_listener_t::~memcache_listener_t() { }
 
-class memcache_conn_closing_subscription_t : public signal_t::subscription_t {
-public:
-    explicit memcache_conn_closing_subscription_t(tcp_conn_t *conn) : conn_(conn) { }
-
-    virtual void run() {
-        if (conn_->is_read_open()) {
-            conn_->shutdown_read();
-        }
-    }
-private:
-    tcp_conn_t *conn_;
-    DISABLE_COPYING(memcache_conn_closing_subscription_t);
-};
-
 void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const scoped_ptr_t<nascent_tcp_conn_t> &nconn) {
     assert_thread();
 
@@ -143,12 +129,7 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const scoped_
     scoped_ptr_t<tcp_conn_t> conn;
     nconn->ennervate(&conn);
 
-    /* Set up an object that will close the network connection when a shutdown signal
-    is delivered */
-    memcache_conn_closing_subscription_t conn_closer(conn.get());
-    conn_closer.reset(&signal_transfer);
-
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */
-    serve_memcache(conn.get(), ns_access->get_namespace_if(), &stats);
+    serve_memcache(conn.get(), ns_access->get_namespace_if(), &stats, &signal_transfer);
 }

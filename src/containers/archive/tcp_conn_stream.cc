@@ -17,7 +17,8 @@ int64_t tcp_conn_stream_t::read(void *p, int64_t n) {
     // Returns the number of bytes read, or 0 upon EOF, -1 upon error.
     // Right now this function cannot "error".
     try {
-        size_t result = conn_->read_some(p, n);
+        cond_t non_closer;
+        size_t result = conn_->read_some(p, n, &non_closer);
         rassert(result > 0);
         rassert(int64_t(result) <= n);
         return result;
@@ -29,7 +30,8 @@ int64_t tcp_conn_stream_t::read(void *p, int64_t n) {
 int64_t tcp_conn_stream_t::write(const void *p, int64_t n) {
     try {
         // write writes everything or throws an exception.
-        conn_->write(p, n);
+        cond_t non_closer;
+        conn_->write(p, n, &non_closer);
         return n;
     } catch (const tcp_conn_t::write_closed_exc_t &e) {
         return -1;
