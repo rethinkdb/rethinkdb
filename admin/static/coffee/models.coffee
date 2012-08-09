@@ -1,19 +1,42 @@
 #Models for Backbone.js
+
+class Database extends Backbone.Model
+    get_namespaces: =>
+        namespaces_in_datacenter = []
+        for namespace in namespaces.models
+            if namespace.get('database') is @get('id')
+                namespaces_in_datacenter.push namespace
+
+        return namespaces_in_datacenter
+
+    get_stats_for_performance: =>
+        __s =
+            keys_read: 0
+            keys_set: 0
+        for namespace in namespaces.models
+            if namespace.get('database') is @get('id')
+                _s = namespace.get_stats()
+                if not _s?
+                    continue
+                __s.keys_read += _s.keys_read
+                __s.keys_set += _s.keys_set
+        return __s
+
 class Namespace extends Backbone.Model
     initialize: ->
         # Add a computed shards property for convenience and metadata
         @compute_shards()
-        @load_key_distr()
     compute_shards: =>
         @.set 'computed_shards', new DataUtils.Shards [],@
 
-    interval: 5000
+    interval: 0
     set_interval_key_distr: =>
         @set_interval = setInterval @load_key_distr, @interval
 
     clear_interval_key_distr: ->
         if @set_interval?
             clearInterval @set_interval
+            @interval = 0
 
     # Cache key distribution info.
     load_key_distr: =>
@@ -30,8 +53,8 @@ class Namespace extends Backbone.Model
                     distr_keys.push(key)
                 distr_keys = _.sortBy(distr_keys, _.identity)
 
-                @set('key_distr', distr_data)
                 @set('key_distr_sorted', distr_keys)
+                @set('key_distr', distr_data)
                 if @interval isnt 5000
                     @clear_interval_key_distr()
                     @interval = 5000
@@ -43,6 +66,28 @@ class Namespace extends Backbone.Model
                     @interval = 1000
                     @set_interval_key_distr()
 
+    load_key_distr_once: =>
+        $.ajax
+            processData: false
+            url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
+            type: 'GET'
+            contentType: 'application/json'
+            success: (distr_data) =>
+                # Cache the data
+                # Sort the keys and cache that too
+                distr_keys = []
+                for key, count of distr_data
+                    distr_keys.push(key)
+                distr_keys = _.sortBy(distr_keys, _.identity)
+
+                @set('key_distr_sorted', distr_keys)
+                @set('key_distr', distr_data)
+            error: =>
+                @timeout = setTimeout @load_key_distr_once, 1000
+
+    clear_timeout: =>
+        if @timeout?
+            clearTimeout @timeout
 
     # Some shard helpers
     compute_shard_rows_approximation: (shard) =>
@@ -63,7 +108,7 @@ class Namespace extends Backbone.Model
         count = 0
 
         for key in @get('key_distr_sorted')
-            if key >= start_key or start_key is null
+            if key >= start_key or start_key is ""
                 if end_key is null or key < end_key
                     if @get('key_distr')[key]?
                         count += @get('key_distr')[key]
@@ -253,21 +298,6 @@ class LogEntry extends Backbone.Model
     get_iso_8601_timestamp: => ISODateString new Date(@.get('timestamp') * 1000)
     get_formatted_message: =>
         msg = @.get('message')
-        return '' if not msg?
-
-        index = msg.indexOf('{')
-        return {formatted_message: msg} if index is -1
-
-        str_fragment = msg.slice(0,index)
-        json_fragment = $.parseJSON msg.slice(msg.indexOf('{'))
-
-        return {formatted_message: msg} if not json_fragment?
-
-        return {
-            formatted_message: str_fragment
-            json: JSON.stringify(json_fragment, undefined, 2)
-        }
-
 
 class Issue extends Backbone.Model
 
@@ -325,6 +355,11 @@ class ComputedCluster extends Backbone.Model
 
 
 # Collections for Backbone.js
+class Databases extends Backbone.Collection
+    model: Database
+    name: 'Databases'
+
+
 class Namespaces extends Backbone.Collection
     model: Namespace
     name: 'Namespaces'
@@ -336,28 +371,6 @@ class Datacenters extends Backbone.Collection
 class Machines extends Backbone.Collection
     model: Machine
     name: 'Machines'
-
-class LogEntries extends Backbone.Collection
-    min_timestamp: 0
-    model: LogEntry
-    comparator: (a, b) ->
-        if a.get('timestamp') < b.get('timestamp')
-            return 1
-        else if a.get('timestamp') > b.get('timestamp')
-            return -1
-        else if a.get('machine_uuid') <  b.get('machine_uuid')
-            return 1
-        else if a.get('machine_uuid') > b.get('machine_uuid')
-            return -1
-        else if a.get('message') < b.get('message')
-            return 1
-        else if a.get('message') > b.get('message')
-            return -1
-        else
-            return 0
-        # sort strings in reverse order (return a negated string)
-        #String.fromCharCode.apply String,
-        #    _.map(log_entry.get('datetime').split(''), (c) -> 0xffff - c.charCodeAt())
 
 class Issues extends Backbone.Collection
     model: Issue
@@ -504,8 +517,12 @@ module 'DataUtils', ->
             @namespace.off 'add', @compute_shards_without_args
 
 
-
-    #TODO destroy
+    @stripslashes = (str) ->
+        str=str.replace(/\\'/g,'\'')
+        str=str.replace(/\\"/g,'"')
+        str=str.replace(/\\0/g,"\x00")
+        str=str.replace(/\\\\/g,'\\')
+        return str
 
     @get_machine_reachability = (machine_uuid) ->
         reachable = directory.get(machine_uuid)?
@@ -631,7 +648,16 @@ module 'DataUtils', ->
                     if !activities[namespace_id][machine.get('id')]?
                         activities[namespace_id][machine.get('id')] = {}
                     activities[namespace_id][machine.get('id')][activity[0]] = activity[1]['type']
+            bcards = machine.get('rdb_namespaces')['reactor_bcards']
+            for namespace_id, activity_map of bcards
+                activity_map = activity_map['activity_map']
+                for activity_id, activity of activity_map
+                    if !(namespace_id of activities)
+                        activities[namespace_id] = {}
 
+                    if !activities[namespace_id][machine.get('id')]?
+                        activities[namespace_id][machine.get('id')] = {}
+                    activities[namespace_id][machine.get('id')][activity[0]] = activity[1]['type']
         return activities
 
     # Computes backfill progress for a given (namespace, shard,

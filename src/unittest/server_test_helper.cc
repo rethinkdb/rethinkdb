@@ -28,15 +28,13 @@ void server_test_helper_t::setup_server_and_run_tests() {
     mock::temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
 
     scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(aio_native, &io_backender);
+    make_io_backender(aio_default, &io_backender);
 
     {
         standard_serializer_t::create(
-            standard_serializer_t::dynamic_config_t(),
             io_backender.get(),
             standard_serializer_t::private_dynamic_config_t(db_file.name()),
-            standard_serializer_t::static_config_t(),
-            &get_global_perfmon_collection());
+            standard_serializer_t::static_config_t());
         standard_serializer_t log_serializer(
             standard_serializer_t::dynamic_config_t(),
             io_backender.get(),

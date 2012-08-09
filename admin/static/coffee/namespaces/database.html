@@ -1,0 +1,94 @@
+<script id="database_view-container-template" type="text/x-handlebars-template">
+    <div class="full_profile">
+        <div class="main_title"></div>
+        <div class="two-panel-section section">
+            <div class="panel-left-unbalanced profile">
+        </div>
+        <div class="panel-right-unbalanced">
+            <h3 class="title">Performance</h3>
+            <div class="performance-graph"></div>
+        </div>
+      </div>
+
+    <ul class="nav nav-tabs">
+        <li class="active"><a href="#databases/{{database_id}}/overview" data-target="#database-overview" id="database-overview-link" class="tab-link" data-toggle="tab">Overview</a></li>
+        <li><a href="#databases/{{database_id}}/operations" data-target="#database-operations" id="database-operations-link" class="tab-link" data-toggle="tab">Operations</a></li>
+    </ul>
+
+    <div id="user-alert-space"></div>
+
+    <div class="tab-content">  
+        <div class="tab-pane active" id="database-overview">
+            <div class="section database-overview-container"></div>
+        </div>
+       <div class="tab-pane" id="database-operations">
+            <div class="section operations"></div>
+        </div>
+    </div>
+</script>
+
+<script id="database_view-not_found-template" type="text/x-handlebars-template">
+    <p>Database {{id}} could not be found.</p>
+</script>
+
+<script id="database_view_title-template" type="text/x-handlebars-template">
+    <h1>Database overview for {{name}}</h1>
+</script>
+
+<script id="database_view-profile-template" type="text/x-handlebars-template">
+    <h3 class="title">Database profile</h3>
+    <div class="section summary">
+        <p>
+            {{num_namespaces}} {{pluralize_noun "namespace" num_amespaces}} with
+            <ul>
+                <li>{{num_rdb}} using rdb protocol</li>
+                <li>{{num_memcached}} using memcached</li>
+            </ul>
+        </p>
+        <p>Status: {{humanize_namespace_reachability reachability}}</p>
+        {{#unless stats_up_to_date}}
+        <p>The stats displayed might not be up to date<br />
+            (One server might be overload with queries).</p>
+        {{/unless}}
+    </div>
+</script>
+
+
+<script id="database_overview-container-template" type="text/x-handlebars-template">
+    <h3 class="title">Namespaces in this database</h3>
+    <div class="namespaces-list">
+    </div>
+</script>
+
+
+<script id="database_operations-template" type="text/x-handlebars-template">
+    <h3 class="title">Other operations</h3>
+    <div class="operations_section rename_database">
+        <input type="button" class="btn other_button rename_database-button" value="Rename"/>
+        <p>Rename the database</p>
+    </div>
+    <div class="operations_section import_data">
+        <input type="button" class="btn other_button import_data-button" value="Import"/>
+        <p>Import data</p>
+    </div>
+    <div class="operations_section export_data-container">
+        <input type="button" class="btn other_button export_data-button" value="Export"/>
+        <p>Export data</p>
+    </div>
+    <div class="operations_section delete_database-container">
+        <input type="button" class="btn other_button delete_database-button" value="Delete"/>
+        <p>Delete the database</p>
+    </div>
+</script>
+
+
+<script id="database-namespace_view-template" type="text/x-handlebars-template">
+    <span class="status">{{humanize_namespace_reachability reachability}}</span>
+    <span class="name">    
+        <a href="#namespaces/{{id}}">{{name}}</a>
+    </span>
+    <p class="quick_info">
+    {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}, replication: {{> backfill_progress_summary}}
+    </p>
+</script>
+

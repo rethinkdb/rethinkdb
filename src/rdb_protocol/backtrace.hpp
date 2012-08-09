@@ -24,4 +24,4 @@ private:
 
 }   /* namespace query_language */
 
-#endif   /* RDB_PROTOCOL_BACKTRACE_HPP_ */
+#endif /* RDB_PROTOCOL_BACKTRACE_HPP_ */

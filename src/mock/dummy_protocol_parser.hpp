@@ -26,8 +26,9 @@ private:
 
 class dummy_protocol_parser_t {
 public:
-    dummy_protocol_parser_t(int port, namespace_interface_t<dummy_protocol_t> *nif, perfmon_collection_t *) :
-        query_app(nif),
+    dummy_protocol_parser_t(int port, namespace_repo_t<dummy_protocol_t> *ns_repo, const namespace_id_t &ns_id, perfmon_collection_t *) :
+        ns_access(ns_repo, ns_id, &interruptor),
+        query_app(ns_access.get_namespace_if()),
         server(port, &query_app)
         { }
 
@@ -36,6 +37,8 @@ public:
     }
 
 private:
+    cond_t interruptor; // Not used, but needed to construct the ns_access
+    namespace_repo_t<dummy_protocol_t>::access_t ns_access;
     query_http_app_t query_app;
     http_server_t server;
 };

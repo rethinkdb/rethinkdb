@@ -187,10 +187,10 @@ void admin_print_table(const std::vector<std::vector<std::string> >& table) {
 
     // Determine the maximum size of each column
     for (size_t i = 0; i < table[0].size(); ++i) {
-        int max = table[0][i].length();
+        size_t max = table[0][i].length();
 
         for (size_t j = 1; j < table.size(); ++j) {
-            if ((int)table[j][i].length() > max) {
+            if (table[j][i].length() > max) {
                 max = table[j][i].length();
             }
         }
@@ -218,7 +218,7 @@ std::string admin_cluster_link_t::truncate_uuid(const uuid_t& uuid) {
 
 admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins, int client_port, signal_t *interruptor) :
     local_issue_tracker(),
-    log_writer("./rethinkdb_log_file", &local_issue_tracker), // TODO: come up with something else for this file
+    log_writer(&local_issue_tracker), // TODO: come up with something else for this file
     connectivity_cluster(),
     message_multiplexer(&connectivity_cluster),
     mailbox_manager_client(&message_multiplexer, 'M'),
@@ -668,7 +668,7 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(const shard_input_t& shar
                     secondaries.insert(j->second);
                 }
             }
-        } else if ((int)datacenter_use.count(i->first) <= i->second) {
+        } else if (datacenter_use.count(i->first) <= static_cast<size_t>(i->second)) {
             // Copy over all the specified machines for this datacenter
             for (std::multimap<datacenter_id_t, machine_id_t>::iterator j = datacenter_use.lower_bound(i->first);
                  j != datacenter_use.end() && j->first == i->first; ++j) {
@@ -1830,6 +1830,8 @@ namespace_id_t admin_cluster_link_t::do_admin_create_namespace_internal(const st
     region_map_t<protocol_t, machine_id_t> default_primary_pinnings(protocol_t::region_t::universe(), nil_uuid());
     obj.primary_pinnings.get_mutable() = default_primary_pinnings;
     obj.primary_pinnings.upgrade_version(change_request_id);
+    obj.database.get_mutable() = nil_uuid();
+    obj.database.upgrade_version(change_request_id);
 
     return id;
 }

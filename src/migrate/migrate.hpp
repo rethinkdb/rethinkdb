@@ -15,7 +15,7 @@ struct config_t {
     std::vector<std::string> output_filenames;
     std::string exec_name;
     std::string intermediate_file;
-    bool force;
+    int force;
     config_t()
         : intermediate_file(TEMP_MIGRATION_FILE), force(false)
     { }

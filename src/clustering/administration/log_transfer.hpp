@@ -22,14 +22,14 @@ RDB_DECLARE_SERIALIZABLE(log_server_business_card_t);
 
 class log_server_t {
 public:
-    log_server_t(mailbox_manager_t *mm, log_writer_t *w);
+    log_server_t(mailbox_manager_t *mm, thread_pool_log_writer_t *w);
     log_server_business_card_t get_business_card();
 private:
     void handle_request(
         int max_lines, struct timespec min_timestamp, struct timespec max_timestamp,
         log_server_business_card_t::result_mailbox_t::address_t cont, auto_drainer_t::lock_t keepalive);
     mailbox_manager_t *mailbox_manager;
-    log_writer_t *writer;
+    thread_pool_log_writer_t *writer;
     auto_drainer_t drainer;
     log_server_business_card_t::request_mailbox_t request_mailbox;
 

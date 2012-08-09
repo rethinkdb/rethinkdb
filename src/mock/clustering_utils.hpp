@@ -22,10 +22,9 @@ struct fake_fifo_enforcement_t {
 template<class protocol_t>
 class test_store_t {
 public:
-    explicit test_store_t(io_backender_t *io_backender) :
+    test_store_t(io_backender_t *io_backender, order_source_t *order_source) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
-            store(io_backender, temp_file.name(), true, &get_global_perfmon_collection())
-    {
+            store(io_backender, temp_file.name(), true, &get_global_perfmon_collection()) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> token;
@@ -34,7 +33,7 @@ public:
                 store.get_region(),
                 binary_blob_t(version_range_t(version_t::zero()))
             );
-        store.set_metainfo(new_metainfo, order_token_t::ignore, &token, &non_interruptor);
+        store.set_metainfo(new_metainfo, order_source->check_in("test_store_t"), &token, &non_interruptor);
     }
 
     temp_file_t temp_file;
@@ -171,7 +170,7 @@ public:
                                it != values_inserted->end();
                                it++) {
             cond_t interruptor;
-            std::string response = rfun((*it).first, osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this)), &interruptor);
+            std::string response = rfun((*it).first, osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this)).with_read_mode(), &interruptor);
             rassert((*it).second == response);
         }
     }

@@ -4,9 +4,8 @@
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "utils.hpp"
 
-template <class ctx_t>
-cJSON *render_as_json(log_message_t *message, const ctx_t &) {
-    std::string timestamp_buffer = strprintf("%d.%09ld", int(message->timestamp.tv_sec), message->timestamp.tv_nsec);
+cJSON *render_as_json(log_message_t *message) {
+    std::string timestamp_buffer = strprintf("%ld.%09ld", message->timestamp.tv_sec, message->timestamp.tv_nsec);
     scoped_cJSON_t json(cJSON_CreateObject());
     json.AddItemToObject("timestamp", cJSON_CreateString(timestamp_buffer.c_str()));
     json.AddItemToObject("uptime", cJSON_CreateNumber(message->uptime.tv_sec + message->uptime.tv_nsec / 1000000000.0));
@@ -44,17 +43,17 @@ static bool scan_timespec(const char *string, struct timespec *out) {
 
 http_res_t log_http_app_t::handle(const http_req_t &req) {
     if (req.method != GET) {
-        return http_res_t(405);
+        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
 
     http_req_t::resource_t::iterator it = req.resource.begin();
     if (it == req.resource.end()) {
-        return http_res_t(404);
+        return http_res_t(HTTP_NOT_FOUND);
     }
     std::string machine_id_str = *it;
     it++;
     if (it != req.resource.end()) {
-        return http_res_t(404);
+        return http_res_t(HTTP_NOT_FOUND);
     }
 
     std::vector<machine_id_t> machine_ids;
@@ -70,7 +69,7 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
             try {
                 machine_ids.push_back(str_to_uuid(std::string(start, p - start)));
             } catch (std::runtime_error) {
-                return http_res_t(404);
+                return http_res_t(HTTP_NOT_FOUND);
             }
             if (!*p) {
                 break;
@@ -87,17 +86,17 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
         char dummy;
         int res = sscanf(max_length_string.get().c_str(), "%d%c", &max_length, &dummy);
         if (res != 1) {
-            return http_res_t(400);
+            return http_res_t(HTTP_BAD_REQUEST);
         }
     }
     if (boost::optional<std::string> min_timestamp_string = req.find_query_param("min_timestamp")) {
         if (!scan_timespec(min_timestamp_string.get().c_str(), &min_timestamp)) {
-            return http_res_t(400);
+            return http_res_t(HTTP_BAD_REQUEST);
         }
     }
     if (boost::optional<std::string> max_timestamp_string = req.find_query_param("max_timestamp")) {
         if (!scan_timespec(max_timestamp_string.get().c_str(), &max_timestamp)) {
-            return http_res_t(400);
+            return http_res_t(HTTP_BAD_REQUEST);
         }
     }
 
@@ -105,7 +104,7 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
     for (std::vector<machine_id_t>::iterator it = machine_ids.begin(); it != machine_ids.end(); it++) {
         peer_id_t pid = machine_id_to_peer_id(*it, machine_id_translation_table->get());
         if (pid.is_nil()) {
-            return http_res_t(404);
+            return http_res_t(HTTP_NOT_FOUND);
         }
         peer_ids.push_back(pid);
     }
@@ -120,9 +119,7 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
         map_to_fill.get(),
         &non_interruptor));
 
-    http_res_t res(200);
-    res.set_body("application/json", map_to_fill.Print());
-    return res;
+    return http_json_res(map_to_fill.get());
 }
 
 void log_http_app_t::fetch_logs(int i,
@@ -140,7 +137,7 @@ void log_http_app_t::fetch_logs(int i,
             mailbox_manager, bcards[peers[i]],
             max_messages, min_timestamp, max_timestamp,
             interruptor);
-        cJSON_AddItemToObject(map_to_fill, key.c_str(), render_as_json(&messages, 0));
+        cJSON_AddItemToObject(map_to_fill, key.c_str(), render_as_json(&messages));
     } catch (interrupted_exc_t) {
         /* ignore */
     } catch (std::runtime_error e) {

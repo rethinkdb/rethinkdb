@@ -33,11 +33,13 @@ public:
 };
 
 
+class vclock_ctx_t;
+
 template <class T>
 class vclock_t {
 private:
-    template <class TT, class ctx_t>
-    friend cJSON *render_all_values(vclock_t<TT> *, const ctx_t &);
+    template <class TT>
+    friend cJSON *with_ctx_render_all_values(vclock_t<TT> *, const vclock_ctx_t &);
 
     template <class TT>
     friend bool operator==(const vclock_t<TT> &, const vclock_t<TT> &);
@@ -85,6 +87,21 @@ bool operator==(const vclock_t<T> &, const vclock_t<T> &);
 
 template <class T>
 void semilattice_join(vclock_t<T> *, const vclock_t<T> &);
+
+
+// vclock context type for use with json adapters.
+class vclock_ctx_t {
+public:
+    const uuid_t us;
+    explicit vclock_ctx_t(uuid_t _us)
+        : us(_us)
+    { }
+};
+
+inline bool operator==(const vclock_ctx_t &x, const vclock_ctx_t &y) {
+    return x.us == y.us;
+}
+
 
 #include "rpc/semilattice/joins/vclock.tcc"
 

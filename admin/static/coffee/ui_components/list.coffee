@@ -36,6 +36,7 @@ module 'UIComponents', ->
 
             # Initially we need to populate the element views list
             @reset_element_views()
+            @render()
 
             # Collection is reset, create all new views
             @collection.on 'reset', (collection) =>
@@ -163,7 +164,7 @@ module 'UIComponents', ->
     # Abstract list element that allows collapsing the item
     class @CollapsibleListElement extends Backbone.View
         events: ->
-            'click .header': 'toggle_showing'
+            'click .arrow': 'toggle_showing'
             'click a': 'link_clicked'
 
         initialize: ->
@@ -182,11 +183,11 @@ module 'UIComponents', ->
             @show()
 
         show: =>
-            @.$('.machine-list').toggle @showing
+            @.$('.element-list-container').toggle @showing
             @swap_divs()
 
         show_with_transition: =>
-            @.$('.machine-list').slideToggle @showing
+            @.$('.element-list-container').slideToggle @showing
             @swap_divs()
 
         swap_divs: =>

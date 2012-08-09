@@ -10,6 +10,14 @@ ANSI_UL_OFF:=[0m
 
 ##### Configuring stuff
 
+IGNORE_MAKEFILE_CHANGES?=0
+
+ifeq ($(IGNORE_MAKEFILE_CHANGES),1)
+MAKEFILE_DEPENDENCY:=
+else
+MAKEFILE_DEPENDENCY:=Makefile
+endif
+
 # Set SOLO to 0 to build RethinkDB Cache (otherwise, RethinkDB Solo is built)
 SOLO?=1
 ifeq ($(SOLO),1)
@@ -62,6 +70,7 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
+BUILD_DRIVERS?=1
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -100,17 +109,13 @@ endif
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lv8
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lv8 -lcrypto
 else
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lv8
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lv8 -lcrypto
 else
 # GCC
-ifeq ($(LEGACY_GCC), 1)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio # at some point, v8 needs to be installed on the machines with LEGACY_GCC=1
-else
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lv8
-endif
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lv8 -lcrypto
 endif
 endif
 
@@ -311,7 +316,7 @@ PROTO_HEADERS:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(PROTO_SOUR
 PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(PROTO_SOURCES))
 PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(PROTO_CODE))
 PROTO_OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(PROTO_NAMES))
-PROTOCFLAGS:= -I $(SOURCE_DIR)
+PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)
 
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
@@ -335,6 +340,7 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			loading.coffee \
 			body.coffee \
 			ui_components/modals.coffee ui_components/list.coffee \
+			namespaces/database.coffee \
 			namespaces/index.coffee namespaces/replicas.coffee namespaces/shards.coffee namespaces/pins.coffee namespaces/machines.coffee namespaces/namespace.coffee \
 			servers/index.coffee servers/machine.coffee servers/datacenter.coffee \
 			dashboard.coffee \
@@ -601,11 +607,15 @@ rpm-suse10:
 endif
 
 # Build rules
-drivers: rdb_protocol/query_language.proto
+drivers: ./rdb_protocol/query_language.proto
+ifeq ($(BUILD_DRIVERS), 1)
 ifeq ($(VERBOSE),0)
-	@echo "    PROTOC $@"
+	@echo "    PROTOC[PY] $^"
+	@echo "    PROTOC[RB] $^"
 endif
-	$(QUIET) protoc $(PROTOCFLAGS) --python_out ../drivers/python/rethinkdb/ rdb_protocol/query_language.proto
+	$(QUIET) protoc $(PROTOCFLAGS) --python_out ../drivers/python/rethinkdb/ $^
+	$(QUIET) rprotoc $(PROTOCFLAGS) --out ../drivers/ruby/rethinkdb $^ 2>&1 | (grep -v "../drivers/ruby/rethinkdb/query_language.pb.rb writing..." || true)
+endif
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
 rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py
@@ -671,7 +681,7 @@ endif
 $(PROTO_DIR)/dummy: $(PROTO_SOURCES)
 	$(QUIET) mkdir -p $(PROTO_DIR)
 ifeq ($(VERBOSE),0)
-	@echo "    PROTOC $^"
+	@echo "    PROTOC[CPP] $^"
 endif
 	$(QUIET) protoc $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $^
 	$(QUIET) touch $@
@@ -812,14 +822,14 @@ $(BUILD_DIR):
 
 # Proto buffers object files
 # This is hacky, as the following rule is just a duplicate of the rule for our own sources
-$(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc Makefile $(PROTO_HEADERS)
+$(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(PROTO_HEADERS)
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
 endif
 	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY)
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"

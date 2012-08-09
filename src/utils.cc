@@ -59,16 +59,16 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
             if (!skipped_last) fprintf(stderr, "*\n");
         } else {
             fprintf(stderr, "%.8x  ", (unsigned int)offset);
-            for (int i = 0; i < 16; i++) {
-                if (i < (int)length) {
+            for (ssize_t i = 0; i < 16; ++i) {
+                if (i < length) {
                     fprintf(stderr, "%.2hhx ", buf[i]);
                 } else {
                     fprintf(stderr, "   ");
                 }
             }
             fprintf(stderr, "| ");
-            for (int i = 0; i < 16; i++) {
-                if (i < (int)length) {
+            for (ssize_t i = 0; i < 16; ++i) {
+                if (i < length) {
                     if (isprint(buf[i])) {
                         fputc(buf[i], stderr);
                     } else {
@@ -544,4 +544,16 @@ std::string render_as_path(const path_t &path) {
     }
 
     return res;
+}
+
+std::string sanitize_for_logger(const std::string &s) {
+    std::string sanitized = s;
+    for (size_t i = 0; i < sanitized.length(); ++i) {
+        if (sanitized[i] == '\n' || sanitized[i] == '\t') {
+            sanitized[i] = ' ';
+        } else if (sanitized[i] < ' ' || sanitized[i] > '~') {
+            sanitized[i] = '?';
+        }
+    }
+    return sanitized;
 }

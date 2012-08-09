@@ -41,11 +41,9 @@ void run_metainfo_test() {
     make_io_backender(aio_default, &io_backender);
 
     standard_serializer_t::create(
-        standard_serializer_t::dynamic_config_t(),
         io_backender.get(),
         standard_serializer_t::private_dynamic_config_t(temp_file.name()),
-        standard_serializer_t::static_config_t(),
-        &get_global_perfmon_collection()
+        standard_serializer_t::static_config_t()
         );
 
     standard_serializer_t serializer(
@@ -153,7 +151,7 @@ void run_metainfo_test() {
             if (print_log_messages) {
                 puts("scan...");
             }
-            for (int i = 0; i < (int)pairs.size(); i++) {
+            for (size_t i = 0; i < pairs.size(); ++i) {
                 std::map<std::string, std::string>::iterator it = mirror_copy.find(vector_to_string(pairs[i].first));
                 if (it == mirror_copy.end()) {
                     if (print_log_messages) {

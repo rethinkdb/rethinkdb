@@ -39,7 +39,7 @@ Handlebars.registerHelper 'links_to_machines', (machines) ->
     for i in [0...machines.length]
         out += '<a href="#machines/'+machines[i].id+'" class="links_to_other_view">'+machines[i].name+'</a>'
         out += ", " if i isnt machines.length-1
-    return out
+    return new Handlebars.SafeString(out)
 
 Handlebars.registerHelper 'links_to_machines_inline', (machines) ->
     out = ""
@@ -56,10 +56,13 @@ Handlebars.registerHelper 'links_to_namespaces', (namespaces) ->
     return out
 
 #Returns a list of links to namespaces on one line
-Handlebars.registerHelper 'links_to_namespaces_inline', (namespaces) ->
+Handlebars.registerHelper 'links_to_namespaces_inline', (namespaces, tab) ->
     out = ""
     for i in [0...namespaces.length]
-        out += '<a href="#namespaces/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
+        if tab?
+            out += '<a href="#namespaces/'+namespaces[i].id+'/'+tab+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
+        else
+            out += '<a href="#namespaces/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
         out += ", " if i isnt namespaces.length-1
     return new Handlebars.SafeString(out)
 
@@ -123,8 +126,13 @@ Handlebars.registerHelper 'humanize_uuid', (str) -> str.substr(0, 6)
 
 # Helpers for printing roles
 Handlebars.registerHelper 'humanize_role', (role) ->
-    if role is 'role_primary' then return 'master'
-    if role is 'role_secondary' then return 'replica'
+    if role is 'role_primary'
+        return new Handlebars.SafeString('<span class="master responsability master">Master</span>')
+    if role is 'role_secondary'
+        return new Handlebars.SafeString('<span class="secondary responsability secondary">Secondary</span>')
+    if role is 'role_nothing'
+        return new Handlebars.SafeString('<span class="secondary responsability nothing">Nothing</span>')
+ 
     return role
 
 # Helpers for printing reachability

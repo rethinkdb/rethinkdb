@@ -63,11 +63,15 @@ struct thread_data_t {
 };
 
 void *linux_thread_pool_t::start_thread(void *arg) {
-    // Block all signals (will be unblocked by the event queue in case of poll).
+    // Block all signals but `SIGSEGV` (will be unblocked by the event queue in
+    // case of poll).
     {
         sigset_t sigmask;
         int res = sigfillset(&sigmask);
         guarantee_err(res == 0, "Could not get a full sigmask");
+
+        res = sigdelset(&sigmask, SIGSEGV);
+        guarantee_err(res == 0, "Could not remove SIGSEGV from sigmask");
 
         res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
         guarantee_err(res == 0, "Could not block signal");

@@ -1,7 +1,14 @@
 #ifndef RDB_PROTOCOL_PROTOCOL_HPP_
 #define RDB_PROTOCOL_PROTOCOL_HPP_
 
+#include <list>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "utils.hpp"
+#include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
@@ -42,6 +49,7 @@ RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_Map);
 RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_ConcatMap);
 RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
 RDB_MAKE_PROTOB_SERIALIZABLE(Reduction);
+RDB_MAKE_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
 
 namespace rdb_protocol_details {
 
@@ -69,7 +77,10 @@ typedef std::list<transform_atom_t> transform_t;
 struct Length { 
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
-typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length> terminal_t;
+
+typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_t;
+
+
 
 } // namespace rdb_protocol_details
 
@@ -96,7 +107,18 @@ struct rdb_protocol_t {
         typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
         typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, query_language::shared_scoped_less> groups_t; //Present if the terminal was a groupedmapreduce
         typedef boost::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
-        typedef boost::variant<stream_t, groups_t, atom_t, int> result_t;
+
+        struct length_t {
+            int length;
+            RDB_MAKE_ME_SERIALIZABLE_1(length);
+        };
+
+        struct inserted_t {
+            int inserted;
+            RDB_MAKE_ME_SERIALIZABLE_1(inserted);
+        };
+
+        typedef boost::variant<stream_t, groups_t, atom_t, length_t, inserted_t> result_t;
 
         key_range_t key_range;
         result_t result;
@@ -317,7 +339,7 @@ struct rdb_protocol_t {
                 const std::string& filename,
                 bool create,
                 perfmon_collection_t *parent_perfmon_collection);
-        virtual ~store_t();
+        ~store_t();
 
     private:
         read_response_t protocol_read(const read_t &read,
@@ -336,7 +358,9 @@ struct rdb_protocol_t {
                                     superblock_t *superblock,
                                     btree_slice_t *btree,
                                     transaction_t *txn,
-                                    backfill_progress_t *progress);
+                                    backfill_progress_t *progress,
+                                    signal_t *interruptor)
+                                    THROWS_ONLY(interrupted_exc_t);
 
         void protocol_receive_backfill(btree_slice_t *btree,
                                        transaction_t *txn,

@@ -17,9 +17,9 @@ semilattice_http_app_t::semilattice_http_app_t(
 void semilattice_http_app_t::get_root(scoped_cJSON_t *json_out) {
     // keep this in sync with handle's behavior for getting the root
     cluster_semilattice_metadata_t cluster_metadata = metadata_change_handler->get();
-    json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t> json_adapter(&cluster_metadata);
-    namespace_metadata_ctx_t json_ctx(us);
-    json_out->reset(json_adapter.render(json_ctx));
+    vclock_ctx_t json_ctx(us);
+    json_ctx_adapter_t<cluster_semilattice_metadata_t, vclock_ctx_t> json_adapter(&cluster_metadata, json_ctx);
+    json_out->reset(json_adapter.render());
 }
 
 http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
@@ -27,16 +27,16 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
         cluster_semilattice_metadata_t cluster_metadata = metadata_change_handler->get();
 
         //as we traverse the json sub directories this will keep track of where we are
-        boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t>(&cluster_metadata));
-        namespace_metadata_ctx_t json_ctx(us);
+        vclock_ctx_t json_ctx(us);
+        boost::shared_ptr<json_adapter_if_t> json_adapter_head(new json_ctx_adapter_t<cluster_semilattice_metadata_t, vclock_ctx_t>(&cluster_metadata, json_ctx));
 
         http_req_t::resource_t::iterator it = req.resource.begin();
 
         //Traverse through the subfields until we're done with the url
         while (it != req.resource.end()) {
-            json_adapter_if_t<namespace_metadata_ctx_t>::json_adapter_map_t subfields = json_adapter_head->get_subfields(json_ctx);
+            json_adapter_if_t::json_adapter_map_t subfields = json_adapter_head->get_subfields();
             if (subfields.find(*it) == subfields.end()) {
-                return http_res_t(404); //someone tried to walk off the edge of the world
+                return http_res_t(HTTP_NOT_FOUND); //someone tried to walk off the edge of the world
             }
             json_adapter_head = subfields[*it];
             it++;
@@ -46,10 +46,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
         switch (req.method) {
             case GET:
             {
-                http_res_t res(200);
-                scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-                res.set_body("application/json", json_repr.Print());
-                return res;
+                scoped_cJSON_t json_repr(json_adapter_head->render());
+                return http_json_res(json_repr.get());
             }
             break;
             case POST:
@@ -60,27 +58,18 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     boost::optional<std::string> content_type = req.find_header_line("Content-Type");
                     if (!content_type || content_type.get() != "application/json") {
                         logINF("Bad request, Content-Type should be application/json.");
-                        return http_res_t(415);
+                        return http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
                     }
                 }
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
                 if (!change.get()) { //A null value indicates that parsing failed
-                    std::string sanitized = req.body;
-                    /* We mustn't try to log tabs, newlines, or unprintable
-                    characters. */
-                    for (int i = 0; i < int(sanitized.length()); i++) {
-                        if (sanitized[i] == '\n' || sanitized[i] == '\t') {
-                            sanitized[i] = ' ';
-                        } else if (sanitized[i] < ' ' || sanitized[i] > '~') {
-                            sanitized[i] = '?';
-                        }
-                    }
-                    logINF("Json body failed to parse. Here's the data that failed: %s", sanitized.c_str());
-                    return http_res_t(400);
+                    logINF("Json body failed to parse. Here's the data that failed: %s",
+                           req.get_sanitized_body().c_str());
+                    return http_res_t(HTTP_BAD_REQUEST);
                 }
 
-                json_adapter_head->apply(change.get(), json_ctx);
+                json_adapter_head->apply(change.get());
 
                 {
                     scoped_cJSON_t absolute_change(change.release());
@@ -100,17 +89,13 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 metadata_change_handler->update(cluster_metadata);
 
-                http_res_t res(200);
-
-                scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-                res.set_body("application/json", json_repr.Print());
-
-                return res;
+                scoped_cJSON_t json_repr(json_adapter_head->render());
+                return http_json_res(json_repr.get());
             }
             break;
             case DELETE:
             {
-                json_adapter_head->erase(json_ctx);
+                json_adapter_head->erase();
 
                 logINF("Deleting %s", req.resource.as_string().c_str());
 
@@ -120,12 +105,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 metadata_change_handler->update(cluster_metadata);
 
-                http_res_t res(200);
-
-                scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-                res.set_body("application/json", json_repr.Print());
-
-                return res;
+                scoped_cJSON_t json_repr(json_adapter_head->render());
+                return http_json_res(json_repr.get());
             }
             break;
             case PUT:
@@ -136,24 +117,15 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     boost::optional<std::string> content_type = req.find_header_line("Content-Type");
                     if (!content_type || content_type.get() != "application/json") {
                         logINF("Bad request, Content-Type should be application/json.");
-                        return http_res_t(415);
+                        return http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
                     }
                 }
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
                 if (!change.get()) { //A null value indicates that parsing failed
-                    std::string sanitized = req.body;
-                    /* We mustn't try to log tabs, newlines, or unprintable
-                    characters. */
-                    for (int i = 0; i < int(sanitized.length()); i++) {
-                        if (sanitized[i] == '\n' || sanitized[i] == '\t') {
-                            sanitized[i] = ' ';
-                        } else if (sanitized[i] < ' ' || sanitized[i] > '~') {
-                            sanitized[i] = '?';
-                        }
-                    }
-                    logINF("Json body failed to parse. Here's the data that failed: %s", sanitized.c_str());
-                    return http_res_t(400);
+                    logINF("Json body failed to parse. Here's the data that failed: %s",
+                           req.get_sanitized_body().c_str());
+                    return http_res_t(HTTP_BAD_REQUEST);
                 }
 
                 {
@@ -167,8 +139,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }
 
-                json_adapter_head->reset(json_ctx);
-                json_adapter_head->apply(change.get(), json_ctx);
+                json_adapter_head->reset();
+                json_adapter_head->apply(change.get());
 
                 /* Fill in the blueprints */
                 try {
@@ -177,12 +149,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 metadata_change_handler->update(cluster_metadata);
 
-                http_res_t res(200);
-
-                scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-                res.set_body("application/json", json_repr.Print());
-
-                return res;
+                scoped_cJSON_t json_repr(json_adapter_head->render());
+                return http_json_res(json_repr.get());
             }
             break;
             case HEAD:
@@ -191,24 +159,18 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
             case CONNECT:
             case PATCH:
             default:
-                return http_res_t(405);
+                return http_res_t(HTTP_METHOD_NOT_ALLOWED);
                 break;
         }
     } catch (const schema_mismatch_exc_t &e) {
-        http_res_t res(400);
         logINF("HTTP request throw a schema_mismatch_exc_t with what = %s", e.what());
-        res.set_body("application/text", e.what());
-        return res;
+        return http_error_res(e.what());
     } catch (const permission_denied_exc_t &e) {
-        http_res_t res(400);
         logINF("HTTP request throw a permission_denied_exc_t with what = %s", e.what());
-        res.set_body("application/text", e.what());
-        return res;
+        return http_error_res(e.what());
     } catch (const cannot_satisfy_goals_exc_t &e) {
-        http_res_t res(500);
         logINF("The server was given a set of goals for which it couldn't find a valid blueprint. %s", e.what());
-        res.set_body("application/text", e.what());
-        return res;
+        return http_error_res(e.what(), HTTP_INTERNAL_SERVER_ERROR);
     }
     unreachable();
 }

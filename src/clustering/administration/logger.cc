@@ -1,8 +1,11 @@
 #include "clustering/administration/logger.hpp"
 
+#include <math.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <stdarg.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "arch/runtime/thread_pool.hpp"   /* for `run_in_blocker_pool()` */
 #include "clustering/administration/persist.hpp"
@@ -33,28 +36,60 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
         throw std::runtime_error("cannot parse '" + s + "' as log level");
 }
 
-std::string format_log_message(const log_message_t &m) {
-
+std::string format_log_message(const log_message_t &m, bool for_console) {
     std::string message = m.message;
-    for (int i = 0; i < int(message.length()); i++) {
-        if (message[i] < ' ' || message[i] > '~') {
+    std::string message_reformatted;
+
+    std::string prepend;
+    if (!for_console) {
+        prepend = strprintf("%s %ld.%06lds %s: ",
+                            format_time(m.timestamp).c_str(),
+                            m.uptime.tv_sec,
+                            m.uptime.tv_nsec / 1000,
+                            format_log_level(m.level).c_str());
+    } else {
+        prepend = strprintf("%s: ", format_log_level(m.level).c_str());
+    }
+    ssize_t prepend_length = prepend.length();
+
+    ssize_t start = 0, end = message.length() - 1;
+    while (start < static_cast<ssize_t>(message.length()) && message[start] == '\n') {
+        ++start;
+    }
+    while (end >= 0 && message[end] == '\n') {
+        end--;
+    }
+    for (int i = start; i <= end; i++) {
+        if (message[i] == '\n') {
+            if (for_console) {
+                message_reformatted.push_back('\n');
+                message_reformatted.append(prepend_length, ' ');
+            } else {
+                message_reformatted.append("\\n");
+            }
+        } else if (message[i] == '\\') {
+            if (for_console) {
+                message_reformatted.push_back(message[i]);
+            } else {
+                message_reformatted.append("\\\\");
+            }
+        } else if (message[i] < ' ' || message[i] > '~') {
 #ifndef NDEBUG
-            crash("We can't have newlines, tabs or special characters in log "
+            crash("We can't have tabs or other special characters in log "
                 "messages because then it would be difficult to parse the log "
                 "file. Message: %s", message.c_str());
 #else
-            message[i] = '?';
+            message_reformatted.push_back('?');
 #endif
+        } else {
+            message_reformatted.push_back(message[i]);
         }
     }
-    return strprintf("%s %d.%06ds %s: %s\n",
-        format_time(m.timestamp).c_str(),
-        int(m.uptime.tv_sec),
-        int(m.uptime.tv_nsec / 1000),
-        format_log_level(m.level).c_str(),
-        message.c_str()
-        );
+
+    return prepend + message_reformatted + "\n";
 }
+
+
 
 log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_error) {
     const char *p = s.c_str();
@@ -113,6 +148,26 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
 
     log_level_t level = parse_log_level(std::string(start_level, end_level - start_level));
     std::string message = std::string(start_message, end_message - start_message);
+
+    return log_message_t(timestamp, uptime, level, message);
+}
+
+log_message_t assemble_log_message(log_level_t level, const std::string &message, struct timespec uptime_reference) {
+    int res;
+
+    struct timespec timestamp;
+    res = clock_gettime(CLOCK_REALTIME, &timestamp);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+
+    struct timespec uptime;
+    res = clock_gettime(CLOCK_MONOTONIC, &uptime);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+    if (uptime.tv_nsec < uptime_reference.tv_nsec) {
+        uptime.tv_nsec += 1000000000;
+        uptime.tv_sec -= 1;
+    }
+    uptime.tv_nsec -= uptime_reference.tv_nsec;
+    uptime.tv_sec -= uptime_reference.tv_sec;
 
     return log_message_t(timestamp, uptime, level, message);
 }
@@ -187,22 +242,126 @@ private:
     DISABLE_COPYING(file_reverse_reader_t);
 };
 
-TLS_with_init(log_writer_t *, global_log_writer, NULL);
-TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
+/* Most of the logging we do will be through thread_pool_log_writer_t. However,
+thread_pool_log_writer_t depends on the existence of a thread pool, which is
+not always the case. Thus, fallback_log_writer_t exists to perform logging
+operations when thread_pool_log_writer_t cannot be used. */
 
-log_writer_t::log_writer_t(const std::string &filename, local_issue_tracker_t *it) : filename(filename), issue_tracker(it) {
+class fallback_log_writer_t {
+public:
+    fallback_log_writer_t();
+    void install(const std::string &logfile_name);
+    friend class thread_pool_log_writer_t;
 
+private:
+    friend void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t);
+    friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
+    friend void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
+
+    bool write(const log_message_t &msg, std::string *error_out);
+    void initiate_write(log_level_t level, const std::string &message);
+    std::string filename;
+    struct timespec uptime_reference;
+    struct flock filelock, fileunlock;
+    scoped_fd_t fd;
+
+    DISABLE_COPYING(fallback_log_writer_t);
+} fallback_log_writer;
+
+fallback_log_writer_t::fallback_log_writer_t() {
     int res = clock_gettime(CLOCK_MONOTONIC, &uptime_reference);
     guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
 
-    pmap(get_num_threads(), boost::bind(&log_writer_t::install_on_thread, this, _1));
+    filelock.l_type = F_WRLCK;
+    filelock.l_whence = SEEK_SET;
+    filelock.l_start = 0;
+    filelock.l_len = 0;
+    filelock.l_pid = getpid();
+
+    fileunlock.l_type = F_UNLCK;
+    fileunlock.l_whence = SEEK_SET;
+    fileunlock.l_start = 0;
+    fileunlock.l_len = 0;
+    fileunlock.l_pid = getpid();
 }
 
-log_writer_t::~log_writer_t() {
-    pmap(get_num_threads(), boost::bind(&log_writer_t::uninstall_on_thread, this, _1));
+void fallback_log_writer_t::install(const std::string &logfile_name) {
+    rassert(filename == "", "Attempted to install a fallback_log_writer_t that was already installed.");
+    filename = logfile_name;
+
+    fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
+    rassert(fd.get() != -1, "%s", (std::string("failed to open log file") + strerror(errno)).c_str());
 }
 
-std::vector<log_message_t> log_writer_t::tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t) {
+bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {
+    std::string formatted = format_log_message(msg);
+    std::string console_formatted = format_log_message(msg, true);
+
+    flockfile(stderr);
+
+    ssize_t write_res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
+    if (write_res != static_cast<ssize_t>(console_formatted.length())) {
+        *error_out = std::string("cannot write to standard error: ") + strerror(errno);
+        return false;
+    }
+
+    int res = fsync(STDERR_FILENO);
+    if (res != 0 && !(errno == EROFS || errno == EINVAL)) {
+        *error_out = std::string("cannot flush stderr: ") + strerror(errno);
+        return false;
+    }
+
+    funlockfile(stderr);
+
+    if (fd.get() == -1) {
+        *error_out = std::string("cannot open or find log file");
+        return false;
+    }
+
+    res = fcntl(fd.get(), F_SETLKW, &filelock);
+    if (res != 0) {
+        *error_out = std::string("cannot lock log file: ") + strerror(errno);
+        return false;
+    }
+
+    write_res = ::write(fd.get(), formatted.data(), formatted.length());
+    if (write_res != static_cast<ssize_t>(formatted.length())) {
+        *error_out = std::string("cannot write to log file: ") + strerror(errno);
+        return false;
+    }
+
+    res = fcntl(fd.get(), F_SETLK, &fileunlock);
+    if (res != 0) {
+        *error_out = std::string("cannot unlock log file: ") + strerror(errno);
+        return false;
+    }
+
+    return true;
+}
+
+void fallback_log_writer_t::initiate_write(log_level_t level, const std::string &message) {
+    log_message_t log_msg = assemble_log_message(level, message, uptime_reference);
+    std::string error_message;
+    if (!write(log_msg, &error_message)) {
+        fprintf(stderr, "Previous message may not have been written to the log file (%s).\n", error_message.c_str());
+    }
+}
+
+
+
+TLS_with_init(thread_pool_log_writer_t *, global_log_writer, NULL);
+TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
+TLS_with_init(int *, log_writer_block, 0);
+
+thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_tracker_t *it) : issue_tracker(it) {
+    pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::install_on_thread, this, _1));
+}
+
+thread_pool_log_writer_t::~thread_pool_log_writer_t() {
+    pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::uninstall_on_thread, this, _1));
+}
+
+std::vector<log_message_t> thread_pool_log_writer_t::tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t) {
     volatile bool cancel = false;
     class cancel_subscription_t : public signal_t::subscription_t {
     public:
@@ -219,7 +378,7 @@ std::vector<log_message_t> log_writer_t::tail(int max_lines, struct timespec min
 
 
     bool ok;
-    thread_pool_t::run_in_blocker_pool(boost::bind(&log_writer_t::tail_blocking, this, max_lines, min_timestamp, max_timestamp, &cancel, &log_messages, &error_message, &ok));
+    thread_pool_t::run_in_blocker_pool(boost::bind(&thread_pool_log_writer_t::tail_blocking, this, max_lines, min_timestamp, max_timestamp, &cancel, &log_messages, &error_message, &ok));
     if (ok) {
         if (cancel) {
             throw interrupted_exc_t();
@@ -231,14 +390,14 @@ std::vector<log_message_t> log_writer_t::tail(int max_lines, struct timespec min
     }
 }
 
-void log_writer_t::install_on_thread(int i) {
+void thread_pool_log_writer_t::install_on_thread(int i) {
     on_thread_t thread_switcher(i);
     rassert(TLS_get_global_log_writer() == NULL);
     TLS_set_global_log_drainer(new auto_drainer_t);
     TLS_set_global_log_writer(this);
 }
 
-void log_writer_t::uninstall_on_thread(int i) {
+void thread_pool_log_writer_t::uninstall_on_thread(int i) {
     on_thread_t thread_switcher(i);
     rassert(TLS_get_global_log_writer() == this);
     TLS_set_global_log_writer(NULL);
@@ -246,11 +405,11 @@ void log_writer_t::uninstall_on_thread(int i) {
     TLS_set_global_log_drainer(NULL);
 }
 
-void log_writer_t::write(const log_message_t &lm) {
+void thread_pool_log_writer_t::write(const log_message_t &lm) {
     mutex_t::acq_t write_mutex_acq(&write_mutex);
     std::string error_message;
     bool ok;
-    thread_pool_t::run_in_blocker_pool(boost::bind(&log_writer_t::write_blocking, this, lm, &error_message, &ok));
+    thread_pool_t::run_in_blocker_pool(boost::bind(&thread_pool_log_writer_t::write_blocking, this, lm, &error_message, &ok));
     if (ok) {
         issue.reset();
     } else {
@@ -263,23 +422,8 @@ void log_writer_t::write(const log_message_t &lm) {
     }
 }
 
-void log_writer_t::write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out) {
-    if (fd.get() == -1) {
-        fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
-        if (fd.get() == -1) {
-            *error_out = std::string("cannot open log file: ") + strerror(errno);
-            *ok_out = false;
-            return;
-        }
-    }
-    std::string formatted = format_log_message(msg);
-    int res = ::write(fd.get(), formatted.data(), formatted.length());
-    if (res != int(formatted.length())) {
-        *error_out = std::string("cannot write to log file: ") + strerror(errno);
-        *ok_out = false;
-        return;
-    }
-    *ok_out = true;
+void thread_pool_log_writer_t::write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out) {
+    *ok_out = fallback_log_writer.write(msg, error_out);
     return;
 }
 
@@ -299,11 +443,11 @@ bool operator>=(const struct timespec &t1, const struct timespec &t2) {
     return t2 <= t1;
 }
 
-void log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
+void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
     try {
-        file_reverse_reader_t reader(filename);
+        file_reverse_reader_t reader(fallback_log_writer.filename);
         std::string line;
-        while (int(messages_out->size()) < max_lines && reader.get_next(&line) && !*cancel) {
+        while (messages_out->size() < static_cast<size_t>(max_lines) && reader.get_next(&line) && !*cancel) {
             if (line == "" || line[line.length() - 1] != '\n') {
                 continue;
             }
@@ -321,40 +465,46 @@ void log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, s
     }
 }
 
-void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t) {
+void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t) {
     on_thread_t thread_switcher(writer->home_thread());
 
-    int res;
-
-    struct timespec timestamp;
-    res = clock_gettime(CLOCK_REALTIME, &timestamp);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-
-    struct timespec uptime;
-    res = clock_gettime(CLOCK_MONOTONIC, &uptime);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
-    if (uptime.tv_nsec < writer->uptime_reference.tv_nsec) {
-        uptime.tv_nsec += 1000000000;
-        uptime.tv_sec -= 1;
-    }
-    uptime.tv_nsec -= writer->uptime_reference.tv_nsec;
-    uptime.tv_sec -= writer->uptime_reference.tv_sec;
-
-    writer->write(log_message_t(timestamp, uptime, level, message));
+    log_message_t log_msg = assemble_log_message(level, message, fallback_log_writer.uptime_reference);
+    writer->write(log_msg);
 }
 
 /* Declared in `logger.hpp`, not `clustering/administration/logger.hpp` like the
 other things in this file. */
 void log_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t level, const char *format, ...) {
-    if (log_writer_t *writer = TLS_get_global_log_writer()) {
+    va_list args;
+    va_start(args, format);
+    vlog_internal(src_file, src_line, level, format, args);
+    va_end(args);
+}
+
+void vlog_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t level, const char *format, va_list args) {
+    thread_pool_log_writer_t *writer;
+    if ((writer = TLS_get_global_log_writer()) && TLS_get_log_writer_block() == 0) {
         auto_drainer_t::lock_t lock(TLS_get_global_log_drainer());
 
-        va_list args;
-        va_start(args, format);
         std::string message = vstrprintf(format, args);
-        va_end(args);
-
         coro_t::spawn_sometime(boost::bind(&log_coro, writer, level, message, lock));
 
+    } else {
+        std::string message = vstrprintf(format, args);
+
+        fallback_log_writer.initiate_write(level, message);
     }
+}
+
+thread_log_writer_disabler_t::thread_log_writer_disabler_t() {
+    TLS_set_log_writer_block(TLS_get_log_writer_block() + 1);
+}
+
+thread_log_writer_disabler_t::~thread_log_writer_disabler_t() {
+    TLS_set_log_writer_block(TLS_get_log_writer_block() - 1);
+    rassert(TLS_get_log_writer_block() >= 0);
+}
+
+void install_fallback_log_writer(const std::string &logfile_name) {
+    fallback_log_writer.install(logfile_name);
 }

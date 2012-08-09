@@ -32,7 +32,7 @@ http_res_t routing_http_app_t::handle(const http_req_t &req) {
         if (defaultroute) {
             return defaultroute->handle(req);
         } else {
-            return http_res_t(404);
+            return http_res_t(HTTP_NOT_FOUND);
         }
     } else {
         std::string route(*it);

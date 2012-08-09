@@ -3,6 +3,7 @@
 
 #include "utils.hpp"
 #include <boost/make_shared.hpp>
+#include <boost/optional.hpp>
 
 #include "containers/scoped.hpp"
 #include "rdb_protocol/jsimpl.hpp"
@@ -12,38 +13,21 @@ namespace js {
 const id_t MIN_ID = 1;
 const id_t MAX_ID = UINT32_MAX;
 
-// ---------- Utility functions ----------
-// See also rdb_protocol/tofromjson.cc
+// ---------- utility functions ----------
+static void append_caught_error(std::string *errmsg, const v8::TryCatch &try_catch) {
+    if (!try_catch.HasCaught()) return;
 
-v8::Handle<v8::Value> eval(const std::string &srcstr, std::string *errmsg) {
-    v8::HandleScope scope;
-    v8::Handle<v8::Value> result;
+    v8::HandleScope handle_scope;
+    v8::Handle<v8::String> msg = try_catch.Message()->Get();
 
-    // TODO (rntz): utf-8 source code support
-    v8::Handle<v8::String> src = v8::String::New(srcstr.c_str());
+    int len = msg->Utf8Length();
+    scoped_array_t<char> buf(len);
+    guarantee(len == msg->WriteUtf8(buf.data(), len));
 
-    v8::TryCatch try_catch;
-
-    v8::Handle<v8::Script> script = v8::Script::Compile(src);
-    if (script.IsEmpty()) {
-        // TODO (rntz): use try_catch for error message
-        *errmsg = "script compilation failed";
-        // FIXME: do we need to close over an empty handle?
-        return result;
-    }
-
-    result = script->Run();
-    if (result.IsEmpty()) {
-        // TODO (rntz): use try_catch for error message
-        *errmsg = "script execution failed";
-        // FIXME: do we need to close over an empty handle?
-        return result;
-    }
-
-    return scope.Close(result);
+    errmsg->append(":\n");
+    errmsg->append(buf.data(), len);
 }
 
-
 // ---------- scoped_id_t ----------
 scoped_id_t::~scoped_id_t() {
     if (!empty()) reset();
@@ -57,10 +41,10 @@ void scoped_id_t::reset(id_t id) {
     id_ = id;
 }
 
-
+
 // ---------- env_t ----------
 runner_t::req_config_t::req_config_t()
-    : timeout(0)
+    : timeout_ms(0)
 {}
 
 env_t::env_t(extproc::job_t::control_t *control)
@@ -107,11 +91,16 @@ void env_t::forget(id_t id) {
     guarantee(1 == values_.erase(id));
 }
 
-
+
 // ---------- runner_t ----------
 runner_t::runner_t()
     DEBUG_ONLY(: running_task_(false))
 {}
+
+const runner_t::req_config_t *runner_t::default_req_config() {
+    static req_config_t config;
+    return &config;
+}
 
 // TODO(rntz): should we check that we have no used ids? (ie. no remaining
 // handles?)
@@ -119,7 +108,9 @@ runner_t::runner_t()
 // For now, no, because we don't actually use handles to manage id lifetimes at
 // the moment. Instead we tag them onto terms and keep them around for the
 // entire query.
-runner_t::~runner_t() {}
+runner_t::~runner_t() {
+    if (connected()) finish();
+}
 
 void runner_t::begin(extproc::pool_t *pool) {
     // TODO(rntz): might eventually want to handle external process failure
@@ -137,21 +128,29 @@ struct quit_task_t : auto_task_t<quit_task_t> {
 
 void runner_t::finish() {
     rassert(connected());
-    run_task_t(this, quit_task_t());
+    run_task_t(this, default_req_config(), quit_task_t());
     extproc::job_handle_t::release();
 }
 
+// ----- runner_t::job_t -----
 void runner_t::job_t::run_job(control_t *control, UNUSED void *extra) {
     // The reason we have env_t is to use it here.
     env_t(control).run();
 }
 
-runner_t::run_task_t::run_task_t(runner_t *runner, const task_t &task)
+// ----- runner_t::run_task_t -----
+runner_t::run_task_t::run_task_t(runner_t *runner, const req_config_t *config, const task_t &task)
     : runner_(runner)
 {
     rassert(!runner_->running_task_);
     DEBUG_ONLY_CODE(runner_->running_task_ = true);
-    guarantee(0 == task.send_over(runner_));
+
+    if (NULL == config)
+        config = runner->default_req_config();
+    if (config->timeout_ms)
+        timer_.init(new signal_timer_t(config->timeout_ms));
+
+    guarantee(0 == task.send_over(this));
 }
 
 runner_t::run_task_t::~run_task_t() {
@@ -159,7 +158,15 @@ runner_t::run_task_t::~run_task_t() {
     DEBUG_ONLY_CODE(runner_->running_task_ = false);
 }
 
-
+int64_t runner_t::run_task_t::read(void *p, int64_t n) {
+    return runner_->read_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
+}
+
+int64_t runner_t::run_task_t::write(const void *p, int64_t n) {
+    return runner_->write_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
+}
+
+
 // ---------- tasks ----------
 // ----- release_id() -----
 struct release_task_t : auto_task_t<release_task_t> {
@@ -176,7 +183,7 @@ void runner_t::release_id(id_t id) {
     rassert(connected());
     rassert(used_ids_.count(id));
 
-    run_task_t(this, release_task_t(id));
+    run_task_t(this, default_req_config(), release_task_t(id));
 
     DEBUG_ONLY_CODE(used_ids_.erase(id));
 }
@@ -251,15 +258,15 @@ struct compile_task_t : auto_task_t<compile_task_t> {
 
         v8::Handle<v8::Script> script = v8::Script::Compile(src);
         if (script.IsEmpty()) {
-            // TODO (rntz): use try_catch for error message
             *errmsg = "compiling function definition failed";
+            append_caught_error(errmsg, try_catch);
             return result;
         }
 
         v8::Handle<v8::Value> funcv = script->Run();
         if (funcv.IsEmpty()) {
-            // TODO (rntz): use try_catch for error message
             *errmsg = "evaluating function definition failed";
+            append_caught_error(errmsg, try_catch);
             return result;
         }
         if (!funcv->IsFunction()) {
@@ -292,14 +299,13 @@ id_t runner_t::compile(
     const std::vector<std::string> &args,
     const std::string &source,
     std::string *errmsg,
-    UNUSED req_config_t *config)
+    const req_config_t *config)
 {
-    // TODO (rntz): use config
     id_result_t result;
 
     {
-        run_task_t run(this, compile_task_t(args, source));
-        guarantee(ARCHIVE_SUCCESS == deserialize(this, &result));
+        run_task_t run(this, config, compile_task_t(args, source));
+        guarantee(ARCHIVE_SUCCESS == deserialize(&run, &result));
     }
 
     id_visitor_t v(errmsg);
@@ -309,26 +315,37 @@ id_t runner_t::compile(
 // ----- call() -----
 struct call_task_t : auto_task_t<call_task_t> {
     call_task_t() {}
-    call_task_t(id_t id, const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args)
-        : func_id_(id), args_(args) {}
+    call_task_t(id_t id,
+                boost::shared_ptr<scoped_cJSON_t> obj,
+                const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args)
+        : func_id_(id), args_(args)
+    {
+        if (NULL != obj.get()) {
+            obj_ = obj;
+            rassert(obj->type() == cJSON_Object);
+        }
+    }
 
     id_t func_id_;
+    boost::optional<boost::shared_ptr<scoped_cJSON_t> > obj_;
     std::vector<boost::shared_ptr<scoped_cJSON_t> > args_;
-    RDB_MAKE_ME_SERIALIZABLE_2(func_id_, args_);
+    RDB_MAKE_ME_SERIALIZABLE_3(func_id_, obj_, args_);
 
     v8::Handle<v8::Value> eval(v8::Handle<v8::Function> func, std::string *errmsg) {
         v8::TryCatch try_catch;
         v8::HandleScope scope;
 
         // Construct receiver object.
-        v8::Handle<v8::Object> obj = v8::Object::New();
+        v8::Handle<v8::Object> obj = obj_ ? fromJSON(*obj_.get()->get())->ToObject()
+                                          : v8::Object::New();
+        rassert(!obj.IsEmpty());
 
         // Construct arguments.
-        int nargs = (int) args_.size();
-        guarantee(args_.size() == (size_t) nargs); // sanity
+        size_t nargs = args_.size();
+        guarantee(args_.size() == nargs);
 
         scoped_array_t<v8::Handle<v8::Value> > handles(nargs);
-        for (int i = 0; i < nargs; ++i) {
+        for (size_t i = 0; i < nargs; ++i) {
             handles[i] = fromJSON(*args_[i]->get());
             rassert(!handles[i].IsEmpty());
         }
@@ -337,17 +354,7 @@ struct call_task_t : auto_task_t<call_task_t> {
         v8::Handle<v8::Value> result = func->Call(obj, nargs, handles.data());
         if (result.IsEmpty()) {
             *errmsg = "calling function failed";
-            if (try_catch.HasCaught()) {
-                v8::Handle<v8::String> msg = try_catch.Message()->Get();
-
-                // FIXME TODO (rntz): stack overflow problem if len too large.
-                size_t len = msg->Utf8Length();
-                char buf[len];
-                msg->WriteUtf8(buf);
-
-                errmsg->append(":\n");
-                errmsg->append(buf, len);
-            }
+            append_caught_error(errmsg, try_catch);
         }
         return scope.Close(result);
     }
@@ -378,16 +385,17 @@ struct call_task_t : auto_task_t<call_task_t> {
 
 boost::shared_ptr<scoped_cJSON_t> runner_t::call(
     id_t func_id,
+    boost::shared_ptr<scoped_cJSON_t> object,
     const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
     std::string *errmsg,
-    UNUSED req_config_t *config)
+    const req_config_t *config)
 {
-    // TODO (rntz): use config
     json_result_t result;
+    rassert(!object || object->type() == cJSON_Object);
 
     {
-        run_task_t run(this, call_task_t(func_id, args));
-        guarantee(ARCHIVE_SUCCESS == deserialize(this, &result));
+        run_task_t run(this, config, call_task_t(func_id, object, args));
+        guarantee(ARCHIVE_SUCCESS == deserialize(&run, &result));
     }
 
     json_visitor_t v(errmsg);

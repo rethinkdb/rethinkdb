@@ -40,7 +40,7 @@ point_read_response_t rdb_get(const store_key_t &store_key, btree_slice_t *slice
     find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location, slice->root_eviction_priority, &slice->stats);
 
     if (!kv_location.value.has()) {
-        return point_read_response_t();
+        return point_read_response_t(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNull())));
     }
 
     boost::shared_ptr<scoped_cJSON_t> data = get_data(kv_location.value.get(), txn);
@@ -85,7 +85,7 @@ point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_
 
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
-    agnostic_rdb_backfill_callback_t(backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
+    agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
 
     void on_delete_range(const key_range_t &range) {
         rassert(kr_.is_superset(range));
@@ -108,15 +108,18 @@ public:
         cb_->on_keyvalue(atom);
     }
 
-    backfill_callback_t *cb_;
+    rdb_backfill_callback_t *cb_;
     key_range_t kr_;
 };
 
-void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
-                    transaction_t *txn, superblock_t *superblock, parallel_traversal_progress_t *p) {
+void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
+        repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
+        transaction_t *txn, superblock_t *superblock,
+        parallel_traversal_progress_t *p, signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
     agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range);
     value_sizer_t<rdb_value_t> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p);
+    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p, interruptor);
 }
 
 point_delete_response_t rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock) {
@@ -190,7 +193,7 @@ public:
         stream->push_back(std::make_pair(store_key_t(key), data));
 
         cumulative_size += estimate_rget_response_size(stream->back().second);
-        return int(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
+        return static_cast<ssize_t>(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
     }
     transaction_t *transaction;
     int maximum;

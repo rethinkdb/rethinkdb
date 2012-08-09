@@ -219,7 +219,7 @@ void writeback_t::flush_timer_callback(void *ctx) {
      * and gradually increase max_patches_size_ratio towards MAX_PATCHES_SIZE_RATIO_MAX
      * to save the overhead associated with managing and writing patches.
      */
-    if (self->active_flushes < self->max_concurrent_flushes || self->num_dirty_blocks() < (float)self->max_dirty_blocks * RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT) {
+    if (self->active_flushes < self->max_concurrent_flushes || self->num_dirty_blocks() < self->max_dirty_blocks * RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT) {
         /* The currently running writeback probably finished on-time. (of we have enough headroom left before hitting the unsaved data limit)
         Adjust max_patches_size_ratio to trade i/o efficiency for CPU cycles */
         if (!self->wait_for_flush) {

@@ -20,6 +20,8 @@ rethinkdb_metadata
 test/unit/.retest
 bench/stress-client/stress
 bench/stress-client/libstress.so
+bench/stress-client/*.o
+bench/stress-client/protocols/*.o
 bench/serializer-bench/serializer-bench
 bench/serializer-bench/gmon.out
 bench/serializer-bench/main.o
@@ -30,3 +32,4 @@ src/.clang_complete
 src/find_replace.sh
 src/make_filter.sh
 drivers/*/*/rdb_protocol
+drivers/*/*/query_language.pb.rb

@@ -183,7 +183,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     }
     read_response_t operator()(rget_query_t rget) {
         std::map<store_key_t, const rget_result_t *> sorted_bits;
-        for (int i = 0; i < int(bits.size()); i++) {
+        for (size_t i = 0; i < bits.size(); ++i) {
             const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
             if (!bit->pairs.empty()) {
                 const store_key_t &key = bit->pairs.front().key;
@@ -196,12 +196,12 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 #endif
         rget_result_t result;
         size_t cumulative_size = 0;
-        for (std::map<store_key_t, const rget_result_t *>::iterator it = sorted_bits.begin(); it != sorted_bits.end(); it++) {
-            if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
+        for (std::map<store_key_t, const rget_result_t *>::iterator it = sorted_bits.begin(); it != sorted_bits.end(); ++it) {
+            if (cumulative_size >= rget_max_chunk_size || result.pairs.size() > static_cast<size_t>(rget.maximum)) {
                 break;
             }
-            for (std::vector<key_with_data_buffer_t>::const_iterator jt = it->second->pairs.begin(); jt != it->second->pairs.end(); jt++) {
-                if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
+            for (std::vector<key_with_data_buffer_t>::const_iterator jt = it->second->pairs.begin(); jt != it->second->pairs.end(); ++jt) {
+                if (cumulative_size >= rget_max_chunk_size || result.pairs.size() > static_cast<size_t>(rget.maximum)) {
                     break;
                 }
                 result.pairs.push_back(*jt);
@@ -238,7 +238,8 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
             for (std::map<store_key_t, int>::const_iterator it = result->key_counts.begin();
                  it != result->key_counts.end();
                  ++it) {
-                rassert(!std_contains(res.key_counts, it->first), "repeated key '%*.*s'", int(it->first.size()), int(it->first.size()), it->first.contents());
+                rassert(!std_contains(res.key_counts, it->first), "repeated key '%*.*s'",
+                        static_cast<int>(it->first.size()), static_cast<int>(it->first.size()), it->first.contents());
             }
 #endif
             res.key_counts.insert(result->key_counts.begin(), result->key_counts.end());
@@ -264,7 +265,7 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_res
     }
     read_response_t operator()(rget_query_t rget) {
         std::vector<key_with_data_buffer_t> pairs;
-        for (int i = 0; i < int(bits.size()); ++i) {
+        for (size_t i = 0; i < bits.size(); ++i) {
             const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
             pairs.insert(pairs.end(), bit->pairs.begin(), bit->pairs.end());
         }
@@ -328,7 +329,7 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_res
             return read_response_t(res);
         }
 
-        double scale_factor = double(total_num_keys) / double(total_keys_in_res);
+        double scale_factor = static_cast<double>(total_num_keys) / static_cast<double>(total_keys_in_res);
 
         rassert(scale_factor >= 1.0);  // Directly provable from the code above.
 
@@ -571,12 +572,18 @@ private:
 };
 
 static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
-        memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress) {
+        memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress,
+        signal_t *interruptor) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owner(p);
     progress->add_constituent(&p_owner);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
-    memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p);
+    try {
+        memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p, interruptor);
+    } catch (interrupted_exc_t) {
+        /* do nothing; `protocol_send_backfill()` will notice and deal with it.
+        */
+    }
 }
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
@@ -585,20 +592,27 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
                                      superblock_t *superblock,
                                      btree_slice_t *btree,
                                      transaction_t *txn,
-                                     backfill_progress_t *progress)
+                                     backfill_progress_t *progress,
+                                     signal_t *interruptor)
+                                     THROWS_ONLY(interrupted_exc_t)
 {
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
 
     if (regions.size() > 0) {
         memcached_backfill_callback_t callback(chunk_fun);
 
-        // pmapping by regions.size() is now the arguably wrong
-        // thing to do, because regions are not separate key
-        // ranges.  On the other hand it's harmless, because
-        // caching is basically perfect.
+        // pmapping by regions.size() is now the arguably wrong thing to do,
+        // because adjacent regions often have the same value. On the other hand
+        // it's harmless, because caching is basically perfect.
         refcount_superblock_t refcount_wrapper(superblock, regions.size());
         pmap(regions.size(), boost::bind(&call_memcached_backfill, _1,
-                                         btree, regions, &callback, txn, &refcount_wrapper, progress));
+                                         btree, regions, &callback, txn, &refcount_wrapper, progress, interruptor));
+
+        /* if interruptor was pulsed in `call_memcached_backfill()`, it returned
+        normally anyway. So now we have to check manually. */
+        if (interruptor->is_pulsed()) {
+            throw interrupted_exc_t();
+        }
     }
 }
 

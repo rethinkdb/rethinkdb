@@ -14,7 +14,9 @@ using mock::dummy_protocol_t;
 
 namespace {
 
-void run_with_namespace_interface(boost::function<void(namespace_interface_t<dummy_protocol_t> *)> fun) {
+void run_with_namespace_interface(boost::function<void(namespace_interface_t<dummy_protocol_t> *, order_source_t *)> fun) {
+
+    order_source_t order_source;
 
     std::vector<dummy_protocol_t::region_t> shards;
 
@@ -27,20 +29,18 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<dum
     shards.push_back(region2);
 
     boost::ptr_vector<dummy_protocol_t::store_t> underlying_stores;
-    std::vector<boost::shared_ptr<store_view_t<dummy_protocol_t> > > stores;
-    for (int i = 0; i < (int)shards.size(); i++) {
+    boost::ptr_vector<store_view_t<dummy_protocol_t> > stores;
+    for (size_t i = 0; i < shards.size(); ++i) {
         underlying_stores.push_back(new dummy_protocol_t::store_t);
-        stores.push_back(boost::make_shared<store_subview_t<dummy_protocol_t> >(
-            &underlying_stores[i],
-            shards[i]));
+        stores.push_back(new store_subview_t<dummy_protocol_t>(&underlying_stores[i], shards[i]));
     }
 
-    dummy_namespace_interface_t<dummy_protocol_t> nsi(shards, stores);
+    dummy_namespace_interface_t<dummy_protocol_t> nsi(shards, stores.c_array(), &order_source);
 
-    fun(&nsi);
+    fun(&nsi, &order_source);
 }
 
-void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<dummy_protocol_t> *)> fun) {
+void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<dummy_protocol_t> *, order_source_t *)> fun) {
     run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
 }
 
@@ -49,7 +49,7 @@ void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_
 /* `SetupTeardown` makes sure that it can start and stop without anything going
 horribly wrong */
 
-void run_setup_teardown_test(UNUSED namespace_interface_t<dummy_protocol_t> *nsi) {
+void run_setup_teardown_test(UNUSED namespace_interface_t<dummy_protocol_t> *nsi, UNUSED order_source_t *order_source) {
     /* Do nothing */
 }
 TEST(DummyProtocolNamespaceInterface, SetupTeardown) {
@@ -58,16 +58,14 @@ TEST(DummyProtocolNamespaceInterface, SetupTeardown) {
 
 /* `GetSet` tests basic get and set operations */
 
-void run_get_set_test(namespace_interface_t<dummy_protocol_t> *nsi) {
-
-    order_source_t osource;
+void run_get_set_test(namespace_interface_t<dummy_protocol_t> *nsi, order_source_t *order_source) {
 
     {
         dummy_protocol_t::write_t w;
         w.values["a"] = "floop";
 
         cond_t interruptor;
-        dummy_protocol_t::write_response_t wr = nsi->write(w, osource.check_in("unittest::run_get_set_test(A)"), &interruptor);
+        dummy_protocol_t::write_response_t wr = nsi->write(w, order_source->check_in("unittest::run_get_set_test(A)"), &interruptor);
 
         EXPECT_EQ(wr.old_values.size(), 1);
         EXPECT_EQ(wr.old_values["a"], "");
@@ -79,7 +77,7 @@ void run_get_set_test(namespace_interface_t<dummy_protocol_t> *nsi) {
         w.values["q"] = "flarp";
 
         cond_t interruptor;
-        dummy_protocol_t::write_response_t wr = nsi->write(w, osource.check_in("unittest::run_get_set_test(B)"), &interruptor);
+        dummy_protocol_t::write_response_t wr = nsi->write(w, order_source->check_in("unittest::run_get_set_test(B)"), &interruptor);
 
         EXPECT_EQ(wr.old_values.size(), 2);
         EXPECT_EQ(wr.old_values["a"], "floop");
@@ -93,7 +91,7 @@ void run_get_set_test(namespace_interface_t<dummy_protocol_t> *nsi) {
         r.keys.keys.insert("z");
 
         cond_t interruptor;
-        dummy_protocol_t::read_response_t rr = nsi->read(r, osource.check_in("unittest::run_get_set_test(C)"), &interruptor);
+        dummy_protocol_t::read_response_t rr = nsi->read(r, order_source->check_in("unittest::run_get_set_test(C)").with_read_mode(), &interruptor);
 
         EXPECT_EQ(rr.values.size(), 3);
         EXPECT_EQ(rr.values["a"], "flup");

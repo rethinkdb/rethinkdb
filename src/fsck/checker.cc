@@ -143,13 +143,13 @@ struct knowledge_t {
         : files(filenames.size()), file_knog(filenames.size()) {
 
         for (int i = 0, n = filenames.size(); i < n; ++i) {
-            nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read, NULL, io_backender);
+            nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read, io_backender);
             files[i].init(file);
             file_knog[i].init(new file_knowledge_t(filenames[i]));
         }
 
         if (!metadata_filename.empty()) {
-            metadata_file.init(new nondirect_file_t(metadata_filename.c_str(), file_t::mode_read, NULL, io_backender));
+            metadata_file.init(new nondirect_file_t(metadata_filename.c_str(), file_t::mode_read, io_backender));
             metadata_file_knog.init(new file_knowledge_t(metadata_filename));
         }
     }
@@ -325,8 +325,8 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
     uint64_t file_size = *knog->filesize;
 
     printf("Pre-scanning file %s:\n", knog->filename.c_str());
-    printf("static_header software_name: %.*s\n", int(sizeof(SOFTWARE_NAME_STRING)), buf->software_name);
-    printf("static_header version: %.*s\n", int(sizeof(VERSION_STRING)), buf->version);
+    printf("static_header software_name: %.*s\n", static_cast<int>(sizeof(SOFTWARE_NAME_STRING)), buf->software_name);
+    printf("static_header version: %.*s\n", static_cast<int>(sizeof(VERSION_STRING)), buf->version);
     printf("              DEVICE_BLOCK_SIZE: %lu\n", DEVICE_BLOCK_SIZE);
     printf("static_header block_size: %u\n", block_size.ser_value());
     printf("static_header extent_size: %lu\n", extent_size);
@@ -363,7 +363,7 @@ std::string extract_static_config_version(nondirect_file_t *file, UNUSED file_kn
         return "(not available, could not load first block of file)";
     }
     static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
-    return std::string(buf->version, int(sizeof(VERSION_STRING)));
+    return std::string(buf->version, sizeof(VERSION_STRING));
 }
 
 std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_knowledge_t *knog) {
@@ -688,7 +688,7 @@ check_mc_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_blo
 
     const mc_config_block_t *buf = reinterpret_cast<mc_config_block_t *>(block->buf);
     if (buf->magic != mc_config_block_t::expected_magic) {
-        debugf("mc_bad_magic happened.  Magic is %.*s\n", int(sizeof(buf->magic)), reinterpret_cast<const char *>(&buf->magic));
+        debugf("mc_bad_magic happened.  Magic is %.*s\n", static_cast<int>(sizeof(buf->magic)), reinterpret_cast<const char *>(&buf->magic));
         errs->mc_bad_magic = true;
         return NULL;
     }
@@ -1375,7 +1375,7 @@ void report_rogue_block_description(const char *title, const rogue_block_descrip
     if (desc.loading_error != btree_block_t::none) {
         printf("could not load: %s\n", btree_block_t::error_name(desc.loading_error));
     } else {
-        printf("magic = '%.*s'\n", int(sizeof(block_magic_t)), desc.magic.bytes);
+        printf("magic = '%.*s'\n", static_cast<int>(sizeof(block_magic_t)), desc.magic.bytes);
     }
 }
 

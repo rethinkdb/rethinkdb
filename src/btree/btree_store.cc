@@ -61,12 +61,11 @@ btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
     perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, filename)
 {
     if (create) {
+
         standard_serializer_t::create(
-            standard_serializer_t::dynamic_config_t(),
             io_backender,
             standard_serializer_t::private_dynamic_config_t(filename),
-            standard_serializer_t::static_config_t(),
-            &perfmon_collection
+            standard_serializer_t::static_config_t()
             );
     }
 
@@ -100,7 +99,7 @@ btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::store_t::store_t");
-        order_token = btree->order_checkpoint_.check_through(order_token);
+        order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
         get_btree_superblock_and_txn(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, &txn);
         buf_lock_t* sb_buf = superblock->get();
         clear_superblock_metainfo(txn.get(), sb_buf);
@@ -167,7 +166,7 @@ typename protocol_t::write_response_t btree_store_t<protocol_t>::write(
 template <class protocol_t>
 bool btree_store_t<protocol_t>::send_backfill(
         const region_map_t<protocol_t, state_timestamp_t> &start_point,
-        const boost::function<bool(const metainfo_t&)> &should_backfill,
+        const boost::function<bool(const metainfo_t&)> &should_backfill,  // NOLINT
         const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
         typename protocol_t::backfill_progress_t *progress,
         scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
@@ -182,7 +181,7 @@ bool btree_store_t<protocol_t>::send_backfill(
     get_metainfo_internal(txn.get(), superblock->get(), &unmasked_metainfo);
     region_map_t<protocol_t, binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
     if (should_backfill(metainfo)) {
-        protocol_send_backfill(start_point, chunk_fun, superblock.get(), btree.get(), txn.get(), progress);
+        protocol_send_backfill(start_point, chunk_fun, superblock.get(), btree.get(), txn.get(), progress, interruptor);
         return true;
     }
     return false;
@@ -347,7 +346,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
     wait_interruptible(local_token.get(), interruptor);
 
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_read");
-    order_token = btree->order_checkpoint_.check_through(order_token);
+    order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
 
     get_btree_superblock_and_txn_for_reading(btree.get(), access, order_token, CACHE_SNAPSHOTTED_NO, sb_out, txn_out);
 }
@@ -366,7 +365,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
     wait_interruptible(local_token.get(), interruptor);
 
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_backfill");
-    order_token = btree->order_checkpoint_.check_through(order_token);
+    order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
 
     get_btree_superblock_and_txn_for_backfilling(btree.get(), order_token, sb_out, txn_out);
 }
@@ -387,7 +386,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
     wait_interruptible(local_token.get(), interruptor);
 
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_write");
-    order_token = btree->order_checkpoint_.check_through(order_token);
+    order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
 
     get_btree_superblock_and_txn(btree.get(), access, expected_change_count, repli_timestamp_t::invalid, order_token, sb_out, txn_out);
 }

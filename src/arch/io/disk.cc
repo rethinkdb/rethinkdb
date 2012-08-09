@@ -9,7 +9,7 @@
 
 #include <algorithm>
 
-#include "errors.hpp"
+#include "utils.hpp"
 #include <boost/bind.hpp>
 
 #include "arch/types.hpp"
@@ -23,9 +23,9 @@
 #include "arch/io/disk/conflict_resolving.hpp"
 #include "arch/io/disk/stats.hpp"
 #include "arch/io/disk/accounting.hpp"
+#include "do_on_thread.hpp"
 
 // #define DEBUG_DUMP_WRITES 1
-
 
 // TODO: If two files are on the same disk, should they share part of the IO stack?
 
@@ -38,6 +38,7 @@ class linux_templated_disk_manager_t : public linux_disk_manager_t {
 
 public:
     struct action_t : public stack_stats_t::action_t {
+        int cb_thread;
         linux_iocallback_t *cb;
     };
 
@@ -72,34 +73,51 @@ public:
         return new typename accounter_t::account_t(&accounter, pri, outstanding_requests_limit);
     }
 
+    void delayed_destroy(void *_account) {
+        on_thread_t t(home_thread());
+        delete static_cast<typename accounter_t::account_t *>(_account);
+    }
+
     void destroy_account(void *account) {
-        delete static_cast<typename accounter_t::account_t *>(account);
+        coro_t::spawn_sometime(boost::bind(&linux_templated_disk_manager_t::delayed_destroy, this, account));
+    }
+
+    void submit_action_to_stack_stats(action_t *a) {
+        assert_thread();
+        outstanding_txn++;
+        stack_stats.submit(a);
     }
 
     void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
-        outstanding_txn++;
+        int calling_thread = get_thread_id();
+
         action_t *a = new action_t;
         a->make_write(fd, buf, count, offset);
         a->account = static_cast<typename accounter_t::account_t*>(account);
         a->cb = cb;
-        stack_stats.submit(a);
+        a->cb_thread = calling_thread;
+
+        do_on_thread(home_thread(), boost::bind(&linux_templated_disk_manager_t::submit_action_to_stack_stats, this, a));
     }
 
     void submit_read(fd_t fd, void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
-        outstanding_txn++;
+        int calling_thread = get_thread_id();
+
         action_t *a = new action_t;
         a->make_read(fd, buf, count, offset);
         a->account = static_cast<typename accounter_t::account_t*>(account);
         a->cb = cb;
-        stack_stats.submit(a);
+        a->cb_thread = calling_thread;
+
+        do_on_thread(home_thread(), boost::bind(&linux_templated_disk_manager_t::submit_action_to_stack_stats, this, a));
     };
 
     void done(typename stack_stats_t::action_t *a) {
+        assert_thread();
         outstanding_txn--;
         action_t *a2 = static_cast<action_t *>(a);
-        linux_iocallback_t *local_cb = a2->cb;
+        do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_complete, a2->cb));
         delete a2;
-        local_cb->on_io_complete();
     }
 
 private:
@@ -154,14 +172,11 @@ void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out) 
     }
 }
 
-
-
-
 /* Disk account object */
 
 linux_file_account_t::linux_file_account_t(linux_file_t *par, int pri, int outstanding_requests_limit) :
-    parent(par), account(parent->diskmgr->create_account(pri, outstanding_requests_limit))
-    { }
+    parent(par),
+    account(parent->diskmgr->create_account(pri, outstanding_requests_limit)) { }
 
 linux_file_account_t::~linux_file_account_t() {
     parent->diskmgr->destroy_account(account);
@@ -169,7 +184,7 @@ linux_file_account_t::~linux_file_account_t() {
 
 /* Disk file object */
 
-linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, perfmon_collection_t *stats, io_backender_t *io_backender, const int batch_factor)
+linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io_backender_t *io_backender)
     : fd(INVALID_FD), file_size(0)
 {
     // Determine if it is a block device
@@ -259,9 +274,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, pe
 
     // Construct a disk manager. (given that we have an event pool)
     if (linux_thread_pool_t::thread) {
-        linux_event_queue_t *queue = &linux_thread_pool_t::thread->queue;
-        io_backender->make_disk_manager(queue, batch_factor, stats, &diskmgr);
-
+        diskmgr = io_backender->get_diskmgr_ptr();
         default_account.init(new linux_file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
 }
@@ -302,28 +315,26 @@ void linux_file_t::set_size_at_least(size_t size) {
 }
 
 void linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
-    rassert(diskmgr.has(), "No diskmgr has been constructed (are we running without an event queue?)");
-
+    rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
     verify(offset, length, buf);
     diskmgr->submit_read(fd.get(), buf, length, offset,
-        account == DEFAULT_DISK_ACCOUNT ? default_account->account : account->account,
+        account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),
         callback);
 }
 
 void linux_file_t::write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
-    rassert(diskmgr.has(), "No diskmgr has been constructed (are we running without an event queue?)");
+    rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
 #ifdef DEBUG_DUMP_WRITES
-    printf("--- WRITE BEGIN ---\n");
-    print_backtrace(stdout);
-    printf("\n");
+    debugf("--- WRITE BEGIN ---\n");
+    debugf("%s", format_backtrace().c_str());
     print_hd(buf, offset, length);
-    printf("---- WRITE END ----\n\n");
+    debugf("---- WRITE END ----\n\n");
 #endif
 
     verify(offset, length, buf);
     diskmgr->submit_write(fd.get(), buf, length, offset,
-        account == DEFAULT_DISK_ACCOUNT ? default_account->account : account->account,
+        account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),
         callback);
 }
 

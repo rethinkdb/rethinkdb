@@ -42,13 +42,13 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
         // Set the socket to reusable so we don't block out other sockets from this port
         int reuse = 1;
         if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
-            logINF("Failed to set socket reuse to true: %s", strerror(errno));
+            logWRN("Failed to set socket reuse to true: %s", strerror(errno));
         addr.sin_family = AF_INET;
         addr.sin_port = htons(local_port);
         addr.sin_addr.s_addr = INADDR_ANY;
         bzero(addr.sin_zero, sizeof(addr.sin_zero));
         if (bind(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0)
-            logINF("Failed to bind to local port %d: %s", local_port, strerror(errno));
+            logWRN("Failed to bind to local port %d: %s", local_port, strerror(errno));
     }
 
     addr.sin_family = AF_INET;
@@ -128,25 +128,20 @@ void linux_tcp_conn_t::release_write_queue_op(write_queue_op_t *op) {
     unused_write_queue_ops.push_front(op);
 }
 
-size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
+size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(read_closed_exc_t) {
     assert_thread();
     rassert(!read_closed.is_pulsed());
-    rassert(!read_in_progress);
 
     while (true) {
         ssize_t res = ::read(sock.get(), buffer, size);
 
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            read_in_progress = true;
-
             /* There's no data available right now, so we must wait for a notification from the
             epoll queue, or for an order to shut down. */
 
             linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_in);
             wait_any_t waiter(&watch, &read_closed);
             waiter.wait_lazily_unordered();
-
-            read_in_progress = false;
 
             if (read_closed.is_pulsed()) {
                 /* We were closed for whatever reason. Something else has already called
@@ -176,11 +171,9 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
     }
 }
 
-size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
-    assert_thread();
+size_t linux_tcp_conn_t::read_some(void *buf, size_t size, signal_t *closer) THROWS_ONLY(read_closed_exc_t) {
     rassert(size > 0);
-    rassert(!read_in_progress);
-    if (read_closed.is_pulsed()) throw read_closed_exc_t();
+    read_op_wrapper_t sentry(this, closer);
 
     if (read_buffer.size()) {
         /* Return the data from the peek buffer */
@@ -194,10 +187,8 @@ size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
     }
 }
 
-void linux_tcp_conn_t::read(void *buf, size_t size) {
-    assert_thread();
-    rassert(!read_in_progress);   // Is there a read already in progress?
-    if (read_closed.is_pulsed()) throw read_closed_exc_t();
+void linux_tcp_conn_t::read(void *buf, size_t size, signal_t *closer) THROWS_ONLY(read_closed_exc_t) {
+    read_op_wrapper_t sentry(this, closer);
 
     /* First, consume any data in the peek buffer */
     int read_buffer_bytes = std::min(read_buffer.size(), size);
@@ -215,10 +206,8 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
     }
 }
 
-void linux_tcp_conn_t::read_more_buffered() {
-    assert_thread();
-    rassert(!read_in_progress);
-    if (read_closed.is_pulsed()) throw read_closed_exc_t();
+void linux_tcp_conn_t::read_more_buffered(signal_t *closer) THROWS_ONLY(read_closed_exc_t) {
+    read_op_wrapper_t sentry(this, closer);
 
     size_t old_size = read_buffer.size();
     read_buffer.resize(old_size + IO_BUFFER_SIZE);
@@ -227,7 +216,7 @@ void linux_tcp_conn_t::read_more_buffered() {
     read_buffer.resize(old_size + delta);
 }
 
-const_charslice linux_tcp_conn_t::peek() const {
+const_charslice linux_tcp_conn_t::peek() const THROWS_ONLY(read_closed_exc_t) {
     assert_thread();
     rassert(!read_in_progress);   // Is there a read already in progress?
     if (read_closed.is_pulsed()) throw read_closed_exc_t();
@@ -235,17 +224,19 @@ const_charslice linux_tcp_conn_t::peek() const {
     return const_charslice(read_buffer.data(), read_buffer.data() + read_buffer.size());
 }
 
-const_charslice linux_tcp_conn_t::peek(size_t size) {
-    while (read_buffer.size() < size) read_more_buffered();
+const_charslice linux_tcp_conn_t::peek(size_t size, signal_t *closer) THROWS_ONLY(read_closed_exc_t) {
+    while (read_buffer.size() < size) {
+        read_more_buffered(closer);
+    }
     return const_charslice(read_buffer.data(), read_buffer.data() + size);
 }
 
-void linux_tcp_conn_t::pop(size_t len) {
+void linux_tcp_conn_t::pop(size_t len, signal_t *closer) THROWS_ONLY(read_closed_exc_t) {
     assert_thread();
     rassert(!read_in_progress);
     if (read_closed.is_pulsed()) throw read_closed_exc_t();
 
-    peek(len);
+    peek(len, closer);
     read_buffer.erase(read_buffer.begin(), read_buffer.begin() + len);  // INEFFICIENT
 }
 
@@ -278,7 +269,7 @@ void linux_tcp_conn_t::write_handler_t::coro_pool_callback(write_queue_op_t *ope
         parent->perform_write(operation->buffer, operation->size);
         if (operation->dealloc != NULL) {
             parent->release_write_buffer(operation->dealloc);
-            parent->write_queue_limiter.unlock((int)operation->size);
+            parent->write_queue_limiter.unlock(operation->size);
         }
     }
 
@@ -308,7 +299,7 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
     to be released once the write is completed by the coroutine pool */
     rassert(op->size <= WRITE_CHUNK_SIZE);
     rassert(WRITE_CHUNK_SIZE < WRITE_QUEUE_MAX_SIZE);
-    write_queue_limiter.co_lock((int)op->size);
+    write_queue_limiter.co_lock(op->size);
 
     write_queue.push(op);
 }
@@ -324,7 +315,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
     }
 
     while (size > 0) {
-        int res = ::write(sock.get(), buf, size);
+        ssize_t res = ::write(sock.get(), buf, size);
 
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             /* Wait for a notification from the event queue, or for an order to
@@ -362,7 +353,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
             break;
 
         } else {
-            rassert(res <= (int)size);
+            rassert(res <= static_cast<ssize_t>(size));
             buf = reinterpret_cast<const void *>(reinterpret_cast<const char *>(buf) + res);
             size -= res;
             if (write_perfmon) write_perfmon->record(res);
@@ -370,12 +361,11 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
     }
 }
 
-void linux_tcp_conn_t::write(const void *buf, size_t size) {
+void linux_tcp_conn_t::write(const void *buf, size_t size, signal_t *closer) THROWS_ONLY(write_closed_exc_t) {
+    write_op_wrapper_t sentry(this, closer);
+
     write_queue_op_t op;
     cond_t to_signal_when_done;
-    assert_thread();
-    rassert(!write_in_progress);
-    write_in_progress = true;
 
     /* Flush out any data that's been buffered, so that things don't get out of order */
     if (current_write_buffer->size > 0) internal_flush_write_buffer();
@@ -395,15 +385,11 @@ void linux_tcp_conn_t::write(const void *buf, size_t size) {
     no-op, so the cond will still get pulsed. */
     to_signal_when_done.wait();
 
-    write_in_progress = false;
-
     if (write_closed.is_pulsed()) throw write_closed_exc_t();
 }
 
-void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size) {
-    assert_thread();
-    rassert(!write_in_progress);
-    write_in_progress = true;
+void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size, signal_t *closer) THROWS_ONLY(write_closed_exc_t) {
+    write_op_wrapper_t sentry(this, closer);
 
     /* Convert to `char` for ease of pointer arithmetic */
     const char *buf = reinterpret_cast<const char *>(vbuf);
@@ -422,25 +408,21 @@ void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size) {
         size -= chunk;
     }
 
-    write_in_progress = false;
-
     if (write_closed.is_pulsed()) throw write_closed_exc_t();
 }
 
-void linux_tcp_conn_t::writef(const char *format, ...) {
+void linux_tcp_conn_t::writef(signal_t *closer, const char *format, ...) THROWS_ONLY(write_closed_exc_t) {
     va_list ap;
     va_start(ap, format);
 
     printf_buffer_t<1000> b(ap, format);
-    write(b.data(), b.size());
+    write(b.data(), b.size(), closer);
 
     va_end(ap);
 }
 
-void linux_tcp_conn_t::flush_buffer() {
-    assert_thread();
-    rassert(!write_in_progress);
-    write_in_progress = true;
+void linux_tcp_conn_t::flush_buffer(signal_t *closer) THROWS_ONLY(write_closed_exc_t) {
+    write_op_wrapper_t sentry(this, closer);
 
     /* Flush the write buffer; it might be half-full. */
     if (current_write_buffer->size > 0) internal_flush_write_buffer();
@@ -458,20 +440,14 @@ void linux_tcp_conn_t::flush_buffer() {
     write_queue.push(&op);
     to_signal_when_done.wait();
 
-    write_in_progress = false;
-
     if (write_closed.is_pulsed()) throw write_closed_exc_t();
 }
 
-void linux_tcp_conn_t::flush_buffer_eventually() {
-    assert_thread();
-    rassert(!write_in_progress);
-    write_in_progress = true;
+void linux_tcp_conn_t::flush_buffer_eventually(signal_t *closer) THROWS_ONLY(write_closed_exc_t) {
+    write_op_wrapper_t sentry(this, closer);
 
     /* Flush the write buffer; it might be half-full. */
     if (current_write_buffer->size > 0) internal_flush_write_buffer();
-
-    write_in_progress = false;
 
     if (write_closed.is_pulsed()) throw write_closed_exc_t();
 }
@@ -680,7 +656,6 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
         &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())
         ));
 
-    logINF("Listening on port %d", port);
     return true;
 }
 
@@ -740,7 +715,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
         fd_t new_sock = accept(sock.get(), NULL, NULL);
 
         if (new_sock != INVALID_FD) {
-            coro_t::spawn_now(boost::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
+            coro_t::spawn_now_dangerously(boost::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
 
             /* If we backed off before, un-backoff now that the problem seems to be
             resolved. */

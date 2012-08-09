@@ -268,12 +268,12 @@ module 'NamespaceView', ->
         on_submit: (e) =>
             e.preventDefault()
             @.$('.btn-primary').button('Loading')
-            formdata = form_data_as_object($('form', @el))
-
+ 
             empty_master_pin = {}
-            empty_master_pin[JSON.stringify(["", null])] = null
             empty_replica_pins = {}
-            empty_replica_pins[JSON.stringify(["", null])] = []
+            for shard in @shard_set
+                empty_master_pin[shard] = null
+                empty_replica_pins[shard] = []
             json =
                 shards: @shard_set
                 primary_pinnings: empty_master_pin
@@ -322,7 +322,7 @@ module 'NamespaceView', ->
 
             @name_view = new NamespaceView.ShardName()
 
-            @namespace.on 'change:key_distr_sorted', @render_num_keys
+            @namespace.on 'change:key_distr', @render_num_keys
             @namespace.on 'change:shards', @render_num_keys
 
         render: =>
@@ -336,7 +336,7 @@ module 'NamespaceView', ->
             @shard.shard_stats.rows_approx =  @namespace.compute_shard_rows_approximation(@shard.shard)
             if @shard.shard_stats.rows_approx?
                 @.$('.name').html @name_view.render(@shard).$el
-            else
+            #else
                 #setTimeout @render_num_keys 1000 #TODO Magic number (should be greater than the polling time of /ajax/distribution)
  
 

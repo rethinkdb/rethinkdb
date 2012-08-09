@@ -263,5 +263,6 @@ private:
     T old_value;
 };
 
+std::string sanitize_for_logger(const std::string &s);
 
 #endif // UTILS_HPP_

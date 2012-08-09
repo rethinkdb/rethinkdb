@@ -173,7 +173,7 @@ extent_zone_t *extent_manager_t::zone_for_offset(off64_t offset) {
 void extent_manager_t::reserve_extent(off64_t extent) {
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Reserve extent %.8lx\n", this, extent);
-    print_backtrace(stderr, false);
+    debugf("%s", format_backtrace(false).c_str());
 #endif
     rassert(state == state_reserving_extents);
     ++stats->pm_extents_in_use;
@@ -269,7 +269,7 @@ off64_t extent_manager_t::gen_extent() {
 
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Gen extent %.8lx\n", this, extent);
-    print_backtrace(stderr, false);
+    debugf("%s", format_backtrace(false).c_str());
 #endif
     return extent;
 }
@@ -277,7 +277,7 @@ off64_t extent_manager_t::gen_extent() {
 void extent_manager_t::release_extent(off64_t extent) {
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Release extent %.8lx\n", this, extent);
-    print_backtrace(stderr, false);
+    debugf("%s", format_backtrace(false).c_str());
 #endif
     rassert(state == state_running);
     rassert(current_transaction);

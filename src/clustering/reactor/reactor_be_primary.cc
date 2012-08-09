@@ -3,6 +3,9 @@
 #include <exception>
 #include <vector>
 
+#include "errors.hpp"
+#include <boost/ptr_container/ptr_vector.hpp>
+
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
@@ -42,8 +45,19 @@ void reactor_t<protocol_t>::update_best_backfiller(const region_map_t<protocol_t
             } else if (incumbent.latest == challenger.latest &&
                        incumbent.is_coherent() == challenger.is_coherent()) {
                 j->second.places_to_get_this_version.push_back(backfiller);
-            } else if (version_is_ancestor(branch_history_manager, incumbent.latest, challenger.latest, j->first) ||
-                       (incumbent.latest == challenger.latest && challenger.is_coherent() && !incumbent.is_coherent())) {
+            } else if (
+                    /* `version_is_ancestor` also returns true if
+                    `incumbent.latest` and `challenger.latest` are the same. So
+                    if `incumbent.latest` is the ancestor of `challenger.latest`
+                    *and they are distinct* then the challenger beats the
+                    incumbent. */
+                    (version_is_ancestor(branch_history_manager, incumbent.latest, challenger.latest, j->first) &&
+                        incumbent.latest != challenger.latest) ||
+                    /* If they are the same, but the challenger is coherent
+                    and the incumbent is not, then that breaks the tie. */
+                    (incumbent.latest == challenger.latest &&
+                        challenger.is_coherent() &&
+                        !incumbent.is_coherent())) {
                 j->second = backfill_candidate_t(challenger,
                                                  std::vector<typename backfill_candidate_t::backfill_location_t>(1, backfiller),
                                                  false);
@@ -122,8 +136,7 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
         }
 
         typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > >::const_iterator bcard_it = reactor_directory.find(p_it->first);
-        if (bcard_it == reactor_directory.end() ||
-            !bcard_it->second) {
+        if (bcard_it == reactor_directory.end() || !bcard_it->second) {
             return false;
         }
 
@@ -186,7 +199,7 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
     /* If the latest version of the data we've found for a region is incoherent
      * then we don't backfill it automatically. The admin must explicit "bless"
      * the incoherent data making it coherent or get rid of all incoherent data
-     * until the must up to date data for a region is coherent. */
+     * until the most up to date data for a region is coherent. */
     for (typename best_backfiller_map_t::iterator it =  res.begin();
                                                   it != res.end();
                                                   it++) {
@@ -234,12 +247,14 @@ void do_backfill(
 template <class protocol_t>
 bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > &maybe_a_business_card) {
     rassert(maybe_a_business_card, "Not connected to ourselves\n");
-    return bool(maybe_a_business_card.get());
+    return maybe_a_business_card.get();
 }
 
 template<class protocol_t>
 void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
+        order_source_t order_source;  // TODO: order_token_t::ignore
+
         //Tell everyone that we're looking to become the primary
         directory_entry_t directory_entry(this, region);
 
@@ -256,7 +271,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
              * store so we don't backfill anything prior to it. */
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
             svs->new_read_token(&read_token);
-            region_map_t<protocol_t, version_range_t> metainfo = svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor);
+            region_map_t<protocol_t, version_range_t> metainfo = svs->get_all_metainfos(order_source.check_in("reactor_t::be_primary").with_read_mode(), &read_token, interruptor);
             region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);
 
             /* This waits until every other peer is ready to accept us as the
@@ -336,11 +351,11 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
             }
         }
 
-        std::string region_name(render_region_as_string(&region, 0));
+        std::string region_name(render_region_as_string(&region));
         perfmon_collection_t region_perfmon_collection;
         perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
-        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history_manager, svs, &region_perfmon_collection, interruptor);
+        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history_manager, svs, &region_perfmon_collection, &order_source, interruptor);
 
         directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card()));
 
@@ -353,7 +368,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
          * ourselves after we've put it in the directory. */
         broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
 
-        listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster_business_card, branch_history_manager, &broadcaster, &region_perfmon_collection, interruptor);
+        listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster_business_card, branch_history_manager, &broadcaster, &region_perfmon_collection, interruptor, &order_source);
         replier_t<protocol_t> replier(&listener);
         master_t<protocol_t> master(mailbox_manager, ack_checker, region, &broadcaster);
         direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
@@ -367,6 +382,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
             ));
 
         interruptor->wait_lazily_unordered();
+
     } catch (interrupted_exc_t) {
         /* ignore */
     }

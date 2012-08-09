@@ -16,7 +16,7 @@ public:
     clone_ptr_t() THROWS_NOTHING;
 
     /* Takes ownership of the argument. */
-    explicit clone_ptr_t(T *) THROWS_NOTHING;
+    explicit clone_ptr_t(T *) THROWS_NOTHING;  // NOLINT
 
     clone_ptr_t(const clone_ptr_t &x) THROWS_NOTHING;
     template<class U>

@@ -7,23 +7,26 @@
 
 namespace query_language {
 
-/* `bad_protobuf_exc_t` is thrown if the client sends us a protocol buffer that
-doesn't match our schema. This should only happen if the client itself is
-broken. */
-
-class bad_protobuf_exc_t : public std::exception {
+/* Thrown if the client sends a malformed or nonsensical query (e.g. a
+   protocol buffer that doesn't match our schema or STOP for an
+   unknown token). */
+class broken_client_exc_t : public std::exception {
 public:
-    ~bad_protobuf_exc_t() throw () { }
+    explicit broken_client_exc_t(const std::string &_what) : message(_what) { }
+    ~broken_client_exc_t() throw () { }
 
     const char *what() const throw () {
-        return "bad protocol buffer";
+        return message.c_str();
     }
+
+    std::string message;
 };
 
-/* `bad_query_exc_t` is thrown if the user writes a query that accesses
-undefined variables or that has mismatched types. The difference between this
-and `bad_protobuf_exc_t` is that `bad_protobuf_exc_t` is the client's fault and
-`bad_query_exc_t` is the client's user's fault. */
+/* `bad_query_exc_t` is thrown if the user writes a query that
+   accesses undefined variables or that has mismatched types. The
+   difference between this and `broken_client_exc_t` is that
+   `broken_client_exc_t` is the client's fault and
+   `bad_query_exc_t` is the client's user's fault. */
 
 class bad_query_exc_t : public std::exception {
 public:
@@ -55,4 +58,4 @@ public:
 
 
 }// namespace query_language 
-#endif
+#endif /* RDB_PROTOCOL_EXCEPTIONS_HPP_ */

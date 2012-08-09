@@ -4,8 +4,7 @@
 #include <string.h>
 
 #ifndef NDEBUG
-#include <cxxabi.h>   // For __cxa_current_exception_type (see below)
-#include <stack>
+#include <stack>   /* the data structure, not the run-time concept */
 #endif
 
 #include "errors.hpp"
@@ -221,13 +220,6 @@ void coro_t::wait() {   /* class method */
         cglobals->no_waiting_call_sites.top().first.c_str(), cglobals->no_waiting_call_sites.top().second
         );
 
-#ifndef NDEBUG
-    /* It's not safe to wait() in a catch clause of an exception handler. We use the non-standard
-    GCC-only interface "cxxabi.h" to figure out if we're in the catch clause of an exception
-    handler. In C++0x we will be able to use std::current_exception() instead. */
-    rassert(!abi::__cxa_current_exception_type());
-#endif
-
     rassert(!self()->waiting_);
     self()->waiting_ = true;
 
@@ -260,19 +252,13 @@ void coro_t::notify_now_deprecated() {
 
 #ifndef NDEBUG
     rassert(cglobals->assert_no_coro_waiting_counter == 0,
-        "This code path is not supposed to use notify_now_deprecated() or spawn_now().");
+        "This code path is not supposed to use notify_now_deprecated() or spawn_now_dangerously().");
 
     /* Record old value of `assert_finite_coro_waiting_counter`. It must be legal to call
     `coro_t::wait()` within the coro we are going to jump to, or else we would never jump
     back. */
     int old_assert_finite_coro_waiting_counter = cglobals->assert_finite_coro_waiting_counter;
     cglobals->assert_finite_coro_waiting_counter = 0;
-#endif
-
-#ifndef NDEBUG
-    /* It's not safe to notify_now_deprecated() in the catch-clause of an exception handler for the same
-    reason we can't wait(). */
-    rassert(!abi::__cxa_current_exception_type());
 #endif
 
     coro_t *prev_prev_coro = cglobals->prev_coro;

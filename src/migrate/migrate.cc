@@ -80,7 +80,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
                 {"out", no_argument, &switch_to_reading_out_files, 1},
                 {"file", required_argument, 0, 'f'},
                 {"intermediate", required_argument, 0, 'i'},
-                {"force", no_argument, (int *) &(config->force), 1},
+                {"force", no_argument, &(config->force), 1},
                 {"help", no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };

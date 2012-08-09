@@ -12,12 +12,18 @@
 namespace unittest {
 
 struct test_driver_t {
+    /* We need for multiple test_driver_t objects to share a file
+       descriptor in order to test the conflict resolution logic, but
+       it doesn't matter what that file descriptor is. */
+    static const int IRRELEVANT_DEFAULT_FD = 0;
 
     struct core_action_t : public intrusive_list_node_t<core_action_t> {
         bool get_is_write() const { return !is_read; }
         bool get_is_read() const { return is_read; }
+        fd_t get_fd() const { return fd; }
         void *get_buf() const { return buf; }
         size_t get_count() const { return count; }
+        // TODO: sizeof(off_t) seems to be 8 on linux but let's use off64_t, neh?
         off_t get_offset() const { return offset; }
 
         bool is_read;
@@ -25,8 +31,10 @@ struct test_driver_t {
         size_t count;
         off_t offset;
 
-        core_action_t() : has_begun(false), done(false) { }
+        core_action_t() :
+            has_begun(false), done(false), fd(IRRELEVANT_DEFAULT_FD) { }
         bool has_begun, done;
+        fd_t fd;
     };
 
     intrusive_list_t<core_action_t> running_actions;
@@ -65,8 +73,8 @@ struct test_driver_t {
         conflicting actions */
         for (core_action_t *p = running_actions.head(); p; p = running_actions.next(p)) {
             if (!(a->is_read && p->is_read)) {
-                ASSERT_TRUE((int)a->offset >= (int)(p->offset + p->count) ||
-                            (int)p->offset >= (int)(a->offset + a->count));
+                ASSERT_TRUE(a->offset >= static_cast<int64_t>(p->offset + p->count)
+                            || p->offset >= static_cast<int64_t>(a->offset + a->count));
             }
         }
 
@@ -102,6 +110,7 @@ struct read_test_t {
         buffer(expected.size())
     {
         action.is_read = true;
+        action.fd = 0;
         action.buf = buffer.data();
         action.count = expected.size();
         action.offset = offset;
@@ -138,6 +147,7 @@ struct write_test_t {
         data(d)
     {
         action.is_read = false;
+        action.fd = 0;
         // It's OK to cast away the const; it won't be modified.
         action.buf = const_cast<void*>(reinterpret_cast<const void*>(d.data()));
         action.count = d.size();

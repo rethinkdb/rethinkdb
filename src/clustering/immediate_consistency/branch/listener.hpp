@@ -3,25 +3,23 @@
 
 #include <map>
 
-#include "buffer_cache/mirrored/mirrored.hpp"
-#include "buffer_cache/semantic_checking.hpp"
-#include "clustering/generic/registrant.hpp"
-#include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
+#include "concurrency/semaphore.hpp"
 #include "serializer/types.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
 
-template <class T> class replier_t;
+template <class T> class branch_history_manager_t;
+template <class T> class broadcaster_t;
 template <class T> class intro_receiver_t;
 template <class T> class registrant_t;
+template <class T> class replier_t;
 template <class T> class semilattice_read_view_t;
 template <class T> class semilattice_readwrite_view_t;
-template <class T> class broadcaster_t;
 
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
 backfills from an existing mirror on a branch into the store, and as long as it
@@ -70,7 +68,8 @@ public:
             clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
             backfill_session_id_t backfill_session_id,
             perfmon_collection_t *backfill_stats_parent,
-            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t);
+            signal_t *interruptor,
+            order_source_t *order_source) THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t);
 
     /* This version of the `listener_t` constructor is called when we are
     becoming the first mirror of a new branch. It should only be called once for
@@ -82,7 +81,10 @@ public:
             branch_history_manager_t<protocol_t> *branch_history_manager,
             broadcaster_t<protocol_t> *broadcaster,
             perfmon_collection_t *backfill_stats_parent,
-            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+            signal_t *interruptor,
+            order_source_t *order_source) THROWS_ONLY(interrupted_exc_t);
+
+    ~listener_t();
 
     /* Returns a signal that is pulsed if the mirror is not in contact with the
     master. */
@@ -186,42 +188,54 @@ private:
 
     void advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp);
 
-    mailbox_manager_t *mailbox_manager;
+    mailbox_manager_t *const mailbox_manager_;
 
-    branch_history_manager_t<protocol_t> *branch_history_manager;
+    branch_history_manager_t<protocol_t> *const branch_history_manager_;
 
-    multistore_ptr_t<protocol_t> *svs;
+    multistore_ptr_t<protocol_t> *svs_;
 
-    branch_id_t branch_id;
+    branch_id_t branch_id_;
 
     /* `upgrade_mailbox` and `broadcaster_begin_timestamp` are valid only if we
     successfully registered with the broadcaster at some point. As a sanity
     check, we put them in a `promise_t`, `registration_done_cond`, that only
     gets pulsed when we successfully register. */
-    promise_t<intro_t> registration_done_cond;
+    promise_t<intro_t> registration_done_cond_;
 
-    uuid_t uuid;
-    perfmon_collection_t perfmon_collection;
-    perfmon_membership_t perfmon_collection_membership;
-    disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue;
+    // This uuid exists solely as a temporary used to be passed to
+    // uuid_to_str for perfmon_collection initialization and the
+    // backfill queue file name
+    const uuid_t uuid_;
 
-    fifo_enforcer_sink_t write_queue_entrance_sink;
-    scoped_ptr_t<typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t> write_queue_coro_pool_callback;
-    scoped_ptr_t<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool;
-    adjustable_semaphore_t write_queue_semaphore;
-    cond_t write_queue_has_drained;
+    perfmon_collection_t perfmon_collection_;
+    perfmon_membership_t perfmon_collection_membership_;
+
+    state_timestamp_t current_timestamp_;
+    fifo_enforcer_sink_t store_entrance_sink_;
+
+    // Used by the replier_t which needs to be able to tell
+    // backfillees how up to date it is.
+    std::multimap<state_timestamp_t, cond_t *> synchronize_waiters_;
+
+    disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue_;
+    fifo_enforcer_sink_t write_queue_entrance_sink_;
+    scoped_ptr_t<typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t> write_queue_coro_pool_callback_;
+    adjustable_semaphore_t write_queue_semaphore_;
+    cond_t write_queue_has_drained_;
+
+    /* Destroying `write_queue_coro_pool` will stop any invocations of
+    `perform_enqueued_write()`. We mustn't access any member variables defined
+    below `write_queue_coro_pool` from within `perform_enqueued_write()`,
+    because their destructors might have been called. */
+    scoped_ptr_t<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool_;
 
     /* This asserts that the broadcaster doesn't send us too many concurrent
     writes at the same time. */
-    semaphore_assertion_t enforce_max_outstanding_writes_from_broadcaster;
+    semaphore_assertion_t enforce_max_outstanding_writes_from_broadcaster_;
 
-    state_timestamp_t current_timestamp;
+    auto_drainer_t drainer_;
 
-    fifo_enforcer_sink_t store_entrance_sink;
-
-    auto_drainer_t drainer;
-
-    typename listener_business_card_t<protocol_t>::write_mailbox_t write_mailbox;
+    typename listener_business_card_t<protocol_t>::write_mailbox_t write_mailbox_;
 
     /* `writeread_mailbox` and `read_mailbox` live on the `listener_t` even
     though they don't get used until the `replier_t` is constructed. The reason
@@ -229,16 +243,10 @@ private:
     `replier_t` is destroyed without doing a warm shutdown but the `listener_t`
     stays alive. The reason `read_mailbox` is here is for consistency, and to
     have all the query-handling code in one place. */
-    typename listener_business_card_t<protocol_t>::writeread_mailbox_t writeread_mailbox;
-    typename listener_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
+    typename listener_business_card_t<protocol_t>::writeread_mailbox_t writeread_mailbox_;
+    typename listener_business_card_t<protocol_t>::read_mailbox_t read_mailbox_;
 
-    scoped_ptr_t<registrant_t<listener_business_card_t<protocol_t> > > registrant;
-
-    /* Avaste this be used to keep track of people who are waitin' for a us to
-     * be up to date (past the given state_timestamp_t). The only use case for
-     * this right now is the replier_t who needs to be able to tell backfillees
-     * how up to date s/he is. */
-    std::multimap<state_timestamp_t, cond_t *> synchronize_waiters;
+    scoped_ptr_t<registrant_t<listener_business_card_t<protocol_t> > > registrant_;
 
     DISABLE_COPYING(listener_t);
 };

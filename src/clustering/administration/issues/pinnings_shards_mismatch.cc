@@ -26,9 +26,9 @@ std::string pinnings_shards_mismatch_issue_t<protocol_t>::get_description() cons
                       "Primary pinnings:\n %s\n"
                       "Secondary pinnings:\n %s\n",
                       uuid_to_str(offending_namespace).c_str(),
-                      scoped_cJSON_t(render_as_json(&_shards, 0)).Print().c_str(),
-                      scoped_cJSON_t(render_as_json(&_primary_pinnings, 0)).Print().c_str(),
-                      scoped_cJSON_t(render_as_json(&_secondary_pinnings, 0)).Print().c_str());
+                      scoped_cJSON_t(render_as_json(&_shards)).PrintUnformatted().c_str(),
+                      scoped_cJSON_t(render_as_json(&_primary_pinnings)).PrintUnformatted().c_str(),
+                      scoped_cJSON_t(render_as_json(&_secondary_pinnings)).PrintUnformatted().c_str());
 }
 
 template <class protocol_t>
@@ -38,12 +38,12 @@ cJSON *pinnings_shards_mismatch_issue_t<protocol_t>::get_json_description() {
     json.description = get_description();
     json.type = "PINNINGS_SHARDS_MISMATCH";
     json.time = get_secs();
-    cJSON *res = render_as_json(&json, 0);
+    cJSON *res = render_as_json(&json);
 
-    cJSON_AddItemToObject(res, "offending_namespace", render_as_json(&offending_namespace, 0));
-    cJSON_AddItemToObject(res, "shards", render_as_json(&shards, 0));
-    cJSON_AddItemToObject(res, "primary_pinnings", render_as_json(&primary_pinnings, 0));
-    cJSON_AddItemToObject(res, "secondary_pinnings", render_as_json(&secondary_pinnings, 0));
+    cJSON_AddItemToObject(res, "offending_namespace", render_as_json(&offending_namespace));
+    cJSON_AddItemToObject(res, "shards", render_as_json(&shards));
+    cJSON_AddItemToObject(res, "primary_pinnings", render_as_json(&primary_pinnings));
+    cJSON_AddItemToObject(res, "secondary_pinnings", render_as_json(&secondary_pinnings));
 
     return res;
 }

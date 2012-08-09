@@ -32,7 +32,7 @@ void pool_diskmgr_t::action_t::run() {
 }
 
 void pool_diskmgr_t::action_t::done() {
-    assert_thread();
+    parent->assert_thread();
     parent->n_pending--;
     parent->pump();
     parent->done_fun(this);

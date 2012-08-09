@@ -105,7 +105,7 @@ public:
     // We are safe to unload if we are saved to disk and have no mc_buf_lock_ts actively referencing us.
     bool safe_to_unload() {
         cache->assert_thread();
-        return bool(token) && !active_refcount;
+        return token && !active_refcount;
     }
 
     void unload() {
@@ -196,8 +196,8 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_ac
 
     // Some things expect us to return immediately (as of 5/12/2011), so we do the loading in a
     // separate coro. We have to make sure that load_inner_buf() acquires the lock first
-    // however, so we use spawn_now().
-    coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
+    // however, so we use spawn_now_dangerously().
+    coro_t::spawn_now_dangerously(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
 
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
     ++_cache->stats->pm_n_blocks_in_memory;
@@ -1062,7 +1062,7 @@ void mc_buf_lock_t::release() {
  * Transaction implementation.
  */
 
-mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp)
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */)
     : cache(_cache),
       expected_change_count(_expected_change_count),
       access(_access),
@@ -1530,13 +1530,13 @@ void mc_cache_t::maybe_unregister_read_ahead_callback() {
     if (read_ahead_registered && page_repl.is_full(dynamic_config.max_size / serializer->get_block_size().ser_value() / 10 + 1)) {
         read_ahead_registered = false;
         // unregister_read_ahead_cb requires a coro context, but we might not be in any
-        coro_t::spawn_now(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
+        coro_t::spawn_now_dangerously(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
     }
 }
 
 void mc_cache_t::adjust_max_patches_size_ratio_toward_minimum() {
     rassert(MAX_PATCHES_SIZE_RATIO_MAX <= MAX_PATCHES_SIZE_RATIO_MIN);  // just to make things clear.
-    max_patches_size_ratio = (unsigned int)(0.9f * float(max_patches_size_ratio) + 0.1f * float(MAX_PATCHES_SIZE_RATIO_MIN));
+    max_patches_size_ratio = static_cast<unsigned int>(0.9 * max_patches_size_ratio + 0.1 * MAX_PATCHES_SIZE_RATIO_MIN);
     rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MIN);
     rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MAX);
 }
@@ -1546,7 +1546,7 @@ void mc_cache_t::adjust_max_patches_size_ratio_toward_maximum() {
     // We should be paranoid that if max_patches_size_ratio ==
     // MAX_PATCHES_SIZE_RATIO_MAX, (i.e. that 2 == 2) then 0.9f * 2 +
     // 0.1f * 2 will be less than 2 (and then round down to 1).
-    max_patches_size_ratio = (unsigned int)(0.9f * float(max_patches_size_ratio) + 0.1f * float(MAX_PATCHES_SIZE_RATIO_MAX));
+    max_patches_size_ratio = static_cast<unsigned int>(0.9 * max_patches_size_ratio + 0.1 * MAX_PATCHES_SIZE_RATIO_MAX);
     if (max_patches_size_ratio < MAX_PATCHES_SIZE_RATIO_MAX) {
         max_patches_size_ratio = MAX_PATCHES_SIZE_RATIO_MAX;
     }

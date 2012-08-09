@@ -149,6 +149,7 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_prot
             (*promise_map)[m_id][n_id][a_id].insert(std::make_pair(region, req_rec));
             things_to_destroy->push_back(req_rec);
         } else {
+            // TODO: Why is this commented out?
             //scoped_cJSON_t scoped_region(render_as_json(region_activity_pair.first, 0));
             //cJSON_AddItemToObject(backfills, get_string(scoped_region.get()).c_str(), cJSON_CreateString("backfiller not found"));
         }
@@ -187,6 +188,7 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_prot
         (*promise_map)[m_id][n_id][a_id].insert(std::make_pair(region, req_rec));
         things_to_destroy->push_back(req_rec);
     } else {
+        // TODO: Why is this commented out?
         //scoped_cJSON_t scoped_region(render_as_json(region_activity_pair.first, 0));
         //cJSON_AddItemToObject(backfills, get_string(scoped_region.get()).c_str(), cJSON_CreateString("backfiller not found"));
     }
@@ -201,7 +203,7 @@ progress_app_t::progress_app_t(clone_ptr_t<watchable_t<std::map<peer_id_t, clust
 
 http_res_t progress_app_t::handle(const http_req_t &req) {
     if (req.method != GET) {
-        return http_res_t(405);
+        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
 
     /* This function is an absolute mess, basically because we need to hack
@@ -321,9 +323,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
     uint64_t timeout = DEFAULT_PROGRESS_REQ_TIMEOUT_MS;
     if (timeout_param) {
         if (!strtou64_strict(timeout_param.get(), 10, &timeout) || timeout == 0 || timeout > MAX_PROGRESS_REQ_TIMEOUT_MS) {
-            http_res_t res(400);
-            res.set_body("application/text", "Invalid timeout value");
-            return res;
+            return http_error_res("Invalid timeout value.");
         }
     }
 
@@ -358,7 +358,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                     if (!std_contains(backfills_for_region, r)) {
                         region_info = cJSON_CreateArray();
                         backfills_for_region.insert(std::make_pair(r, region_info));
-                        scoped_cJSON_t scoped_region(render_as_json(&r, 0));
+                        scoped_cJSON_t scoped_region(render_as_json(&r));
                         cJSON_AddItemToObject(activity_info, get_string(scoped_region.get()).c_str(), region_info);
                     } else {
                         region_info = backfills_for_region[r];
@@ -390,7 +390,5 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
         }
     }
 
-    http_res_t res(200);
-    res.set_body("application/json", body.Print());
-    return res;
+    return http_json_res(body.get());
 }
