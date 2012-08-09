@@ -20,25 +20,32 @@ round-trips. */
 template <class protocol_t>
 class namespace_repo_t : public home_thread_mixin_t {
     struct namespace_data_t {
-        namespace_data_t() : refs(0), thread_data(get_num_threads()) { }
+        namespace_data_t() : thread_data(get_num_threads()) { }
+        ~namespace_data_t();
 
-        ~namespace_data_t() {
-            for (int i = 0; (size_t)i < thread_data.size(); ++i) {
-                if (thread_data[i].ns_if != NULL) {
-                    on_thread_t rethreader(i);
-                    delete thread_data[i].ns_if;
-                }
-                delete thread_data[i].ct_subview;
-            }
-        }
+        struct thread_data_t;
 
-        struct thread_data_t {
-            thread_data_t() : ns_if(NULL), ct_subview(NULL) { }
-            cluster_namespace_interface_t<protocol_t>* ns_if;
-            cross_thread_watchable_variable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > >* ct_subview;
+        class timed_delete_t {
+        public:
+           timed_delete_t(thread_data_t *thread_data);
+        private:
+           // After 20 seconds of inactivity, clean up the namespace interface for a thread
+           const static int64_t timeout_ms = 20000;
+           void wait_and_delete(thread_data_t *thread_data, auto_drainer_t::lock_t keepalive);
+
+           auto_drainer_t drainer;
         };
 
-        uint32_t refs;
+        struct thread_data_t {
+            thread_data_t() : ct_subview(NULL), ns_if(NULL), deleter(NULL), ready(NULL), refs(0) { }
+
+            cross_thread_watchable_variable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > >* ct_subview;
+            cluster_namespace_interface_t<protocol_t>* ns_if;
+            timed_delete_t *deleter;
+            cond_t* ready;
+            uint32_t refs;
+        };
+
         std::vector<thread_data_t> thread_data;
     };
 
@@ -46,20 +53,29 @@ public:
     namespace_repo_t(mailbox_manager_t *,
                      clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > >);
 
-    struct access_t {
+    class access_t {
+    public:
         access_t(namespace_repo_t *_parent, namespace_id_t _ns_id, signal_t *interruptor);
+        access_t(const access_t& access);
         ~access_t();
 
         cluster_namespace_interface_t<protocol_t> *get_namespace_if();
 
     private:
-        void initialize_namespace_interface(clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > subview,
-                                            mailbox_manager_t *mailbox_manager,
-                                            int thread);
 
-        namespace_data_t *ns_data;
+        class ref_handler_t {
+        public: 
+            ref_handler_t(typename namespace_data_t::thread_data_t *_thread_data);
+            ~ref_handler_t();
+        private:
+            typename namespace_data_t::thread_data_t *thread_data;
+        };
+
+        scoped_ptr_t<ref_handler_t> ref_handler;
+        typename namespace_data_t::thread_data_t *thread_data;
         namespace_repo_t *parent;
         namespace_id_t ns_id;
+        int thread;
     };
 
 private:
@@ -67,7 +83,6 @@ private:
     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > namespaces_directory_metadata;
 
     std::map<namespace_id_t, namespace_data_t> interface_map;
-
     DISABLE_COPYING(namespace_repo_t);
 };
 

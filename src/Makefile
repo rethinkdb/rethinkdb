@@ -62,6 +62,7 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
+BUILD_DRIVERS?=1
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -599,11 +600,13 @@ endif
 
 # Build rules
 drivers: ./rdb_protocol/query_language.proto
+ifeq ($(BUILD_DRIVERS), 1)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC1 $@"
 endif
 	$(QUIET) protoc $(PROTOCFLAGS) --python_out ../drivers/python/rethinkdb/ rdb_protocol/query_language.proto
 	$(QUIET) rprotoc $(PROTOCFLAGS) --out ../drivers/ruby/rethinkdb rdb_protocol/query_language.proto
+endif
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
 rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py
