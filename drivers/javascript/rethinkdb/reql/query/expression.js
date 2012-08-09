@@ -48,81 +48,94 @@ rethinkdb.reql.query.JSONExpression.prototype.compile = function() {
     return term;
 };
 
-/**
- * @constructor
- * @extends {rethinkdb.reql.query.Expression}
- */
-rethinkdb.reql.query.AddExpression = function(left, right) {
-    this.left_ = left;
-    this.right_ = right;
-};
-goog.inherits(rethinkdb.reql.query.AddExpression, rethinkdb.reql.query.Expression);
+function makeBinaryConstructor() {
+    /**
+     * @constructor
+     * @extends {rethinkdb.reql.query.Expression}
+     */
+    return function(left, right) {
+        this.left_ = left;
+        this.right_ = right;   
+    };
+}
 
 /**
- * @override
- * @return {!Term}
+ * @param {!Builtin.BuiltinType} builtinType
+ * @param {Builtin.Comparison=} compareType
  */
-rethinkdb.reql.query.AddExpression.prototype.compile = function() {
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
+function makeBinaryBuiltinCompile(builtinType, compareType) {
+    /**
+     * @override
+     * @return {!Term}
+     */
+    return function() {
+        var term = new Term();
+        term.setType(Term.TermType.CALL);
 
-    var call = new Term.Call();
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.ADD);
-    call.setBuiltin(builtin);
-    call.addArgs(this.left_.compile());
-    call.addArgs(this.right_.compile());
+        var call = new Term.Call();
+        var builtin = new Builtin();
+        builtin.setType(builtinType);
+        if (compareType) builtin.setComparison(compareType);
+        call.setBuiltin(builtin);
+        call.addArgs(this.left_.compile());
+        call.addArgs(this.right_.compile());
 
-    term.setCall(call);
-    return term;
-};
+        term.setCall(call);
+        return term;
+    }
+}
+
+/** 
+ * @param {Builtin.Comparison} compareType
+ */
+function makeCompareCompile(compareType) {
+    return makeBinaryBuiltinCompile(Builtin.BuiltinType.COMPARE, compareType);
+}
 
 /**
- * @constructor
- * @extends {rethinkdb.reql.query.Expression}
+ * @param {string} className
+ * @param {Builtin.BuiltinType|Builtin.Comparison} builtinType
+ * @param {string} chainName
+ * @param {boolean=} comparison
  */
-rethinkdb.reql.query.LessThanExpression = function(left, right) {
-    this.left_ = left;
-    this.right_ = right;
-};
-goog.inherits(rethinkdb.reql.query.LessThanExpression, rethinkdb.reql.query.Expression);
+function makeBinary(className, builtinType, chainName, comparison) {
+
+    // Constructor
+    var newClass = rethinkdb.reql.query[className] = makeBinaryConstructor();
+    goog.inherits(newClass, rethinkdb.reql.query.Expression);
+
+    // Compile method
+    newClass.prototype.compile = comparison ? 
+        makeCompareCompile(/**@type {Builtin.Comparison} */(builtinType)) :
+        makeBinaryBuiltinCompile(/**@type {Builtin.BuiltinType} */(builtinType));
+
+    // Chainable method on Expression
+    rethinkdb.reql.query.Expression.prototype[chainName] = function(other) {
+        return new newClass(this, other);
+    };
+}
 
 /**
- * @return {!Term}
+ * @param {string} className
+ * @param {Builtin.Comparison} compareType
+ * @param {string} chainName
  */
-rethinkdb.reql.query.LessThanExpression.prototype.compile = function() {
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
+function makeComparison(className, compareType, chainName) {
+    makeBinary(className, compareType, chainName, true);
+}
 
-    var call = new Term.Call();
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.COMPARE);
-    builtin.setComparison(Builtin.Comparison.LT);
-    call.setBuiltin(builtin);
-    call.addArgs(this.left_.compile());
-    call.addArgs(this.right_.compile());
+makeBinary('AddExpression', Builtin.BuiltinType.ADD, 'add');
+makeBinary('SubtractExpression', Builtin.BuiltinType.SUBTRACT, 'sub');
+makeBinary('MultiplyExpression', Builtin.BuiltinType.MULTIPLY, 'mul');
+makeBinary('DivideExpression', Builtin.BuiltinType.DIVIDE, 'div');
+makeBinary('ModuloExpression', Builtin.BuiltinType.MODULO, 'mod');
 
-    term.setCall(call);
-    return term;
-};
-
-/**
- * @return {rethinkdb.reql.query.Expression}
- */
-rethinkdb.reql.query.Expression.prototype.add = function(other) {
-    return new rethinkdb.reql.query.AddExpression(this, other);
-};
-
-//TODO other arithmetic operators
-
-/**
- * @return {rethinkdb.reql.query.Expression}
- */
-rethinkdb.reql.query.Expression.prototype.lt = function(other) {
-    return new rethinkdb.reql.query.LessThanExpression(this, other);
-};
-
-//TODO other comparison operators
+makeComparison('EqualsExpression', Builtin.Comparison.EQ, 'eq');
+makeComparison('NotEqualsExpression', Builtin.Comparison.NE, 'ne');
+makeComparison('LessThanExpression', Builtin.Comparison.LT, 'lt');
+makeComparison('LessThanOrEqualsExpression', Builtin.Comparison.LE, 'le');
+makeComparison('GreaterThanExpression', Builtin.Comparison.GT, 'gt');
+makeComparison('GreaterThanOrEqualsExpression', Builtin.Comparison.GE, 'ge');
 
 /**
  * @return {rethinkdb.reql.query.Expression}
