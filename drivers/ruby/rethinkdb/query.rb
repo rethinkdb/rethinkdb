@@ -1,11 +1,5 @@
 module RethinkDB
   class RQL_Query #Sexp
-    @@gensym_counter = 0
-    def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
-    def with_var
-      sym = gensym
-      yield sym, RQL.var(sym)
-    end
     def clean_lst lst
       case lst.class.hash
       when Array.hash               then lst.map{|z| clean_lst(z)}
@@ -25,7 +19,7 @@ module RethinkDB
     end
 
     def proc_args(m, proc)
-      args = Array.new(C.arity[m] || 0).map{gensym}
+      args = Array.new(C.arity[m] || 0).map{S.gensym}
       args + [proc.call(*(args.map{|x| RQL.var x}))]
     end
     def expand_procs(m, args)

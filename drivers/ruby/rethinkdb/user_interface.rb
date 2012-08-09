@@ -86,7 +86,7 @@ module RethinkDB
     # <b>+id+</b> less tahn 4.  If the object returned in <b>+update+</b>
     # has attributes which are not present in the original row, those attributes
     # will still be added to the new row.
-    def update; with_var {|vname,v| S._ [:update, @body, [vname, yield(v)]]}; end
+    def update; S.with_var {|vname,v| S._ [:update, @body, [vname, yield(v)]]}; end
 
     # TODO: start_inclusive, end_inclusive in python -- what do these do?
     #
@@ -125,7 +125,7 @@ module RethinkDB
     # RQL_Mixin#expr.)
     def filter(obj=nil)
       if obj then filter{[:call, [:all], obj.map {|kv| RQL.attr(kv[0]).eq(kv[1])}]}
-             else with_var {|vname,v| S._ [:call, [:filter, vname, yield(v)], [@body]]}
+             else S.with_var {|vname,v| S._ [:call, [:filter, vname, yield(v)], [@body]]}
       end
     end
 
@@ -136,7 +136,7 @@ module RethinkDB
     # table <b>+table+</b>:
     #   table.map{|row| row[:age]}.reduce(0){|a,b| a+b}
     # will add up all the ages in <b>+table+</b>.
-    def map; with_var {|vname,v| S._ [:call, [:map, vname, yield(v)], [@body]]}; end
+    def map; S.with_var {|vname,v| S._ [:call, [:map, vname, yield(v)], [@body]]}; end
 
     # Construct a query which selects the nth element of the invoking query.
     # For example, if we have a table <b>+people+</b>:
@@ -409,7 +409,7 @@ module RethinkDB
     # RQL_Query for convenience, and overloads <b><tt>|</tt></b> if the lefthand
     # side is a query.  Also has the synonym <b>+or+</b>.  The following are
     # all equivalent:
-    #   r[true]
+    #   r[false]
     #   r.all(false, true)
     #   r.and(false, true)
     #   r[false].all(true)
@@ -417,5 +417,20 @@ module RethinkDB
     #   (r[false] | true) # Note that (false | r[true]) is *incorrect* because
     #                     # Ruby only overloads based on the lefthand side
     def all(pred, *rest); S._ [:call, [:all], [pred, *rest]]; end
+
+    # Filter a query returning a stream based on a predicate.  May also be
+    # called as if it were a member function of RQL_Query for convenience.  The
+    # provided block should take a single variable, a row in the stream, and
+    # return either <b>+true+</b> if it should be in the resulting stream of
+    # <b>+false+</b> otherwise.  If you have a table <b>+table+</b>, the
+    # following are all equivalent:
+    #   r.filter(table) {|row| row[:id] < 5}
+    #   table.filter {|row| row[:id] < 5}
+    #   table.filter {r[:id] < 5} # uses implicit variable
+    def filter(stream)
+      S.with_var { |vname,v|
+        S._ [:call, [:filter, vname, yield(v)], [stream]]
+      }
+    end
   end
 end

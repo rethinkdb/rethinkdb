@@ -196,6 +196,8 @@ class ClientTest < Test::Unit::TestCase
     #BROKEN: Can't filter on strings
     #query_5 = rdb.filter{r[:name].eq('5')}
     query_2345 = rdb.filter{|row| r.and r[:id] >= 2,row[:id] <= 5}
+    query_2345_alt = r.filter(rdb){|row| r.and r[:id] >= 2,row[:id] <= 5}
+    assert_equal(query_2345.run, query_2345_alt.run)
     query_234 = query_2345.filter{r[:num].neq(5)}
     query_23 = query_234.filter{|row| r.any row[:num].eq(2),row[:num].equals(3)}
     assert_equal(query_2345.run, $data[2..5])
