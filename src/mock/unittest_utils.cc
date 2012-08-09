@@ -25,7 +25,11 @@ temp_file_t::~temp_file_t() {
 }
 
 void let_stuff_happen() {
+#ifdef VALGRIND
+    nap(2000);
+#else
     nap(100);
+#endif
 }
 
 int randport() {
