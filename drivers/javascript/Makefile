@@ -32,3 +32,8 @@ lib: query_language.pb.js
 # Compile the javascript stubs for the rethinkdb protocol
 query_language.pb.js: $(PROTO_FILE)
 	$(PROTOC_JS) -I $(PROTO_FILE_DIR)  --js_out=rethinkdb $(PROTO_FILE)
+
+clean:
+	rm -rf rethinkdb.js
+	rm -rf rethinkdb.js.map
+	rm -rf rethinkdb/query_language.pb.js
