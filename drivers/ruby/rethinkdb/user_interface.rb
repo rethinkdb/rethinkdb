@@ -65,6 +65,7 @@ module RethinkDB
     def update; with_var {|vname,v| S._ [:update, @body, [vname, yield(v)]]}; end
 
     # TODO: start_inclusive, end_inclusive in python -- what do these do?
+    #
     # Construct a query which yields all rows of the invoking query with keys
     # between <b>+start_key+</b> and <b>+end_key+</b> (inclusive).  You may also
     # optionally specify the name of the attribute to use as your key
@@ -76,12 +77,31 @@ module RethinkDB
     #   table.filter{|row| (row[:id] >= 3) & (row[:id] <= 7)}
     # as are these:
     #   table.between(nil,7,:index)
-    #   table.filter{|row| row[:index] <= y}
+    #   table.filter{|row| row[:index] <= 7}
     def between(start_key, end_key, keyname=:id)
       opts = {:attrname => keyname}
       opts[:lowerbound] = start_key if start_key != nil
       opts[:upperbound] = end_key if end_key != nil
       S._ [:call, [:range, opts], [@body]]
+    end
+
+    # Construct a query which filters the invoking query using some predicate.
+    # You may either specify the predicate explicitly by providing a block which
+    # takes a single argument (the row you're testing), or provide an object
+    # <b>+obj+</b>.  If you provide an object, it will match JSON objects which
+    # match its attributes.  For example, if we have a table <b>+people+</b>,
+    # the following two queries are equivalent:
+    #   people.filter{|row| row[:name].eq('Bob') & row[:age].eq(50)}
+    #   people.filter({:name => 'Bob', :age => 50})
+    # Note that the values of attributes may themselves be rdb queries.  For
+    # instance, here is a query that maches anyone whose age is double their height:
+    #   people.filter({:age => r[:height]*2})
+    # (The <b><tt>r[:height]</tt></b> references the Implicit Variable.)
+    # TODO: how to link to implicit variable?
+    def filter(obj=nil)
+      if obj then filter{[:call, [:all], obj.map {|kv| RQL.attr(kv[0]).eq(kv[1])}]}
+             else with_var {|vname,v| S._ [:call, [:filter, vname, yield(v)], [@body]]}
+      end
     end
   end
 end

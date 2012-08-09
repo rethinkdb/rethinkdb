@@ -163,6 +163,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_map #MAP, FILTER, GETATTR, IMPLICIT_GETATTR
+    assert_equal(rdb.filter({'num' => 1}).run, [$data[1]])
+    assert_equal(rdb.filter({'num' => r[:num]}).run, $data)
     query = rdb.map { |outer_row|
       r.streamtoarray(rdb.filter{r[:id] < outer_row[:id]})
     }
