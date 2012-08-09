@@ -890,8 +890,7 @@ void eval_let_binds(Term::Let *let, runtime_environment_t *env, const backtrace_
             env->scope.put_in_scope(let->binds(i).var(),
                     eval(let->mutable_binds(i)->mutable_term(), env, backtrace_bind));
         } else if (type.type == TERM_TYPE_STREAM || type.type == TERM_TYPE_VIEW) {
-            env->stream_scope.put_in_scope(let->binds(i).var(),
-                    boost::shared_ptr<stream_multiplexer_t>(new stream_multiplexer_t(eval_stream(let->mutable_binds(i)->mutable_term(), env, backtrace_bind))));
+            throw runtime_exc_t("Cannot bind streams/views to variable names", backtrace);
         } else if (type.type == TERM_TYPE_ARBITRARY) {
             eval(let->mutable_binds(i)->mutable_term(), env, backtrace_bind);
             unreachable("This term has type `TERM_TYPE_ARBITRARY`, so "
@@ -929,7 +928,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             {
                 // Push the scope
                 variable_val_scope_t::new_scope_t new_scope(&env->scope);
-                variable_stream_scope_t::new_scope_t new_stream_scope(&env->stream_scope);
                 variable_type_scope_t::new_scope_t new_type_scope(&env->type_env.scope);
 
                 eval_let_binds(t->mutable_let(), env, backtrace);
@@ -1093,13 +1091,14 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
 boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     switch (t->type()) {
         case Term::VAR:
-            return boost::shared_ptr<json_stream_t>(new stream_multiplexer_t::stream_t(env->stream_scope.get(t->var())));
+            crash("Eval stream should never be called on a var term (because"
+                "streams can't be bound to vars) how did you get here and why"
+                    "did you think this was a nice place to come to?");
             break;
         case Term::LET:
             {
                 // Push the scope
                 variable_val_scope_t::new_scope_t new_scope(&env->scope);
-                variable_stream_scope_t::new_scope_t new_stream_scope(&env->stream_scope);
                 variable_type_scope_t::new_scope_t new_type_scope(&env->type_env.scope);
 
                 eval_let_binds(t->mutable_let(), env, backtrace);

@@ -119,56 +119,6 @@ private:
     backtrace_t backtrace;
 };
 
-class stream_multiplexer_t {
-public:
-
-    stream_multiplexer_t() { }
-    explicit stream_multiplexer_t(boost::shared_ptr<json_stream_t> _stream)
-        : stream(_stream)
-    { }
-
-    typedef std::vector<boost::shared_ptr<scoped_cJSON_t> > cJSON_vector_t;
-
-    class stream_t : public json_stream_t {
-    public:
-        explicit stream_t(boost::shared_ptr<stream_multiplexer_t> _parent)
-            : parent(_parent), index(0)
-        {
-            rassert(parent->stream);
-        }
-
-        boost::shared_ptr<scoped_cJSON_t> next() {
-            while (index >= parent->data.size()) {
-                if (!parent->maybe_read_more()) {
-                    return boost::shared_ptr<scoped_cJSON_t>();
-                }
-            }
-
-            return parent->data[index++];
-        }
-    private:
-        boost::shared_ptr<stream_multiplexer_t> parent;
-        cJSON_vector_t::size_type index;
-    };
-
-private:
-    friend class stream_t;
-
-    bool maybe_read_more() {
-        if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            data.push_back(json);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    //TODO this should probably not be a vector
-    boost::shared_ptr<json_stream_t> stream;
-
-    cJSON_vector_t data;
-};
-
 class union_stream_t : public json_stream_t {
 public:
     typedef std::list<boost::shared_ptr<json_stream_t> > stream_list_t;
