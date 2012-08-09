@@ -37,6 +37,15 @@ There are four ways a `listener_t` can go wrong:
     pulsed when it loses touch.
 */
 
+template <class protocol_t>
+class listener_intro_t {
+public:
+    typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
+    typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
+    state_timestamp_t broadcaster_begin_timestamp;
+};
+
+
 template<class protocol_t>
 class listener_t {
 public:
@@ -92,16 +101,6 @@ public:
 
 private:
     friend class replier_t<protocol_t>;
-    friend class intro_receiver_t<protocol_t>;
-
-    /* `intro_t` represents the introduction we expect to get from the
-    broadcaster if all goes well. */
-    class intro_t {
-    public:
-        typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
-        typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
-        state_timestamp_t broadcaster_begin_timestamp;
-    };
 
     class write_queue_entry_t {
     public:
@@ -200,7 +199,7 @@ private:
     successfully registered with the broadcaster at some point. As a sanity
     check, we put them in a `promise_t`, `registration_done_cond`, that only
     gets pulsed when we successfully register. */
-    promise_t<intro_t> registration_done_cond_;
+    promise_t<listener_intro_t<protocol_t> > registration_done_cond_;
 
     // This uuid exists solely as a temporary used to be passed to
     // uuid_to_str for perfmon_collection initialization and the
