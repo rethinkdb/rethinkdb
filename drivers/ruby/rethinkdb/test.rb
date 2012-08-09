@@ -32,7 +32,7 @@ r = RethinkDB::RQL
 require 'test/unit'
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts_Mixin
-  def rdb; r.db('').Welcome; end
+  def rdb; r.db('','Welcome'); end
   @@c = RethinkDB::Connection.new('localhost', 64346)
   def c; @@c; end
 
@@ -130,6 +130,10 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.or(false, true, false).run, true)
     assert_equal((r[false].or(false)).run, false)
     assert_equal((r[true].or(false)).run, true)
+  end
+
+  def test_json #JSON
+    assert_equal(r.json('[1,2,3]').run, [1,2,3])
   end
 
   def test_let #LET, CALL, VAR, NUMBER, STRING

@@ -179,7 +179,7 @@ module RethinkDB
     #   r[5]
     def [](ind); expr ind; end
 
-    # Converts from a Ruby datatype to an RQL query.  More commonly accessed
+    # Convert from a Ruby datatype to an RQL query.  More commonly accessed
     # with its shortcut, <b><tt>[]</tt></b>.  Numbers, strings, booleans,
     # arrays, objects, and nil are all converted to their respective JSON types.
     # Symbols that begin with '$' are converted to variables, and symbols
@@ -210,7 +210,7 @@ module RethinkDB
       when NilClass.hash   then S._ [:json_null]
       when Array.hash      then S._ [:array, *x.map{|y| expr(y)}]
       when Hash.hash       then S._ [:object, *x.map{|var,term| [var, expr(term)]}]
-      when Symbol.hash     then S._ x.to_s[0]=='$'[0] ? var(x.to_s[1..-1]) : attr(x)
+      when Symbol.hash     then S._ x.to_s[0]=='$'[0] ? var(x.to_s[1..-1]) : getattr(x)
       else raise TypeError, "RQL.expr can't handle '#{x.class()}'"
       end
     end
@@ -221,12 +221,68 @@ module RethinkDB
     #   r.var('varname')
     def var(varname); S._ [:var, varname]; end
 
+    # Provide a literal JSON string that will be parsed by the server.  For
+    # example, the following are equivalent:
+    #   r.expr([1,2,3])
+    #   r.json('[1,2,3]')
+    def json(str); S._ [:json, str]; end
+
+    # Construct an error.  This is usually used in the branch of an <b>+if+</b>
+    # expression.  For example:
+    #   r.if(r[1] > 2, false, r.error('unreachable'))
+    # will only run the error query if 1 is greater than 2.  If an error query
+    # does get run, it will be received as a RuntimeError in Ruby, so be
+    # prepared to handle it.
+    def error(err); S._ [:error, err]; end
+
+    # Construct a query that runs a subquery <b>+test+</b> which returns a
+    # boolean, then branches into either <b>+t_branch+</b> if <b>+test+</b>
+    # returned true or <b>+f_branch+</b> if <b>+test+</b> returned false.  For
+    # example, if we have a table <b>+table+</b>:
+    #   table.update{|row| if(row[:score] < 10, {:score => 10}, {})}
+    # will change every row with score below 10 in <b>+table+</b> to have score 10.
+    def if(test, t_branch, f_branch); S._ [:if, test, t_branch, f_branch]; end
+
+    # Construct a query that binds some values to variable (as specified by
+    # <b>+varbinds+</b>) and then executes <b>+body+</b> with those variables in
+    # scope.  For example:
+    #   r.let([['a', 2],
+    #          ['b', r[:$a]+1]],
+    #         r[:$b]*2)
+    # will bind <b>+a+</b> to 2, <b>+b+</b> to 3, and then return 6.  (It is
+    # thus analagous to <b><tt>let*</tt></b> in the Lisp family of languages.)
+    def let(varbinds, body); S._ [:let, varbinds, body]; end
+
+    # Negate a predicate.  May also be called as if it were a member function of
+    # RQL_Query for convenience.  The following are equivalent:
+    #   r.not(true)
+    #   r[true].not
+    def not(pred); S._ [:call, [:not], [pred]]; end
+
+
     # Explicitly construct a reference to an attribute of the implicit
     # variable.  This is useful if for some reason you named an attribute that's
     # hard to express as a symbol, or an attribute starting with a '$'.  The
     # following are equivalent:
     #   r[:attrname]
     #   r.attr('attrname')
-    def attr(attrname); S._ [:call, [:implicit_getattr, attrname], []]; end
+    # Get an attribute of the implicit variable (usually done with
+    # RQL_Mixin#expr).  Getting an attribute explicitly is useful if it has an
+    # odd name that can't be expressed as a symbol (or a name that starts with a
+    # $).  Synonyms are <b>+get+</b> and <b>+attr+</b>.  The following are all
+    # equivalent:
+    #   r[:id]
+    #   r.expr(:id)
+    #   r.getattr('id')
+    #   r.get('id')
+    #   r.attr('id')
+    def getattr(attrname); S._ [:call, [:implicit_getattr, attrname], []]; end
+
+    # Test whether the implicit variable has a particular attribute.  Synonyms
+    # are <b>+has+</b> and <b>+attr?+</b>.  The following are all equivalent:
+    #   r.hasattr('name')
+    #   r.has('name')
+    #   r.attr?('name')
+    def hasattr(attrname); S._ [:call, [:implicit_hasattr, attrname], []]; end
   end
 end
