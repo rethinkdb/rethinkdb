@@ -602,10 +602,11 @@ endif
 drivers: ./rdb_protocol/query_language.proto
 ifeq ($(BUILD_DRIVERS), 1)
 ifeq ($(VERBOSE),0)
-	@echo "    PROTOC1 $@"
+	@echo "    PROTOC[PY] $^"
+	@echo "    PROTOC[RB] $^"
 endif
-	$(QUIET) protoc $(PROTOCFLAGS) --python_out ../drivers/python/rethinkdb/ rdb_protocol/query_language.proto
-	$(QUIET) rprotoc $(PROTOCFLAGS) --out ../drivers/ruby/rethinkdb rdb_protocol/query_language.proto
+	$(QUIET) protoc $(PROTOCFLAGS) --python_out ../drivers/python/rethinkdb/ $^
+	$(QUIET) rprotoc $(PROTOCFLAGS) --out ../drivers/ruby/rethinkdb $^ 2>&1 | (grep -v "../drivers/ruby/rethinkdb/query_language.pb.rb writing..." || true)
 endif
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
@@ -672,7 +673,7 @@ endif
 $(PROTO_DIR)/dummy: $(PROTO_SOURCES)
 	$(QUIET) mkdir -p $(PROTO_DIR)
 ifeq ($(VERBOSE),0)
-	@echo "    PROTOC2 $^"
+	@echo "    PROTOC[CPP] $^"
 endif
 	$(QUIET) protoc $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $^
 	$(QUIET) touch $@
