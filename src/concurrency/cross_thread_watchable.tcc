@@ -11,6 +11,7 @@ cross_thread_watchable_variable_t<value_t>::cross_thread_watchable_variable_t(co
     publisher_controller.rethread(dest_thread);
     rassert(original->get_rwi_lock_assertion()->home_thread() == watchable_thread);
     typename watchable_t<value_t>::freeze_t freeze(original);
+    value = original->get();
     subs.reset(original, &freeze);
 }
 
