@@ -51,7 +51,7 @@ http_res_t distribution_app_t::handle(const http_req_t &req) {
             read,
             &interrupt);
 
-        scoped_cJSON_t data(render_as_json(&boost::get<distribution_result_t>(db_res.result).key_counts, 0));
+        scoped_cJSON_t data(render_as_json(&boost::get<distribution_result_t>(db_res.result).key_counts));
         return http_json_res(data.get());
     } catch (cannot_perform_query_exc_t &) {
         return http_res_t(HTTP_INTERNAL_SERVER_ERROR);

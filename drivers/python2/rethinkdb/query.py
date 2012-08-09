@@ -92,6 +92,19 @@ def fn(arg, *args):
         return internal.Function(arg)
     return internal.Function(args[-1], arg, *args[:-1])
 
+def js(expr=None, body=None):
+    if (expr is not None) + (body is not None) != 1:
+        raise ValueError('exactly one of expr or body must be passed')
+    if body is not None:
+        return internal.Javascript(body)
+    else:
+        return internal.Javascript(u'return (%s);' % expr)
+
+def let(*bindings):
+    if len(bindings) < 2:
+        raise ValueError("need at least one binding")
+    return internal.Let(bindings[-1], bindings[:-1])
+
 #####################################
 # SELECTORS - QUERYING THE DATABASE #
 #####################################
@@ -509,12 +522,6 @@ def expr(val):
     >>> expr({ 'name': 'Joe', 'age': 30 })
     """
     if isinstance(val, JSONExpression):
-        return val
-    return JSONLiteral(val)
-
-def _baseexpr(val):
-    """Like expr(), but just coerces to :class:`BaseExpression`"""
-    if isinstance(val, Expression):
         return val
     return JSONLiteral(val)
 

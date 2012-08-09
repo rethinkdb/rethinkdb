@@ -116,6 +116,13 @@ class Function(object):
             mapping.arg = 'row'     # TODO: GET RID OF THIS
         self.body._write_ast(mapping.body)
 
+class Javascript(query.JSONExpression):
+    def __init__(self, body):
+        self.body = body
+
+    def _write_ast(self, parent):
+        parent.type = p.Term.JAVASCRIPT
+        parent.javascript = self.body
 
 class ToArray(query.JSONExpression):
     def __init__(self, stream):
@@ -319,3 +326,26 @@ class Distinct(Transformer):
 
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.DISTINCT, self.parent)
+
+class Let(Selector):
+    def __init__(self, expr, bindings):
+        self.expr = expr
+        self.bindings = []
+        for var, val in bindings:
+            self.bindings.append((var, query.expr(val)))
+
+    def _write_ast(self, parent):
+        parent.type = p.Term.LET
+        for var, value in self.bindings:
+            binding = parent.let.binds.add()
+            binding.var = var
+            value._write_ast(binding.term)
+        self.expr._write_ast(parent.let.expr)
+
+class Var(query.JSONExpression):
+    def __init__(self, name):
+        self.name = name
+
+    def _write_ast(self, parent):
+        parent.type = p.Term.VAR
+        parent.var = self.name

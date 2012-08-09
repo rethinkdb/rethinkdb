@@ -417,6 +417,43 @@ class RDBTest(unittest.TestCase):
 
         self.expect(self.table.between(2, 3), docs[2:4])
 
+    def test_js(self):
+        self.expect(js('2'), 2)
+        self.expect(js('2+2'), 4)
+        self.expect(js('"cows"'), u"cows")
+        self.expect(js('[1,2,3]'), [1,2,3])
+        self.expect(js('{}'), {})
+        self.expect(js('{a: "whee"}'), {u"a": u"whee"})
+        self.expect(js('this'), {})
+
+        self.expect(js(body='return 0;'), 0)
+
+        self.error_exec(js('undefined'), "undefined")
+        self.error_exec(js(body='return;'), "undefined")
+        self.error_exec(js(body='var x = {}; x.x = x; return x;'), "cyclic datastructure")
+
+    def test_js_vars(self):
+        self.clear_table()
+        names = "slava joe rntz rmmh tim".split()
+        docs = [{'id': i, 'name': name} for i,name in enumerate(names)]
+
+        self.expect(let(('x', 2), js('x')), 2)
+        self.expect(let(('x', 2), ('y', 3), js('x + y')), 5)
+
+        self.do_insert(docs)
+        self.expect(self.table.map(fn("x", R('$x'))), docs) # sanity check
+
+        self.expect(self.table.map(fn('x', js('x'))), docs)
+        self.expect(self.table.map(fn('x', js('x.name'))), names)
+        self.expect(self.table.filter(fn('x', js('x.id > 2'))),
+                    [x for x in docs if x['id'] > 2])
+        self.expect(self.table.map(fn('x', js('x.id + ": " + x.name'))),
+                    ["%s: %s" % (x['id'], x['name']) for x in docs])
+
+        self.expect(self.table, docs)
+        self.expect(self.table.map(js('this')), docs)
+        self.expect(self.table.map(js('this.name')), names)
+
     # def test_huge(self):
     #     self.clear_table()
     #     self.do_insert([{"id": 1}])

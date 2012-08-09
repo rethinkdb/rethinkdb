@@ -15,7 +15,7 @@ template <class request_t, class response_t>
 protob_server_t<request_t, response_t>::~protob_server_t() { }
 
 template <class request_t, class response_t>
-void protob_server_t<request_t, response_t>::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t) {
+void protob_server_t<request_t, response_t>::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t keepalive) {
     stream_cache_t stream_cache;
     scoped_ptr_t<tcp_conn_t> conn;
     nconn->ennervate(&conn);
@@ -25,10 +25,10 @@ void protob_server_t<request_t, response_t>::handle_conn(const scoped_ptr_t<nasc
         request_t request;
         try {
             int size;
-            conn->read(&size, sizeof(size));
+            conn->read(&size, sizeof(size), keepalive.get_drain_signal());
 
             scoped_array_t<char> data(size);
-            conn->read(data.data(), size);
+            conn->read(data.data(), size, keepalive.get_drain_signal());
 
             request.ParseFromArray(data.data(), size);
         } catch (tcp_conn_t::read_closed_exc_t &) {
@@ -40,7 +40,7 @@ void protob_server_t<request_t, response_t>::handle_conn(const scoped_ptr_t<nasc
         try {
             switch (cb_mode) {
                 case INLINE:
-                    send(f(&request, &stream_cache), conn.get());
+                    send(f(&request, &stream_cache), conn.get(), keepalive.get_drain_signal());
                     break;
                 case CORO_ORDERED:
                     crash("unimplemented");
@@ -61,11 +61,11 @@ void protob_server_t<request_t, response_t>::handle_conn(const scoped_ptr_t<nasc
 }
 
 template <class request_t, class response_t>
-void protob_server_t<request_t, response_t>::send(const response_t &res, tcp_conn_t *conn) {
+void protob_server_t<request_t, response_t>::send(const response_t &res, tcp_conn_t *conn, signal_t *closer) THROWS_ONLY(tcp_conn_t::write_closed_exc_t) {
     int size = res.ByteSize();
-    conn->write(&size, sizeof(res.ByteSize()));
+    conn->write(&size, sizeof(res.ByteSize()), closer);
     scoped_array_t<char> data(size);
 
     res.SerializeToArray(data.data(), size);
-    conn->write(data.data(), size);
+    conn->write(data.data(), size, closer);
 }

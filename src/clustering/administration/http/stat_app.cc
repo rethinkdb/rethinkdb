@@ -35,18 +35,17 @@ stat_http_app_t::stat_http_app_t(mailbox_manager_t *_mbox_manager,
     : mbox_manager(_mbox_manager), directory(_directory), semilattice(_semilattice)
 { }
 
-template <class ctx_t>
-cJSON *render_as_json(perfmon_result_t *target, ctx_t ctx) {
+cJSON *render_as_json(perfmon_result_t *target) {
     if (target->is_map()) {
         cJSON *res = cJSON_CreateObject();
 
         for (perfmon_result_t::iterator it  = target->begin(); it != target->end(); ++it) {
-            cJSON_AddItemToObject(res, it->first.c_str(), render_as_json(it->second, ctx));
+            cJSON_AddItemToObject(res, it->first.c_str(), render_as_json(it->second));
         }
 
         return res;
     } else if (target->is_string()) {
-        return render_as_json(target->get_string(), ctx);
+        return render_as_json(target->get_string());
     } else {
         crash("Unknown perfmon_result_type\n");
     }
@@ -189,7 +188,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
         if (stats_ready->is_pulsed()) {
             perfmon_result_t stats = it->second->stats.wait();
             if (!stats.get_map()->empty()) {
-                body.AddItemToObject(uuid_to_str(machine).c_str(), render_as_json(&stats, 0));
+                body.AddItemToObject(uuid_to_str(machine).c_str(), render_as_json(&stats));
             }
         } else {
             not_replied.push_back(machine);

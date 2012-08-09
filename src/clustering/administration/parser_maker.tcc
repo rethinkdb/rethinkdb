@@ -86,11 +86,10 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
 template<class protocol_t, class parser_t>
 void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name, namespace_id_t ns, int port, auto_drainer_t::lock_t keepalive) {
     try {
-        logINF("Starting to serve queries for the namespace '%s' %s on port %d...\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
+        logINF("Listening for queries for the namespace '%s' %s on port %d.\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
 
         wait_any_t interruptor(&namespaces_being_handled.find(ns)->second->stopper, keepalive.get_drain_signal());
-        typename namespace_repo_t<protocol_t>::access_t access(repo, ns, &interruptor);
-        parser_t parser(port, &access, &perfmon_collection_repo->get_perfmon_collections_for_namespace(ns)->namespace_collection);
+        parser_t parser(port, repo, ns, &perfmon_collection_repo->get_perfmon_collections_for_namespace(ns)->namespace_collection);
 
         signal_t *is_bound = parser.get_bound_signal();
 
@@ -113,7 +112,7 @@ void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name, na
         // for the lifetime of the server.
         interruptor.wait_lazily_unordered();
 
-        logINF("Stopping serving queries for the namespace '%s' %s on port %d...\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
+        logINF("Stopped listening for queries for the namespace '%s' %s on port %d.\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
     } catch (interrupted_exc_t) {
         /* pass */
     }

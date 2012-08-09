@@ -37,7 +37,7 @@ static void run_missing_master_test() {
     r.keys.keys.insert("a");
     cond_t non_interruptor;
     try {
-        namespace_interface.read(r, order_source.check_in("unittest::run_missing_master_test(A)"), &non_interruptor);
+        namespace_interface.read(r, order_source.check_in("unittest::run_missing_master_test(A)").with_read_mode(), &non_interruptor);
         ADD_FAILURE() << "That was supposed to fail.";
     } catch (cannot_perform_query_exc_t e) {
         /* expected */

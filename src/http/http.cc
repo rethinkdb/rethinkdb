@@ -289,16 +289,16 @@ std::string human_readable_status(int code) {
     }
 }
 
-void write_http_msg(tcp_conn_t *conn, const http_res_t &res) {
-    conn->writef("HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
+void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) THROWS_ONLY(tcp_conn_t::write_closed_exc_t) {
+    conn->writef(closer, "HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
     for (std::vector<header_line_t>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); it++) {
-        conn->writef("%s: %s\r\n", it->key.c_str(), it->val.c_str());
+        conn->writef(closer, "%s: %s\r\n", it->key.c_str(), it->val.c_str());
     }
-    conn->writef("\r\n");
-    conn->write(res.body.c_str(), res.body.size());
+    conn->writef(closer, "\r\n");
+    conn->write(res.body.c_str(), res.body.size(), closer);
 }
 
-void http_server_t::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t) {
+void http_server_t::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t keepalive) {
     scoped_ptr_t<tcp_conn_t> conn;
     nconn->ennervate(&conn);
 
@@ -307,15 +307,16 @@ void http_server_t::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, a
 
     /* parse the request */
     try {
-        if (http_msg_parser.parse(conn.get(), &req)) {
+        if (http_msg_parser.parse(conn.get(), &req, keepalive.get_drain_signal())) {
+            /* TODO pass interruptor */
             http_res_t res = application->handle(req);
             res.version = req.version;
-            write_http_msg(conn.get(), res);
+            write_http_msg(conn.get(), res, keepalive.get_drain_signal());
         } else {
             // Write error
             http_res_t res;
             res.code = 400;
-            write_http_msg(conn.get(), res);
+            write_http_msg(conn.get(), res, keepalive.get_drain_signal());
         }
     } catch (const linux_tcp_conn_t::read_closed_exc_t &) {
         //Someone disconnected before sending us all the information we
@@ -327,10 +328,10 @@ void http_server_t::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, a
 }
 
 // Parse a http request off of the tcp conn and stuff it into the http_req_t object. Returns parse success.
-bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req) {
+bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *closer) THROWS_ONLY(tcp_conn_t::read_closed_exc_t) {
     LineParser parser(conn);
 
-    std::string method = parser.readWord();
+    std::string method = parser.readWord(closer);
     if(method == "HEAD") {
         req->method = HEAD;
     } else if(method == "GET") {
@@ -355,7 +356,7 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req) {
 
     // Parse out the query params from the resource
     resource_string_parser_t resource_string;
-    std::string src_string = parser.readWord();
+    std::string src_string = parser.readWord(closer);
     if(!resource_string.parse(src_string)) {
         return false;
     }
@@ -363,14 +364,14 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req) {
     req->resource.assign(resource_string.resource);
     req->query_params = resource_string.query_params;
 
-    std::string version_str = parser.readLine();
+    std::string version_str = parser.readLine(closer);
     version_parser_t version_parser;
     version_parser.parse(version_str);
     req->version = version_parser.version;
 
     // Parse header lines.
     while(true) {
-        std::string header_line = parser.readLine();
+        std::string header_line = parser.readLine(closer);
         if(header_line.length() == 0) {
             // Blank line separates header from body. We're done here.
             break;
@@ -389,9 +390,9 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req) {
 
     // Parse body
     size_t body_length = content_length(*req);
-    const_charslice body = conn->peek(body_length);
+    const_charslice body = conn->peek(body_length, closer);
     req->body.append(body.beg, body_length);
-    conn->pop(body_length);
+    conn->pop(body_length, closer);
 
     return true;
 }
