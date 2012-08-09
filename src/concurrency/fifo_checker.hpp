@@ -47,13 +47,14 @@ public:
     // equal to ignore, that must be initialized.
     order_token_t();
     order_token_t with_read_mode() const;
-    bool read_mode() const;
+    void assert_read_mode() const;
+    void assert_write_mode() const;
     const std::string& tag() const;
 #else
     order_token_t() { }
     order_token_t with_read_mode() const { return order_token_t(); }
-
-    bool read_mode() const { return true; }
+    void assert_read_mode() const { }
+    void assert_write_mode() const { }
     std::string tag() const { return ""; }
 #endif  // ifndef NDEBUG
 
@@ -79,6 +80,7 @@ private:
 
     friend class order_source_t;
     friend class order_sink_t;
+    friend class order_checkpoint_t;
     friend class plain_sink_t;
 };
 
