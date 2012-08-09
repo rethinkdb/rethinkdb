@@ -15,6 +15,8 @@ public:
         return clone_ptr_t<watchable_t<value_t> >(watchable.clone());
     }
 
+    int home_thread() { return watchable_thread; }
+
 private:
     friend class cross_thread_watcher_subscription_t;
     void on_value_changed(auto_drainer_t::lock_t keepalive);
