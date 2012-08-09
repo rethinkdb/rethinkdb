@@ -762,7 +762,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             break;
         case WriteQuery::MUTATE:
             {
-                view_t view = eval_view(w->mutable_update()->mutable_view(), env, backtrace.with("view"));
+                view_t view = eval_view(w->mutable_mutate()->mutable_view(), env, backtrace.with("view"));
 
                 int modified = 0, deleted = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
