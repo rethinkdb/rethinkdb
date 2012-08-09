@@ -1471,22 +1471,22 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
 
                     switch (c->builtin().comparison()) {
                     case Builtin_Comparison_EQ:
-                        result = (res == 0);
+                        result &= (res == 0);
                         break;
                     case Builtin_Comparison_NE:
-                        result = (res != 0);
+                        result &= (res != 0);
                         break;
                     case Builtin_Comparison_LT:
-                        result = (res < 0);
+                        result &= (res < 0);
                         break;
                     case Builtin_Comparison_LE:
-                        result = (res <= 0);
+                        result &= (res <= 0);
                         break;
                     case Builtin_Comparison_GT:
-                        result = (res > 0);
+                        result &= (res > 0);
                         break;
                     case Builtin_Comparison_GE:
-                        result = (res >= 0);
+                        result &= (res >= 0);
                         break;
                     default:
                         crash("Unknown comparison operator.");
