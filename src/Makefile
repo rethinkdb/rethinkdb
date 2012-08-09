@@ -10,6 +10,14 @@ ANSI_UL_OFF:=[0m
 
 ##### Configuring stuff
 
+IGNORE_MAKEFILE_CHANGES?=0
+
+ifeq ($(IGNORE_MAKEFILE_CHANGES),1)
+MAKEFILE_DEPENDENCY:=
+else
+MAKEFILE_DEPENDENCY:=Makefile
+endif
+
 # Set SOLO to 0 to build RethinkDB Cache (otherwise, RethinkDB Solo is built)
 SOLO?=1
 ifeq ($(SOLO),1)
@@ -814,14 +822,14 @@ $(BUILD_DIR):
 
 # Proto buffers object files
 # This is hacky, as the following rule is just a duplicate of the rule for our own sources
-$(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc Makefile $(PROTO_HEADERS)
+$(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(PROTO_HEADERS)
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
 endif
 	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY)
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
