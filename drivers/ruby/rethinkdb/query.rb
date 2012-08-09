@@ -35,14 +35,15 @@ module RethinkDB
       args.map{|arg| arg.class == Proc ? proc_args(m, arg) : [arg]}.flatten(1)
     end
 
+    def connection_send m
+      if Connection.last
+      then return Connection.last.send(m, self)
+      else raise RuntimeError, "No last connection, open a new one."
+      end
+    end
+
     #TODO: Arity Checking
     def method_missing(m, *args, &block)
-      if m == :run || m == :iter
-        if Connection.last
-        then return Connection.last.send(m, *(args + [self]), &block)
-        else raise RuntimeError, "No last connection, open a new one."
-        end
-      end
       return self.send(m, *(args + [block])) if block
       m = C.method_aliases[m] || m
       if P.enum_type(Builtin::Comparison, m)

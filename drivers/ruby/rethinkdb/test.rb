@@ -4,7 +4,7 @@ r = RethinkDB::RQL
 # BIG TODO:
 #   * Make Connection work with clusters, minimize network hops,
 #     etc. etc. like python client does.
-#   * CREATE, DROP, LIST, etc. for table creation
+#   * CREATE, DROP, LIST, etc. for table/namespace creation
 
 # TODO:
 # Confirm these are going away:
@@ -156,8 +156,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_getbykey #OBJECT, GETBYKEY
-    query = r.expr({'obj' => rdb.getbykey(:id, 0)})
-    query2 = r[{'obj' => rdb.getbykey(:id, 0)}]
+    query = r.expr({'obj' => rdb.get(0)})
+    query2 = r[{'obj' => rdb.get(0)}]
     assert_equal(query.run['obj'], $data[0])
     assert_equal(query2.run['obj'], $data[0])
   end

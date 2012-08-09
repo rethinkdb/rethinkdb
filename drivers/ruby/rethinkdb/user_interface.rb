@@ -1,4 +1,5 @@
 # TODO: toplevel documentation
+# TODO: Error, let, if, javascript, builtins, comparators
 module RethinkDB
   # A network connection to the RethinkDB cluster.
   class Connection
@@ -96,12 +97,135 @@ module RethinkDB
     # Note that the values of attributes may themselves be rdb queries.  For
     # instance, here is a query that maches anyone whose age is double their height:
     #   people.filter({:age => r[:height]*2})
-    # (The <b><tt>r[:height]</tt></b> references the Implicit Variable.)
-    # TODO: how to link to implicit variable?
+
+    # (The <b><tt>r[:height]</tt></b> references the Implicit Variable, see
+    # RQL_Mixin#expr.)
     def filter(obj=nil)
       if obj then filter{[:call, [:all], obj.map {|kv| RQL.attr(kv[0]).eq(kv[1])}]}
              else with_var {|vname,v| S._ [:call, [:filter, vname, yield(v)], [@body]]}
       end
     end
+
+    #TODO: LIMIT (ask about SLICE)
+
+    # Construct a query which maps a function over the invoking query.  It is
+    # often used in conjunction with <b>+reduce+</b>. For example, if we have a
+    # table <b>+table+</b>:
+    #   table.map{|row| row[:age]}.reduce(0){|a,b| a+b}
+    # will add up all the ages in <b>+table+</b>.
+    def map; with_var {|vname,v| S._ [:call, [:map, vname, yield(v)], [@body]]}; end
+
+    # Construct a query which selects the nth element of the invoking query.
+    # For example, if we have a table <b>+people+</b>:
+    #   people.filter{|row| row[:age] < 5}.nth(0)
+    # Will get the first person under 5 in our table (it's 0-indexed).
+    #
+    # TODO: Support [] notation?
+    def nth(n); S._ [:call, [:nth], [@body, n]]; end
+
+    # Order the invoking query.  For example, to sort first by name and then by
+    # social security number for the table <b>+people+</b>:
+    #   people.orderby(:name, :ssn)
+    #
+    # TODO: notation for reverse ordering
+    def orderby(*orderings); S._ [:call, [:orderby, *orderings], [@body]]; end
+
+    #TODO: Random (unimplemented)
+    #TODO: Reduce (unimplemented)
+
+    # Run the invoking query using the most recently opened connection.  See
+    # Connection#run for more details.
+    def run; connection_send :run; end
+    # Run the invoking query and iterate over the results using the most
+    # recently opened connection.  See Connection#iter for more details.
+    def iter; connection_send :iter; end
+
+    #TODO: Sample (unimplemented)
+    #TODO: SKIP (ask about SLICE)
+
+    # Get the row of the invoking table with key <b>+key+</b>.  You may also
+    # optionally specify the name of the attribute to use as your key
+    # (<b>+keyname+</b>), but note that your table must be indexed by that
+    # attribute.  Calling this function on anything except a table is an error:
+    #   good = table.get(0)
+    #   bad  = table.filter{|row| row[:name] = 'Bob'}.get(0)
+    def get(key, keyname=:id)
+      if @body[0] == :table then S._ [:getbykey, @body[1..-1], keyname, key]
+                            else raise SyntaxError, "Get must be called on a table."
+      end
+    end
+  end
+
+  # A mixin that contains all the query building commands.  Usually you will
+  # access these functions by extending/including <b>+Shortcuts_Mixin+</b> and
+  # then using the shortcut <b>+r+</b> that it provides.  For example, assuming
+  # you have <b>+r+</b> available and have opened a connection to a cluster with
+  # the namespace 'Welcome", you could do something like:
+  #   r.db('').Welcome.limit(4).run
+  # to get the first 4 elements of that namespace.
+  module RQL_Mixin
+    # Construct a new table reference, which may then be treated as a query for
+    # chaining (see the functions in RQL_Query).  There are two identical ways
+    # of getting access to a namespace: passing it as the second argument, or
+    # calling it as an instance method if no second argument was provided.  For
+    # instance, to access the namespace Welcome, either of these works:
+    #   db('','Welcome')
+    #   db('').Welcome
+    def db(db_name, table_name=nil); Tbl.new db_name, table_name; end
+
+    # A shortcut for RQL_Mixin#expr.  The following are equivalent:
+    #   r.expr(5)
+    #   r[5]
+    def [](ind); expr ind; end
+
+    # Converts from a Ruby datatype to an RQL query.  More commonly accessed
+    # with its shortcut, <b><tt>[]</tt></b>.  Numbers, strings, booleans,
+    # arrays, objects, and nil are all converted to their respective JSON types.
+    # Symbols that begin with '$' are converted to variables, and symbols
+    # without a '$' are converted to attributes of the implicit variable.  The
+    # implicit variable is defined for most operations as the current row.  For
+    # example, the following are equivalent:
+    #   r.db('').Welcome.filter{|row| row[:id].eq(5)}
+    #   r.db('').Welcome.filter{r.expr(:id).eq(5)}
+    #   r.db('').Welcome.filter{r[:id].eq(5)}
+    # Variables are used in e.g. <b>+let+</b> bindings.  For example:
+    #   r.let([['a', 1],
+    #          ['b', r[:$a]+1]],
+    #         r[:$b]*2).run
+    # will return 4.  (This notation will usually result in editors highlighting
+    # your variables the same as global ruby variables, which makes them stand
+    # out nicely in queries.)
+    #
+    # Note: this function is idempotent, so the following are equivalent:
+    #   r[5]
+    #   r[r[5]]
+    def expr x
+      case x.class().hash
+      when RQL_Query.hash  then x
+      when String.hash     then S._ [:string, x]
+      when Fixnum.hash     then S._ [:number, x]
+      when TrueClass.hash  then S._ [:bool, x]
+      when FalseClass.hash then S._ [:bool, x]
+      when NilClass.hash   then S._ [:json_null]
+      when Array.hash      then S._ [:array, *x.map{|y| expr(y)}]
+      when Hash.hash       then S._ [:object, *x.map{|var,term| [var, expr(term)]}]
+      when Symbol.hash     then S._ x.to_s[0]=='$'[0] ? var(x.to_s[1..-1]) : attr(x)
+      else raise TypeError, "RQL.expr can't handle '#{x.class()}'"
+      end
+    end
+
+    # Explicitly construct an RQL variable from a string.  The following are
+    # equivalent:
+    #   r[:$varname]
+    #   r.var('varname')
+    def var(varname); S._ [:var, varname]; end
+
+    # Explicitly construct a reference to an attribute of the implicit
+    # variable.  This is useful if for some reason you named an attribute that's
+    # hard to express as a symbol, or an attribute starting with a '$'.  The
+    # following are equivalent:
+    #   r[:attrname]
+    #   r.attr('attrname')
+    def attr(attrname); S._ [:call, [:implicit_getattr, attrname], []]; end
   end
 end
