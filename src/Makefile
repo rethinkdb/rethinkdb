@@ -599,7 +599,7 @@ rpm-suse10:
 endif
 
 # Build rules
-drivers: ./rdb_protocol/query_language.proto
+drivers: rdb_protocol/query_language.proto
 ifeq ($(BUILD_DRIVERS), 1)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[PY] $^"

@@ -46,11 +46,7 @@ typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_
 
 typedef variable_val_scope_t::new_scope_t new_val_scope_t;
 
-//scopes for json streams
-typedef variable_scope_t<boost::shared_ptr<stream_multiplexer_t> > variable_stream_scope_t;
-
-typedef variable_stream_scope_t::new_scope_t new_stream_scope_t;
-
+//Implicit value typedef
 typedef implicit_value_t<boost::shared_ptr<scoped_cJSON_t> >::impliciter_t implicit_value_setter_t;
 
 class runtime_environment_t {
@@ -68,7 +64,6 @@ public:
     { }
 
     variable_val_scope_t scope;
-    variable_stream_scope_t stream_scope;
     type_checking_environment_t type_env;
 
     implicit_value_t<boost::shared_ptr<scoped_cJSON_t> > implicit_attribute_value;
