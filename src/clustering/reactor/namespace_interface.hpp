@@ -68,11 +68,7 @@ public:
 
     typename protocol_t::read_response_t read_outdated(typename protocol_t::read_t r, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-        return dispatch_immediate_op<typename protocol_t::write_t, fifo_enforcer_sink_t::exit_write_t, typename protocol_t::write_response_t>(
-            &master_access_t<protocol_t>::new_write_token, &master_access_t<protocol_t>::write,
-            w, order_token, interruptor);
-    }
+    typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     std::set<typename protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 

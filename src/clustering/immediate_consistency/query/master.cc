@@ -33,6 +33,8 @@ void master_t<protocol_t>::client_t::perform_request(
     if (const typename master_business_card_t<protocol_t>::read_request_t *read =
             boost::get<typename master_business_card_t<protocol_t>::read_request_t>(&request)) {
 
+        read->order_token.assert_read_mode();
+
         boost::variant<typename protocol_t::read_response_t, std::string> reply;
         try {
             fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, read->fifo_token);
@@ -44,6 +46,8 @@ void master_t<protocol_t>::client_t::perform_request(
 
     } else if (const typename master_business_card_t<protocol_t>::write_request_t *write =
             boost::get<typename master_business_card_t<protocol_t>::write_request_t>(&request)) {
+
+        write->order_token.assert_write_mode();
 
         class write_callback_t : public broadcaster_t<protocol_t>::write_callback_t {
         public:
