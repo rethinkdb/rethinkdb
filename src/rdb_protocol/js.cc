@@ -11,6 +11,7 @@
 namespace js {
 
 const id_t MIN_ID = 1;
+// TODO: This is not the max id.  MAX_ID - 1 is the max id.
 const id_t MAX_ID = UINT32_MAX;
 
 // ---------- utility functions ----------
