@@ -242,6 +242,7 @@ template <class protocol_t>
 void on_subfield_change(reactor_business_card_t<protocol_t> *) { }
 
 
+#include "memcached/protocol.hpp"
 #include "memcached/protocol_json_adapter.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<memcached_protocol_t>(reactor_business_card_t<memcached_protocol_t> *target);
 template cJSON *render_as_json<memcached_protocol_t>(reactor_business_card_t<memcached_protocol_t> *target);
