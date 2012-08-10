@@ -36,7 +36,7 @@ module RethinkDB
     def enum_type(_class, _type); _class.values[_type.to_s.upcase.to_sym]; end
     def message_field(_class, _type); _class.fields.select{|x,y|
         y.instance_eval{@name} == _type
-        #TODO: why did the bottom one stop working?
+        #TODO: why did the following stop working?  (Or, why did it ever work?)
         #y.name == _type
       }[0]; end
     def message_set(message, key, val); message.send((key.to_s+'=').to_sym, val); end
@@ -48,10 +48,7 @@ module RethinkDB
     def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
     def last_gensym; 'gensym_'+@@gensym_counter.to_s; end
     def last_var; RQL.var last_gensym; end
-    def with_var
-      sym = gensym
-      yield sym, RQL.var(sym)
-    end
+    def with_var; sym = gensym; yield sym, RQL.var(sym); end
     def _ x; RQL_Query.new x; end
   end
   module S; extend S_Mixin; end

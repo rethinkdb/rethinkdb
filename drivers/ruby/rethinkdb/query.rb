@@ -34,6 +34,7 @@ module RethinkDB
     def method_missing(m, *args, &block)
       m = C.method_aliases[m] || m
       return RQL.send(m, *[self, *args], &block) if RQL.methods.include? m.to_s
+      PP.pp m
       return self.send(m, *(args + [block])) if block
       if P.enum_type(Builtin::Comparison, m)
         S._ [:call, [:compare, m], [@body, *args]]
@@ -54,8 +55,7 @@ module RethinkDB
 
   module RQL_Mixin
     def method_missing(m, *args, &block)
-      return self.send(C.method_aliases[m], *args, &block) if C.method_aliases[m]
-      super(m, *args, &block)
+      (m2 = C.method_aliases[m]) ? self.send(m2, *args, &block) : super(m, *args, &block)
     end
   end
   module RQL; extend RQL_Mixin; end

@@ -313,7 +313,8 @@ class ClientTest < Test::Unit::TestCase
     Array.new(len).each_index{|i| $data << {'id'=>i,'num'=>i,'name'=>i.to_s}}
 
     #INSERT, UPDATE
-    assert_equal(rdb.insert($data).run['inserted'], $data.length)
+    assert_equal(rdb.insert($data).run['inserted'], len)
+    assert_equal(rdb.insert($data + $data).run['inserted'], len*2)
     assert_equal(rdb.run, $data)
     assert_equal(rdb.insert({:id => 0, :broken => true}).run['inserted'], 1)
     assert_equal(rdb.insert({:id => 1, :broken => true}).run['inserted'], 1)

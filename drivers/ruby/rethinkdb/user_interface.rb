@@ -110,15 +110,16 @@ module RethinkDB
       end
     end
 
-    # Construct a query that deletes all rows of the invoking query.  For
-    # example, if we have a table <b>+table+</b>:
+    # Delete all rows of the invoking query, which *must* be a table.  For
+    # example, if we have a table
+    # <b>+table+</b>:
     #   table.filter{|row| row[:id] < 5}.delete
     # will construct a query that deletes everything with <b>+id+</b> less than
     # 5 in <b>+table+</b>
     def delete; S._ [:delete, @body]; end
 
-    # Construct a query which updates all rows of the invoking query.  For
-    # example, if we have a table <b>+table+</b>:
+    # Update all rows of the invoking query.  For example, if we have a table
+    # <b>+table+</b>:
     #   table.filter{|row| row[:id] < 5}.update{|row| {:score => row[:score]*2}}
     # will construct a query that doubles the score of everything with
     # <b>+id+</b> less tahn 4.  If the object returned in <b>+update+</b>
@@ -127,6 +128,39 @@ module RethinkDB
     # TODO: doesn't work
     def update
       S.with_var {|vname,v| S._ [:update, @body, [vname, RQL.expr(yield(v))]]};
+    end
+
+    # Replace all rows of the invoking query.  Unlike update, must return the
+    # new row rather than an object containing attributes to be updated (may be
+    # combined with <b>+mapmerge+</b> to achieve a similar effect to update).
+    # May also return <b>+nil+</b> to delete the row.  For example, if we have a
+    # table <b>+table+</b, then:
+    #   table.mutate{|row| if(row[:id] < 5, nil, row)}
+    # will delete everything with id less than 5, but leave the other rows untouched.
+    def mutate
+      S.with_var {|vname,v| S._ [:mutate, @body, [vname, RQL.expr(yield(v))]]};
+    end
+
+    # Insert one or more rows into the invoking query, which *must* be a table.
+    # Rows with duplicate primary key (usually :id) are ignored, with no
+    # guarantees about which row 'wins'.  May also provide only one row to
+    # insert.  For example, if we have a table <b>+table+</b>, the following are
+    # equivalent:
+    #   table.insert({:id => 1, :name => 'Bob'})
+    #   table.insert([{:id => 1, :name => 'Bob'}])
+    #   table.insert([{:id => 1, :name => 'Bob'}, {:id => 1, :name => 'Bob'}])
+    def insert(rows)
+      rows = [rows] if rows.class != Array
+      S.with_var {|vname,v| S._ [:insert, @body, rows.map{|x| RQL.expr x}]}
+    end
+
+    # Insert a stream into the invoking query, which *must* be a table.  Often
+    # used to insert one table into another.  For example:
+    #   table.insertstream(table2.filter{|row| row[:id] < 5})
+    # will insert every row in <b>+table2+</b> with id less than 5 into
+    # <b>+table+</b>.
+    def insertstream(stream)
+      S.with_var {|vname,v| S._ [:insertstream, @body, stream]}
     end
 
     # Run the invoking query using the most recently opened connection.  See
@@ -304,8 +338,9 @@ module RethinkDB
     #   r.get('id')
     #   r.attr('id')
     def getattr(obj, attrname=nil)
-      return getattr(S.last_var, obj) if not attrname
-      S._ [:call, [:getattr, attrname], [obj]]
+      if not attrname then S._ [:call, [:implicit_getattr, obj], []]
+                      else S._ [:call, [:getattr, attrname], [obj]]
+      end
     end
 
     # Test whether the implicit variable has a particular attribute.  Synonyms
@@ -314,8 +349,9 @@ module RethinkDB
     #   r.has('name')
     #   r.attr?('name')
     def hasattr(obj, attrname=nil)
-      return hasattr(S.last_var, obj) if not attrname
-      S._ [:call, [:hasattr, attrname], [obj]]
+      if not attrname then S._ [:call, [:implicit_hasattr, obj], []]
+                      else S._ [:call, [:hasattr, attrname], [obj]]
+      end
     end
 
     # Construct an object that is a subset of the object stored in the implicit
@@ -326,8 +362,10 @@ module RethinkDB
     #   r.pick(:id, :name)
     #   r.attrs(:id, :name)
     def pickattrs(*attrnames)
-      return pickattrs(S.last_var, *attrnames) if attrnames[0].class != RQL_Query
-      S._ [:call, [:pickattrs, *(attrnames[1..-1])], [attrnames[0]]]
+      if attrnames[0].class != RQL_Query
+      then S._ [:call, [:implicit_pickattrs, *attrnames], []]
+      else S._ [:call, [:pickattrs, *(attrnames[1..-1])], [attrnames[0]]]
+      end
     end
 
     # Add the results of two or more queries together.  (Those queries should
@@ -454,6 +492,8 @@ module RethinkDB
     # Note that the values of attributes may themselves be rdb queries.  For
     # instance, here is a query that matches anyone whose age is double their height:
     #   people.filter({:age => r.mul(:height, 2)})
+    # --
+    # (not currently true)
     # WARNING: since the implicit variable always refers to the nearest
     # enclosing block, if you were to use the implicit variable in a filter
     # specified by an dobject, you would instead access the nearest enclosing
@@ -497,7 +537,6 @@ module RethinkDB
         S._ [:call, [:concatmap, vname, expr(yield(v))], [expr stream]]
       }
     end
-
 
     # TODO: start_inclusive, end_inclusive in python -- what do these do?
     #
