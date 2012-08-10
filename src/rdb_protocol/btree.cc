@@ -5,8 +5,9 @@
 #include <boost/shared_ptr.hpp>
 
 #include "btree/backfill.hpp"
-#include "btree/erase_range.hpp"
 #include "btree/depth_first_traversal.hpp"
+#include "btree/erase_range.hpp"
+#include "btree/operations.hpp"
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/btree.hpp"
