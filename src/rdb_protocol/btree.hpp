@@ -5,11 +5,13 @@
 #include <utility>
 #include <vector>
 
-#include "errors.hpp"
-
-#include "btree/backfill.hpp"
-#include "buffer_cache/blob.hpp"
+#include "backfill_progress.hpp"
 #include "rdb_protocol/protocol.hpp"
+
+class key_tester_t;
+class parallel_traversal_progress_t;
+struct rdb_value_t;
+
 
 typedef rdb_protocol_t::read_t read_t;
 typedef rdb_protocol_t::read_response_t read_response_t;
@@ -31,71 +33,27 @@ typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
 static const size_t rget_max_chunk_size = MEGABYTE;
 
-struct rdb_value_t {
-    char contents[];
-
-public:
-    int inline_size(block_size_t bs) const {
-        return blob::ref_size(bs, contents, blob::btree_maxreflen);
-    }
-
-    int64_t value_size() const {
-        return blob::value_size(contents, blob::btree_maxreflen);
-    }
-
-    const char *value_ref() const {
-        return contents;
-    }
-
-    char *value_ref() {
-        return contents;
-    }
-};
-
-#define MAX_RDB_VALUE_SIZE MAX_IN_NODE_VALUE_SIZE
-
 bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value);
 
 template <>
 class value_sizer_t<rdb_value_t> : public value_sizer_t<void> {
 public:
-    explicit value_sizer_t<rdb_value_t>(block_size_t bs) : block_size_(bs) { }
+    explicit value_sizer_t<rdb_value_t>(block_size_t bs);
 
-    static const rdb_value_t *as_rdb(const void *p) {
-        return reinterpret_cast<const rdb_value_t *>(p);
-    }
+    static const rdb_value_t *as_rdb(const void *p);
 
-    int size(const void *value) const {
-        return as_rdb(value)->inline_size(block_size_);
-    }
+    int size(const void *value) const;
 
-    bool fits(const void *value, int length_available) const {
-        return btree_value_fits(block_size_, length_available, as_rdb(value));
-    }
+    bool fits(const void *value, int length_available) const;
 
-    bool deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const {
-        if (!fits(value, length_available)) {
-            *msg_out = "value does not fit in length_available";
-            return false;
-        }
+    bool deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const;
+    int max_possible_size() const;
 
-        return blob::deep_fsck(getter, block_size_, as_rdb(value)->value_ref(), blob::btree_maxreflen, msg_out);
-    }
+    static block_magic_t leaf_magic();
 
-    int max_possible_size() const {
-        return blob::btree_maxreflen;
-    }
+    block_magic_t btree_leaf_magic() const;
 
-    static block_magic_t leaf_magic() {
-        block_magic_t magic = { { 'r', 'd', 'b', 'l' } };
-        return magic;
-    }
-
-    block_magic_t btree_leaf_magic() const {
-        return leaf_magic();
-    }
-
-    block_size_t block_size() const { return block_size_; }
+    block_size_t block_size() const;
 
 private:
     // The block size.  It's convenient for leaf node code and for

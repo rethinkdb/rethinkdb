@@ -404,7 +404,9 @@ class BaseSelection(object):
         >>> table('users').filter(R('warnings') > 5).update({'banned': True})
 
         """
-        raise NotImplementedError
+        if not isinstance(mapping, internal.Function):
+            mapping = internal.Function(mapping)
+        return internal.Update(self, mapping)
 
     def mutate(self, mapping):
         """TODO: get rid of this ?"""

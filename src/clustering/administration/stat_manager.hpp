@@ -4,9 +4,9 @@
 #include <string>
 #include <map>
 #include <set>
-#include "rpc/mailbox/typed.hpp"
-#include "rpc/mailbox/mailbox.hpp"
+
 #include "perfmon/types.hpp"
+#include "rpc/mailbox/typed.hpp"
 
 class stat_manager_t {
 public:

@@ -11,6 +11,13 @@
 
 namespace query_language {
 
+
+/* Convenience function for making the horrible easy. */
+boost::shared_ptr<scoped_cJSON_t> shared_scoped_json(cJSON *json) {
+    return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(json));
+}
+
+
 void check_protobuf(bool cond) {
     if (!cond) {
         BREAKPOINT;
@@ -729,14 +736,17 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 view_t view = eval_view(w->mutable_update()->mutable_view(), env, backtrace.with("view"));
 
                 int updated = 0,
-                    error = 0;
+                    error = 0,
+                    skipped = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
 
                     env->scope.put_in_scope(w->update().mapping().arg(), json);
                     boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
-                    if (!cJSON_Equal(json->GetObjectItem(view.primary_key.c_str()),
-                                     val->GetObjectItem(view.primary_key.c_str()))) {
+                    if (val->type() == cJSON_NULL) {
+                        skipped++;
+                    } else if (!cJSON_Equal(json->GetObjectItem(view.primary_key.c_str()),
+                                            val->GetObjectItem(view.primary_key.c_str()))) {
                         error++;
                     } else {
                         insert(view.access, view.primary_key, val, env, backtrace);
@@ -744,7 +754,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     }
                 }
 
-                res->add_response(strprintf("{\"updated\": %d, \"errors\": %d}", updated, error));
+                res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}", updated, skipped, error));
             }
             break;
         case WriteQuery::DELETE:
@@ -1731,8 +1741,8 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
             break;
         case Builtin::GROUPEDMAPREDUCE:
             {
-                shared_scoped_less comparator(backtrace);
-                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less> groups(comparator);
+                shared_scoped_less_t comparator(backtrace);
+                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups(comparator);
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 
                 while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
@@ -1757,7 +1767,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                     // Do the reduction
                     {
                         variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                        std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less>::iterator
+                        std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator
                             elem = groups.find(group_mapped_row);
                         if(elem != groups.end()) {
                             env->scope.put_in_scope(c->builtin().grouped_map_reduce().reduction().var1(),
@@ -1781,7 +1791,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                 // deal with this
                 std::list<boost::shared_ptr<scoped_cJSON_t> > res;
 
-                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less>::iterator it;
+                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator it;
                 for(it = groups.begin(); it != groups.end(); ++it) {
                     res.push_back((*it).second);
                 }
@@ -1824,8 +1834,8 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
             break;
         case Builtin::DISTINCT:
             {
-                shared_scoped_less comparator(backtrace);
-                std::set<boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less> seen(comparator);
+                shared_scoped_less_t comparator(backtrace);
+                std::set<boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> seen(comparator);
 
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 

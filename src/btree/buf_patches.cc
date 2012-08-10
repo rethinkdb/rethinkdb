@@ -1,8 +1,8 @@
 #include "btree/buf_patches.hpp"
 
 #include "btree/leaf_node.hpp"
-#include "memcached/btree/node.hpp"
-#include "memcached/btree/value.hpp"
+#include "memcached/memcached_btree/node.hpp"
+#include "memcached/memcached_btree/value.hpp"
 #include "btree/detemplatizer.hpp"
 
 leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, repli_timestamp_t block_timestamp, patch_counter_t patch_counter, uint16_t _value_size, const void *value, const btree_key_t *_key, repli_timestamp_t _insertion_time)

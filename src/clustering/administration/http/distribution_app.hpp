@@ -7,8 +7,9 @@
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "http/http.hpp"
-#include "memcached/protocol.hpp"
 #include "rpc/semilattice/view.hpp"
+
+class memcached_protocol_t;
 
 class distribution_app_t : public http_app_t {
 public:

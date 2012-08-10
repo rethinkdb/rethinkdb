@@ -66,6 +66,7 @@ void apply_json_to(cJSON *change, persistable_blueprint_t<protocol_t> *target) {
 template <class protocol_t>
 void on_subfield_change(persistable_blueprint_t<protocol_t> *) { }
 
+#include "memcached/protocol.hpp"
 #include "memcached/protocol_json_adapter.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<memcached_protocol_t>(persistable_blueprint_t<memcached_protocol_t> *);
 template cJSON *render_as_json<memcached_protocol_t>(persistable_blueprint_t<memcached_protocol_t> *);

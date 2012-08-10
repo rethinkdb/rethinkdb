@@ -1,8 +1,10 @@
 #include <map>
-#include "unittest/gtest.hpp"
-
 
 #include "btree/leaf_node.hpp"
+#include "btree/node.hpp"
+#include "containers/scoped.hpp"
+#include "repli_timestamp.hpp"
+#include "unittest/gtest.hpp"
 
 
 struct short_value_t;

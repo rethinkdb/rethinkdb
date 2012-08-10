@@ -16,11 +16,6 @@
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 
-namespace boost {
-template <class> class function;
-template <class> class scoped_ptr;
-}
-
 /* This file describes the relationship between the protocol-specific logic for
 each protocol and the protocol-agnostic logic that routes queries for all the
 protocols. Each protocol defines a `protocol_t` struct that acts as a
@@ -289,6 +284,38 @@ opaque binary blob (`binary_blob_t`).
 */
 
 template <class protocol_t>
+class chunk_fun_callback_t {
+public:
+    virtual void send_chunk(const typename protocol_t::backfill_chunk_t &) = 0;
+
+protected:
+    chunk_fun_callback_t() { }
+    virtual ~chunk_fun_callback_t() { }
+private:
+    DISABLE_COPYING(chunk_fun_callback_t);
+};
+
+template <class protocol_t>
+class send_backfill_callback_t : public chunk_fun_callback_t<protocol_t> {
+public:
+    bool should_backfill(const typename protocol_t::store_t::metainfo_t &metainfo) {
+        guarantee(!should_backfill_was_called_);
+        should_backfill_was_called_ = true;
+        return should_backfill_impl(metainfo);
+    }
+
+protected:
+    virtual bool should_backfill_impl(const typename protocol_t::store_t::metainfo_t &metainfo) = 0;
+
+    send_backfill_callback_t() : should_backfill_was_called_(false) { }
+    virtual ~send_backfill_callback_t() { }
+private:
+    bool should_backfill_was_called_;
+
+    DISABLE_COPYING(send_backfill_callback_t);
+};
+
+template <class protocol_t>
 class store_view_t : public home_thread_mixin_t {
 public:
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
@@ -357,8 +384,7 @@ public:
     */
     virtual bool send_backfill(
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
-            const boost::function<bool(const metainfo_t&)> &should_backfill,  // NOLINT
-            const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+            send_backfill_callback_t<protocol_t> *send_backfill_cb,
             typename protocol_t::backfill_progress_t *progress,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
@@ -498,15 +524,14 @@ public:
 
     bool send_backfill(
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
-            const boost::function<bool(const metainfo_t&)> &should_backfill,  // NOLINT
-            const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+            send_backfill_callback_t<protocol_t> *send_backfill_cb,
             typename protocol_t::backfill_progress_t *p,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         rassert(region_is_superset(get_region(), start_point.get_domain()));
 
-        return store_view->send_backfill(start_point, should_backfill, chunk_fun, p, token, interruptor);
+        return store_view->send_backfill(start_point, send_backfill_cb, p, token, interruptor);
     }
 
     void receive_backfill(

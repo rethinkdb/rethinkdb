@@ -4,7 +4,7 @@
 #include <string>
 
 #include "btree/node.hpp"
-#include "memcached/btree/value.hpp"
+#include "memcached/memcached_btree/value.hpp"
 
 template <>
 class value_sizer_t<memcached_value_t> : public value_sizer_t<void> {

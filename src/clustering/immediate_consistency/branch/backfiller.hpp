@@ -7,6 +7,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 
+template <class> class backfiller_send_backfill_callback_t;
 template <class> class semilattice_read_view_t;
 template <class> class multistore_ptr_t;
 class traversal_progress_combiner_t;
@@ -25,6 +26,8 @@ public:
     /* TODO: Support warm shutdowns? */
 
 private:
+    friend class backfiller_send_backfill_callback_t<protocol_t>;
+
     bool confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, UNUSED region_map_t<protocol_t, version_range_t> start_point,
                                    mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_cont);
 

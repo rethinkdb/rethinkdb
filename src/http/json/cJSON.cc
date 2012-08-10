@@ -569,7 +569,7 @@ cJSON *cJSON_DeepCopy(cJSON *target) {
 }
 
 bool cJSON_Equal(cJSON *x, cJSON *y) {
-    if (x->type != y->type) {
+    if (!x || !y || x->type != y->type) {
         return false;
     }
 

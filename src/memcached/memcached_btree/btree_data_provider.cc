@@ -1,10 +1,10 @@
-#include "memcached/btree/btree_data_provider.hpp"
+#include "memcached/memcached_btree/btree_data_provider.hpp"
 
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/data_buffer.hpp"
-#include "memcached/btree/value.hpp"
+#include "memcached/memcached_btree/value.hpp"
 
 intrusive_ptr_t<data_buffer_t> value_to_data_buffer(const memcached_value_t *value, transaction_t *txn) {
     txn->assert_thread();

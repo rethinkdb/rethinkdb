@@ -1,16 +1,17 @@
-#define __STDC_LIMIT_MACROS     // hack. :(
+#define __STDC_LIMIT_MACROS
 #include <stdint.h>             // for UINT32_MAX
 
 #include "utils.hpp"
-#include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
 
 #include "containers/scoped.hpp"
 #include "rdb_protocol/jsimpl.hpp"
+#include "rdb_protocol/rdb_protocol_json.hpp"
 
 namespace js {
 
 const id_t MIN_ID = 1;
+// TODO: This is not the max id.  MAX_ID - 1 is the max id.
 const id_t MAX_ID = UINT32_MAX;
 
 // ---------- utility functions ----------
@@ -83,6 +84,9 @@ v8::Handle<v8::Value> env_t::findValue(id_t id) {
 
 id_t env_t::new_id() {
     guarantee(next_id_ < MAX_ID); // overflow would be bad
+    // TODO: What is this?  Is MAX_ID is not maximum id.  Why would
+    // you call it MAX_ID if it was not the maximum possible id?  Why
+    // are you having code with a side effect on the same line?
     return next_id_++;
 }
 
