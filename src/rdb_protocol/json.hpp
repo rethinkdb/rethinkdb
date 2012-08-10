@@ -18,10 +18,10 @@ namespace query_language {
 
 int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace);
 
-class shared_scoped_less {
+class shared_scoped_less_t {
 public:
-    shared_scoped_less() { }
-    explicit shared_scoped_less(const backtrace_t &bt) : backtrace(bt) { }
+    shared_scoped_less_t() { }
+    explicit shared_scoped_less_t(const backtrace_t &bt) : backtrace(bt) { }
     bool operator()(const boost::shared_ptr<scoped_cJSON_t> &a,
                       const boost::shared_ptr<scoped_cJSON_t> &b) {
         if (a->type() == b->type()) {

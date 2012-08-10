@@ -101,7 +101,7 @@ struct rdb_protocol_t {
 
     struct rget_read_response_t {
         typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
-        typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, query_language::shared_scoped_less> groups_t; //Present if the terminal was a groupedmapreduce
+        typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, query_language::shared_scoped_less_t> groups_t; //Present if the terminal was a groupedmapreduce
         typedef boost::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
 
         struct length_t {
