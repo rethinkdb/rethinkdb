@@ -157,7 +157,8 @@ private:
 
 template <class T>
 write_message_t &operator<<(write_message_t &msg, const scoped_array_t<T> &a) {
-    msg << a.size();
+    int64_t size = a.size();
+    msg << size;
     for (T *it = a.data(); it != a.data() + a.size(); ++it) {
         msg << *it;
     }
@@ -167,7 +168,7 @@ write_message_t &operator<<(write_message_t &msg, const scoped_array_t<T> &a) {
 template <class T>
 MUST_USE archive_result_t deserialize(read_stream_t *s, scoped_array_t<T> *a) {
     archive_result_t res;
-    int size;
+    int64_t size;
     if ((res = deserialize(s, &size))) { return res; }
 
     a->reset();
