@@ -7,9 +7,71 @@
 #include "btree/backfill.hpp"
 #include "btree/erase_range.hpp"
 #include "btree/depth_first_traversal.hpp"
+#include "buffer_cache/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "containers/scoped.hpp"
+
+#define MAX_RDB_VALUE_SIZE MAX_IN_NODE_VALUE_SIZE
+
+struct rdb_value_t {
+    char contents[];
+
+public:
+    int inline_size(block_size_t bs) const {
+        return blob::ref_size(bs, contents, blob::btree_maxreflen);
+    }
+
+    int64_t value_size() const {
+        return blob::value_size(contents, blob::btree_maxreflen);
+    }
+
+    const char *value_ref() const {
+        return contents;
+    }
+
+    char *value_ref() {
+        return contents;
+    }
+};
+
+value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
+
+const rdb_value_t *value_sizer_t<rdb_value_t>::as_rdb(const void *p) {
+    return reinterpret_cast<const rdb_value_t *>(p);
+}
+
+int value_sizer_t<rdb_value_t>::size(const void *value) const {
+    return as_rdb(value)->inline_size(block_size_);
+}
+
+bool value_sizer_t<rdb_value_t>::fits(const void *value, int length_available) const {
+    return btree_value_fits(block_size_, length_available, as_rdb(value));
+}
+
+bool value_sizer_t<rdb_value_t>::deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const {
+    if (!fits(value, length_available)) {
+        *msg_out = "value does not fit in length_available";
+        return false;
+    }
+
+    return blob::deep_fsck(getter, block_size_, as_rdb(value)->value_ref(), blob::btree_maxreflen, msg_out);
+}
+
+int value_sizer_t<rdb_value_t>::max_possible_size() const {
+    return blob::btree_maxreflen;
+}
+
+block_magic_t value_sizer_t<rdb_value_t>::leaf_magic() {
+    block_magic_t magic = { { 'r', 'd', 'b', 'l' } };
+    return magic;
+}
+
+block_magic_t value_sizer_t<rdb_value_t>::btree_leaf_magic() const {
+    return leaf_magic();
+}
+
+block_size_t value_sizer_t<rdb_value_t>::block_size() const { return block_size_; }
 
 boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction_t *txn) {
     blob_t blob(const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
@@ -213,3 +275,4 @@ rget_read_response_t rdb_rget_slice(btree_slice_t *slice, const key_range_t &ran
     }
     return callback.response;
 }
+
