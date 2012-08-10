@@ -100,10 +100,10 @@ module RethinkDB
     #   r.expr({:a => 2})[:a]
     def [](ind)
       case ind.class.hash
-      when Fixnum.hash then S._ [:call, [:nth], [@body, ind]]
+      when Fixnum.hash then S._ [:call, [:nth], [@body, RQL.expr(ind)]]
       when Range.hash then
-        b = ind.begin
-        e = ind.end == -1 ? nil : ind.end
+        b = RQL.expr(ind.begin)
+        e = ind.end == -1 ? nil : RQL.expr(ind.end)
         S._ [:call, [:slice], [@body, b, e]]
       when Symbol.hash, String.hash then S._ [:call, [:getattr, ind], [@body]]
       else raise SyntaxError, "RQL_Query#[] can't handle #{ind}."
@@ -124,7 +124,9 @@ module RethinkDB
     # <b>+id+</b> less tahn 4.  If the object returned in <b>+update+</b>
     # has attributes which are not present in the original row, those attributes
     # will still be added to the new row.
-    def update; S.with_var {|vname,v| S._ [:update, @body, [vname, yield(v)]]}; end
+    def update
+      S.with_var {|vname,v| S._ [:update, @body, [vname, RQL.expr(yield(v))]]};
+    end
 
     # Run the invoking query using the most recently opened connection.  See
     # Connection#run for more details.
@@ -235,6 +237,7 @@ module RethinkDB
       when Array.hash      then S._ [:array, *x.map{|y| expr(y)}]
       when Hash.hash       then S._ [:object, *x.map{|var,term| [var, expr(term)]}]
       when Symbol.hash     then S._ x.to_s[0]=='$'[0] ? var(x.to_s[1..-1]) : getattr(x)
+      when Tbl.hash        then x.expr
       else raise TypeError, "RQL.expr can't handle '#{x.class()}'"
       end
     end
@@ -265,7 +268,9 @@ module RethinkDB
     # example, if we have a table <b>+table+</b>:
     #   table.update{|row| if(row[:score] < 10, {:score => 10}, {})}
     # will change every row with score below 10 in <b>+table+</b> to have score 10.
-    def if(test, t_branch, f_branch); S._ [:if, test, t_branch, f_branch]; end
+    def if(test, t_branch, f_branch)
+      S._ [:if, expr(test), expr(t_branch), expr(f_branch)]
+    end
 
     # Construct a query that binds some values to variable (as specified by
     # <b>+varbinds+</b>) and then executes <b>+body+</b> with those variables in
@@ -275,13 +280,13 @@ module RethinkDB
     #         r[:$b]*2)
     # will bind <b>+a+</b> to 2, <b>+b+</b> to 3, and then return 6.  (It is
     # thus analagous to <b><tt>let*</tt></b> in the Lisp family of languages.)
-    def let(varbinds, body); S._ [:let, varbinds, body]; end
+    def let(varbinds, body); S._ [:let, varbinds, expr(body)]; end
 
     # Negate a predicate.  May also be called as if it were a instance method of
     # RQL_Query for convenience.  The following are equivalent:
     #   r.not(true)
     #   r[true].not
-    def not(pred); S._ [:call, [:not], [pred]]; end
+    def not(pred); S._ [:call, [:not], [expr pred]]; end
 
     # Explicitly construct a reference to an attribute of the implicit
     # variable.  This is useful if for some reason you named an attribute that's
@@ -327,7 +332,9 @@ module RethinkDB
     #              # overloads based on the lefthand side.
     # The following is also legal:
     #   r.add(1,2,3)
-    def add(a, b, *rest); S._ [:call, [:add], [a, b, *rest]]; end
+    def add(a, b, *rest)
+      S._ [:call, [:add], [expr(a), expr(b), *(rest.map{|x| expr x})]];
+    end
 
     # Subtract one query from another.  (Those queries should return numbers.)
     # May also be called as if it were a instance method of RQL_Query for
@@ -340,7 +347,7 @@ module RethinkDB
     #   r[1].sub(2)
     #   (r[1] - 2) # Note that (1 - r[2]) is *incorrect* because Ruby only
     #              # overloads based on the lefthand side.
-    def subtract(a, b); S._ [:call, [:subtract], [a, b]]; end
+    def subtract(a, b); S._ [:call, [:subtract], [expr(a), expr(b)]]; end
 
     # Multiply the results of two or more queries together.  (Those queries should
     # return numbers.)  May also be called as if it were a instance method of
@@ -355,7 +362,9 @@ module RethinkDB
     #              # overloads based on the lefthand side.
     # The following is also legal:
     #   r.multiply(1,2,3)
-    def multiply(a, b, *rest); S._ [:call, [:multiply], [a, b, *rest]]; end
+    def multiply(a, b, *rest)
+      S._ [:call, [:multiply], [expr(a), expr(b), *(rest.map{|x| expr x})]];
+    end
 
     # Divide one query by another.  (Those queries should return numbers.)
     # May also be called as if it were a instance method of RQL_Query for
@@ -368,7 +377,7 @@ module RethinkDB
     #   r[1].div(2)
     #   (r[1] / 2) # Note that (1 / r[2]) is *incorrect* because Ruby only
     #              # overloads based on the lefthand side.
-    def divide(a, b); S._ [:call, [:divide], [a, b]]; end
+    def divide(a, b); S._ [:call, [:divide], [expr(a), expr(b)]]; end
 
     # Take one query modulo another.  (Those queries should return numbers.)
     # May also be called as if it were a instance method of RQL_Query for
@@ -381,7 +390,7 @@ module RethinkDB
     #   r[1].mod(2)
     #   (r[1] - 2) # Note that (1 - r[2]) is *incorrect* because Ruby only
     #              # overloads based on the lefthand side.
-    def modulo(a, b); S._ [:call, [:modulo], [a, b]]; end
+    def modulo(a, b); S._ [:call, [:modulo], [expr(a), expr(b)]]; end
 
     # Take one or more predicate queries and construct a query that returns true
     # if any of them evaluate to true.  Sort of like <b>+or+</b> in ruby, but
@@ -397,7 +406,9 @@ module RethinkDB
     #   r[false].or(true)
     #   (r[false] & true) # Note that (false & r[true]) is *incorrect* because
     #                     # Ruby only overloads based on the lefthand side
-    def any(pred, *rest); S._ [:call, [:any], [pred, *rest]]; end
+    def any(pred, *rest)
+      S._ [:call, [:any], [expr(pred), *(rest.map{|x| expr x})]];
+    end
 
     # Take one or more predicate queries and construct a query that returns true
     # if all of them evaluate to true.  Sort of like <b>+or+</b> in ruby, but
@@ -413,7 +424,9 @@ module RethinkDB
     #   r[false].and(true)
     #   (r[false] | true) # Note that (false | r[true]) is *incorrect* because
     #                     # Ruby only overloads based on the lefthand side
-    def all(pred, *rest); S._ [:call, [:all], [pred, *rest]]; end
+    def all(pred, *rest)
+      S._ [:call, [:all], [expr(pred), *(rest.map{|x| expr x})]];
+    end
 
     # Filter a query returning a stream, based on a predicate.  May also be
     # called as if it were a instance method of RQL_Query for convenience.  The
@@ -434,8 +447,12 @@ module RethinkDB
     # instance, here is a query that maches anyone whose age is double their height:
     #   people.filter({:age => r[:height]*2})
     def filter(stream, obj=nil)
-      if obj then filter(stream){[:call, [:all], obj.map{|kv| getattr(kv[0]).eq(kv[1])}]}
-             else S.with_var{|vname,v| S._ [:call, [:filter, vname, yield(v)], [stream]]}
+      if obj
+        filter(stream) {
+          S._ [:call, [:all], obj.map{|kv| getattr(kv[0]).eq(kv[1])}]
+        }
+      else
+        S.with_var{|vname,v| S._ [:call,[:filter, vname, expr(yield(v))], [expr stream]]}
       end
     end
 
@@ -448,7 +465,7 @@ module RethinkDB
     #   table.map {|row| row[:id]}
     #   table.map {r[:id]} # uses implicit variable
     def map(stream)
-      S.with_var{|vname,v| S._ [:call, [:map, vname, yield(v)], [stream]]}
+      S.with_var{|vname,v| S._ [:call, [:map, vname, expr(yield(v))], [expr(stream)]]}
     end
 
     # Map a function over a query returning a stream, then concatenate the
@@ -462,7 +479,9 @@ module RethinkDB
     #   table.concatmap {r.expr([r[:id], r[:id]*2])} # uses implicit variable
     #   table.map{|row| r.expr([row[:id], row[:id]*2])}.reduce([]){|a,b| r.union(a,b)}
     def concatmap(stream)
-      S.with_var{|vname,v| S._ [:call, [:concatmap, vname, yield(v)], [stream]]}
+      S.with_var { |vname,v|
+        S._ [:call, [:concatmap, vname, expr(yield(v))], [expr stream]]
+      }
     end
 
 
@@ -484,9 +503,9 @@ module RethinkDB
     #   table.filter{|row| row[:index] <= 7}
     def between(stream, start_key, end_key, keyname=:id)
       opts = {:attrname => keyname}
-      opts[:lowerbound] = start_key if start_key != nil
-      opts[:upperbound] = end_key if end_key != nil
-      S._ [:call, [:range, opts], [stream]]
+      opts[:lowerbound] = expr start_key if start_key != nil
+      opts[:upperbound] = expr end_key if end_key != nil
+      S._ [:call, [:range, opts], [expr stream]]
     end
 
     # Removes duplicate items from <b>+seq+</b>, which may be either a JSON
@@ -499,7 +518,7 @@ module RethinkDB
     #   r.expr [1,2,3]
     #   r.distinct(r.expr [1,2,3,1])
     #   r.expr([1,2,3,1]).distinct
-    def distinct(seq); S._ [:call, [:distinct], [seq]]; end
+    def distinct(seq); S._ [:call, [:distinct], [expr seq]]; end
 
     # Get the length of <b>+seq+</b>, which may be either a JSON array or a
     # stream.  If we have a table <b>+table+</b> with at least 5 elements, the
@@ -508,7 +527,7 @@ module RethinkDB
     #   table.limit(5).length
     #   r.length(r.expr [1..5])
     #   r.expr([1..5]).length
-    def length(seq); S._ [:call, [:length], [seq]]; end
+    def length(seq); S._ [:call, [:length], [expr seq]]; end
 
     # Take the union of 0 or more sequences <b>+seqs+</b>.  Note that unlike
     # mathematical union, duplicate values are preserved.  May be called on
@@ -521,7 +540,7 @@ module RethinkDB
     #   r.expr [1,2,3,1,4,5]
     #   r.union(r.expr([1,2,3]), r.expr([1,4,5]))
     #   r.expr([1,2,3]).union(r.expr [1,4,5])
-    def union(*seqs); S._ [:call, [:union], seqs]; end
+    def union(*seqs); S._ [:call, [:union], seqs.map{|x| expr x}]; end
 
     # Convert from an array to a stream.  Also has the synonym
     # <b>+to_stream+</b>.  May also be called as if it were a instance method of
@@ -534,7 +553,7 @@ module RethinkDB
     #   r.expr([1,2,3]).arraytostream
     #   r.to_stream r.expr([1,2,3])
     #   r.expr([1,2,3]).to_stream
-    def arraytostream(array); S._ [:call, [:arraytostream], [array]]; end
+    def arraytostream(array); S._ [:call, [:arraytostream], [expr(array)]]; end
 
     # Convert from a stream to an array.  Also has the synonym <b>+to_array+</b>.
     # May also be called as if it were a instance method of RQL_Query, for
@@ -560,7 +579,9 @@ module RethinkDB
     def reduce(stream, base)
       S.with_var { |aname,a|
         S.with_var { |bname,b|
-          S._ [:call, [:reduce, base, aname, bname, yield(a,b)], [stream]]
+          S._ [:call,
+               [:reduce, expr(base), aname, bname, expr(yield(a,b))],
+               [expr(stream)]]
         }
       }
     end
@@ -571,7 +592,9 @@ module RethinkDB
     # the table <b>+people+</b>, both of these work:
     #   r.orderby(people, :name, :ssn)
     #   people.orderby(:name, :ssn)
-    def orderby(stream, *orderings); S._ [:call, [:orderby, *orderings], [stream]]; end
+    def orderby(stream, *orderings)
+      S._ [:call, [:orderby, *orderings], [expr(stream)]]
+    end
 
     # Get element <b>+n+</b> of <b>+seq+</b>, which may be either a stream or a
     # JSON array.  May also be called as if it were an instance method of
@@ -580,10 +603,21 @@ module RethinkDB
     #   r.nth(table, 5)
     #   table.nth(5)
     # As are:
-    #   r.expr 2
-    #   r.nth(r.expr([0,1,2,3]), 2)
-    #   r.expr([0,1,2,3]).nth(2)
-    # (Not the 0-indexing.)
-    def nth(seq, n); S._ [:call, [:nth], [seq, n]]; end
+    #   r[2]
+    #   r.nth([0,1,2,3], 2)
+    #   r[[0,1,2,3]].nth(2)
+    # (Note the 0-indexing.)
+    def nth(seq, n); S._ [:call, [:nth], [expr(seq), expr(n)]]; end
+
+    # Merge two objects together with a preference for the object on the right.
+    # The resulting object has all the attributes in both objects, and if the
+    # two objects share an attribute, the value from the object on the left
+    # "wins" and is included in the final object.  May also be called as if it
+    # were an instance method of RQL_Query, for convenience.  The following are
+    # equivalent:
+    #   r[{:a => 10, :b => 2, :c => 30}]
+    #   r.mapmerge({:a => 1, :b => 2}, {:a => 10, :c => 30})
+    #   r[{:a => 1, :b => 2}].mapmerge({:a => 10, :c => 30})
+    def mapmerge(obj1, obj2); S._ [:call, [:mapmerge], [expr(obj1), expr(obj2)]]; end
   end
 end

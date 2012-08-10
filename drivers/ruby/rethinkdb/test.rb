@@ -224,6 +224,11 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r[arr].to_stream[2...5].run, r[arr].to_stream[2..5].run)
   end
 
+  def test_mapmerge
+    assert_equal(r[{:a => 1}].mapmerge({:b => 2}).run, {'a' => 1, 'b' => 2})
+    assert_equal(r.mapmerge({:a => 1}, {:a => 2}).run, {'a' => 2})
+  end
+
   def test_orderby #ORDERBY, MAP
     assert_equal(rdb.orderby(:id).run, $data)
     assert_equal(rdb.orderby('id').run, $data)
@@ -287,6 +292,7 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_pickattrs #PICKATTRS, #UNION, #LENGTH
+    #TODO: when union does implicit mapmerge, change
     q1=r.union(rdb.map{r.pickattrs(:id,:name)}, rdb.map{|row| row.pickattrs(:id,:num)})
     q2=r.union(rdb.map{r.attrs(:id,:name)}, rdb.map{|row| row.attrs(:id,:num)})
     q1v = q1.run

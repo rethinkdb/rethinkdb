@@ -40,7 +40,7 @@ module RethinkDB
     def method_missing(m, *args, &block)
       m = C.method_aliases[m] || m
       if (RQL.methods.include? m.to_s) && (not m.to_s.grep(/.*attrs?/)[0])
-        return RQL.send(m, *[@body, *args], &block)
+        return RQL.send(m, *[self, *args], &block)
       end
       return self.send(m, *(args + [block])) if block
       if P.enum_type(Builtin::Comparison, m)
@@ -96,6 +96,7 @@ module RethinkDB
     def sexp; [:table, @db, @table]; end
     def method_missing(m, *a, &b)
       if    not @table                 then @table = m; return self
+      elsif m == :expr                 then S._ [:table, @db, @table]
       elsif C.table_directs.include? m then S._([@db, @table]).send(m, *a, &b)
                                        else S._([:table, @db, @table]).send(m, *a, &b)
       end
