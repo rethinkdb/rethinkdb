@@ -81,14 +81,51 @@ bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<p
 }
 
 template <class protocol_t>
-void send_chunk(mailbox_manager_t *mbox_manager,
-                mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_addr,
-                const typename protocol_t::backfill_chunk_t &chunk,
-                fifo_enforcer_source_t *fifo_src,
-                semaphore_t *chunk_semaphore) {
+void do_send_chunk(mailbox_manager_t *mbox_manager,
+                   mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_addr,
+                   const typename protocol_t::backfill_chunk_t &chunk,
+                   fifo_enforcer_source_t *fifo_src,
+                   semaphore_t *chunk_semaphore) {
     chunk_semaphore->co_lock();
     send(mbox_manager, chunk_addr, chunk, fifo_src->enter_write());
 }
+
+template <class protocol_t>
+class backfiller_send_backfill_callback_t : public send_backfill_callback_t<protocol_t> {
+public:
+    backfiller_send_backfill_callback_t(const region_map_t<protocol_t, version_range_t> *start_point,
+                                        mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_cont,
+                                        mailbox_manager_t *mailbox_manager,
+                                        mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
+                                        fifo_enforcer_source_t *fifo_src,
+                                        semaphore_t *chunk_semaphore,
+                                        backfiller_t<protocol_t> *backfiller)
+        : start_point_(start_point),
+          end_point_cont_(end_point_cont),
+          mailbox_manager_(mailbox_manager),
+          chunk_cont_(chunk_cont),
+          fifo_src_(fifo_src),
+          chunk_semaphore_(chunk_semaphore),
+          backfiller_(backfiller) { }
+
+    bool should_backfill_impl(const typename store_view_t<protocol_t>::metainfo_t &metainfo) {
+        return backfiller_->confirm_and_send_metainfo(metainfo, *start_point_, end_point_cont_);
+    }
+
+    void send_chunk(const typename protocol_t::backfill_chunk_t &chunk) {
+        do_send_chunk<protocol_t>(mailbox_manager_, chunk_cont_, chunk, fifo_src_, chunk_semaphore_);
+    }
+private:
+    const region_map_t<protocol_t, version_range_t> *start_point_;
+    mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_cont_;
+    mailbox_manager_t *mailbox_manager_;
+    mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont_;
+    fifo_enforcer_source_t *fifo_src_;
+    semaphore_t *chunk_semaphore_;
+    backfiller_t<protocol_t> *backfiller_;
+
+    DISABLE_COPYING(backfiller_send_backfill_callback_t);
+};
 
 template <class protocol_t>
 void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
@@ -130,14 +167,16 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
         scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> send_backfill_token;
         svs->new_read_token(&send_backfill_token);
 
+        backfiller_send_backfill_callback_t<protocol_t>
+            send_backfill_cb(&start_point, end_point_cont, mailbox_manager, chunk_cont, &fifo_src, &chunk_semaphore, this);
+
         /* Actually perform the backfill */
         svs->send_multistore_backfill(
                      region_map_transform<protocol_t, version_range_t, state_timestamp_t>(
                                                       start_point,
                                                       &get_earliest_timestamp_of_version_range
                                                       ),
-                     boost::bind(&backfiller_t<protocol_t>::confirm_and_send_metainfo, this, _1, start_point, end_point_cont),
-                     boost::bind(send_chunk<protocol_t>, mailbox_manager, chunk_cont, _1, &fifo_src, &chunk_semaphore),
+                     &send_backfill_cb,
                      local_backfill_progress[session_id],
                      &send_backfill_token,
                      &interrupted

@@ -326,7 +326,7 @@ struct rdb_protocol_t {
                                         superblock_t *superblock);
 
         void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-                                    const boost::function<void(backfill_chunk_t)> &chunk_fun,
+                                    chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
                                     superblock_t *superblock,
                                     btree_slice_t *btree,
                                     transaction_t *txn,

@@ -387,8 +387,7 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_proto
 }
 
 bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
-                                              const boost::function<bool(const metainfo_t&)> &should_backfill,  // NOLINT
-                                              const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun,
+                                              send_backfill_callback_t<dummy_protocol_t> *send_backfill_cb,
                                               backfill_progress_t *,
                                               scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -399,7 +398,7 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
     wait_interruptible(local_token.get(), interruptor);
 
     metainfo_t masked_metainfo = metainfo.mask(start_point.get_domain());
-    if (should_backfill(masked_metainfo)) {
+    if (send_backfill_cb->should_backfill(masked_metainfo)) {
         /* Make a copy so we can sleep and still have the correct semantics */
         std::map<std::string, std::string> values_snapshot = values;
         std::map<std::string, state_timestamp_t> timestamps_snapshot = timestamps;
@@ -419,7 +418,7 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
                     chunk.key = *it;
                     chunk.value = values_snapshot[*it];
                     chunk.timestamp = timestamps_snapshot[*it];
-                    chunk_fun(chunk);
+                    send_backfill_cb->send_chunk(chunk);
                 }
                 if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
             }
