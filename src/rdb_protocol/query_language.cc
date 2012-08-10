@@ -762,7 +762,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             break;
         case WriteQuery::MUTATE:
             {
-                view_t view = eval_view(w->mutable_update()->mutable_view(), env, backtrace.with("view"));
+                view_t view = eval_view(w->mutable_mutate()->mutable_view(), env, backtrace.with("view"));
 
                 int modified = 0, deleted = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
@@ -1471,22 +1471,22 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
 
                     switch (c->builtin().comparison()) {
                     case Builtin_Comparison_EQ:
-                        result = (res == 0);
+                        result &= (res == 0);
                         break;
                     case Builtin_Comparison_NE:
-                        result = (res != 0);
+                        result &= (res != 0);
                         break;
                     case Builtin_Comparison_LT:
-                        result = (res < 0);
+                        result &= (res < 0);
                         break;
                     case Builtin_Comparison_LE:
-                        result = (res <= 0);
+                        result &= (res <= 0);
                         break;
                     case Builtin_Comparison_GT:
-                        result = (res > 0);
+                        result &= (res > 0);
                         break;
                     case Builtin_Comparison_GE:
-                        result = (res >= 0);
+                        result &= (res >= 0);
                         break;
                     default:
                         crash("Unknown comparison operator.");
