@@ -7,9 +7,6 @@
 #include <vector>
 #include <utility>
 
-#include "utils.hpp"
-#include <boost/function.hpp>
-
 #include "backfill_progress.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
@@ -17,6 +14,7 @@
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 #include "perfmon/types.hpp"
+#include "utils.hpp"
 
 class signal_t;
 class io_backender_t;

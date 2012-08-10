@@ -16,11 +16,6 @@
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 
-namespace boost {
-template <class> class function;
-template <class> class scoped_ptr;
-}
-
 /* This file describes the relationship between the protocol-specific logic for
 each protocol and the protocol-agnostic logic that routes queries for all the
 protocols. Each protocol defines a `protocol_t` struct that acts as a

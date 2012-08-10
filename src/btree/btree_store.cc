@@ -1,9 +1,5 @@
 #include "btree/btree_store.hpp"
 
-#include "errors.hpp"
-#include <boost/function.hpp>
-#include <boost/variant.hpp>
-
 #include "btree/operations.hpp"
 #include "serializer/config.hpp"
 #include "containers/archive/vector_stream.hpp"
