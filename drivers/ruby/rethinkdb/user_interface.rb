@@ -63,12 +63,9 @@ module RethinkDB
   # constructed by methods in the RQL module, or by invoking the instance
   # methods of a query on other queries.
   #
-  # When the instance methods of queries are invoked on native Ruby datatypes
-  # rather than other queries, the RethinkDB library will attempt to convert the
-  # Ruby datatype to a query.  Numbers, strings, booleans, and nil will all be
-  # converted to query types, but arrays and objects need to be converted
-  # explicitly with either the <b>+expr+</b> or <b><tt>[]</tt></b> methods in
-  # the RQL module.
+  # Note: many things that look like instance methods of queries actually reside
+  # in the RQL_Mixin module, and instance method variants are provided only for
+  # convenience.  If you don't see your method here, check there.
   class RQL_Query
     # Convert from an RQL query representing a variable to the name of that
     # variable.  Used e.g. in constructing javascript functions.
@@ -84,7 +81,7 @@ module RethinkDB
     # the latter case, you may provide either a single number in order to get an
     # element of the sequence, or a range in order to get a subsequence.  If you
     # provide a range, -1 is recognized as a valid endpoint, but no other
-    # negative numbers are.  All ranges in RQL are closed on the end (like a...b
+    # negative numbers are.  All ranges in RQL are open on the end (like a...b
     # instead of a..b in Ruby).  The
     # following are all equivalent:
     #   r[[1,2,3]]
@@ -703,7 +700,11 @@ module RethinkDB
     #   r[1].eq(1)
     #   r.equals 1,1
     #   r[1].equals(1)
-    def eq(a, b); S._ [:call, [:compare, :eq], [expr(a), expr(b)]]; end
+    # May also be used with more than two arguments.  The following are
+    # equivalent:
+    #   r[false]
+    #   r.eq(1, 1, 2)
+    def eq(*args); S._ [:call, [:compare, :eq], args.map{|x| expr x}]; end
 
     # Check whether the results of two queries are *not* equal.  May also be
     # called as if it were a member function of RQL_Query for convenience.  The
@@ -713,7 +714,11 @@ module RethinkDB
     #   r[1].ne(2)
     #   r.not r.eq(1,2)
     #   r[1].eq(2).not
-    def ne(a, b); S._ [:call, [:compare, :ne], [expr(a), expr(b)]]; end
+    # May also be used with more than two arguments.  The following are
+    # equivalent:
+    #   r[true]
+    #   r.ne(1, 1, 2)
+    def ne(*args); S._ [:call, [:compare, :ne], args.map{|x| expr x}]; end
 
     # Check whether the result of one query is less than another.  May also be
     # called as if it were a member function of RQL_Query for convenience.  May
@@ -726,7 +731,11 @@ module RethinkDB
     # Note that the following is illegal, because Ruby only overloads infix
     # operators based on the lefthand side:
     #   1 < r[2]
-    def lt(a, b); S._ [:call, [:compare, :lt], [expr(a), expr(b)]]; end
+    # May also be used with more than two arguments.  The following are
+    # equivalent:
+    #   r[true]
+    #   r.lt(1, 2, 3)
+    def lt(*args); S._ [:call, [:compare, :lt], args.map{|x| expr x}]; end
 
     # Check whether the result of one query is less than or equal to another.
     # May also be called as if it were a member function of RQL_Query for
@@ -739,7 +748,11 @@ module RethinkDB
     # Note that the following is illegal, because Ruby only overloads infix
     # operators based on the lefthand side:
     #   1 <= r[1]
-    def le(a, b); S._ [:call, [:compare, :le], [expr(a), expr(b)]]; end
+    # May also be used with more than two arguments.  The following are
+    # equivalent:
+    #   r[true]
+    #   r.le(1, 2, 2)
+    def le(*args); S._ [:call, [:compare, :le], args.map{|x| expr x}]; end
 
     # Check whether the result of one query is greater than another.
     # May also be called as if it were a member function of RQL_Query for
@@ -752,7 +765,11 @@ module RethinkDB
     # Note that the following is illegal, because Ruby only overloads infix
     # operators based on the lefthand side:
     #   2 > r[1]
-    def gt(a, b); S._ [:call, [:compare, :gt], [expr(a), expr(b)]]; end
+    # May also be used with more than two arguments.  The following are
+    # equivalent:
+    #   r[true]
+    #   r.gt(3, 2, 1)
+    def gt(*args); S._ [:call, [:compare, :gt], args.map{|x| expr x}]; end
 
     # Check whether the result of one query is greater than or equal to another.
     # May also be called as if it were a member function of RQL_Query for
@@ -765,6 +782,10 @@ module RethinkDB
     # Note that the following is illegal, because Ruby only overloads infix
     # operators based on the lefthand side:
     #   1 >= r[1]
-    def ge(a, b); S._ [:call, [:compare, :ge], [expr(a), expr(b)]]; end
+    # May also be used with more than two arguments.  The following are
+    # equivalent:
+    #   r[true]
+    #   r.ge(2, 2, 1)
+    def ge(*args); S._ [:call, [:compare, :ge], args.map{|x| expr x}]; end
   end
 end

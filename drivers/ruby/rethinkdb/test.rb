@@ -48,6 +48,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal((r[5] + 3).run, 8)
     assert_equal((r[5].add(3)).run, 8)
     assert_equal(r.add(5,3).run, 8)
+    assert_equal(r.add(2,3,3).run, 8)
 
     assert_equal((r[5] - 3).run, 2)
     assert_equal((r[5].sub(3)).run, 2)
@@ -66,6 +67,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal((r[5].multiply(3)).run, 15)
     assert_equal(r.mul(5,3).run, 15)
     assert_equal(r.multiply(5,3).run, 15)
+    assert_equal(r.multiply(5,3,1).run, 15)
 
     assert_equal((r[15] / 3).run, 5)
     assert_equal((r[15].div(3)).run, 5)
@@ -138,6 +140,45 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.or(false, true, false).run, true)
     assert_equal((r[false].or(false)).run, false)
     assert_equal((r[true].or(false)).run, true)
+  end
+
+  def test_cmp #from python tests
+    assert_equal(r.eq(3, 3).run, true)
+    assert_equal(r.eq(3, 4).run, false)
+
+    assert_equal(r.ne(3, 3).run, false)
+    assert_equal(r.ne(3, 4).run, true)
+
+    assert_equal(r.gt(3, 2).run, true)
+    assert_equal(r.gt(3, 3).run, false)
+
+    assert_equal(r.ge(3, 3).run, true)
+    assert_equal(r.ge(3, 4).run, false)
+
+    assert_equal(r.lt(3, 3).run, false)
+    assert_equal(r.lt(3, 4).run, true)
+
+    assert_equal(r.le(3, 3).run, true)
+    assert_equal(r.le(3, 4).run, true)
+    assert_equal(r.le(3, 2).run, false)
+
+    assert_equal(r.eq(1, 1, 2).run, false)
+    assert_equal(r.eq(5, 5, 5).run, true)
+
+    assert_equal(r.lt(3, 4).run, true)
+    assert_equal(r.lt(3, 4, 5).run, true)
+    assert_equal(r.lt(5, 6, 7, 7).run, false)
+
+    assert_equal(r.eq("asdf", "asdf").run, true)
+    assert_equal(r.eq("asd", "asdf").run, false)
+    assert_equal(r.lt("a", "b").run, true)
+
+    assert_equal(r.eq(true, true).run, true)
+    assert_equal(r.lt(false, true).run, true)
+
+    assert_equal(r.lt(false, true, 1, "", []).run, true)
+    assert_equal(r.gt([], "", 1, true, false).run, true)
+    assert_equal(r.lt(false, true, "", 1, []).run, false)
   end
 
   def test_json #JSON
