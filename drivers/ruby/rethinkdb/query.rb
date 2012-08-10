@@ -12,17 +12,6 @@ module RethinkDB
     def as _class; RQL_Protob.comp(_class, sexp); end
     def query; RQL_Protob.query sexp; end
 
-    def proc_args(m, proc)
-      args = Array.new(C.arity[m] || 0).map{S.gensym}
-      args + [proc.call(*(args.map{|x| RQL.var x}))]
-    end
-    def expand_procs(m, args)
-      args.map{|arg| arg.class == Proc ? proc_args(m, arg) : arg}
-    end
-    def expand_procs_inline(m, args)
-      args.map{|arg| arg.class == Proc ? proc_args(m, arg) : [arg]}.flatten(1)
-    end
-
     def connection_send m
       if Connection.last
       then return Connection.last.send(m, self)
