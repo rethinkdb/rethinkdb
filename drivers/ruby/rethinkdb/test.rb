@@ -2,6 +2,10 @@
 load 'rethinkdb_shortcuts.rb'
 r = RethinkDB::RQL
 # filter might work, merge into master and check
+# nth -- support []?
+# orderby -- reverse notation?
+# random, sample
+# reduce
 
 # BIG TODO:
 #   * Make Connection work with clusters, minimize network hops,
@@ -210,6 +214,14 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(query_2345.run, $data[2..5])
     assert_equal(query_234.run, $data[2..4])
     assert_equal(query_23.run, $data[2..3])
+  end
+
+  def test_slice #SLICE
+    #TODO: should work for arrays as well
+    arr=[0,1,2,3,4,5]
+    assert_equal(r[arr].to_stream[1].run, 1)
+    assert_equal(r[arr].to_stream[2...6].run, r[arr].to_stream[2..-1].run)
+    assert_equal(r[arr].to_stream[2...5].run, r[arr].to_stream[2..5].run)
   end
 
   def test_orderby #ORDERBY, MAP

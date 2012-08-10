@@ -6,10 +6,8 @@
 #   this) and maintain its current behavior rather than changing to match UPDATE.
 # * The following are currently unimplemented or buggy: REDUCE, GROUPEDMAPREDUCE,
 #   MUTATE, FOREACH, POINTUPDATE, POINTMUTATE.
-# * The following are going away: ARRAYAPPEND, ARRAYCONCAT, ARRAYSLICE,
-#   ARRAYNTH, ARRAYLENGTH (to be replaced with APPEND, UNION, SLICE, NTH, and
-#   LENGTH (all polymorphic, some of which already work for streams)).
-# * I don't understand where JAVASCRIPT is used, or how GROUPEDMAPREDUCE works.
+# * The following are going away: ARRAYAPPEND, ARRAYNTH
+# * I don't understand how GROUPEDMAPREDUCE works.
 module RethinkDB
   # A network connection to the RethinkDB cluster.
   class Connection
@@ -72,13 +70,43 @@ module RethinkDB
   # explicitly with either the <b>+expr+</b> or <b><tt>[]</tt></b> methods in
   # the RQL module.
   class RQL_Query
-
     # Convert from an RQL query representing a variable to the name of that
     # variable.  Used e.g. in constructing javascript functions.
     def to_s
       if @body.class == Array and @body[0] == :var
       then @body[1]
       else raise TypeError, 'Can only call to_s on RQL_Queries representing variables.'
+      end
+    end
+
+    # Much like the [] operator in normal Ruby, [] can be used on either objects
+    # (e.g. rows, to get their attributes) or on sequences (e.g. arrays).  In
+    # the latter case, you may provide either a single number in order to get an
+    # element of the sequence, or a range in order to get a subsequence.  If you
+    # provide a range, -1 is recognized as a valid endpoint, but no other
+    # negative numbers are.  All ranges in RQL are closed on the end (like a...b
+    # instead of a..b in Ruby).  The
+    # following are all equivalent:
+    #   r.expr([1,2,3])
+    #   r.expr([0,1,2,3])[1...4]
+    #   r.expr([0,1,2,3])[1..4]
+    #   r.expr([0,1,2,3])[1...-1]
+    #   r.expr([0,1,2,3])[1..-1]
+    # As are:
+    #   r.expr(1)
+    #   r.expr([0,1,2])[1]
+    # And:
+    #   r.expr(2)
+    #   r.expr({:a => 2})[:a]
+    def [](ind)
+      case ind.class.hash
+      when Fixnum.hash then S._ [:call, [:nth], [@body, ind]]
+      when Range.hash then
+        b = ind.begin
+        e = ind.end == -1 ? nil : ind.end
+        S._ [:call, [:slice], [@body, b, e]]
+      when Symbol.hash, String.hash then S._ [:call, [:getattr, ind], [@body]]
+      else raise SyntaxError, "RQL_Query#[] can't handle #{ind}."
       end
     end
 
@@ -98,59 +126,12 @@ module RethinkDB
     # will still be added to the new row.
     def update; S.with_var {|vname,v| S._ [:update, @body, [vname, yield(v)]]}; end
 
-    # Construct a query which filters the invoking query using some predicate.
-    # You may either specify the predicate explicitly by providing a block which
-    # takes a single argument (the row you're testing), or provide an object
-    # <b>+obj+</b>.  If you provide an object, it will match JSON objects which
-    # match its attributes.  For example, if we have a table <b>+people+</b>,
-    # the following two queries are equivalent:
-    #   people.filter{|row| row[:name].eq('Bob') & row[:age].eq(50)}
-    #   people.filter({:name => 'Bob', :age => 50})
-    # Note that the values of attributes may themselves be rdb queries.  For
-    # instance, here is a query that maches anyone whose age is double their height:
-    #   people.filter({:age => r[:height]*2})
-
-    # (The <b><tt>r[:height]</tt></b> references the Implicit Variable, see
-    # RQL_Mixin#expr.)
-    def filter(obj=nil)
-      if obj then filter{[:call, [:all], obj.map {|kv| RQL.attr(kv[0]).eq(kv[1])}]}
-             else S.with_var {|vname,v| S._ [:call, [:filter, vname, yield(v)], [@body]]}
-      end
-    end
-
-    # Construct a query which maps a function over the invoking query.  It is
-    # often used in conjunction with <b>+reduce+</b>. For example, if we have a
-    # table <b>+table+</b>:
-    #   table.map{|row| row[:age]}.reduce(0){|a,b| a+b}
-    # will add up all the ages in <b>+table+</b>.
-    def map; S.with_var {|vname,v| S._ [:call, [:map, vname, yield(v)], [@body]]}; end
-
-    # Construct a query which selects the nth element of the invoking query.
-    # For example, if we have a table <b>+people+</b>:
-    #   people.filter{|row| row[:age] < 5}.nth(0)
-    # Will get the first person under 5 in our table (it's 0-indexed).
-    #
-    # TODO: Support [] notation?
-    def nth(n); S._ [:call, [:nth], [@body, n]]; end
-
-    # Order the invoking query.  For example, to sort first by name and then by
-    # social security number for the table <b>+people+</b>:
-    #   people.orderby(:name, :ssn)
-    #
-    # TODO: notation for reverse ordering
-    def orderby(*orderings); S._ [:call, [:orderby, *orderings], [@body]]; end
-
-    #TODO: Random (unimplemented)
-    #TODO: Reduce (unimplemented)
-
     # Run the invoking query using the most recently opened connection.  See
     # Connection#run for more details.
     def run; connection_send :run; end
     # Run the invoking query and iterate over the results using the most
     # recently opened connection.  See Connection#iter for more details.
     def iter; connection_send :iter; end
-
-    #TODO: Sample (unimplemented)
 
     # Get the row of the invoking table with key <b>+key+</b>.  You may also
     # optionally specify the name of the attribute to use as your key
@@ -177,8 +158,25 @@ module RethinkDB
   module RQL_Mixin
 
     # Construct a javascript expression, which may refer to variables in scope
-    # (use <b>+to_s+</b> to get the name of a variable query).
-    # TODO: examples
+    # (use <b>+to_s+</b> to get the name of a variable query, or simply splice
+    # it in).  Defaults to a javascript expression, but if the optional second
+    # argument is <b>+:func+</b>, then you may instead provide the body of a
+    # javascript function.  Also has the shorter synonym <b>+js+</b>. If you
+    # have a table <b>+table+</b>, the following
+    # are equivalent:
+    #   table.map{|row| row[:id]}
+    #   table.map{|row| r.javascript("#{row}.id")}
+    #   table.map{|row| r.js("#{row}.id")}
+    #   table.map{r[:id]} #implicit variable
+    #   table.map{r.js("this.id")} #implicit variable
+    #   table.map{r.js("return this.id;", :func)} #implicit variable
+    # As are:
+    #   r.let([['a', 1],
+    #          ['b', 2]],
+    #         r[:$a] + r[:$b] + 1)
+    #   r.let([['a', 1],
+    #          ['b', 2]],
+    #         r.js('a+b+1'))
     def javascript(str, type=:expr);
       case type
       when :expr then S._ [:javascript, "return #{str}"]
@@ -417,7 +415,7 @@ module RethinkDB
     #                     # Ruby only overloads based on the lefthand side
     def all(pred, *rest); S._ [:call, [:all], [pred, *rest]]; end
 
-    # Filter a query returning a stream based on a predicate.  May also be
+    # Filter a query returning a stream, based on a predicate.  May also be
     # called as if it were a instance method of RQL_Query for convenience.  The
     # provided block should take a single variable, a row in the stream, and
     # return either <b>+true+</b> if it should be in the resulting stream of
@@ -426,8 +424,19 @@ module RethinkDB
     #   r.filter(table) {|row| row[:id] < 5}
     #   table.filter {|row| row[:id] < 5}
     #   table.filter {r[:id] < 5} # uses implicit variable
-    def filter(stream)
-      S.with_var{|vname,v| S._ [:call, [:filter, vname, yield(v)], [stream]]}
+    # Alternately, you may provide an object as an argument, in which case the
+    # <b>+filter+</b> will match JSON objects match the provided object's
+    # attributes.  For example, if we have a table <b>+people+</b>, the
+    # following are equivalent:
+    #   people.filter{|row| row[:name].eq('Bob') & row[:age].eq(50)}
+    #   people.filter({:name => 'Bob', :age => 50})
+    # Note that the values of attributes may themselves be rdb queries.  For
+    # instance, here is a query that maches anyone whose age is double their height:
+    #   people.filter({:age => r[:height]*2})
+    def filter(stream, obj=nil)
+      if obj then filter(stream){[:call, [:all], obj.map{|kv| getattr(kv[0]).eq(kv[1])}]}
+             else S.with_var{|vname,v| S._ [:call, [:filter, vname, yield(v)], [stream]]}
+      end
     end
 
     # Map a function over a query returning a stream.  May also be called as if
@@ -555,5 +564,26 @@ module RethinkDB
         }
       }
     end
+
+    # Order <b>+stream+</b> by the attributes in <b>+orderings+</b>.  May also
+    # be called as if it were an instance method of RQL_Query, for convenience.
+    # For example, to sort first by name and then by social security number for
+    # the table <b>+people+</b>, both of these work:
+    #   r.orderby(people, :name, :ssn)
+    #   people.orderby(:name, :ssn)
+    def orderby(stream, *orderings); S._ [:call, [:orderby, *orderings], [stream]]; end
+
+    # Get element <b>+n+</b> of <b>+seq+</b>, which may be either a stream or a
+    # JSON array.  May also be called as if it were an instance method of
+    # RQL_Query, for convenience.  For example, if we have a table
+    # <b>+table+</b> the following are equivalent:
+    #   r.nth(table, 5)
+    #   table.nth(5)
+    # As are:
+    #   r.expr 2
+    #   r.nth(r.expr([0,1,2,3]), 2)
+    #   r.expr([0,1,2,3]).nth(2)
+    # (Not the 0-indexing.)
+    def nth(seq, n); S._ [:call, [:nth], [seq, n]]; end
   end
 end
