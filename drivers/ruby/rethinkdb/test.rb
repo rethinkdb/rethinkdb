@@ -1,6 +1,8 @@
 #load '/home/mlucy/rethinkdb_ruby/drivers/ruby/rethinkdb/rethinkdb.rb'
 load 'rethinkdb_shortcuts.rb'
 r = RethinkDB::RQL
+# filter might work, merge into master and check
+
 # BIG TODO:
 #   * Make Connection work with clusters, minimize network hops,
 #     etc. etc. like python client does.
@@ -157,6 +159,9 @@ class ClientTest < Test::Unit::TestCase
   def test_array #BOOL, JSON_NULL, ARRAY, ARRAYTOSTREAM
     assert_equal(r.expr([true, false, nil]).run, [true, false, nil])
     assert_equal(r.arraytostream(r.expr([true, false, nil])).run, [true, false, nil])
+    assert_equal(r.to_stream(r.expr([true, false, nil])).run, [true, false, nil])
+    assert_equal(r.expr([true, false, nil]).arraytostream.run, [true, false, nil])
+    assert_equal(r.expr([true, false, nil]).to_stream.run, [true, false, nil])
   end
 
   def test_getbykey #OBJECT, GETBYKEY
@@ -166,17 +171,17 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(query2.run['obj'], $data[0])
   end
 
-  def test_map #MAP, FILTER, GETATTR, IMPLICIT_GETATTR
+  def test_map #MAP, FILTER, GETATTR, IMPLICIT_GETATTR, STREAMTOARRAY
     assert_equal(rdb.filter({'num' => 1}).run, [$data[1]])
     assert_equal(rdb.filter({'num' => r[:num]}).run, $data)
     query = rdb.map { |outer_row|
       r.streamtoarray(rdb.filter{r[:id] < outer_row[:id]})
     }
     query2 = rdb.map { |outer_row|
-      r.streamtoarray(rdb.filter{r.lt(r[:id],outer_row[:id])})
+      r.to_array(rdb.filter{r.lt(r[:id],outer_row[:id])})
     }
     query3 = rdb.map { |outer_row|
-      r.streamtoarray(rdb.filter{r.attr('id').lt(outer_row.getattr(:id))})
+      rdb.filter{r.attr('id').lt(outer_row.getattr(:id))}.to_array
     }
     assert_equal(query.run[2], $data[0..1])
     assert_equal(query2.run[2], $data[0..1])

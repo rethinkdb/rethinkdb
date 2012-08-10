@@ -7,7 +7,8 @@ module RethinkDB
         :neq => :ne, :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
         :sub => :subtract, :mul => :multiply, :div => :divide, :mod => :modulo,
         :+ => :add, :- => :subtract, :* => :multiply, :/ => :divide, :% => :modulo,
-        :and => :all, :& => :all, :or => :any, :| => :any } end
+        :and => :all, :& => :all, :or => :any, :| => :any,
+        :to_stream => :arraytostream, :to_array => :streamtoarray } end
     def class_types
       { Query => Query::QueryType, WriteQuery => WriteQuery::WriteQueryType,
         Term => Term::TermType, Builtin => Builtin::BuiltinType } end

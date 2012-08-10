@@ -259,7 +259,7 @@ module RethinkDB
     # thus analagous to <b><tt>let*</tt></b> in the Lisp family of languages.)
     def let(varbinds, body); S._ [:let, varbinds, body]; end
 
-    # Negate a predicate.  May also be called as if it were a member function of
+    # Negate a predicate.  May also be called as if it were a instance method of
     # RQL_Query for convenience.  The following are equivalent:
     #   r.not(true)
     #   r[true].not
@@ -300,7 +300,7 @@ module RethinkDB
     def pickattrs(*attrnames); S._ [:call, [:implicit_pickattrs, *attrnames], []]; end
 
     # Add the results of two or more queries together.  (Those queries should
-    # return numbers.)  May also be called as if it were a member function of
+    # return numbers.)  May also be called as if it were a instance method of
     # RQL_Query for convenience, and overloads <b><tt>+</tt></b> if the lefthand
     # side is a query.  The following are all equivalent:
     #   r.add(1,2)
@@ -312,7 +312,7 @@ module RethinkDB
     def add(a, b, *rest); S._ [:call, [:add], [a, b, *rest]]; end
 
     # Subtract one query from another.  (Those queries should return numbers.)
-    # May also be called as if it were a member function of RQL_Query for
+    # May also be called as if it were a instance method of RQL_Query for
     # convenience, and overloads <b><tt>-</tt></b> if the lefthand side is a
     # query.  Also has the shorter synonym <b>+sub+</b>. The following are all
     # equivalent:
@@ -325,7 +325,7 @@ module RethinkDB
     def subtract(a, b); S._ [:call, [:subtract], [a, b]]; end
 
     # Multiply the results of two or more queries together.  (Those queries should
-    # return numbers.)  May also be called as if it were a member function of
+    # return numbers.)  May also be called as if it were a instance method of
     # RQL_Query for convenience, and overloads <b><tt>+</tt></b> if the lefthand
     # side is a query.  Also has the shorter synonym <b>+mul+</b>.  The
     # following are all equivalent:
@@ -340,7 +340,7 @@ module RethinkDB
     def multiply(a, b, *rest); S._ [:call, [:multiply], [a, b, *rest]]; end
 
     # Divide one query by another.  (Those queries should return numbers.)
-    # May also be called as if it were a member function of RQL_Query for
+    # May also be called as if it were a instance method of RQL_Query for
     # convenience, and overloads <b><tt>/</tt></b> if the lefthand side is a
     # query.  Also has the shorter synonym <b>+div+</b>. The following are all
     # equivalent:
@@ -353,7 +353,7 @@ module RethinkDB
     def divide(a, b); S._ [:call, [:divide], [a, b]]; end
 
     # Take one query modulo another.  (Those queries should return numbers.)
-    # May also be called as if it were a member function of RQL_Query for
+    # May also be called as if it were a instance method of RQL_Query for
     # convenience, and overloads <b><tt>%</tt></b> if the lefthand side is a
     # query.  Also has the shorter synonym <b>+mod+</b>. The following are all
     # equivalent:
@@ -368,7 +368,7 @@ module RethinkDB
     # Take one or more predicate queries and construct a query that returns true
     # if any of them evaluate to true.  Sort of like <b>+or+</b> in ruby, but
     # takes arbitrarily many arguments and is *not* guaranteed to
-    # short-circuit.  May also be called as if it were a member function of
+    # short-circuit.  May also be called as if it were a instance method of
     # RQL_Query for convenience, and overloads <b><tt>&</tt></b> if the lefthand
     # side is a query.  Also has the synonym <b>+or+</b>.  The following are
     # all equivalent:
@@ -384,7 +384,7 @@ module RethinkDB
     # Take one or more predicate queries and construct a query that returns true
     # if all of them evaluate to true.  Sort of like <b>+or+</b> in ruby, but
     # takes arbitrarily many arguments and is *not* guaranteed to
-    # short-circuit.  May also be called as if it were a member function of
+    # short-circuit.  May also be called as if it were a instance method of
     # RQL_Query for convenience, and overloads <b><tt>|</tt></b> if the lefthand
     # side is a query.  Also has the synonym <b>+or+</b>.  The following are
     # all equivalent:
@@ -398,7 +398,7 @@ module RethinkDB
     def all(pred, *rest); S._ [:call, [:all], [pred, *rest]]; end
 
     # Filter a query returning a stream based on a predicate.  May also be
-    # called as if it were a member function of RQL_Query for convenience.  The
+    # called as if it were a instance method of RQL_Query for convenience.  The
     # provided block should take a single variable, a row in the stream, and
     # return either <b>+true+</b> if it should be in the resulting stream of
     # <b>+false+</b> otherwise.  If you have a table <b>+table+</b>, the
@@ -411,7 +411,7 @@ module RethinkDB
     end
 
     # Map a function over a query returning a stream.  May also be called as if
-    # it were a member function of RQL_Query for convenience.  The provided
+    # it were a instance method of RQL_Query for convenience.  The provided
     # block should take a single variable, a row in the stream, and return a row
     # in the resulting stream.  If you have a table <b>+table+</b>, the
     # following are all equivalent:
@@ -423,7 +423,7 @@ module RethinkDB
     end
 
     # Map a function over a query returning a stream, then concatenate the
-    # results together.  May also be called as if it were a member function of
+    # results together.  May also be called as if it were a instance method of
     # RQL_Query for convenience.  The provided block should take a single
     # variable, a row in the stream, and return a list of rows to include in the
     # resulting stream.  If you have a table <b>+table+</b>, the following are
@@ -445,7 +445,7 @@ module RethinkDB
     # (<b>+keyname+</b>), but note that your table must be indexed by that
     # attribute.  Either <b>+start_key+</b> and <b>+end_key+</b> may be nil, in
     # which case that side of the range is unbounded.  This function may also be
-    # called as if it were a member function of RQL_Query, for convenience.  For
+    # called as if it were a instance method of RQL_Query, for convenience.  For
     # example, if we have a table <b>+table+</b>, these are equivalent:
     #   r.between(table, 3, 7)
     #   table.between(3,7)
@@ -462,7 +462,7 @@ module RethinkDB
 
     # Removes duplicate items from <b>+seq+</b>, which may be either a JSON
     # array or a stream (similar to the *nix <b>+uniq+</b> function).  May also
-    # be called as if it were a member function of RQL_Query, for convenience.
+    # be called as if it were a instance method of RQL_Query, for convenience.
     # If we have a table <b>+table+</b>, the following are equivalent:
     #   r.distinct(table)
     #   table.distinct
@@ -493,5 +493,44 @@ module RethinkDB
     #   r.length(r.expr [1..5])
     #   r.expr([1..5]).length
     def length(seq); S._ [:call, [:length], [seq]]; end
+
+    # Take the union of 0 or more sequences <b>+seqs+</b>.  Note that unlike
+    # mathematical union, duplicate values are preserved.  May be called on
+    # either arrays or streams.  May also be called as if it were a member
+    # function of RQL_Query, for convenience.  For example, if we have a table
+    # <b>+table+</b>, the following are equivalent:
+    #   r.union(table.map{r[:id]}, table.map{r[:num]})
+    #   table.map{r[:id]}.union(table.map{r[:num]})
+    # As are:
+    #   r.expr [1,2,3,1,4,5]
+    #   r.union(r.expr([1,2,3]), r.expr([1,4,5]))
+    #   r.expr([1,2,3]).union(r.expr [1,4,5])
+    def union(*seqs); S._ [:call, [:union], seqs]; end
+
+    # Convert from an array to a stream.  Also has the synonym
+    # <b>+to_stream+</b>.  May also be called as if it were a instance method of
+    # RQL_Query, for convenience.  While most sequence functions are polymorphic
+    # and handle both arrays and streams, when arrays or streams need to be
+    # combined (e.g. via <b>+union+</b>) you need to explicitly convert between
+    # the types.  This is mostly for safety, but also because which type you're
+    # working with effects error handling.  The following are equivalent:
+    #   r.arraytostream r.expr([1,2,3])
+    #   r.expr([1,2,3]).arraytostream
+    #   r.to_stream r.expr([1,2,3])
+    #   r.expr([1,2,3]).to_stream
+    def arraytostream(array); S._ [:call, [:arraytostream], [array]]; end
+
+    # Convert from astream to an array.  Also has the synonym <b>+to_array+</b>.
+    # May also be called as if it were a instance method of RQL_Query, for
+    # convenience.  While most sequence functions are polymorphic and handle
+    # both arrays and streams, when arrays or streams need to be combined
+    # (e.g. via <b>+union+</b>) you need to explicitly convert between the
+    # types.  This is mostly for safety, but also because which type you're
+    # working with effects error handling.  The following are equivalent:
+    #   r.streamtoarray table
+    #   table.streamtoarray
+    #   r.to_array table
+    #   table.to_array
+    def streamtoarray(array); S._ [:call, [:streamtoarray], [array]]; end
   end
 end
