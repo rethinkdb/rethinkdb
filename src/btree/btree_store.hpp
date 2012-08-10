@@ -4,10 +4,11 @@
 #include <string>
 
 #include "protocol_api.hpp"
-#include "btree/slice.hpp"
 #include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
+#include "buffer_cache/types.hpp"
 #include "perfmon/perfmon.hpp"
 
+class btree_slice_t;
 class io_backender_t;
 class superblock_t;
 class real_superblock_t;

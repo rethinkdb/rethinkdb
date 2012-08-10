@@ -8,6 +8,11 @@
 #include "backfill_progress.hpp"
 #include "rdb_protocol/protocol.hpp"
 
+class key_tester_t;
+class parallel_traversal_progress_t;
+struct rdb_value_t;
+
+
 typedef rdb_protocol_t::read_t read_t;
 typedef rdb_protocol_t::read_response_t read_response_t;
 
@@ -26,11 +31,7 @@ typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
-class parallel_traversal_progress_t;
-
 static const size_t rget_max_chunk_size = MEGABYTE;
-
-struct rdb_value_t;
 
 bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value);
 
