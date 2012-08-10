@@ -496,8 +496,8 @@ module RethinkDB
 
     # Take the union of 0 or more sequences <b>+seqs+</b>.  Note that unlike
     # mathematical union, duplicate values are preserved.  May be called on
-    # either arrays or streams.  May also be called as if it were a member
-    # function of RQL_Query, for convenience.  For example, if we have a table
+    # either arrays or streams.  May also be called as if it were a instance
+    # method of RQL_Query, for convenience.  For example, if we have a table
     # <b>+table+</b>, the following are equivalent:
     #   r.union(table.map{r[:id]}, table.map{r[:num]})
     #   table.map{r[:id]}.union(table.map{r[:num]})
@@ -520,7 +520,7 @@ module RethinkDB
     #   r.expr([1,2,3]).to_stream
     def arraytostream(array); S._ [:call, [:arraytostream], [array]]; end
 
-    # Convert from astream to an array.  Also has the synonym <b>+to_array+</b>.
+    # Convert from a stream to an array.  Also has the synonym <b>+to_array+</b>.
     # May also be called as if it were a instance method of RQL_Query, for
     # convenience.  While most sequence functions are polymorphic and handle
     # both arrays and streams, when arrays or streams need to be combined
@@ -532,5 +532,21 @@ module RethinkDB
     #   r.to_array table
     #   table.to_array
     def streamtoarray(array); S._ [:call, [:streamtoarray], [array]]; end
+
+    # Reduce a function over a stream.  Note that unlike Ruby's reduce, you
+    # cannot omit the base case.  The block you privide should take two
+    # arguments, just like Ruby's reduce.  May also be called as if it were an
+    # instance method of RQL_Query, for convenience.  For example, if we have a
+    # table <b>+table+</b>, the following are equivalent:
+    #   r.reduce(r.map(table){|row| row[:count]}, 0, {|a,b| a+b})
+    #   r.map(table){|row| row[:count]}.reduce(0) {|a,b| a+b}
+    # TODO: actual tests (reduce unimplemented right now)
+    def reduce(stream, base)
+      with_var { |aname,a|
+        with_var { |bname,b|
+          S._ [:call, [:reduce, base, a, b, yield(a,b)], [stream]]
+        }
+      }
+    end
   end
 end
