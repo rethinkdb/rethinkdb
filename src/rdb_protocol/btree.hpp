@@ -5,9 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "errors.hpp"
-
-#include "btree/backfill.hpp"
+#include "backfill_progress.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 typedef rdb_protocol_t::read_t read_t;
@@ -27,6 +25,8 @@ typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
+
+class parallel_traversal_progress_t;
 
 static const size_t rget_max_chunk_size = MEGABYTE;
 
