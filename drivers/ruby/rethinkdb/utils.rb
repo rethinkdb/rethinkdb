@@ -7,7 +7,8 @@ module RethinkDB
         :neq => :ne, :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
         :sub => :subtract, :mul => :multiply, :div => :divide, :mod => :modulo,
         :+ => :add, :- => :subtract, :* => :multiply, :/ => :divide, :% => :modulo,
-        :and => :all, :& => :all, :or => :any, :| => :any } end
+        :and => :all, :& => :all, :or => :any, :| => :any,
+        :to_stream => :arraytostream, :to_array => :streamtoarray } end
     def class_types
       { Query => Query::QueryType, WriteQuery => WriteQuery::WriteQueryType,
         Term => Term::TermType, Builtin => Builtin::BuiltinType } end
@@ -41,4 +42,15 @@ module RethinkDB
     def message_set(message, key, val); message.send((key.to_s+'=').to_sym, val); end
   end
   module P; extend P_Mixin; end
+
+  module S_Mixin #S-expression Utils
+    @@gensym_counter = 0
+    def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
+    def with_var
+      sym = gensym
+      yield sym, RQL.var(sym)
+    end
+    def _ x; RQL_Query.new x; end
+  end
+  module S; extend S_Mixin; end
 end

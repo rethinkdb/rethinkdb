@@ -1,6 +1,13 @@
 #load '/home/mlucy/rethinkdb_ruby/drivers/ruby/rethinkdb/rethinkdb.rb'
 load 'rethinkdb_shortcuts.rb'
 r = RethinkDB::RQL
+# filter might work, merge into master and check
+
+# BIG TODO:
+#   * Make Connection work with clusters, minimize network hops,
+#     etc. etc. like python client does.
+#   * CREATE, DROP, LIST, etc. for table/namespace creation
+
 # TODO:
 # Confirm these are going away:
 #   * MAPMERGE
@@ -20,6 +27,8 @@ r = RethinkDB::RQL
 #   * POINTMUTATE
 #   * SOME MERGE
 
+# SLICE
+
 ################################################################################
 #                                 CONNECTION                                   #
 ################################################################################
@@ -27,7 +36,7 @@ r = RethinkDB::RQL
 require 'test/unit'
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts_Mixin
-  def rdb; r.db('').Welcome; end
+  def rdb; r.db('','Welcome-rdb'); end
   @@c = RethinkDB::Connection.new('localhost', 64346)
   def c; @@c; end
 
@@ -127,6 +136,10 @@ class ClientTest < Test::Unit::TestCase
     assert_equal((r[true].or(false)).run, true)
   end
 
+  def test_json #JSON
+    assert_equal(r.json('[1,2,3]').run, [1,2,3])
+  end
+
   def test_let #LET, CALL, VAR, NUMBER, STRING
     query = r.let([['a', r.add(1,2)], ['b', r.add(:$a,2)]], r.var('a') + :$b)
     assert_equal(query.run, 8)
@@ -134,8 +147,8 @@ class ClientTest < Test::Unit::TestCase
 
   def test_easy_read #TABLE
     assert_equal($data, rdb.run)
-    assert_equal($data, r.table('', 'Welcome').run)
-    assert_equal($data, r.table({:table_name => 'Welcome'}).run)
+    assert_equal($data, r.table('', 'Welcome-rdb').run)
+    assert_equal($data, r.table({:table_name => 'Welcome-rdb'}).run)
   end
 
   def test_error #IF, JSON, ERROR
@@ -148,24 +161,29 @@ class ClientTest < Test::Unit::TestCase
   def test_array #BOOL, JSON_NULL, ARRAY, ARRAYTOSTREAM
     assert_equal(r.expr([true, false, nil]).run, [true, false, nil])
     assert_equal(r.arraytostream(r.expr([true, false, nil])).run, [true, false, nil])
+    assert_equal(r.to_stream(r.expr([true, false, nil])).run, [true, false, nil])
+    assert_equal(r.expr([true, false, nil]).arraytostream.run, [true, false, nil])
+    assert_equal(r.expr([true, false, nil]).to_stream.run, [true, false, nil])
   end
 
   def test_getbykey #OBJECT, GETBYKEY
-    query = r.expr({'obj' => rdb.getbykey(:id, 0)})
-    query2 = r[{'obj' => rdb.getbykey(:id, 0)}]
+    query = r.expr({'obj' => rdb.get(0)})
+    query2 = r[{'obj' => rdb.get(0)}]
     assert_equal(query.run['obj'], $data[0])
     assert_equal(query2.run['obj'], $data[0])
   end
 
-  def test_map #MAP, FILTER, GETATTR, IMPLICIT_GETATTR
+  def test_map #MAP, FILTER, GETATTR, IMPLICIT_GETATTR, STREAMTOARRAY
+    assert_equal(rdb.filter({'num' => 1}).run, [$data[1]])
+    assert_equal(rdb.filter({'num' => r[:num]}).run, $data)
     query = rdb.map { |outer_row|
       r.streamtoarray(rdb.filter{r[:id] < outer_row[:id]})
     }
     query2 = rdb.map { |outer_row|
-      r.streamtoarray(rdb.filter{r.lt(r[:id],outer_row[:id])})
+      r.to_array(rdb.filter{r.lt(r[:id],outer_row[:id])})
     }
     query3 = rdb.map { |outer_row|
-      r.streamtoarray(rdb.filter{r.attr('id').lt(outer_row.getattr(:id))})
+      rdb.filter{r.attr('id').lt(outer_row.getattr(:id))}.to_array
     }
     assert_equal(query.run[2], $data[0..1])
     assert_equal(query2.run[2], $data[0..1])
@@ -185,6 +203,8 @@ class ClientTest < Test::Unit::TestCase
     #BROKEN: Can't filter on strings
     #query_5 = rdb.filter{r[:name].eq('5')}
     query_2345 = rdb.filter{|row| r.and r[:id] >= 2,row[:id] <= 5}
+    query_2345_alt = r.filter(rdb){|row| r.and r[:id] >= 2,row[:id] <= 5}
+    assert_equal(query_2345.run, query_2345_alt.run)
     query_234 = query_2345.filter{r[:num].neq(5)}
     query_23 = query_234.filter{|row| r.any row[:num].eq(2),row[:num].equals(3)}
     assert_equal(query_2345.run, $data[2..5])
@@ -199,24 +219,28 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.orderby([:id,true]).run, $data)
     assert_equal(rdb.orderby([:id,false]).run, $data.reverse)
     query = rdb.map{r[{:id => r[:id],:num => r[:id].mod(2)}]}.orderby(:num,['id',false])
+    query_alt=r.map(rdb){r[{:id =>r[:id],:num => r[:id] %2}]}.orderby(:num,['id',false])
+    assert_equal(query.run, query_alt.run)
     want = $data.map{|o| o['id']}.sort_by{|n| (n%2)*$data.length - n}
     assert_equal(query.run.map{|o| o['id']}, want)
   end
 
   def test_concatmap #CONCATMAP, DISTINCT
     query = rdb.concatmap{|row| rdb.map{r[:id] * row[:id]}}.distinct
+    query_alt = r.concatmap(rdb){|row| rdb.map{r[:id] * row[:id]}}.distinct
+    assert_equal(query.run, query_alt.run)
     nums = $data.map{|o| o['id']}
     want = nums.map{|n| nums.map{|m| n*m}}.flatten(1).uniq
     assert_equal(query.run.sort, want.sort)
   end
 
   def test_range #RANGE
+    assert_equal(rdb.between(1,3).run, $data[1..3])
+    assert_equal(r.between(rdb, 1, 3).run, $data[1..3])
+    assert_equal(rdb.between(2,nil).run, $data[2..-1])
+    assert_equal(r.between(rdb, 2, nil).run, $data[2..-1])
     assert_equal(rdb.range(:id, 1, 3).run, $data[1..3])
     assert_equal(rdb.range({:attrname => :id, :upperbound => 4}).run,$data[0..4])
-  end
-
-  def test_limit #LIMIT, SKIP
-    assert_equal(rdb.limit(5).skip(2).run, $data[2..4])
   end
 
   def test_nth #NTH
