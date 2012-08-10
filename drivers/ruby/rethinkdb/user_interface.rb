@@ -460,12 +460,38 @@ module RethinkDB
       S._ [:call, [:range, opts], [stream]]
     end
 
-    # Removes duplicate items from <b>+stream+</b> (similar to the *nix
-    # <b>+uniq+</b> function).  May also be called as if it were a member
-    # function of RQL_Query, for convenience.  If we have a table
-    # <b>+table+</b>, the following are equivalent:
+    # Removes duplicate items from <b>+seq+</b>, which may be either a JSON
+    # array or a stream (similar to the *nix <b>+uniq+</b> function).  May also
+    # be called as if it were a member function of RQL_Query, for convenience.
+    # If we have a table <b>+table+</b>, the following are equivalent:
     #   r.distinct(table)
     #   table.distinct
-    def distinct(stream); S._ [:call, [:distinct], [stream]]; end
+    # As are:
+    #   r.expr [1,2,3]
+    #   r.distinct(r.expr [1,2,3,1])
+    #   r.expr([1,2,3,1]).distinct
+    def distinct(seq); S._ [:call, [:distinct], [seq]]; end
+
+    # Get the first <b>+n+</b> elements from <b>+seq+</b>, which may be either a
+    # JSON array or a stream.  May also be called as if it were a member
+    # function of RQL_Query, for convenience.  If we have a table <b>+table</b>,
+    # the following are equivalent:
+    #   r.limit(table, 5)
+    #   table.limit(5)
+    #   r.expr([1..5]).map{|n| table.nth(n)}
+    # As are:
+    #   r.expr [1,2]
+    #   r.limit(r.expr([1,2,3]), 2)
+    #   r.expr([1,2,3]).limit(2)
+    def limit(seq, n); S._ [:call, [:limit], [seq, n]]; end
+
+    # Get the length of <b>+seq+</b>, which may be either a JSON array or a
+    # stream.  If we have a table <b>+table+</b> with at least 5 elements, the
+    # following are equivalent:
+    #   r.length(table.limit(5))
+    #   table.limit(5).length
+    #   r.length(r.expr [1..5])
+    #   r.expr([1..5]).length
+    def length(seq); S._ [:call, [:length], [seq]]; end
   end
 end
