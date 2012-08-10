@@ -28,8 +28,8 @@ module RethinkDB
     # Example (assuming a connection <b>+c+</b> and that you've mixed in
     # shortcut <b>+r+</b>):
     #   c.run(r.add(1,2))                         => 3
-    #   c.run(r.expr([r.add(1,2)]))               => [3]
-    #   c.run(r.expr([r.add(1,2), r.add(10,20)])) => [3, 30]
+    #   c.run(r[[r.add(1,2)]])                    => [3]
+    #   c.run(r[[r.add(1,2), r.add(10,20)]])      => [3, 30]
     def run query
       a = []
       token_iter(dispatch query){|row| a.push row} ? a : a[0]
@@ -44,10 +44,10 @@ module RethinkDB
     # Example (assuming a connection <b>+c+</b> and that you've mixed in
     # shortcut <b>+r+</b>):
     #   a = []
-    #   c.iter(r.add(1,2)) {|val| a.push val} => false
-    #   a                                     => [3]
-    #   c.iter(r.expr([r.add(1,2), r.add(10,20)])) {|val| a.push val} => false
-    #   a                                     => [3]
+    #   c.iter(r.add(1,2)) {|val| a.push val}                    => false
+    #   a                                                        => [3]
+    #   c.iter(r[[r.add(1,2), r.add(10,20)]]) {|val| a.push val} => true
+    #   a                                                        => [3, 30]
     def iter(query, &block)
       token_iter(dispatch(query), &block)
     end
@@ -87,17 +87,17 @@ module RethinkDB
     # negative numbers are.  All ranges in RQL are closed on the end (like a...b
     # instead of a..b in Ruby).  The
     # following are all equivalent:
-    #   r.expr([1,2,3])
-    #   r.expr([0,1,2,3])[1...4]
-    #   r.expr([0,1,2,3])[1..4]
-    #   r.expr([0,1,2,3])[1...-1]
-    #   r.expr([0,1,2,3])[1..-1]
+    #   r[[1,2,3]]
+    #   r[[0,1,2,3]][1...4]
+    #   r[[0,1,2,3]][1..4]
+    #   r[[0,1,2,3]][1...-1]
+    #   r[[0,1,2,3]][1..-1]
     # As are:
-    #   r.expr(1)
-    #   r.expr([0,1,2])[1]
+    #   r[1]
+    #   r[[0,1,2]][1]
     # And:
-    #   r.expr(2)
-    #   r.expr({:a => 2})[:a]
+    #   r[2]
+    #   r[{:a => 2}][:a]
     def [](ind)
       case ind.class.hash
       when Fixnum.hash then S._ [:call, [:nth], [@body, RQL.expr(ind)]]
@@ -124,6 +124,7 @@ module RethinkDB
     # <b>+id+</b> less tahn 4.  If the object returned in <b>+update+</b>
     # has attributes which are not present in the original row, those attributes
     # will still be added to the new row.
+    # TODO: doesn't work
     def update
       S.with_var {|vname,v| S._ [:update, @body, [vname, RQL.expr(yield(v))]]};
     end
@@ -140,7 +141,7 @@ module RethinkDB
     # (<b>+keyname+</b>), but note that your table must be indexed by that
     # attribute.  Calling this function on anything except a table is an error:
     #   good = table.get(0)
-    #   bad  = table.filter{|row| row[:name] = 'Bob'}.get(0)
+    #   bad  = table.filter{|row| row[:name].eq('Bob')}.get(0)
     # TODO: get().delete() => pointdelete
     def get(key, keyname=:id)
       if @body[0] == :table then S._ [:getbykey, @body[1..-1], keyname, key]
@@ -175,7 +176,7 @@ module RethinkDB
     # As are:
     #   r.let([['a', 1],
     #          ['b', 2]],
-    #         r[:$a] + r[:$b] + 1)
+    #         r.add(:$a, :$b, 1))
     #   r.let([['a', 1],
     #          ['b', 2]],
     #         r.js('a+b+1'))
@@ -474,10 +475,10 @@ module RethinkDB
     # variable, a row in the stream, and return a list of rows to include in the
     # resulting stream.  If you have a table <b>+table+</b>, the following are
     # all equivalent:
-    #   r.concatmap(table) {|row| r.expr([row[:id], row[:id]*2])}
-    #   table.concatmap {|row| r.expr([row[:id], row[:id]*2])}
-    #   table.concatmap {r.expr([r[:id], r[:id]*2])} # uses implicit variable
-    #   table.map{|row| r.expr([row[:id], row[:id]*2])}.reduce([]){|a,b| r.union(a,b)}
+    #   r.concatmap(table) {|row| [row[:id], row[:id]*2]}
+    #   table.concatmap {|row| [row[:id], row[:id]*2]}
+    #   table.concatmap {[r[:id], r[:id]*2]} # uses implicit variable
+    #   table.map{|row| [row[:id], row[:id]*2]}.reduce([]){|a,b| r.union(a,b)}
     def concatmap(stream)
       S.with_var { |vname,v|
         S._ [:call, [:concatmap, vname, expr(yield(v))], [expr stream]]
@@ -515,18 +516,18 @@ module RethinkDB
     #   r.distinct(table)
     #   table.distinct
     # As are:
-    #   r.expr [1,2,3]
-    #   r.distinct(r.expr [1,2,3,1])
-    #   r.expr([1,2,3,1]).distinct
+    #   r[[1,2,3]]
+    #   r.distinct([1,2,3,1])
+    #   r[[1,2,3,1]].distinct
     def distinct(seq); S._ [:call, [:distinct], [expr seq]]; end
 
     # Get the length of <b>+seq+</b>, which may be either a JSON array or a
     # stream.  If we have a table <b>+table+</b> with at least 5 elements, the
     # following are equivalent:
-    #   r.length(table.limit(5))
-    #   table.limit(5).length
-    #   r.length(r.expr [1..5])
-    #   r.expr([1..5]).length
+    #   r.length(table[0...5])
+    #   table[0...5].length
+    #   r.length([1,2,3,4,5])
+    #   r[[1,2,3,4,5]].length
     def length(seq); S._ [:call, [:length], [expr seq]]; end
 
     # Take the union of 0 or more sequences <b>+seqs+</b>.  Note that unlike
@@ -538,8 +539,8 @@ module RethinkDB
     #   table.map{r[:id]}.union(table.map{r[:num]})
     # As are:
     #   r.expr [1,2,3,1,4,5]
-    #   r.union(r.expr([1,2,3]), r.expr([1,4,5]))
-    #   r.expr([1,2,3]).union(r.expr [1,4,5])
+    #   r.union([1,2,3], [1,4,5])
+    #   r[[1,2,3]].union([1,4,5])
     def union(*seqs); S._ [:call, [:union], seqs.map{|x| expr x}]; end
 
     # Convert from an array to a stream.  Also has the synonym
@@ -550,9 +551,9 @@ module RethinkDB
     # the types.  This is mostly for safety, but also because which type you're
     # working with effects error handling.  The following are equivalent:
     #   r.arraytostream r.expr([1,2,3])
-    #   r.expr([1,2,3]).arraytostream
-    #   r.to_stream r.expr([1,2,3])
-    #   r.expr([1,2,3]).to_stream
+    #   r[[1,2,3]].arraytostream
+    #   r.to_stream([1,2,3])
+    #   r[[1,2,3]].to_stream
     def arraytostream(array); S._ [:call, [:arraytostream], [expr(array)]]; end
 
     # Convert from a stream to an array.  Also has the synonym <b>+to_array+</b>.
