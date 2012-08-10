@@ -7,6 +7,7 @@
 
 #include "containers/scoped.hpp"
 #include "rdb_protocol/jsimpl.hpp"
+#include "rdb_protocol/json.hpp"
 
 namespace js {
 
@@ -83,6 +84,9 @@ v8::Handle<v8::Value> env_t::findValue(id_t id) {
 
 id_t env_t::new_id() {
     guarantee(next_id_ < MAX_ID); // overflow would be bad
+    // TODO: What is this?  Is MAX_ID is not maximum id.  Why would
+    // you call it MAX_ID if it was not the maximum possible id?  Why
+    // are you having code with a side effect on the same line?
     return next_id_++;
 }
 

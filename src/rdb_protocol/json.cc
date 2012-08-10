@@ -3,8 +3,27 @@
 #include "rdb_protocol/json.hpp"
 #include "rdb_protocol/exceptions.hpp"
 
+write_message_t &operator<<(write_message_t &msg, const boost::shared_ptr<scoped_cJSON_t> &cjson) {
+    rassert(NULL != cjson.get() && NULL != cjson->get());
+    msg << *cjson->get();
+    return msg;
+}
+
+MUST_USE archive_result_t deserialize(read_stream_t *s, boost::shared_ptr<scoped_cJSON_t> *cjson) {
+    cJSON *data = cJSON_CreateBlank();
+
+    archive_result_t res = deserialize(s, data);
+    if (res) { return res; }
+
+    *cjson = boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(data));
+
+    return ARCHIVE_SUCCESS;
+}
+
 namespace query_language {
 
+// TODO: Rename this function!  It is not part of the cJSON library,
+// so it should not be part of the cJSON namepace.
 int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace) {
     if (l->type != r->type) {
         return l->type - r->type;
@@ -64,5 +83,7 @@ int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace) {
     }
     unreachable();
 }
+
+
 
 } // namespace query_language

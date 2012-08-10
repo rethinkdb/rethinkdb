@@ -11,6 +11,13 @@
 
 namespace query_language {
 
+
+/* Convenience function for making the horrible easy. */
+boost::shared_ptr<scoped_cJSON_t> shared_scoped_json(cJSON *json) {
+    return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(json));
+}
+
+
 void check_protobuf(bool cond) {
     if (!cond) {
         BREAKPOINT;
