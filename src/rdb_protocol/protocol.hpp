@@ -12,18 +12,15 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
+#include "backfill_progress.hpp"
 #include "btree/btree_store.hpp"
 #include "btree/keys.hpp"
-#include "btree/parallel_traversal.hpp"
-#include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
-#include "memcached/region.hpp" //TODO move these to a common place
-#include "protob/protob.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/json.hpp"
 #include "rdb_protocol/query_language.pb.h"
@@ -42,13 +39,13 @@ enum point_delete_result_t {
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_delete_result_t, int8_t, DELETED, MISSING);
 
-RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_Range);
-RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_Filter);
-RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_Map);
-RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_ConcatMap);
-RDB_MAKE_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
-RDB_MAKE_PROTOB_SERIALIZABLE(Reduction);
-RDB_MAKE_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
+RDB_DECLARE_SERIALIZABLE(Builtin_Range);
+RDB_DECLARE_SERIALIZABLE(Builtin_Filter);
+RDB_DECLARE_SERIALIZABLE(Builtin_Map);
+RDB_DECLARE_SERIALIZABLE(Builtin_ConcatMap);
+RDB_DECLARE_SERIALIZABLE(Builtin_GroupedMapReduce);
+RDB_DECLARE_SERIALIZABLE(Reduction);
+RDB_DECLARE_SERIALIZABLE(WriteQuery_ForEach);
 
 namespace rdb_protocol_details {
 
@@ -73,7 +70,7 @@ typedef std::list<transform_atom_t> transform_t;
  * with it but to make things work with the variant we create a nice empty
  * class. */
 
-struct Length { 
+struct Length {
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
@@ -300,33 +297,9 @@ struct rdb_protocol_t {
 
         region_t get_region() const;
 
-        struct backfill_chunk_shard_visitor_t : public boost::static_visitor<rdb_protocol_t::backfill_chunk_t> {
-        public:
-            explicit backfill_chunk_shard_visitor_t(const rdb_protocol_t::region_t &_region) : region(_region) { }
-            rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_key_t &del) {
-                rdb_protocol_t::backfill_chunk_t ret(del);
-                rassert(region_is_superset(region, ret.get_region()));
-                return ret;
-            }
-            rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_range_t &del) {
-                rdb_protocol_t::region_t r = region_intersection(del.range, region);
-                rassert(!region_is_empty(r));
-                return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::delete_range_t(r));
-            }
-            rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
-                rdb_protocol_t::backfill_chunk_t ret(kv);
-                rassert(region_is_superset(region, ret.get_region()));
-                return ret;
-            }
-        private:
-            const rdb_protocol_t::region_t &region;
-        };
+        rdb_protocol_t::backfill_chunk_t shard(const rdb_protocol_t::region_t &region) const THROWS_NOTHING;
 
-        rdb_protocol_t::backfill_chunk_t shard(const rdb_protocol_t::region_t &region) const THROWS_NOTHING {
-            backfill_chunk_shard_visitor_t v(region);
-            return boost::apply_visitor(v, val);
-        }
-
+        // TODO: This is bad.
         RDB_MAKE_ME_SERIALIZABLE_0();
     };
 

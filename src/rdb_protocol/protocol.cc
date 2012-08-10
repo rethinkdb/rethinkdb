@@ -3,10 +3,12 @@
 #include <boost/function.hpp>
 
 #include "btree/erase_range.hpp"
+#include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.hpp"
@@ -46,6 +48,14 @@ typedef rdb_protocol_t::rget_read_response_t::length_t length_t;
 typedef rdb_protocol_t::rget_read_response_t::inserted_t inserted_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
+
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Range);
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Filter);
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Map);
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_ConcatMap);
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
+RDB_IMPL_PROTOB_SERIALIZABLE(Reduction);
+RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
 
 // Construct a region containing only the specified key
 region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
@@ -559,4 +569,34 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, UNUSED int 
     uint64_t end = subregion_number + 1 == num_cpu_shards ? HASH_REGION_HASH_SIZE : beg + width;
 
     return region_t(beg, end, key_range_t::universe());
+}
+
+
+struct backfill_chunk_shard_visitor_t : public boost::static_visitor<rdb_protocol_t::backfill_chunk_t> {
+public:
+    explicit backfill_chunk_shard_visitor_t(const rdb_protocol_t::region_t &_region) : region(_region) { }
+    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_key_t &del) {
+        rdb_protocol_t::backfill_chunk_t ret(del);
+        rassert(region_is_superset(region, ret.get_region()));
+        return ret;
+    }
+    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_range_t &del) {
+        rdb_protocol_t::region_t r = region_intersection(del.range, region);
+        rassert(!region_is_empty(r));
+        return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::delete_range_t(r));
+    }
+    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
+        rdb_protocol_t::backfill_chunk_t ret(kv);
+        rassert(region_is_superset(region, ret.get_region()));
+        return ret;
+    }
+private:
+    const rdb_protocol_t::region_t &region;
+
+    DISABLE_COPYING(backfill_chunk_shard_visitor_t);
+};
+
+rdb_protocol_t::backfill_chunk_t rdb_protocol_t::backfill_chunk_t::shard(const rdb_protocol_t::region_t &region) const THROWS_NOTHING {
+    backfill_chunk_shard_visitor_t v(region);
+    return boost::apply_visitor(v, val);
 }
