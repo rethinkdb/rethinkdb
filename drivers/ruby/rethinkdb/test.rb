@@ -36,7 +36,7 @@ r = RethinkDB::RQL
 require 'test/unit'
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts_Mixin
-  def rdb; r.db('','Welcome'); end
+  def rdb; r.db('','Welcome-rdb'); end
   @@c = RethinkDB::Connection.new('localhost', 64346)
   def c; @@c; end
 
@@ -147,8 +147,8 @@ class ClientTest < Test::Unit::TestCase
 
   def test_easy_read #TABLE
     assert_equal($data, rdb.run)
-    assert_equal($data, r.table('', 'Welcome').run)
-    assert_equal($data, r.table({:table_name => 'Welcome'}).run)
+    assert_equal($data, r.table('', 'Welcome-rdb').run)
+    assert_equal($data, r.table({:table_name => 'Welcome-rdb'}).run)
   end
 
   def test_error #IF, JSON, ERROR
@@ -241,10 +241,6 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.between(rdb, 2, nil).run, $data[2..-1])
     assert_equal(rdb.range(:id, 1, 3).run, $data[1..3])
     assert_equal(rdb.range({:attrname => :id, :upperbound => 4}).run,$data[0..4])
-  end
-
-  def test_limit #LIMIT, SKIP
-    assert_equal(rdb.limit(5).skip(2).run, $data[2..4])
   end
 
   def test_nth #NTH
