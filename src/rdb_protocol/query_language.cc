@@ -729,14 +729,17 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 view_t view = eval_view(w->mutable_update()->mutable_view(), env, backtrace.with("view"));
 
                 int updated = 0,
-                    error = 0;
+                    error = 0,
+                    skipped = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
 
                     env->scope.put_in_scope(w->update().mapping().arg(), json);
                     boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
-                    if (!cJSON_Equal(json->GetObjectItem(view.primary_key.c_str()),
-                                     val->GetObjectItem(view.primary_key.c_str()))) {
+                    if (val->type() == cJSON_NULL) {
+                        skipped++;
+                    } else if (!cJSON_Equal(json->GetObjectItem(view.primary_key.c_str()),
+                                            val->GetObjectItem(view.primary_key.c_str()))) {
                         error++;
                     } else {
                         insert(view.access, view.primary_key, val, env, backtrace);
@@ -744,7 +747,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     }
                 }
 
-                res->add_response(strprintf("{\"updated\": %d, \"errors\": %d}", updated, error));
+                res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}", updated, skipped, error));
             }
             break;
         case WriteQuery::DELETE:

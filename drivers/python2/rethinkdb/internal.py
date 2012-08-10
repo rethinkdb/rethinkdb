@@ -90,9 +90,18 @@ class Delete(WriteQuery):
         parent.type = p.WriteQuery.DELETE
         self.parent_view._write_ast(parent.delete.view)
 
+class Update(WriteQuery):
+    def __init__(self, parent_view, mapping):
+        self.parent_view = parent_view
+        self.mapping = mapping
+
+    def _write_ast(self, parent):
+        parent.type = p.WriteQuery.UPDATE
+        self.parent_view._write_ast(parent.update.view)
+        self.mapping.write_mapping(parent.update.mapping)
+
 class Mutate(WriteQuery):
     def __init__(self, parent_view, mapping):
-        super(Mutate, self).__init__()
         self.parent_view = parent_view
         self.mapping = mapping
 
