@@ -35,6 +35,7 @@ private:
 
 #define RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, isinline)             \
     isinline write_message_t &operator<<(write_message_t &msg, const pb_t &p) { \
+        CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
         int size = p.ByteSize();                                        \
         scoped_array_t<char> data(size);                                \
         p.SerializeToArray(data.data(), size);                          \
@@ -45,6 +46,7 @@ private:
     }                                                                   \
                                                                         \
     isinline MUST_USE archive_result_t deserialize(read_stream_t *s, pb_t *p) { \
+        CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
         int32_t size;                                                   \
         archive_result_t res = deserialize(s, &size);                   \
         if (res) { return res; }                                        \
