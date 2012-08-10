@@ -3,6 +3,7 @@
 
 #include "btree/backfill.hpp"
 #include "memcached/queries.hpp"
+#include "repli_timestamp.hpp"
 
 class append_only_printf_buffer_t;
 
