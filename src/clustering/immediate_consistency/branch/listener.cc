@@ -123,7 +123,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
     /* Attempt to register for reads and writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
-    rassert(registration_done_cond_.get_ready_signal()->is_pulsed());
+    guarantee(registration_done_cond_.get_ready_signal()->is_pulsed());
 
     state_timestamp_t streaming_begin_point =
         registration_done_cond_.get_value().broadcaster_begin_timestamp;
@@ -167,7 +167,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     /* Sanity checking. */
 
     /* Make sure the region is not empty. */
-    rassert(backfill_end_point.begin() != backfill_end_point.end());
+    guarantee(backfill_end_point.begin() != backfill_end_point.end());
 
     // The end timestamp is the maximum of the timestamps we've seen.
     state_timestamp_t backfill_end_timestamp = backfill_end_point.begin()->second.earliest.timestamp;
@@ -259,7 +259,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
     /* Attempt to register for writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
-    rassert(registration_done_cond_.get_ready_signal()->is_pulsed());
+    guarantee(registration_done_cond_.get_ready_signal()->is_pulsed());
 
 #ifndef NDEBUG
     region_map_t<protocol_t, version_range_t> expected_initial_metainfo(svs_->get_multistore_joined_region(),
@@ -317,14 +317,17 @@ listener_t<protocol_t>::get_registrar_from_broadcaster_bcard(const boost::option
     }
 }
 
+
+/* `listener_intro_t` represents the introduction we expect to get from the
+   broadcaster if all goes well. */
 template <class protocol_t>
 class intro_receiver_t : public signal_t {
 public:
-    typename listener_t<protocol_t>::intro_t intro;
+    listener_intro_t<protocol_t> intro;
     void fill(state_timestamp_t its,
               typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t um,
               typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
-        rassert(!is_pulsed());
+        guarantee(!is_pulsed());
         intro.broadcaster_begin_timestamp = its;
         intro.upgrade_mailbox = um;
         intro.downgrade_mailbox = dm;
@@ -359,7 +362,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
     if (registrant_->get_failed_signal()->is_pulsed()) {
         throw broadcaster_lost_exc_t();
     } else {
-        rassert(intro_receiver.is_pulsed());
+        guarantee(intro_receiver.is_pulsed());
         registration_done_cond_.pulse(intro_receiver.intro);
     }
 }
@@ -370,8 +373,8 @@ void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
-    rassert(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, write.get_region()));
-    rassert(!region_is_empty(write.get_region()));
+    guarantee(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, write.get_region()));
+    guarantee(!region_is_empty(write.get_region()));
     order_token.assert_write_mode();
 
     coro_t::spawn_sometime(boost::bind(

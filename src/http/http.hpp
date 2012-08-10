@@ -9,7 +9,7 @@
 #include <boost/shared_array.hpp>
 #include <boost/optional.hpp>
 
-#include "arch/io/network.hpp"
+#include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "containers/scoped.hpp"
 #include "parsing/util.hpp"
@@ -94,7 +94,8 @@ enum http_status_code_t {
     HTTP_INTERNAL_SERVER_ERROR = 500
 };
 
-struct http_res_t {
+class http_res_t {
+public:
     std::string version;
     int code;
     std::vector<header_line_t> header_lines;
@@ -116,7 +117,7 @@ void test_header_parser();
 class tcp_http_msg_parser_t {
 public:
     tcp_http_msg_parser_t() {}
-    bool parse(tcp_conn_t *conn, http_req_t *req, signal_t *closer) THROWS_ONLY(tcp_conn_t::read_closed_exc_t);
+    bool parse(tcp_conn_t *conn, http_req_t *req, signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t);
 private:
     struct version_parser_t {
         std::string version;

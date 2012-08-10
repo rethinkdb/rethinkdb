@@ -24,6 +24,19 @@ private:
     std::string info;
 };
 
+class tcp_conn_read_closed_exc_t : public std::exception {
+    const char *what() const throw () {
+        return "Network connection read end closed";
+    }
+};
+
+struct tcp_conn_write_closed_exc_t : public std::exception {
+    const char *what() const throw () {
+        return "Network connection write end closed";
+    }
+};
+
+
 class linux_iocallback_t {
 public:
     virtual ~linux_iocallback_t() {}
