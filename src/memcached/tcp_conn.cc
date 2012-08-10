@@ -19,7 +19,7 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
         try {
             assert_thread();
             conn->write_buffered(buffer, bytes, interruptor);
-        } catch (tcp_conn_t::write_closed_exc_t) {
+        } catch (tcp_conn_write_closed_exc_t) {
             /* Ignore */
         }
     }
@@ -27,7 +27,7 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
     void write_unbuffered(const char *buffer, size_t bytes, signal_t *interruptor) {
         try {
             conn->write(buffer, bytes, interruptor);
-        } catch (tcp_conn_t::write_closed_exc_t) {
+        } catch (tcp_conn_write_closed_exc_t) {
             /* Ignore */
         }
     }
@@ -35,7 +35,7 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
     void flush_buffer(signal_t *interruptor) {
         try {
             conn->flush_buffer(interruptor);
-        } catch (tcp_conn_t::write_closed_exc_t) {
+        } catch (tcp_conn_write_closed_exc_t) {
             /* Ignore errors; it's OK for the write end of the connection to be closed. */
         }
     }
@@ -47,7 +47,7 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
     void read(void *buf, size_t nbytes, signal_t *interruptor) {
         try {
             conn->read(buf, nbytes, interruptor);
-        } catch(tcp_conn_t::read_closed_exc_t) {
+        } catch(tcp_conn_read_closed_exc_t) {
             throw no_more_data_exc_t();
         }
     }
@@ -76,14 +76,14 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
                     logERR("Aborting connection %p because we got more than %ld bytes without a CRLF",
                             coro_t::self(), threshold);
                     conn->shutdown_read();
-                    throw tcp_conn_t::read_closed_exc_t();
+                    throw tcp_conn_read_closed_exc_t();
                 }
 
                 // Keep trying until we get a complete line.
                 conn->read_more_buffered(interruptor);
             }
 
-        } catch(tcp_conn_t::read_closed_exc_t) {
+        } catch(tcp_conn_read_closed_exc_t) {
             throw no_more_data_exc_t();
         }
     }
