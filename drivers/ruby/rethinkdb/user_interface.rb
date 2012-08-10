@@ -72,6 +72,16 @@ module RethinkDB
   # explicitly with either the <b>+expr+</b> or <b><tt>[]</tt></b> methods in
   # the RQL module.
   class RQL_Query
+
+    # Convert from an RQL query representing a variable to the name of that
+    # variable.  Used e.g. in constructing javascript functions.
+    def to_s
+      if @body.class == Array and @body[0] == :var
+      then @body[1]
+      else raise TypeError, 'Can only call to_s on RQL_Queries representing variables.'
+      end
+    end
+
     # Construct a query that deletes all rows of the invoking query.  For
     # example, if we have a table <b>+table+</b>:
     #   table.filter{|row| row[:id] < 5}.delete
@@ -165,6 +175,18 @@ module RethinkDB
   #   r.db('').Welcome.limit(4).run
   # to get the first 4 elements of that namespace.
   module RQL_Mixin
+
+    # Construct a javascript expression, which may refer to variables in scope
+    # (use <b>+to_s+</b> to get the name of a variable query).
+    # TODO: examples
+    def javascript(str, type=:expr);
+      case type
+      when :expr then S._ [:javascript, "return #{str}"]
+      when :func then S._ [:javascript, str]
+      else raise TypeError, 'Type of javascript must be either :expr or :func.'
+      end
+    end
+
     # Construct a new table reference, which may then be treated as a query for
     # chaining (see the functions in RQL_Query).  There are two identical ways
     # of getting access to a namespace: passing it as the second argument, or
@@ -527,9 +549,9 @@ module RethinkDB
     #   r.map(table){|row| row[:count]}.reduce(0) {|a,b| a+b}
     # TODO: actual tests (reduce unimplemented right now)
     def reduce(stream, base)
-      with_var { |aname,a|
-        with_var { |bname,b|
-          S._ [:call, [:reduce, base, a, b, yield(a,b)], [stream]]
+      S.with_var { |aname,a|
+        S.with_var { |bname,b|
+          S._ [:call, [:reduce, base, aname, bname, yield(a,b)], [stream]]
         }
       }
     end
