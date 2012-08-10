@@ -9,7 +9,7 @@
 #include "perfmon/perfmon.hpp"
 
 class io_backender_t;
-struct superblock_t;
+class superblock_t;
 class real_superblock_t;
 
 template <class protocol_t>
