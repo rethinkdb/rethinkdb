@@ -4,20 +4,14 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
+
 template <class protocol_t>
 namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
                                                clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > _namespaces_directory_metadata)
     : mailbox_manager(_mailbox_manager),
       namespaces_directory_metadata(_namespaces_directory_metadata)
 { }
-
-/*
-template <class protocol_t>
-namespace_repo_t<protocol_t>::~namespace_repo_t() {
-    std::map<namespace_id_t, std::vector<namespace_data_t> > interface_map;
-    for (typename std::map<namespace_id_t, std::vector<namespace_data_t> >::iterator i = interface_map.begin(); i != interface_map.end(); ++i) {
-    }
-}*/
 
 template <class protocol_t>
 std::map<peer_id_t, reactor_business_card_t<protocol_t> > get_reactor_business_cards(
@@ -39,157 +33,168 @@ std::map<peer_id_t, reactor_business_card_t<protocol_t> > get_reactor_business_c
 }
 
 template <class protocol_t>
-namespace_repo_t<protocol_t>::namespace_data_t::~namespace_data_t() {
-   for (int i = 0; (size_t)i < thread_data.size(); ++i) {
-        if (thread_data[i].ns_if != NULL) {
-            on_thread_t rethreader(i);
-            delete thread_data[i].ns_if;
-            delete thread_data[i].ready;
-            delete thread_data[i].deleter;
-        }
-        delete thread_data[i].ct_subview;
-    }
-}
+namespace_repo_t<protocol_t>::access_t::access_t() :
+    cache_entry(NULL),
+    thread(INVALID_THREAD)
+    { }
 
 template<class protocol_t>
-namespace_repo_t<protocol_t>::access_t::ref_handler_t::ref_handler_t(typename namespace_data_t::thread_data_t *_thread_data) :
-    thread_data(_thread_data)
-{
-    ++thread_data->refs;
-}
-
-template<class protocol_t>
-namespace_repo_t<protocol_t>::access_t::ref_handler_t::~ref_handler_t() {
-    --thread_data->refs;
-    if (thread_data->refs == 0) {
-        rassert(thread_data->deleter == NULL);
-        thread_data->deleter = new typename namespace_data_t::timed_delete_t(thread_data);
-    }
-}
-
-template<class protocol_t>
-namespace_repo_t<protocol_t>::access_t::access_t(namespace_repo_t *_parent, namespace_id_t _ns_id, signal_t *interruptor) :
-    thread_data(NULL),
-    parent(_parent),
-    ns_id(_ns_id),
+namespace_repo_t<protocol_t>::access_t::access_t(namespace_repo_t *parent, namespace_id_t namespace_id, signal_t *interruptor) :
     thread(get_thread_id())
 {
-    typename std::map<namespace_id_t, namespace_data_t>::iterator it = parent->interface_map.find(ns_id);
-    if (it == parent->interface_map.end()) {
-        it = parent->interface_map.insert(std::make_pair(ns_id, namespace_data_t())).first;
-    }
-    thread_data = &it->second.thread_data[thread];
-
-    // If there is a pending delete for the ns_if, cancel it
-    if (thread_data->refs == 0 && thread_data->deleter != NULL) {
-        delete thread_data->deleter;
-        thread_data->deleter = NULL;
-    }
-    ref_handler.init(new ref_handler_t(thread_data));
-
-    // Check if the ns_if and supporting members have been constructed
-    if (thread_data->ready == NULL) {
-        thread_data->ready = new cond_t();
-        rassert(thread_data->ns_if == NULL);
-        rassert(thread_data->ct_subview == NULL);
-
-        // Watchables must be constructed on the original thread
-        {
-            on_thread_t rethreader(parent->home_thread());
-            clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > subview =
-                parent->namespaces_directory_metadata->subview(boost::bind(&get_reactor_business_cards<protocol_t>, _1, ns_id));
-            thread_data->ct_subview =
-                new cross_thread_watchable_variable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > >(subview, thread);
+    {
+        ASSERT_FINITE_CORO_WAITING;
+        namespace_cache_t *cache = parent->namespace_caches.get();
+        if (cache->entries.find(namespace_id) == cache->entries.end()) {
+            cache_entry = new namespace_cache_entry_t;
+            cache_entry->ref_count = 0;
+            cache_entry->pulse_when_ref_count_becomes_zero = NULL;
+            cache_entry->pulse_when_ref_count_becomes_nonzero = NULL;
+            ref_handler.init(cache_entry);
+            cache->entries.insert(namespace_id, cache_entry);
+            coro_t::spawn_sometime(boost::bind(
+                &namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface, parent,
+                cache, namespace_id,
+                auto_drainer_t::lock_t(&cache->drainer)
+                ));
+        } else {
+            cache_entry = &cache->entries[namespace_id];
+            ref_handler.init(cache_entry);
         }
-
-        // Namespace interface created on access's thread
-        thread_data->ns_if = new cluster_namespace_interface_t<protocol_t>(parent->mailbox_manager,
-                                                                           thread_data->ct_subview->get_watchable());
-        thread_data->ready->pulse();
-    } else if (!thread_data->ready->is_pulsed()) {
-        wait_interruptible(thread_data->ready, interruptor);
     }
-
-    // Make sure the ns_if is ready
-    if (!thread_data->ns_if->get_initial_ready_signal()->is_pulsed()) {
-        wait_interruptible(thread_data->ns_if->get_initial_ready_signal(), interruptor);
-    }
-
-    // Sanity check to make sure no one's trying to delete our ns_if
-    rassert(thread_data->deleter == NULL);
+    wait_interruptible(cache_entry->namespace_if.get_ready_signal(), interruptor);
 }
 
 template <class protocol_t>
 namespace_repo_t<protocol_t>::access_t::access_t(const access_t& access) :
-    thread_data(access.thread_data),
-    parent(access.parent),
-    ns_id(access.ns_id),
+    cache_entry(access.cache_entry),
     thread(access.thread)
 {
-    // Increment thread_data's refs, and make sure that it's not under a pending delete
-    //  which should be impossible, because there's an existing access already
-    ref_handler.init(new ref_handler_t(thread_data));
-    rassert(thread_data->deleter == NULL);
-    rassert(thread_data->ready != NULL);
-    rassert(thread_data->ready->is_pulsed());
-    rassert(thread_data->ns_if->get_initial_ready_signal()->is_pulsed());
+    if (cache_entry) {
+        rassert(get_thread_id() == thread);
+        ref_handler.init(cache_entry);
+    }
 }
 
 template <class protocol_t>
-namespace_repo_t<protocol_t>::access_t::~access_t() {
+typename namespace_repo_t<protocol_t>::access_t &namespace_repo_t<protocol_t>::access_t::operator=(const access_t &access) {
+    if (this != &access) {
+        cache_entry = access.cache_entry;
+        ref_handler.reset();
+        if (access.cache_entry) {
+            ref_handler.init(access.cache_entry);
+        }
+        thread = access.thread;
+    }
+    return *this;
+}
+
+template <class protocol_t>
+namespace_interface_t<protocol_t> *namespace_repo_t<protocol_t>::access_t::get_namespace_if() {
     rassert(thread == get_thread_id());
-    rassert(thread_data != NULL);
+    return cache_entry->namespace_if.get_value();
 }
 
 template <class protocol_t>
-cluster_namespace_interface_t<protocol_t> *namespace_repo_t<protocol_t>::access_t::get_namespace_if() {
-    rassert(thread == get_thread_id());
-    rassert(thread_data != NULL);
-    rassert(thread_data->ns_if != NULL);
-    return thread_data->ns_if;
+namespace_repo_t<protocol_t>::access_t::ref_handler_t::ref_handler_t() :
+    ref_target(NULL) { }
+
+template <class protocol_t>
+namespace_repo_t<protocol_t>::access_t::ref_handler_t::~ref_handler_t() {
+    reset();
 }
 
 template <class protocol_t>
-namespace_repo_t<protocol_t>::namespace_data_t::timed_delete_t::timed_delete_t(thread_data_t *thread_data)
-{
-   // Spawn coroutine to delete after time has passed
-   coro_t::spawn_sometime(boost::bind(&namespace_repo_t<protocol_t>::namespace_data_t::timed_delete_t::wait_and_delete,
-                                          this, thread_data, auto_drainer_t::lock_t(&drainer)));
+void namespace_repo_t<protocol_t>::access_t::ref_handler_t::init(namespace_cache_entry_t *_ref_target) {
+    ASSERT_NO_CORO_WAITING;
+    rassert(ref_target == NULL);
+    ref_target = _ref_target;
+    ref_target->ref_count++;
+    if (ref_target->ref_count == 1) {
+        if (ref_target->pulse_when_ref_count_becomes_nonzero) {
+            ref_target->pulse_when_ref_count_becomes_nonzero->pulse_if_not_already_pulsed();
+        }
+    }
 }
 
 template <class protocol_t>
-void namespace_repo_t<protocol_t>::namespace_data_t::timed_delete_t::wait_and_delete(thread_data_t *thread_data, auto_drainer_t::lock_t keepalive) {
-    signal_timer_t waiter(timeout_ms);
+void namespace_repo_t<protocol_t>::access_t::ref_handler_t::reset() {
+    ASSERT_NO_CORO_WAITING;
+    if (ref_target != NULL) {
+        ref_target->ref_count--;
+        if (ref_target->ref_count == 0) {
+            if (ref_target->pulse_when_ref_count_becomes_zero) {
+                ref_target->pulse_when_ref_count_becomes_zero->pulse_if_not_already_pulsed();
+            }
+        }
+    }
+}
+
+template <class protocol_t>
+void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
+            namespace_cache_t *cache,
+            namespace_id_t namespace_id,
+            auto_drainer_t::lock_t keepalive)
+            THROWS_NOTHING{
+    keepalive.assert_is_holding(&cache->drainer);
+    int thread = get_thread_id();
+
+    namespace_cache_entry_t *cache_entry = cache->entries.find(namespace_id)->second;
+    rassert(!cache_entry->namespace_if.get_ready_signal()->is_pulsed());
+
+    /* We need to switch to `home_thread()` to construct
+    `cross_thread_watchable`, then switch back. In destruction we need to do the
+    reverse. Fortunately RAII works really nicely here. */
+    on_thread_t switch_to_home_thread(home_thread());
+    clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > subview =
+        namespaces_directory_metadata->subview(boost::bind(&get_reactor_business_cards<protocol_t>, _1, namespace_id));
+    cross_thread_watchable_variable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > cross_thread_watchable(subview, thread);
+    on_thread_t switch_back(thread);
+
+    cluster_namespace_interface_t<protocol_t> namespace_interface(
+        mailbox_manager,
+        cross_thread_watchable.get_watchable());
+
     try {
-        wait_interruptible(&waiter, keepalive.get_drain_signal());
+        wait_interruptible(namespace_interface.get_initial_ready_signal(),
+            keepalive.get_drain_signal());
 
-        rassert(thread_data->refs == 0);
-        rassert(thread_data->deleter == this);
+        /* Notify `access_t`s that the namespace is available now */
+        cache_entry->namespace_if.pulse(&namespace_interface);
 
-        // In case anything blocks, get the thread_data back into its null-state before doing any deletes
-        cond_t *old_ready = thread_data->ready;
-        cluster_namespace_interface_t<protocol_t>* old_ns_if = thread_data->ns_if;
-        cross_thread_watchable_variable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > >* old_ct_subview = thread_data->ct_subview;
-
-        thread_data->ready = NULL;
-        thread_data->ns_if = NULL;
-        thread_data->ct_subview = NULL;
-        thread_data->deleter = NULL;
-
-        delete old_ns_if;
-        delete old_ready;
-
-        if (old_ct_subview != NULL) {
-            on_thread_t rethreader(old_ct_subview->home_thread());
-            delete old_ct_subview;
+        /* Wait until it's time to shut down */
+        while (true) {
+            while (cache_entry->ref_count != 0) {
+                cond_t ref_count_is_zero;
+                assignment_sentry_t<cond_t *> notify_if_ref_count_becomes_zero(
+                    &cache_entry->pulse_when_ref_count_becomes_zero,
+                    &ref_count_is_zero);
+                wait_interruptible(&ref_count_is_zero, keepalive.get_drain_signal());
+            }
+            signal_timer_t expiration_timer(NAMESPACE_INTERFACE_EXPIRATION_MS);
+            cond_t ref_count_is_nonzero;
+            assignment_sentry_t<cond_t *> notify_if_ref_count_becomes_nonzero(
+                &cache_entry->pulse_when_ref_count_becomes_nonzero,
+                &ref_count_is_nonzero);
+            wait_any_t waiter(&expiration_timer, &ref_count_is_nonzero);
+            wait_interruptible(&waiter, keepalive.get_drain_signal());
+            if (!ref_count_is_nonzero.is_pulsed()) {
+                rassert(cache_entry->ref_count == 0);
+                /* We waited a whole `NAMESPACE_INTERFACE_EXPIRATION_MS` and
+                nothing used us. So let's destroy ourselves. */
+                break;
+            }
         }
 
-        // Release our lock so we can destroy the deleter (the cond_t is no longer needed)
-        keepalive.reset();
-        delete this; // TODO: yeah, this is ugly, but it should be fine, we're done with 'this' at this point
-    } catch (interrupted_exc_t &ex) {
-        // We were deleted before the timer expired, ns_if is in use, so do nothing
+    } catch (interrupted_exc_t) {
+        /* We got here because we were interrupted in the startup process. That
+        means the `namespace_repo_t` destructor was called, which means there
+        mustn't exist any `access_t` objects. So ref_count must be 0. */
+        rassert(cache_entry->ref_count == 0);
     }
+
+    ASSERT_NO_CORO_WAITING;
+    cache->entries.erase(namespace_id);
 }
 
 #include "mock/dummy_protocol.hpp"
