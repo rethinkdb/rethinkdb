@@ -14,7 +14,6 @@
 
 #include "btree/btree_store.hpp"
 #include "btree/keys.hpp"
-#include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
