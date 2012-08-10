@@ -22,7 +22,7 @@
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/json.hpp"
+#include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/query_language.pb.h"
 
 enum point_write_result_t {

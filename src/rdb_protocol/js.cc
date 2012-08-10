@@ -1,13 +1,12 @@
-#define __STDC_LIMIT_MACROS     // hack. :(
+#define __STDC_LIMIT_MACROS
 #include <stdint.h>             // for UINT32_MAX
 
 #include "utils.hpp"
-#include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
 
 #include "containers/scoped.hpp"
 #include "rdb_protocol/jsimpl.hpp"
-#include "rdb_protocol/json.hpp"
+#include "rdb_protocol/rdb_protocol_json.hpp"
 
 namespace js {
 

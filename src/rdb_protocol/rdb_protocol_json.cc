@@ -1,6 +1,6 @@
 #include <string.h>
 
-#include "rdb_protocol/json.hpp"
+#include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/exceptions.hpp"
 
 write_message_t &operator<<(write_message_t &msg, const boost::shared_ptr<scoped_cJSON_t> &cjson) {
