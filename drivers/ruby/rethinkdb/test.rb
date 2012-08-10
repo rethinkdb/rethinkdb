@@ -44,6 +44,73 @@ class ClientTest < Test::Unit::TestCase
   @@c = RethinkDB::Connection.new('localhost', 64346)
   def c; @@c; end
 
+  def test_cmp #from python tests
+    assert_equal(r.eq(3, 3).run, true)
+    assert_equal(r.eq(3, 4).run, false)
+
+    assert_equal(r.ne(3, 3).run, false)
+    assert_equal(r.ne(3, 4).run, true)
+
+    assert_equal(r.gt(3, 2).run, true)
+    assert_equal(r.gt(3, 3).run, false)
+
+    assert_equal(r.ge(3, 3).run, true)
+    assert_equal(r.ge(3, 4).run, false)
+
+    assert_equal(r.lt(3, 3).run, false)
+    assert_equal(r.lt(3, 4).run, true)
+
+    assert_equal(r.le(3, 3).run, true)
+    assert_equal(r.le(3, 4).run, true)
+    assert_equal(r.le(3, 2).run, false)
+
+    assert_equal(r.eq(1, 1, 2).run, false)
+    assert_equal(r.eq(5, 5, 5).run, true)
+
+    assert_equal(r.lt(3, 4).run, true)
+    assert_equal(r.lt(3, 4, 5).run, true)
+    assert_equal(r.lt(5, 6, 7, 7).run, false)
+
+    assert_equal(r.eq("asdf", "asdf").run, true)
+    assert_equal(r.eq("asd", "asdf").run, false)
+    assert_equal(r.lt("a", "b").run, true)
+
+    assert_equal(r.eq(true, true).run, true)
+    assert_equal(r.lt(false, true).run, true)
+
+    assert_equal(r.lt(false, true, 1, "", []).run, true)
+    assert_equal(r.gt([], "", 1, true, false).run, true)
+    assert_equal(r.lt(false, true, "", 1, []).run, false)
+  end
+
+  def test_junctions #from python tests
+    assert_equal(r.any(false).run, false)
+    assert_equal(r.any(true, false).run, true)
+    assert_equal(r.any(false, true).run, true)
+    assert_equal(r.any(false, false, true).run, true)
+
+    assert_equal(r.all(false).run, false)
+    assert_equal(r.all(true, false).run, false)
+    assert_equal(r.all(true, true).run, true)
+    assert_equal(r.all(true, true, true).run, true)
+
+    assert_raise(RuntimeError){r.all(true, 3).run}
+    assert_raise(RuntimeError){r.any(true, 4).run}
+  end
+
+  def test_not #from python tests
+    assert_equal(r.not(true).run, false)
+    assert_equal(r.not(false).run, true)
+    assert_raise(RuntimeError){r.not(3).run}
+  end
+
+  def test_let #from python tests
+    assert_equal(r.let([["x", 3]], r.var("x")).run, 3)
+    assert_equal(r.let([["x", 3], ["x", 4]], r.var("x")).run, 4)
+    assert_equal(r.let([["x", 3], ["y", 4]], r.var("x")).run, 3)
+    assert_raise(RuntimeError){r.var('x').run}
+  end
+  
   def test_ops #+,-,%,*,/,<,>,<=,>=,eq,ne,any,all
     assert_equal((r[5] + 3).run, 8)
     assert_equal((r[5].add(3)).run, 8)
@@ -140,45 +207,6 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.or(false, true, false).run, true)
     assert_equal((r[false].or(false)).run, false)
     assert_equal((r[true].or(false)).run, true)
-  end
-
-  def test_cmp #from python tests
-    assert_equal(r.eq(3, 3).run, true)
-    assert_equal(r.eq(3, 4).run, false)
-
-    assert_equal(r.ne(3, 3).run, false)
-    assert_equal(r.ne(3, 4).run, true)
-
-    assert_equal(r.gt(3, 2).run, true)
-    assert_equal(r.gt(3, 3).run, false)
-
-    assert_equal(r.ge(3, 3).run, true)
-    assert_equal(r.ge(3, 4).run, false)
-
-    assert_equal(r.lt(3, 3).run, false)
-    assert_equal(r.lt(3, 4).run, true)
-
-    assert_equal(r.le(3, 3).run, true)
-    assert_equal(r.le(3, 4).run, true)
-    assert_equal(r.le(3, 2).run, false)
-
-    assert_equal(r.eq(1, 1, 2).run, false)
-    assert_equal(r.eq(5, 5, 5).run, true)
-
-    assert_equal(r.lt(3, 4).run, true)
-    assert_equal(r.lt(3, 4, 5).run, true)
-    assert_equal(r.lt(5, 6, 7, 7).run, false)
-
-    assert_equal(r.eq("asdf", "asdf").run, true)
-    assert_equal(r.eq("asd", "asdf").run, false)
-    assert_equal(r.lt("a", "b").run, true)
-
-    assert_equal(r.eq(true, true).run, true)
-    assert_equal(r.lt(false, true).run, true)
-
-    assert_equal(r.lt(false, true, 1, "", []).run, true)
-    assert_equal(r.gt([], "", 1, true, false).run, true)
-    assert_equal(r.lt(false, true, "", 1, []).run, false)
   end
 
   def test_json #JSON
