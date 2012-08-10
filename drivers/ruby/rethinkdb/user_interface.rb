@@ -297,7 +297,7 @@ module RethinkDB
     #   r.pickattrs(:id, :name)
     #   r.pick(:id, :name)
     #   r.attrs(:id, :name)
-    def pickattrs(*attrnames); [:call, [:implicit_pickattrs, *attrnames], []]; end
+    def pickattrs(*attrnames); S._ [:call, [:implicit_pickattrs, *attrnames], []]; end
 
     # Add the results of two or more queries together.  (Those queries should
     # return numbers.)  May also be called as if it were a member function of
@@ -459,5 +459,13 @@ module RethinkDB
       opts[:upperbound] = end_key if end_key != nil
       S._ [:call, [:range, opts], [stream]]
     end
+
+    # Removes duplicate items from <b>+stream+</b> (similar to the *nix
+    # <b>+uniq+</b> function).  May also be called as if it were a member
+    # function of RQL_Query, for convenience.  If we have a table
+    # <b>+table+</b>, the following are equivalent:
+    #   r.distinct(table)
+    #   table.distinct
+    def distinct(stream); S._ [:call, [:distinct], [stream]]; end
   end
 end
