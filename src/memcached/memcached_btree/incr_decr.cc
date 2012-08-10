@@ -1,4 +1,4 @@
-#include "memcached/btree/incr_decr.hpp"
+#include "memcached/memcached_btree/incr_decr.hpp"
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -6,7 +6,7 @@
 #include "containers/buffer_group.hpp"
 #include "containers/printf_buffer.hpp"
 #include "containers/scoped.hpp"
-#include "memcached/btree/modify_oper.hpp"
+#include "memcached/memcached_btree/modify_oper.hpp"
 #include "repli_timestamp.hpp"
 
 struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {

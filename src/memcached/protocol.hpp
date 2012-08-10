@@ -12,7 +12,7 @@
 #include "buffer_cache/types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "hash_region.hpp"
-#include "memcached/btree/backfill.hpp"
+#include "memcached/memcached_btree/backfill.hpp"
 #include "memcached/queries.hpp"
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"

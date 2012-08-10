@@ -2,7 +2,7 @@
 #define MEMCACHED_BTREE_MODIFY_OPER_HPP_
 
 #include "containers/scoped.hpp"
-#include "memcached/btree/node.hpp"
+#include "memcached/memcached_btree/node.hpp"
 
 class btree_slice_t;
 
