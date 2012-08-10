@@ -1,6 +1,8 @@
 #ifndef CONTAINERS_INTRUSIVE_PTR_HPP_
 #define CONTAINERS_INTRUSIVE_PTR_HPP_
 
+#include <stddef.h>
+
 // Yes, this is a clone of intrusive_ptr_t.  This will probably
 // not be the case in the future.
 

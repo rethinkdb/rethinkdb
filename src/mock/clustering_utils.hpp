@@ -8,9 +8,10 @@
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
-#include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/unittest_utils.hpp"
+
+class memcached_protocol_t;
 
 namespace mock {
 
