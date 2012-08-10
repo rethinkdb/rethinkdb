@@ -1,5 +1,7 @@
 #include "concurrency/auto_drainer.hpp"
 
+#include "arch/runtime/coroutines.hpp"
+
 auto_drainer_t::auto_drainer_t() :
     refcount(0), when_done(NULL) { }
 
