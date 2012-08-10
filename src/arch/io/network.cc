@@ -128,7 +128,7 @@ void linux_tcp_conn_t::release_write_queue_op(write_queue_op_t *op) {
     unused_write_queue_ops.push_front(op);
 }
 
-size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(read_closed_exc_t) {
+size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     assert_thread();
     rassert(!read_closed.is_pulsed());
 
@@ -146,7 +146,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(re
             if (read_closed.is_pulsed()) {
                 /* We were closed for whatever reason. Something else has already called
                 on_shutdown_read(). In fact, we were probably signalled by on_shutdown_read(). */
-                throw read_closed_exc_t();
+                throw tcp_conn_read_closed_exc_t();
             }
 
             /* Go around the loop and try to read again */
@@ -155,14 +155,14 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(re
             /* We were closed. This is the first notification that the kernel has given us, so we
             must call on_shutdown_read(). */
             on_shutdown_read();
-            throw read_closed_exc_t();
+            throw tcp_conn_read_closed_exc_t();
 
         } else if (res == -1) {
             /* Unknown error. This is not expected, but it will probably happen sometime so we
             shouldn't crash. */
             logERR("Could not read from socket: %s", strerror(errno));
             on_shutdown_read();
-            throw read_closed_exc_t();
+            throw tcp_conn_read_closed_exc_t();
 
         } else {
             /* We read some data, whooo */
@@ -171,7 +171,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(re
     }
 }
 
-size_t linux_tcp_conn_t::read_some(void *buf, size_t size, signal_t *closer) THROWS_ONLY(read_closed_exc_t) {
+size_t linux_tcp_conn_t::read_some(void *buf, size_t size, signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     rassert(size > 0);
     read_op_wrapper_t sentry(this, closer);
 
@@ -187,7 +187,7 @@ size_t linux_tcp_conn_t::read_some(void *buf, size_t size, signal_t *closer) THR
     }
 }
 
-void linux_tcp_conn_t::read(void *buf, size_t size, signal_t *closer) THROWS_ONLY(read_closed_exc_t) {
+void linux_tcp_conn_t::read(void *buf, size_t size, signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     read_op_wrapper_t sentry(this, closer);
 
     /* First, consume any data in the peek buffer */
@@ -206,7 +206,7 @@ void linux_tcp_conn_t::read(void *buf, size_t size, signal_t *closer) THROWS_ONL
     }
 }
 
-void linux_tcp_conn_t::read_more_buffered(signal_t *closer) THROWS_ONLY(read_closed_exc_t) {
+void linux_tcp_conn_t::read_more_buffered(signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     read_op_wrapper_t sentry(this, closer);
 
     size_t old_size = read_buffer.size();
@@ -216,25 +216,25 @@ void linux_tcp_conn_t::read_more_buffered(signal_t *closer) THROWS_ONLY(read_clo
     read_buffer.resize(old_size + delta);
 }
 
-const_charslice linux_tcp_conn_t::peek() const THROWS_ONLY(read_closed_exc_t) {
+const_charslice linux_tcp_conn_t::peek() const THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     assert_thread();
     rassert(!read_in_progress);   // Is there a read already in progress?
-    if (read_closed.is_pulsed()) throw read_closed_exc_t();
+    if (read_closed.is_pulsed()) throw tcp_conn_read_closed_exc_t();
 
     return const_charslice(read_buffer.data(), read_buffer.data() + read_buffer.size());
 }
 
-const_charslice linux_tcp_conn_t::peek(size_t size, signal_t *closer) THROWS_ONLY(read_closed_exc_t) {
+const_charslice linux_tcp_conn_t::peek(size_t size, signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     while (read_buffer.size() < size) {
         read_more_buffered(closer);
     }
     return const_charslice(read_buffer.data(), read_buffer.data() + size);
 }
 
-void linux_tcp_conn_t::pop(size_t len, signal_t *closer) THROWS_ONLY(read_closed_exc_t) {
+void linux_tcp_conn_t::pop(size_t len, signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     assert_thread();
     rassert(!read_in_progress);
-    if (read_closed.is_pulsed()) throw read_closed_exc_t();
+    if (read_closed.is_pulsed()) throw tcp_conn_read_closed_exc_t();
 
     peek(len, closer);
     read_buffer.erase(read_buffer.begin(), read_buffer.begin() + len);  // INEFFICIENT
@@ -361,7 +361,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
     }
 }
 
-void linux_tcp_conn_t::write(const void *buf, size_t size, signal_t *closer) THROWS_ONLY(write_closed_exc_t) {
+void linux_tcp_conn_t::write(const void *buf, size_t size, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     write_op_wrapper_t sentry(this, closer);
 
     write_queue_op_t op;
@@ -385,10 +385,10 @@ void linux_tcp_conn_t::write(const void *buf, size_t size, signal_t *closer) THR
     no-op, so the cond will still get pulsed. */
     to_signal_when_done.wait();
 
-    if (write_closed.is_pulsed()) throw write_closed_exc_t();
+    if (write_closed.is_pulsed()) throw tcp_conn_write_closed_exc_t();
 }
 
-void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size, signal_t *closer) THROWS_ONLY(write_closed_exc_t) {
+void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     write_op_wrapper_t sentry(this, closer);
 
     /* Convert to `char` for ease of pointer arithmetic */
@@ -408,10 +408,10 @@ void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size, signal_t *c
         size -= chunk;
     }
 
-    if (write_closed.is_pulsed()) throw write_closed_exc_t();
+    if (write_closed.is_pulsed()) throw tcp_conn_write_closed_exc_t();
 }
 
-void linux_tcp_conn_t::writef(signal_t *closer, const char *format, ...) THROWS_ONLY(write_closed_exc_t) {
+void linux_tcp_conn_t::writef(signal_t *closer, const char *format, ...) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     va_list ap;
     va_start(ap, format);
 
@@ -421,7 +421,7 @@ void linux_tcp_conn_t::writef(signal_t *closer, const char *format, ...) THROWS_
     va_end(ap);
 }
 
-void linux_tcp_conn_t::flush_buffer(signal_t *closer) THROWS_ONLY(write_closed_exc_t) {
+void linux_tcp_conn_t::flush_buffer(signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     write_op_wrapper_t sentry(this, closer);
 
     /* Flush the write buffer; it might be half-full. */
@@ -440,16 +440,16 @@ void linux_tcp_conn_t::flush_buffer(signal_t *closer) THROWS_ONLY(write_closed_e
     write_queue.push(&op);
     to_signal_when_done.wait();
 
-    if (write_closed.is_pulsed()) throw write_closed_exc_t();
+    if (write_closed.is_pulsed()) throw tcp_conn_write_closed_exc_t();
 }
 
-void linux_tcp_conn_t::flush_buffer_eventually(signal_t *closer) THROWS_ONLY(write_closed_exc_t) {
+void linux_tcp_conn_t::flush_buffer_eventually(signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     write_op_wrapper_t sentry(this, closer);
 
     /* Flush the write buffer; it might be half-full. */
     if (current_write_buffer->size > 0) internal_flush_write_buffer();
 
-    if (write_closed.is_pulsed()) throw write_closed_exc_t();
+    if (write_closed.is_pulsed()) throw tcp_conn_write_closed_exc_t();
 }
 
 void linux_tcp_conn_t::shutdown_write() {
