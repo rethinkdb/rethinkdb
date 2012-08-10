@@ -289,6 +289,37 @@ opaque binary blob (`binary_blob_t`).
 */
 
 template <class protocol_t>
+class chunk_fun_callback_t {
+public:
+    virtual void send_chunk(const typename protocol_t::backfill_chunk_t &) = 0;
+
+protected:
+    virtual ~chunk_fun_callback_t() { }
+private:
+    DISABLE_COPYING(chunk_fun_callback_t);
+};
+
+template <class protocol_t>
+class send_backfill_callback_t : public chunk_fun_callback_t<protocol_t> {
+public:
+    bool should_backfill(const region_map_t<protocol_t, binary_blob_t> &metainfo) {
+        guarantee(!should_backfill_was_called_);
+        should_backfill_was_called_ = true;
+        return should_backfill_impl(metainfo);
+    }
+
+protected:
+    virtual bool should_backfill_impl(const region_map_t<protocol_t, binary_blob_t> &metainfo) = 0;
+
+    send_backfill_callback_t() : should_backfill_was_called_(false) { }
+    virtual ~send_backfill_callback_t() { }
+private:
+    bool should_backfill_was_called_;
+
+    DISABLE_COPYING(send_backfill_callback_t);
+};
+
+template <class protocol_t>
 class store_view_t : public home_thread_mixin_t {
 public:
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
