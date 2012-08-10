@@ -5,7 +5,7 @@
 # * MUTATE needs to be renamed to REPLACE (Joe and Tim and I just talked about
 #   this) and maintain its current behavior rather than changing to match UPDATE.
 # * The following are currently unimplemented or buggy: REDUCE, GROUPEDMAPREDUCE,
-#   MUTATE, FOREACH, POINTUPDATE, POINTMUTATE.
+#   FOREACH, POINTUPDATE, POINTMUTATE.
 # * The following are going away: ARRAYAPPEND, ARRAYNTH
 # * I don't understand how GROUPEDMAPREDUCE works.
 module RethinkDB

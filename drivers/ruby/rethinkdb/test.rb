@@ -337,7 +337,12 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.run, $data)
 
     #MUTATE -- need fix
-    #PP.pp rdb.mutate{|row| row}.run #r.if(row[:id] < 5, nil, row)}.run
+    assert_equal(rdb.mutate{|row| row}.run, {'modified' => len, 'deleted' => 0})
+    assert_equal(rdb.run, $data)
+    assert_equal(rdb.mutate{|row| r.if(row[:id] < 5, nil, row)}.run,
+                 {'modified' => 5, 'deleted' => len-5})
+    assert_equal(rdb.run, $data[5..-1])
+    assert_equal(rdb.insert($data[0...5]).run, {'inserted' => 5})
     #PP.pp rdb.run
 
     #FOREACH, POINTDELETE
