@@ -767,8 +767,8 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 int modified = 0, deleted = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                    env->scope.put_in_scope(w->update().mapping().arg(), json);
-                    boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
+                    env->scope.put_in_scope(w->mutate().mapping().arg(), json);
+                    boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
 
                     if (val->type() == cJSON_NULL) {
                         point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
