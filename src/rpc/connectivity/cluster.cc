@@ -462,7 +462,7 @@ void connectivity_cluster_t::run_t::handle(
                 just a length and a byte vector. This is obviously slow and we
                 should change it when we care about performance. */
                 std::string message;
-                assert(get_thread_id() == chosen_thread);
+                rassert(get_thread_id() == chosen_thread);
                 if (deserialize_and_check(conn, &message, peername))
                     break;
 

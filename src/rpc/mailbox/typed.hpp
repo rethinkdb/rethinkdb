@@ -58,7 +58,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -115,7 +115,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -177,7 +177,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -243,7 +243,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -313,7 +313,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -387,7 +387,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -465,7 +465,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -547,7 +547,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -633,7 +633,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -723,7 +723,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -817,7 +817,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -915,7 +915,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -1017,7 +1017,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -1123,7 +1123,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;
@@ -1233,7 +1233,7 @@ public:
         fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))
         { }
 
-    address_t get_address() {
+    address_t get_address() const {
         address_t a;
         a.addr = mailbox.get_address();
         return a;

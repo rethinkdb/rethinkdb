@@ -115,13 +115,14 @@ class RDBTest(unittest.TestCase):
 
         expect(I.CompareEQ("asdf", "asdf"), True)
         expect(I.CompareEQ("asd", "asdf"), False)
+        expect(I.CompareLT("a", "b"), True)
 
         expect(I.CompareEQ(True, True), True)
         expect(I.CompareLT(False, True), True)
 
-        expect(I.CompareLT(False, True, 1, ""), True)
-        expect(I.CompareGT("", 1, True, False), True)
-        expect(I.CompareLT(False, True, "", 1), False)
+        expect(I.CompareLT(False, True, 1, "", []), True)
+        expect(I.CompareGT([], "", 1, True, False), True)
+        expect(I.CompareLT(False, True, "", 1, []), False)
 
     def test_junctions(self):
         self.expect(I.Any(False), False)

@@ -1,5 +1,7 @@
 #include "btree/depth_first_traversal.hpp"
 
+#include "btree/operations.hpp"
+
 bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction, superblock_t *superblock, const key_range_t &range, depth_first_traversal_callback_t *cb) {
     block_id_t root_block_id = superblock->get_root_block_id();
     if (root_block_id == NULL_BLOCK_ID) {

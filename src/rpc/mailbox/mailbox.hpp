@@ -78,7 +78,7 @@ public:
     raw_mailbox_t(mailbox_manager_t *, mailbox_thread_mode_t tm, const boost::function<void(read_stream_t *)> &);
     ~raw_mailbox_t();
 
-    address_t get_address();
+    address_t get_address() const;
 };
 
 /* `send()` sends a message to a mailbox. It is safe to call `send()` outside of
