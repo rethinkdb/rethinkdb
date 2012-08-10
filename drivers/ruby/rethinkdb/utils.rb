@@ -46,6 +46,8 @@ module RethinkDB
   module S_Mixin #S-expression Utils
     @@gensym_counter = 0
     def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
+    def last_gensym; 'gensym_'+@@gensym_counter.to_s; end
+    def last_var; RQL.var last_gensym; end
     def with_var
       sym = gensym
       yield sym, RQL.var(sym)

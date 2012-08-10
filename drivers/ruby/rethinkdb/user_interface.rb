@@ -305,14 +305,14 @@ module RethinkDB
     #   r.getattr('id')
     #   r.get('id')
     #   r.attr('id')
-    def getattr(attrname); S._ [:call, [:implicit_getattr, attrname], []]; end
+    def getattr(attrname); S._ [:call, [:getattr, attrname], [S.last_var]]; end
 
     # Test whether the implicit variable has a particular attribute.  Synonyms
     # are <b>+has+</b> and <b>+attr?+</b>.  The following are all equivalent:
     #   r.hasattr('name')
     #   r.has('name')
     #   r.attr?('name')
-    def hasattr(attrname); S._ [:call, [:implicit_hasattr, attrname], []]; end
+    def hasattr(attrname); S._ [:call, [:hasattr, attrname], [S.last_var]]; end
 
     # Construct an object that is a subset of the object stored in the implicit
     # variable by extracting certain attributes.  Synonyms are <b>+pick+</b> and
@@ -321,7 +321,7 @@ module RethinkDB
     #   r.pickattrs(:id, :name)
     #   r.pick(:id, :name)
     #   r.attrs(:id, :name)
-    def pickattrs(*attrnames); S._ [:call, [:implicit_pickattrs, *attrnames], []]; end
+    def pickattrs(*attrnames); S._ [:call, [:pickattrs, *attrnames], [S.last_var]]; end
 
     # Add the results of two or more queries together.  (Those queries should
     # return numbers.)  May also be called as if it were a instance method of
@@ -445,12 +445,18 @@ module RethinkDB
     #   people.filter{|row| row[:name].eq('Bob') & row[:age].eq(50)}
     #   people.filter({:name => 'Bob', :age => 50})
     # Note that the values of attributes may themselves be rdb queries.  For
-    # instance, here is a query that maches anyone whose age is double their height:
-    #   people.filter({:age => r[:height]*2})
+    # instance, here is a query that matches anyone whose age is double their height:
+    #   people.filter({:age => r.mul(:height, 2)})
+    # WARNING: since the implicit variable always refers to the nearest
+    # enclosing block, if you were to use the implicit variable in a filter
+    # specified by an dobject, you would instead access the nearest enclosing
+    # block.  The following, for example, are equivalent:
+    #   table.concatmap{people.filter({:age => r[:height]*2})}
+    #   table.concatmap{|row| people.filter({:age => row[:height]*2})}
     def filter(stream, obj=nil)
       if obj
         filter(stream) {
-          S._ [:call, [:all], obj.map{|kv| getattr(kv[0]).eq(kv[1])}]
+          S._ [:call, [:all], obj.map{|kv| getattr(kv[0]).eq(expr(kv[1]))}]
         }
       else
         S.with_var{|vname,v| S._ [:call,[:filter, vname, expr(yield(v))], [expr stream]]}
