@@ -151,8 +151,7 @@ class ClientTest < Test::Unit::TestCase
 
   def test_easy_read #TABLE
     assert_equal($data, rdb.run)
-    assert_equal($data, r.table('', 'Welcome-rdb').run)
-    assert_equal($data, r.table({:table_name => 'Welcome-rdb'}).run)
+    assert_equal($data, r.db('', 'Welcome-rdb').run)
   end
 
   def test_error #IF, JSON, ERROR
@@ -199,7 +198,9 @@ class ClientTest < Test::Unit::TestCase
     #query = rdb.map{r.hasattr(:id)}.reduce(true){|a,b| r.all a,b}
     assert_equal(rdb.map{r.hasattr(:id)}.run, $data.map{true})
     assert_equal(rdb.map{|row| r.not row.hasattr('id')}.run, $data.map{false})
-    assert_equal(rdb.map{r.attr?(:id)}.run, $data.map{true})
+    assert_equal(rdb.map{|row| r.not row.has('id')}.run, $data.map{false})
+    assert_equal(rdb.map{|row| r.not row.attr?('id')}.run, $data.map{false})
+    assert_equal(rdb.map{r.has(:id)}.run, $data.map{true})
     assert_equal(rdb.map{r.attr?('id').not}.run, $data.map{false})
   end
 
@@ -293,8 +294,8 @@ class ClientTest < Test::Unit::TestCase
 
   def test_pickattrs #PICKATTRS, #UNION, #LENGTH
     #TODO: when union does implicit mapmerge, change
-    q1=r.union(rdb.map{r.pickattrs(:id,:name)}, rdb.map{|row| row.pickattrs(:id,:num)})
-    q2=r.union(rdb.map{r.attrs(:id,:name)}, rdb.map{|row| row.attrs(:id,:num)})
+    q1=r.union(rdb.map{r.pickattrs(:id,:name)}, rdb.map{|row| row.attrs(:id,:num)})
+    q2=r.union(rdb.map{r.attrs(:id,:name)}, rdb.map{|row| row.pick(:id,:num)})
     q1v = q1.run
     assert_equal(q1v, q2.run)
     len = $data.length

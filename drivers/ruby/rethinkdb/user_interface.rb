@@ -159,7 +159,6 @@ module RethinkDB
   #   r.db('').Welcome.limit(4).run
   # to get the first 4 elements of that namespace.
   module RQL_Mixin
-
     # Construct a javascript expression, which may refer to variables in scope
     # (use <b>+to_s+</b> to get the name of a variable query, or simply splice
     # it in).  Defaults to a javascript expression, but if the optional second
@@ -181,10 +180,9 @@ module RethinkDB
     #          ['b', 2]],
     #         r.js('a+b+1'))
     def javascript(str, type=:expr);
-      case type
-      when :expr then S._ [:javascript, "return #{str}"]
-      when :func then S._ [:javascript, str]
-      else raise TypeError, 'Type of javascript must be either :expr or :func.'
+      if    type == :expr then S._ [:javascript, "return #{str}"]
+      elsif type == :func then S._ [:javascript, str]
+      else  raise TypeError, 'Type of javascript must be either :expr or :func.'
       end
     end
 
@@ -305,14 +303,20 @@ module RethinkDB
     #   r.getattr('id')
     #   r.get('id')
     #   r.attr('id')
-    def getattr(attrname); S._ [:call, [:getattr, attrname], [S.last_var]]; end
+    def getattr(obj, attrname=nil)
+      return getattr(S.last_var, obj) if not attrname
+      S._ [:call, [:getattr, attrname], [obj]]
+    end
 
     # Test whether the implicit variable has a particular attribute.  Synonyms
     # are <b>+has+</b> and <b>+attr?+</b>.  The following are all equivalent:
     #   r.hasattr('name')
     #   r.has('name')
     #   r.attr?('name')
-    def hasattr(attrname); S._ [:call, [:hasattr, attrname], [S.last_var]]; end
+    def hasattr(obj, attrname=nil)
+      return hasattr(S.last_var, obj) if not attrname
+      S._ [:call, [:hasattr, attrname], [obj]]
+    end
 
     # Construct an object that is a subset of the object stored in the implicit
     # variable by extracting certain attributes.  Synonyms are <b>+pick+</b> and
@@ -321,7 +325,10 @@ module RethinkDB
     #   r.pickattrs(:id, :name)
     #   r.pick(:id, :name)
     #   r.attrs(:id, :name)
-    def pickattrs(*attrnames); S._ [:call, [:pickattrs, *attrnames], [S.last_var]]; end
+    def pickattrs(*attrnames)
+      return pickattrs(S.last_var, *attrnames) if attrnames[0].class != RQL_Query
+      S._ [:call, [:pickattrs, *(attrnames[1..-1])], [attrnames[0]]]
+    end
 
     # Add the results of two or more queries together.  (Those queries should
     # return numbers.)  May also be called as if it were a instance method of
@@ -626,5 +633,77 @@ module RethinkDB
     #   r.mapmerge({:a => 1, :b => 2}, {:a => 10, :c => 30})
     #   r[{:a => 1, :b => 2}].mapmerge({:a => 10, :c => 30})
     def mapmerge(obj1, obj2); S._ [:call, [:mapmerge], [expr(obj1), expr(obj2)]]; end
+
+    # Check whether the results of two queries are equal.  May also be called as
+    # if it were a member function of RQL_Query for convenience.  Has the
+    # synonym <b>+equals+</b>.  The following are all equivalent:
+    #   r[true]
+    #   r.eq 1,1
+    #   r[1].eq(1)
+    #   r.equals 1,1
+    #   r[1].equals(1)
+    def eq(a, b); S._ [:call, [:compare, :eq], [expr(a), expr(b)]]; end
+
+    # Check whether the results of two queries are *not* equal.  May also be
+    # called as if it were a member function of RQL_Query for convenience.  The
+    # following are all equivalent:
+    #   r[true]
+    #   r.ne 1,2
+    #   r[1].ne(2)
+    #   r.not r.eq(1,2)
+    #   r[1].eq(2).not
+    def ne(a, b); S._ [:call, [:compare, :ne], [expr(a), expr(b)]]; end
+
+    # Check whether the result of one query is less than another.  May also be
+    # called as if it were a member function of RQL_Query for convenience.  May
+    # also be called as the infix operator <b><tt> < </tt></b> if the lefthand
+    # side is an RQL query.  The following are all equivalent:
+    #   r[true]
+    #   r.lt 1,2
+    #   r[1].lt(2)
+    #   r[1] < 2
+    # Note that the following is illegal, because Ruby only overloads infix
+    # operators based on the lefthand side:
+    #   1 < r[2]
+    def lt(a, b); S._ [:call, [:compare, :lt], [expr(a), expr(b)]]; end
+
+    # Check whether the result of one query is less than or equal to another.
+    # May also be called as if it were a member function of RQL_Query for
+    # convenience.  May also be called as the infix operator <b><tt> <= </tt></b>
+    # if the lefthand side is an RQL query.  The following are all equivalent:
+    #   r[true]
+    #   r.le 1,1
+    #   r[1].le(1)
+    #   r[1] <= 1
+    # Note that the following is illegal, because Ruby only overloads infix
+    # operators based on the lefthand side:
+    #   1 <= r[1]
+    def le(a, b); S._ [:call, [:compare, :le], [expr(a), expr(b)]]; end
+
+    # Check whether the result of one query is greater than another.
+    # May also be called as if it were a member function of RQL_Query for
+    # convenience.  May also be called as the infix operator <b><tt> > </tt></b>
+    # if the lefthand side is an RQL query.  The following are all equivalent:
+    #   r[true]
+    #   r.gt 2,1
+    #   r[2].gt(1)
+    #   r[2] > 1
+    # Note that the following is illegal, because Ruby only overloads infix
+    # operators based on the lefthand side:
+    #   2 > r[1]
+    def gt(a, b); S._ [:call, [:compare, :gt], [expr(a), expr(b)]]; end
+
+    # Check whether the result of one query is greater than or equal to another.
+    # May also be called as if it were a member function of RQL_Query for
+    # convenience.  May also be called as the infix operator <b><tt> >= </tt></b>
+    # if the lefthand side is an RQL query.  The following are all equivalent:
+    #   r[true]
+    #   r.ge 1,1
+    #   r[1].ge(1)
+    #   r[1] >= 1
+    # Note that the following is illegal, because Ruby only overloads infix
+    # operators based on the lefthand side:
+    #   1 >= r[1]
+    def ge(a, b); S._ [:call, [:compare, :ge], [expr(a), expr(b)]]; end
   end
 end
