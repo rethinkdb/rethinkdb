@@ -30,26 +30,10 @@ module RethinkDB
       end
     end
 
-    #TODO: Arity Checking
     def method_missing(m, *args, &block)
       m = C.method_aliases[m] || m
       return RQL.send(m, *[self, *args], &block) if RQL.methods.include? m.to_s
-      PP.pp m
-      return self.send(m, *(args + [block])) if block
-      if P.enum_type(Builtin::Comparison, m)
-        S._ [:call, [:compare, m], [@body, *args]]
-      elsif P.enum_type(Builtin::BuiltinType, m)
-        args = expand_procs_inline(m, args)
-        m_rw = C.query_rewrites[m] || m
-        if P.message_field(Builtin, m_rw) then S._ [:call, [m, *args], [@body]]
-                                          else S._ [:call, [m], [@body, *args]]
-        end
-      elsif P.enum_type(WriteQuery::WriteQueryType, m)
-        args =(C.repeats.include? m) ? expand_procs_inline(m,args) : expand_procs(m,args)
-        if C.repeats.include? m and args[-1].class != Array;  args[-1] = [args[-1]]; end
-        S._ [m, @body, *args]
-      else super(m, *args, &block)
-      end
+      super(m, *args, &block)
     end
   end
 

@@ -116,7 +116,9 @@ module RethinkDB
     #   table.filter{|row| row[:id] < 5}.delete
     # will construct a query that deletes everything with <b>+id+</b> less than
     # 5 in <b>+table+</b>
-    def delete; S._ [:delete, @body]; end
+    def delete
+      @body[0]==:getbykey ? S._([:pointdelete, *(@body[1..-1])]) : S._([:delete, @body])
+    end
 
     # Update all rows of the invoking query.  For example, if we have a table
     # <b>+table+</b>:
@@ -127,7 +129,10 @@ module RethinkDB
     # will still be added to the new row.
     # TODO: doesn't work
     def update
-      S.with_var {|vname,v| S._ [:update, @body, [vname, RQL.expr(yield(v))]]};
+      if @body[0] == :getbykey then S.with_var {|vname,v|
+          S._ [:pointupdate, *(@body[1..-1] + [[vname, RQL.expr(yield(v))]])]}
+      else S.with_var{|vname,v| S._ [:update, @body, [vname, RQL.expr(yield(v))]]}
+      end
     end
 
     # Replace all rows of the invoking query.  Unlike update, must return the
@@ -138,7 +143,10 @@ module RethinkDB
     #   table.mutate{|row| if(row[:id] < 5, nil, row)}
     # will delete everything with id less than 5, but leave the other rows untouched.
     def mutate
-      S.with_var {|vname,v| S._ [:mutate, @body, [vname, RQL.expr(yield(v))]]};
+      if @body[0] == :getbykey then S.with_var {|vname,v|
+          S._ [:pointmutate, *(@body[1..-1] + [[vname, RQL.expr(yield(v))]])]}
+      else S.with_var{|vname,v| S._ [:mutate, @body, [vname, RQL.expr(yield(v))]]}
+      end
     end
 
     # Insert one or more rows into the invoking query, which *must* be a table.
@@ -163,6 +171,20 @@ module RethinkDB
       S.with_var {|vname,v| S._ [:insertstream, @body, stream]}
     end
 
+    # For each row in the invoking query, execute 1 or more write queries (to
+    # execute more than 1, yield a list of write queries in the block).  For
+    # example:
+    #   table.foreach{|row| [table2.get(row[:id]).delete, table3.insert(row)]}
+    # will, for each row in <b>+table+</b>, delete the row that shares that id
+    # in <b>+table2+</b> and insert the row into <b>+table3+</b>.
+    def foreach
+      S.with_var { |vname,v|
+        queries = yield(v)
+        queries = [queries] if queries.class != Array
+        S._ [:foreach, @body, vname, queries.map{|x| RQL.expr x}]
+      }
+    end
+
     # Run the invoking query using the most recently opened connection.  See
     # Connection#run for more details.
     def run; connection_send :run; end
@@ -178,7 +200,7 @@ module RethinkDB
     #   bad  = table.filter{|row| row[:name].eq('Bob')}.get(0)
     # TODO: get().delete() => pointdelete
     def get(key, keyname=:id)
-      if @body[0] == :table then S._ [:getbykey, @body[1..-1], keyname, key]
+      if @body[0] == :table then S._ [:getbykey, @body[1..-1], keyname, RQL.expr(key)]
                             else raise SyntaxError, "Get must be called on a table."
       end
     end

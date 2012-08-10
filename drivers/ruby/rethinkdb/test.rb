@@ -257,8 +257,8 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.between(rdb, 1, 3).run, $data[1..3])
     assert_equal(rdb.between(2,nil).run, $data[2..-1])
     assert_equal(r.between(rdb, 2, nil).run, $data[2..-1])
-    assert_equal(rdb.range(:id, 1, 3).run, $data[1..3])
-    assert_equal(rdb.range({:attrname => :id, :upperbound => 4}).run,$data[0..4])
+    assert_equal(rdb.between(1, 3).run, $data[1..3])
+    assert_equal(rdb.between(nil, 4).run,$data[0..4])
   end
 
   def test_nth #NTH
@@ -351,17 +351,16 @@ class ClientTest < Test::Unit::TestCase
     #PP.pp rdb.foreach{rdb.pointdelete(:id, r[:id])}.run
     #PP.pp rdb.foreach{|x| rdb.foreach{|y| rdb.insert({:id => x[:id]*y[:id]})}}.run
     # RETURN VALUE SHOULD CHANGE
-    rdb.foreach{|row| [rdb.pointdelete(:id, row[:id]), rdb.insert(row)]}.run
+    rdb.foreach{|row| [rdb.get(row[:id]).delete, rdb.insert(row)]}.run
     assert_equal(rdb.run, $data)
-    rdb.foreach{|row| rdb.pointdelete(:id, row[:id])}.run
+    rdb.foreach{|row| rdb.get(row[:id]).delete}.run
     assert_equal(rdb.run, [])
 
     rdb.insert($data).run
     assert_equal(rdb.run, $data)
-    query = rdb.pointupdate(:id, 0){r[{:id => 0, :broken => 5}]}
+    query = rdb.get(0).update{{:id => 0, :broken => 5}}
     assert_equal(query.run, {'updated'=>1,'errors'=>0})
-    query = rdb.pointupdate(:id, 0){|row|
-      r.if(row.attr?(:broken), $data[0], r.error('unreachable'))}
+    query = rdb.get(0).update{|row| r.if(row.attr?(:broken), $data[0], r.error('err'))}
     assert_equal(query.run, {'updated'=>1,'errors'=>0})
     assert_equal(rdb.run, $data)
 
