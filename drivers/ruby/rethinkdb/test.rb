@@ -185,6 +185,29 @@ class ClientTest < Test::Unit::TestCase
     assert_raise(RuntimeError){r[[0]].to_stream.nth(1).run}
   end
 
+  def test_stream_fancy #from python tests
+    def limit(a,c); r[a].to_stream[0...c].to_array.run; end
+    def skip(a,c); r[a].to_stream[c..-1].to_array.run; end
+
+    assert_equal(limit([], 0), [])
+    assert_equal(limit([1, 2], 0), [])
+    assert_equal(limit([1, 2], 1), [1])
+    assert_equal(limit([1, 2], 5), [1, 2])
+    assert_raise(RuntimeError){limit([], -1)}
+
+    assert_equal(skip([], 0), [])
+    assert_equal(skip([1, 2], 5), [])
+    assert_equal(skip([1, 2], 0), [1, 2])
+    assert_equal(skip([1, 2], 1), [2])
+
+    def distinct(a); r[a].to_stream.distinct.to_array.run; end
+    assert_equal(distinct([]), [])
+    assert_equal(distinct([1,2,3]*10), [1,2,3])
+    assert_equal(distinct([1, 2, 3, 2]), [1, 2, 3])
+    # TODO: doesn't work
+    #assert_equal(distinct([true, 2, false, 2]), [true, 2, false])
+  end
+
   def test_ops #+,-,%,*,/,<,>,<=,>=,eq,ne,any,all
     assert_equal((r[5] + 3).run, 8)
     assert_equal((r[5].add(3)).run, 8)
