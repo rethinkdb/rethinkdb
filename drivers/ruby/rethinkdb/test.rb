@@ -108,9 +108,83 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.let([["x", 3]], r.var("x")).run, 3)
     assert_equal(r.let([["x", 3], ["x", 4]], r.var("x")).run, 4)
     assert_equal(r.let([["x", 3], ["y", 4]], r.var("x")).run, 3)
-    assert_raise(RuntimeError){r.var('x').run}
+    assert_raise(SyntaxError){r.var('x').run}
   end
-  
+
+  def test_if #from python tests
+    assert_equal(r.if(true, 3, 4).run, 3)
+    assert_equal(r.if(false, 4, 5).run, 5)
+    assert_equal(r.if(r.eq(3, 3), "foo", "bar").run, "foo")
+    assert_raise(RuntimeError){r.if(5,1,2).run}
+  end
+
+  def test_attr #from python tests
+    #TODO: Mimic object notation
+        # self.expect(I.Has({"foo": 3}, "foo"), True)
+        # self.expect(I.Has({"foo": 3}, "bar"), False)
+
+        # self.expect(I.Attr({"foo": 3}, "foo"), 3)
+        # self.error_exec(I.Attr({"foo": 3}, "bar"), "missing")
+
+        # self.expect(I.Attr(I.Attr({"a": {"b": 3}}, "a"), "b"), 3)
+  end
+
+  def test_array_python #from python tests
+    assert_equal(r.append([], 2).run, [2])
+    assert_equal(r.append([1], 2).run, [1, 2])
+    assert_raise(RuntimeError){r.append(3,0).run}
+
+    assert_equal(r.add([1], [2]).run, [1, 2])
+    assert_equal(r.add([1, 2], []).run, [1, 2])
+    assert_raise(RuntimeError){r.add(1,[1]).run}
+    assert_raise(RuntimeError){r.add([1],1).run}
+
+    arr = (0...10).collect{|x| x}
+    assert_equal(r[arr][0...3].run, arr[0...3])
+    assert_equal(r[arr][0...0].run, arr[0...0])
+    assert_equal(r[arr][5...15].run, arr[5...15])
+    assert_equal(r[arr][5...-3].run, arr[5...-3])
+    assert_equal(r[arr][-5...-3].run, arr[-5...-3])
+    assert_equal(r[arr][0..3].run, arr[0..3])
+    assert_equal(r[arr][0..0].run, arr[0..0])
+    assert_equal(r[arr][5..15].run, arr[5..15])
+    assert_equal(r[arr][5..-3].run, arr[5..-3])
+    assert_equal(r[arr][-5..-3].run, arr[-5..-3])
+
+    assert_raise(RuntimeError){r[1][0...0].run}
+    assert_raise(RuntimeError){r[arr][0.5...0].run}
+    assert_raise(RuntimeError){r[1][0...1.01].run}
+    assert_raise(RuntimeError){r[1][5...3].run}
+
+    assert_equal(r[arr][5..-1].run, arr[5..-1])
+    assert_equal(r[arr][0...7].run, arr[0...7])
+    assert_equal(r[arr][0...-2].run, arr[0...-2])
+    assert_equal(r[arr][-2..-1].run, arr[-2..-1])
+    assert_equal(r[arr][0..-1].run, arr[0..-1])
+
+    # TODO: When NTH is polymorphic, uncomment
+    #assert_equal(r[arr][3].run, 3)
+    #assert_equal(r[arr][-1].run, 9)
+    # fail(I.Element(0, 0), "array")
+    # fail(I.Element(arr, .1), "integer")
+    # fail(I.Element([0], 1), "bounds")
+
+    assert_equal(r[[]].length.run, 0)
+    assert_equal(r[arr].length.run, arr.length)
+    assert_raise(RuntimeError){r[0].length.run}
+  end
+
+  def test_stream #from python tests
+    arr = (0...10).collect{|x| x}
+    assert_equal(r[arr].to_stream.to_array.run, arr)
+    assert_equal(r[arr].to_stream.nth(0).run, 0)
+    assert_equal(r[arr].to_stream.nth(5).run, 5)
+    assert_raise(RuntimeError){r[arr].to_stream.nth([]).run}
+    assert_raise(RuntimeError){r[arr].to_stream.nth(0.4).run}
+    assert_raise(RuntimeError){r[arr].to_stream.nth(-5).run}
+    assert_raise(RuntimeError){r[[0]].to_stream.nth(1).run}
+  end
+
   def test_ops #+,-,%,*,/,<,>,<=,>=,eq,ne,any,all
     assert_equal((r[5] + 3).run, 8)
     assert_equal((r[5].add(3)).run, 8)
@@ -286,12 +360,13 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(query_23.run, $data[2..3])
   end
 
-  def test_slice #SLICE
+  def test_slice_streams #SLICE
     #TODO: should work for arrays as well
     arr=[0,1,2,3,4,5]
     assert_equal(r[arr].to_stream[1].run, 1)
     assert_equal(r[arr].to_stream[2...6].run, r[arr].to_stream[2..-1].run)
-    assert_equal(r[arr].to_stream[2...5].run, r[arr].to_stream[2..5].run)
+    assert_equal(r[arr].to_stream[2...5].run, r[arr].to_stream[2..4].run)
+    assert_raise(RuntimeError){r[arr].to_stream[2...-1].run}
   end
 
   def test_mapmerge
