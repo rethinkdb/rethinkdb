@@ -159,7 +159,11 @@ for path in res_paths:
     print "Tests completed. Killing instance now..."
     proc.send_signal(signal.SIGINT)
 
-    time.sleep(2)
+    timeout = 60 # 1 minute to shut down
+    time_limit = time.time() + timeout
+    while proc.poll() is None and time.time() < time_limit:
+        pass
+
     if proc.poll() != 0:
         print "RethinkDB failed to shut down properly. (TEST FAILED)"
         failed_test = False
