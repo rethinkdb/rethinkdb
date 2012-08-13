@@ -119,6 +119,7 @@ read_response_t read_t::unshard(std::vector<read_response_t> responses, temporar
         rget_read_response_t rg_response;
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
+        rg_response.last_considered_key = get_region().inner.left;
         typedef std::vector<read_response_t>::iterator rri_t;
 
         if (!rg->terminal) {
@@ -134,6 +135,9 @@ read_response_t read_t::unshard(std::vector<read_response_t> responses, temporar
 
                 res_stream->insert(res_stream->end(), stream->begin(), stream->end());
                 rg_response.truncated = rg_response.truncated || _rr->truncated;
+                if (rg_response.last_considered_key < _rr->last_considered_key) {
+                    rg_response.last_considered_key = _rr->last_considered_key;
+                }
             }
         } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg->terminal)) {
             //GroupedMapreduce
@@ -232,6 +236,10 @@ void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
         const stream_t *stream = boost::get<stream_t>(&delta->result);
         guarantee(stream);
         merged.insert(merged.end(), stream->begin(), stream->end());
+
+        if (response->last_considered_key < delta->last_considered_key) {
+            response->last_considered_key = delta->last_considered_key;
+        }
     }
     stream_t *stream = boost::get<stream_t>(&response->result);
     guarantee(stream);
@@ -252,6 +260,7 @@ read_response_t read_t::multistore_unshard(std::vector<read_response_t> response
         rget_read_response_t rg_response;
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
+        rg_response.last_considered_key = get_region().inner.left;
         typedef std::vector<read_response_t>::iterator rri_t;
         for(rri_t i = responses.begin(); i != responses.end();) {
             // TODO: we're ignoring the limit when recombining.

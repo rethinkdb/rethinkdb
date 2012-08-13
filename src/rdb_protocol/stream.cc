@@ -82,6 +82,7 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
     }
     boost::shared_ptr<scoped_cJSON_t> ret = data.front();
     data.pop_front();
+
     return ret;
 }
 
