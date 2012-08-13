@@ -2,11 +2,13 @@
 # happen.  TODO:
 # * UPDATE needs to be changed to do an implicit mapmerge on its righthand side
 #   (this will make its behavior line up with the Python documentation).
+# * UPDATE needs to work if you return NIL
 # * MUTATE needs to be renamed to REPLACE (Joe and Tim and I just talked about
-#   this) and maintain its current behavior rather than changing to match UPDATE.
-# * The following are currently unimplemented or buggy: REDUCE, GROUPEDMAPREDUCE,
-#   FOREACH, POINTUPDATE, POINTMUTATE.
-# * The following are going away: ARRAYAPPEND, ARRAYNTH
+#   this) and maintain its current behavior rather than changing to match
+#   UPDATE.
+# * The following are unimplemented: REDUCE, GROUPEDMAPREDUCE, POINTMUTATE
+# * The following are buggy: UPDATE, POINTUPDATE, FOREACH
+# * The following are going away: ARRAYNTH
 # * I don't understand how GROUPEDMAPREDUCE works.
 module RethinkDB
   # A network connection to the RethinkDB cluster.
@@ -208,7 +210,11 @@ module RethinkDB
     end
   end
 
-  # TODO: doc
+  # This module may be included/extended to gain access to the RQL query
+  # construction functions.  By far the most common way of gaining access to
+  # those functions, however, is to include/extend RethinkDB::Shortcuts_Mixin to
+  # gain access to the shortcut <b>+r+</b>.  That shortcut is used in all the
+  # examples below.
   module RQL_Mixin
     # Construct a javascript expression, which may refer to variables in scope
     # (use <b>+to_s+</b> to get the name of a variable query, or simply splice
