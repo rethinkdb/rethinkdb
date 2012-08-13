@@ -106,7 +106,7 @@ module RethinkDB
                             else e = (ind.end == -1 ? nil : RQL.expr(ind.end+1))
         end
         #e = ind.end == -1 ? nil : RQL.expr(ind.end)
-        S._ [:call, [:slice], [@body, b, e]]
+        S._ [:call, [:slice], [@body, RQL.expr(b), RQL.expr(e)]]
       when Symbol.hash, String.hash then S._ [:call, [:getattr, ind], [@body]]
       else raise SyntaxError, "RQL_Query#[] can't handle #{ind}."
       end
@@ -338,7 +338,11 @@ module RethinkDB
     #         r[:$b]*2)
     # will bind <b>+a+</b> to 2, <b>+b+</b> to 3, and then return 6.  (It is
     # thus analagous to <b><tt>let*</tt></b> in the Lisp family of languages.)
-    def let(varbinds, body); S._ [:let, varbinds, expr(body)]; end
+    def let(varbinds, body);
+      varbinds = varbinds.map { |pair|
+        raise SyntaxError,"Malformed LET expression #{body}" if pair.length != 2
+        [pair[0], expr(pair[1])]}
+      S._ [:let, varbinds, expr(body)]; end
 
     # Negate a predicate.  May also be called as if it were a instance method of
     # RQL_Query for convenience.  The following are equivalent:
@@ -584,8 +588,8 @@ module RethinkDB
     #   table.filter{|row| row[:index] <= 7}
     def between(stream, start_key, end_key, keyname=:id)
       opts = {:attrname => keyname}
-      opts[:lowerbound] = expr start_key if start_key != nil
-      opts[:upperbound] = expr end_key if end_key != nil
+      opts[:lowerbound] = (expr start_key).sexp if start_key != nil
+      opts[:upperbound] = (expr end_key).sexp   if end_key   != nil
       S._ [:call, [:range, opts], [expr stream]]
     end
 

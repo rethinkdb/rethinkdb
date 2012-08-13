@@ -5,6 +5,7 @@ module RethinkDB
     # Turn into an actual S-expression (we wrap it in a class so that
     # instance methods may be invoked).
     def sexp; clean_lst @body; end
+    def body; @body; end
     def clean_lst lst
       case lst.class.hash
       when Array.hash               then lst.map{|z| clean_lst(z)}
