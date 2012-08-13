@@ -560,8 +560,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
                 check_protobuf(w.has_for_each());
                 check_term_type(w.for_each().stream(), TERM_TYPE_STREAM, env, is_det_out, backtrace.with("stream"));
 
-                new_scope_t scope_maker(&env->scope);
-                env->scope.put_in_scope(w.for_each().var(), term_info_t(TERM_TYPE_JSON, *is_det_out));
+                new_scope_t scope_maker(&env->scope, w.for_each().var(), term_info_t(TERM_TYPE_JSON, *is_det_out));
                 for (int i = 0; i < w.for_each().queries_size(); ++i) {
                     check_write_query_type(w.for_each().queries(i), env, is_det_out, backtrace.with(strprintf("query:%d", i)));
                 }
@@ -739,9 +738,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     error = 0,
                     skipped = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-                    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-
-                    env->scope.put_in_scope(w->update().mapping().arg(), json);
+                    variable_val_scope_t::new_scope_t scope_maker(&env->scope, w->update().mapping().arg(), json);
                     boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                     if (val->type() == cJSON_NULL) {
                         skipped++;
@@ -776,8 +773,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 
                 int modified = 0, deleted = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-                    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                    env->scope.put_in_scope(w->mutate().mapping().arg(), json);
+                    variable_val_scope_t::new_scope_t scope_maker(&env->scope, w->mutate().mapping().arg(), json);
                     boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
 
                     if (val->type() == cJSON_NULL) {
@@ -828,8 +824,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 boost::shared_ptr<json_stream_t> stream = eval_stream(w->mutable_for_each()->mutable_stream(), env, backtrace.with("stream"));
 
                 while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                    env->scope.put_in_scope(w->for_each().var(), json);
+                    variable_val_scope_t::new_scope_t scope_maker(&env->scope, w->for_each().var(), json);
 
                     for (int i = 0; i < w->for_each().queries_size(); ++i) {
                         execute(w->mutable_for_each()->mutable_queries(i), env, res, backtrace.with(strprintf("query:%d", i)));
@@ -849,8 +844,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 *get.mutable_get_by_key() = get_by_key;
 
                 boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
-                new_val_scope_t scope_maker(&env->scope);
-                env->scope.put_in_scope(w->point_update().mapping().arg(), original_val);
+                new_val_scope_t scope_maker(&env->scope, w->point_update().mapping().arg(), original_val);
 
                 boost::shared_ptr<scoped_cJSON_t> new_val = eval(w->mutable_point_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
 
@@ -1647,9 +1641,9 @@ public:
         : pred(_pred), env(_env), backtrace(_backtrace)
     { }
     bool operator()(boost::shared_ptr<scoped_cJSON_t> json) {
-        variable_val_scope_t::new_scope_t scope_maker(&env.scope);
-        env.scope.put_in_scope(pred.arg(), json);
+        variable_val_scope_t::new_scope_t scope_maker(&env.scope, pred.arg(), json);
         implicit_value_setter_t impliciter(&env.implicit_attribute_value, json);
+
         boost::shared_ptr<scoped_cJSON_t> a_bool = eval(pred.mutable_body(), &env, backtrace.with("predicate"));
 
         if (a_bool->type() == cJSON_True) {
@@ -1699,15 +1693,13 @@ private:
 };
 
 boost::shared_ptr<scoped_cJSON_t> map(std::string arg, Term *term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {
-    variable_val_scope_t::new_scope_t scope_maker(&env.scope);
-    env.scope.put_in_scope(arg, val);
+    variable_val_scope_t::new_scope_t scope_maker(&env.scope, arg, val);
     implicit_value_setter_t impliciter(&env.implicit_attribute_value, val);
     return eval(term, &env, backtrace);
 }
 
 boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {
-    variable_val_scope_t::new_scope_t scope_maker(&env.scope);
-    env.scope.put_in_scope(arg, val);
+    variable_val_scope_t::new_scope_t scope_maker(&env.scope, arg, val);
     implicit_value_setter_t impliciter(&env.implicit_attribute_value, val);
     return eval_stream(term, &env, backtrace);
 }
@@ -1741,6 +1733,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
             break;
         case Builtin::GROUPEDMAPREDUCE:
             {
+                Builtin::GroupedMapReduce *g = c->mutable_builtin()->mutable_grouped_map_reduce();
                 shared_scoped_less_t comparator(backtrace);
                 std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups(comparator);
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
@@ -1750,18 +1743,16 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 
                     // Figure out which group we belong to
                     {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                        env->scope.put_in_scope(c->builtin().grouped_map_reduce().group_mapping().arg(), json);
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scope, g->group_mapping().arg(), json);
                         implicit_value_setter_t impliciter(&env->implicit_attribute_value, json);
-                        group_mapped_row = eval(c->mutable_builtin()->mutable_grouped_map_reduce()->mutable_group_mapping()->mutable_body(), env, backtrace.with("group_mapping"));
+                        group_mapped_row = eval(g->mutable_group_mapping()->mutable_body(), env, backtrace.with("group_mapping"));
                     }
 
                     // Map the value for comfy reduction goodness
                     {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                        env->scope.put_in_scope(c->builtin().grouped_map_reduce().value_mapping().arg(), json);
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scope, g->value_mapping().arg(), json);
                         implicit_value_setter_t impliciter(&env->implicit_attribute_value, json);
-                        value_mapped_row = eval(c->mutable_builtin()->mutable_grouped_map_reduce()->mutable_value_mapping()->mutable_body(), env, backtrace.with("value_mapping"));
+                        value_mapped_row = eval(g->mutable_value_mapping()->mutable_body(), env, backtrace.with("value_mapping"));
                     }
 
                     // Do the reduction
@@ -1770,15 +1761,15 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                         std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator
                             elem = groups.find(group_mapped_row);
                         if(elem != groups.end()) {
-                            env->scope.put_in_scope(c->builtin().grouped_map_reduce().reduction().var1(),
+                            env->scope.put_in_scope(g->reduction().var1(),
                                                     (*elem).second);
                         } else {
-                            env->scope.put_in_scope(c->builtin().grouped_map_reduce().reduction().var1(),
-                                                    eval(c->mutable_builtin()->mutable_grouped_map_reduce()->mutable_reduction()->mutable_base(), env, backtrace.with("reduction").with("base")));
+                            env->scope.put_in_scope(g->reduction().var1(),
+                                                    eval(g->mutable_reduction()->mutable_base(), env, backtrace.with("reduction").with("base")));
                         }
-                        env->scope.put_in_scope(c->builtin().grouped_map_reduce().reduction().var2(), value_mapped_row);
+                        env->scope.put_in_scope(g->reduction().var2(), value_mapped_row);
 
-                        reduced_row = eval(c->mutable_builtin()->mutable_grouped_map_reduce()->mutable_reduction()->mutable_body(), env, backtrace.with("reduction").with("body"));
+                        reduced_row = eval(g->mutable_reduction()->mutable_body(), env, backtrace.with("reduction").with("body"));
                     }
 
                     // Phew, update the relevant group

@@ -216,7 +216,7 @@ private:
 
     branch_history_manager_t<protocol_t> *const branch_history_manager_;
 
-    multistore_ptr_t<protocol_t> *svs_;
+    multistore_ptr_t<protocol_t> *const svs_;
 
     branch_id_t branch_id_;
 
