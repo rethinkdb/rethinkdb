@@ -2,6 +2,14 @@ module RethinkDB
   class RQL_Query #S-expression representation of a query
     def initialize(init_body); @body = init_body; end
 
+    def ==(rhs)
+      raise SyntaxError,"
+      Cannot use inline ==/!= with RQL queries, use .eq() instead.
+      If you need to see whether two queries are the same, compare
+      their S-expression representations like: `query1.sexp ==
+      query2.sexp`."
+    end
+
     # Turn into an actual S-expression (we wrap it in a class so that
     # instance methods may be invoked).
     def sexp; clean_lst @body; end
@@ -25,6 +33,9 @@ module RethinkDB
       else raise RuntimeError, "No last connection, open a new one."
       end
     end
+
+    def -@; S._ [:call, [:subtract], [@body]]; end
+    def +@; S._ [:call, [:add], [@body]]; end
 
     # Dereference aliases (see utils.rb) and possibly dispatch to RQL
     # (because the caller may be trying to use the more convenient

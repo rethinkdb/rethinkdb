@@ -104,7 +104,7 @@ module RethinkDB
       return message
     rescue => e # Add our own, semantic backtrace to exceptions
       new_msg = repeating ? e.message :
-        e.message + "\n...when compiling #{message_class} with #{args.inspect}"
+        e.message + "\n...when compiling #{message_class} with:\n#{args.pretty_inspect}"
       raise e.class, new_msg
     end
 
