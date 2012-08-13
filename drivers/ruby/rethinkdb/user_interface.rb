@@ -338,10 +338,15 @@ module RethinkDB
     #         r[:$b]*2)
     # will bind <b>+a+</b> to 2, <b>+b+</b> to 3, and then return 6.  (It is
     # thus analagous to <b><tt>let*</tt></b> in the Lisp family of languages.)
+    # It may also be used with hashes instead of lists, but in that case you
+    # give up some power: in particular, you cannot have variables that depend
+    # on previous variables, because the order is not guaranteed.  For example:
+    #   r.let({:a => 2, :b => 3}, r[:$b]*2) # legal
+    #   r.let({:a => 2, :b => r[:$a]+1}, r[:$b]*2) #legality not guaranteed
     def let(varbinds, body);
       varbinds = varbinds.map { |pair|
         raise SyntaxError,"Malformed LET expression #{body}" if pair.length != 2
-        [pair[0], expr(pair[1])]}
+        [pair[0].to_s, expr(pair[1])]}
       S._ [:let, varbinds, expr(body)]; end
 
     # Negate a predicate.  May also be called as if it were a instance method of

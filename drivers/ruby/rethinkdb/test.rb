@@ -108,7 +108,10 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.let([["x", 3]], r.var("x")).run, 3)
     assert_equal(r.let([["x", 3], ["x", 4]], r.var("x")).run, 4)
     assert_equal(r.let([["x", 3], ["y", 4]], r.var("x")).run, 3)
-    assert_raise(SyntaxError){r.var('x').run}
+    assert_equal(r.let([['a', 2], ['b', r[:$a]+1]], r[:$b]*2).run, 6)
+
+    assert_equal(r.let({:x => 3}, r.var("x")).run, 3)
+    assert_equal(r.let({:x => 3, :y => 4}, r.var("y")).run, 4)
   end
 
   def test_if #from python tests
