@@ -76,6 +76,12 @@ public:
         {
             parent->push();
         }
+        new_scope_t(variable_scope_t<T> *_parent, const std::string &name, const T &t)
+            : parent(_parent)
+        {
+            parent->push();
+            parent->put_in_scope(name, t);
+        }
         ~new_scope_t() {
             parent->pop();
         }
