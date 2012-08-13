@@ -9,19 +9,14 @@
 #include "extproc/spawner.hpp"
 
 struct service_ports_t {
-    service_ports_t(int _port, int _client_port, int _http_port DEBUG_ONLY(, int _port_offset))
-        : port(_port), client_port(_client_port), http_port(_http_port)
-#ifndef NDEBUG
-        , port_offset(_port_offset)
-#endif
-    { }
+    service_ports_t(int _port, int _client_port, int _http_port, int _port_offset)
+        : port(_port), client_port(_client_port), http_port(_http_port), port_offset(_port_offset)
+        { }
 
     int port;
     int client_port;
     int http_port;
-#ifndef NDEBUG
     int port_offset;
-#endif
 };
 
 /* This has been factored out from `command_line.hpp` because it takes a very
