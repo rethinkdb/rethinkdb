@@ -56,8 +56,6 @@ module RethinkDB
       # Handle nonterminal parts of the protobuf, where we have to descend
       message = message_class.new
       if (message_type_class = C.class_types[message_class])
-        # Handle the case where we're construct a toplevel variant type.
-        args = RQL.expr(args).sexp if args.class() != Array
         query_type = args[0] # Our first argument is the type of our variant.
         message.type = enum_type(message_type_class, query_type)
         raise TypeError,"No type '#{query_type}' for '#{message_class}'."if !message.type
@@ -106,7 +104,7 @@ module RethinkDB
       return message
     rescue => e # Add our own, semantic backtrace to exceptions
       new_msg = repeating ? e.message :
-        e.message + "\n...when compiling #{message_class} with #{args.inspect}"
+        e.message + "\n...when compiling #{message_class} with:\n#{args.pretty_inspect}"
       raise e.class, new_msg
     end
 

@@ -5,13 +5,14 @@
 #include <utility>
 
 #include "concurrency/mutex_assertion.hpp"
-#include "rpc/serialize_macros.hpp"
+#include "concurrency/queue/passive_producer.hpp"
 #include "concurrency/signal.hpp"
+#include "containers/intrusive_priority_queue.hpp"
+#include "perfmon/perfmon.hpp"
+#include "rpc/serialize_macros.hpp"
+#include "stl_utils.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
-#include "concurrency/queue/passive_producer.hpp"
-#include "stl_utils.hpp"
-#include "perfmon/perfmon.hpp"
 
 class cond_t;
 class signal_t;
@@ -112,13 +113,7 @@ private:
 
 class fifo_enforcer_sink_t : public home_thread_mixin_t {
 public:
-    class exit_read_t;
-    class exit_write_t;
-private:
-    typedef std::multimap<state_timestamp_t, exit_read_t*> reader_queue_t;
-    typedef std::map<transition_timestamp_t, std::pair<int64_t, exit_write_t*> > writer_queue_t;
-public:
-    class exit_read_t : public signal_t {
+    class exit_read_t : public signal_t, public intrusive_priority_queue_node_t<exit_read_t> {
     public:
         exit_read_t() THROWS_NOTHING;
 
@@ -130,8 +125,17 @@ public:
 
         void begin(fifo_enforcer_sink_t *, fifo_enforcer_read_token_t) THROWS_NOTHING;
         void end() THROWS_NOTHING;
+
     private:
         friend class fifo_enforcer_sink_t;
+
+        /* Constructs a dummy. */
+        exit_read_t(fifo_enforcer_read_token_t tok) THROWS_NOTHING :
+            token(tok), is_dummy(true) { }
+
+        bool is_higher_priority_than(exit_read_t *other) {
+            return token.timestamp < other->token.timestamp;
+        }
 
         /* `parent` is `NULL` before `begin()` is called. After `end()` is
         called, `parent` remains non-`NULL` but `ended` is set to `true` */
@@ -139,10 +143,13 @@ public:
         bool ended;
 
         fifo_enforcer_read_token_t token;
-        reader_queue_t::iterator queue_position;
+
+        /* If an `exit_read_t` is destroyed while still on the queue, it
+        allocates a dummy `exit_read_t` on the heap to take its place. */
+        bool is_dummy;
     };
 
-    class exit_write_t : public signal_t {
+    class exit_write_t : public signal_t, public intrusive_priority_queue_node_t<exit_write_t> {
     public:
         exit_write_t() THROWS_NOTHING;
 
@@ -154,8 +161,17 @@ public:
 
         void begin(fifo_enforcer_sink_t *, fifo_enforcer_write_token_t) THROWS_NOTHING;
         void end() THROWS_NOTHING;
+
     private:
         friend class fifo_enforcer_sink_t;
+
+        /* Constructs a dummy. */
+        exit_write_t(fifo_enforcer_write_token_t tok) THROWS_NOTHING :
+            token(tok), is_dummy(true) { }
+
+        bool is_higher_priority_than(exit_write_t *other) {
+            return token.timestamp < other->token.timestamp;
+        }
 
         /* `parent` is `NULL` before `begin()` is called. After `end()` is
         called, `parent` remains non-`NULL` but `ended` is set to `true` */
@@ -163,7 +179,10 @@ public:
         bool ended;
 
         fifo_enforcer_write_token_t token;
-        writer_queue_t::iterator queue_position;
+
+        /* If an `exit_write_t` is destroyed while still on the queue, it
+        allocates a dummy `exit_write_t` on the heap to take its place. */
+        bool is_dummy;
     };
 
     fifo_enforcer_sink_t() THROWS_NOTHING :
@@ -172,35 +191,17 @@ public:
     explicit fifo_enforcer_sink_t(fifo_enforcer_source_t::state_t init) THROWS_NOTHING :
         state(init) { }
 
-    ~fifo_enforcer_sink_t() THROWS_NOTHING {
-        for (reader_queue_t::iterator it =  waiting_readers.begin();
-                                      it != waiting_readers.end();
-                                      it++) {
-            /* Make sure that any entries present are dummy entries, ie null
-             * pointer. If there are non dummy entries that means there are
-             * living exit_read_t objects that point to us. */
-            rassert(!it->second);
-        }
-
-        for (writer_queue_t::iterator it =  waiting_writers.begin();
-                                      it != waiting_writers.end();
-                                      it++) {
-            /* Make sure that any entries present are dummy entries, ie null
-             * pointer. If there are non dummy entries that means there are
-             * living exit_write_t objects that point to us. */
-            rassert(!it->second.second);
-        }
-    }
+    ~fifo_enforcer_sink_t() THROWS_NOTHING;
 
 private:
     void pump() THROWS_NOTHING;
-    void finish_a_reader(state_timestamp_t timestamp) THROWS_NOTHING;
-    void finish_a_writer(transition_timestamp_t timestamp, int64_t num_preceding_reads) THROWS_NOTHING;
+    void finish_a_reader(fifo_enforcer_read_token_t token) THROWS_NOTHING;
+    void finish_a_writer(fifo_enforcer_write_token_t token) THROWS_NOTHING;
 
     mutex_assertion_t lock;
     fifo_enforcer_source_t::state_t state;
-    reader_queue_t waiting_readers;
-    writer_queue_t waiting_writers;
+    intrusive_priority_queue_t<exit_read_t> waiting_readers;
+    intrusive_priority_queue_t<exit_write_t> waiting_writers;
     DISABLE_COPYING(fifo_enforcer_sink_t);
 };
 
