@@ -81,10 +81,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline)
 {
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    }
-
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
         broadcaster_metadata->get();
     if (!business_card || !business_card.get()) {
@@ -229,10 +225,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline)
 {
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    }
-
 #ifndef NDEBUG
     /* Confirm that `broadcaster_metadata` corresponds to `broadcaster` */
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
