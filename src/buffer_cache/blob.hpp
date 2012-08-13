@@ -50,8 +50,6 @@ write_blob_ref_to_something(tmp, blob::ref_size(bs, ref, mrl));
 
 
 
-typedef uint32_t block_id_t;
-
 class buffer_group_t;
 class block_getter_t;
 

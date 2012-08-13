@@ -11,6 +11,13 @@
 
 namespace query_language {
 
+
+/* Convenience function for making the horrible easy. */
+boost::shared_ptr<scoped_cJSON_t> shared_scoped_json(cJSON *json) {
+    return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(json));
+}
+
+
 void check_protobuf(bool cond) {
     if (!cond) {
         BREAKPOINT;
@@ -729,14 +736,17 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 view_t view = eval_view(w->mutable_update()->mutable_view(), env, backtrace.with("view"));
 
                 int updated = 0,
-                    error = 0;
+                    error = 0,
+                    skipped = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
 
                     env->scope.put_in_scope(w->update().mapping().arg(), json);
                     boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
-                    if (!cJSON_Equal(json->GetObjectItem(view.primary_key.c_str()),
-                                     val->GetObjectItem(view.primary_key.c_str()))) {
+                    if (val->type() == cJSON_NULL) {
+                        skipped++;
+                    } else if (!cJSON_Equal(json->GetObjectItem(view.primary_key.c_str()),
+                                            val->GetObjectItem(view.primary_key.c_str()))) {
                         error++;
                     } else {
                         insert(view.access, view.primary_key, val, env, backtrace);
@@ -744,7 +754,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     }
                 }
 
-                res->add_response(strprintf("{\"updated\": %d, \"errors\": %d}", updated, error));
+                res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}", updated, skipped, error));
             }
             break;
         case WriteQuery::DELETE:
@@ -767,8 +777,8 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 int modified = 0, deleted = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                    env->scope.put_in_scope(w->update().mapping().arg(), json);
-                    boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
+                    env->scope.put_in_scope(w->mutate().mapping().arg(), json);
+                    boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
 
                     if (val->type() == cJSON_NULL) {
                         point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
@@ -1284,7 +1294,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                         start = 0;
                     } else {    // cJSON_Number
                         float float_start = start_json->get()->valuedouble;
-                        start = float_start;
+                        start = static_cast<int>(float_start);
                         if (float_start != start) {
                             throw runtime_exc_t("Slice start must be null or an integer.", backtrace.with("arg:1"));
                         }
@@ -1298,7 +1308,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                         stop = length;
                     } else {
                         float float_stop = stop_json->get()->valuedouble;
-                        stop = float_stop;
+                        stop = static_cast<int>(float_stop);
                         if (float_stop != stop) {
                             throw runtime_exc_t("Slice stop must be null or an integer.", backtrace.with("arg:2"));
                         }
@@ -1344,7 +1354,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     cJSON_Number, "The second argument must be an integer.");
 
                 float float_index = index_json->get()->valuedouble;
-                int index = float_index;
+                int index = static_cast<int>(float_index);
                 if (float_index != index) {
                     throw runtime_exc_t("The second argument must be an integer.", backtrace.with("arg:1"));
                 }
@@ -1538,7 +1548,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 // Check second arg type
                 boost::shared_ptr<scoped_cJSON_t> index_json = eval_and_check(c->mutable_args(1), env, backtrace.with("arg:1"), cJSON_Number, "The second argument must be an integer.");
                 float index_float = index_json->get()->valuedouble;
-                int index = index_float;
+                int index = static_cast<int>(index_float);
                 if (index_float != index || index < 0) {
                     throw runtime_exc_t("The second argument must be a nonnegative integer.", backtrace.with("arg:1"));
                 }
@@ -1731,8 +1741,8 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
             break;
         case Builtin::GROUPEDMAPREDUCE:
             {
-                shared_scoped_less comparator(backtrace);
-                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less> groups(comparator);
+                shared_scoped_less_t comparator(backtrace);
+                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups(comparator);
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 
                 while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
@@ -1757,7 +1767,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                     // Do the reduction
                     {
                         variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                        std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less>::iterator
+                        std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator
                             elem = groups.find(group_mapped_row);
                         if(elem != groups.end()) {
                             env->scope.put_in_scope(c->builtin().grouped_map_reduce().reduction().var1(),
@@ -1781,7 +1791,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                 // deal with this
                 std::list<boost::shared_ptr<scoped_cJSON_t> > res;
 
-                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less>::iterator it;
+                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator it;
                 for(it = groups.begin(); it != groups.end(); ++it) {
                     res.push_back((*it).second);
                 }
@@ -1824,8 +1834,8 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
             break;
         case Builtin::DISTINCT:
             {
-                shared_scoped_less comparator(backtrace);
-                std::set<boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less> seen(comparator);
+                shared_scoped_less_t comparator(backtrace);
+                std::set<boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> seen(comparator);
 
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 
@@ -1849,7 +1859,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                         start = 0;
                     } else {    // cJSON_Number
                         float float_start = start_json->get()->valuedouble;
-                        start = float_start;
+                        start = static_cast<int>(float_start);
                         if (float_start != start || start < 0) {
                             throw runtime_exc_t("Slice start must be null or a nonnegative integer.", backtrace.with("arg:1"));
                         }
@@ -1864,7 +1874,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                         stop = 0;
                     } else {
                         float float_stop = stop_json->get()->valuedouble;
-                        stop = float_stop;
+                        stop = static_cast<int>(float_stop);
                         if (float_stop != stop || stop < 0) {
                             throw runtime_exc_t("Slice stop must be null or a nonnegative integer.", backtrace.with("arg:2"));
                         }
@@ -2011,7 +2021,7 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
                         start = 0;
                     } else {    // cJSON_Number
                         float float_start = start_json->get()->valuedouble;
-                        start = float_start;
+                        start = static_cast<int>(float_start);
                         if (float_start != start || start < 0) {
                             throw runtime_exc_t("Slice start must be null or a nonnegative integer.", backtrace.with("arg:1"));
                         }
@@ -2026,7 +2036,7 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
                         stop = 0;
                     } else {
                         float float_stop = stop_json->get()->valuedouble;
-                        stop = float_stop;
+                        stop = static_cast<int>(float_stop);
                         if (float_stop != stop || stop < 0) {
                             throw runtime_exc_t("Slice stop must be null or a nonnegative integer.", backtrace.with("arg:2"));
                         }

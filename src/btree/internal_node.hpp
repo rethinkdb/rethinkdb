@@ -1,8 +1,11 @@
 #ifndef BTREE_INTERNAL_NODE_HPP_
 #define BTREE_INTERNAL_NODE_HPP_
 
-#include "btree/node.hpp"
+#include "btree/keys.hpp"
+#include "buffer_cache/types.hpp"
 #include "utils.hpp"
+
+struct internal_node_t;
 
 // See internal_node_t in node.hpp
 
@@ -51,20 +54,6 @@ btree_internal_pair *get_pair_by_index(internal_node_t *node, int index);
 
 int get_offset_index(const internal_node_t *node, const btree_key_t *key);
 
-// We can't use "internal" for internal stuff obviously.
-class ibuf_t;
-namespace impl {
-size_t pair_size_with_key(const btree_key_t *key);
-size_t pair_size_with_key_size(uint8_t size);
-
-void delete_pair(buf_lock_t *node_buf, uint16_t offset);
-uint16_t insert_pair(ibuf_t *node_buf, const btree_internal_pair *pair);
-uint16_t insert_pair(buf_lock_t *node_buf, block_id_t lnode, const btree_key_t *key);
-void delete_offset(buf_lock_t *node_buf, int index);
-void insert_offset(buf_lock_t *node_buf, uint16_t offset, int index);
-void make_last_pair_special(buf_lock_t *node_buf);
-bool is_equal(const btree_key_t *key1, const btree_key_t *key2);
-}  // namespace internal_node::impl
 }  // namespace internal_node
 
 class internal_key_comp {

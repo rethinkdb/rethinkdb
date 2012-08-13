@@ -3,8 +3,12 @@
 
 #include <string>
 
-#include "memcached/protocol.hpp"
 #include "http/json/json_adapter.hpp"
+
+struct cJSON;
+struct store_key_t;
+template <class> class hash_region_t;
+struct key_range_t;
 
 // json adapter concept for store_key_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(store_key_t *);

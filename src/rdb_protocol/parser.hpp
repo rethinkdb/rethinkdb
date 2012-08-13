@@ -7,7 +7,6 @@
 #include "http/http.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "protocol_api.hpp"
-#include "rpc/mailbox/mailbox.hpp"
 
 namespace rdb_protocol {
 

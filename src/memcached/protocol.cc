@@ -7,6 +7,7 @@
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
+#include "btree/superblock.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
@@ -14,15 +15,15 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/iterators.hpp"
 #include "containers/scoped.hpp"
-#include "memcached/btree/append_prepend.hpp"
-#include "memcached/btree/delete.hpp"
-#include "memcached/btree/distribution.hpp"
-#include "memcached/btree/erase_range.hpp"
-#include "memcached/btree/get.hpp"
-#include "memcached/btree/get_cas.hpp"
-#include "memcached/btree/incr_decr.hpp"
-#include "memcached/btree/rget.hpp"
-#include "memcached/btree/set.hpp"
+#include "memcached/memcached_btree/append_prepend.hpp"
+#include "memcached/memcached_btree/delete.hpp"
+#include "memcached/memcached_btree/distribution.hpp"
+#include "memcached/memcached_btree/erase_range.hpp"
+#include "memcached/memcached_btree/get.hpp"
+#include "memcached/memcached_btree/get_cas.hpp"
+#include "memcached/memcached_btree/incr_decr.hpp"
+#include "memcached/memcached_btree/rget.hpp"
+#include "memcached/memcached_btree/set.hpp"
 #include "memcached/queries.hpp"
 #include "stl_utils.hpp"
 #include "serializer/config.hpp"
@@ -537,6 +538,7 @@ write_response_t store_t::protocol_write(const write_t &write,
                                          btree_slice_t *btree,
                                          transaction_t *txn,
                                          superblock_t *superblock) {
+    // TODO: should this be calling to_repli_timestamp on a transition_timestamp_t?  Does this not use the timestamp-before, when we'd want the timestamp-after?
     write_visitor_t v(btree, txn, superblock, write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
     return boost::apply_visitor(v, write.mutation);
 }
@@ -544,19 +546,19 @@ write_response_t store_t::protocol_write(const write_t &write,
 class memcached_backfill_callback_t : public backfill_callback_t {
     typedef backfill_chunk_t chunk_t;
 public:
-    explicit memcached_backfill_callback_t(const boost::function<void(chunk_t)> &chunk_fun)
-        : chunk_fun_(chunk_fun) { }
+    explicit memcached_backfill_callback_t(chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb)
+        : chunk_fun_cb_(chunk_fun_cb) { }
 
     void on_delete_range(const key_range_t &range) {
-        chunk_fun_(chunk_t::delete_range(region_t(range)));
+        chunk_fun_cb_->send_chunk(chunk_t::delete_range(region_t(range)));
     }
 
     void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
-        chunk_fun_(chunk_t::delete_key(to_store_key(key), recency));
+        chunk_fun_cb_->send_chunk(chunk_t::delete_key(to_store_key(key), recency));
     }
 
     void on_keyvalue(const backfill_atom_t& atom) {
-        chunk_fun_(chunk_t::set_key(atom));
+        chunk_fun_cb_->send_chunk(chunk_t::set_key(atom));
     }
     ~memcached_backfill_callback_t() { }
 
@@ -566,7 +568,7 @@ protected:
     }
 
 private:
-    const boost::function<void(chunk_t)> &chunk_fun_;
+    chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb_;
 
     DISABLE_COPYING(memcached_backfill_callback_t);
 };
@@ -588,18 +590,17 @@ static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vect
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
 void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
-                                     const boost::function<void(backfill_chunk_t)> &chunk_fun,
+                                     chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
                                      superblock_t *superblock,
                                      btree_slice_t *btree,
                                      transaction_t *txn,
                                      backfill_progress_t *progress,
                                      signal_t *interruptor)
-                                     THROWS_ONLY(interrupted_exc_t)
-{
+                                     THROWS_ONLY(interrupted_exc_t) {
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
 
     if (regions.size() > 0) {
-        memcached_backfill_callback_t callback(chunk_fun);
+        memcached_backfill_callback_t callback(chunk_fun_cb);
 
         // pmapping by regions.size() is now the arguably wrong thing to do,
         // because adjacent regions often have the same value. On the other hand

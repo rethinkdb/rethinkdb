@@ -7,13 +7,12 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
-#include "btree/backfill.hpp"
+#include "backfill_progress.hpp"
 #include "btree/btree_store.hpp"
-// #include "btree/parallel_traversal.hpp"  // TODO: sigh
-#include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "hash_region.hpp"
+#include "memcached/memcached_btree/backfill.hpp"
 #include "memcached/queries.hpp"
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
@@ -177,7 +176,7 @@ public:
                                         superblock_t *superblock);
 
         void protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
-                                    const boost::function<void(backfill_chunk_t)> &chunk_fun,
+                                    chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
                                     superblock_t *superblock,
                                     btree_slice_t *btree,
                                     transaction_t *txn,

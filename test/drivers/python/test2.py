@@ -455,6 +455,17 @@ class RDBTest(unittest.TestCase):
         self.expect(self.table.map(js('this')), docs)
         self.expect(self.table.map(js('this.name')), names)
 
+    def test_updatemutate(self):
+        self.clear_table()
+
+        docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(10)]
+        self.do_insert(docs)
+
+        self.expect(self.table.mutate(fn('x', R('$x'))), {"modified": len(docs), "deleted": 0})
+        self.expect(self.table, docs)
+
+        self.expect(self.table.update(None), {'updated': 0, 'skipped': 10, 'errors': 0})
+
     # def test_huge(self):
     #     self.clear_table()
     #     self.do_insert([{"id": 1}])

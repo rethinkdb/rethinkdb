@@ -191,7 +191,7 @@ private:
         is distributed evenly among all the clients. The second pool is
         distributed in proportion to the clients' QPS. */
         static const float fair_fraction = 0.1;
-        int fair_tickets = total_tickets * fair_fraction;
+        int fair_tickets = static_cast<int>(total_tickets * fair_fraction);
         int qps_tickets = total_tickets - fair_tickets;
         int total_qps = 0;
         for (client_t *c = clients.head(); c; c = clients.next(c)) {

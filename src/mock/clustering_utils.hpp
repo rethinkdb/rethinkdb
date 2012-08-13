@@ -8,9 +8,10 @@
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
-#include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/unittest_utils.hpp"
+
+class memcached_protocol_t;
 
 namespace mock {
 
@@ -227,6 +228,7 @@ private:
     connectivity_cluster_t::run_t connectivity_cluster_run;
 };
 
+#ifndef NDEBUG
 template <class protocol_t>
 struct equality_metainfo_checker_callback_t : public metainfo_checker_callback_t<protocol_t> {
     explicit equality_metainfo_checker_callback_t(const binary_blob_t& expected_value)
@@ -245,6 +247,7 @@ private:
 
     DISABLE_COPYING(equality_metainfo_checker_callback_t);
 };
+#endif
 
 }   /* namespace unittest */
 

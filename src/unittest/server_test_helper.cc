@@ -109,4 +109,10 @@ void server_test_helper_t::create_two_blocks(transaction_t *txn, block_id_t *blo
     change_value(&buf_B, init_value);
 }
 
+void server_test_helper_t::acquiring_coro_t::run() {
+    buf_lock_t tmp(txn, block_id, mode);
+    result->swap(tmp);
+    signaled = true;
+}
+
 }  // namespace unittest

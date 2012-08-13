@@ -71,14 +71,6 @@ class WriteQuery(query.BaseExpression):
         root.type = p.Query.WRITE
         self._write_ast(root.write_query)
 
-class Delete(WriteQuery):
-    def __init__(self, parent_view):
-        self.parent_view = parent_view
-
-    def _write_ast(self, parent):
-        parent.type = p.WriteQuery.DELETE
-        self.parent_view._write_ast(parent.delete.view)
-
 class Insert(WriteQuery):
     def __init__(self, table, entries):
         self.table = table
@@ -89,6 +81,34 @@ class Insert(WriteQuery):
         self.table._write_ref_ast(parent.insert.table_ref)
         for entry in self.entries:
             entry._write_ast(parent.insert.terms.add())
+
+class Delete(WriteQuery):
+    def __init__(self, parent_view):
+        self.parent_view = parent_view
+
+    def _write_ast(self, parent):
+        parent.type = p.WriteQuery.DELETE
+        self.parent_view._write_ast(parent.delete.view)
+
+class Update(WriteQuery):
+    def __init__(self, parent_view, mapping):
+        self.parent_view = parent_view
+        self.mapping = mapping
+
+    def _write_ast(self, parent):
+        parent.type = p.WriteQuery.UPDATE
+        self.parent_view._write_ast(parent.update.view)
+        self.mapping.write_mapping(parent.update.mapping)
+
+class Mutate(WriteQuery):
+    def __init__(self, parent_view, mapping):
+        self.parent_view = parent_view
+        self.mapping = mapping
+
+    def _write_ast(self, parent):
+        parent.type = p.WriteQuery.MUTATE
+        self.parent_view._write_ast(parent.mutate.view)
+        self.mapping.write_mapping(parent.mutate.mapping)
 
 class InsertStream(WriteQuery):
     def __init__(self, table, stream):
