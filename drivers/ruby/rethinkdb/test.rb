@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #load '/home/mlucy/rethinkdb_ruby/drivers/ruby/rethinkdb/rethinkdb.rb'
 load 'rethinkdb_shortcuts.rb'
 r = RethinkDB::RQL
@@ -44,10 +45,187 @@ class ClientTest < Test::Unit::TestCase
   @@c = RethinkDB::Connection.new('localhost', 64346)
   def c; @@c; end
 
+  def test_cmp #from python tests
+    assert_equal(r.eq(3, 3).run, true)
+    assert_equal(r.eq(3, 4).run, false)
+
+    assert_equal(r.ne(3, 3).run, false)
+    assert_equal(r.ne(3, 4).run, true)
+
+    assert_equal(r.gt(3, 2).run, true)
+    assert_equal(r.gt(3, 3).run, false)
+
+    assert_equal(r.ge(3, 3).run, true)
+    assert_equal(r.ge(3, 4).run, false)
+
+    assert_equal(r.lt(3, 3).run, false)
+    assert_equal(r.lt(3, 4).run, true)
+
+    assert_equal(r.le(3, 3).run, true)
+    assert_equal(r.le(3, 4).run, true)
+    assert_equal(r.le(3, 2).run, false)
+
+    assert_equal(r.eq(1, 1, 2).run, false)
+    assert_equal(r.eq(5, 5, 5).run, true)
+
+    assert_equal(r.lt(3, 4).run, true)
+    assert_equal(r.lt(3, 4, 5).run, true)
+    assert_equal(r.lt(5, 6, 7, 7).run, false)
+
+    assert_equal(r.eq("asdf", "asdf").run, true)
+    assert_equal(r.eq("asd", "asdf").run, false)
+    assert_equal(r.lt("a", "b").run, true)
+
+    assert_equal(r.eq(true, true).run, true)
+    assert_equal(r.lt(false, true).run, true)
+
+    assert_equal(r.lt(false, true, 1, "", []).run, true)
+    assert_equal(r.gt([], "", 1, true, false).run, true)
+    assert_equal(r.lt(false, true, "", 1, []).run, false)
+  end
+
+  def test_junctions #from python tests
+    assert_equal(r.any(false).run, false)
+    assert_equal(r.any(true, false).run, true)
+    assert_equal(r.any(false, true).run, true)
+    assert_equal(r.any(false, false, true).run, true)
+
+    assert_equal(r.all(false).run, false)
+    assert_equal(r.all(true, false).run, false)
+    assert_equal(r.all(true, true).run, true)
+    assert_equal(r.all(true, true, true).run, true)
+
+    assert_raise(RuntimeError){r.all(true, 3).run}
+    assert_raise(RuntimeError){r.any(true, 4).run}
+  end
+
+  def test_not #from python tests
+    assert_equal(r.not(true).run, false)
+    assert_equal(r.not(false).run, true)
+    assert_raise(RuntimeError){r.not(3).run}
+  end
+
+  def test_let #from python tests
+    assert_equal(r.let([["x", 3]], r.var("x")).run, 3)
+    assert_equal(r.let([["x", 3], ["x", 4]], r.var("x")).run, 4)
+    assert_equal(r.let([["x", 3], ["y", 4]], r.var("x")).run, 3)
+    assert_equal(r.let([['a', 2], ['b', r[:$a]+1]], r[:$b]*2).run, 6)
+
+    assert_equal(r.let({:x => 3}, r.var("x")).run, 3)
+    assert_equal(r.let({:x => 3, :y => 4}, r.var("y")).run, 4)
+  end
+
+  def test_if #from python tests
+    assert_equal(r.if(true, 3, 4).run, 3)
+    assert_equal(r.if(false, 4, 5).run, 5)
+    assert_equal(r.if(r.eq(3, 3), "foo", "bar").run, "foo")
+    assert_raise(RuntimeError){r.if(5,1,2).run}
+  end
+
+  def test_attr #from python tests
+    #TODO: Mimic object notation
+        # self.expect(I.Has({"foo": 3}, "foo"), True)
+        # self.expect(I.Has({"foo": 3}, "bar"), False)
+
+        # self.expect(I.Attr({"foo": 3}, "foo"), 3)
+        # self.error_exec(I.Attr({"foo": 3}, "bar"), "missing")
+
+        # self.expect(I.Attr(I.Attr({"a": {"b": 3}}, "a"), "b"), 3)
+  end
+
+  def test_array_python #from python tests
+    assert_equal(r.append([], 2).run, [2])
+    assert_equal(r.append([1], 2).run, [1, 2])
+    assert_raise(RuntimeError){r.append(3,0).run}
+
+    assert_equal(r.add([1], [2]).run, [1, 2])
+    assert_equal(r.add([1, 2], []).run, [1, 2])
+    assert_raise(RuntimeError){r.add(1,[1]).run}
+    assert_raise(RuntimeError){r.add([1],1).run}
+
+    arr = (0...10).collect{|x| x}
+    assert_equal(r[arr][0...3].run, arr[0...3])
+    assert_equal(r[arr][0...0].run, arr[0...0])
+    assert_equal(r[arr][5...15].run, arr[5...15])
+    assert_equal(r[arr][5...-3].run, arr[5...-3])
+    assert_equal(r[arr][-5...-3].run, arr[-5...-3])
+    assert_equal(r[arr][0..3].run, arr[0..3])
+    assert_equal(r[arr][0..0].run, arr[0..0])
+    assert_equal(r[arr][5..15].run, arr[5..15])
+    assert_equal(r[arr][5..-3].run, arr[5..-3])
+    assert_equal(r[arr][-5..-3].run, arr[-5..-3])
+
+    assert_raise(RuntimeError){r[1][0...0].run}
+    assert_raise(RuntimeError){r[arr][0.5...0].run}
+    assert_raise(RuntimeError){r[1][0...1.01].run}
+    assert_raise(RuntimeError){r[1][5...3].run}
+
+    assert_equal(r[arr][5..-1].run, arr[5..-1])
+    assert_equal(r[arr][0...7].run, arr[0...7])
+    assert_equal(r[arr][0...-2].run, arr[0...-2])
+    assert_equal(r[arr][-2..-1].run, arr[-2..-1])
+    assert_equal(r[arr][0..-1].run, arr[0..-1])
+
+    # TODO: When NTH is polymorphic, uncomment
+    #assert_equal(r[arr][3].run, 3)
+    #assert_equal(r[arr][-1].run, 9)
+    # fail(I.Element(0, 0), "array")
+    # fail(I.Element(arr, .1), "integer")
+    # fail(I.Element([0], 1), "bounds")
+
+    assert_equal(r[[]].length.run, 0)
+    assert_equal(r[arr].length.run, arr.length)
+    assert_raise(RuntimeError){r[0].length.run}
+  end
+
+  def test_stream #from python tests
+    arr = (0...10).collect{|x| x}
+    assert_equal(r[arr].to_stream.to_array.run, arr)
+    assert_equal(r[arr].to_stream.nth(0).run, 0)
+    assert_equal(r[arr].to_stream.nth(5).run, 5)
+    assert_raise(RuntimeError){r[arr].to_stream.nth([]).run}
+    assert_raise(RuntimeError){r[arr].to_stream.nth(0.4).run}
+    assert_raise(RuntimeError){r[arr].to_stream.nth(-5).run}
+    assert_raise(RuntimeError){r[[0]].to_stream.nth(1).run}
+  end
+
+  def test_stream_fancy #from python tests
+    def limit(a,c); r[a].to_stream.limit(c).to_array.run; end
+    def skip(a,c); r[a].to_stream.skip(c).to_array.run; end
+
+    assert_equal(limit([], 0), [])
+    assert_equal(limit([1, 2], 0), [])
+    assert_equal(limit([1, 2], 1), [1])
+    assert_equal(limit([1, 2], 5), [1, 2])
+    assert_raise(RuntimeError){limit([], -1)}
+
+    assert_equal(skip([], 0), [])
+    assert_equal(skip([1, 2], 5), [])
+    assert_equal(skip([1, 2], 0), [1, 2])
+    assert_equal(skip([1, 2], 1), [2])
+
+    def distinct(a); r[a].to_stream.distinct.to_array.run; end
+    assert_equal(distinct([]), [])
+    assert_equal(distinct([1,2,3]*10), [1,2,3])
+    assert_equal(distinct([1, 2, 3, 2]), [1, 2, 3])
+    # TODO: doesn't work
+    #assert_equal(distinct([true, 2, false, 2]), [true, 2, false])
+  end
+
+  def test_ordering
+    def order(query, *args); query.orderby(*args).run; end
+    docs = (0...10).map{|n| {'id' => 100+n, 'a' => n, 'b' => n%3}}
+    assert_equal(order(r[docs].to_stream, 'a'), docs.sort_by{|x| x['a']})
+    assert_equal(order(r[docs].to_stream,['a', false]), docs.sort_by{|x| x['a']}.reverse)
+    assert_equal(order(r[docs].to_stream.filter({'b' => 0}), :a),
+                 docs.select{|x| x['b'] == 0}.sort_by{|x| x['a']})
+  end
+
   def test_ops #+,-,%,*,/,<,>,<=,>=,eq,ne,any,all
     assert_equal((r[5] + 3).run, 8)
     assert_equal((r[5].add(3)).run, 8)
     assert_equal(r.add(5,3).run, 8)
+    assert_equal(r.add(2,3,3).run, 8)
 
     assert_equal((r[5] - 3).run, 2)
     assert_equal((r[5].sub(3)).run, 2)
@@ -66,6 +244,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal((r[5].multiply(3)).run, 15)
     assert_equal(r.mul(5,3).run, 15)
     assert_equal(r.multiply(5,3).run, 15)
+    assert_equal(r.multiply(5,3,1).run, 15)
 
     assert_equal((r[15] / 3).run, 5)
     assert_equal((r[15].div(3)).run, 5)
@@ -217,12 +396,13 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(query_23.run, $data[2..3])
   end
 
-  def test_slice #SLICE
+  def test_slice_streams #SLICE
     #TODO: should work for arrays as well
     arr=[0,1,2,3,4,5]
     assert_equal(r[arr].to_stream[1].run, 1)
     assert_equal(r[arr].to_stream[2...6].run, r[arr].to_stream[2..-1].run)
-    assert_equal(r[arr].to_stream[2...5].run, r[arr].to_stream[2..5].run)
+    assert_equal(r[arr].to_stream[2...5].run, r[arr].to_stream[2..4].run)
+    assert_raise(RuntimeError){r[arr].to_stream[2...-1].run}
   end
 
   def test_mapmerge
@@ -233,11 +413,10 @@ class ClientTest < Test::Unit::TestCase
   def test_orderby #ORDERBY, MAP
     assert_equal(rdb.orderby(:id).run, $data)
     assert_equal(rdb.orderby('id').run, $data)
-    assert_equal(rdb.orderby([:id]).run, $data)
-    assert_equal(rdb.orderby([:id,true]).run, $data)
-    assert_equal(rdb.orderby([:id,false]).run, $data.reverse)
-    query = rdb.map{r[{:id => r[:id],:num => r[:id].mod(2)}]}.orderby(:num,['id',false])
-    query_alt=r.map(rdb){r[{:id =>r[:id],:num => r[:id] %2}]}.orderby(:num,['id',false])
+    assert_equal(rdb.orderby(:id).run, $data)
+    assert_equal(rdb.orderby([:id, false]).run, $data.reverse)
+    query = rdb.map{r[{:id => r[:id],:num => r[:id].mod(2)}]}.orderby(:num,[:id, false])
+    query_alt=r.map(rdb){r[{:id =>r[:id],:num => r[:id] %2}]}.orderby(:num,[:id, false])
     assert_equal(query.run, query_alt.run)
     want = $data.map{|o| o['id']}.sort_by{|n| (n%2)*$data.length - n}
     assert_equal(query.run.map{|o| o['id']}, want)
@@ -304,7 +483,98 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(q1v.map{|o| o['name']}[len..2*len-1], Array.new(len,nil))
   end
 
-  def test__setup; rdb.insert($data).run; end
+  def test__setup; rdb.delete.run;  rdb.insert($data).run; end
+
+  def test___write_python # from python tests
+    rdb.delete.run
+    docs = [{"a" => 3, "b" => 10, "id" => 1},
+            {"a" => 9, "b" => -5, "id" => 2},
+            {"a" => 9, "b" => 3, "id" => 3}]
+    assert_equal(rdb.insert(docs).run, {'inserted' => docs.length})
+    docs.each {|doc| assert_equal(rdb.get(doc['id']).run, doc)}
+    assert_equal(rdb.distinct(:a).run, [3,9])
+    assert_equal(rdb.filter({'a' => 3}).run, [docs[0]])
+    assert_raise(RuntimeError){rdb.filter({'a' => rdb.length + ""}).run}
+    assert_raise(RuntimeError){rdb.insert({'a' => 3}).run}
+
+    assert_equal(rdb.get(0).run, nil)
+
+    assert_equal(rdb.insert({:id => 100, :text => "グルメ"}).run, {'inserted' => 1})
+    assert_equal(rdb.get(100)[:text].run, "グルメ")
+
+    rdb.delete.run
+    docs = [{"id" => 1}, {"id" => 2}]
+    assert_equal(rdb.insert(docs).run, {'inserted' => docs.length})
+    assert_equal(rdb.limit(1).delete.run, {'deleted' => 1})
+    assert_equal(rdb.run, docs[1..-1])
+
+    rdb.delete.run
+    docs = (0...4).map{|n| {"id" => 100 + n, "a" => n, "b" => n % 3}}
+    assert_equal(rdb.insert(docs).run, {'inserted' => docs.length})
+    assert_equal(rdb.insertstream(r[docs].to_stream).run, {'inserted' => docs.length})
+    docs.each{|doc| assert_equal(rdb.get(doc['id']).run, doc)}
+
+    rdb.delete.run
+    docs = (0...10).map{|n| {"id" => 100 + n, "a" => n, "b" => n % 3}}
+    assert_equal(rdb.insert(docs).run, {'inserted' => docs.length})
+    def filt(expr, fn)
+      assert_equal(rdb.filter(exp).orderby(:id).run, docs.select{|x| fn x})
+    end
+
+    assert_raise(SyntaxError){r[:a] == 5}
+    assert_raise(SyntaxError){r[:a] != 5}
+    assert_equal(rdb.filter{r[:a] < 5}.run, docs.select{|x| x['a'] < 5})
+    assert_equal(rdb.filter{r[:a] <= 5}.run, docs.select{|x| x['a'] <= 5})
+    assert_equal(rdb.filter{r[:a] > 5}.run, docs.select{|x| x['a'] > 5})
+    assert_equal(rdb.filter{r[:a] >= 5}.run, docs.select{|x| x['a'] >= 5})
+    assert_raise(ArgumentError){5 < r[:a]}
+    assert_raise(ArgumentError){5 <= r[:a]}
+    assert_raise(ArgumentError){5 > r[:a]}
+    assert_raise(ArgumentError){5 >= r[:a]}
+    assert_equal(rdb.filter{r[:a].eq(r[:b])}.run, docs.select{|x| x['a'] == x['b']})
+
+    assert_equal(-r[5].run, r[-5].run)
+    assert_equal(+r[5].run, r[+5].run)
+
+    assert_equal((r[3]+4).run, 7)
+    assert_equal((r[3]-4).run, -1)
+    assert_equal((r[3]*4).run, 12)
+    assert_equal((r[3]/4).run, 3.0/4)
+    assert_equal((r[3]%2).run, 3%2)
+    assert_raise(TypeError){4+r[3]}
+    assert_raise(TypeError){4-r[3]}
+    assert_raise(TypeError){4*r[3]}
+    assert_raise(TypeError){4/r[3]}
+    assert_raise(TypeError){4%r[3]}
+
+    assert_equal(((r[3]+4)*-r[6]*(r[-5]+3)).run, 84)
+
+    rdb.delete.run
+    docs = (0...10).map{|n| {"id" => 100 + n, "a" => n, "b" => n % 3}}
+    assert_equal(rdb.insert(docs).run, {'inserted' => docs.length})
+    assert_equal(rdb.mutate{|x| x}.run, {'modified' => docs.length, 'deleted' => 0})
+    assert_equal(rdb.run, docs)
+    # TODO: when update works, uncomment line below
+    #assert_equal(rdb.update{nil}.run, {'updated' => 0, 'skipped' => 10, 'errors' => 0})
+  end
+
+  def test_getitem #from python tests
+    arr = (0...10).map{|x| x}
+    # TODO: when NTH is polymorphic, add 3 and -1
+    [0..-1, 2..-1, 0...2, -1..-1, 0...-1, 3...5].each {|rng|
+      assert_equal(r[arr][rng].run, arr[rng])}
+    obj = {:a => 3, :b => 4}
+    [:a, :b].each {|attr|
+      assert_equal(r[obj][attr].run, obj[attr])}
+    assert_raise(RuntimeError){r[obj][:c].run}
+  end
+
+  def test_stream_getitem #from python tests
+    arr = (0...10).map{|x| x}
+    [0..-1, 3..-1, 0...3, 4...6, 3].each {|rng|
+      assert_equal(r[arr].to_stream[rng].run, arr[rng])}
+    assert_raise(ArgumentError){r[arr].to_stream[4...'a'].run}
+  end
 
   def test___write #three underscores so it runs first
     rdb.delete.run

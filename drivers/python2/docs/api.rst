@@ -7,9 +7,9 @@ API Reference Documentation
 .. automodule:: rethinkdb.net
    :members:
 
-:mod:`rethinkdb.reql.query` -- Query generation operations
+:mod:`rethinkdb.query` -- Query generation operations
 **********************************************************
 
-.. automodule:: rethinkdb.reql.query
+.. automodule:: rethinkdb.query
    :members:
    :show-inheritance:
