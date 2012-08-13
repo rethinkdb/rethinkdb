@@ -12,6 +12,8 @@ goog.require('goog.proto2.WireFormatSerializer');
 rethinkdb.net.Connection = function(db_name) {
 	this.defaultDbName_ = db_name || null;
     this.outstandingQueries_ = {};
+    this.nextToken_ = 1;
+
     rethinkdb.net.last_connection = this;
 };
 
@@ -28,8 +30,6 @@ rethinkdb.net.Connection.prototype.close = goog.nullFunction;
 rethinkdb.net.Connection.prototype.run = function(expr, callback) {
     var term = expr.compile();
 
-    console.log(term);
-
     // Wrap in query
     var query = new Query();
     query.setType(Query.QueryType.READ);
@@ -38,8 +38,7 @@ rethinkdb.net.Connection.prototype.run = function(expr, callback) {
     readQuery.setTerm(term);
 
     // Assign a token
-    var token = new goog.math.Long(Math.random(), Math.random());
-    query.setToken(token.toString());
+    query.setToken((this.nextToken_++).toString());
     query.setReadQuery(readQuery);
 
     this.outstandingQueries_[query.getToken()] = callback;
@@ -47,8 +46,13 @@ rethinkdb.net.Connection.prototype.run = function(expr, callback) {
     var serializer = new goog.proto2.WireFormatSerializer();
     var data = serializer.serialize(query);
 
-    console.log(data);
-
+    // RDB protocol requires a 4 byte little endian length field at the head of the request
+    var length = data.byteLength;
+    var lengthBuffer = (new Uint32Array(1)).buffer;
+    var lengthBufferView = new DataView(lengthBuffer);
+    lengthBufferView.setUint32(0, length, true);
+    
+    this.send_(lengthBuffer);
     this.send_(data);
 };
 goog.exportProperty(rethinkdb.net.Connection.prototype, 'run',
@@ -59,14 +63,46 @@ goog.exportProperty(rethinkdb.net.Connection.prototype, 'run',
  * @private
  */
 rethinkdb.net.Connection.prototype.recv_ = function(data) {
-    var serializer = new goog.proto2.WireFormatSerializer();
-    var response = new Response();
-    serializer.deserializeTo(response, data);
-    var callback = this.outstandingQueries_[response.getToken()];
-    delete this.outstandingQueries_[response.getToken()]
+    goog.asserts.assert(data.length >= 4);
+    var msgLength = (new DataView(data.buffer)).getUint32(0, true);
+    if (msgLength !== (data.length - 4)) {
+        //TODO handle this error
+        throw "message is wrong length";
+    }
 
-    //TODO transform message object into appropriate object
-    if (callback) callback(response);
+    try {
+        var serializer = new goog.proto2.WireFormatSerializer();
+        var response = new Response();
+        serializer.deserializeTo(response, new Uint8Array(data.buffer, 4));
+
+        var responseStatus = response.getStatusCode();
+        var callback = this.outstandingQueries_[response.getToken()];
+        switch(responseStatus) {
+        case Response.StatusCode.SUCCESS_EMPTY:
+        case Response.StatusCode.SUCCESS_PARTIAL:
+        case Response.StatusCode.SUCCESS_STREAM:
+        case Response.StatusCode.BROKEN_CLIENT:
+        case Response.StatusCode.BAD_QUERY:
+        case Response.StatusCode.RUNTIME_ERROR:
+            throw "Response type not yet implemented"
+            break;
+        case Response.StatusCode.SUCCESS_JSON:
+            delete this.outstandingQueries_[response.getToken()]
+            if (callback) {
+                var results = response.responseArray().map(JSON.parse);
+                callback(results);
+            }
+            break;
+        default:
+            throw "unknown response status code";
+            break;
+        }
+
+    } catch(err) {
+        // Deserialization failed
+        // TODO how to express this erro?
+        throw err;
+    }
 };
 
 rethinkdb.net.Connection.prototype.use = function(db_name) {

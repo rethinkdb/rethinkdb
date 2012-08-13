@@ -1,10 +1,23 @@
+
+// Load text encoder, still haven't resolved this issue
 var te = require('./encoding.js');
-var TextEncoder = te.TextEncoder;
-var TextDecoder = te.TextDecoder;
+global.TextEncoder = te.TextEncoder;
+global.TextDecoder = te.TextDecoder;
 var rethinkdb = require('./rethinkdb');
 
-var conn = new rethinkdb.net.TcpConnection({host:'localhost', port:11211});
-
 var q = rethinkdb.reql.query;
-var res = q.expr(1).compile();
-q.expr(1).add(q.expr(3)).sub(q.expr(2)).between(1,2);
+
+var conn = new rethinkdb.net.TcpConnection({host:'newton', port:12346},
+function() {
+    console.log('connected');
+
+    conn.run(q.expr(1).add(q.expr(2)).lt(q.expr(2)), function(response) {
+        console.log('response'); 
+        console.log(response);
+
+        conn.close();
+    });
+},
+function() {
+    console.log('failed to connect');
+});

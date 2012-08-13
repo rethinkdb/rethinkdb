@@ -10,8 +10,11 @@
             var q = re.reql.query;
 
             var conn = new re.net.HttpConnection('/test.html');
-            q.expr(['bob']).add(q.expr(1)).run(function(){
-                console.log('done');
+            conn.run(q.expr(1).add(q.expr(2)).lt(q.expr(2)), function(response) {
+                console.log('response'); 
+                console.log(response);
+
+                conn.close();
             });
         </script>
     </body>

@@ -24,10 +24,9 @@ lib: query_language.pb.js
 		--compiler_flags="--generate_exports" \
 		--compiler_flags="--externs=externs.js" \
 		--compiler_flags="--warning_level=VERBOSE" \
-		--compiler_flags="--create_source_map=./%outname%.map" \
+		--compiler_flags="--create_source_map=./rethinkdb.js.map" \
 		--compiler_flags="--source_map_format=V3" \
-		--compiler_flags="--js_output_file=rethinkdb.js" \
-		--output_mode=compiled
+		--output_mode=compiled > rethinkdb.js
 
 # Compile the javascript stubs for the rethinkdb protocol
 query_language.pb.js: $(PROTO_FILE)
