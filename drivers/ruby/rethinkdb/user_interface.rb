@@ -599,7 +599,7 @@ module RethinkDB
     # between <b>+start_key+</b> and <b>+end_key+</b> (inclusive).  You may also
     # optionally specify the name of the attribute to use as your key
     # (<b>+keyname+</b>), but note that your table must be indexed by that
-    # attribute.  Either <b>+start_key+</b> and <b>+end_key+</b> may be nil, in
+    # attribute.  Either <b>+start_key+</b> or <b>+end_key+</b> may be nil, in
     # which case that side of the range is unbounded.  This function may also be
     # called as if it were a instance method of RQL_Query, for convenience.  For
     # example, if we have a table <b>+table+</b>, these are equivalent:
