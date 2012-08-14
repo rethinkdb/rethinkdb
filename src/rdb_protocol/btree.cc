@@ -16,6 +16,7 @@
 #include "rdb_protocol/transform_visitors.hpp"
 
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
+typedef std::list<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > keyed_json_list_t;
 
 boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction_t *txn) {
     blob_t blob(const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
@@ -228,9 +229,13 @@ public:
             typedef rget_read_response_t::stream_t stream_t;
             stream_t *stream = boost::get<stream_t>(&response.result);
             guarantee(stream);
-            stream->insert(stream->end(), data.begin(), data.end()); //why is this a vector? if it was a list we could just splice and things would be nice.
+            for (json_list_t::iterator it =  data.begin();
+                                       it != data.end();
+                                       ++it) {
+                stream->push_back(std::make_pair(key, *it));
+            }
 
-            cumulative_size += estimate_rget_response_size(stream->back());
+            cumulative_size += estimate_rget_response_size(stream->back().second);
             return int(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
         } else {
             boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result), *terminal);

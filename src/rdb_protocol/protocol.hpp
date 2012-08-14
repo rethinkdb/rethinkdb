@@ -119,7 +119,7 @@ struct rdb_protocol_t {
     };
 
     struct rget_read_response_t {
-        typedef std::vector<boost::shared_ptr<scoped_cJSON_t> > stream_t; //Present if there was no terminal
+        typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
         typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, query_language::shared_scoped_less> groups_t; //Present if the terminal was a groupedmapreduce
         typedef boost::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
 
@@ -178,7 +178,7 @@ struct rdb_protocol_t {
             : key_range(_key_range), maximum(_maximum) { }
 
         key_range_t key_range;
-        int maximum;
+        size_t maximum;
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;

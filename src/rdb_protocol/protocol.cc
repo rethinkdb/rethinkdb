@@ -115,7 +115,6 @@ read_response_t read_t::unshard(std::vector<read_response_t> responses, temporar
 
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (rg) {
-        std::sort(responses.begin(), responses.end(), read_response_cmp);
         rget_read_response_t rg_response;
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
@@ -225,26 +224,26 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
     return a.first < b.first;
 }
 
-void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
-                              std::vector<read_response_t>::iterator end,
-                              rget_read_response_t *response) {
-    std::vector<boost::shared_ptr<scoped_cJSON_t> > merged;
-
-    for (std::vector<read_response_t>::iterator i = begin; i != end; ++i) {
-        const rget_read_response_t *delta = boost::get<rget_read_response_t>(&i->response);
-        rassert(delta);
-        const stream_t *stream = boost::get<stream_t>(&delta->result);
-        guarantee(stream);
-        merged.insert(merged.end(), stream->begin(), stream->end());
-
-        if (response->last_considered_key < delta->last_considered_key) {
-            response->last_considered_key = delta->last_considered_key;
-        }
-    }
-    stream_t *stream = boost::get<stream_t>(&response->result);
-    guarantee(stream);
-    stream->insert(stream->end(), merged.begin(), merged.end());
-}
+//void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
+//                              std::vector<read_response_t>::iterator end,
+//                              rget_read_response_t *response) {
+//    std::vector<boost::shared_ptr<scoped_cJSON_t> > merged;
+//
+//    for (std::vector<read_response_t>::iterator i = begin; i != end; ++i) {
+//        const rget_read_response_t *delta = boost::get<rget_read_response_t>(&i->response);
+//        rassert(delta);
+//        const stream_t *stream = boost::get<stream_t>(&delta->result);
+//        guarantee(stream);
+//        merged.insert(merged.end(), stream->begin(), stream->end());
+//
+//        if (response->last_considered_key < delta->last_considered_key) {
+//            response->last_considered_key = delta->last_considered_key;
+//        }
+//    }
+//    stream_t *stream = boost::get<stream_t>(&response->result);
+//    guarantee(stream);
+//    stream->insert(stream->end(), merged.begin(), merged.end());
+//}
 
 read_response_t read_t::multistore_unshard(std::vector<read_response_t> responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     const point_read_t *pr = boost::get<point_read_t>(&read);
@@ -256,37 +255,155 @@ read_response_t read_t::multistore_unshard(std::vector<read_response_t> response
 
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (rg) {
-        std::sort(responses.begin(), responses.end(), read_response_cmp);
         rget_read_response_t rg_response;
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
         rg_response.last_considered_key = get_region().inner.left;
         typedef std::vector<read_response_t>::iterator rri_t;
-        for(rri_t i = responses.begin(); i != responses.end();) {
-            // TODO: we're ignoring the limit when recombining.
-            const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
-            rassert(_rr);
-            rg_response.truncated = rg_response.truncated || _rr->truncated;
 
-            // Collect all the responses from the same shard and merge their responses into the final response
-            rri_t shard_end = i;
-            ++shard_end;
-            while (shard_end != responses.end()) {
-                const rget_read_response_t *_rrr = boost::get<rget_read_response_t>(&shard_end->response);
-                rassert(_rrr);
+        if (!rg->terminal) {
+            //A vanilla range get (or filter or map)
+            rg_response.result = stream_t(); //Set the response to have the correct result type
+            stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
 
-                if (_rrr->key_range != _rr->key_range) {
-                    break;
+            /* An annoyance occurs. We have results from several different hash
+             * shards. We must figure out what the last considered key is,
+             * however that value must be the last considered key for all of
+             * the hash shards, thus we have to take the minimum of all the
+             * shards last considered keys. Observe the picture:
+             *
+             *              A - - - - - - - - - - - - - - - Z
+             * hash shard 1     | -        - -  -  -  |
+             * hash shard 2     |  --       -    -   -|
+             * hash shard 3     |     --- -   -       |
+             * hash shard 4     |-   -         -  - - |
+             *
+             * Here each shard has returned 5 keys. (Each - is a key). Now the
+             * question is what is the last considered key?
+             *
+             *              A - - - - - - - - - - - - - - - Z
+             * hash shard 1     | -        - -  -  -  |
+             * hash shard 2     |  --       -    -   a|
+             * hash shard 3     |     --- -   b       |
+             * hash shard 4     |-   -         -  - - |
+             *
+             * Is it "a" or "b"? The answer is "b"? If we picked "a" then the
+             * next request we got would have "a" as the left side of the
+             * range. And we could miss keys in hash shard 3.
+             */
+
+            /* Figure out what the last considered key actually is. */
+            rg_response.last_considered_key = get_region().inner.last_key_in_range();
+
+            for (rri_t i = responses.begin(); i != responses.end(); ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                guarantee(_rr);
+
+                const stream_t *stream = boost::get<stream_t>(&(_rr->result));
+                guarantee(stream);
+
+
+                if (stream->size() == rg->maximum) {
+                    if (_rr->last_considered_key < rg_response.last_considered_key) {
+                        rg_response.last_considered_key = _rr->last_considered_key;
+                    }
                 }
-
-                rg_response.truncated = rg_response.truncated || _rrr->truncated;
-                ++shard_end;
             }
 
-            merge_slices_onto_result(i, shard_end, &rg_response);
-            i = shard_end;
-        }
+            for (rri_t i = responses.begin(); i != responses.end(); ++i) {
+                // TODO: we're ignoring the limit when recombining.
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                rassert(_rr);
 
+                const stream_t *stream = boost::get<stream_t>(&(_rr->result));
+
+                for (stream_t::const_iterator jt  = stream->begin();
+                                              jt != stream->end();
+                                              ++jt) {
+                    //Filter out the results that went past our last considered key
+                    if (jt->first <= rg_response.last_considered_key) {
+                        res_stream->push_back(*jt);
+                    }
+                }
+
+                //res_stream->insert(res_stream->end(), stream->begin(), stream->end());
+                rg_response.truncated = rg_response.truncated || _rr->truncated;
+            }
+        } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg->terminal)) {
+            //GroupedMapreduce
+            rg_response.result = groups_t();
+            groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
+            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                guarantee(_rr);
+
+                const groups_t *groups = boost::get<groups_t>(&(_rr->result));
+                query_language::runtime_environment_t *env = NULL; //obviously this is a problem
+                query_language::backtrace_t backtrace;
+
+                for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
+                    query_language::new_val_scope_t scope(&env->scope);
+                    Term base = gmr->reduction().base(),
+                         body = gmr->reduction().body();
+
+                    env->scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, env, backtrace)));
+                    env->scope.put_in_scope(gmr->reduction().var2(), j->second);
+
+                    (*res_groups)[j->first] = eval(&body, env, backtrace);
+                }
+            }
+        } else if (const Reduction *r = boost::get<Reduction>(&*rg->terminal)) {
+            //Normal Mapreduce
+            rg_response.result = atom_t();
+            atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
+
+            query_language::runtime_environment_t *env = NULL; //obviously this is a problem
+            query_language::backtrace_t backtrace;
+
+            Term base = r->base();
+            *res_atom = eval(&base, env, backtrace);
+
+            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                guarantee(_rr);
+
+                const atom_t *atom = boost::get<atom_t>(&(_rr->result));
+
+                query_language::new_val_scope_t scope(&env->scope);
+                env->scope.put_in_scope(r->var1(), *res_atom);
+                env->scope.put_in_scope(r->var2(), *atom);
+                Term body = r->body();
+                *res_atom = eval(&body, env, backtrace);
+            }
+        } else if (boost::get<rdb_protocol_details::Length>(&*rg->terminal)) {
+            rg_response.result = atom_t();
+            length_t *res_length = boost::get<length_t>(&rg_response.result);
+            res_length->length = 0;
+
+            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                guarantee(_rr);
+
+                const length_t *length = boost::get<length_t>(&(_rr->result));
+
+                res_length->length += length->length;
+            }
+        } else if (boost::get<WriteQuery_ForEach>(&*rg->terminal)) {
+            rg_response.result = atom_t();
+            inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
+            res_inserted->inserted = 0;
+
+            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                guarantee(_rr);
+
+                const inserted_t *inserted = boost::get<inserted_t>(&(_rr->result));
+
+                res_inserted->inserted += inserted->inserted;
+            }
+        } else {
+            unreachable();
+        }
         return read_response_t(rg_response);
     }
 
