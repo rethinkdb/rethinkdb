@@ -8,8 +8,8 @@ goog.provide('rethinkdb');
 
 // All exported modules must be reachable from this file according to the dependency chain
 goog.require('rethinkdb.net');
-goog.require('rethinkdb.reql.query');
-goog.require('rethinkdb.reql.query.Expression');
+goog.require('rethinkdb.query');
+goog.require('rethinkdb.query.Expression');
 
 // Export RethinDB namespace to commonjs module
 if (typeof exports !== 'undefined') {

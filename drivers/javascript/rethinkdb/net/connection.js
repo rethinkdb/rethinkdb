@@ -24,7 +24,7 @@ rethinkdb.net.Connection.prototype.close = goog.nullFunction;
 /**
  * Evaluates the given ReQL expression on the server and invokes
  * callback with the result.
- * @param {rethinkdb.reql.query.Expression} expr The expression to run.
+ * @param {rethinkdb.query.Expression} expr The expression to run.
  * @param {function(ArrayBuffer)} callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.run = function(expr, callback) {
@@ -80,17 +80,22 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
         switch(responseStatus) {
         case Response.StatusCode.SUCCESS_EMPTY:
         case Response.StatusCode.SUCCESS_PARTIAL:
-        case Response.StatusCode.SUCCESS_STREAM:
         case Response.StatusCode.BROKEN_CLIENT:
         case Response.StatusCode.BAD_QUERY:
         case Response.StatusCode.RUNTIME_ERROR:
             throw "Response type not yet implemented"
             break;
-        case Response.StatusCode.SUCCESS_JSON:
+        case Response.StatusCode.SUCCESS_STREAM:
             delete this.outstandingQueries_[response.getToken()]
             if (callback) {
                 var results = response.responseArray().map(JSON.parse);
                 callback(results);
+            }
+        case Response.StatusCode.SUCCESS_JSON:
+            delete this.outstandingQueries_[response.getToken()]
+            if (callback) {
+                var result = JSON.parse(response.getResponse(0));
+                callback(result);
             }
             break;
         default:
@@ -110,5 +115,5 @@ rethinkdb.net.Connection.prototype.use = function(db_name) {
 };
 
 rethinkdb.net.Connection.prototype.getDefaultDb = function() {
-    return new rethinkdb.reql.query.Database(this.defaultDbName_);
+    return new rethinkdb.query.Database(this.defaultDbName_);
 };

@@ -5,7 +5,7 @@ global.TextEncoder = te.TextEncoder;
 global.TextDecoder = te.TextDecoder;
 var rethinkdb = require('./rethinkdb');
 
-var q = rethinkdb.reql.query;
+var q = rethinkdb.query;
 
 var conn = new rethinkdb.net.TcpConnection({host:'newton', port:12346},
 function() {
