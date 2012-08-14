@@ -245,11 +245,20 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'slice',
 /**
  * @return {rethinkdb.query.Expression}
  */
-rethinkdb.query.Expression.prototype.limit = function(endIndex) {
-    return new rethinkdb.query.SliceExpression(this, 0, endIndex);
+rethinkdb.query.Expression.prototype.limit = function(index) {
+    return new rethinkdb.query.SliceExpression(this, 0, index);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'limit',
     rethinkdb.query.Expression.prototype.limit);
+
+/**
+ * @return {rethinkdb.query.Expression}
+ */
+rethinkdb.query.Expression.prototype.skip = function(index) {
+    return new rethinkdb.query.SliceExpression(this, index);
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'skip',
+    rethinkdb.query.Expression.prototype.skip);
 
 /**
  * @constructor
