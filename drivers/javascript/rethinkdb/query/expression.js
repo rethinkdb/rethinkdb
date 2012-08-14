@@ -277,7 +277,7 @@ rethinkdb.query.NthExpression.prototype.compile = function() {
 
     var call = new Term.Call();
     var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.ARRAYNTH);
+    builtin.setType(Builtin.BuiltinType.NTH);
     call.setBuiltin(builtin);
 
     call.addArgs(this.leftExpr_.compile());
