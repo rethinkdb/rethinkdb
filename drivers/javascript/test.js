@@ -11,7 +11,7 @@ var conn = new rethinkdb.net.TcpConnection({host:'newton', port:12346},
 function() {
     console.log('connected');
 
-    conn.run(q.expr([1,2,3,4]).nth(1), function(response) {
+    conn.run(q.expr([1,2,3,4]).limit(2), function(response) {
         console.log('response'); 
         console.log(response);
 

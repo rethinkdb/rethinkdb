@@ -243,6 +243,15 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'slice',
     rethinkdb.query.Expression.prototype.slice);
 
 /**
+ * @return {rethinkdb.query.Expression}
+ */
+rethinkdb.query.Expression.prototype.limit = function(endIndex) {
+    return new rethinkdb.query.SliceExpression(this, 0, endIndex);
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'limit',
+    rethinkdb.query.Expression.prototype.limit);
+
+/**
  * @constructor
  * @extends {rethinkdb.query.Expression}
  * @param {rethinkdb.query.Expression} leftExpr
