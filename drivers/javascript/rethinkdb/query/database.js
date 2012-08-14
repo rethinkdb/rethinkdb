@@ -6,7 +6,7 @@ goog.require('rethinkdb.query.Table');
  * @constructor
  */
 rethinkdb.query.Database = function(db_name) {
-
+    this.name_ = db_name;
 };
 
 rethinkdb.query.Database.prototype.create = function(table_name, primary_key) {
@@ -22,5 +22,5 @@ rethinkdb.query.Database.prototype.list = function() {
 };
 
 rethinkdb.query.Database.prototype.table = function(table_name) {
-    return new rethinkdb.query.Table(table_name, this);
+    return new rethinkdb.query.Table(table_name, this.name_);
 };

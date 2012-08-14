@@ -120,5 +120,5 @@ rethinkdb.net.Connection.prototype.use = function(db_name) {
 };
 
 rethinkdb.net.Connection.prototype.getDefaultDb = function() {
-    return new rethinkdb.query.Database(this.defaultDbName_);
+    return this.defaultDbName_;
 };
