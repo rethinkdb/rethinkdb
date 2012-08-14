@@ -3,6 +3,8 @@
 #include <algorithm>
 
 #include "buffer_cache/buffer_cache.hpp"
+#include "btree/buf_patches.hpp"
+#include "btree/node.hpp"
 
 namespace leaf {
 

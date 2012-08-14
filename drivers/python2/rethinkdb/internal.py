@@ -3,6 +3,13 @@ import query
 import query_language_pb2 as p
 
 class PolymorphicOperation(object):
+    """This class performs a bit of magic so that
+    we can have polymorphic constructors -- when someone
+    chains an operation off a Stream, they should get a subclass of Stream,
+    and one off a JSONExpression should get a subclass of JSONExpression, etc.
+
+    To do this, it inspects the type of the 1st argument, and constructs a new
+    class with the appropriate base classes."""
     def __new__(cls, parent, *args, **kwargs):
         for base, output in cls.mapping:
             if isinstance(parent, base):
@@ -71,14 +78,6 @@ class WriteQuery(query.BaseExpression):
         root.type = p.Query.WRITE
         self._write_ast(root.write_query)
 
-class Delete(WriteQuery):
-    def __init__(self, parent_view):
-        self.parent_view = parent_view
-
-    def _write_ast(self, parent):
-        parent.type = p.WriteQuery.DELETE
-        self.parent_view._write_ast(parent.delete.view)
-
 class Insert(WriteQuery):
     def __init__(self, table, entries):
         self.table = table
@@ -89,6 +88,34 @@ class Insert(WriteQuery):
         self.table._write_ref_ast(parent.insert.table_ref)
         for entry in self.entries:
             entry._write_ast(parent.insert.terms.add())
+
+class Delete(WriteQuery):
+    def __init__(self, parent_view):
+        self.parent_view = parent_view
+
+    def _write_ast(self, parent):
+        parent.type = p.WriteQuery.DELETE
+        self.parent_view._write_ast(parent.delete.view)
+
+class Update(WriteQuery):
+    def __init__(self, parent_view, mapping):
+        self.parent_view = parent_view
+        self.mapping = mapping
+
+    def _write_ast(self, parent):
+        parent.type = p.WriteQuery.UPDATE
+        self.parent_view._write_ast(parent.update.view)
+        self.mapping.write_mapping(parent.update.mapping)
+
+class Mutate(WriteQuery):
+    def __init__(self, parent_view, mapping):
+        self.parent_view = parent_view
+        self.mapping = mapping
+
+    def _write_ast(self, parent):
+        parent.type = p.WriteQuery.MUTATE
+        self.parent_view._write_ast(parent.mutate.view)
+        self.mapping.write_mapping(parent.mutate.mapping)
 
 class InsertStream(WriteQuery):
     def __init__(self, table, stream):
@@ -172,12 +199,6 @@ class Extend(JSONBuiltin):
 class Append(JSONBuiltin):
     builtin = p.Builtin.ARRAYAPPEND
 
-class Element(JSONBuiltin):
-    builtin = p.Builtin.ARRAYNTH
-
-class ArrayNth(JSONBuiltin):
-    builtin = p.Builtin.ARRAYNTH
-
 class Comparison(JSONBuiltin):
     def _write_ast(self, parent):
         builtin = self._write_call(parent, p.Builtin.COMPARE, *self.args)
@@ -240,7 +261,7 @@ class ToStream(query.Stream):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.ARRAYTOSTREAM, self.array)
 
-class Nth(query.JSONExpression):
+class Nth(Picker):
     def __init__(self, stream, index):
         self.stream = stream
         self.index = query.expr(index)

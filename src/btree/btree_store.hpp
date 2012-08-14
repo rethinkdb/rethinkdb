@@ -4,11 +4,14 @@
 #include <string>
 
 #include "protocol_api.hpp"
-#include "btree/slice.hpp"
-#include "btree/operations.hpp"
+#include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
+#include "buffer_cache/types.hpp"
 #include "perfmon/perfmon.hpp"
 
+class btree_slice_t;
 class io_backender_t;
+class superblock_t;
+class real_superblock_t;
 
 template <class protocol_t>
 class btree_store_t : public store_view_t<protocol_t> {
@@ -49,18 +52,20 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    typename protocol_t::read_response_t read(
+    void read(
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
             const typename protocol_t::read_t &read,
+            typename protocol_t::read_response_t *response,
             order_token_t order_token,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    typename protocol_t::write_response_t write(
+    void write(
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
+            typename protocol_t::write_response_t *response,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
@@ -69,8 +74,7 @@ public:
 
     bool send_backfill(
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
-            const boost::function<bool(const metainfo_t&)> &should_backfill,  // NOLINT
-            const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+            send_backfill_callback_t<protocol_t> *send_backfill_cb,
             typename protocol_t::backfill_progress_t *progress,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
@@ -91,19 +95,21 @@ public:
 
 protected:
     // Functions to be implemented by derived (protocol-specific) store_t classes
-    virtual typename protocol_t::read_response_t protocol_read(const typename protocol_t::read_t &read,
-                                                               btree_slice_t *btree,
-                                                               transaction_t *txn,
-                                                               superblock_t *superblock) = 0;
+    virtual void protocol_read(const typename protocol_t::read_t &read,
+                               typename protocol_t::read_response_t *response,
+                               btree_slice_t *btree,
+                               transaction_t *txn,
+                               superblock_t *superblock) = 0;
 
-    virtual typename protocol_t::write_response_t protocol_write(const typename protocol_t::write_t &write,
-                                                                 transition_timestamp_t timestamp,
-                                                                 btree_slice_t *btree,
-                                                                 transaction_t *txn,
-                                                                 superblock_t *superblock) = 0;
+    virtual void protocol_write(const typename protocol_t::write_t &write,
+                                typename protocol_t::write_response_t *response,
+                                transition_timestamp_t timestamp,
+                                btree_slice_t *btree,
+                                transaction_t *txn,
+                                superblock_t *superblock) = 0;
 
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                                        const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+                                        chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
                                         superblock_t *superblock,
                                         btree_slice_t *btree,
                                         transaction_t *txn,
@@ -121,49 +127,6 @@ protected:
                                      btree_slice_t *btree,
                                      transaction_t *txn,
                                      superblock_t *superblock) = 0;
-
-    class refcount_superblock_t : public superblock_t {
-    public:
-        refcount_superblock_t(superblock_t *sb, int rc) :
-            sub_superblock(sb), refcount(rc) { }
-
-        void release() {
-            refcount--;
-            rassert(refcount >= 0);
-            if (refcount == 0) {
-                sub_superblock->release();
-                sub_superblock = NULL;
-            }
-        }
-
-        block_id_t get_root_block_id() const {
-            return sub_superblock->get_root_block_id();
-        }
-
-        void set_root_block_id(const block_id_t new_root_block) {
-            sub_superblock->set_root_block_id(new_root_block);
-        }
-
-        block_id_t get_stat_block_id() const {
-            return sub_superblock->get_stat_block_id();
-        }
-
-        void set_stat_block_id(block_id_t new_stat_block) {
-            sub_superblock->set_stat_block_id(new_stat_block);
-        }
-
-        void set_eviction_priority(eviction_priority_t eviction_priority) {
-            sub_superblock->set_eviction_priority(eviction_priority);
-        }
-
-        eviction_priority_t get_eviction_priority() {
-            return sub_superblock->get_eviction_priority();
-        }
-
-    private:
-        superblock_t *sub_superblock;
-        int refcount;
-    };
 
 private:
     void get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING;

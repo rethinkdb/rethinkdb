@@ -5,7 +5,7 @@
 
 // TODO: Uhm, refactor the sizer definitions to a central place, so we don't have to include
 // files from non-btree directories here
-#include "memcached/btree/value.hpp"
+#include "memcached/memcached_btree/value.hpp"
 #include "rdb_protocol/btree.hpp"
 
 /*

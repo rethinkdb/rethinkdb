@@ -8,7 +8,7 @@
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "rdb_protocol/json.hpp"
+#include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/query_language.pb.h"
 
 class json_stream_t {

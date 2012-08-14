@@ -8,9 +8,10 @@
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
-#include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/unittest_utils.hpp"
+
+class memcached_protocol_t;
 
 namespace mock {
 
@@ -42,32 +43,36 @@ public:
 
 inline void test_inserter_write_master_access(master_access_t<dummy_protocol_t> *ma, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
     dummy_protocol_t::write_t w;
+    dummy_protocol_t::write_response_t response;
     w.values[key] = value;
     fifo_enforcer_sink_t::exit_write_t write_token;
     ma->new_write_token(&write_token);
-    ma->write(w, otok, &write_token, interruptor);
+    ma->write(w, &response, otok, &write_token, interruptor);
 }
 
 inline std::string test_inserter_read_master_access(master_access_t<dummy_protocol_t> *ma, const std::string &key, order_token_t otok, signal_t *interruptor) {
     dummy_protocol_t::read_t r;
+    dummy_protocol_t::read_response_t response;
     r.keys.keys.insert(key);
     fifo_enforcer_sink_t::exit_read_t read_token;
     ma->new_read_token(&read_token);
-    dummy_protocol_t::read_response_t resp = ma->read(r, otok, &read_token, interruptor);
-    return resp.values.find(key)->second;
+    ma->read(r, &response, otok, &read_token, interruptor);
+    return response.values.find(key)->second;
 }
 
 inline void test_inserter_write_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
     dummy_protocol_t::write_t w;
+    dummy_protocol_t::write_response_t response;
     w.values[key] = value;
-    nif->write(w, otok, interruptor);
+    nif->write(w, &response, otok, interruptor);
 }
 
 inline std::string test_inserter_read_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, const std::string& key, order_token_t otok, signal_t *interruptor) {
     dummy_protocol_t::read_t r;
+    dummy_protocol_t::read_response_t response;
     r.keys.keys.insert(key);
-    dummy_protocol_t::read_response_t resp = nif->read(r, otok, interruptor);
-    return resp.values[key];
+    nif->read(r, &response, otok, interruptor);
+    return response.values[key];
 }
 
 class test_inserter_t {
@@ -227,6 +232,7 @@ private:
     connectivity_cluster_t::run_t connectivity_cluster_run;
 };
 
+#ifndef NDEBUG
 template <class protocol_t>
 struct equality_metainfo_checker_callback_t : public metainfo_checker_callback_t<protocol_t> {
     explicit equality_metainfo_checker_callback_t(const binary_blob_t& expected_value)
@@ -245,6 +251,7 @@ private:
 
     DISABLE_COPYING(equality_metainfo_checker_callback_t);
 };
+#endif
 
 }   /* namespace unittest */
 

@@ -1,5 +1,5 @@
-#include "memcached/btree/delete.hpp"
-#include "memcached/btree/modify_oper.hpp"
+#include "memcached/memcached_btree/delete.hpp"
+#include "memcached/memcached_btree/modify_oper.hpp"
 #include "repli_timestamp.hpp"
 
 struct memcached_delete_oper_t : public memcached_modify_oper_t {

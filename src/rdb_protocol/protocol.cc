@@ -3,10 +3,13 @@
 #include <boost/function.hpp>
 
 #include "btree/erase_range.hpp"
+#include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
+#include "btree/superblock.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.hpp"
@@ -46,6 +49,14 @@ typedef rdb_protocol_t::rget_read_response_t::length_t length_t;
 typedef rdb_protocol_t::rget_read_response_t::inserted_t inserted_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
+
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Range);
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Filter);
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Map);
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_ConcatMap);
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
+RDB_IMPL_PROTOB_SERIALIZABLE(Reduction);
+RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
 
 // Construct a region containing only the specified key
 region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
@@ -104,18 +115,16 @@ bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
     return lr->key_range < rr->key_range;
 }
 
-read_response_t read_t::unshard(std::vector<read_response_t> responses, temporary_cache_t *) const THROWS_NOTHING {
+void read_t::unshard(std::vector<read_response_t> responses, read_response_t *response, temporary_cache_t *) const THROWS_NOTHING {
     const point_read_t *pr = boost::get<point_read_t>(&read);
+    const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (pr) {
         rassert(responses.size() == 1);
         rassert(boost::get<point_read_response_t>(&responses[0].response));
-        return responses[0];
-    }
-
-    const rget_read_t *rg = boost::get<rget_read_t>(&read);
-    if (rg) {
+        *response = responses[0];
+    } else if (rg) {
         std::sort(responses.begin(), responses.end(), read_response_cmp);
-        rget_read_response_t rg_response;
+        rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
         typedef std::vector<read_response_t>::iterator rri_t;
@@ -209,10 +218,9 @@ read_response_t read_t::unshard(std::vector<read_response_t> responses, temporar
         } else {
             unreachable();
         }
-        return read_response_t(rg_response);
+    } else {
+        unreachable("Unknown read response.");
     }
-
-    unreachable("Unknown read response.");
 }
 
 bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> >& a,
@@ -238,18 +246,18 @@ void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
     stream->insert(stream->end(), merged.begin(), merged.end());
 }
 
-read_response_t read_t::multistore_unshard(std::vector<read_response_t> responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void read_t::multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     const point_read_t *pr = boost::get<point_read_t>(&read);
     if (pr) {
         rassert(responses.size() == 1);
         rassert(boost::get<point_read_response_t>(&responses[0].response));
-        return responses[0];
+        *response = responses[0];
     }
 
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (rg) {
         std::sort(responses.begin(), responses.end(), read_response_cmp);
-        rget_read_response_t rg_response;
+        rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
         typedef std::vector<read_response_t>::iterator rri_t;
@@ -283,8 +291,6 @@ read_response_t read_t::multistore_unshard(std::vector<read_response_t> response
              i != stream->end(); ++i) {
             rassert(i->second);
         }
-
-        return read_response_t(rg_response);
     }
 
     unreachable("Unknown read response.");
@@ -329,13 +335,13 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(w_shard_visitor(region), write);
 }
 
-write_response_t write_t::unshard(std::vector<write_response_t> responses, temporary_cache_t *) const THROWS_NOTHING {
+void write_t::unshard(std::vector<write_response_t> responses, write_response_t *response, temporary_cache_t *) const THROWS_NOTHING {
     rassert(responses.size() == 1);
-    return responses[0];
+    *response = responses[0];
 }
 
-write_response_t write_t::multistore_unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
-    return unshard(responses, cache);
+void write_t::multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING {
+    return unshard(responses, response, cache);
 }
 
 store_t::store_t(io_backender_t *io_backend,
@@ -348,6 +354,7 @@ store_t::~store_t() {
     assert_thread();
 }
 
+// TODO: get rid of this extra response_t copy on the stack
 struct read_visitor_t : public boost::static_visitor<read_response_t> {
     read_response_t operator()(const point_read_t& get) {
         return read_response_t(rdb_get(get.key, btree, txn, superblock));
@@ -366,14 +373,16 @@ private:
     superblock_t *superblock;
 };
 
-read_response_t store_t::protocol_read(const read_t &read,
-                                       btree_slice_t *btree,
-                                       transaction_t *txn,
-                                       superblock_t *superblock) {
+void store_t::protocol_read(const read_t &read,
+                            read_response_t *response,
+                            btree_slice_t *btree,
+                            transaction_t *txn,
+                            superblock_t *superblock) {
     read_visitor_t v(btree, txn, superblock);
-    return boost::apply_visitor(v, read.read);
+    *response = boost::apply_visitor(v, read.read);
 }
 
+// TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<write_response_t> {
     write_response_t operator()(const point_write_t &w) {
         return write_response_t(
@@ -395,13 +404,14 @@ private:
     repli_timestamp_t timestamp;
 };
 
-write_response_t store_t::protocol_write(const write_t &write,
-                                         transition_timestamp_t timestamp,
-                                         btree_slice_t *btree,
-                                         transaction_t *txn,
-                                         superblock_t *superblock) {
+void store_t::protocol_write(const write_t &write,
+                             write_response_t *response,
+                             transition_timestamp_t timestamp,
+                             btree_slice_t *btree,
+                             transaction_t *txn,
+                             superblock_t *superblock) {
     write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp());
-    return boost::apply_visitor(v, write.write);
+    *response = boost::apply_visitor(v, write.write);
 }
 
 struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<region_t> {
@@ -427,20 +437,20 @@ struct rdb_backfill_callback_impl_t : public rdb_backfill_callback_t {
 public:
     typedef backfill_chunk_t chunk_t;
 
-    explicit rdb_backfill_callback_impl_t(const boost::function<void(rdb_protocol_t::backfill_chunk_t)> &chunk_fun_)
-        : chunk_fun(chunk_fun_) { }
+    explicit rdb_backfill_callback_impl_t(chunk_fun_callback_t<rdb_protocol_t> *_chunk_fun_cb)
+        : chunk_fun_cb(_chunk_fun_cb) { }
     ~rdb_backfill_callback_impl_t() { }
 
     void on_delete_range(const key_range_t &range) {
-        chunk_fun(chunk_t::delete_range(region_t(range)));
+        chunk_fun_cb->send_chunk(chunk_t::delete_range(region_t(range)));
     }
 
     void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
-        chunk_fun(chunk_t::delete_key(to_store_key(key), recency));
+        chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency));
     }
 
     void on_keyvalue(const rdb_backfill_atom_t& atom) {
-        chunk_fun(chunk_t::set_key(atom));
+        chunk_fun_cb->send_chunk(chunk_t::set_key(atom));
     }
 
 protected:
@@ -449,7 +459,7 @@ protected:
     }
 
 private:
-    const boost::function<void(rdb_protocol_t::backfill_chunk_t)> &chunk_fun;
+    chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb;
 
     DISABLE_COPYING(rdb_backfill_callback_impl_t);
 };
@@ -470,14 +480,14 @@ static void call_rdb_backfill(int i, btree_slice_t *btree, const std::vector<std
 }
 
 void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-                                     const boost::function<void(backfill_chunk_t)> &chunk_fun,
+                                     chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
                                      superblock_t *superblock,
                                      btree_slice_t *btree,
                                      transaction_t *txn,
                                      backfill_progress_t *progress,
                                      signal_t *interruptor)
                                      THROWS_ONLY(interrupted_exc_t) {
-    rdb_backfill_callback_impl_t callback(chunk_fun);
+    rdb_backfill_callback_impl_t callback(chunk_fun_cb);
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
     refcount_superblock_t refcount_wrapper(superblock, regions.size());
     pmap(regions.size(), boost::bind(&call_rdb_backfill, _1,
@@ -559,4 +569,34 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, UNUSED int 
     uint64_t end = subregion_number + 1 == num_cpu_shards ? HASH_REGION_HASH_SIZE : beg + width;
 
     return region_t(beg, end, key_range_t::universe());
+}
+
+
+struct backfill_chunk_shard_visitor_t : public boost::static_visitor<rdb_protocol_t::backfill_chunk_t> {
+public:
+    explicit backfill_chunk_shard_visitor_t(const rdb_protocol_t::region_t &_region) : region(_region) { }
+    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_key_t &del) {
+        rdb_protocol_t::backfill_chunk_t ret(del);
+        rassert(region_is_superset(region, ret.get_region()));
+        return ret;
+    }
+    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_range_t &del) {
+        rdb_protocol_t::region_t r = region_intersection(del.range, region);
+        rassert(!region_is_empty(r));
+        return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::delete_range_t(r));
+    }
+    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
+        rdb_protocol_t::backfill_chunk_t ret(kv);
+        rassert(region_is_superset(region, ret.get_region()));
+        return ret;
+    }
+private:
+    const rdb_protocol_t::region_t &region;
+
+    DISABLE_COPYING(backfill_chunk_shard_visitor_t);
+};
+
+rdb_protocol_t::backfill_chunk_t rdb_protocol_t::backfill_chunk_t::shard(const rdb_protocol_t::region_t &region) const THROWS_NOTHING {
+    backfill_chunk_shard_visitor_t v(region);
+    return boost::apply_visitor(v, val);
 }

@@ -27,7 +27,7 @@ void progress_bar_t::reset_bar() {
 
 /* progress should be in [0.0,1.0] */
 void progress_bar_t::draw_bar(float progress, int eta) {
-    int percent_done = progress * 100;
+    int percent_done = static_cast<int>(progress * 100);
     printf("%s: ", activity.c_str());
     printf("[");
     for (int i = 1; i < 49; i++) {
@@ -45,7 +45,7 @@ void progress_bar_t::draw_bar(float progress, int eta) {
 
     if (eta == -1 && progress > 0) {
         //Do automatic linear interpolation for eta
-        eta = ((1.0 / progress) - 1) * ticks_to_secs(get_ticks() - start_time);
+        eta = static_cast<int>(((1.0 / progress) - 1) * ticks_to_secs(get_ticks() - start_time));
     }
 
     if (eta == -1) {

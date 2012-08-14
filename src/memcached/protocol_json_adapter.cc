@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "btree/keys.hpp"
+#include "hash_region.hpp"
 #include "http/http.hpp"
 #include "http/json.hpp"
 

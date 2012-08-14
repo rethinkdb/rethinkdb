@@ -9,32 +9,20 @@ $ ../scripts/generate_rpc_templates.py > rpc/mailbox/typed.hpp
 
 """
 
+def ncsep(template, nargs):
+    return ", ".join(template.replace("#", str(i)) for i in xrange(nargs))
+
+def ncpre(template, nargs):
+    return "".join(", " + template.replace("#", str(i)) for i in xrange(nargs))
+
 def generate_async_message_template(nargs):
 
     def csep(template):
-        return ", ".join(template.replace("#", str(i)) for i in xrange(nargs))
+        return ncsep(template, nargs)
 
     def cpre(template):
-        return "".join(", " + template.replace("#", str(i)) for i in xrange(nargs))
+        return ncpre(template, nargs)
 
-    print
-    print "template<" + csep("class arg#_t") + ">"
-    print "class mailbox_addr_t< void(" + csep("arg#_t") + ") > {"
-    print "public:"
-    print "    bool is_nil() const { return addr.is_nil(); }"
-    print "    peer_id_t get_peer() const { return addr.get_peer(); }"
-    print
-    print "    friend class mailbox_t< void(" + csep("arg#_t") + ") >;"
-    print
-    print "    RDB_MAKE_ME_SERIALIZABLE_1(addr)"
-    print "private:"
-    if nargs == 0:
-        print "    friend void send(mailbox_manager_t*, mailbox_addr_t);"
-    else:
-        print "    template<" + csep("class a#_t") + ">"
-        print "    friend void send(mailbox_manager_t*, typename mailbox_t< void(" + csep("a#_t") + ") >::address_t" + cpre("const a#_t&") + ");"
-    print "    raw_mailbox_t::address_t addr;"
-    print "};"
     print
     print "template<" + csep("class arg#_t") + ">"
     print "class mailbox_t< void(" + csep("arg#_t") + ") > {"
@@ -45,7 +33,7 @@ def generate_async_message_template(nargs):
     print "        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))"
     print "        { }"
     print
-    print "    address_t get_address() {"
+    print "    address_t get_address() const {"
     print "        address_t a;"
     print "        a.addr = mailbox.get_address();"
     print "        return a;"
@@ -123,17 +111,25 @@ if __name__ == "__main__":
     print "    mailbox_callback_mode_inline"
     print "};"
     print
-
-    print "template<class invalid_proto_t> class mailbox_t {"
-    print "    /* If someone tries to instantiate `mailbox_t` "
-    print "    incorrectly, this should cause an error. */"
-    print "    typename invalid_proto_t::you_are_using_mailbox_t_incorrectly foo;"
-    print "};"
+    print "template <class> class mailbox_t;"
     print
-    print "template<class invalid_proto_t> class mailbox_addr_t {"
-    print "    // If someone tries to instantiate mailbox_addr_t incorrectly,"
-    print "    // this should cause an error."
-    print "    typename invalid_proto_t::you_are_using_mailbox_addr_t_incorrectly foo;"
+    print "template <class T>"
+    print "class mailbox_addr_t {"
+    print "public:"
+    print "    bool is_nil() const { return addr.is_nil(); }"
+    print "    peer_id_t get_peer() const { return addr.get_peer(); }"
+    print
+    print "    friend class mailbox_t<T>;"
+    print
+    print "    RDB_MAKE_ME_SERIALIZABLE_1(addr);"
+    print
+    print "private:"
+    print "    friend void send(mailbox_manager_t *, mailbox_addr_t<void()>);"
+    for nargs in xrange(1,15):
+        print "    template <" + ncsep("class a#_t", nargs) + ">"
+        print "    friend void send(mailbox_manager_t *, typename mailbox_t< void(" + ncsep("a#_t", nargs) + ") >::address_t" + ncpre("const a#_t&", nargs) + ");"
+    print
+    print "    raw_mailbox_t::address_t addr;"
     print "};"
 
     for nargs in xrange(15):

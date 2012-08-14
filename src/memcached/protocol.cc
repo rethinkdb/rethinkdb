@@ -7,6 +7,7 @@
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
+#include "btree/superblock.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
@@ -14,15 +15,15 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/iterators.hpp"
 #include "containers/scoped.hpp"
-#include "memcached/btree/append_prepend.hpp"
-#include "memcached/btree/delete.hpp"
-#include "memcached/btree/distribution.hpp"
-#include "memcached/btree/erase_range.hpp"
-#include "memcached/btree/get.hpp"
-#include "memcached/btree/get_cas.hpp"
-#include "memcached/btree/incr_decr.hpp"
-#include "memcached/btree/rget.hpp"
-#include "memcached/btree/set.hpp"
+#include "memcached/memcached_btree/append_prepend.hpp"
+#include "memcached/memcached_btree/delete.hpp"
+#include "memcached/memcached_btree/distribution.hpp"
+#include "memcached/memcached_btree/erase_range.hpp"
+#include "memcached/memcached_btree/get.hpp"
+#include "memcached/memcached_btree/get_cas.hpp"
+#include "memcached/memcached_btree/incr_decr.hpp"
+#include "memcached/memcached_btree/rget.hpp"
+#include "memcached/memcached_btree/set.hpp"
 #include "memcached/queries.hpp"
 #include "stl_utils.hpp"
 #include "serializer/config.hpp"
@@ -173,6 +174,7 @@ public:
     }
 };
 
+// TODO: get rid of this extra response_t copy on the stack
 struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     const std::vector<read_response_t> &bits;
 
@@ -250,11 +252,12 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     }
 };
 
-read_response_t read_t::unshard(const std::vector<read_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void read_t::unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     read_unshard_visitor_t v(responses);
-    return boost::apply_visitor(v, query);
+    *response = boost::apply_visitor(v, query);
 }
 
+// TODO: get rid of this extra response_t copy on the stack
 struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     const std::vector<read_response_t> &bits;
 
@@ -343,10 +346,9 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_res
     }
 };
 
-
-read_response_t read_t::multistore_unshard(const std::vector<read_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void read_t::multistore_unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     read_multistore_unshard_visitor_t v(responses);
-    return boost::apply_visitor(v, query);
+    *response = boost::apply_visitor(v, query);
 }
 
 /* `write_t::get_region()` */
@@ -373,14 +375,14 @@ write_t write_t::shard(DEBUG_ONLY_VAR const region_t &region) const THROWS_NOTHI
 
 /* `write_response_t::unshard()` */
 
-write_response_t write_t::unshard(const std::vector<write_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void write_t::unshard(const std::vector<write_response_t>& responses, write_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     /* TODO: Make sure the request type matches the response type */
     rassert(responses.size() == 1);
-    return responses[0];
+    *response = responses[0];
 }
 
-write_response_t write_t::multistore_unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
-    return unshard(responses, cache);
+void write_t::multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING {
+    unshard(responses, response, cache);
 }
 
 
@@ -490,14 +492,16 @@ private:
     exptime_t effective_time;
 };
 
-read_response_t store_t::protocol_read(const read_t &read,
-                                       btree_slice_t *btree,
-                                       transaction_t *txn,
-                                       superblock_t *superblock) {
+void store_t::protocol_read(const read_t &read,
+                            read_response_t *response,
+                            btree_slice_t *btree,
+                            transaction_t *txn,
+                            superblock_t *superblock) {
     read_visitor_t v(btree, txn, superblock, read.effective_time);
-    return boost::apply_visitor(v, read.query);
+    *response = boost::apply_visitor(v, read.query);
 }
 
+// TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<write_response_t> {
     write_response_t operator()(const get_cas_mutation_t &m) {
         return write_response_t(
@@ -532,31 +536,33 @@ private:
     repli_timestamp_t timestamp;
 };
 
-write_response_t store_t::protocol_write(const write_t &write,
-                                         transition_timestamp_t timestamp,
-                                         btree_slice_t *btree,
-                                         transaction_t *txn,
-                                         superblock_t *superblock) {
+void store_t::protocol_write(const write_t &write,
+                             write_response_t *response,
+                             transition_timestamp_t timestamp,
+                             btree_slice_t *btree,
+                             transaction_t *txn,
+                             superblock_t *superblock) {
+    // TODO: should this be calling to_repli_timestamp on a transition_timestamp_t?  Does this not use the timestamp-before, when we'd want the timestamp-after?
     write_visitor_t v(btree, txn, superblock, write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
-    return boost::apply_visitor(v, write.mutation);
+    *response = boost::apply_visitor(v, write.mutation);
 }
 
 class memcached_backfill_callback_t : public backfill_callback_t {
     typedef backfill_chunk_t chunk_t;
 public:
-    explicit memcached_backfill_callback_t(const boost::function<void(chunk_t)> &chunk_fun)
-        : chunk_fun_(chunk_fun) { }
+    explicit memcached_backfill_callback_t(chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb)
+        : chunk_fun_cb_(chunk_fun_cb) { }
 
     void on_delete_range(const key_range_t &range) {
-        chunk_fun_(chunk_t::delete_range(region_t(range)));
+        chunk_fun_cb_->send_chunk(chunk_t::delete_range(region_t(range)));
     }
 
     void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
-        chunk_fun_(chunk_t::delete_key(to_store_key(key), recency));
+        chunk_fun_cb_->send_chunk(chunk_t::delete_key(to_store_key(key), recency));
     }
 
     void on_keyvalue(const backfill_atom_t& atom) {
-        chunk_fun_(chunk_t::set_key(atom));
+        chunk_fun_cb_->send_chunk(chunk_t::set_key(atom));
     }
     ~memcached_backfill_callback_t() { }
 
@@ -566,7 +572,7 @@ protected:
     }
 
 private:
-    const boost::function<void(chunk_t)> &chunk_fun_;
+    chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb_;
 
     DISABLE_COPYING(memcached_backfill_callback_t);
 };
@@ -588,18 +594,17 @@ static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vect
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
 void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
-                                     const boost::function<void(backfill_chunk_t)> &chunk_fun,
+                                     chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
                                      superblock_t *superblock,
                                      btree_slice_t *btree,
                                      transaction_t *txn,
                                      backfill_progress_t *progress,
                                      signal_t *interruptor)
-                                     THROWS_ONLY(interrupted_exc_t)
-{
+                                     THROWS_ONLY(interrupted_exc_t) {
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
 
     if (regions.size() > 0) {
-        memcached_backfill_callback_t callback(chunk_fun);
+        memcached_backfill_callback_t callback(chunk_fun_cb);
 
         // pmapping by regions.size() is now the arguably wrong thing to do,
         // because adjacent regions often have the same value. On the other hand

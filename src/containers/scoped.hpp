@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "errors.hpp"
-#include "containers/archive/archive.hpp"
 
 // Like boost::scoped_ptr only with release, init, no bool conversion, no boost headers!
 template <class T>
@@ -154,31 +153,6 @@ private:
 
     DISABLE_COPYING(scoped_array_t);
 };
-
-template <class T>
-write_message_t &operator<<(write_message_t &msg, const scoped_array_t<T> &a) {
-    msg << a.size();
-    for (T *it = a.data(); it != a.data() + a.size(); ++it) {
-        msg << *it;
-    }
-    return msg;
-}
-
-template <class T>
-MUST_USE archive_result_t deserialize(read_stream_t *s, scoped_array_t<T> *a) {
-    archive_result_t res;
-    int size;
-    if ((res = deserialize(s, &size))) { return res; }
-
-    a->reset();
-    a->init(size);
-    
-    for (T *it = a->data(); it != a->data() + a->size(); ++it) {
-        if ((res = deserialize(s, it))) { return res; }
-    }
-
-    return res;
-}
 
 // For dumb structs that get malloc/free for allocation.
 

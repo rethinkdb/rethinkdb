@@ -115,13 +115,14 @@ class RDBTest(unittest.TestCase):
 
         expect(I.CompareEQ("asdf", "asdf"), True)
         expect(I.CompareEQ("asd", "asdf"), False)
+        expect(I.CompareLT("a", "b"), True)
 
         expect(I.CompareEQ(True, True), True)
         expect(I.CompareLT(False, True), True)
 
-        expect(I.CompareLT(False, True, 1, ""), True)
-        expect(I.CompareGT("", 1, True, False), True)
-        expect(I.CompareLT(False, True, "", 1), False)
+        expect(I.CompareLT(False, True, 1, "", []), True)
+        expect(I.CompareGT([], "", 1, True, False), True)
+        expect(I.CompareLT(False, True, "", 1, []), False)
 
     def test_junctions(self):
         self.expect(I.Any(False), False)
@@ -141,21 +142,21 @@ class RDBTest(unittest.TestCase):
         self.expect(I.Not(True), False)
         self.expect(I.Not(False), True)
         self.error_exec(I.Not(3), "bool")
-    '''
-    def test_let(self):
-        self.expect(r.let(("x", 3), r.var("x")), 3)
-        self.expect(r.let(("x", 3), ("x", 4), r.var("x")), 4)
-        self.expect(r.let(("x", 3), ("y", 4), r.var("x")), 3)
 
-        self.error_query(r.var("x"), "not in scope")
+    def test_let(self):
+        self.expect(let(("x", 3), R("$x")), 3)
+        self.expect(let(("x", 3), ("x", 4), R("$x")), 4)
+        self.expect(let(("x", 3), ("y", 4), R("$x")), 3)
+
+        self.error_query(R("$x"), "not in scope")
 
     def test_if(self):
-        self.expect(r.if_(True, 3, 4), 3)
-        self.expect(r.if_(False, 4, 5), 5)
-        self.expect(r.if_(r.eq(3, 3), "foo", "bar"), "foo")
+        self.expect(I.If(True, 3, 4), 3)
+        self.expect(I.If(False, 4, 5), 5)
+        self.expect(I.If(I.Eq(3, 3), "foo", "bar"), "foo")
 
-        self.error_exec(r.if_(5, 1, 2), "bool")
-'''
+        self.error_exec(I.If(5, 1, 2), "bool")
+
     def test_attr(self):
         self.expect(I.Has({"foo": 3}, "foo"), True)
         self.expect(I.Has({"foo": 3}, "bar"), False)
@@ -202,11 +203,11 @@ class RDBTest(unittest.TestCase):
         expect(I.Slice(expr(arr), -2, None), arr[-2:])
         expect(I.Slice(expr(arr), None, None), arr[:])
 
-        expect(I.Element(arr, 3), 3)
-        expect(I.Element(arr, -1), 9)
-        fail(I.Element(0, 0), "array")
-        fail(I.Element(arr, .1), "integer")
-        fail(I.Element([0], 1), "bounds")
+        expect(I.Nth(expr(arr), 3), 3)
+        expect(I.Nth(expr(arr), -1), 9)
+        fail(I.Nth(expr(0), 0), "array")
+        fail(I.Nth(expr(arr), .1), "integer")
+        fail(I.Nth(expr([0]), 1), "bounds")
 
         expect(I.Length(expr([])), 0)
         expect(I.Length(expr(arr)), len(arr))
@@ -247,11 +248,8 @@ class RDBTest(unittest.TestCase):
         expect(skip([1, 2], 0), [1, 2])
         expect(skip([1, 2], 1), [2])
 
-        # TODO: fix distinct
-        return
-
         def distinct(arr):
-            return r.array(r.stream(arr).distinct())
+            return expr(arr).to_stream().distinct()
 
         expect(distinct([]), [])
         expect(distinct(range(10)*10), range(10))
@@ -453,6 +451,18 @@ class RDBTest(unittest.TestCase):
         self.expect(self.table, docs)
         self.expect(self.table.map(js('this')), docs)
         self.expect(self.table.map(js('this.name')), names)
+
+    def test_updatemutate(self):
+        self.clear_table()
+
+        docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(10)]
+        self.do_insert(docs)
+
+        self.expect(self.table.mutate(fn('x', R('$x'))), {"modified": len(docs), "deleted": 0})
+        self.expect(self.table, docs)
+
+        self.expect(self.table.update(None), {'updated': 0, 'skipped': 10, 'errors': 0})
+
 
     # def test_huge(self):
     #     self.clear_table()
