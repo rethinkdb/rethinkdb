@@ -44,29 +44,22 @@ to each other but not relative to write tokens. */
 class fifo_enforcer_read_token_t {
 public:
     fifo_enforcer_read_token_t() THROWS_NOTHING { }
-private:
-    friend class fifo_enforcer_source_t;
-    friend class fifo_enforcer_sink_t;
-    template <class T>
-    friend class fifo_enforcer_queue_t;
     explicit fifo_enforcer_read_token_t(state_timestamp_t t) THROWS_NOTHING :
         timestamp(t) { }
     state_timestamp_t timestamp;
+private:
     RDB_MAKE_ME_SERIALIZABLE_1(timestamp);
 };
 
 class fifo_enforcer_write_token_t {
 public:
     fifo_enforcer_write_token_t() THROWS_NOTHING : timestamp(), num_preceding_reads(-1) { }
-private:
-    friend class fifo_enforcer_source_t;
-    friend class fifo_enforcer_sink_t;
-    template <class T>
-    friend class fifo_enforcer_queue_t;
+
     fifo_enforcer_write_token_t(transition_timestamp_t t, int npr) THROWS_NOTHING :
         timestamp(t), num_preceding_reads(npr) { }
     transition_timestamp_t timestamp;
     int64_t num_preceding_reads;
+private:
     RDB_MAKE_ME_SERIALIZABLE_2(timestamp, num_preceding_reads);
 };
 
@@ -81,14 +74,10 @@ public:
     class state_t {
     public:
         state_t() THROWS_NOTHING { }
-    private:
-        friend class fifo_enforcer_source_t;
-        friend class fifo_enforcer_sink_t;
-        template <class T>
-        friend class fifo_enforcer_queue_t;
         state_t(state_timestamp_t ts, int64_t nr) THROWS_NOTHING : timestamp(ts), num_reads(nr) { }
         state_timestamp_t timestamp;
         int64_t num_reads;
+    private:
         RDB_MAKE_ME_SERIALIZABLE_2(timestamp, num_reads);
     };
 
@@ -204,44 +193,5 @@ private:
     intrusive_priority_queue_t<exit_write_t> waiting_writers;
     DISABLE_COPYING(fifo_enforcer_sink_t);
 };
-
-template <class T>
-class fifo_enforcer_queue_t : public passive_producer_t<T>, public home_thread_mixin_t {
-public:
-    fifo_enforcer_queue_t();
-    fifo_enforcer_queue_t(perfmon_counter_t *_read_counter, perfmon_counter_t *_write_counter);
-    ~fifo_enforcer_queue_t();
-
-    void push(fifo_enforcer_read_token_t token, const T &t); 
-    void finish_read(fifo_enforcer_read_token_t read_token); 
-    void push(fifo_enforcer_write_token_t token, const T &t); 
-    void finish_write(fifo_enforcer_write_token_t write_token); 
-
-private:
-    typedef std::multimap<state_timestamp_t, T> read_queue_t;
-    read_queue_t read_queue;
-
-    typedef std::map<transition_timestamp_t, std::pair<int64_t, T> > write_queue_t;
-    write_queue_t write_queue;
-
-    mutex_assertion_t lock;
-
-    fifo_enforcer_source_t::state_t state;
-
-    perfmon_counter_t *read_counter, *write_counter;
-
-private:
-friend void unittest::run_queue_equivalence_test();
-    //passive produce api
-    T produce_next_value(); 
-
-    availability_control_t control;
-
-    void consider_changing_available(); 
-
-    DISABLE_COPYING(fifo_enforcer_queue_t);
-};
-
-#include "concurrency/fifo_enforcer.tcc"
 
 #endif /* CONCURRENCY_FIFO_ENFORCER_HPP_ */

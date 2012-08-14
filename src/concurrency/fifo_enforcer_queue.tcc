@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_FIFO_ENFORCER_TCC__
-#define __CONCURRENCY_FIFO_ENFORCER_TCC__
+#ifndef __CONCURRENCY_FIFO_ENFORCER_QUEUE_TCC__
+#define __CONCURRENCY_FIFO_ENFORCER_QUEUE_TCC__
 
 #include "concurrency/fifo_enforcer.hpp"
 
@@ -106,4 +106,5 @@ void fifo_enforcer_queue_t<T>::consider_changing_available() {
         control.set_available(false);
     }
 }
+
 #endif
