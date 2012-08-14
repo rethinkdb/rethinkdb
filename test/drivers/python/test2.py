@@ -142,21 +142,21 @@ class RDBTest(unittest.TestCase):
         self.expect(I.Not(True), False)
         self.expect(I.Not(False), True)
         self.error_exec(I.Not(3), "bool")
-    '''
-    def test_let(self):
-        self.expect(r.let(("x", 3), r.var("x")), 3)
-        self.expect(r.let(("x", 3), ("x", 4), r.var("x")), 4)
-        self.expect(r.let(("x", 3), ("y", 4), r.var("x")), 3)
 
-        self.error_query(r.var("x"), "not in scope")
+    def test_let(self):
+        self.expect(let(("x", 3), R("$x")), 3)
+        self.expect(let(("x", 3), ("x", 4), R("$x")), 4)
+        self.expect(let(("x", 3), ("y", 4), R("$x")), 3)
+
+        self.error_query(R("$x"), "not in scope")
 
     def test_if(self):
-        self.expect(r.if_(True, 3, 4), 3)
-        self.expect(r.if_(False, 4, 5), 5)
-        self.expect(r.if_(r.eq(3, 3), "foo", "bar"), "foo")
+        self.expect(I.If(True, 3, 4), 3)
+        self.expect(I.If(False, 4, 5), 5)
+        self.expect(I.If(I.Eq(3, 3), "foo", "bar"), "foo")
 
-        self.error_exec(r.if_(5, 1, 2), "bool")
-'''
+        self.error_exec(I.If(5, 1, 2), "bool")
+
     def test_attr(self):
         self.expect(I.Has({"foo": 3}, "foo"), True)
         self.expect(I.Has({"foo": 3}, "bar"), False)
@@ -248,11 +248,8 @@ class RDBTest(unittest.TestCase):
         expect(skip([1, 2], 0), [1, 2])
         expect(skip([1, 2], 1), [2])
 
-        # TODO: fix distinct
-        return
-
         def distinct(arr):
-            return r.array(r.stream(arr).distinct())
+            return expr(arr).to_stream().distinct()
 
         expect(distinct([]), [])
         expect(distinct(range(10)*10), range(10))
@@ -465,6 +462,7 @@ class RDBTest(unittest.TestCase):
         self.expect(self.table, docs)
 
         self.expect(self.table.update(None), {'updated': 0, 'skipped': 10, 'errors': 0})
+
 
     # def test_huge(self):
     #     self.clear_table()

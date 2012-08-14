@@ -3,6 +3,13 @@ import query
 import query_language_pb2 as p
 
 class PolymorphicOperation(object):
+    """This class performs a bit of magic so that
+    we can have polymorphic constructors -- when someone
+    chains an operation off a Stream, they should get a subclass of Stream,
+    and one off a JSONExpression should get a subclass of JSONExpression, etc.
+
+    To do this, it inspects the type of the 1st argument, and constructs a new
+    class with the appropriate base classes."""
     def __new__(cls, parent, *args, **kwargs):
         for base, output in cls.mapping:
             if isinstance(parent, base):

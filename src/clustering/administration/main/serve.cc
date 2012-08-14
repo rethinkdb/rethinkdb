@@ -226,7 +226,7 @@ try {
     parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
         &mailbox_manager,
         metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-        DEBUG_ONLY(ports.port_offset, )
+        ports.port_offset,
         &dummy_namespace_repo,
         &local_issue_tracker,
         &perfmon_repo);
@@ -234,18 +234,14 @@ try {
     parser_maker_t<memcached_protocol_t, memcache_listener_t> memcached_parser_maker(
         &mailbox_manager,
         metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-        DEBUG_ONLY(ports.port_offset, )
+        ports.port_offset,
         &memcached_namespace_repo,
         &local_issue_tracker,
         &perfmon_repo);
 
     rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
     // TODO: make this not be shitty (port offsets and such)
-#ifdef NDEBUG
-    int rdb_protocol_port = 12346;
-#else
     int rdb_protocol_port = 12346 + ports.port_offset;
-#endif
     query_server_t rdb_pb_server(rdb_protocol_port, &extproc_pool_group, semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
     logINF("Listening for RDB protocol traffic on port %d.\n", rdb_protocol_port);
 
