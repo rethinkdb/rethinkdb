@@ -78,12 +78,17 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
         var responseStatus = response.getStatusCode();
         var callback = this.outstandingQueries_[response.getToken()];
         switch(responseStatus) {
-        case Response.StatusCode.SUCCESS_EMPTY:
         case Response.StatusCode.SUCCESS_PARTIAL:
         case Response.StatusCode.BROKEN_CLIENT:
         case Response.StatusCode.BAD_QUERY:
+            throw "bad query";
+            break;
         case Response.StatusCode.RUNTIME_ERROR:
             throw "Response type not yet implemented"
+            break;
+        case Response.StatusCode.SUCCESS_EMPTY:
+            delete this.outstandingQueries_[response.getToken()]
+            if (callback) callback();
             break;
         case Response.StatusCode.SUCCESS_STREAM:
             delete this.outstandingQueries_[response.getToken()]

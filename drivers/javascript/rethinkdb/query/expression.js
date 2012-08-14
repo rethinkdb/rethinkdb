@@ -145,10 +145,10 @@ makeComparison('GreaterThanOrEqualsExpression', Builtin.Comparison.GE, 'ge');
 rethinkdb.query.Expression.prototype.between =
         function(start_key, end_key, start_inclusive, end_inclusive) {
     return new rethinkdb.query.RangeExpression(this,
-                                                    start_key,
-                                                    end_key,
-                                                    start_inclusive,
-                                                    end_inclusive);
+                                               start_key,
+                                               end_key,
+                                               start_inclusive,
+                                               end_inclusive);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'between',
                     rethinkdb.query.Expression.prototype.between);
@@ -158,10 +158,10 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'between',
  * @extends {rethinkdb.query.Expression}
  */
 rethinkdb.query.RangeExpression = function(leftExpr,
-                                                start_key,
-                                                end_key,
-                                                start_inclusive,
-                                                end_inclusive) {
+                                           start_key,
+                                           end_key,
+                                           start_inclusive,
+                                           end_inclusive) {
     this.leftExpr_ = leftExpr;
     this.startKey_ = start_key;
     this.endKey_ = end_key;
@@ -178,16 +178,110 @@ rethinkdb.query.RangeExpression.prototype.compile = function() {
     var call = new Term.Call();
     var builtin = new Builtin();
     builtin.setType(Builtin.BuiltinType.RANGE);
-    call.setBuiltin(builtin);
-    call.addArgs(this.leftExpr_.compile());
-    call.addArgs(this.startKey_.compile());
-    call.addArgs(this.endKey_.compile());
-    call.addArgs(rethinkdb.query.expr(this.startInclusive_).compile());
-    call.addArgs(rethinkdb.query.expr(this.endInclusive_).compile());
 
+    var range = new Builtin.Range();
+    range.setAttrname('id');
+    range.setLowerbound(/*TODO ?*/ new Term());
+    range.setUpperbound(/*TODO ?*/ new Term());
+    builtin.setRange(range);
+
+    call.setBuiltin(builtin);
     term.setCall(call);
     return term;
 };
+
+/**
+ * @constructor
+ * @extends {rethinkdb.query.Expression}
+ * @param {rethinkdb.query.Expression} leftExpr
+ * @param {number} leftExtent
+ * @param {number=} opt_rightExtent
+ */
+rethinkdb.query.SliceExpression = function(leftExpr, leftExtent, opt_rightExtent) {
+    this.leftExpr_ = leftExpr;
+    this.leftExtent_ = leftExtent;
+    this.rightExtent_ = opt_rightExtent || null;
+};
+
+rethinkdb.query.SliceExpression.prototype.compile = function() {
+    var term = new Term();
+    term.setType(Term.TermType.CALL);
+
+    var call = new Term.Call();
+    var builtin = new Builtin();
+    builtin.setType(Builtin.BuiltinType.SLICE);
+    call.setBuiltin(builtin);
+
+    call.addArgs(this.leftExpr_.compile());
+
+    var leftExtent = new Term();
+    leftExtent.setType(Term.TermType.NUMBER);
+    leftExtent.setNumber(this.leftExtent_);
+    call.addArgs(leftExtent);
+
+    var rightExtent = new Term();
+    if (this.rightExtent_ !== null) {
+        rightExtent.setType(Term.TermType.NUMBER);
+        rightExtent.setNumber(/**@type {number}*/this.rightExtent_);
+    } else {
+        rightExtent.setType(Term.TermType.JSON_NULL);
+    }
+    call.addArgs(rightExtent);
+
+    term.setCall(call);
+
+    return term;
+};
+
+/**
+ * @return {rethinkdb.query.Expression}
+ */
+rethinkdb.query.Expression.prototype.slice = function(startIndex, opt_endIndex) {
+    return new rethinkdb.query.SliceExpression(this, startIndex, opt_endIndex);
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'slice',
+    rethinkdb.query.Expression.prototype.slice);
+
+/**
+ * @constructor
+ * @extends {rethinkdb.query.Expression}
+ * @param {rethinkdb.query.Expression} leftExpr
+ * @param {number} index
+ */
+rethinkdb.query.NthExpression = function(leftExpr, index) {
+    this.leftExpr_ = leftExpr;
+    this.index_ = index;
+};
+
+rethinkdb.query.NthExpression.prototype.compile = function() {
+    var term = new Term();
+    term.setType(Term.TermType.CALL);
+
+    var call = new Term.Call();
+    var builtin = new Builtin();
+    builtin.setType(Builtin.BuiltinType.ARRAYNTH);
+    call.setBuiltin(builtin);
+
+    call.addArgs(this.leftExpr_.compile());
+
+    var index = new Term();
+    index.setType(Term.TermType.NUMBER);
+    index.setNumber(this.index_);
+    call.addArgs(index);
+
+    term.setCall(call);
+
+    return term;
+};
+
+/**
+ * @return {rethinkdb.query.Expression}
+ */
+rethinkdb.query.Expression.prototype.nth = function(index) {
+    return new rethinkdb.query.NthExpression(this, index);
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'nth',
+    rethinkdb.query.Expression.prototype.nth);
 
 /**
  * @return {rethinkdb.query.Expression}
@@ -195,5 +289,3 @@ rethinkdb.query.RangeExpression.prototype.compile = function() {
 rethinkdb.query.Expression.prototype.filter = function(selector) {
 
 };
-
-
