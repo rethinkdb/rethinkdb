@@ -124,6 +124,7 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
         *response = responses[0];
     } else if (rg) {
         std::sort(responses.begin(), responses.end(), read_response_cmp);
+        response->response = rget_read_response_t();
         rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
@@ -255,6 +256,7 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
         *response = responses[0];
     } else if (rg) {
         std::sort(responses.begin(), responses.end(), read_response_cmp);
+        response->response = rget_read_response_t();
         rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
@@ -289,6 +291,7 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
              i != stream->end(); ++i) {
             rassert(i->second);
         }
+        response->response = rg_response;
     } else {
         unreachable("Unknown read response.");
     }
