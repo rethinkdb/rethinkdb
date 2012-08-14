@@ -248,14 +248,12 @@ void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
 
 void read_t::multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     const point_read_t *pr = boost::get<point_read_t>(&read);
+    const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (pr) {
         rassert(responses.size() == 1);
         rassert(boost::get<point_read_response_t>(&responses[0].response));
         *response = responses[0];
-    }
-
-    const rget_read_t *rg = boost::get<rget_read_t>(&read);
-    if (rg) {
+    } else if (rg) {
         std::sort(responses.begin(), responses.end(), read_response_cmp);
         rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
@@ -291,9 +289,9 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
              i != stream->end(); ++i) {
             rassert(i->second);
         }
+    } else {
+        unreachable("Unknown read response.");
     }
-
-    unreachable("Unknown read response.");
 }
 
 
