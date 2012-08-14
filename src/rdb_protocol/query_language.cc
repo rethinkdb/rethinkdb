@@ -78,6 +78,8 @@ bool term_type_least_upper_bound(term_info_t left, term_info_t right, term_info_
 }
 
 term_info_t get_term_type(const Term &t, type_checking_environment_t *env, const backtrace_t &backtrace) {
+    check_protobuf(Term::TermType_IsValid(t.type()));
+
     std::vector<const google::protobuf::FieldDescriptor *> fields;
     t.GetReflection()->ListFields(t, &fields);
     int field_count = fields.size();
@@ -261,10 +263,13 @@ void check_function_args(const Term::Call &c, const term_type_t &arg1_type, cons
 }
 
 term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *env, const backtrace_t &backtrace) {
+    const Builtin &b = c.builtin();
+
+    check_protobuf(Builtin::BuiltinType_IsValid(b.type()));
+
     bool deterministic = true;
     std::vector<const google::protobuf::FieldDescriptor *> fields;
 
-    const Builtin &b = c.builtin();
 
     b.GetReflection()->ListFields(b, &fields);
 
@@ -300,6 +305,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
         break;
     case Builtin::COMPARE:
         check_protobuf(b.has_comparison());
+        check_protobuf(Builtin::Comparison_IsValid(b.comparison()));
         break;
     case Builtin::GETATTR:
     case Builtin::IMPLICIT_GETATTR:
@@ -521,6 +527,8 @@ void check_read_query_type(const ReadQuery &rq, type_checking_environment_t *env
 }
 
 void check_write_query_type(const WriteQuery &w, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
+    check_protobuf(WriteQuery::WriteQueryType_IsValid(w.type()));
+
     std::vector<const google::protobuf::FieldDescriptor *> fields;
     w.GetReflection()->ListFields(w, &fields);
     check_protobuf(fields.size() == 2);
@@ -589,6 +597,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
 }
 
 void check_query_type(const Query &q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
+    check_protobuf(Query::QueryType_IsValid(q.type()));
     switch (q.type()) {
     case Query::READ:
         check_protobuf(q.has_read_query());
