@@ -8,13 +8,13 @@
 template<class protocol_t, class parser_t>
 parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox_manager,
                                boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_semilattice_metadata,
-                               DEBUG_ONLY(int _port_offset, )
+                               int _port_offset,
                                namespace_repo_t<protocol_t> *_repo,
                                local_issue_tracker_t *_local_issue_tracker,
                                perfmon_collection_repo_t *_perfmon_collection_repo)
     : mailbox_manager(_mailbox_manager),
       namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
-      DEBUG_ONLY(port_offset(_port_offset), )
+      port_offset(_port_offset),
       repo(_repo),
       namespaces_subscription(boost::bind(&parser_maker_t::on_change, this), namespaces_semilattice_metadata),
       perfmon_collection_repo(_perfmon_collection_repo),
@@ -24,17 +24,11 @@ parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox
 }
 
 template<class protocol_t>
-int get_port(const namespace_semilattice_metadata_t<protocol_t> &ns
-             DEBUG_ONLY(, int port_offset)
-            ) {
-#ifndef NDEBUG
+int get_port(const namespace_semilattice_metadata_t<protocol_t> &ns, int port_offset) {
     if (ns.port.get() == 0)
         return 0;
 
     return ns.port.get() + port_offset;
-#else
-    return ns.port.get();
-#endif
 }
 
 static const char * ns_name_in_conflict = "<in conflict>";
@@ -55,8 +49,7 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
         if (handled_ns != namespaces_being_handled.end() && (
                           it->second.is_deleted() ||
                           it->second.get().port.in_conflict() ||
-                          handled_ns->second->port != get_port(it->second.get()
-                                                               DEBUG_ONLY(, port_offset))
+                          handled_ns->second->port != get_port(it->second.get(), port_offset)
                           )) {
 
             if (!handled_ns->second->stopper.is_pulsed()) {
@@ -70,9 +63,7 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
             vclock_t<std::string> v_ns_name = it->second.get().name;
             std::string ns_name(v_ns_name.in_conflict() ? ns_name_in_conflict : v_ns_name.get());
 
-            int port = get_port(it->second.get()
-                                DEBUG_ONLY(, port_offset)
-                               );
+            int port = get_port(it->second.get(), port_offset);
             namespace_id_t tmp = it->first;
             namespaces_being_handled.insert(tmp, new ns_record_t(port));
             coro_t::spawn_sometime(boost::bind(

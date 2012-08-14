@@ -355,9 +355,8 @@ po::options_description get_network_options() {
     po::options_description desc("Network options");
     desc.add_options()
         ("port", po::value<int>()->default_value(default_peer_port), "port for receiving connections from other nodes")
-        DEBUG_ONLY(
-            ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes")
-            ("port-offset,o", po::value<int>()->default_value(0), "set up parsers for namespaces on the namespace's port + this value"))
+        ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes (for development)")
+        ("port-offset,o", po::value<int>()->default_value(0), "set up parsers for namespaces on the namespace's port + this value (for development)")
         ("http-port", po::value<int>()->default_value(0), "port for http admin console (defaults to `port + 1000`)")
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
     return desc;
@@ -495,11 +494,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     }
     int port = vm["port"].as<int>();
     int http_port = vm["http-port"].as<int>();
-#ifndef NDEBUG
     int client_port = vm["client-port"].as<int>();
-#else
-    int client_port = 0;
-#endif
+    int port_offset = vm["port-offset"].as<int>();
 
     path_t web_path = parse_as_path(argv[0]);
     web_path.nodes.pop_back();
@@ -525,8 +521,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, &spawner_info, filepath, joins,
-                                   service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())
-                                   ),
+                                   service_ports_t(port, client_port, http_port, port_offset),
                                    io_backend,
                                    &result, render_as_path(web_path)),
                        num_workers);
@@ -599,11 +594,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
     int port = vm["port"].as<int>();
     int http_port = vm["http-port"].as<int>();
-#ifndef NDEBUG
     int client_port = vm["client-port"].as<int>();
-#else
-    int client_port = 0;
-#endif
+    int port_offset = vm["port-offset"].as<int>();
 
     path_t web_path = parse_as_path(argv[0]);
     web_path.nodes.pop_back();
@@ -622,7 +614,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, joins,
-                                   service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
+                                   service_ports_t(port, client_port, http_port, port_offset),
                                    io_backend,
                                    &result, render_as_path(web_path)),
                        num_workers);
@@ -647,11 +639,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     }
     int port = vm["port"].as<int>();
     int http_port = vm["http-port"].as<int>();
-#ifndef NDEBUG
     int client_port = vm["client-port"].as<int>();
-#else
-    int client_port = 0;
-#endif
+    int port_offset = vm["port-offset"].as<int>();
 
     path_t web_path = parse_as_path(argv[0]);
     web_path.nodes.pop_back();
@@ -683,7 +672,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, &spawner_info, filepath, machine_name, joins,
-                                   service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
+                                   service_ports_t(port, client_port, http_port, port_offset),
                                    io_backend,
                                    &result, render_as_path(web_path), new_directory),
                        num_workers);

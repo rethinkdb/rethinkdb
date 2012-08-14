@@ -5,6 +5,7 @@ require 'json'
 module RethinkDB
   class Connection
     def self.last; @@last; end
+    def debug_socket; @socket; end
 
     def start_listener
       @listener = Thread.new do
@@ -32,6 +33,7 @@ module RethinkDB
     def dispatch msg
       if msg.class != Query then return dispatch msg.query end
       payload = msg.serialize_to_string
+      #File.open("payloads.txt", "a") {|f| f.write(payload.inspect+"\n")}
       packet = [payload.length].pack('L<') + payload
       @socket.send(packet, 0)
       return msg.token

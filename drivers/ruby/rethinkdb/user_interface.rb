@@ -2,11 +2,13 @@
 # happen.  TODO:
 # * UPDATE needs to be changed to do an implicit mapmerge on its righthand side
 #   (this will make its behavior line up with the Python documentation).
+# * UPDATE needs to work if you return NIL
 # * MUTATE needs to be renamed to REPLACE (Joe and Tim and I just talked about
-#   this) and maintain its current behavior rather than changing to match UPDATE.
-# * The following are currently unimplemented or buggy: REDUCE, GROUPEDMAPREDUCE,
-#   FOREACH, POINTUPDATE, POINTMUTATE.
-# * The following are going away: ARRAYAPPEND, ARRAYNTH
+#   this) and maintain its current behavior rather than changing to match
+#   UPDATE.
+# * The following are unimplemented: REDUCE, GROUPEDMAPREDUCE, POINTMUTATE
+# * The following are buggy: UPDATE, POINTUPDATE, FOREACH
+# * The following are going away: ARRAYNTH
 # * I don't understand how GROUPEDMAPREDUCE works.
 module RethinkDB
   # A network connection to the RethinkDB cluster.
@@ -46,7 +48,7 @@ module RethinkDB
     #   a = []
     #   c.iter(r.add(1,2)) {|val| a.push val}                    => false
     #   a                                                        => [3]
-    #   c.iter(r[[r.add(1,2), r.add(10,20)]]) {|val| a.push val} => true
+    #   c.iter(r[[r.add(10,20)]]) {|val| a.push val} => true
     #   a                                                        => [3, 30]
     def iter(query, &block)
       token_iter(dispatch(query), &block)
@@ -141,7 +143,7 @@ module RethinkDB
     # new row rather than an object containing attributes to be updated (may be
     # combined with <b>+mapmerge+</b> to achieve a similar effect to update).
     # May also return <b>+nil+</b> to delete the row.  For example, if we have a
-    # table <b>+table+</b, then:
+    # table <b>+table+</b>, then:
     #   table.mutate{|row| if(row[:id] < 5, nil, row)}
     # will delete everything with id less than 5, but leave the other rows untouched.
     def mutate
@@ -208,7 +210,11 @@ module RethinkDB
     end
   end
 
-  # TODO: doc
+  # This module may be included/extended to gain access to the RQL query
+  # construction functions.  By far the most common way of gaining access to
+  # those functions, however, is to include/extend RethinkDB::Shortcuts_Mixin to
+  # gain access to the shortcut <b>+r+</b>.  That shortcut is used in all the
+  # examples below.
   module RQL_Mixin
     # Construct a javascript expression, which may refer to variables in scope
     # (use <b>+to_s+</b> to get the name of a variable query, or simply splice
@@ -482,7 +488,7 @@ module RethinkDB
     #   r[1].modulo(2)
     #   r.mod(1,2)
     #   r[1].mod(2)
-    #   (r[1] - 2) # Note that (1 - r[2]) is *incorrect* because Ruby only
+    #   (r[1] % 2) # Note that (1 % r[2]) is *incorrect* because Ruby only
     #              # overloads based on the lefthand side.
     def modulo(a, b); S._ [:call, [:modulo], [expr(a), expr(b)]]; end
 
@@ -490,7 +496,7 @@ module RethinkDB
     # if any of them evaluate to true.  Sort of like <b>+or+</b> in ruby, but
     # takes arbitrarily many arguments and is *not* guaranteed to
     # short-circuit.  May also be called as if it were a instance method of
-    # RQL_Query for convenience, and overloads <b><tt>&</tt></b> if the lefthand
+    # RQL_Query for convenience, and overloads <b><tt>|</tt></b> if the lefthand
     # side is a query.  Also has the synonym <b>+or+</b>.  The following are
     # all equivalent:
     #   r[true]
@@ -498,25 +504,25 @@ module RethinkDB
     #   r.or(false, true)
     #   r[false].any(true)
     #   r[false].or(true)
-    #   (r[false] & true) # Note that (false & r[true]) is *incorrect* because
+    #   (r[false] | true) # Note that (false | r[true]) is *incorrect* because
     #                     # Ruby only overloads based on the lefthand side
     def any(pred, *rest)
       S._ [:call, [:any], [expr(pred), *(rest.map{|x| expr x})]];
     end
 
     # Take one or more predicate queries and construct a query that returns true
-    # if all of them evaluate to true.  Sort of like <b>+or+</b> in ruby, but
+    # if all of them evaluate to true.  Sort of like <b>+and+</b> in ruby, but
     # takes arbitrarily many arguments and is *not* guaranteed to
     # short-circuit.  May also be called as if it were a instance method of
-    # RQL_Query for convenience, and overloads <b><tt>|</tt></b> if the lefthand
-    # side is a query.  Also has the synonym <b>+or+</b>.  The following are
+    # RQL_Query for convenience, and overloads <b><tt>&</tt></b> if the lefthand
+    # side is a query.  Also has the synonym <b>+and+</b>.  The following are
     # all equivalent:
     #   r[false]
     #   r.all(false, true)
     #   r.and(false, true)
     #   r[false].all(true)
     #   r[false].and(true)
-    #   (r[false] | true) # Note that (false | r[true]) is *incorrect* because
+    #   (r[false] & true) # Note that (false & r[true]) is *incorrect* because
     #                     # Ruby only overloads based on the lefthand side
     def all(pred, *rest)
       S._ [:call, [:all], [expr(pred), *(rest.map{|x| expr x})]];
@@ -593,7 +599,7 @@ module RethinkDB
     # between <b>+start_key+</b> and <b>+end_key+</b> (inclusive).  You may also
     # optionally specify the name of the attribute to use as your key
     # (<b>+keyname+</b>), but note that your table must be indexed by that
-    # attribute.  Either <b>+start_key+</b> and <b>+end_key+</b> may be nil, in
+    # attribute.  Either <b>+start_key+</b> or <b>+end_key+</b> may be nil, in
     # which case that side of the range is unbounded.  This function may also be
     # called as if it were a instance method of RQL_Query, for convenience.  For
     # example, if we have a table <b>+table+</b>, these are equivalent:
