@@ -428,25 +428,32 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
     try {
-        on_thread_t th(dest_thread);
+        // TODO: avoid extra copy of read_response_t here
+        typename protocol_t::read_response_t response;
 
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> store_token;
-        switch_inner_read_token(i, internal_tokens[i], &ct_interruptor, &store_token);
+        {
+            on_thread_t th(dest_thread);
 
-        if (region_is_empty(ith_intersection)) {
-            // TODO: This is ridiculous.  We don't have to go to
-            // this thread to find out that the region is empty
-            // and kill the store token if we don't create the
-            // internal token in the first place.
-            return;
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> store_token;
+            switch_inner_read_token(i, internal_tokens[i], &ct_interruptor, &store_token);
+
+            if (region_is_empty(ith_intersection)) {
+                // TODO: This is ridiculous.  We don't have to go to
+                // this thread to find out that the region is empty
+                // and kill the store token if we don't create the
+                // internal token in the first place.
+                return;
+            }
+
+            store_views_[i]->read(DEBUG_ONLY(metainfo_checker.mask(ith_region), )
+                                  read.shard(ith_intersection),
+                                  &response,
+                                  order_token,
+                                  &store_token,
+                                  &ct_interruptor);
         }
+        responses->push_back(response);
 
-        store_views_[i]->read(DEBUG_ONLY(metainfo_checker.mask(ith_region), )
-                              read.shard(ith_intersection),
-                              &responses->at(i),
-                              order_token,
-                              &store_token,
-                              &ct_interruptor);
     } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
@@ -463,7 +470,7 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_
     scoped_array_t<fifo_enforcer_read_token_t> internal_tokens;
     switch_read_tokens(external_token, interruptor, &order_token, &internal_tokens);
 
-    std::vector<typename protocol_t::read_response_t> responses(num_stores());
+    std::vector<typename protocol_t::read_response_t> responses;
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_read,
                                    this, _1, DEBUG_ONLY(boost::ref(metainfo_checker), )
                                    boost::ref(read),
@@ -523,10 +530,13 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
             return;
         }
 
+        responses->push_back(typename protocol_t::write_response_t());
+        typename protocol_t::write_response_t &response = responses->back();
+
         store_views_[i]->write(DEBUG_ONLY(metainfo.metainfo_checker.mask(ith_region), )
                                metainfo.new_metainfo.mask(ith_region),
                                write.shard(ith_intersection),
-                               &responses->at(i),
+                               &response,
                                timestamp,
                                order_token,
                                &store_token,
@@ -549,7 +559,7 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol
     scoped_array_t<fifo_enforcer_write_token_t> internal_tokens;
     switch_write_tokens(external_token, interruptor, &order_token, &internal_tokens);
 
-    std::vector<typename protocol_t::write_response_t> responses(num_stores());
+    std::vector<typename protocol_t::write_response_t> responses;
     new_and_metainfo_checker_t<protocol_t> metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo);
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_write,
                                    this, _1, boost::ref(metainfo),
