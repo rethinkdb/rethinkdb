@@ -589,9 +589,9 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.run[1]['broken'], true)
     #PP.pp rdb.update{|x| r.if(x.attr?(:broken), $data[0], nil)}.run
     update = rdb.filter{r[:id].eq(0)}.update{$data[0]}.run
-    assert_equal(update, {'errors' => 0, 'updated' => 1})
+    assert_equal(update, {'errors' => 0, 'updated' => 1, 'skipped' => 0})
     update = rdb.update{|x| r.if(x.attr?(:broken), $data[1], x)}.run
-    assert_equal(update, {'errors' => 0, 'updated' => len})
+    assert_equal(update, {'errors' => 0, 'updated' => len, 'skipped' => 0})
     assert_equal(rdb.run, $data)
 
     #DELETE
