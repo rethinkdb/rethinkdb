@@ -203,11 +203,11 @@ class RDBTest(unittest.TestCase):
         expect(I.Slice(expr(arr), -2, None), arr[-2:])
         expect(I.Slice(expr(arr), None, None), arr[:])
 
-        expect(I.Element(arr, 3), 3)
-        expect(I.Element(arr, -1), 9)
-        fail(I.Element(0, 0), "array")
-        fail(I.Element(arr, .1), "integer")
-        fail(I.Element([0], 1), "bounds")
+        expect(I.Nth(expr(arr), 3), 3)
+        expect(I.Nth(expr(arr), -1), 9)
+        fail(I.Nth(expr(0), 0), "array")
+        fail(I.Nth(expr(arr), .1), "integer")
+        fail(I.Nth(expr([0]), 1), "bounds")
 
         expect(I.Length(expr([])), 0)
         expect(I.Length(expr(arr)), len(arr))
