@@ -239,8 +239,8 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
             {
                 /* add an rdb namespace */
                 namespace_id_t namespace_id = generate_uuid();
-                namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata;
 
+                namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata;
                 namespace_metadata.name = vclock_t<std::string>("Welcome-rdb", our_machine_id);
                 namespace_metadata.primary_key = vclock_t<std::string>("id", our_machine_id);
                 namespace_metadata.port = vclock_t<int>(11213, our_machine_id);
@@ -271,7 +271,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                 region_map_t<rdb_protocol_t, std::set<machine_id_t> > secondary_pinnings(rdb_protocol_t::region_t::universe(), std::set<machine_id_t>());
                 namespace_metadata.secondary_pinnings = vclock_t<region_map_t<rdb_protocol_t, std::set<machine_id_t> > >(secondary_pinnings, our_machine_id);
 
-                namespace_metadata.database = vclock_t<datacenter_id_t>(database_id, our_machine_id);
+                namespace_metadata.database = vclock_t<database_id_t>(database_id, our_machine_id);
 
                 semilattice_metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
             }

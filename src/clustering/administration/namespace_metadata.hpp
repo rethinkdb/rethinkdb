@@ -50,6 +50,26 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_11(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
 };
 
+class vclock_builder_t {
+public:
+    vclock_builder_t(const machine_id_t &_machine) : machine(_machine) { }
+    template<class T>
+    vclock_t<T> build(const T &arg) { return vclock_t<T>(arg, machine); }
+private:
+    machine_id_t machine;
+};
+
+template<class protocol_t>
+namespace_semilattice_metadata_t<protocol_t> new_namespace(const machine_id_t &machine,
+    const std::string &name, const std::string &primary_key, int port) {
+    namespace_semilattice_metadata_t<protocol_t> ns;
+    vclock_builder_t vc(machine);
+    ns.name        = vc.build(name);
+    ns.primary_key = vc.build(primary_key);
+    ns.port        = vc.build(port);
+    return ns;
+}
+
 template<class protocol_t>
 RDB_MAKE_SEMILATTICE_JOINABLE_11(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
 

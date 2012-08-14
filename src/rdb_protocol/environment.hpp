@@ -56,7 +56,7 @@ class runtime_environment_t {
 public:
     runtime_environment_t(extproc::pool_group_t *_pool_group,
                           namespace_repo_t<rdb_protocol_t> *_ns_repo,
-                          boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+                          boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
                           boost::shared_ptr<js::runner_t> _js_runner,
                           signal_t *_interruptor)
         : pool(_pool_group->get()),

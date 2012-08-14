@@ -599,25 +599,56 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
     }
 }
 
+void check_tableop_query_type(const TableopQuery &t) {
+    check_protobuf(TableopQuery::TableopQueryType_IsValid(t.type()));
+    switch(t.type()) {
+    case TableopQuery::CREATE:
+        check_protobuf(t.has_create());
+        check_protobuf(!t.has_drop());
+        break;
+    case TableopQuery::DROP:
+        check_protobuf(!t.has_create());
+        check_protobuf(t.has_drop());
+        break;
+    case TableopQuery::LIST:
+        check_protobuf(!t.has_create());
+        check_protobuf(!t.has_drop());
+        break;
+    default: unreachable("Unhandled TableopQuery.");
+    }
+}
+
 void check_query_type(const Query &q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
     check_protobuf(Query::QueryType_IsValid(q.type()));
     switch (q.type()) {
     case Query::READ:
         check_protobuf(q.has_read_query());
         check_protobuf(!q.has_write_query());
+        check_protobuf(!q.has_tableop_query());
         check_read_query_type(q.read_query(), env, is_det_out, backtrace);
         break;
     case Query::WRITE:
         check_protobuf(q.has_write_query());
         check_protobuf(!q.has_read_query());
+        check_protobuf(!q.has_tableop_query());
         check_write_query_type(q.write_query(), env, is_det_out, backtrace);
         break;
-    case Query::CONTINUE: break;
+    case Query::CONTINUE:
         check_protobuf(!q.has_read_query());
         check_protobuf(!q.has_write_query());
-    case Query::STOP: break;
+        check_protobuf(!q.has_tableop_query());
+        break;
+    case Query::STOP:
         check_protobuf(!q.has_read_query());
         check_protobuf(!q.has_write_query());
+        check_protobuf(!q.has_tableop_query());
+        break;
+    case Query::TABLEOP:
+        check_protobuf(q.has_tableop_query());
+        check_protobuf(!q.has_read_query());
+        check_protobuf(!q.has_write_query());
+        check_tableop_query_type(q.tableop_query());
+        break;
     default:
         unreachable("unhandled Query");
     }
@@ -652,6 +683,42 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     return js_runner;
 }
 
+void parse_tableop_create(const TableopQuery::Create &c, std::string *db_name,
+                          std::string *table_name, std::string *primary_key) {
+    if (c.table_ref().has_db_name()) {
+        *db_name = c.table_ref().db_name();
+    } else {
+        *db_name = "";
+    }
+    *table_name = c.table_ref().table_name();
+    if (c.has_primary_key()) {
+        *primary_key = c.primary_key();
+    } else {
+        *primary_key = "id";
+    }
+}
+
+void execute_tableop(TableopQuery *t, UNUSED runtime_environment_t *env, UNUSED Response *res, UNUSED const backtrace_t &backtrace) {
+    switch(t->type()) {
+    case TableopQuery::CREATE: {
+        std::string db_name, table_name, primary_key;
+        parse_tableop_create(t->create(), &db_name, &table_name, &primary_key);
+        // const cluster_semilattice_metadata_t &metadata=env->semilattice_metadata->get();
+        // namespace_semilattice_metadata_t<rdb_protocol_t> ns =
+        //     new_namespace(
+        //namespace_id_t namespace_id = generate_uuid();
+        //namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata;
+    }
+        break;
+    case TableopQuery::DROP:
+        break;
+    case TableopQuery::LIST:
+        break;
+    default: crash("unimplemented");
+    }
+    crash("unimplemented");
+}
+
 void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     rassert(q->token() == res->token());
     switch(q->type()) {
@@ -673,6 +740,9 @@ void execute(Query *q, runtime_environment_t *env, Response *res, const backtrac
             res->set_status_code(Response::SUCCESS_EMPTY);
             stream_cache->erase(q->token());
         }
+        break;
+    case Query::TABLEOP:
+        execute_tableop(q->mutable_tableop_query(), env, res, backtrace);
         break;
     default:
         crash("unreachable");

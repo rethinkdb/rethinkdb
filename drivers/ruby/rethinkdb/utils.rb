@@ -16,7 +16,8 @@ module RethinkDB
     # and to get their corresponding enums.
     def class_types
       { Query => Query::QueryType, WriteQuery => WriteQuery::WriteQueryType,
-        Term => Term::TermType, Builtin => Builtin::BuiltinType } end
+        Term => Term::TermType, Builtin => Builtin::BuiltinType,
+        TableopQuery => TableopQuery::TableopQueryType} end
 
     # The protobuf spec often has a field with a slightly different name from
     # the enum constant, which we list here.
@@ -29,7 +30,7 @@ module RethinkDB
         :insertstream => :insert_stream, :foreach => :for_each, :orderby => :order_by,
         :pointupdate => :point_update, :pointdelete => :point_delete,
         :pointmutate => :point_mutate, :concatmap => :concat_map,
-        :read => :read_query, :write => :write_query } end
+        :read => :read_query, :write => :write_query, :tableop => :tableop_query } end
 
     # These classes go through a useless intermediate type.
     def trampolines; [:table, :map, :concatmap, :filter] end
