@@ -652,7 +652,7 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     return js_runner;
 }
 
-void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t) {
+void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     rassert(q->token() == res->token());
     switch(q->type()) {
     case Query::READ:
@@ -679,7 +679,7 @@ void execute(Query *q, runtime_environment_t *env, Response *res, const backtrac
     }
 }
 
-void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t) {
+void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     int type = r->GetExtension(extension::inferred_read_type);
 
     switch (type) {
@@ -738,7 +738,7 @@ void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::s
     point_delete(ns_access, id->get(), env, backtrace);
 }
 
-void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     //TODO: When writes can return different responses, be more clever.
     res->set_status_code(Response::SUCCESS_JSON);
     switch (w->type()) {
