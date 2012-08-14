@@ -424,11 +424,14 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs_->get_multistore_joined_region());
 #endif
 
+    typename protocol_t::write_response_t response;
+
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )
         region_map_t<protocol_t, binary_blob_t>(svs_->get_multistore_joined_region(),
             binary_blob_t(version_range_t(version_t(branch_id_, qe.transition_timestamp.timestamp_after())))),
         qe.write.shard(region_intersection(qe.write.get_region(), svs_->get_multistore_joined_region())),
+        &response,
         qe.transition_timestamp,
         qe.order_token,
         &write_token,
@@ -495,15 +498,16 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
 
         // Perform the operation
         cond_t non_interruptor;
-        typename protocol_t::write_response_t response
-            = svs_->write(DEBUG_ONLY(metainfo_checker, )
-                         region_map_t<protocol_t, binary_blob_t>(svs_->get_multistore_joined_region(),
-                                                                 binary_blob_t(version_range_t(version_t(branch_id_, transition_timestamp.timestamp_after())))),
-                         write,
-                         transition_timestamp,
-                         order_token,
-                         &write_token,
-                         keepalive.get_drain_signal());
+        typename protocol_t::write_response_t response;
+        svs_->write(DEBUG_ONLY(metainfo_checker, )
+                    region_map_t<protocol_t, binary_blob_t>(svs_->get_multistore_joined_region(),
+                                                            binary_blob_t(version_range_t(version_t(branch_id_, transition_timestamp.timestamp_after())))),
+                    write,
+                    &response,
+                    transition_timestamp,
+                    order_token,
+                    &write_token,
+                    keepalive.get_drain_signal());
 
         /* Release the semaphore before sending the response, because the
         broadcaster can send us a new write as soon as we send the ack */
@@ -565,9 +569,11 @@ void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
 #endif
 
         // Perform the operation
-        typename protocol_t::read_response_t response = svs_->read(
+        typename protocol_t::read_response_t response;
+        svs_->read(
             DEBUG_ONLY(metainfo_checker, )
             read,
+            &response,
             order_token,
             &read_token,
             keepalive.get_drain_signal());

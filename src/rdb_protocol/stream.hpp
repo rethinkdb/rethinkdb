@@ -84,7 +84,8 @@ private:
         rdb_protocol_t::rget_read_t rget_read(range, batch_size);
         rdb_protocol_t::read_t read(rget_read);
         try {
-            rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, interruptor);
+            rdb_protocol_t::read_response_t res;
+            ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
             rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
             rassert(p_res);
 

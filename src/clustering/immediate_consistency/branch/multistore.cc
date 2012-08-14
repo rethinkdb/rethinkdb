@@ -428,46 +428,42 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
     try {
-        typename protocol_t::read_response_t response;
+        on_thread_t th(dest_thread);
 
-        {
-            on_thread_t th(dest_thread);
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> store_token;
+        switch_inner_read_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> store_token;
-            switch_inner_read_token(i, internal_tokens[i], &ct_interruptor, &store_token);
-
-            if (region_is_empty(ith_intersection)) {
-                // TODO: This is ridiculous.  We don't have to go to
-                // this thread to find out that the region is empty
-                // and kill the store token if we don't create the
-                // internal token in the first place.
-                return;
-            }
-
-            response = store_views_[i]->read(DEBUG_ONLY(metainfo_checker.mask(ith_region), )
-                                             read.shard(ith_intersection),
-                                             order_token,
-                                             &store_token,
-                                             &ct_interruptor);
+        if (region_is_empty(ith_intersection)) {
+            // TODO: This is ridiculous.  We don't have to go to
+            // this thread to find out that the region is empty
+            // and kill the store token if we don't create the
+            // internal token in the first place.
+            return;
         }
 
-        responses->push_back(response);
+        store_views_[i]->read(DEBUG_ONLY(metainfo_checker.mask(ith_region), )
+                              read.shard(ith_intersection),
+                              &responses->at(i),
+                              order_token,
+                              &store_token,
+                              &ct_interruptor);
     } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
 }
 
 template <class protocol_t>
-typename protocol_t::read_response_t
+void
 multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
                                    const typename protocol_t::read_t &read,
+                                   typename protocol_t::read_response_t *response,
                                    order_token_t order_token,
                                    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     scoped_array_t<fifo_enforcer_read_token_t> internal_tokens;
     switch_read_tokens(external_token, interruptor, &order_token, &internal_tokens);
 
-    std::vector<typename protocol_t::read_response_t> responses;
+    std::vector<typename protocol_t::read_response_t> responses(num_stores());
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_read,
                                    this, _1, DEBUG_ONLY(boost::ref(metainfo_checker), )
                                    boost::ref(read),
@@ -481,7 +477,7 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_
     }
 
     typename protocol_t::temporary_cache_t fake_cache;
-    return read.multistore_unshard(responses, &fake_cache);
+    read.multistore_unshard(responses, response, &fake_cache);
 }
 
 // Because boost::bind only takes 10 arguments.
@@ -527,23 +523,25 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
             return;
         }
 
-        responses->push_back(store_views_[i]->write(DEBUG_ONLY(metainfo.metainfo_checker.mask(ith_region), )
-                                                    metainfo.new_metainfo.mask(ith_region),
-                                                    write.shard(ith_intersection),
-                                                    timestamp,
-                                                    order_token,
-                                                    &store_token,
-                                                    &ct_interruptor));
+        store_views_[i]->write(DEBUG_ONLY(metainfo.metainfo_checker.mask(ith_region), )
+                               metainfo.new_metainfo.mask(ith_region),
+                               write.shard(ith_intersection),
+                               &responses->at(i),
+                               timestamp,
+                               order_token,
+                               &store_token,
+                               &ct_interruptor);
     } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
 }
 
 template <class protocol_t>
-typename protocol_t::write_response_t
+void
 multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
                                     const typename protocol_t::store_t::metainfo_t& new_metainfo,
                                     const typename protocol_t::write_t &write,
+                                    typename protocol_t::write_response_t *response,
                                     transition_timestamp_t timestamp,
                                     order_token_t order_token,
                                     scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
@@ -551,7 +549,7 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol
     scoped_array_t<fifo_enforcer_write_token_t> internal_tokens;
     switch_write_tokens(external_token, interruptor, &order_token, &internal_tokens);
 
-    std::vector<typename protocol_t::write_response_t> responses;
+    std::vector<typename protocol_t::write_response_t> responses(num_stores());
     new_and_metainfo_checker_t<protocol_t> metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo);
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_write,
                                    this, _1, boost::ref(metainfo),
@@ -567,7 +565,7 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol
     }
 
     typename protocol_t::temporary_cache_t fake_cache;
-    return write.multistore_unshard(responses, &fake_cache);
+    write.multistore_unshard(responses, response, &fake_cache);
 }
 
 template <class protocol_t>
