@@ -81,10 +81,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline)
 {
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    }
-
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
         broadcaster_metadata->get();
     if (!business_card || !business_card.get()) {
@@ -209,6 +205,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    DEBUG_ONLY_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager_(mm),
     branch_history_manager_(bhm),
+    svs_(broadcaster->release_bootstrap_svs_for_listener()),
     branch_id_(broadcaster->get_branch_id()),
     uuid_(generate_uuid()),
     perfmon_collection_(),
@@ -228,14 +225,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline)
 {
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    }
-
-    /* We take our store directly from the broadcaster to make sure that we
-       get the correct one. */
-    svs_ = broadcaster->release_bootstrap_svs_for_listener();
-
 #ifndef NDEBUG
     /* Confirm that `broadcaster_metadata` corresponds to `broadcaster` */
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =

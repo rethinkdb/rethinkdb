@@ -1,5 +1,5 @@
-#include "memcached/btree/append_prepend.hpp"
-#include "memcached/btree/modify_oper.hpp"
+#include "memcached/memcached_btree/append_prepend.hpp"
+#include "memcached/memcached_btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
 #include "repli_timestamp.hpp"
 

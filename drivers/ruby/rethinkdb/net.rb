@@ -5,13 +5,10 @@ require 'json'
 module RethinkDB
   class Connection
     def self.last; @@last; end
-    def initialize(host, port=12346)
-      @@last = self
-      @socket = TCPSocket.open(host, port)
-      @waiters = {}
-      @data = {}
-      @mutex = Mutex.new
-      Thread.new do
+    def debug_socket; @socket; end
+
+    def start_listener
+      @listener = Thread.new do
         loop do
           response_length = @socket.recv(4).unpack('L<')[0]
           response = @socket.recv(response_length)
@@ -36,6 +33,7 @@ module RethinkDB
     def dispatch msg
       if msg.class != Query then return dispatch msg.query end
       payload = msg.serialize_to_string
+      #File.open("payloads.txt", "a") {|f| f.write(payload.inspect+"\n")}
       packet = [payload.length].pack('L<') + payload
       @socket.send(packet, 0)
       return msg.token
@@ -86,18 +84,6 @@ module RethinkDB
         #yield data.shift if data != []
       end
       return true
-    end
-
-    def run msg
-      a = []
-      token = dispatch msg
-      multi_vals = token_iter(token) {|row| a.push row}
-      multi_vals ? a : a[0]
-    end
-
-    def iter(msg, &block)
-      token = dispatch msg
-      token_iter(token, &block)
     end
   end
 end

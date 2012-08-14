@@ -9,6 +9,9 @@
 #include <vector>
 #include <utility>
 
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 #include "logger.hpp"

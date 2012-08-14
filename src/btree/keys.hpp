@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include <string>
-#include <vector>
 
 #include "config/args.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -190,8 +189,6 @@ struct key_range_t {
         explicit right_bound_t(store_key_t k) : unbounded(false), key(k) { }
         bool unbounded;
         store_key_t key;
-
-        RDB_MAKE_ME_SERIALIZABLE_2(unbounded, key);
     };
 
     enum bound_t {
@@ -235,9 +232,10 @@ struct key_range_t {
 
     store_key_t left;
     right_bound_t right;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(left, right);
 };
+
+RDB_DECLARE_SERIALIZABLE(key_range_t::right_bound_t);
+RDB_DECLARE_SERIALIZABLE(key_range_t);
 
 std::string key_range_to_debug_str(const key_range_t &kr);
 

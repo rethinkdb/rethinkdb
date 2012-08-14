@@ -1,4 +1,4 @@
-#include "memcached/btree/get_cas.hpp"
+#include "memcached/memcached_btree/get_cas.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -6,8 +6,8 @@
 #include "arch/runtime/runtime.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/promise.hpp"
-#include "memcached/btree/btree_data_provider.hpp"
-#include "memcached/btree/modify_oper.hpp"
+#include "memcached/memcached_btree/btree_data_provider.hpp"
+#include "memcached/memcached_btree/modify_oper.hpp"
 
 // This function is like get(), except that it sets a CAS value if
 // there isn't one already, so it has to be a

@@ -1,4 +1,4 @@
-#include "memcached/btree/rget.hpp"
+#include "memcached/memcached_btree/rget.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -7,9 +7,9 @@
 #include "arch/runtime/runtime.hpp"
 #include "btree/depth_first_traversal.hpp"
 #include "containers/iterators.hpp"
-#include "memcached/btree/btree_data_provider.hpp"
-#include "memcached/btree/node.hpp"
-#include "memcached/btree/value.hpp"
+#include "memcached/memcached_btree/btree_data_provider.hpp"
+#include "memcached/memcached_btree/node.hpp"
+#include "memcached/memcached_btree/value.hpp"
 
 /*
  * Possible rget designs:

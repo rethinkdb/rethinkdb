@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include <string>
+
 #include "containers/intrusive_list.hpp"
 
 typedef int fd_t;
@@ -88,5 +90,39 @@ void start_watchdog(); // Starts time supervision
 void disarm_watchdog(); // Suspends time supervision until the next pet or start
 void pet_watchdog(); // Checks for long-running routines and restarts time supervision
 #endif
+
+// More pollution of runtime_utils.hpp.
+#ifndef NDEBUG
+
+/* If `ASSERT_NO_CORO_WAITING;` appears at the top of a block, then it is illegal
+to call `coro_t::wait()`, `coro_t::spawn_now_dangerously()`, or `coro_t::notify_now()`
+within that block and any attempt to do so will be a fatal error. */
+#define ASSERT_NO_CORO_WAITING assert_no_coro_waiting_t assert_no_coro_waiting_var(__FILE__, __LINE__)
+
+/* If `ASSERT_FINITE_CORO_WAITING;` appears at the top of a block, then code
+within that block may call `coro_t::spawn_now_dangerously()` or `coro_t::notify_now()` but
+not `coro_t::wait()`. This is because `coro_t::spawn_now_dangerously()` and
+`coro_t::notify_now()` will return control directly to the coroutine that called
+then. */
+#define ASSERT_FINITE_CORO_WAITING assert_finite_coro_waiting_t assert_finite_coro_waiting_var(__FILE__, __LINE__)
+
+/* Implementation support for `ASSERT_NO_CORO_WAITING` and `ASSERT_FINITE_CORO_WAITING` */
+struct assert_no_coro_waiting_t {
+    assert_no_coro_waiting_t(const std::string&, int);
+    ~assert_no_coro_waiting_t();
+};
+struct assert_finite_coro_waiting_t {
+    assert_finite_coro_waiting_t(const std::string&, int);
+    ~assert_finite_coro_waiting_t();
+};
+
+#else  // NDEBUG
+
+/* In release mode, these assertions are no-ops. */
+#define ASSERT_NO_CORO_WAITING do { } while (0)
+#define ASSERT_FINITE_CORO_WAITING do { } while (0)
+
+#endif  // NDEBUG
+
 
 #endif // ARCH_RUNTIME_RUNTIME_UTILS_HPP_

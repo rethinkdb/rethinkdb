@@ -210,8 +210,8 @@ template <class protocol_t>
 class multistore_send_backfill_should_backfill_t : public home_thread_mixin_t {
 public:
     multistore_send_backfill_should_backfill_t(int num_stores, const typename protocol_t::region_t &start_point_region,
-                                               const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill_func) // NOLINT
-        : countdown_(num_stores), should_backfill_func_(should_backfill_func), combined_metainfo_(start_point_region) { }
+                                               send_backfill_callback_t<protocol_t> *should_backfill_cb)
+        : countdown_(num_stores), should_backfill_cb_(should_backfill_cb), combined_metainfo_(start_point_region) { }
 
     bool should_backfill(const typename protocol_t::store_t::metainfo_t &metainfo) {
         on_thread_t th(home_thread());
@@ -222,7 +222,7 @@ public:
         rassert(countdown_ >= 0, "countdown_ is %d\n", countdown_);
 
         if (countdown_ == 0) {
-            bool tmp = should_backfill_func_(combined_metainfo_);
+            bool tmp = should_backfill_cb_->should_backfill(combined_metainfo_);
             result_promise_.pulse(tmp);
         }
 
@@ -238,7 +238,7 @@ public:
 
 private:
     int countdown_;
-    const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill_func_;  // NOLINT
+    send_backfill_callback_t<protocol_t> *const should_backfill_cb_;
     promise_t<bool> result_promise_;
     typename protocol_t::store_t::metainfo_t combined_metainfo_;
 
@@ -246,26 +246,47 @@ private:
 };
 
 template <class protocol_t>
-void regionwrap_chunkfun(const boost::function<void(typename protocol_t::backfill_chunk_t)> &wrappee, int target_thread, const typename protocol_t::region_t& region, typename protocol_t::backfill_chunk_t chunk) {
-    // TODO: Is chunkfun supposed to block like this?
-    on_thread_t th(target_thread);
+class multistore_send_backfill_callback_t : public home_thread_mixin_t,
+                                            public send_backfill_callback_t<protocol_t> {
+public:
+    multistore_send_backfill_callback_t(multistore_send_backfill_should_backfill_t<protocol_t> *helper,
+                                        chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
+                                        const typename protocol_t::region_t &region)
+        : helper_(helper), inner_chunk_fun_cb_(chunk_fun_cb), region_(region) { }
 
-    // TODO: This is a borderline hack for memcached delete_range_t chunks.
-    wrappee(chunk.shard(region));
-}
+    bool should_backfill_impl(const typename protocol_t::store_t::metainfo_t &metainfo) {
+        return helper_->should_backfill(metainfo);
+    }
+
+    void send_chunk(const typename protocol_t::backfill_chunk_t &chunk) {
+        // TODO: Is chunkfun supposed to block like this?  (No, that's slow.)
+        on_thread_t th(home_thread());
+
+        // TODO: This is a borderline hack for memcached delete_range_t chunks.
+        inner_chunk_fun_cb_->send_chunk(chunk.shard(region_));
+    }
+
+private:
+    multistore_send_backfill_should_backfill_t<protocol_t> *const helper_;
+    chunk_fun_callback_t<protocol_t> *const inner_chunk_fun_cb_;
+    const typename protocol_t::region_t region_;
+
+    DISABLE_COPYING(multistore_send_backfill_callback_t);
+};
 
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
                                                          multistore_send_backfill_should_backfill_t<protocol_t> *helper,
                                                          const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                                                         const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+                                                         chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
                                                          traversal_progress_combiner_t *progress,
                                                          const scoped_array_t<fifo_enforcer_read_token_t> &internal_tokens,
                                                          signal_t *interruptor) THROWS_NOTHING {
     store_view_t<protocol_t> *store = store_views_[i];
 
-    const int chunk_fun_target_hread = get_thread_id();
     const int dest_thread = store->home_thread();
+
+    multistore_send_backfill_callback_t<protocol_t> send_backfill_cb(helper, chunk_fun_cb, get_region(i));
 
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
@@ -281,8 +302,7 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
         switch_inner_read_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
         store->send_backfill(start_point.mask(get_region(i)),
-                             boost::bind(&multistore_send_backfill_should_backfill_t<protocol_t>::should_backfill, helper, _1),
-                             boost::bind(regionwrap_chunkfun<protocol_t>, chunk_fun, chunk_fun_target_hread, get_region(i), _1),
+                             &send_backfill_cb,
                              store_progress,
                              &store_token,
                              &ct_interruptor);
@@ -304,8 +324,7 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
 */
 template <class protocol_t>
 bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                                                            const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,  // NOLINT
-                                                            const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+                                                            send_backfill_callback_t<protocol_t> *send_backfill_cb,
                                                             traversal_progress_combiner_t *progress,
                                                             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -315,14 +334,14 @@ bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<p
     order_token_t fake_order_token = order_token_t::ignore;  // TODO
     switch_read_tokens(external_token, interruptor, &fake_order_token, &internal_tokens);
 
-    multistore_send_backfill_should_backfill_t<protocol_t> helper(num_stores(), start_point.get_domain(), should_backfill);
+    multistore_send_backfill_should_backfill_t<protocol_t> helper(num_stores(), start_point.get_domain(), send_backfill_cb);
 
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_backfill,
                                    this,
                                    _1,
                                    &helper,
                                    boost::ref(start_point),
-                                   boost::ref(chunk_fun),
+                                   send_backfill_cb,
                                    progress,
                                    boost::ref(internal_tokens),
                                    interruptor));

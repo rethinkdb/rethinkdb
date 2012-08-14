@@ -3,10 +3,13 @@
 #include <boost/function.hpp>
 
 #include "btree/erase_range.hpp"
+#include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
+#include "btree/superblock.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.hpp"
@@ -46,6 +49,14 @@ typedef rdb_protocol_t::rget_read_response_t::length_t length_t;
 typedef rdb_protocol_t::rget_read_response_t::inserted_t inserted_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
+
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Range);
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Filter);
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Map);
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_ConcatMap);
+RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
+RDB_IMPL_PROTOB_SERIALIZABLE(Reduction);
+RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
 
 // Construct a region containing only the specified key
 region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
@@ -427,20 +438,20 @@ struct rdb_backfill_callback_impl_t : public rdb_backfill_callback_t {
 public:
     typedef backfill_chunk_t chunk_t;
 
-    explicit rdb_backfill_callback_impl_t(const boost::function<void(rdb_protocol_t::backfill_chunk_t)> &chunk_fun_)
-        : chunk_fun(chunk_fun_) { }
+    explicit rdb_backfill_callback_impl_t(chunk_fun_callback_t<rdb_protocol_t> *_chunk_fun_cb)
+        : chunk_fun_cb(_chunk_fun_cb) { }
     ~rdb_backfill_callback_impl_t() { }
 
     void on_delete_range(const key_range_t &range) {
-        chunk_fun(chunk_t::delete_range(region_t(range)));
+        chunk_fun_cb->send_chunk(chunk_t::delete_range(region_t(range)));
     }
 
     void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
-        chunk_fun(chunk_t::delete_key(to_store_key(key), recency));
+        chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency));
     }
 
     void on_keyvalue(const rdb_backfill_atom_t& atom) {
-        chunk_fun(chunk_t::set_key(atom));
+        chunk_fun_cb->send_chunk(chunk_t::set_key(atom));
     }
 
 protected:
@@ -449,7 +460,7 @@ protected:
     }
 
 private:
-    const boost::function<void(rdb_protocol_t::backfill_chunk_t)> &chunk_fun;
+    chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb;
 
     DISABLE_COPYING(rdb_backfill_callback_impl_t);
 };
@@ -470,14 +481,14 @@ static void call_rdb_backfill(int i, btree_slice_t *btree, const std::vector<std
 }
 
 void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-                                     const boost::function<void(backfill_chunk_t)> &chunk_fun,
+                                     chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
                                      superblock_t *superblock,
                                      btree_slice_t *btree,
                                      transaction_t *txn,
                                      backfill_progress_t *progress,
                                      signal_t *interruptor)
                                      THROWS_ONLY(interrupted_exc_t) {
-    rdb_backfill_callback_impl_t callback(chunk_fun);
+    rdb_backfill_callback_impl_t callback(chunk_fun_cb);
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
     refcount_superblock_t refcount_wrapper(superblock, regions.size());
     pmap(regions.size(), boost::bind(&call_rdb_backfill, _1,
@@ -559,4 +570,34 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, UNUSED int 
     uint64_t end = subregion_number + 1 == num_cpu_shards ? HASH_REGION_HASH_SIZE : beg + width;
 
     return region_t(beg, end, key_range_t::universe());
+}
+
+
+struct backfill_chunk_shard_visitor_t : public boost::static_visitor<rdb_protocol_t::backfill_chunk_t> {
+public:
+    explicit backfill_chunk_shard_visitor_t(const rdb_protocol_t::region_t &_region) : region(_region) { }
+    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_key_t &del) {
+        rdb_protocol_t::backfill_chunk_t ret(del);
+        rassert(region_is_superset(region, ret.get_region()));
+        return ret;
+    }
+    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_range_t &del) {
+        rdb_protocol_t::region_t r = region_intersection(del.range, region);
+        rassert(!region_is_empty(r));
+        return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::delete_range_t(r));
+    }
+    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
+        rdb_protocol_t::backfill_chunk_t ret(kv);
+        rassert(region_is_superset(region, ret.get_region()));
+        return ret;
+    }
+private:
+    const rdb_protocol_t::region_t &region;
+
+    DISABLE_COPYING(backfill_chunk_shard_visitor_t);
+};
+
+rdb_protocol_t::backfill_chunk_t rdb_protocol_t::backfill_chunk_t::shard(const rdb_protocol_t::region_t &region) const THROWS_NOTHING {
+    backfill_chunk_shard_visitor_t v(region);
+    return boost::apply_visitor(v, val);
 }

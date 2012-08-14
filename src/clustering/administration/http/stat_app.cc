@@ -12,7 +12,6 @@
 #include "http/json.hpp"
 #include "perfmon/perfmon.hpp"
 #include "perfmon/archive.hpp"
-#include "rpc/mailbox/mailbox.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 
 static const char * STAT_REQ_TIMEOUT_PARAM = "timeout";

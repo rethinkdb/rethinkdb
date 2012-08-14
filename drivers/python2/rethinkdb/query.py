@@ -137,6 +137,8 @@ class BaseExpression(object):
         raise NotImplementedError
 
 class Expression(BaseExpression):
+    """Base class for everything"""
+
     def _finalize_query(self, root):
         root.type = p.Query.READ
         self._write_ast(root.read_query.term)
@@ -238,6 +240,8 @@ class Expression(BaseExpression):
         elif isinstance(index, int):
             return internal.Nth(self, index)
         else:
+            if isinstance(self, JSONExpression):
+                return internal.Attr(self, index)
             raise TypeError("stream indices must be integers, not " + index.__class__.__name__)
 
     def nth(self, index):
@@ -404,7 +408,15 @@ class BaseSelection(object):
         >>> table('users').filter(R('warnings') > 5).update({'banned': True})
 
         """
-        raise NotImplementedError
+        if not isinstance(mapping, internal.Function):
+            mapping = internal.Function(mapping)
+        return internal.Update(self, mapping)
+
+    def mutate(self, mapping):
+        """TODO: get rid of this ?"""
+        if not isinstance(mapping, internal.Function):
+            mapping = internal.Function(mapping)
+        return internal.Mutate(self, mapping)
 
 class MultiRowSelection(Stream, BaseSelection):
     """A sequence of rows which can be read or written."""

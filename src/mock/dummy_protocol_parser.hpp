@@ -1,15 +1,11 @@
 #ifndef MOCK_DUMMY_PROTOCOL_PARSER_HPP_
 #define MOCK_DUMMY_PROTOCOL_PARSER_HPP_
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
-
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "http/http.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "protocol_api.hpp"
-#include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 
 namespace mock {

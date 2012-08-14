@@ -12,10 +12,12 @@
 
 namespace boost { template <class> class function; }
 class binary_blob_t;
+template <class> class chunk_fun_callback_t;
 template <class> class metainfo_checker_t;
 template <class> class multistore_send_backfill_should_backfill_t;
 class mutex_t;
 template <class, class> class region_map_t;
+template <class> class send_backfill_callback_t;
 template <class> class store_view_t;
 template <class> class store_subview_t;
 class traversal_progress_combiner_t;
@@ -63,8 +65,7 @@ public:
                            signal_t *interruptor);
 
     bool send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                                  const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,  // NOLINT
-                                  const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+                                  send_backfill_callback_t<protocol_t> *send_backfill_cb,
                                   traversal_progress_combiner_t *progress,
                                   scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                                   signal_t *interruptor)
@@ -104,7 +105,7 @@ private:
     void single_shard_backfill(int i,
                                multistore_send_backfill_should_backfill_t<protocol_t> *helper,
                                const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                               const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+                               chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
                                traversal_progress_combiner_t *progress,
                                const scoped_array_t<fifo_enforcer_read_token_t> &internal_tokens,
                                signal_t *interruptor) THROWS_NOTHING;

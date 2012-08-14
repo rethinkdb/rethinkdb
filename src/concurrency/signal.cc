@@ -1,5 +1,7 @@
 #include "concurrency/signal.hpp"
 
+#include "arch/runtime/coroutines.hpp"
+
 class notify_later_ordered_subscription_t : public signal_t::subscription_t {
 public:
     notify_later_ordered_subscription_t() : coro_(coro_t::self()) { }
