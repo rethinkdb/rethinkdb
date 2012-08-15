@@ -32,7 +32,7 @@ private:
 
     mutex_assertion_t lock;
 
-    fifo_enforcer_source_t::state_t state;
+    fifo_enforcer_state_t state;
 
     perfmon_counter_t *read_counter, *write_counter;
 
