@@ -7,7 +7,7 @@
     <body>
         <script>
             var re = rethinkdb;
-            var q = re.reql.query;
+            var q = re.query;
 
             var conn = new re.net.HttpConnection('/test.html');
             conn.run(q.expr(1).add(q.expr(2)).lt(q.expr(2)), function(response) {

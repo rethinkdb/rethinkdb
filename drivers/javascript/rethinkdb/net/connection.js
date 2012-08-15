@@ -28,18 +28,10 @@ rethinkdb.net.Connection.prototype.close = goog.nullFunction;
  * @param {function(ArrayBuffer)} callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.run = function(expr, callback) {
-    var term = expr.compile();
-
-    // Wrap in query
-    var query = new Query();
-    query.setType(Query.QueryType.READ);
-
-    var readQuery = new ReadQuery();
-    readQuery.setTerm(term);
+    var query = expr.buildQuery();
 
     // Assign a token
     query.setToken((this.nextToken_++).toString());
-    query.setReadQuery(readQuery);
 
     this.outstandingQueries_[query.getToken()] = callback;
 
@@ -78,13 +70,14 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
         var responseStatus = response.getStatusCode();
         var callback = this.outstandingQueries_[response.getToken()];
         switch(responseStatus) {
-        case Response.StatusCode.SUCCESS_PARTIAL:
         case Response.StatusCode.BROKEN_CLIENT:
-        case Response.StatusCode.BAD_QUERY:
-            throw "bad query";
+            throw "Broken client";
             break;
         case Response.StatusCode.RUNTIME_ERROR:
-            throw "Response type not yet implemented"
+            throw "Runtime error";
+            break;
+        case Response.StatusCode.BAD_QUERY:
+            throw "bad query";
             break;
         case Response.StatusCode.SUCCESS_EMPTY:
             delete this.outstandingQueries_[response.getToken()]
@@ -96,12 +89,16 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
                 var results = response.responseArray().map(JSON.parse);
                 callback(results);
             }
+            break;
         case Response.StatusCode.SUCCESS_JSON:
             delete this.outstandingQueries_[response.getToken()]
             if (callback) {
                 var result = JSON.parse(response.getResponse(0));
                 callback(result);
             }
+            break;
+        case Response.StatusCode.SUCCESS_PARTIAL:
+            throw "partial results not yet implemented";
             break;
         default:
             throw "unknown response status code";

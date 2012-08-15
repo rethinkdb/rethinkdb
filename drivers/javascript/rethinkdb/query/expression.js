@@ -21,19 +21,53 @@ rethinkdb.query.Expression.prototype.run = function(callback, conn) {
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'run',
     rethinkdb.query.Expression.prototype.run);
 
-/**
- * @return {!Term}
- */
+/** @return {!Term} */
 rethinkdb.query.Expression.prototype.compile = goog.abstractMethod;
+
+/** @return {!Query} */
+rethinkdb.query.Expression.prototype.buildQuery = goog.abstractMethod;
+
+/** 
+ * @constructor
+ * @extends {rethinkdb.query.Expression}
+ */
+rethinkdb.query.ReadExpression = function() {};
+goog.inherits(rethinkdb.query.ReadExpression, rethinkdb.query.Expression);
+
+/**
+ * @override
+ * @return {!Query}
+ */
+rethinkdb.query.ReadExpression.prototype.buildQuery = function() {
+    var readQuery = new ReadQuery();
+    var term = this.compile();
+    readQuery.setTerm(term);
+
+    var query = new Query();
+    query.setType(Query.QueryType.READ);
+    query.setReadQuery(readQuery);
+
+    return query;
+};
+
+/** 
+ * @constructor
+ * @extends {rethinkdb.query.Expression}
+ */
+rethinkdb.query.WriteExpression = function() {};
+goog.inherits(rethinkdb.query.WriteExpression, rethinkdb.query.Expression);
+
+/** @override */
+rethinkdb.query.WriteExpression.prototype.buildQuery = goog.abstractMethod();
 
 /**
  * @constructor
- * @extends {rethinkdb.query.Expression}
+ * @extends {rethinkdb.query.ReadExpression}
  */
 rethinkdb.query.JSONExpression = function(json_value) {
     this.value_ = json_value;
 };
-goog.inherits(rethinkdb.query.JSONExpression, rethinkdb.query.Expression);
+goog.inherits(rethinkdb.query.JSONExpression, rethinkdb.query.ReadExpression);
 
 /**
  * @override
@@ -49,7 +83,7 @@ rethinkdb.query.JSONExpression.prototype.compile = function() {
 function makeBinaryConstructor() {
     /**
      * @constructor
-     * @extends {rethinkdb.query.Expression}
+     * @extends {rethinkdb.query.ReadExpression}
      */
     return function(left, right) {
         this.left_ = left;
@@ -100,7 +134,7 @@ function makeBinary(className, builtinType, chainName, comparison) {
 
     // Constructor
     var newClass = rethinkdb.query[className] = makeBinaryConstructor();
-    goog.inherits(newClass, rethinkdb.query.Expression);
+    goog.inherits(newClass, rethinkdb.query.ReadExpression);
 
     // Compile method
     newClass.prototype.compile = comparison ? 
@@ -108,7 +142,7 @@ function makeBinary(className, builtinType, chainName, comparison) {
         makeBinaryBuiltinCompile(/**@type {Builtin.BuiltinType} */(builtinType));
 
     // Chainable method on Expression
-    rethinkdb.query.Expression.prototype[chainName] = function(other) {
+    rethinkdb.query.ReadExpression.prototype[chainName] = function(other) {
         return new newClass(this, other);
     };
 }
@@ -155,7 +189,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'between',
 
 /**
  * @constructor
- * @extends {rethinkdb.query.Expression}
+ * @extends {rethinkdb.query.ReadExpression}
  */
 rethinkdb.query.RangeExpression = function(leftExpr,
                                            start_key,
@@ -170,6 +204,7 @@ rethinkdb.query.RangeExpression = function(leftExpr,
     this.endInclusive_ = (typeof end_inclusive === 'undefined') ?
                                 false : end_inclusive;
 };
+goog.inherits(rethinkdb.query.RangeExpression, rethinkdb.query.ReadExpression);
 
 rethinkdb.query.RangeExpression.prototype.compile = function() {
     var term = new Term();
@@ -192,7 +227,7 @@ rethinkdb.query.RangeExpression.prototype.compile = function() {
 
 /**
  * @constructor
- * @extends {rethinkdb.query.Expression}
+ * @extends {rethinkdb.query.ReadExpression}
  * @param {rethinkdb.query.Expression} leftExpr
  * @param {number} leftExtent
  * @param {number=} opt_rightExtent
@@ -202,6 +237,7 @@ rethinkdb.query.SliceExpression = function(leftExpr, leftExtent, opt_rightExtent
     this.leftExtent_ = leftExtent;
     this.rightExtent_ = opt_rightExtent || null;
 };
+goog.inherits(rethinkdb.query.SliceExpression, rethinkdb.query.ReadExpression);
 
 rethinkdb.query.SliceExpression.prototype.compile = function() {
     var term = new Term();
@@ -262,7 +298,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'skip',
 
 /**
  * @constructor
- * @extends {rethinkdb.query.Expression}
+ * @extends {rethinkdb.query.ReadExpression}
  * @param {rethinkdb.query.Expression} leftExpr
  * @param {number} index
  */
@@ -270,6 +306,7 @@ rethinkdb.query.NthExpression = function(leftExpr, index) {
     this.leftExpr_ = leftExpr;
     this.index_ = index;
 };
+goog.inherits(rethinkdb.query.NthExpression, rethinkdb.query.ReadExpression);
 
 rethinkdb.query.NthExpression.prototype.compile = function() {
     var term = new Term();
@@ -307,3 +344,5 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'nth',
 rethinkdb.query.Expression.prototype.filter = function(selector) {
 
 };
+
+

@@ -11,11 +11,15 @@ var conn = new rethinkdb.net.TcpConnection({host:'newton', port:12346},
 function() {
     console.log('connected');
 
-    conn.run(q.expr([1,2,3,4]).nth(2), function(response) {
+    conn.run(q.table('Welcome-rdb').insert([{'id':0, a:1}, {'id':1, a:2}]), function(response) {
         console.log('response'); 
         console.log(response);
 
-        conn.close();
+        conn.run(q.table('Welcome-rdb').limit(3), function(response) {
+            console.log('response'); 
+            console.log(response);   
+            conn.close();
+        });
     });
 },
 function() {

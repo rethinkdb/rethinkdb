@@ -24,3 +24,5 @@ rethinkdb.query.Database.prototype.list = function() {
 rethinkdb.query.Database.prototype.table = function(table_name) {
     return new rethinkdb.query.Table(table_name, this.name_);
 };
+goog.exportProperty(rethinkdb.query.Database.prototype, 'table',
+                    rethinkdb.query.Database.prototype.table);
