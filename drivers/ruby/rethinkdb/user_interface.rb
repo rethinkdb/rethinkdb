@@ -1,9 +1,20 @@
-# TODO: toplevel documentation
-# TODO: Error, let, if, javascript, builtins, comparators
+# Right now, this is a place to record high-level spec changes that need to
+# happen.  TODO:
+# * UPDATE needs to be changed to do an implicit mapmerge on its righthand side
+#   (this will make its behavior line up with the Python documentation).
+# * MUTATE needs to be renamed to REPLACE (Joe and Tim and I just talked about
+#   this) and maintain its current behavior rather than changing to match UPDATE.
+# * The following are currently unimplemented or buggy: REDUCE, GROUPEDMAPREDUCE,
+#   MUTATE, FOREACH, POINTUPDATE, POINTMUTATE.
+# * The following are going away: ARRAYAPPEND, ARRAYCONCAT, ARRAYSLICE,
+#   ARRAYNTH, ARRAYLENGTH (to be replaced with APPEND, UNION, SLICE, NTH, and
+#   LENGTH (all polymorphic, some of which already work for streams)).
+# * I don't understand where JAVASCRIPT is used, or how GROUPEDMAPREDUCE works.
 module RethinkDB
   # A network connection to the RethinkDB cluster.
   class Connection
-    # Create a new connection to <b>+host+</b> on port <b>+port+</b>.
+    # Create a new connection to <b>+host+</b> on port <b>+port+</b>.  Example:
+    #   c = Connection.new('localhost')
     def initialize(host, port=12346)
       @@last = self
       @socket = TCPSocket.open(host, port)
@@ -16,6 +27,11 @@ module RethinkDB
     # Run the RQL query <b>+query+</b>.  Returns either a list of JSON values or
     # a single JSON value depending on <b>+query+</b>.  (Note that JSON values
     # will be converted to Ruby datatypes by the time you receive them.)
+    # Example (assuming a connection <b>+c+</b> and that you've mixed in
+    # shortcut <b>+r+</b>):
+    #   c.run(r.add(1,2))                         => 3
+    #   c.run(r.expr([r.add(1,2)]))               => [3]
+    #   c.run(r.expr([r.add(1,2), r.add(10,20)])) => [3, 30]
     def run query
       a = []
       token_iter(dispatch query){|row| a.push row} ? a : a[0]
@@ -27,6 +43,13 @@ module RethinkDB
     # <b>+true+</b> if your query returned a sequence of values or
     # <b>+false+</b> if your query returned a single value.  (Note that JSON
     # values will be converted to Ruby datatypes by the time you receive them.)
+    # Example (assuming a connection <b>+c+</b> and that you've mixed in
+    # shortcut <b>+r+</b>):
+    #   a = []
+    #   c.iter(r.add(1,2)) {|val| a.push val} => false
+    #   a                                     => [3]
+    #   c.iter(r.expr([r.add(1,2), r.add(10,20)])) {|val| a.push val} => false
+    #   a                                     => [3]
     def iter(query, &block)
       token_iter(dispatch(query), &block)
     end
@@ -63,28 +86,7 @@ module RethinkDB
     # <b>+id+</b> less tahn 4.  If the object returned in <b>+update+</b>
     # has attributes which are not present in the original row, those attributes
     # will still be added to the new row.
-    def update; with_var {|vname,v| S._ [:update, @body, [vname, yield(v)]]}; end
-
-    # TODO: start_inclusive, end_inclusive in python -- what do these do?
-    #
-    # Construct a query which yields all rows of the invoking query with keys
-    # between <b>+start_key+</b> and <b>+end_key+</b> (inclusive).  You may also
-    # optionally specify the name of the attribute to use as your key
-    # (<b>+keyname+</b>), but note that your table must be indexed by that
-    # attribute.  Either <b>+start_key+</b> and <b>+end_key+</b> may be nil, in
-    # which case that side of the range is unbounded.  For example, if we have a
-    # table <b>+table+</b>, these are equivalent:
-    #   table.between(3,7)
-    #   table.filter{|row| (row[:id] >= 3) & (row[:id] <= 7)}
-    # as are these:
-    #   table.between(nil,7,:index)
-    #   table.filter{|row| row[:index] <= 7}
-    def between(start_key, end_key, keyname=:id)
-      opts = {:attrname => keyname}
-      opts[:lowerbound] = start_key if start_key != nil
-      opts[:upperbound] = end_key if end_key != nil
-      S._ [:call, [:range, opts], [@body]]
-    end
+    def update; S.with_var {|vname,v| S._ [:update, @body, [vname, yield(v)]]}; end
 
     # Construct a query which filters the invoking query using some predicate.
     # You may either specify the predicate explicitly by providing a block which
@@ -102,18 +104,16 @@ module RethinkDB
     # RQL_Mixin#expr.)
     def filter(obj=nil)
       if obj then filter{[:call, [:all], obj.map {|kv| RQL.attr(kv[0]).eq(kv[1])}]}
-             else with_var {|vname,v| S._ [:call, [:filter, vname, yield(v)], [@body]]}
+             else S.with_var {|vname,v| S._ [:call, [:filter, vname, yield(v)], [@body]]}
       end
     end
-
-    #TODO: LIMIT (ask about SLICE)
 
     # Construct a query which maps a function over the invoking query.  It is
     # often used in conjunction with <b>+reduce+</b>. For example, if we have a
     # table <b>+table+</b>:
     #   table.map{|row| row[:age]}.reduce(0){|a,b| a+b}
     # will add up all the ages in <b>+table+</b>.
-    def map; with_var {|vname,v| S._ [:call, [:map, vname, yield(v)], [@body]]}; end
+    def map; S.with_var {|vname,v| S._ [:call, [:map, vname, yield(v)], [@body]]}; end
 
     # Construct a query which selects the nth element of the invoking query.
     # For example, if we have a table <b>+people+</b>:
@@ -141,7 +141,6 @@ module RethinkDB
     def iter; connection_send :iter; end
 
     #TODO: Sample (unimplemented)
-    #TODO: SKIP (ask about SLICE)
 
     # Get the row of the invoking table with key <b>+key+</b>.  You may also
     # optionally specify the name of the attribute to use as your key
@@ -157,6 +156,7 @@ module RethinkDB
     end
   end
 
+  # TODO: remove limit example
   # A mixin that contains all the query building commands.  Usually you will
   # access these functions by extending/including <b>+Shortcuts_Mixin+</b> and
   # then using the shortcut <b>+r+</b> that it provides.  For example, assuming
@@ -179,7 +179,7 @@ module RethinkDB
     #   r[5]
     def [](ind); expr ind; end
 
-    # Converts from a Ruby datatype to an RQL query.  More commonly accessed
+    # Convert from a Ruby datatype to an RQL query.  More commonly accessed
     # with its shortcut, <b><tt>[]</tt></b>.  Numbers, strings, booleans,
     # arrays, objects, and nil are all converted to their respective JSON types.
     # Symbols that begin with '$' are converted to variables, and symbols
@@ -200,6 +200,10 @@ module RethinkDB
     # Note: this function is idempotent, so the following are equivalent:
     #   r[5]
     #   r[r[5]]
+    # Note 2: the implicit variable can be dangerous.  Never pass it to a
+    # Ruby function, as it might enter a different scope without your
+    # knowledge.  In general, if you're doing something complicated, consider
+    # naming your variables.
     def expr x
       case x.class().hash
       when RQL_Query.hash  then x
@@ -210,7 +214,7 @@ module RethinkDB
       when NilClass.hash   then S._ [:json_null]
       when Array.hash      then S._ [:array, *x.map{|y| expr(y)}]
       when Hash.hash       then S._ [:object, *x.map{|var,term| [var, expr(term)]}]
-      when Symbol.hash     then S._ x.to_s[0]=='$'[0] ? var(x.to_s[1..-1]) : attr(x)
+      when Symbol.hash     then S._ x.to_s[0]=='$'[0] ? var(x.to_s[1..-1]) : getattr(x)
       else raise TypeError, "RQL.expr can't handle '#{x.class()}'"
       end
     end
@@ -221,12 +225,313 @@ module RethinkDB
     #   r.var('varname')
     def var(varname); S._ [:var, varname]; end
 
+    # Provide a literal JSON string that will be parsed by the server.  For
+    # example, the following are equivalent:
+    #   r.expr([1,2,3])
+    #   r.json('[1,2,3]')
+    def json(str); S._ [:json, str]; end
+
+    # Construct an error.  This is usually used in the branch of an <b>+if+</b>
+    # expression.  For example:
+    #   r.if(r[1] > 2, false, r.error('unreachable'))
+    # will only run the error query if 1 is greater than 2.  If an error query
+    # does get run, it will be received as a RuntimeError in Ruby, so be
+    # prepared to handle it.
+    def error(err); S._ [:error, err]; end
+
+    # Construct a query that runs a subquery <b>+test+</b> which returns a
+    # boolean, then branches into either <b>+t_branch+</b> if <b>+test+</b>
+    # returned true or <b>+f_branch+</b> if <b>+test+</b> returned false.  For
+    # example, if we have a table <b>+table+</b>:
+    #   table.update{|row| if(row[:score] < 10, {:score => 10}, {})}
+    # will change every row with score below 10 in <b>+table+</b> to have score 10.
+    def if(test, t_branch, f_branch); S._ [:if, test, t_branch, f_branch]; end
+
+    # Construct a query that binds some values to variable (as specified by
+    # <b>+varbinds+</b>) and then executes <b>+body+</b> with those variables in
+    # scope.  For example:
+    #   r.let([['a', 2],
+    #          ['b', r[:$a]+1]],
+    #         r[:$b]*2)
+    # will bind <b>+a+</b> to 2, <b>+b+</b> to 3, and then return 6.  (It is
+    # thus analagous to <b><tt>let*</tt></b> in the Lisp family of languages.)
+    def let(varbinds, body); S._ [:let, varbinds, body]; end
+
+    # Negate a predicate.  May also be called as if it were a instance method of
+    # RQL_Query for convenience.  The following are equivalent:
+    #   r.not(true)
+    #   r[true].not
+    def not(pred); S._ [:call, [:not], [pred]]; end
+
     # Explicitly construct a reference to an attribute of the implicit
     # variable.  This is useful if for some reason you named an attribute that's
     # hard to express as a symbol, or an attribute starting with a '$'.  The
     # following are equivalent:
     #   r[:attrname]
     #   r.attr('attrname')
-    def attr(attrname); S._ [:call, [:implicit_getattr, attrname], []]; end
+    # Get an attribute of the implicit variable (usually done with
+    # RQL_Mixin#expr).  Getting an attribute explicitly is useful if it has an
+    # odd name that can't be expressed as a symbol (or a name that starts with a
+    # $).  Synonyms are <b>+get+</b> and <b>+attr+</b>.  The following are all
+    # equivalent:
+    #   r[:id]
+    #   r.expr(:id)
+    #   r.getattr('id')
+    #   r.get('id')
+    #   r.attr('id')
+    def getattr(attrname); S._ [:call, [:implicit_getattr, attrname], []]; end
+
+    # Test whether the implicit variable has a particular attribute.  Synonyms
+    # are <b>+has+</b> and <b>+attr?+</b>.  The following are all equivalent:
+    #   r.hasattr('name')
+    #   r.has('name')
+    #   r.attr?('name')
+    def hasattr(attrname); S._ [:call, [:implicit_hasattr, attrname], []]; end
+
+    # Construct an object that is a subset of the object stored in the implicit
+    # variable by extracting certain attributes.  Synonyms are <b>+pick+</b> and
+    # <b>+attrs+</b>.  The following are all equivalent:
+    #   r[{:id => r[:id], :name => r[:name]}]
+    #   r.pickattrs(:id, :name)
+    #   r.pick(:id, :name)
+    #   r.attrs(:id, :name)
+    def pickattrs(*attrnames); S._ [:call, [:implicit_pickattrs, *attrnames], []]; end
+
+    # Add the results of two or more queries together.  (Those queries should
+    # return numbers.)  May also be called as if it were a instance method of
+    # RQL_Query for convenience, and overloads <b><tt>+</tt></b> if the lefthand
+    # side is a query.  The following are all equivalent:
+    #   r.add(1,2)
+    #   r[1].add(2)
+    #   (r[1] + 2) # Note that (1 + r[2]) is *incorrect* because Ruby only
+    #              # overloads based on the lefthand side.
+    # The following is also legal:
+    #   r.add(1,2,3)
+    def add(a, b, *rest); S._ [:call, [:add], [a, b, *rest]]; end
+
+    # Subtract one query from another.  (Those queries should return numbers.)
+    # May also be called as if it were a instance method of RQL_Query for
+    # convenience, and overloads <b><tt>-</tt></b> if the lefthand side is a
+    # query.  Also has the shorter synonym <b>+sub+</b>. The following are all
+    # equivalent:
+    #   r.subtract(1,2)
+    #   r[1].subtract(2)
+    #   r.sub(1,2)
+    #   r[1].sub(2)
+    #   (r[1] - 2) # Note that (1 - r[2]) is *incorrect* because Ruby only
+    #              # overloads based on the lefthand side.
+    def subtract(a, b); S._ [:call, [:subtract], [a, b]]; end
+
+    # Multiply the results of two or more queries together.  (Those queries should
+    # return numbers.)  May also be called as if it were a instance method of
+    # RQL_Query for convenience, and overloads <b><tt>+</tt></b> if the lefthand
+    # side is a query.  Also has the shorter synonym <b>+mul+</b>.  The
+    # following are all equivalent:
+    #   r.multiply(1,2)
+    #   r[1].multiply(2)
+    #   r.mul(1,2)
+    #   r[1].mul(2)
+    #   (r[1] * 2) # Note that (1 * r[2]) is *incorrect* because Ruby only
+    #              # overloads based on the lefthand side.
+    # The following is also legal:
+    #   r.multiply(1,2,3)
+    def multiply(a, b, *rest); S._ [:call, [:multiply], [a, b, *rest]]; end
+
+    # Divide one query by another.  (Those queries should return numbers.)
+    # May also be called as if it were a instance method of RQL_Query for
+    # convenience, and overloads <b><tt>/</tt></b> if the lefthand side is a
+    # query.  Also has the shorter synonym <b>+div+</b>. The following are all
+    # equivalent:
+    #   r.divide(1,2)
+    #   r[1].divide(2)
+    #   r.div(1,2)
+    #   r[1].div(2)
+    #   (r[1] / 2) # Note that (1 / r[2]) is *incorrect* because Ruby only
+    #              # overloads based on the lefthand side.
+    def divide(a, b); S._ [:call, [:divide], [a, b]]; end
+
+    # Take one query modulo another.  (Those queries should return numbers.)
+    # May also be called as if it were a instance method of RQL_Query for
+    # convenience, and overloads <b><tt>%</tt></b> if the lefthand side is a
+    # query.  Also has the shorter synonym <b>+mod+</b>. The following are all
+    # equivalent:
+    #   r.modulo(1,2)
+    #   r[1].modulo(2)
+    #   r.mod(1,2)
+    #   r[1].mod(2)
+    #   (r[1] - 2) # Note that (1 - r[2]) is *incorrect* because Ruby only
+    #              # overloads based on the lefthand side.
+    def modulo(a, b); S._ [:call, [:modulo], [a, b]]; end
+
+    # Take one or more predicate queries and construct a query that returns true
+    # if any of them evaluate to true.  Sort of like <b>+or+</b> in ruby, but
+    # takes arbitrarily many arguments and is *not* guaranteed to
+    # short-circuit.  May also be called as if it were a instance method of
+    # RQL_Query for convenience, and overloads <b><tt>&</tt></b> if the lefthand
+    # side is a query.  Also has the synonym <b>+or+</b>.  The following are
+    # all equivalent:
+    #   r[true]
+    #   r.any(false, true)
+    #   r.or(false, true)
+    #   r[false].any(true)
+    #   r[false].or(true)
+    #   (r[false] & true) # Note that (false & r[true]) is *incorrect* because
+    #                     # Ruby only overloads based on the lefthand side
+    def any(pred, *rest); S._ [:call, [:any], [pred, *rest]]; end
+
+    # Take one or more predicate queries and construct a query that returns true
+    # if all of them evaluate to true.  Sort of like <b>+or+</b> in ruby, but
+    # takes arbitrarily many arguments and is *not* guaranteed to
+    # short-circuit.  May also be called as if it were a instance method of
+    # RQL_Query for convenience, and overloads <b><tt>|</tt></b> if the lefthand
+    # side is a query.  Also has the synonym <b>+or+</b>.  The following are
+    # all equivalent:
+    #   r[false]
+    #   r.all(false, true)
+    #   r.and(false, true)
+    #   r[false].all(true)
+    #   r[false].and(true)
+    #   (r[false] | true) # Note that (false | r[true]) is *incorrect* because
+    #                     # Ruby only overloads based on the lefthand side
+    def all(pred, *rest); S._ [:call, [:all], [pred, *rest]]; end
+
+    # Filter a query returning a stream based on a predicate.  May also be
+    # called as if it were a instance method of RQL_Query for convenience.  The
+    # provided block should take a single variable, a row in the stream, and
+    # return either <b>+true+</b> if it should be in the resulting stream of
+    # <b>+false+</b> otherwise.  If you have a table <b>+table+</b>, the
+    # following are all equivalent:
+    #   r.filter(table) {|row| row[:id] < 5}
+    #   table.filter {|row| row[:id] < 5}
+    #   table.filter {r[:id] < 5} # uses implicit variable
+    def filter(stream)
+      S.with_var{|vname,v| S._ [:call, [:filter, vname, yield(v)], [stream]]}
+    end
+
+    # Map a function over a query returning a stream.  May also be called as if
+    # it were a instance method of RQL_Query for convenience.  The provided
+    # block should take a single variable, a row in the stream, and return a row
+    # in the resulting stream.  If you have a table <b>+table+</b>, the
+    # following are all equivalent:
+    #   r.map(table) {|row| row[:id]}
+    #   table.map {|row| row[:id]}
+    #   table.map {r[:id]} # uses implicit variable
+    def map(stream)
+      S.with_var{|vname,v| S._ [:call, [:map, vname, yield(v)], [stream]]}
+    end
+
+    # Map a function over a query returning a stream, then concatenate the
+    # results together.  May also be called as if it were a instance method of
+    # RQL_Query for convenience.  The provided block should take a single
+    # variable, a row in the stream, and return a list of rows to include in the
+    # resulting stream.  If you have a table <b>+table+</b>, the following are
+    # all equivalent:
+    #   r.concatmap(table) {|row| r.expr([row[:id], row[:id]*2])}
+    #   table.concatmap {|row| r.expr([row[:id], row[:id]*2])}
+    #   table.concatmap {r.expr([r[:id], r[:id]*2])} # uses implicit variable
+    #   table.map{|row| r.expr([row[:id], row[:id]*2])}.reduce([]){|a,b| r.union(a,b)}
+    def concatmap(stream)
+      S.with_var{|vname,v| S._ [:call, [:concatmap, vname, yield(v)], [stream]]}
+    end
+
+
+    # TODO: start_inclusive, end_inclusive in python -- what do these do?
+    #
+    # Construct a query which yields all rows of <b>+stream+</b> with keys
+    # between <b>+start_key+</b> and <b>+end_key+</b> (inclusive).  You may also
+    # optionally specify the name of the attribute to use as your key
+    # (<b>+keyname+</b>), but note that your table must be indexed by that
+    # attribute.  Either <b>+start_key+</b> and <b>+end_key+</b> may be nil, in
+    # which case that side of the range is unbounded.  This function may also be
+    # called as if it were a instance method of RQL_Query, for convenience.  For
+    # example, if we have a table <b>+table+</b>, these are equivalent:
+    #   r.between(table, 3, 7)
+    #   table.between(3,7)
+    #   table.filter{|row| (row[:id] >= 3) & (row[:id] <= 7)}
+    # as are these:
+    #   table.between(nil,7,:index)
+    #   table.filter{|row| row[:index] <= 7}
+    def between(stream, start_key, end_key, keyname=:id)
+      opts = {:attrname => keyname}
+      opts[:lowerbound] = start_key if start_key != nil
+      opts[:upperbound] = end_key if end_key != nil
+      S._ [:call, [:range, opts], [stream]]
+    end
+
+    # Removes duplicate items from <b>+seq+</b>, which may be either a JSON
+    # array or a stream (similar to the *nix <b>+uniq+</b> function).  May also
+    # be called as if it were a instance method of RQL_Query, for convenience.
+    # If we have a table <b>+table+</b>, the following are equivalent:
+    #   r.distinct(table)
+    #   table.distinct
+    # As are:
+    #   r.expr [1,2,3]
+    #   r.distinct(r.expr [1,2,3,1])
+    #   r.expr([1,2,3,1]).distinct
+    def distinct(seq); S._ [:call, [:distinct], [seq]]; end
+
+    # Get the length of <b>+seq+</b>, which may be either a JSON array or a
+    # stream.  If we have a table <b>+table+</b> with at least 5 elements, the
+    # following are equivalent:
+    #   r.length(table.limit(5))
+    #   table.limit(5).length
+    #   r.length(r.expr [1..5])
+    #   r.expr([1..5]).length
+    def length(seq); S._ [:call, [:length], [seq]]; end
+
+    # Take the union of 0 or more sequences <b>+seqs+</b>.  Note that unlike
+    # mathematical union, duplicate values are preserved.  May be called on
+    # either arrays or streams.  May also be called as if it were a instance
+    # method of RQL_Query, for convenience.  For example, if we have a table
+    # <b>+table+</b>, the following are equivalent:
+    #   r.union(table.map{r[:id]}, table.map{r[:num]})
+    #   table.map{r[:id]}.union(table.map{r[:num]})
+    # As are:
+    #   r.expr [1,2,3,1,4,5]
+    #   r.union(r.expr([1,2,3]), r.expr([1,4,5]))
+    #   r.expr([1,2,3]).union(r.expr [1,4,5])
+    def union(*seqs); S._ [:call, [:union], seqs]; end
+
+    # Convert from an array to a stream.  Also has the synonym
+    # <b>+to_stream+</b>.  May also be called as if it were a instance method of
+    # RQL_Query, for convenience.  While most sequence functions are polymorphic
+    # and handle both arrays and streams, when arrays or streams need to be
+    # combined (e.g. via <b>+union+</b>) you need to explicitly convert between
+    # the types.  This is mostly for safety, but also because which type you're
+    # working with effects error handling.  The following are equivalent:
+    #   r.arraytostream r.expr([1,2,3])
+    #   r.expr([1,2,3]).arraytostream
+    #   r.to_stream r.expr([1,2,3])
+    #   r.expr([1,2,3]).to_stream
+    def arraytostream(array); S._ [:call, [:arraytostream], [array]]; end
+
+    # Convert from a stream to an array.  Also has the synonym <b>+to_array+</b>.
+    # May also be called as if it were a instance method of RQL_Query, for
+    # convenience.  While most sequence functions are polymorphic and handle
+    # both arrays and streams, when arrays or streams need to be combined
+    # (e.g. via <b>+union+</b>) you need to explicitly convert between the
+    # types.  This is mostly for safety, but also because which type you're
+    # working with effects error handling.  The following are equivalent:
+    #   r.streamtoarray table
+    #   table.streamtoarray
+    #   r.to_array table
+    #   table.to_array
+    def streamtoarray(array); S._ [:call, [:streamtoarray], [array]]; end
+
+    # Reduce a function over a stream.  Note that unlike Ruby's reduce, you
+    # cannot omit the base case.  The block you privide should take two
+    # arguments, just like Ruby's reduce.  May also be called as if it were an
+    # instance method of RQL_Query, for convenience.  For example, if we have a
+    # table <b>+table+</b>, the following are equivalent:
+    #   r.reduce(r.map(table){|row| row[:count]}, 0, {|a,b| a+b})
+    #   r.map(table){|row| row[:count]}.reduce(0) {|a,b| a+b}
+    # TODO: actual tests (reduce unimplemented right now)
+    def reduce(stream, base)
+      with_var { |aname,a|
+        with_var { |bname,b|
+          S._ [:call, [:reduce, base, a, b, yield(a,b)], [stream]]
+        }
+      }
+    end
   end
 end
