@@ -58,6 +58,7 @@ void run_rethinkdb_create(const std::string &filepath, const std::string &machin
 
     machine_semilattice_metadata_t machine_semilattice_metadata;
     machine_semilattice_metadata.name = machine_semilattice_metadata.name.make_new_version(machine_name, our_machine_id);
+    machine_semilattice_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
     metadata.machines.machines.insert(std::make_pair(our_machine_id, machine_semilattice_metadata));
 
     scoped_ptr_t<io_backender_t> io_backender;
