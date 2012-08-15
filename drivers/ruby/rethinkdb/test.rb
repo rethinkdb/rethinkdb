@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 #load '/home/mlucy/rethinkdb_ruby/drivers/ruby/rethinkdb/rethinkdb.rb'
-load 'rethinkdb_shortcuts.rb'
-r = RethinkDB::RQL
 # filter might work, merge into master and check
-# nth -- support []?
-# orderby -- reverse notation?
 # random, sample
 # reduce
 
@@ -32,17 +28,17 @@ r = RethinkDB::RQL
 #   * POINTMUTATE
 #   * SOME MERGE
 
-# SLICE, pointdelete, update
-
 ################################################################################
 #                                 CONNECTION                                   #
 ################################################################################
 
+require 'rethinkdb_shortcuts.rb'
 require 'test/unit'
+$port_base = ARGV[0].to_i #0 if none given
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts_Mixin
   def rdb; r.db('','Welcome-rdb'); end
-  @@c = RethinkDB::Connection.new('localhost', 64346)
+  @@c = RethinkDB::Connection.new('localhost', $port_base + 12346)
   def c; @@c; end
 
   def test_cmp #from python tests
