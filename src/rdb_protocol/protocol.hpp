@@ -172,6 +172,20 @@ struct rdb_protocol_t {
         rget_read_t(const key_range_t &_key_range, int _maximum)
             : key_range(_key_range), maximum(_maximum) { }
 
+        rget_read_t(const key_range_t &_key_range, int _maximum, 
+                    const rdb_protocol_details::transform_t &_transform)
+            : key_range(_key_range), maximum(_maximum), transform(_transform) { }
+
+        rget_read_t(const key_range_t &_key_range, int _maximum, 
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
+            : key_range(_key_range), maximum(_maximum), terminal(_terminal) { }
+
+        rget_read_t(const key_range_t &_key_range, int _maximum, 
+                    const rdb_protocol_details::transform_t &_transform,
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
+            : key_range(_key_range), maximum(_maximum), 
+              transform(_transform), terminal(_terminal) { }
+
         key_range_t key_range;
         size_t maximum;
 

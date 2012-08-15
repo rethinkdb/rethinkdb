@@ -1798,8 +1798,6 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
                 stream->add_transformation(c->builtin().filter());
                 return stream;
-                //predicate_t p(c->builtin().filter().predicate(), *env, backtrace);
-                //return boost::shared_ptr<json_stream_t>(new filter_stream_t<predicate_t>(stream, p));
             }
             break;
         case Builtin::MAP:
@@ -1807,9 +1805,6 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
                 stream->add_transformation(c->builtin().map());
                 return stream;
-
-                //return boost::shared_ptr<json_stream_t>(new mapping_stream_t<boost::function<boost::shared_ptr<scoped_cJSON_t>(boost::shared_ptr<scoped_cJSON_t>)> >(
-                                                                //stream, boost::bind(&map, c->builtin().map().mapping().arg(), c->mutable_builtin()->mutable_map()->mutable_mapping()->mutable_body(), *env, _1, backtrace.with("mapping"))));
             }
             break;
         case Builtin::CONCATMAP:
@@ -1817,9 +1812,6 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
                 stream->add_transformation(c->builtin().concat_map());
                 return stream;
-
-                //return boost::shared_ptr<json_stream_t>(new concat_mapping_stream_t<boost::function<boost::shared_ptr<json_stream_t>(boost::shared_ptr<scoped_cJSON_t>)> >(
-                                                                //stream, boost::bind(&concatmap, c->builtin().concat_map().mapping().arg(), c->mutable_builtin()->mutable_concat_map()->mutable_mapping()->mutable_body(), *env, _1, backtrace.with("mapping"))));
             }
             break;
         case Builtin::ORDERBY:

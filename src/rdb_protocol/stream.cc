@@ -109,7 +109,7 @@ result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::termi
 }
 
 void batched_rget_stream_t::read_more() {
-    rdb_protocol_t::rget_read_t rget_read(range, batch_size);
+    rdb_protocol_t::rget_read_t rget_read(range, batch_size, transform);
     rdb_protocol_t::read_t read(rget_read);
     try {
         guarantee(ns_access.get_namespace_if());

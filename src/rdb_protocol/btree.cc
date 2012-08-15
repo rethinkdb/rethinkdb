@@ -277,7 +277,7 @@ public:
         for (tit_t it  = transform.begin();
                    it != transform.end();
                    ++it) {
-             json_list_t tmp;
+            json_list_t tmp;
 
             for (json_list_t::iterator jt  = data.begin();
                                        jt != data.end();
