@@ -20,6 +20,7 @@
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
+#include "clustering/administration/sys_stats.hpp"
 #include "extproc/pool.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
@@ -127,6 +128,11 @@ try {
     perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");
 
     proc_stats_collector_t proc_stats_collector(&proc_stats_collection);
+
+    perfmon_collection_t sys_stats_collection;
+    perfmon_membership_t sys_stats_membership(&get_global_perfmon_collection(), &sys_stats_collection, "sys");
+
+    sys_stats_collector_t sys_stats_collector(filepath, &sys_stats_collection);
 
     scoped_ptr_t<initial_joiner_t> initial_joiner;
     if (!joins.empty()) {
