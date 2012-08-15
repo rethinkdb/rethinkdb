@@ -1283,7 +1283,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                         start = 0;
                     } else {    // cJSON_Number
                         float float_start = start_json->get()->valuedouble;
-                        start = float_start;
+                        start = static_cast<int>(float_start);
                         if (float_start != start) {
                             throw runtime_exc_t("Slice start must be null or an integer.", backtrace.with("arg:1"));
                         }
@@ -1297,7 +1297,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                         stop = length;
                     } else {
                         float float_stop = stop_json->get()->valuedouble;
-                        stop = float_stop;
+                        stop = static_cast<int>(float_stop);
                         if (float_stop != stop) {
                             throw runtime_exc_t("Slice stop must be null or an integer.", backtrace.with("arg:2"));
                         }
@@ -1343,7 +1343,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     cJSON_Number, "The second argument must be an integer.");
 
                 float float_index = index_json->get()->valuedouble;
-                int index = float_index;
+                int index = static_cast<int>(float_index);
                 if (float_index != index) {
                     throw runtime_exc_t("The second argument must be an integer.", backtrace.with("arg:1"));
                 }
@@ -1537,7 +1537,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 // Check second arg type
                 boost::shared_ptr<scoped_cJSON_t> index_json = eval_and_check(c->mutable_args(1), env, backtrace.with("arg:1"), cJSON_Number, "The second argument must be an integer.");
                 float index_float = index_json->get()->valuedouble;
-                int index = index_float;
+                int index = static_cast<int>(index_float);
                 if (index_float != index || index < 0) {
                     throw runtime_exc_t("The second argument must be a nonnegative integer.", backtrace.with("arg:1"));
                 }
@@ -1848,7 +1848,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                         start = 0;
                     } else {    // cJSON_Number
                         float float_start = start_json->get()->valuedouble;
-                        start = float_start;
+                        start = static_cast<int>(float_start);
                         if (float_start != start || start < 0) {
                             throw runtime_exc_t("Slice start must be null or a nonnegative integer.", backtrace.with("arg:1"));
                         }
@@ -1863,7 +1863,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                         stop = 0;
                     } else {
                         float float_stop = stop_json->get()->valuedouble;
-                        stop = float_stop;
+                        stop = static_cast<int>(float_stop);
                         if (float_stop != stop || stop < 0) {
                             throw runtime_exc_t("Slice stop must be null or a nonnegative integer.", backtrace.with("arg:2"));
                         }
@@ -2010,7 +2010,7 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
                         start = 0;
                     } else {    // cJSON_Number
                         float float_start = start_json->get()->valuedouble;
-                        start = float_start;
+                        start = static_cast<int>(float_start);
                         if (float_start != start || start < 0) {
                             throw runtime_exc_t("Slice start must be null or a nonnegative integer.", backtrace.with("arg:1"));
                         }
@@ -2025,7 +2025,7 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
                         stop = 0;
                     } else {
                         float float_stop = stop_json->get()->valuedouble;
-                        stop = float_stop;
+                        stop = static_cast<int>(float_stop);
                         if (float_stop != stop || stop < 0) {
                             throw runtime_exc_t("Slice stop must be null or a nonnegative integer.", backtrace.with("arg:2"));
                         }
