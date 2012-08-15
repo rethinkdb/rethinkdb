@@ -48,6 +48,7 @@ perfmon_result_t *sys_stats_collector_t::instantaneous_stats_collector_t::end_st
     perfmon_result_t::alloc_map_result(&result);
 
     disk_stat_t disk_stat = disk_stat_t(filepath);
+    result->insert("global_disk_space_free", new perfmon_result_t(strprintf("%ld", disk_stat.disk_space_free)));
     result->insert("global_disk_space_used", new perfmon_result_t(strprintf("%ld", disk_stat.disk_space_used)));
     result->insert("global_disk_space_total", new perfmon_result_t(strprintf("%ld", disk_stat.disk_space_total)));
 

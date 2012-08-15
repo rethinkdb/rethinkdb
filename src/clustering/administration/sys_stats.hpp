@@ -13,7 +13,7 @@ public:
     explicit sys_stats_collector_t(const std::string &path, perfmon_collection_t *stats);
 
 private:
-    // TODO: don't repeat this entire class when only one method is different from the one in proc_stats
+    // similar to proc_stats_collector_t::instantaneous_stats_collector_t
     class instantaneous_stats_collector_t : public perfmon_t {
     public:
         instantaneous_stats_collector_t(const std::string &path);
