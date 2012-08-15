@@ -13,7 +13,11 @@ struct disk_stat_t {
         // get disk space data using statvfs
         struct statvfs fsdata;
 
-        res = statvfs(filepath.c_str(), &fsdata);
+        if (filepath == "") {
+            res = statvfs(".", &fsdata);
+        } else {
+            res = statvfs(filepath.c_str(), &fsdata);
+        }
         if (res < 0) {
             throw std::runtime_error(strprintf("Failed to statvfs with filepath '%s': %s "
                 "(errno = %d)", filepath.c_str(), strerror(errno), errno));
