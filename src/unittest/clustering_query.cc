@@ -98,15 +98,16 @@ static void run_read_write_test() {
     for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
             it != inserter.values_inserted->end(); it++) {
         dummy_protocol_t::read_t r;
+        dummy_protocol_t::read_response_t rr;
         r.keys.keys.insert((*it).first);
         cond_t interruptor;
         fifo_enforcer_sink_t::exit_read_t read_token;
         master_access.new_read_token(&read_token);
-        dummy_protocol_t::read_response_t resp = master_access.read(r,
-                                                                    order_source.check_in("unittest::run_read_write_test(clustering_query.cc)").with_read_mode(),
-                                                                    &read_token,
-                                                                    &interruptor);
-        EXPECT_EQ((*it).second, resp.values[(*it).first]);
+        master_access.read(r, &rr,
+                           order_source.check_in("unittest::run_read_write_test(clustering_query.cc)").with_read_mode(),
+                           &read_token,
+                           &interruptor);
+        EXPECT_EQ((*it).second, rr.values[(*it).first]);
     }
 }
 
@@ -175,12 +176,13 @@ static void run_broadcaster_problem_test() {
 
     /* Confirm that it throws an exception */
     dummy_protocol_t::write_t w;
+    dummy_protocol_t::write_response_t wr;
     w.values["a"] = "b";
     cond_t non_interruptor;
     fifo_enforcer_sink_t::exit_write_t write_token;
     master_access.new_write_token(&write_token);
     try {
-        master_access.write(w,
+        master_access.write(w, &wr,
             order_source.check_in("unittest::run_broadcaster_problem_test(clustering_query.cc)"),
             &write_token,
             &non_interruptor);

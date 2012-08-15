@@ -76,7 +76,6 @@ public:
     boost::shared_ptr<scoped_cJSON_t> next();
 
     void add_transformation(const rdb_protocol_details::transform_atom_t &t);
-
     result_t apply_terminal(const rdb_protocol_details::terminal_t &t);
 
 private:

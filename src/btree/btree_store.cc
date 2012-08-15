@@ -76,9 +76,10 @@ btree_store_t<protocol_t>::~btree_store_t() {
 }
 
 template <class protocol_t>
-typename protocol_t::read_response_t btree_store_t<protocol_t>::read(
+void btree_store_t<protocol_t>::read(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const typename protocol_t::read_t &read,
+        typename protocol_t::read_response_t *response,
         UNUSED order_token_t order_token,  // TODO
         scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
         signal_t *interruptor)
@@ -94,14 +95,15 @@ typename protocol_t::read_response_t btree_store_t<protocol_t>::read(
     scoped_ptr_t<superblock_t> superblock2;
     superblock2.init(superblock.release());
 
-    return protocol_read(read, btree.get(), txn.get(), superblock2.get());
+    protocol_read(read, response, btree.get(), txn.get(), superblock2.get());
 }
 
 template <class protocol_t>
-typename protocol_t::write_response_t btree_store_t<protocol_t>::write(
+void btree_store_t<protocol_t>::write(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const metainfo_t& new_metainfo,
         const typename protocol_t::write_t &write,
+        typename protocol_t::write_response_t *response,
         transition_timestamp_t timestamp,
         UNUSED order_token_t order_token,  // TODO
         scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
@@ -115,7 +117,7 @@ typename protocol_t::write_response_t btree_store_t<protocol_t>::write(
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
 
-    return protocol_write(write, timestamp, btree.get(), txn.get(), superblock.get());
+    protocol_write(write, response, timestamp, btree.get(), txn.get(), superblock.get());
 }
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.

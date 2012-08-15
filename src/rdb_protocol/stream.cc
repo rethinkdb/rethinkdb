@@ -97,7 +97,8 @@ result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::termi
     rget_read.terminal = t;
     rdb_protocol_t::read_t read(rget_read);
     try {
-        rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, interruptor);
+        rdb_protocol_t::read_response_t res;
+        ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
         rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         rassert(p_res);
 
@@ -112,7 +113,8 @@ void batched_rget_stream_t::read_more() {
     rdb_protocol_t::read_t read(rget_read);
     try {
         guarantee(ns_access.get_namespace_if());
-        rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, interruptor);
+        rdb_protocol_t::read_response_t res;
+        ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
         rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         rassert(p_res);
 

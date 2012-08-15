@@ -62,26 +62,23 @@ dummy_protocol_t::read_t dummy_protocol_t::read_t::shard(region_t region) const 
     return r;
 }
 
-dummy_protocol_t::read_response_t dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, UNUSED temporary_cache_t *cache) const {
+void dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, dummy_protocol_t::read_response_t *response, UNUSED temporary_cache_t *cache) const {
     rassert(cache != NULL);
-    read_response_t combined;
     for (size_t i = 0; i < resps.size(); ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].values.begin();
                 it != resps[i].values.end(); it++) {
             rassert(keys.keys.count((*it).first) != 0,
                 "We got a response that doesn't match our request");
-            rassert(combined.values.count((*it).first) == 0,
+            rassert(response->values.count((*it).first) == 0,
                 "Part of the query was run multiple times, or a response was "
                 "duplicated.");
-            combined.values[(*it).first] = (*it).second;
+            response->values[(*it).first] = (*it).second;
         }
     }
-    return combined;
 }
 
-dummy_protocol_t::read_response_t
-dummy_protocol_t::read_t::multistore_unshard(const std::vector<read_response_t>& resps, UNUSED temporary_cache_t *cache) const {
-    return unshard(resps, cache);
+void dummy_protocol_t::read_t::multistore_unshard(const std::vector<read_response_t>& resps, read_response_t *response, UNUSED temporary_cache_t *cache) const {
+    unshard(resps, response, cache);
 }
 
 dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
@@ -106,26 +103,23 @@ dummy_protocol_t::write_t dummy_protocol_t::write_t::shard(region_t region) cons
     return w;
 }
 
-dummy_protocol_t::write_response_t dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, UNUSED temporary_cache_t *cache) const {
+void dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, write_response_t *response, UNUSED temporary_cache_t *cache) const {
     rassert(cache != NULL);
-    write_response_t combined;
     for (size_t i = 0; i < resps.size(); ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].old_values.begin();
                 it != resps[i].old_values.end(); it++) {
             rassert(values.find((*it).first) != values.end(),
                 "We got a response that doesn't match our request.");
-            rassert(combined.old_values.count((*it).first) == 0,
+            rassert(response->old_values.count((*it).first) == 0,
                 "Part of the query was run multiple times, or a response was "
                 "duplicated.");
-            combined.old_values[(*it).first] = (*it).second;
+            response->old_values[(*it).first] = (*it).second;
         }
     }
-    return combined;
 }
 
-dummy_protocol_t::write_response_t
-dummy_protocol_t::write_t::multistore_unshard(const std::vector<write_response_t>& resps, UNUSED temporary_cache_t *cache) const {
-    return unshard(resps, cache);
+void dummy_protocol_t::write_t::multistore_unshard(const std::vector<write_response_t>& resps, write_response_t *response, UNUSED temporary_cache_t *cache) const {
+    return unshard(resps, response, cache);
 }
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
@@ -276,16 +270,15 @@ void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
     metainfo.update(new_metainfo);
 }
 
-dummy_protocol_t::read_response_t
-dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
-                                const dummy_protocol_t::read_t &read,
-                                order_token_t order_token,
-                                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
+                                     const dummy_protocol_t::read_t &read,
+                                     dummy_protocol_t::read_response_t *response,
+                                     order_token_t order_token,
+                                     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), read.get_region()));
 
-    dummy_protocol_t::read_response_t resp;
     {
         scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
 
@@ -301,11 +294,10 @@ dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_protoc
         for (std::set<std::string>::iterator it = read.keys.keys.begin();
                 it != read.keys.keys.end(); it++) {
             rassert(get_region().keys.count(*it) != 0);
-            resp.values[*it] = values[*it];
+            response->values[*it] = values[*it];
         }
     }
     if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-    return resp;
 }
 
 void print_region(append_only_printf_buffer_t *buf, const dummy_protocol_t::region_t &region) {
@@ -345,20 +337,19 @@ void debugf_metainfo(DEBUG_ONLY_VAR const char *msg, const region_map_t<dummy_pr
 }
 
 
-dummy_protocol_t::write_response_t
-dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
-                                 const metainfo_t& new_metainfo,
-                                 const dummy_protocol_t::write_t &write,
-                                 transition_timestamp_t timestamp,
-                                 order_token_t order_token,
-                                 scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
+                                      const metainfo_t& new_metainfo,
+                                      const dummy_protocol_t::write_t &write,
+                                      dummy_protocol_t::write_response_t *response,
+                                      transition_timestamp_t timestamp,
+                                      order_token_t order_token,
+                                      scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
     rassert(region_is_superset(get_region(), write.get_region()));
 
-    dummy_protocol_t::write_response_t resp;
     {
         scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
 
@@ -375,7 +366,7 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_proto
         if (rng.randint(2) == 0) nap(rng.randint(10));
         for (std::map<std::string, std::string>::const_iterator it = write.values.begin();
                 it != write.values.end(); it++) {
-            resp.old_values[(*it).first] = values[(*it).first];
+            response->old_values[(*it).first] = values[(*it).first];
             values[(*it).first] = (*it).second;
             timestamps[(*it).first] = timestamp.timestamp_after();
         }
@@ -383,7 +374,6 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_proto
         metainfo.update(new_metainfo);
     }
     if (rng.randint(2) == 0) nap(rng.randint(10));
-    return resp;
 }
 
 bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,

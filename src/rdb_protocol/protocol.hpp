@@ -186,8 +186,8 @@ struct rdb_protocol_t {
 
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
-        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
-        read_response_t multistore_unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        void unshard(std::vector<read_response_t> responses, read_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
+        void multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : read(r.read) { }
@@ -259,8 +259,8 @@ struct rdb_protocol_t {
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
-        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
-        write_response_t multistore_unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        void unshard(std::vector<write_response_t> responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
+        void multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : write(w.write) { }
@@ -331,16 +331,18 @@ struct rdb_protocol_t {
         ~store_t();
 
     private:
-        read_response_t protocol_read(const read_t &read,
-                                      btree_slice_t *btree,
-                                      transaction_t *txn,
-                                      superblock_t *superblock);
+        void protocol_read(const read_t &read,
+                           read_response_t *response,
+                           btree_slice_t *btree,
+                           transaction_t *txn,
+                           superblock_t *superblock);
 
-        write_response_t protocol_write(const write_t &write,
-                                        transition_timestamp_t timestamp,
-                                        btree_slice_t *btree,
-                                        transaction_t *txn,
-                                        superblock_t *superblock);
+        void protocol_write(const write_t &write,
+                            write_response_t *response,
+                            transition_timestamp_t timestamp,
+                            btree_slice_t *btree,
+                            transaction_t *txn,
+                            superblock_t *superblock);
 
         void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
                                     chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,

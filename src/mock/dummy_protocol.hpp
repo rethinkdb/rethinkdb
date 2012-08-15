@@ -53,8 +53,8 @@ public:
     public:
         region_t get_region() const;
         read_t shard(region_t region) const;
-        read_response_t unshard(std::vector<read_response_t> resps, temporary_cache_t *cache) const;
-        read_response_t multistore_unshard(const std::vector<read_response_t>& resps, temporary_cache_t *cache) const;
+        void unshard(std::vector<read_response_t> resps, read_response_t *response, temporary_cache_t *cache) const;
+        void multistore_unshard(const std::vector<read_response_t>& resps, read_response_t *response, temporary_cache_t *cache) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
         region_t keys;
@@ -70,8 +70,8 @@ public:
     public:
         region_t get_region() const;
         write_t shard(region_t region) const;
-        write_response_t unshard(std::vector<write_response_t> resps, temporary_cache_t *cache) const;
-        write_response_t multistore_unshard(const std::vector<write_response_t>& resps, temporary_cache_t *cache) const;
+        void unshard(std::vector<write_response_t> resps, write_response_t *response, temporary_cache_t *cache) const;
+        void multistore_unshard(const std::vector<write_response_t>& resps, write_response_t *response, temporary_cache_t *cache) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(values);
         std::map<std::string, std::string> values;
@@ -127,19 +127,21 @@ public:
                           scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                           signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-        dummy_protocol_t::read_response_t read(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
-                                               const dummy_protocol_t::read_t &read,
-                                               order_token_t order_token,
-                                               scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        void read(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
+                  const dummy_protocol_t::read_t &read,
+                  dummy_protocol_t::read_response_t *response,
+                  order_token_t order_token,
+                  scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-        dummy_protocol_t::write_response_t write(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
-                                                 const metainfo_t& new_metainfo,
-                                                 const dummy_protocol_t::write_t &write,
-                                                 transition_timestamp_t timestamp,
-                                                 order_token_t order_token,
-                                                 scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        void write(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
+                   const metainfo_t& new_metainfo,
+                   const dummy_protocol_t::write_t &write,
+                   dummy_protocol_t::write_response_t *response,
+                   transition_timestamp_t timestamp,
+                   order_token_t order_token,
+                   scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         bool send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
                            send_backfill_callback_t<dummy_protocol_t> *send_backfill_cb,

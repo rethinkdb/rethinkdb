@@ -41,9 +41,9 @@ logic for query routing exposes to the protocol-specific query parser. */
 template<class protocol_t>
 class namespace_interface_t {
 public:
-    virtual typename protocol_t::read_response_t read(typename protocol_t::read_t, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
-    virtual typename protocol_t::read_response_t read_outdated(typename protocol_t::read_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
-    virtual typename protocol_t::write_response_t write(typename protocol_t::write_t, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void read(typename protocol_t::read_t, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void read_outdated(typename protocol_t::read_t, typename protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void write(typename protocol_t::write_t, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
     on them for correctness. They should not block. */
@@ -356,9 +356,10 @@ public:
     [Precondition] region_is_superset(view->get_region(), expected_metainfo.get_domain())
     [Precondition] region_is_superset(expected_metainfo.get_domain(), read.get_region())
     [May block] */
-    virtual typename protocol_t::read_response_t read(
+    virtual void read(
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_expecter, )
             const typename protocol_t::read_t &read,
+            typename protocol_t::read_response_t *response,
             order_token_t order_token,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
@@ -369,10 +370,11 @@ public:
     [Precondition] new_metainfo.get_domain() == expected_metainfo.get_domain()
     [Precondition] region_is_superset(expected_metainfo.get_domain(), write.get_region())
     [May block] */
-    virtual typename protocol_t::write_response_t write(
+    virtual void write(
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_expecter, )
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
+            typename protocol_t::write_response_t *response,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
@@ -499,22 +501,24 @@ public:
         store_view->set_metainfo(new_metainfo, order_token, token, interruptor);
     }
 
-    typename protocol_t::read_response_t read(
+    void read(
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
             const typename protocol_t::read_t &read,
+            typename protocol_t::read_response_t *response,
             order_token_t order_token,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
 
-        return store_view->read(DEBUG_ONLY(metainfo_checker, ) read, order_token, token, interruptor);
+        return store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, token, interruptor);
     }
 
-    typename protocol_t::write_response_t write(
+    void write(
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
+            typename protocol_t::write_response_t *response,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
@@ -523,7 +527,7 @@ public:
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        return store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, timestamp, order_token, token, interruptor);
+        return store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, timestamp, order_token, token, interruptor);
     }
 
     bool send_backfill(

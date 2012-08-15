@@ -53,18 +53,20 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    typename protocol_t::read_response_t read(
+    void read(
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
             const typename protocol_t::read_t &read,
+            typename protocol_t::read_response_t *response,
             order_token_t order_token,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    typename protocol_t::write_response_t write(
+    void write(
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
+            typename protocol_t::write_response_t *response,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
@@ -94,16 +96,18 @@ public:
 
 protected:
     // Functions to be implemented by derived (protocol-specific) store_t classes
-    virtual typename protocol_t::read_response_t protocol_read(const typename protocol_t::read_t &read,
-                                                               btree_slice_t *btree,
-                                                               transaction_t *txn,
-                                                               superblock_t *superblock) = 0;
+    virtual void protocol_read(const typename protocol_t::read_t &read,
+                               typename protocol_t::read_response_t *response,
+                               btree_slice_t *btree,
+                               transaction_t *txn,
+                               superblock_t *superblock) = 0;
 
-    virtual typename protocol_t::write_response_t protocol_write(const typename protocol_t::write_t &write,
-                                                                 transition_timestamp_t timestamp,
-                                                                 btree_slice_t *btree,
-                                                                 transaction_t *txn,
-                                                                 superblock_t *superblock) = 0;
+    virtual void protocol_write(const typename protocol_t::write_t &write,
+                                typename protocol_t::write_response_t *response,
+                                transition_timestamp_t timestamp,
+                                btree_slice_t *btree,
+                                transaction_t *txn,
+                                superblock_t *superblock) = 0;
 
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                         chunk_fun_callback_t<protocol_t> *chunk_fun_cb,

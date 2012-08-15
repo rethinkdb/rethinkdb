@@ -719,7 +719,8 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
 
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(data->GetObjectItem(pk.c_str()))), data));
-        ns_access.get_namespace_if()->write(write, order_token_t::ignore, env->interruptor);
+        rdb_protocol_t::write_response_t response;
+        ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
@@ -728,7 +729,8 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
 void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace) {
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_std_string(id))));
-        ns_access.get_namespace_if()->write(write, order_token_t::ignore, env->interruptor);
+        rdb_protocol_t::write_response_t response;
+        ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
@@ -1027,7 +1029,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
 
                 try {
                     rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(key->Print())));
-                    rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, env->interruptor);
+                    rdb_protocol_t::read_response_t res;
+                    ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
 
                     rdb_protocol_t::point_read_response_t *p_res = boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
                     return p_res->data;

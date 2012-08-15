@@ -77,28 +77,28 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
 
-    typename protocol_t::read_response_t read(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
-                                              const typename protocol_t::read_t &read,
-                                              order_token_t order_token,
-                                              scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
-                                              signal_t *interruptor)
+    void read(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
+              const typename protocol_t::read_t &read,
+               typename protocol_t::read_response_t *response,
+              order_token_t order_token,
+              scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
+              signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    typename protocol_t::write_response_t write(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
-                                                const typename protocol_t::store_t::metainfo_t& new_metainfo,
-                                                const typename protocol_t::write_t &write,
-                                                transition_timestamp_t timestamp,
-                                                order_token_t order_token,
-                                                scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
-                                                signal_t *interruptor)
+    void write(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
+               const typename protocol_t::store_t::metainfo_t& new_metainfo,
+               const typename protocol_t::write_t &write,
+               typename protocol_t::write_response_t *response,
+               transition_timestamp_t timestamp,
+               order_token_t order_token,
+               scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+               signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_all_data(const typename protocol_t::region_t &subregion,
                         const typename protocol_t::store_t::metainfo_t &new_metainfo,
                         scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-
-
 
 private:
     // Used by send_multistore_backfill.

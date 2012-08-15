@@ -66,9 +66,10 @@ void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t
     boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNull()));
     {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t("a"), data));
+        rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
-        rdb_protocol_t::write_response_t response = nsi->write(write, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-A)"), &interruptor);
+        nsi->write(write, &response, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-A)"), &interruptor);
 
         if (rdb_protocol_t::point_write_response_t *maybe_point_write_response_t = boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
             EXPECT_EQ(maybe_point_write_response_t->result, STORED);
@@ -79,9 +80,10 @@ void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t
 
     {
         rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t("a")));
+        rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
-        rdb_protocol_t::read_response_t response = nsi->read(read, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-B)"), &interruptor);
+        nsi->read(read, &response, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-B)"), &interruptor);
 
         if (rdb_protocol_t::point_read_response_t *maybe_point_read_response = boost::get<rdb_protocol_t::point_read_response_t>(&response.response)) {
             EXPECT_TRUE(maybe_point_read_response->data->get() != NULL);
