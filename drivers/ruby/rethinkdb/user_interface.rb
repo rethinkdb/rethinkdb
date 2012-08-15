@@ -63,12 +63,9 @@ module RethinkDB
   # constructed by methods in the RQL module, or by invoking the instance
   # methods of a query on other queries.
   #
-  # When the instance methods of queries are invoked on native Ruby datatypes
-  # rather than other queries, the RethinkDB library will attempt to convert the
-  # Ruby datatype to a query.  Numbers, strings, booleans, and nil will all be
-  # converted to query types, but arrays and objects need to be converted
-  # explicitly with either the <b>+expr+</b> or <b><tt>[]</tt></b> methods in
-  # the RQL module.
+  # Note: many things that look like instance methods of queries actually reside
+  # in the RQL_Mixin module, and instance method variants are provided only for
+  # convenience.  If you don't see your method here, check there.
   class RQL_Query
     # Convert from an RQL query representing a variable to the name of that
     # variable.  Used e.g. in constructing javascript functions.
@@ -79,18 +76,15 @@ module RethinkDB
       end
     end
 
+    # TODO: only handle open ranges explicitly?
     # Much like the [] operator in normal Ruby, [] can be used on either objects
     # (e.g. rows, to get their attributes) or on sequences (e.g. arrays).  In
     # the latter case, you may provide either a single number in order to get an
-    # element of the sequence, or a range in order to get a subsequence.  If you
-    # provide a range, -1 is recognized as a valid endpoint, but no other
-    # negative numbers are.  All ranges in RQL are closed on the end (like a...b
-    # instead of a..b in Ruby).  The
-    # following are all equivalent:
+    # element of the sequence, or a range in order to get a subsequence.
+    # The following are all equivalent:
     #   r[[1,2,3]]
     #   r[[0,1,2,3]][1...4]
-    #   r[[0,1,2,3]][1..4]
-    #   r[[0,1,2,3]][1...-1]
+    #   r[[0,1,2,3]][1..3]
     #   r[[0,1,2,3]][1..-1]
     # As are:
     #   r[1]
@@ -98,12 +92,20 @@ module RethinkDB
     # And:
     #   r[2]
     #   r[{:a => 2}][:a]
+    # NOTE: If you are slicing an array, you can provide any negative index you
+    # want, but if you're slicing a stream then for efficiency reasons the only
+    # allowable negative index is '-1', and you must be using a closed range
+    # ('..', not '...').
     def [](ind)
       case ind.class.hash
       when Fixnum.hash then S._ [:call, [:nth], [@body, RQL.expr(ind)]]
       when Range.hash then
         b = RQL.expr(ind.begin)
-        e = ind.end == -1 ? nil : RQL.expr(ind.end)
+        #PP.pp ind.exclude_end?
+        if ind.exclude_end? then e = ind.end
+                            else e = (ind.end == -1 ? nil : RQL.expr(ind.end+1))
+        end
+        #e = ind.end == -1 ? nil : RQL.expr(ind.end)
         S._ [:call, [:slice], [@body, b, e]]
       when Symbol.hash, String.hash then S._ [:call, [:getattr, ind], [@body]]
       else raise SyntaxError, "RQL_Query#[] can't handle #{ind}."
@@ -286,6 +288,7 @@ module RethinkDB
       when RQL_Query.hash  then x
       when String.hash     then S._ [:string, x]
       when Fixnum.hash     then S._ [:number, x]
+      when Float.hash      then S._ [:number, x]
       when TrueClass.hash  then S._ [:bool, x]
       when FalseClass.hash then S._ [:bool, x]
       when NilClass.hash   then S._ [:json_null]
@@ -400,6 +403,9 @@ module RethinkDB
     #              # overloads based on the lefthand side.
     # The following is also legal:
     #   r.add(1,2,3)
+    # Add may also be used to concatenate arrays.  The following are equivalent:
+    #   r[[1,2,3]]
+    #   r.add([1, 2], [3])
     def add(a, b, *rest)
       S._ [:call, [:add], [expr(a), expr(b), *(rest.map{|x| expr x})]];
     end
@@ -605,16 +611,12 @@ module RethinkDB
     def length(seq); S._ [:call, [:length], [expr seq]]; end
 
     # Take the union of 0 or more sequences <b>+seqs+</b>.  Note that unlike
-    # mathematical union, duplicate values are preserved.  May be called on
-    # either arrays or streams.  May also be called as if it were a instance
-    # method of RQL_Query, for convenience.  For example, if we have a table
-    # <b>+table+</b>, the following are equivalent:
+    # mathematical union, duplicate values are preserved.  May be called on only
+    # on streams; use <b>+add+</b> for arrays.  May also be called as if it were
+    # a instance method of RQL_Query, for convenience.  For example, if we have
+    # a table <b>+table+</b>, the following are equivalent:
     #   r.union(table.map{r[:id]}, table.map{r[:num]})
     #   table.map{r[:id]}.union(table.map{r[:num]})
-    # As are:
-    #   r.expr [1,2,3,1,4,5]
-    #   r.union([1,2,3], [1,4,5])
-    #   r[[1,2,3]].union([1,4,5])
     def union(*seqs); S._ [:call, [:union], seqs.map{|x| expr x}]; end
 
     # Convert from an array to a stream.  Also has the synonym
@@ -703,7 +705,11 @@ module RethinkDB
     #   r[1].eq(1)
     #   r.equals 1,1
     #   r[1].equals(1)
-    def eq(a, b); S._ [:call, [:compare, :eq], [expr(a), expr(b)]]; end
+    # May also be used with more than two arguments.  The following are
+    # equivalent:
+    #   r[false]
+    #   r.eq(1, 1, 2)
+    def eq(*args); S._ [:call, [:compare, :eq], args.map{|x| expr x}]; end
 
     # Check whether the results of two queries are *not* equal.  May also be
     # called as if it were a member function of RQL_Query for convenience.  The
@@ -713,7 +719,11 @@ module RethinkDB
     #   r[1].ne(2)
     #   r.not r.eq(1,2)
     #   r[1].eq(2).not
-    def ne(a, b); S._ [:call, [:compare, :ne], [expr(a), expr(b)]]; end
+    # May also be used with more than two arguments.  The following are
+    # equivalent:
+    #   r[true]
+    #   r.ne(1, 1, 2)
+    def ne(*args); S._ [:call, [:compare, :ne], args.map{|x| expr x}]; end
 
     # Check whether the result of one query is less than another.  May also be
     # called as if it were a member function of RQL_Query for convenience.  May
@@ -726,7 +736,11 @@ module RethinkDB
     # Note that the following is illegal, because Ruby only overloads infix
     # operators based on the lefthand side:
     #   1 < r[2]
-    def lt(a, b); S._ [:call, [:compare, :lt], [expr(a), expr(b)]]; end
+    # May also be used with more than two arguments.  The following are
+    # equivalent:
+    #   r[true]
+    #   r.lt(1, 2, 3)
+    def lt(*args); S._ [:call, [:compare, :lt], args.map{|x| expr x}]; end
 
     # Check whether the result of one query is less than or equal to another.
     # May also be called as if it were a member function of RQL_Query for
@@ -739,7 +753,11 @@ module RethinkDB
     # Note that the following is illegal, because Ruby only overloads infix
     # operators based on the lefthand side:
     #   1 <= r[1]
-    def le(a, b); S._ [:call, [:compare, :le], [expr(a), expr(b)]]; end
+    # May also be used with more than two arguments.  The following are
+    # equivalent:
+    #   r[true]
+    #   r.le(1, 2, 2)
+    def le(*args); S._ [:call, [:compare, :le], args.map{|x| expr x}]; end
 
     # Check whether the result of one query is greater than another.
     # May also be called as if it were a member function of RQL_Query for
@@ -752,7 +770,11 @@ module RethinkDB
     # Note that the following is illegal, because Ruby only overloads infix
     # operators based on the lefthand side:
     #   2 > r[1]
-    def gt(a, b); S._ [:call, [:compare, :gt], [expr(a), expr(b)]]; end
+    # May also be used with more than two arguments.  The following are
+    # equivalent:
+    #   r[true]
+    #   r.gt(3, 2, 1)
+    def gt(*args); S._ [:call, [:compare, :gt], args.map{|x| expr x}]; end
 
     # Check whether the result of one query is greater than or equal to another.
     # May also be called as if it were a member function of RQL_Query for
@@ -765,6 +787,20 @@ module RethinkDB
     # Note that the following is illegal, because Ruby only overloads infix
     # operators based on the lefthand side:
     #   1 >= r[1]
-    def ge(a, b); S._ [:call, [:compare, :ge], [expr(a), expr(b)]]; end
+    # May also be used with more than two arguments.  The following are
+    # equivalent:
+    #   r[true]
+    #   r.ge(2, 2, 1)
+    def ge(*args); S._ [:call, [:compare, :ge], args.map{|x| expr x}]; end
+
+    # Append a single element to an array.  May also be called s if it were a
+    # member function of RQL_Query for convenience.  Has the shorter synonym
+    # <b>+append+</b> The following are equivalent:
+    #   r[[1,2,3,4]]
+    #   r.arrayappend([1,2,3], 4)
+    #   r[[1,2,3]].arrayappend(4)
+    #   r.append([1,2,3], 4)
+    #   r[[1,2,3]].append(4)
+    def arrayappend(arr, el); S._ [:call, [:arrayappend], [expr(arr), expr(el)]]; end
   end
 end

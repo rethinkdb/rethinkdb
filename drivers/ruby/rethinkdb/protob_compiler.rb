@@ -2,6 +2,7 @@ module RethinkDB
   module RQL_Protob_Mixin
     include P_Mixin
     @@token = 0 # We need a new token every time we compile a query
+    @@backtrace = []
 
     # Right now the only special case is :compare, but in general we might have
     # terms that don't follow the conventions and we need a place to store that.
@@ -39,13 +40,14 @@ module RethinkDB
       #   * Empty arguments
       return args.map {|arg| comp(message_class, arg)} if repeating
       args = args[0] if args.class == Array and args[0].class == Hash
-      throw "Cannot construct #{message_class} from #{args}." if args == []
+      raise TypeError,"Cannot construct #{message_class} from #{args}." if args == []
 
       # Handle terminal parts of the protobuf, where we have to actually pack values.
       if message_class.kind_of? Symbol
         # It's easier for the user if we allow both atoms and 1-element lists
         args = [args] if args.class != Array
-        throw "Cannot construct #{message_class} from #{args}." if args.length != 1
+        if args.length != 1
+        then raise TypeError,"Cannot construct #{message_class} from #{args}." end
         # Coercing symbols into strings makes our attribute notation more consistent
         args[0] = args[0].to_s if args[0].class == Symbol
         return args[0]
@@ -58,7 +60,7 @@ module RethinkDB
         args = RQL.expr(args).sexp if args.class() != Array
         query_type = args[0] # Our first argument is the type of our variant.
         message.type = enum_type(message_type_class, query_type)
-        throw "No type '#{query_type}' for '#{message_class}'." if not message.type
+        raise TypeError,"No type '#{query_type}' for '#{message_class}'."if !message.type
 
         if args.length == 1 # Our variant takes no arguments of its own.
           return message
@@ -70,7 +72,8 @@ module RethinkDB
           # The general, non-special case.
           query_type = C.query_rewrites[query_type] || query_type
           field_metadata = message_class.fields.select{|x,y| y.name == query_type}[0]
-          throw "No field '#{query_type}' in '#{message_class}'." if not field_metadata
+          if not field_metadata
+          then raise SyntaxError,"No field '#{query_type}' in '#{message_class}'." end
           field = field_metadata[1]
           message_set(message, query_type,
                       comp(field.type, query_args,field.rule==:repeated))
@@ -101,6 +104,10 @@ module RethinkDB
         message = comp(message_class, [args], repeating)
       end
       return message
+    rescue => e # Add our own, semantic backtrace to exceptions
+      new_msg = repeating ? e.message :
+        e.message + "\n...when compiling #{message_class} with #{args.inspect}"
+      raise e.class, new_msg
     end
 
     # Construct a protobuf query from an RQL query by inferring the query type.
