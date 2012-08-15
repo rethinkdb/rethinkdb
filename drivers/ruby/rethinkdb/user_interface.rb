@@ -5,7 +5,7 @@
 # * MUTATE needs to be renamed to REPLACE (Joe and Tim and I just talked about
 #   this) and maintain its current behavior rather than changing to match UPDATE.
 # * The following are currently unimplemented or buggy: REDUCE, GROUPEDMAPREDUCE,
-#   MUTATE, FOREACH, POINTUPDATE, POINTMUTATE.
+#   FOREACH, POINTUPDATE, POINTMUTATE.
 # * The following are going away: ARRAYAPPEND, ARRAYNTH
 # * I don't understand how GROUPEDMAPREDUCE works.
 module RethinkDB
@@ -110,15 +110,18 @@ module RethinkDB
       end
     end
 
-    # Construct a query that deletes all rows of the invoking query.  For
-    # example, if we have a table <b>+table+</b>:
+    # Delete all rows of the invoking query, which *must* be a table.  For
+    # example, if we have a table
+    # <b>+table+</b>:
     #   table.filter{|row| row[:id] < 5}.delete
     # will construct a query that deletes everything with <b>+id+</b> less than
     # 5 in <b>+table+</b>
-    def delete; S._ [:delete, @body]; end
+    def delete
+      @body[0]==:getbykey ? S._([:pointdelete, *(@body[1..-1])]) : S._([:delete, @body])
+    end
 
-    # Construct a query which updates all rows of the invoking query.  For
-    # example, if we have a table <b>+table+</b>:
+    # Update all rows of the invoking query.  For example, if we have a table
+    # <b>+table+</b>:
     #   table.filter{|row| row[:id] < 5}.update{|row| {:score => row[:score]*2}}
     # will construct a query that doubles the score of everything with
     # <b>+id+</b> less tahn 4.  If the object returned in <b>+update+</b>
@@ -126,7 +129,60 @@ module RethinkDB
     # will still be added to the new row.
     # TODO: doesn't work
     def update
-      S.with_var {|vname,v| S._ [:update, @body, [vname, RQL.expr(yield(v))]]};
+      if @body[0] == :getbykey then S.with_var {|vname,v|
+          S._ [:pointupdate, *(@body[1..-1] + [[vname, RQL.expr(yield(v))]])]}
+      else S.with_var{|vname,v| S._ [:update, @body, [vname, RQL.expr(yield(v))]]}
+      end
+    end
+
+    # Replace all rows of the invoking query.  Unlike update, must return the
+    # new row rather than an object containing attributes to be updated (may be
+    # combined with <b>+mapmerge+</b> to achieve a similar effect to update).
+    # May also return <b>+nil+</b> to delete the row.  For example, if we have a
+    # table <b>+table+</b, then:
+    #   table.mutate{|row| if(row[:id] < 5, nil, row)}
+    # will delete everything with id less than 5, but leave the other rows untouched.
+    def mutate
+      if @body[0] == :getbykey then S.with_var {|vname,v|
+          S._ [:pointmutate, *(@body[1..-1] + [[vname, RQL.expr(yield(v))]])]}
+      else S.with_var{|vname,v| S._ [:mutate, @body, [vname, RQL.expr(yield(v))]]}
+      end
+    end
+
+    # Insert one or more rows into the invoking query, which *must* be a table.
+    # Rows with duplicate primary key (usually :id) are ignored, with no
+    # guarantees about which row 'wins'.  May also provide only one row to
+    # insert.  For example, if we have a table <b>+table+</b>, the following are
+    # equivalent:
+    #   table.insert({:id => 1, :name => 'Bob'})
+    #   table.insert([{:id => 1, :name => 'Bob'}])
+    #   table.insert([{:id => 1, :name => 'Bob'}, {:id => 1, :name => 'Bob'}])
+    def insert(rows)
+      rows = [rows] if rows.class != Array
+      S.with_var {|vname,v| S._ [:insert, @body, rows.map{|x| RQL.expr x}]}
+    end
+
+    # Insert a stream into the invoking query, which *must* be a table.  Often
+    # used to insert one table into another.  For example:
+    #   table.insertstream(table2.filter{|row| row[:id] < 5})
+    # will insert every row in <b>+table2+</b> with id less than 5 into
+    # <b>+table+</b>.
+    def insertstream(stream)
+      S.with_var {|vname,v| S._ [:insertstream, @body, stream]}
+    end
+
+    # For each row in the invoking query, execute 1 or more write queries (to
+    # execute more than 1, yield a list of write queries in the block).  For
+    # example:
+    #   table.foreach{|row| [table2.get(row[:id]).delete, table3.insert(row)]}
+    # will, for each row in <b>+table+</b>, delete the row that shares that id
+    # in <b>+table2+</b> and insert the row into <b>+table3+</b>.
+    def foreach
+      S.with_var { |vname,v|
+        queries = yield(v)
+        queries = [queries] if queries.class != Array
+        S._ [:foreach, @body, vname, queries.map{|x| RQL.expr x}]
+      }
     end
 
     # Run the invoking query using the most recently opened connection.  See
@@ -144,7 +200,7 @@ module RethinkDB
     #   bad  = table.filter{|row| row[:name].eq('Bob')}.get(0)
     # TODO: get().delete() => pointdelete
     def get(key, keyname=:id)
-      if @body[0] == :table then S._ [:getbykey, @body[1..-1], keyname, key]
+      if @body[0] == :table then S._ [:getbykey, @body[1..-1], keyname, RQL.expr(key)]
                             else raise SyntaxError, "Get must be called on a table."
       end
     end
@@ -159,7 +215,6 @@ module RethinkDB
   #   r.db('').Welcome.limit(4).run
   # to get the first 4 elements of that namespace.
   module RQL_Mixin
-
     # Construct a javascript expression, which may refer to variables in scope
     # (use <b>+to_s+</b> to get the name of a variable query, or simply splice
     # it in).  Defaults to a javascript expression, but if the optional second
@@ -181,10 +236,9 @@ module RethinkDB
     #          ['b', 2]],
     #         r.js('a+b+1'))
     def javascript(str, type=:expr);
-      case type
-      when :expr then S._ [:javascript, "return #{str}"]
-      when :func then S._ [:javascript, str]
-      else raise TypeError, 'Type of javascript must be either :expr or :func.'
+      if    type == :expr then S._ [:javascript, "return #{str}"]
+      elsif type == :func then S._ [:javascript, str]
+      else  raise TypeError, 'Type of javascript must be either :expr or :func.'
       end
     end
 
@@ -305,14 +359,22 @@ module RethinkDB
     #   r.getattr('id')
     #   r.get('id')
     #   r.attr('id')
-    def getattr(attrname); S._ [:call, [:implicit_getattr, attrname], []]; end
+    def getattr(obj, attrname=nil)
+      if not attrname then S._ [:call, [:implicit_getattr, obj], []]
+                      else S._ [:call, [:getattr, attrname], [obj]]
+      end
+    end
 
     # Test whether the implicit variable has a particular attribute.  Synonyms
     # are <b>+has+</b> and <b>+attr?+</b>.  The following are all equivalent:
     #   r.hasattr('name')
     #   r.has('name')
     #   r.attr?('name')
-    def hasattr(attrname); S._ [:call, [:implicit_hasattr, attrname], []]; end
+    def hasattr(obj, attrname=nil)
+      if not attrname then S._ [:call, [:implicit_hasattr, obj], []]
+                      else S._ [:call, [:hasattr, attrname], [obj]]
+      end
+    end
 
     # Construct an object that is a subset of the object stored in the implicit
     # variable by extracting certain attributes.  Synonyms are <b>+pick+</b> and
@@ -321,7 +383,12 @@ module RethinkDB
     #   r.pickattrs(:id, :name)
     #   r.pick(:id, :name)
     #   r.attrs(:id, :name)
-    def pickattrs(*attrnames); S._ [:call, [:implicit_pickattrs, *attrnames], []]; end
+    def pickattrs(*attrnames)
+      if attrnames[0].class != RQL_Query
+      then S._ [:call, [:implicit_pickattrs, *attrnames], []]
+      else S._ [:call, [:pickattrs, *(attrnames[1..-1])], [attrnames[0]]]
+      end
+    end
 
     # Add the results of two or more queries together.  (Those queries should
     # return numbers.)  May also be called as if it were a instance method of
@@ -445,12 +512,20 @@ module RethinkDB
     #   people.filter{|row| row[:name].eq('Bob') & row[:age].eq(50)}
     #   people.filter({:name => 'Bob', :age => 50})
     # Note that the values of attributes may themselves be rdb queries.  For
-    # instance, here is a query that maches anyone whose age is double their height:
-    #   people.filter({:age => r[:height]*2})
+    # instance, here is a query that matches anyone whose age is double their height:
+    #   people.filter({:age => r.mul(:height, 2)})
+    # --
+    # (not currently true)
+    # WARNING: since the implicit variable always refers to the nearest
+    # enclosing block, if you were to use the implicit variable in a filter
+    # specified by an dobject, you would instead access the nearest enclosing
+    # block.  The following, for example, are equivalent:
+    #   table.concatmap{people.filter({:age => r[:height]*2})}
+    #   table.concatmap{|row| people.filter({:age => row[:height]*2})}
     def filter(stream, obj=nil)
       if obj
         filter(stream) {
-          S._ [:call, [:all], obj.map{|kv| getattr(kv[0]).eq(kv[1])}]
+          S._ [:call, [:all], obj.map{|kv| getattr(kv[0]).eq(expr(kv[1]))}]
         }
       else
         S.with_var{|vname,v| S._ [:call,[:filter, vname, expr(yield(v))], [expr stream]]}
@@ -484,7 +559,6 @@ module RethinkDB
         S._ [:call, [:concatmap, vname, expr(yield(v))], [expr stream]]
       }
     end
-
 
     # TODO: start_inclusive, end_inclusive in python -- what do these do?
     #
@@ -620,5 +694,77 @@ module RethinkDB
     #   r.mapmerge({:a => 1, :b => 2}, {:a => 10, :c => 30})
     #   r[{:a => 1, :b => 2}].mapmerge({:a => 10, :c => 30})
     def mapmerge(obj1, obj2); S._ [:call, [:mapmerge], [expr(obj1), expr(obj2)]]; end
+
+    # Check whether the results of two queries are equal.  May also be called as
+    # if it were a member function of RQL_Query for convenience.  Has the
+    # synonym <b>+equals+</b>.  The following are all equivalent:
+    #   r[true]
+    #   r.eq 1,1
+    #   r[1].eq(1)
+    #   r.equals 1,1
+    #   r[1].equals(1)
+    def eq(a, b); S._ [:call, [:compare, :eq], [expr(a), expr(b)]]; end
+
+    # Check whether the results of two queries are *not* equal.  May also be
+    # called as if it were a member function of RQL_Query for convenience.  The
+    # following are all equivalent:
+    #   r[true]
+    #   r.ne 1,2
+    #   r[1].ne(2)
+    #   r.not r.eq(1,2)
+    #   r[1].eq(2).not
+    def ne(a, b); S._ [:call, [:compare, :ne], [expr(a), expr(b)]]; end
+
+    # Check whether the result of one query is less than another.  May also be
+    # called as if it were a member function of RQL_Query for convenience.  May
+    # also be called as the infix operator <b><tt> < </tt></b> if the lefthand
+    # side is an RQL query.  The following are all equivalent:
+    #   r[true]
+    #   r.lt 1,2
+    #   r[1].lt(2)
+    #   r[1] < 2
+    # Note that the following is illegal, because Ruby only overloads infix
+    # operators based on the lefthand side:
+    #   1 < r[2]
+    def lt(a, b); S._ [:call, [:compare, :lt], [expr(a), expr(b)]]; end
+
+    # Check whether the result of one query is less than or equal to another.
+    # May also be called as if it were a member function of RQL_Query for
+    # convenience.  May also be called as the infix operator <b><tt> <= </tt></b>
+    # if the lefthand side is an RQL query.  The following are all equivalent:
+    #   r[true]
+    #   r.le 1,1
+    #   r[1].le(1)
+    #   r[1] <= 1
+    # Note that the following is illegal, because Ruby only overloads infix
+    # operators based on the lefthand side:
+    #   1 <= r[1]
+    def le(a, b); S._ [:call, [:compare, :le], [expr(a), expr(b)]]; end
+
+    # Check whether the result of one query is greater than another.
+    # May also be called as if it were a member function of RQL_Query for
+    # convenience.  May also be called as the infix operator <b><tt> > </tt></b>
+    # if the lefthand side is an RQL query.  The following are all equivalent:
+    #   r[true]
+    #   r.gt 2,1
+    #   r[2].gt(1)
+    #   r[2] > 1
+    # Note that the following is illegal, because Ruby only overloads infix
+    # operators based on the lefthand side:
+    #   2 > r[1]
+    def gt(a, b); S._ [:call, [:compare, :gt], [expr(a), expr(b)]]; end
+
+    # Check whether the result of one query is greater than or equal to another.
+    # May also be called as if it were a member function of RQL_Query for
+    # convenience.  May also be called as the infix operator <b><tt> >= </tt></b>
+    # if the lefthand side is an RQL query.  The following are all equivalent:
+    #   r[true]
+    #   r.ge 1,1
+    #   r[1].ge(1)
+    #   r[1] >= 1
+    # Note that the following is illegal, because Ruby only overloads infix
+    # operators based on the lefthand side:
+    #   1 >= r[1]
+    def ge(a, b); S._ [:call, [:compare, :ge], [expr(a), expr(b)]]; end
   end
 end

@@ -1,5 +1,6 @@
 module RethinkDB
   module C_Mixin #Constants
+    # We often have shorter names for things, or inline variants, specified here.
     def method_aliases
       { :attr => :getattr, :attrs => :pickattrs, :attr? => :hasattr,
         :get => :getattr, :pick => :pickattrs, :has => :hasattr,
@@ -9,9 +10,15 @@ module RethinkDB
         :+ => :add, :- => :subtract, :* => :multiply, :/ => :divide, :% => :modulo,
         :and => :all, :& => :all, :or => :any, :| => :any, :js => :javascript,
         :to_stream => :arraytostream, :to_array => :streamtoarray } end
+
+    # Allows us to identify protobuf classes which are actually variant types,
+    # and to get their corresponding enums.
     def class_types
       { Query => Query::QueryType, WriteQuery => WriteQuery::WriteQueryType,
         Term => Term::TermType, Builtin => Builtin::BuiltinType } end
+
+    # The protobuf spec often has a field with a slightly different name from
+    # the enum constant, which we list here.
     def query_rewrites
       { :getattr => :attr, :implicit_getattr => :attr,
         :hasattr => :attr, :implicit_hasattr => :attr,
@@ -22,13 +29,16 @@ module RethinkDB
         :pointupdate => :point_update, :pointdelete => :point_delete,
         :pointmutate => :point_mutate, :concatmap => :concat_map,
         :read => :read_query, :write => :write_query } end
+
+    # These classes go through a useless intermediate type.
     def trampolines; [:table, :map, :concatmap, :filter] end
+
+    # These classes expect repeating arguments.
     def repeats; [:insert, :foreach]; end
+
+    # These classes reference a tableref directly, rather than a term.
     def table_directs
       [:insert, :insertstream, :pointupdate, :pointdelete, :pointmutate] end
-    def arity
-      { :map => 1, :concatmap => 1, :filter => 1, :reduce => 2, :update => 1,
-        :mutate => 1, :foreach => 1, :pointupdate => 1, :pointmutate => 1 } end
   end
   module C; extend C_Mixin; end
 
@@ -36,7 +46,7 @@ module RethinkDB
     def enum_type(_class, _type); _class.values[_type.to_s.upcase.to_sym]; end
     def message_field(_class, _type); _class.fields.select{|x,y|
         y.instance_eval{@name} == _type
-        #TODO: why did the bottom one stop working?
+        #TODO: why did the following stop working?  (Or, why did it ever work?)
         #y.name == _type
       }[0]; end
     def message_set(message, key, val); message.send((key.to_s+'=').to_sym, val); end
@@ -46,10 +56,7 @@ module RethinkDB
   module S_Mixin #S-expression Utils
     @@gensym_counter = 0
     def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
-    def with_var
-      sym = gensym
-      yield sym, RQL.var(sym)
-    end
+    def with_var; sym = gensym; yield sym, RQL.var(sym); end
     def _ x; RQL_Query.new x; end
   end
   module S; extend S_Mixin; end

@@ -151,8 +151,7 @@ class ClientTest < Test::Unit::TestCase
 
   def test_easy_read #TABLE
     assert_equal($data, rdb.run)
-    assert_equal($data, r.table('', 'Welcome-rdb').run)
-    assert_equal($data, r.table({:table_name => 'Welcome-rdb'}).run)
+    assert_equal($data, r.db('', 'Welcome-rdb').run)
   end
 
   def test_error #IF, JSON, ERROR
@@ -179,7 +178,7 @@ class ClientTest < Test::Unit::TestCase
 
   def test_map #MAP, FILTER, GETATTR, IMPLICIT_GETATTR, STREAMTOARRAY
     assert_equal(rdb.filter({'num' => 1}).run, [$data[1]])
-    assert_equal(rdb.filter({'num' => r[:num]}).run, $data)
+    assert_equal(rdb.filter({'num' => :num}).run, $data)
     query = rdb.map { |outer_row|
       r.streamtoarray(rdb.filter{r[:id] < outer_row[:id]})
     }
@@ -199,7 +198,9 @@ class ClientTest < Test::Unit::TestCase
     #query = rdb.map{r.hasattr(:id)}.reduce(true){|a,b| r.all a,b}
     assert_equal(rdb.map{r.hasattr(:id)}.run, $data.map{true})
     assert_equal(rdb.map{|row| r.not row.hasattr('id')}.run, $data.map{false})
-    assert_equal(rdb.map{r.attr?(:id)}.run, $data.map{true})
+    assert_equal(rdb.map{|row| r.not row.has('id')}.run, $data.map{false})
+    assert_equal(rdb.map{|row| r.not row.attr?('id')}.run, $data.map{false})
+    assert_equal(rdb.map{r.has(:id)}.run, $data.map{true})
     assert_equal(rdb.map{r.attr?('id').not}.run, $data.map{false})
   end
 
@@ -256,8 +257,8 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.between(rdb, 1, 3).run, $data[1..3])
     assert_equal(rdb.between(2,nil).run, $data[2..-1])
     assert_equal(r.between(rdb, 2, nil).run, $data[2..-1])
-    assert_equal(rdb.range(:id, 1, 3).run, $data[1..3])
-    assert_equal(rdb.range({:attrname => :id, :upperbound => 4}).run,$data[0..4])
+    assert_equal(rdb.between(1, 3).run, $data[1..3])
+    assert_equal(rdb.between(nil, 4).run,$data[0..4])
   end
 
   def test_nth #NTH
@@ -293,8 +294,8 @@ class ClientTest < Test::Unit::TestCase
 
   def test_pickattrs #PICKATTRS, #UNION, #LENGTH
     #TODO: when union does implicit mapmerge, change
-    q1=r.union(rdb.map{r.pickattrs(:id,:name)}, rdb.map{|row| row.pickattrs(:id,:num)})
-    q2=r.union(rdb.map{r.attrs(:id,:name)}, rdb.map{|row| row.attrs(:id,:num)})
+    q1=r.union(rdb.map{r.pickattrs(:id,:name)}, rdb.map{|row| row.attrs(:id,:num)})
+    q2=r.union(rdb.map{r.attrs(:id,:name)}, rdb.map{|row| row.pick(:id,:num)})
     q1v = q1.run
     assert_equal(q1v, q2.run)
     len = $data.length
@@ -312,7 +313,8 @@ class ClientTest < Test::Unit::TestCase
     Array.new(len).each_index{|i| $data << {'id'=>i,'num'=>i,'name'=>i.to_s}}
 
     #INSERT, UPDATE
-    assert_equal(rdb.insert($data).run['inserted'], $data.length)
+    assert_equal(rdb.insert($data).run['inserted'], len)
+    assert_equal(rdb.insert($data + $data).run['inserted'], len*2)
     assert_equal(rdb.run, $data)
     assert_equal(rdb.insert({:id => 0, :broken => true}).run['inserted'], 1)
     assert_equal(rdb.insert({:id => 1, :broken => true}).run['inserted'], 1)
@@ -337,24 +339,28 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.run, $data)
 
     #MUTATE -- need fix
-    #PP.pp rdb.mutate{|row| row}.run #r.if(row[:id] < 5, nil, row)}.run
+    assert_equal(rdb.mutate{|row| row}.run, {'modified' => len, 'deleted' => 0})
+    assert_equal(rdb.run, $data)
+    assert_equal(rdb.mutate{|row| r.if(row[:id] < 5, nil, row)}.run,
+                 {'modified' => 5, 'deleted' => len-5})
+    assert_equal(rdb.run, $data[5..-1])
+    assert_equal(rdb.insert($data[0...5]).run, {'inserted' => 5})
     #PP.pp rdb.run
 
     #FOREACH, POINTDELETE
     #PP.pp rdb.foreach{rdb.pointdelete(:id, r[:id])}.run
     #PP.pp rdb.foreach{|x| rdb.foreach{|y| rdb.insert({:id => x[:id]*y[:id]})}}.run
     # RETURN VALUE SHOULD CHANGE
-    rdb.foreach{|row| [rdb.pointdelete(:id, row[:id]), rdb.insert(row)]}.run
+    rdb.foreach{|row| [rdb.get(row[:id]).delete, rdb.insert(row)]}.run
     assert_equal(rdb.run, $data)
-    rdb.foreach{|row| rdb.pointdelete(:id, row[:id])}.run
+    rdb.foreach{|row| rdb.get(row[:id]).delete}.run
     assert_equal(rdb.run, [])
 
     rdb.insert($data).run
     assert_equal(rdb.run, $data)
-    query = rdb.pointupdate(:id, 0){r[{:id => 0, :broken => 5}]}
+    query = rdb.get(0).update{{:id => 0, :broken => 5}}
     assert_equal(query.run, {'updated'=>1,'errors'=>0})
-    query = rdb.pointupdate(:id, 0){|row|
-      r.if(row.attr?(:broken), $data[0], r.error('unreachable'))}
+    query = rdb.get(0).update{|row| r.if(row.attr?(:broken), $data[0], r.error('err'))}
     assert_equal(query.run, {'updated'=>1,'errors'=>0})
     assert_equal(rdb.run, $data)
 
