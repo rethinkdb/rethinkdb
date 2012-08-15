@@ -1834,16 +1834,11 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
             break;
         case Builtin::DISTINCT:
             {
-                shared_scoped_less_t comparator(backtrace);
-                std::set<boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> seen(comparator);
-
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 
-                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    seen.insert(json);
-                }
+                shared_scoped_less_t comparator(backtrace);
 
-                return boost::shared_ptr<in_memory_stream_t>(new in_memory_stream_t(seen.begin(), seen.end(), env));
+                return boost::shared_ptr<json_stream_t>(new distinct_stream_t<shared_scoped_less_t>(stream, comparator));
             }
             break;
         case Builtin::SLICE:
@@ -1954,7 +1949,7 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(TableRef *t, runtime_environment
     if (namespace_info) {
         return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, namespace_info->first, env->interruptor);
     } else {
-        throw runtime_exc_t(strprintf("Namespace %s either not found, ambigious or namespace metadata in conflict.", t->table_name().c_str()), backtrace);
+        throw runtime_exc_t(strprintf("Namespace %s either not found, ambiguous or namespace metadata in conflict.", t->table_name().c_str()), backtrace);
     }
 }
 

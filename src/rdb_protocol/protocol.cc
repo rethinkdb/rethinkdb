@@ -124,7 +124,8 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
         rassert(boost::get<point_read_response_t>(&responses[0].response));
         *response = responses[0];
     } else if (rg) {
-        rget_read_response_t rg_response;
+        response->response = rget_read_response_t();
+        rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
         rg_response.last_considered_key = get_region().inner.left;
@@ -255,15 +256,16 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
 
 void read_t::multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     const point_read_t *pr = boost::get<point_read_t>(&read);
+    const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (pr) {
         rassert(responses.size() == 1);
         rassert(boost::get<point_read_response_t>(&responses[0].response));
         *response = responses[0];
     }
 
-    const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (rg) {
-        rget_read_response_t rg_response;
+        response->response = rget_read_response_t();
+        rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
         rg_response.last_considered_key = get_region().inner.left;
@@ -412,10 +414,9 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
         } else {
             unreachable();
         }
-        *response = read_response_t(rg_response);
+    } else {
+        unreachable("Unknown read response.");
     }
-
-    unreachable("Unknown read response.");
 }
 
 
