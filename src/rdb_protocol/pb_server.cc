@@ -57,7 +57,7 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
     {
         query_language::runtime_environment_t runtime_environment(
             pool_group, ns_repo, semilattice_metadata,
-            directory_metadata, js_runner, &interruptor);
+            directory_metadata, js_runner, &interruptor, this_machine);
         try {
             //[execute] will set the status code unless it throws
             execute(q, &runtime_environment, &res, root_backtrace, stream_cache);

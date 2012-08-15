@@ -5,6 +5,7 @@
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
+#include "clustering/administration/suggester.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/internal_extensions.pb.h"
 #include "rdb_protocol/js.hpp"
@@ -691,7 +692,7 @@ void parse_tableop_create(const TableopQuery::Create &c, std::string *datacenter
     if (c.table_ref().has_db_name()) {
         *db_name = c.table_ref().db_name();
     } else {
-        *db_name = "";
+        *db_name = "Welcome-db";
     }
     *table_name = c.table_ref().table_name();
     if (c.has_primary_key()) {
@@ -704,25 +705,42 @@ void parse_tableop_create(const TableopQuery::Create &c, std::string *datacenter
 void execute_tableop(TableopQuery *t, runtime_environment_t *env, UNUSED Response *res, UNUSED const backtrace_t &backtrace) {
     switch(t->type()) {
     case TableopQuery::CREATE: {
-        std::string datacenter, db_name, table_name, primary_key;
-        parse_tableop_create(t->create(),&datacenter,&db_name,&table_name,&primary_key);
-        const cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
-        //TODO: make sure namespace doesn't exist
-        // namespace_id_t namespace_id = generate_uuid();
-        // namespace_semilattice_metadata_t<rdb_protocol_t> ns =
-        //     //TODO: port number?
-        //     new_namespace(machine, table_name, primary_key, 11213);
+        std::string dc_name, db_name, table_name, primary_key;
+        parse_tableop_create(t->create(),&dc_name,&db_name,&table_name,&primary_key);
+        cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
 
-        //fill_in_blueprints(&metadata, 
-    }
-        break;
+        boost::optional<uuid_t> opt_datacenter_id = metadata_get_uuid_by_name(
+            metadata.datacenters.datacenters, dc_name);
+        if (!opt_datacenter_id) {
+            throw runtime_exc_t(strprintf("No datacenter %s found or names in conflict.",
+                                          dc_name.c_str()),backtrace);
+        }
+        uuid_t dc_id = *opt_datacenter_id;
+
+        boost::optional<uuid_t> opt_database_id = metadata_get_uuid_by_name(
+            metadata.databases.databases, db_name);
+        if (!opt_database_id) {
+            throw runtime_exc_t(strprintf("No database %s found or names in conflict.",
+                                          db_name.c_str()),backtrace);
+        }
+        uuid_t db_id = *opt_database_id;
+
+        uuid_t namespace_id = generate_uuid();
+        //TODO(mlucy): port number?
+        namespace_semilattice_metadata_t<rdb_protocol_t> ns =
+            new_namespace<rdb_protocol_t>(
+                env->this_machine, db_id, dc_id, table_name, primary_key, 11213);
+        //TODO(mlucy): make sure namespace doesn't exist
+        metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, ns));
+        fill_in_blueprints(&metadata, env->directory_metadata->get(), env->this_machine);
+        env->semilattice_metadata->join(metadata);
+        //TODO(mlucy): wait until master is available before returning
+        res->set_status_code(Response::SUCCESS_EMPTY);
+    } break;
     case TableopQuery::DROP:
-        break;
     case TableopQuery::LIST:
-        break;
     default: crash("unimplemented");
     }
-    crash("unimplemented");
 }
 
 void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {

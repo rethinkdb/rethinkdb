@@ -74,6 +74,8 @@ module RethinkDB
           when Response::StatusCode::SUCCESS_STREAM then
             data.push *protob.response
             done = true
+          when Response::StatusCode::SUCCESS_EMPTY then
+            return false
           when Response::StatusCode::BAD_QUERY then error protob,SyntaxError
           when Response::StatusCode::RUNTIME_ERROR then error protob,RuntimeError
           else error protob

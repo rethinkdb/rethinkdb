@@ -142,6 +142,14 @@ boost::optional<std::pair<uuid_t, deletable_t<T> > > metadata_get_by_name(
     }
     return res;
 }
-
-
+template<class T>
+boost::optional<uuid_t> metadata_get_uuid_by_name(
+    std::map<uuid_t, deletable_t<T> > map,
+    const std::string &name) {
+    boost::optional<std::pair<uuid_t, deletable_t<T> > > m =
+        metadata_get_by_name(map, name);
+    boost::optional<uuid_t> u;
+    if (m) u = m->first;
+    return u;
+}
 #endif  // CLUSTERING_ADMINISTRATION_METADATA_HPP_

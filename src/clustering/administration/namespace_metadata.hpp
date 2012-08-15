@@ -50,6 +50,7 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_11(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
 };
 
+
 class vclock_builder_t {
 public:
     vclock_builder_t(const machine_id_t &_machine) : machine(_machine) { }
@@ -60,13 +61,38 @@ private:
 };
 
 template<class protocol_t>
-namespace_semilattice_metadata_t<protocol_t> new_namespace(const machine_id_t &machine,
-    const std::string &name, const std::string &primary_key, int port) {
-    namespace_semilattice_metadata_t<protocol_t> ns;
+namespace_semilattice_metadata_t<protocol_t> new_namespace(
+    uuid_t machine, uuid_t database, uuid_t datacenter,
+    const std::string &name, const std::string &key, int port) {
+
     vclock_builder_t vc(machine);
-    ns.name        = vc.build(name);
-    ns.primary_key = vc.build(primary_key);
-    ns.port        = vc.build(port);
+    namespace_semilattice_metadata_t<protocol_t> ns;
+    ns.database           = vc.build(database);
+    ns.primary_datacenter = vc.build(datacenter);
+    ns.name               = vc.build(name);
+    ns.primary_key        = vc.build(key);
+    ns.port               = vc.build(port);
+
+    std::map<uuid_t, int> affinities;
+    affinities.insert(std::make_pair(datacenter, 0));
+    ns.replica_affinities = vc.build(affinities);
+
+    std::map<uuid_t, int> ack_expectations;
+    ack_expectations.insert(std::make_pair(datacenter, 1));
+    ns.ack_expectations = vc.build(ack_expectations);
+
+    std::set<typename protocol_t::region_t> shards;
+    shards.insert(protocol_t::region_t::universe());
+    ns.shards = vc.build(shards);
+
+    region_map_t<protocol_t, uuid_t> primary_pinnings(
+        protocol_t::region_t::universe(), nil_uuid());
+    ns.primary_pinnings = vc.build(primary_pinnings);
+
+    region_map_t<protocol_t, std::set<uuid_t> > secondary_pinnings(
+        protocol_t::region_t::universe(), std::set<machine_id_t>());
+    ns.secondary_pinnings = vc.build(secondary_pinnings);
+
     return ns;
 }
 

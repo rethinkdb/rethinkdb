@@ -114,7 +114,7 @@ module RethinkDB
       if enum_type(WriteQuery::WriteQueryType, sexp[0])
       then q = comp(Query, [:write, *sexp])
       elsif enum_type(TableopQuery::TableopQueryType, sexp[0])
-      then q = comp(Query, [:table, *sexp])
+      then q = comp(Query, [:tableop, *sexp])
       else q = comp(Query, [:read, sexp])
       end
       q.token = (@@token += 1)
