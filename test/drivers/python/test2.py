@@ -153,7 +153,7 @@ class RDBTest(unittest.TestCase):
     def test_if(self):
         self.expect(I.If(True, 3, 4), 3)
         self.expect(I.If(False, 4, 5), 5)
-        self.expect(I.If(I.Eq(3, 3), "foo", "bar"), "foo")
+        self.expect(I.If(I.CompareEQ(3, 3), "foo", "bar"), "foo")
 
         self.error_exec(I.If(5, 1, 2), "bool")
 
