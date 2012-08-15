@@ -242,7 +242,13 @@ try {
     rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
     // TODO: make this not be shitty (port offsets and such)
     int rdb_protocol_port = 12346 + ports.port_offset;
-    query_server_t rdb_pb_server(rdb_protocol_port, &extproc_pool_group, semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
+    query_server_t rdb_pb_server(
+        rdb_protocol_port,
+        &extproc_pool_group,
+        semilattice_manager_cluster.get_root_view(),
+        directory_read_manager.get_root_view(),
+        &rdb_namespace_repo,
+        machine_id);
     logINF("Listening for RDB protocol traffic on port %d.\n", rdb_protocol_port);
 
     scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :

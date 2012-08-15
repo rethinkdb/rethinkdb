@@ -683,8 +683,10 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     return js_runner;
 }
 
-void parse_tableop_create(const TableopQuery::Create &c, std::string *db_name,
-                          std::string *table_name, std::string *primary_key) {
+void parse_tableop_create(const TableopQuery::Create &c, std::string *datacenter,
+                          std::string *db_name, std::string *table_name,
+                          std::string *primary_key) {
+    *datacenter = c.datacenter();
     if (c.table_ref().has_db_name()) {
         *db_name = c.table_ref().db_name();
     } else {
@@ -698,16 +700,19 @@ void parse_tableop_create(const TableopQuery::Create &c, std::string *db_name,
     }
 }
 
-void execute_tableop(TableopQuery *t, UNUSED runtime_environment_t *env, UNUSED Response *res, UNUSED const backtrace_t &backtrace) {
+void execute_tableop(TableopQuery *t, runtime_environment_t *env, UNUSED Response *res, UNUSED const backtrace_t &backtrace) {
     switch(t->type()) {
     case TableopQuery::CREATE: {
-        std::string db_name, table_name, primary_key;
-        parse_tableop_create(t->create(), &db_name, &table_name, &primary_key);
-        // const cluster_semilattice_metadata_t &metadata=env->semilattice_metadata->get();
+        std::string datacenter, db_name, table_name, primary_key;
+        parse_tableop_create(t->create(),&datacenter,&db_name,&table_name,&primary_key);
+        const cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
+        //TODO: make sure namespace doesn't exist
+        // namespace_id_t namespace_id = generate_uuid();
         // namespace_semilattice_metadata_t<rdb_protocol_t> ns =
-        //     new_namespace(
-        //namespace_id_t namespace_id = generate_uuid();
-        //namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata;
+        //     //TODO: port number?
+        //     new_namespace(machine, table_name, primary_key, 11213);
+
+        //fill_in_blueprints(&metadata, 
     }
         break;
     case TableopQuery::DROP:

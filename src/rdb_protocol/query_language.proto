@@ -301,8 +301,9 @@ message TableopQuery {
     required TableopQueryType type = 1;
 
     message Create {
-        required TableRef table_ref = 1;
-        optional string primary_key = 2;
+        required string datacenter  = 1;
+        required TableRef table_ref = 2;
+        optional string primary_key = 3;
     };
     optional Create create = 2;
 
