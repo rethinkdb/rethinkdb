@@ -199,12 +199,6 @@ class Extend(JSONBuiltin):
 class Append(JSONBuiltin):
     builtin = p.Builtin.ARRAYAPPEND
 
-class Element(JSONBuiltin):
-    builtin = p.Builtin.ARRAYNTH
-
-class ArrayNth(JSONBuiltin):
-    builtin = p.Builtin.ARRAYNTH
-
 class Comparison(JSONBuiltin):
     def _write_ast(self, parent):
         builtin = self._write_call(parent, p.Builtin.COMPARE, *self.args)
@@ -267,7 +261,7 @@ class ToStream(query.Stream):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.ARRAYTOSTREAM, self.array)
 
-class Nth(query.JSONExpression):
+class Nth(Picker):
     def __init__(self, stream, index):
         self.stream = stream
         self.index = query.expr(index)

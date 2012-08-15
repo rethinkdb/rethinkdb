@@ -98,7 +98,6 @@ message Builtin {
         MAPMERGE = 8;
         ARRAYAPPEND = 9;
         SLICE = 11;         // slice(thing_to_slice, None/left extent, None/right extent)
-        ARRAYNTH = 12;
         ADD = 14;
         SUBTRACT = 15;
         MULTIPLY = 16;
