@@ -22,7 +22,7 @@ public:
 private:
 
     void handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t);
-    void send(const response_t &, tcp_conn_t *conn, signal_t *closer) THROWS_ONLY(tcp_conn_t::write_closed_exc_t);
+    void send(const response_t &, tcp_conn_t *conn, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t);
 
     auto_drainer_t auto_drainer;
     scoped_ptr_t<tcp_listener_t> tcp_listener;

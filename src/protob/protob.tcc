@@ -31,7 +31,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
             conn->read(data.data(), size, keepalive.get_drain_signal());
 
             request.ParseFromArray(data.data(), size);
-        } catch (tcp_conn_t::read_closed_exc_t &) {
+        } catch (tcp_conn_read_closed_exc_t &) {
             //TODO need to figure out what blocks us up here in non inline cb
             //mode
             return;
@@ -52,7 +52,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
                     crash("unreachable");
                     break;
             }
-        } catch (tcp_conn_t::write_closed_exc_t &) {
+        } catch (tcp_conn_write_closed_exc_t &) {
             //TODO need to figure out what blocks us up here in non inline cb
             //mode
             return;
@@ -61,7 +61,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
 }
 
 template <class request_t, class response_t, class context_t>
-void protob_server_t<request_t, response_t, context_t>::send(const response_t &res, tcp_conn_t *conn, signal_t *closer) THROWS_ONLY(tcp_conn_t::write_closed_exc_t) {
+void protob_server_t<request_t, response_t, context_t>::send(const response_t &res, tcp_conn_t *conn, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     int size = res.ByteSize();
     conn->write(&size, sizeof(res.ByteSize()), closer);
     scoped_array_t<char> data(size);
