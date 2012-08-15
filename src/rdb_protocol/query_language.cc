@@ -756,7 +756,7 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
                 } catch (cannot_perform_query_exc_t e) { } //continue loop
             }
         } catch (interrupted_exc_t e) {
-            throw runtime_exc_t("Query interrupted, probably by user.");
+            throw runtime_exc_t("Query interrupted, probably by user.", backtrace);
         }
         res->set_status_code(Response::SUCCESS_EMPTY);
     } break;
