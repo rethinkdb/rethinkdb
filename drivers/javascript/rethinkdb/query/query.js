@@ -32,16 +32,6 @@ rethinkdb.query.expr = function(value) {
     return new rethinkdb.query.JSONExpression(value);
 };
 
-/**
- * Constructs an expression with the given variables bound.
- * @export
- */
-rethinkdb.query.fn = function(/** variable */) {
-    for (var i = 0; i < arguments.length - 1; ++i) {
-        goog.asserts.assertString(arguments[i]); 
-    }
-};
-
 /** @export */
 rethinkdb.query.table = function(table_identifier) {
     var db_table_array = table_identifier.split('.');
@@ -57,11 +47,114 @@ rethinkdb.query.table = function(table_identifier) {
 };
 
 /**
+ * @param {string} arg
+ * @param {rethinkdb.query.Expression} body
+ * @constructor
+ */
+rethinkdb.query.FunctionExpression = function(arg, body) {
+    this.arg = arg;
+    this.body = body;
+};
+
+/**
+ * @return {rethinkdb.query.FunctionExpression}
+ * @export
+ */
+rethinkdb.query.fn = function(arg, body) {
+    return new rethinkdb.query.FunctionExpression(arg, body);
+};
+
+/**
+ * @param {string} varName
+ * @constructor
+ * @extends {rethinkdb.query.Expression}
+ */
+rethinkdb.query.VarExpression = function(varName) {
+    this.varName_ = varName;
+};
+goog.inherits(rethinkdb.query.VarExpression, rethinkdb.query.Expression);
+
+/** @override */
+rethinkdb.query.VarExpression.prototype.compile = function() {
+    var term = new Term();
+    term.setType(Term.TermType.VAR);
+    term.setVar(this.varName_);
+    return term;
+};
+
+/**
+ * @param {rethinkdb.query.Expression} leftExpr
+ * @param {string} attrName
+ * @constructor
+ * @extends {rethinkdb.query.Expression}
+ */
+rethinkdb.query.AttrExpression = function(leftExpr, attrName) {
+    this.leftExpr_ = leftExpr;
+    this.attrName_ = attrName;
+};
+goog.inherits(rethinkdb.query.AttrExpression, rethinkdb.query.Expression);
+
+/** @override */
+rethinkdb.query.AttrExpression.prototype.compile = function() {
+    var builtin = new Builtin();
+    builtin.setType(Builtin.BuiltinType.GETATTR);
+    builtin.setAttr(this.attrName_);
+
+    var call = new Term.Call();
+    call.setBuiltin(builtin);
+    call.addArgs(this.leftExpr_.compile());
+
+    var term = new Term();
+    term.setType(Term.TermType.CALL);
+    term.setCall(call);
+
+    return term;
+};
+
+/**
+ * @param {string} attrName
+ * @constructor
+ * @extends {rethinkdb.query.Expression}
+ */
+rethinkdb.query.ImplicitAttrExpression = function(attrName) {
+    this.attrName_ = attrName;
+};
+goog.inherits(rethinkdb.query.ImplicitAttrExpression, rethinkdb.query.Expression);
+
+/** @override */
+rethinkdb.query.ImplicitAttrExpression.prototype.compile = function() {
+    var builtin = new Builtin();
+    builtin.setType(Builtin.BuiltinType.IMPLICIT_GETATTR);
+    builtin.setAttr(this.attrName_);
+
+    var call = new Term.Call();
+    call.setBuiltin(builtin);
+
+    var term = new Term();
+    term.setType(Term.TermType.CALL);
+    term.setCall(call);
+
+    return term;
+};
+
+/**
  * @return {rethinkdb.query.Expression}
  * @export
  */
-rethinkdb.query.R = function(varExpression) {
-    /* varExpression is a string referencing some variable
-     * or attribute availale in the current reql scope.
-     */
+rethinkdb.query.R = function(varString) {
+    var attrChain = varString.split('.');
+
+    var curName = attrChain.shift();
+    var curExpr = null;
+    if (curName[0] === '$') {
+        curExpr = new rethinkdb.query.VarExpression(curName.slice(1));
+    } else {
+        curExpr = new rethinkdb.query.ImplicitAttrExpression(curName);
+    }
+
+    while (curName = attrChain.shift()) {
+        curExpr = new rethinkdb.query.AttrExpression(curExpr, curName);
+    }
+
+    return curExpr;
 };
