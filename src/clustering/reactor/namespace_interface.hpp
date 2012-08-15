@@ -64,11 +64,11 @@ public:
         return &start_cond;
     }
 
-    typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read(typename protocol_t::read_t r, typename protocol_t::read_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    typename protocol_t::read_response_t read_outdated(typename protocol_t::read_t r, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read_outdated(typename protocol_t::read_t r, typename protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void write(typename protocol_t::write_t w, typename protocol_t::write_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     std::set<typename protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
@@ -103,36 +103,39 @@ private:
     };
 
     template<class op_type, class fifo_enforcer_token_type, class op_response_type>
-    op_response_type dispatch_immediate_op(
-            /* `how_to_make_token` and `how_to_run_query` have type pointer-to-
-            member-function. */
+    void dispatch_immediate_op(
+            /* `how_to_make_token` and `how_to_run_query` have type pointer-to-member-function. */
             void (master_access_t<protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),  // NOLINT
-            op_response_type (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
+            void (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, op_response_type *response, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
             op_type op,
+            op_response_type *response,
             order_token_t order_token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     template<class op_type, class fifo_enforcer_token_type, class op_response_type>
     void perform_immediate_op(
-            op_response_type (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
+            void (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
             boost::ptr_vector<immediate_op_info_t<fifo_enforcer_token_type> > *masters_to_contact,
             const op_type *operation,
+            std::vector<op_response_type> *results,
+            std::vector<std::string> *failures,
             order_token_t order_token,
-            std::vector<boost::variant<op_response_type, std::string> > *results_or_failures,
             int i,
             signal_t *interruptor)
         THROWS_NOTHING;
 
-    typename protocol_t::read_response_t dispatch_outdated_read(
+    void dispatch_outdated_read(
             const typename protocol_t::read_t &op,
+            typename protocol_t::read_response_t *response,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     void perform_outdated_read(
             boost::ptr_vector<outdated_read_info_t> *direct_readers_to_contact,
             const typename protocol_t::read_t *operation,
-            std::vector<boost::variant<typename protocol_t::read_response_t, std::string> > *results_or_failures,
+            std::vector<typename protocol_t::read_response_t> *results,
+            std::vector<std::string> *failures,
             int i,
             signal_t *interruptor)
         THROWS_NOTHING;

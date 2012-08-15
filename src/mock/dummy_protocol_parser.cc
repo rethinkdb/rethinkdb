@@ -20,7 +20,8 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                 read.keys.keys.insert(*it);
                 cond_t cond;
-                dummy_protocol_t::read_response_t read_res = namespace_if->read(read, order_source.check_in("dummy parser"), &cond);
+                dummy_protocol_t::read_response_t read_res;
+                namespace_if->read(read, &read_res, order_source.check_in("dummy parser"), &cond);
 
                 http_res_t res;
                 if (read_res.values.find(*it) != read_res.values.end()) {
@@ -42,7 +43,8 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                 write.values.insert(std::make_pair(*it, req.body));
                 cond_t cond;
-                dummy_protocol_t::write_response_t write_res = namespace_if->write(write, order_source.check_in("dummy parser"), &cond);
+                dummy_protocol_t::write_response_t write_res;
+                namespace_if->write(write, &write_res, order_source.check_in("dummy parser"), &cond);
 
                 return http_res_t(HTTP_NO_CONTENT);
             }
