@@ -3,6 +3,13 @@ import query
 import query_language_pb2 as p
 
 class PolymorphicOperation(object):
+    """This class performs a bit of magic so that
+    we can have polymorphic constructors -- when someone
+    chains an operation off a Stream, they should get a subclass of Stream,
+    and one off a JSONExpression should get a subclass of JSONExpression, etc.
+
+    To do this, it inspects the type of the 1st argument, and constructs a new
+    class with the appropriate base classes."""
     def __new__(cls, parent, *args, **kwargs):
         for base, output in cls.mapping:
             if isinstance(parent, base):
@@ -192,12 +199,6 @@ class Extend(JSONBuiltin):
 class Append(JSONBuiltin):
     builtin = p.Builtin.ARRAYAPPEND
 
-class Element(JSONBuiltin):
-    builtin = p.Builtin.ARRAYNTH
-
-class ArrayNth(JSONBuiltin):
-    builtin = p.Builtin.ARRAYNTH
-
 class Comparison(JSONBuiltin):
     def _write_ast(self, parent):
         builtin = self._write_call(parent, p.Builtin.COMPARE, *self.args)
@@ -260,7 +261,7 @@ class ToStream(query.Stream):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.ARRAYTOSTREAM, self.array)
 
-class Nth(query.JSONExpression):
+class Nth(Picker):
     def __init__(self, stream, index):
         self.stream = stream
         self.index = query.expr(index)
@@ -330,6 +331,18 @@ class Get(query.RowSelection):
         self.table._write_ref_ast(parent.get_by_key.table_ref)
         parent.get_by_key.attrname = self.key
         self.value._write_ast(parent.get_by_key.key)
+
+class If(query.JSONExpression):
+    def __init__(self, test, true_branch, false_branch):
+        self.test = query.expr(test)
+        self.true_branch = query.expr(true_branch)
+        self.false_branch = query.expr(false_branch)
+
+    def _write_ast(self, parent):
+        parent.type = p.Term.IF
+        self.test._write_ast(parent.if_.test)
+        self.true_branch._write_ast(parent.if_.true_branch)
+        self.false_branch._write_ast(parent.if_.false_branch)
 
 class Map(Transformer):
     def __init__(self, parent, mapping):

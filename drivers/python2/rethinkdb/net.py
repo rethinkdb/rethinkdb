@@ -11,11 +11,65 @@ import errors
 
 last_connection = None
 
-class BatchedIterator():
-    """Foo"""
-    def __init__():
-        self.batch_size = 200 # allow the user to set this
-    pass
+class BatchedIterator(object):
+    """A result stream from the server that lazily fetches results"""
+    def __init__(self, conn, query, token, data, complete):
+        self.conn = conn
+        self.query = query
+        self.token = token
+        self.data = data
+        self.complete = complete
+
+        self.more_query = p.Query()
+        self.more_query.token = token
+        self.more_query.type = p.Query.CONTINUE
+
+    def read_more(self):
+        if self.complete:
+            return
+
+        more_data, status = self.conn._run(self.more_query, self.query)
+
+        if status == p.Response.SUCCESS_STREAM:
+            self.complete = True
+
+        self.data += more_data
+
+    def read_until(self, index):
+        if index is None:
+            while not self.complete:
+                self.read_more()
+        elif index >= len(self.data):
+            while not self.complete and index >= len(self.data):
+                self.read_more()
+
+    def __iter__(self):
+        index = 0
+        while not self.complete and index < len(self.data):
+            self.read_until(index)
+            yield self.data[index]
+            index += 1
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+           self.read_until(index.end)
+           return self.data[index]
+        if index < 0:
+            self.read_until(None)
+        else:
+            self.read_until(index)
+        return self.data[index]
+
+    def __eq__(self, other):
+        if isinstance(other, list):
+            self.read_until(len(other))
+            return self.complete and self.data == other
+        return NotImplemented
+
+    def __repr__(self):
+        return 'BachedIterator(query=%s, token=%s): data=[%s]' % (
+            self.query, self.token, ', '.join(map(str, self.data))
+            + ('...', '')[self.complete])
 
 class Connection():
     """A network connection to the RethinkDB cluster. Queries may be
@@ -97,22 +151,19 @@ class Connection():
         if debug:
             print "response:", response
 
-        if response.status_code == p.Response.SUCCESS_JSON:
-            return json.loads(response.response[0])
-        elif response.status_code == p.Response.SUCCESS_STREAM:
-            return [json.loads(s) for s in response.response]
-        elif response.status_code == p.Response.SUCCESS_PARTIAL:
-            new_protobuf = p.Query()
-            new_protobuf.token = protobuf.token
-            new_protobuf.type = p.Query.CONTINUE
-            return [json.loads(s) for s in response.response] + self._run(new_protobuf, query)
-        elif response.status_code == p.Response.SUCCESS_EMPTY:
-            return None
-        elif response.status_code == p.Response.RUNTIME_ERROR:
+        code = response.status_code
+
+        if code == p.Response.SUCCESS_JSON:
+            return json.loads(response.response[0]), code
+        elif code in (p.Response.SUCCESS_STREAM, p.Response.SUCCESS_PARTIAL):
+            return [json.loads(s) for s in response.response], code
+        elif code == p.Response.SUCCESS_EMPTY:
+            return None, code
+        elif code == p.Response.RUNTIME_ERROR:
             raise errors.ExecutionError(response.error_message, response.backtrace.frame, query)
-        elif response.status_code == p.Response.BAD_QUERY:
+        elif code == p.Response.BAD_QUERY:
             raise errors.BadQueryError(response.error_message, response.backtrace.frame, query)
-        elif response.status_code == p.Response.BROKEN_CLIENT:
+        elif code == p.Response.BROKEN_CLIENT:
             raise ValueError("RethinkDB server rejected our protocol buffer as "
                 "malformed. RethinkDB client is buggy?")
         else:
@@ -155,8 +206,12 @@ class Connection():
         protobuf = p.Query()
         protobuf.token = self._get_token()
         expr._finalize_query(protobuf)
-        return self._run(protobuf, expr, debug)
+        ret, code = self._run(protobuf, expr, debug)
 
+        if code in (p.Response.SUCCESS_STREAM, p.Response.SUCCESS_PARTIAL):
+            return BatchedIterator(self, expr, protobuf.token, ret, code == p.Response.SUCCESS_STREAM)
+
+        return ret
 
     def use(self, db_name):
         """Sets the default database for this connection. All queries

@@ -28,8 +28,9 @@ public:
 
     void new_read_token(fifo_enforcer_sink_t::exit_read_t *out);
 
-    typename protocol_t::read_response_t read(
+    void read(
             const typename protocol_t::read_t &read,
+            typename protocol_t::read_response_t *response,
             order_token_t otok,
             fifo_enforcer_sink_t::exit_read_t *token,
             signal_t *interruptor)
@@ -37,8 +38,9 @@ public:
 
     void new_write_token(fifo_enforcer_sink_t::exit_write_t *out);
 
-    typename protocol_t::write_response_t write(
+    void write(
             const typename protocol_t::write_t &write,
+            typename protocol_t::write_response_t *response,
             order_token_t otok,
             fifo_enforcer_sink_t::exit_write_t *token,
             signal_t *interruptor)

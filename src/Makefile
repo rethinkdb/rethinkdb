@@ -606,8 +606,54 @@ rpm-suse10:
 	$(QUIET) $(MAKE) PACKAGE_FOR_SUSE_10=1 rpm
 endif
 
+.PHONY: sense
+sense:
+	$(error Make does not make sense)
+
+# Profiling
+OPROF_TARGETS=oprof-start oprof-dump oprof-stop oprof-report
+.PHONY: $(OPROF_TARGETS)
+
+oprof-start: OPROF_NO_KERNEL:=0
+oprof-start: OPROF_SESSION:=../oprofile.$(shell date +%F-%T)
+oprof-start:
+	@echo no kernel: $(OPROF_NO_KERNEL)
+ifeq ($(OPROF_NO_KERNEL),1)
+	@echo "    OPROFILE[init] (no kernel profiling)"
+	$(QUIET) opcontrol --no-vmlinux
+else
+	@echo "    OPROFILE[init] (with kernel profiling, set OPROF_NO_KERNEL to 1 to turn off)"
+	$(QUIET) opcontrol --vmlinux=/usr/lib/debug/boot/vmlinux-`uname -r`
+endif
+	@echo "    OPROFILE[start] -> $(abspath $(OPROF_SESSION))"
+	@echo "      (if you want to use a different location, set OPROF_SESSION make variable to a directory path"
+	$(QUIET) opcontrol --start --buffer-size=1048576 --buffer-watershed=524288 "--session-dir=$(abspath $(OPROF_SESSION))"
+
+oprof-dump:
+	@echo "    OPROFILE[dump]"
+	$(QUIET) opcontrol --dump
+
+oprof-stop: oprof-dump
+	@echo "    OPROFILE[shutdown]"
+	$(QUIET) opcontrol --shutdown
+
+oprof-report: OPROF_SESSION:=$(shell ls -dt ../oprofile.* 2> /dev/null | head -1)
+oprof-report: OPROF_BINARY:=../build/release/rethinkdb
+oprof-report: OPROF_RESULT:=$(OPROF_SESSION)/report.txt
+oprof-report:
+	@if [ ! -d "$(OPROF_SESSION)" ]; then \
+			echo "error: OPROF_SESSION is not set and no oprofile sessions could be found in the repository root."; \
+			exit 1; \
+		fi
+	@if [ ! -x "$(OPROF_BINARY)" ]; then \
+			echo "error: OPROF_BINARY is not set or '$(OPROF_BINARY)' is not an executable."; \
+			exit 1; \
+		fi
+	@echo "    OPREPORT[$(OPROF_BINARY)] -> $(OPROF_RESULT)"
+	$(QUIET) opreport --merge=lib,unitmask -a --symbols --callgraph --threshold 1 --sort sample "--session-dir=$(realpath $(OPROF_SESSION))" -l "$(realpath $(OPROF_BINARY))" > $(OPROF_RESULT)
+
 # Build rules
-drivers: ./rdb_protocol/query_language.proto
+drivers: rdb_protocol/query_language.proto
 ifeq ($(BUILD_DRIVERS), 1)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[PY] $^"
@@ -850,7 +896,7 @@ endif
 # bug in GNU Make, possibly a bug in our Makefile.
 .SECONDARY: $(PROTO_HEADERS)
 
-NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style
+NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style $(OPROF_TARGETS)
 # Include the dependencies into the makefile so that they take effect
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)

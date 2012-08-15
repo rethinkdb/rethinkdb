@@ -35,8 +35,9 @@ void master_access_t<protocol_t>::new_read_token(fifo_enforcer_sink_t::exit_read
 }
 
 template <class protocol_t>
-typename protocol_t::read_response_t master_access_t<protocol_t>::read(
+void master_access_t<protocol_t>::read(
         const typename protocol_t::read_t &read,
+        typename protocol_t::read_response_t *response,
         order_token_t otok,
         fifo_enforcer_sink_t::exit_read_t *token,
         signal_t *interruptor)
@@ -74,7 +75,7 @@ typename protocol_t::read_response_t master_access_t<protocol_t>::read(
             throw cannot_perform_query_exc_t(*error);
         } else if (const typename protocol_t::read_response_t *result =
                 boost::get<typename protocol_t::read_response_t>(&result_or_failure.get_value())) {
-            return *result;
+            *response = *result;
         } else {
             unreachable();
         }
@@ -89,8 +90,9 @@ void master_access_t<protocol_t>::new_write_token(fifo_enforcer_sink_t::exit_wri
 }
 
 template <class protocol_t>
-typename protocol_t::write_response_t master_access_t<protocol_t>::write(
+void master_access_t<protocol_t>::write(
         const typename protocol_t::write_t &write,
+        typename protocol_t::write_response_t *response,
         order_token_t otok,
         fifo_enforcer_sink_t::exit_write_t *token,
         signal_t *interruptor)
@@ -128,7 +130,7 @@ typename protocol_t::write_response_t master_access_t<protocol_t>::write(
             throw cannot_perform_query_exc_t(*error);
         } else if (const typename protocol_t::write_response_t *result =
                 boost::get<typename protocol_t::write_response_t>(&result_or_failure.get_value())) {
-            return *result;
+            *response = *result;
         } else {
             unreachable();
         }

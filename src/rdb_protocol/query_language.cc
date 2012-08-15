@@ -78,6 +78,8 @@ bool term_type_least_upper_bound(term_info_t left, term_info_t right, term_info_
 }
 
 term_info_t get_term_type(const Term &t, type_checking_environment_t *env, const backtrace_t &backtrace) {
+    check_protobuf(Term::TermType_IsValid(t.type()));
+
     std::vector<const google::protobuf::FieldDescriptor *> fields;
     t.GetReflection()->ListFields(t, &fields);
     int field_count = fields.size();
@@ -261,10 +263,13 @@ void check_function_args(const Term::Call &c, const term_type_t &arg1_type, cons
 }
 
 term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *env, const backtrace_t &backtrace) {
+    const Builtin &b = c.builtin();
+
+    check_protobuf(Builtin::BuiltinType_IsValid(b.type()));
+
     bool deterministic = true;
     std::vector<const google::protobuf::FieldDescriptor *> fields;
 
-    const Builtin &b = c.builtin();
 
     b.GetReflection()->ListFields(b, &fields);
 
@@ -279,7 +284,6 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
     case Builtin::NOT:
     case Builtin::MAPMERGE:
     case Builtin::ARRAYAPPEND:
-    case Builtin::ARRAYNTH:
     case Builtin::ADD:
     case Builtin::SUBTRACT:
     case Builtin::MULTIPLY:
@@ -300,6 +304,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
         break;
     case Builtin::COMPARE:
         check_protobuf(b.has_comparison());
+        check_protobuf(Builtin::Comparison_IsValid(b.comparison()));
         break;
     case Builtin::GETATTR:
     case Builtin::IMPLICIT_GETATTR:
@@ -370,7 +375,6 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::MAPMERGE:
         case Builtin::ARRAYAPPEND:
-        case Builtin::ARRAYNTH:
         case Builtin::MODULO:
             check_function_args(c, TERM_TYPE_JSON, 2, env, &deterministic, backtrace);
             return term_info_t(TERM_TYPE_JSON, deterministic);
@@ -439,8 +443,13 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             }
             break;
         case Builtin::NTH:
-            check_function_args(c, TERM_TYPE_STREAM, TERM_TYPE_JSON, env, &deterministic, backtrace);
-            return term_info_t(TERM_TYPE_JSON, deterministic);
+            {
+                check_polymorphic_function_args(c, TERM_TYPE_JSON, 2, env, &deterministic, backtrace);
+                term_info_t res = get_term_type(c.args(0), env, backtrace);
+                const_cast<Term::Call&>(c).mutable_args(0)->SetExtension(extension::inferred_type, static_cast<int32_t>(res.type));
+                return term_info_t(TERM_TYPE_JSON, deterministic);
+                break;
+            }
             break;
         case Builtin::LENGTH:
             {
@@ -521,6 +530,8 @@ void check_read_query_type(const ReadQuery &rq, type_checking_environment_t *env
 }
 
 void check_write_query_type(const WriteQuery &w, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
+    check_protobuf(WriteQuery::WriteQueryType_IsValid(w.type()));
+
     std::vector<const google::protobuf::FieldDescriptor *> fields;
     w.GetReflection()->ListFields(w, &fields);
     check_protobuf(fields.size() == 2);
@@ -589,6 +600,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
 }
 
 void check_query_type(const Query &q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
+    check_protobuf(Query::QueryType_IsValid(q.type()));
     switch (q.type()) {
     case Query::READ:
         check_protobuf(q.has_read_query());
@@ -640,7 +652,7 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     return js_runner;
 }
 
-void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t) {
+void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     rassert(q->token() == res->token());
     switch(q->type()) {
     case Query::READ:
@@ -667,7 +679,7 @@ void execute(Query *q, runtime_environment_t *env, Response *res, const backtrac
     }
 }
 
-void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t) {
+void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     int type = r->GetExtension(extension::inferred_read_type);
 
     switch (type) {
@@ -707,7 +719,8 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
 
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(data->GetObjectItem(pk.c_str()))), data));
-        ns_access.get_namespace_if()->write(write, order_token_t::ignore, env->interruptor);
+        rdb_protocol_t::write_response_t response;
+        ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
@@ -716,7 +729,8 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
 void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace) {
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_std_string(id))));
-        ns_access.get_namespace_if()->write(write, order_token_t::ignore, env->interruptor);
+        rdb_protocol_t::write_response_t response;
+        ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
@@ -726,7 +740,7 @@ void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::s
     point_delete(ns_access, id->get(), env, backtrace);
 }
 
-void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     //TODO: When writes can return different responses, be more clever.
     res->set_status_code(Response::SUCCESS_JSON);
     switch (w->type()) {
@@ -894,8 +908,7 @@ void eval_let_binds(Term::Let *let, runtime_environment_t *env, const backtrace_
             env->scope.put_in_scope(let->binds(i).var(),
                     eval(let->mutable_binds(i)->mutable_term(), env, backtrace_bind));
         } else if (type.type == TERM_TYPE_STREAM || type.type == TERM_TYPE_VIEW) {
-            env->stream_scope.put_in_scope(let->binds(i).var(),
-                    boost::shared_ptr<stream_multiplexer_t>(new stream_multiplexer_t(eval_stream(let->mutable_binds(i)->mutable_term(), env, backtrace_bind))));
+            throw runtime_exc_t("Cannot bind streams/views to variable names", backtrace);
         } else if (type.type == TERM_TYPE_ARBITRARY) {
             eval(let->mutable_binds(i)->mutable_term(), env, backtrace_bind);
             unreachable("This term has type `TERM_TYPE_ARBITRARY`, so "
@@ -933,7 +946,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             {
                 // Push the scope
                 variable_val_scope_t::new_scope_t new_scope(&env->scope);
-                variable_stream_scope_t::new_scope_t new_stream_scope(&env->stream_scope);
                 variable_type_scope_t::new_scope_t new_type_scope(&env->type_env.scope);
 
                 eval_let_binds(t->mutable_let(), env, backtrace);
@@ -1017,7 +1029,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
 
                 try {
                     rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(key->Print())));
-                    rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, env->interruptor);
+                    rdb_protocol_t::read_response_t res;
+                    ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
 
                     rdb_protocol_t::point_read_response_t *p_res = boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
                     return p_res->data;
@@ -1097,13 +1110,14 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
 boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     switch (t->type()) {
         case Term::VAR:
-            return boost::shared_ptr<json_stream_t>(new stream_multiplexer_t::stream_t(env->stream_scope.get(t->var())));
+            crash("Eval stream should never be called on a var term (because"
+                "streams can't be bound to vars) how did you get here and why"
+                    "did you think this was a nice place to come to?");
             break;
         case Term::LET:
             {
                 // Push the scope
                 variable_val_scope_t::new_scope_t new_scope(&env->scope);
-                variable_stream_scope_t::new_scope_t new_stream_scope(&env->stream_scope);
                 variable_type_scope_t::new_scope_t new_type_scope(&env->type_env.scope);
 
                 eval_let_binds(t->mutable_let(), env, backtrace);
@@ -1339,32 +1353,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 return res;
             }
             break;
-        case Builtin::ARRAYNTH:
-            {
-                boost::shared_ptr<scoped_cJSON_t> array = eval_and_check(c->mutable_args(0), env, backtrace.with("arg:0"),
-                    cJSON_Array, "The first argument must be an array.");
-
-                boost::shared_ptr<scoped_cJSON_t> index_json = eval_and_check(c->mutable_args(1), env, backtrace.with("arg:1"),
-                    cJSON_Number, "The second argument must be an integer.");
-
-                float float_index = index_json->get()->valuedouble;
-                int index = static_cast<int>(float_index);
-                if (float_index != index) {
-                    throw runtime_exc_t("The second argument must be an integer.", backtrace.with("arg:1"));
-                }
-
-                int length = array->GetArraySize();
-
-                if (index < 0) {
-                    index += length;
-                }
-                if (index < 0 || index >= length) {
-                    throw runtime_exc_t("Array index out of bounds.", backtrace.with("arg:1"));
-                }
-
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(array->GetArrayItem(index))));
-            }
-            break;
         case Builtin::ADD:
             {
                 if (c->args_size() == 0) {
@@ -1536,7 +1524,30 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
             }
             break;
         case Builtin::NTH:
-            {
+            if (c->args(0).GetExtension(extension::inferred_type) == TERM_TYPE_JSON) {
+                boost::shared_ptr<scoped_cJSON_t> array = eval_and_check(c->mutable_args(0), env, backtrace.with("arg:0"),
+                    cJSON_Array, "The first argument must be an array.");
+
+                boost::shared_ptr<scoped_cJSON_t> index_json = eval_and_check(c->mutable_args(1), env, backtrace.with("arg:1"),
+                    cJSON_Number, "The second argument must be an integer.");
+
+                float float_index = index_json->get()->valuedouble;
+                int index = static_cast<int>(float_index);
+                if (float_index != index) {
+                    throw runtime_exc_t("The second argument must be an integer.", backtrace.with("arg:1"));
+                }
+
+                int length = array->GetArraySize();
+
+                if (index < 0) {
+                    index += length;
+                }
+                if (index < 0 || index >= length) {
+                    throw runtime_exc_t("Array index out of bounds.", backtrace.with("arg:1"));
+                }
+
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(array->GetArrayItem(index))));
+            } else {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 
                 // Check second arg type
@@ -1716,7 +1727,6 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
         case Builtin::IMPLICIT_PICKATTRS:
         case Builtin::MAPMERGE:
         case Builtin::ARRAYAPPEND:
-        case Builtin::ARRAYNTH:
         case Builtin::ADD:
         case Builtin::SUBTRACT:
         case Builtin::MULTIPLY:
@@ -1825,16 +1835,11 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
             break;
         case Builtin::DISTINCT:
             {
-                shared_scoped_less_t comparator(backtrace);
-                std::set<boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> seen(comparator);
-
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 
-                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    seen.insert(json);
-                }
+                shared_scoped_less_t comparator(backtrace);
 
-                return boost::shared_ptr<in_memory_stream_t>(new in_memory_stream_t(seen.begin(), seen.end()));
+                return boost::shared_ptr<json_stream_t>(new distinct_stream_t<shared_scoped_less_t>(stream, comparator));
             }
             break;
         case Builtin::SLICE:
@@ -1945,7 +1950,7 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(TableRef *t, runtime_environment
     if (namespace_info) {
         return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, namespace_info->first, env->interruptor);
     } else {
-        throw runtime_exc_t(strprintf("Namespace %s either not found, ambigious or namespace metadata in conflict.", t->table_name().c_str()), backtrace);
+        throw runtime_exc_t(strprintf("Namespace %s either not found, ambiguous or namespace metadata in conflict.", t->table_name().c_str()), backtrace);
     }
 }
 
@@ -1961,7 +1966,6 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
         case Builtin::IMPLICIT_PICKATTRS:
         case Builtin::MAPMERGE:
         case Builtin::ARRAYAPPEND:
-        case Builtin::ARRAYNTH:
         case Builtin::ADD:
         case Builtin::SUBTRACT:
         case Builtin::MULTIPLY:

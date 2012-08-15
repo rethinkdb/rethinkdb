@@ -45,11 +45,11 @@ void check_query_type(const Query &q, type_checking_environment_t *env, bool *is
 /* functions to evaluate the queries */
 //TODO most of these functions that are supposed to only throw runtime exceptions
 
-void execute(Query *q, runtime_environment_t *, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t);
+void execute(Query *q, runtime_environment_t *, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t);
 
-void execute(ReadQuery *r, runtime_environment_t *, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t);
+void execute(ReadQuery *r, runtime_environment_t *, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t);
 
-void execute(WriteQuery *r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(WriteQuery *r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, broken_client_exc_t);
 
 boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
@@ -66,7 +66,7 @@ public:
     view_t(const namespace_repo_t<rdb_protocol_t>::access_t &_access,
            const std::string &_primary_key,
            boost::shared_ptr<json_stream_t> _stream)
-        : access(_access), primary_key(_primary_key), stream(_stream) 
+        : access(_access), primary_key(_primary_key), stream(_stream)
     { }
 
     namespace_repo_t<rdb_protocol_t>::access_t access;

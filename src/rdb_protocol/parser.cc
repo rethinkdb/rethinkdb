@@ -58,7 +58,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                     store_key_t key(*it);
                     read.read = rdb_protocol_t::point_read_t(key);
-                    read_res = ns_access.get_namespace_if()->read(read, order_source.check_in("dummy parser"), &on_destruct);
+                    ns_access.get_namespace_if()->read(read, &read_res, order_source.check_in("dummy parser"), &on_destruct);
                 } catch (interrupted_exc_t &) {
                     return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
                 }
@@ -120,7 +120,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                     write.write = rdb_protocol_t::point_write_t(key, doc);
 
-                    write_res = ns_access.get_namespace_if()->write(write, order_source.check_in("rdb parser"), &on_destruct);
+                    ns_access.get_namespace_if()->write(write, &write_res, order_source.check_in("rdb parser"), &on_destruct);
                 } catch (interrupted_exc_t &) {
                     return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
                 }

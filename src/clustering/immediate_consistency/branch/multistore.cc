@@ -428,6 +428,7 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
     try {
+        // TODO: avoid extra copy of read_response_t here
         typename protocol_t::read_response_t response;
 
         {
@@ -444,23 +445,25 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
                 return;
             }
 
-            response = store_views_[i]->read(DEBUG_ONLY(metainfo_checker.mask(ith_region), )
-                                             read.shard(ith_intersection),
-                                             order_token,
-                                             &store_token,
-                                             &ct_interruptor);
+            store_views_[i]->read(DEBUG_ONLY(metainfo_checker.mask(ith_region), )
+                                  read.shard(ith_intersection),
+                                  &response,
+                                  order_token,
+                                  &store_token,
+                                  &ct_interruptor);
         }
-
         responses->push_back(response);
+
     } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
 }
 
 template <class protocol_t>
-typename protocol_t::read_response_t
+void
 multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
                                    const typename protocol_t::read_t &read,
+                                   typename protocol_t::read_response_t *response,
                                    order_token_t order_token,
                                    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -481,7 +484,7 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_
     }
 
     typename protocol_t::temporary_cache_t fake_cache;
-    return read.multistore_unshard(responses, &fake_cache);
+    read.multistore_unshard(responses, response, &fake_cache);
 }
 
 // Because boost::bind only takes 10 arguments.
@@ -527,23 +530,28 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
             return;
         }
 
-        responses->push_back(store_views_[i]->write(DEBUG_ONLY(metainfo.metainfo_checker.mask(ith_region), )
-                                                    metainfo.new_metainfo.mask(ith_region),
-                                                    write.shard(ith_intersection),
-                                                    timestamp,
-                                                    order_token,
-                                                    &store_token,
-                                                    &ct_interruptor));
+        responses->push_back(typename protocol_t::write_response_t());
+        typename protocol_t::write_response_t &response = responses->back();
+
+        store_views_[i]->write(DEBUG_ONLY(metainfo.metainfo_checker.mask(ith_region), )
+                               metainfo.new_metainfo.mask(ith_region),
+                               write.shard(ith_intersection),
+                               &response,
+                               timestamp,
+                               order_token,
+                               &store_token,
+                               &ct_interruptor);
     } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
 }
 
 template <class protocol_t>
-typename protocol_t::write_response_t
+void
 multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
                                     const typename protocol_t::store_t::metainfo_t& new_metainfo,
                                     const typename protocol_t::write_t &write,
+                                    typename protocol_t::write_response_t *response,
                                     transition_timestamp_t timestamp,
                                     order_token_t order_token,
                                     scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
@@ -567,7 +575,7 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol
     }
 
     typename protocol_t::temporary_cache_t fake_cache;
-    return write.multistore_unshard(responses, &fake_cache);
+    write.multistore_unshard(responses, response, &fake_cache);
 }
 
 template <class protocol_t>

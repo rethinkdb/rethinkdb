@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 #load '/home/mlucy/rethinkdb_ruby/drivers/ruby/rethinkdb/rethinkdb.rb'
-load 'rethinkdb_shortcuts.rb'
-r = RethinkDB::RQL
 # filter might work, merge into master and check
-# nth -- support []?
-# orderby -- reverse notation?
 # random, sample
 # reduce
 
@@ -32,17 +28,17 @@ r = RethinkDB::RQL
 #   * POINTMUTATE
 #   * SOME MERGE
 
-# SLICE, pointdelete, update
-
 ################################################################################
 #                                 CONNECTION                                   #
 ################################################################################
 
+require 'rethinkdb_shortcuts.rb'
 require 'test/unit'
+$port_base = ARGV[0].to_i #0 if none given
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts_Mixin
   def rdb; r.db('','Welcome-rdb'); end
-  @@c = RethinkDB::Connection.new('localhost', 64346)
+  @@c = RethinkDB::Connection.new('localhost', $port_base + 12346)
   def c; @@c; end
 
   def test_cmp #from python tests
@@ -593,9 +589,9 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.run[1]['broken'], true)
     #PP.pp rdb.update{|x| r.if(x.attr?(:broken), $data[0], nil)}.run
     update = rdb.filter{r[:id].eq(0)}.update{$data[0]}.run
-    assert_equal(update, {'errors' => 0, 'updated' => 1})
+    assert_equal(update, {'errors' => 0, 'updated' => 1, 'skipped' => 0})
     update = rdb.update{|x| r.if(x.attr?(:broken), $data[1], x)}.run
-    assert_equal(update, {'errors' => 0, 'updated' => len})
+    assert_equal(update, {'errors' => 0, 'updated' => len, 'skipped' => 0})
     assert_equal(rdb.run, $data)
 
     #DELETE

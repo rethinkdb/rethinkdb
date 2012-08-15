@@ -137,6 +137,8 @@ class BaseExpression(object):
         raise NotImplementedError
 
 class Expression(BaseExpression):
+    """Base class for everything"""
+
     def _finalize_query(self, root):
         root.type = p.Query.READ
         self._write_ast(root.read_query.term)
@@ -238,6 +240,8 @@ class Expression(BaseExpression):
         elif isinstance(index, int):
             return internal.Nth(self, index)
         else:
+            if isinstance(self, JSONExpression):
+                return internal.Attr(self, index)
             raise TypeError("stream indices must be integers, not " + index.__class__.__name__)
 
     def nth(self, index):
