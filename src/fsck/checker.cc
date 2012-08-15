@@ -15,8 +15,8 @@
 #include "btree/internal_node.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "fsck/raw_block.hpp"
-#include "memcached/btree/node.hpp"
-#include "memcached/btree/value.hpp"
+#include "memcached/memcached_btree/node.hpp"
+#include "memcached/memcached_btree/value.hpp"
 #include "serializer/translator.hpp"
 
 namespace fsck {

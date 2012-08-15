@@ -5,10 +5,12 @@
 
 #include "protocol_api.hpp"
 #include "btree/slice.hpp"
-#include "btree/operations.hpp"
+#include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
 #include "perfmon/perfmon.hpp"
 
 class io_backender_t;
+class superblock_t;
+class real_superblock_t;
 
 template <class protocol_t>
 class btree_store_t : public store_view_t<protocol_t> {
@@ -122,49 +124,6 @@ protected:
                                      btree_slice_t *btree,
                                      transaction_t *txn,
                                      superblock_t *superblock) = 0;
-
-    class refcount_superblock_t : public superblock_t {
-    public:
-        refcount_superblock_t(superblock_t *sb, int rc) :
-            sub_superblock(sb), refcount(rc) { }
-
-        void release() {
-            refcount--;
-            rassert(refcount >= 0);
-            if (refcount == 0) {
-                sub_superblock->release();
-                sub_superblock = NULL;
-            }
-        }
-
-        block_id_t get_root_block_id() const {
-            return sub_superblock->get_root_block_id();
-        }
-
-        void set_root_block_id(const block_id_t new_root_block) {
-            sub_superblock->set_root_block_id(new_root_block);
-        }
-
-        block_id_t get_stat_block_id() const {
-            return sub_superblock->get_stat_block_id();
-        }
-
-        void set_stat_block_id(block_id_t new_stat_block) {
-            sub_superblock->set_stat_block_id(new_stat_block);
-        }
-
-        void set_eviction_priority(eviction_priority_t eviction_priority) {
-            sub_superblock->set_eviction_priority(eviction_priority);
-        }
-
-        eviction_priority_t get_eviction_priority() {
-            return sub_superblock->get_eviction_priority();
-        }
-
-    private:
-        superblock_t *sub_superblock;
-        int refcount;
-    };
 
 private:
     void get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING;

@@ -14,7 +14,6 @@
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/watchable.hpp"
-#include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"

@@ -1,8 +1,8 @@
-#include "memcached/btree/set.hpp"
+#include "memcached/memcached_btree/set.hpp"
 
 #include "buffer_cache/buffer_cache.hpp"
 #include "containers/buffer_group.hpp"
-#include "memcached/btree/modify_oper.hpp"
+#include "memcached/memcached_btree/modify_oper.hpp"
 
 struct memcached_set_oper_t : public memcached_modify_oper_t {
     memcached_set_oper_t(const intrusive_ptr_t<data_buffer_t>& _data, mcflags_t _mcflags, exptime_t _exptime,

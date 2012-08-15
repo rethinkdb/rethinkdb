@@ -12,7 +12,6 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "concurrency/watchable.hpp"
-#include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 
 /* This files contains the class reactor driver whose job is to create and

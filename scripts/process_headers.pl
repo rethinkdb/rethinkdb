@@ -192,9 +192,12 @@ if ($ARGV[0] && $ARGV[0] eq '-x') {
 for my $pair (@pairs) {
     my $header = $pair->[0];
     my $value = $pair->[1];
-    print "$value : $header    ";
+    print "$value : $header";
+    my $spacing = "    ";
     for my $boost (keys %{$boosts{$header}}) {
-        print " <$boost>";
+        print "$spacing<$boost>";
+        $spacing = " ";
     }
+
     print "\n";
 }

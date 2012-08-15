@@ -1,9 +1,9 @@
-#include "memcached/btree/erase_range.hpp"
+#include "memcached/memcached_btree/erase_range.hpp"
 
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
-#include "memcached/btree/node.hpp"
-#include "memcached/btree/value.hpp"
+#include "memcached/memcached_btree/node.hpp"
+#include "memcached/memcached_btree/value.hpp"
 
 void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,
                        bool left_key_supplied, const store_key_t& left_key_exclusive,
