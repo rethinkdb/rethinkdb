@@ -702,7 +702,7 @@ void parse_tableop_create(const TableopQuery::Create &c, std::string *datacenter
     }
 }
 
-void execute_tableop(TableopQuery *t, runtime_environment_t *env, UNUSED Response *res, UNUSED const backtrace_t &backtrace) {
+void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) {
     switch(t->type()) {
     case TableopQuery::CREATE: {
         std::string dc_name, db_name, table_name, primary_key;
@@ -734,7 +734,30 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, UNUSED Respons
         metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, ns));
         fill_in_blueprints(&metadata, env->directory_metadata->get(), env->this_machine);
         env->semilattice_metadata->join(metadata);
-        //TODO(mlucy): wait until master is available before returning
+
+        /* The following is an ugly hack, but it's probably what we want.  It
+           takes about half a second for the new namespace to get to the point
+           where we can do reads/writes on it.  We don't want to return until
+           that has happened, so we try to do a read every `poll_ms`
+           milliseconds until one succeeds, then return. */
+        int64_t poll_ms = 200; //picked experimentally
+        //This read won't succeed, but we care whether it fails with an exception.
+        rdb_protocol_t::read_t bad_read(rdb_protocol_t::point_read_t(store_key_t("")));
+        try {
+            for (;;) {
+                signal_timer_t start_poll(poll_ms);
+                wait_interruptible(&start_poll, env->interruptor);
+                try {
+                    namespace_repo_t<rdb_protocol_t>::access_t ns_access(
+                        env->ns_repo, namespace_id, env->interruptor);
+                    ns_access.get_namespace_if()->read(
+                        bad_read, order_token_t::ignore, env->interruptor);
+                    break;
+                } catch (cannot_perform_query_exc_t e) { } //continue loop
+            }
+        } catch (interrupted_exc_t e) {
+            throw runtime_exc_t("Query interrupted, probably by user.");
+        }
         res->set_status_code(Response::SUCCESS_EMPTY);
     } break;
     case TableopQuery::DROP:
@@ -2040,13 +2063,16 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 
 }
 
-namespace_repo_t<rdb_protocol_t>::access_t eval(TableRef *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
-    boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
+namespace_repo_t<rdb_protocol_t>::access_t eval(
+    TableRef *t, runtime_environment_t *env, const backtrace_t &backtrace)
+    THROWS_ONLY(runtime_exc_t) {
+    boost::optional<std::pair<namespace_id_t, deletable_t<
+        namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
         metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces,
                              t->table_name());
-
     if (namespace_info) {
-        return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, namespace_info->first, env->interruptor);
+        return namespace_repo_t<rdb_protocol_t>::access_t(
+            env->ns_repo, namespace_info->first, env->interruptor);
     } else {
         throw runtime_exc_t(strprintf("Namespace %s either not found, ambigious or namespace metadata in conflict.", t->table_name().c_str()), backtrace);
     }
