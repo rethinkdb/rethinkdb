@@ -52,6 +52,10 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
             res.set_status_code(Response::RUNTIME_ERROR);
             res.set_error_message(e.message);
             put_backtrace(e.backtrace, &res);
+        } catch (const query_language::broken_client_exc_t &e) {
+            res.set_status_code(Response::BROKEN_CLIENT);
+            res.set_error_message(e.message);
+            return res;
         }
     }
 
