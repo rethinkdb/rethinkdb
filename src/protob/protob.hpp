@@ -32,26 +32,28 @@ private:
 
 //TODO figure out how to do 0 copy serialization with this.
 
-#define RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, isinline) \
-isinline write_message_t &operator<<(write_message_t &msg, const pb_t &p) { \
-    int size = p.ByteSize(); \
-    scoped_array_t<char> data(size); \
-    p.SerializeToArray(data.data(), size); \
-    msg << data; \
-    return msg; \
-} \
-\
-isinline MUST_USE archive_result_t deserialize(read_stream_t *s, pb_t *p) { \
-    archive_result_t res; \
-\
-    scoped_array_t<char> data; \
-\
-    if ((res = deserialize(s, &data))) { return res; } \
-\
-    p->ParseFromArray(data.data(), data.size()); \
-\
-    return res; \
-}
+#define RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, isinline)             \
+    isinline write_message_t &operator<<(write_message_t &msg, const pb_t &p) { \
+        int size = p.ByteSize();                                        \
+        scoped_array_t<char> data(size);                                \
+        p.SerializeToArray(data.data(), size);                          \
+        int32_t size32 = size;                                          \
+        msg << size32;                                                  \
+        msg.append(data.data(), data.size());                           \
+        return msg;                                                     \
+    }                                                                   \
+                                                                        \
+    isinline MUST_USE archive_result_t deserialize(read_stream_t *s, pb_t *p) { \
+        int32_t size;                                                   \
+        archive_result_t res = deserialize(s, &size);                   \
+        if (res) { return res; }                                        \
+        if (size < 0) { return ARCHIVE_RANGE_ERROR; }                   \
+        scoped_array_t<char> data(size);                                \
+        int64_t read_res = force_read(s, data.data(), data.size());     \
+        if (read_res != size) { return ARCHIVE_SOCK_ERROR; }            \
+        p->ParseFromArray(data.data(), data.size());                    \
+        return ARCHIVE_SUCCESS;                                         \
+    }
 
 #define RDB_MAKE_PROTOB_SERIALIZABLE(pb_t) RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, inline)
 #define RDB_IMPL_PROTOB_SERIALIZABLE(pb_t) RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, )
