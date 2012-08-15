@@ -476,4 +476,47 @@ rethinkdb.query.Expression.prototype.filter = function(selector) {
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'filter',
                     rethinkdb.query.Expression.prototype.filter);
 
+/**
+ * @param {rethinkdb.query.Expression} leftExpr
+ * @param {rethinkdb.query.FunctionExpression|rethinkdb.query.Expression} mapping
+ * @constructor
+ * @extends {rethinkdb.query.ReadExpression}
+ */
+rethinkdb.query.MapExpression = function(leftExpr, mapping) {
+    this.leftExpr_ = leftExpr;
 
+    if (mapping instanceof rethinkdb.query.FunctionExpression) {
+        this.mappingFunction_ = mapping;
+    } else if (mapping instanceof rethinkdb.query.Expression) {
+        this.mappingFunction_ = rethinkdb.query.fn('', mapping);
+    }
+};
+goog.inherits(rethinkdb.query.MapExpression, rethinkdb.query.ReadExpression);
+
+rethinkdb.query.MapExpression.prototype.compile = function() {
+    var mapping = new Mapping();
+    mapping.setArg(this.mappingFunction_.arg);
+    mapping.setBody(this.mappingFunction_.body.compile());
+
+    var map = new Builtin.Map();
+    map.setMapping(mapping);
+
+    var builtin = new Builtin();
+    builtin.setType(Builtin.BuiltinType.MAP);
+    builtin.setMap(map);
+
+    var call = new Term.Call();
+    call.setBuiltin(builtin);
+    call.addArgs(this.leftExpr_.compile());
+
+    var term = new Term();
+    term.setType(Term.TermType.CALL);
+    term.setCall(call);
+
+    return term;
+};
+
+/** @export */
+rethinkdb.query.Expression.prototype.map = function(mapping) {
+    return new rethinkdb.query.MapExpression(this, mapping);
+};
