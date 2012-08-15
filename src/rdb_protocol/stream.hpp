@@ -166,6 +166,28 @@ private:
     P p;
 };
 
+template <class C>
+class distinct_stream_t : public json_stream_t {
+public:
+    typedef boost::function<bool(boost::shared_ptr<scoped_cJSON_t>)> predicate;  // NOLINT
+    distinct_stream_t(boost::shared_ptr<json_stream_t> _stream, const C &_c)
+        : stream(_stream), seen(_c)
+    { }
+
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+            if (seen.insert(json).second) { // was this not already present?
+                return json;
+            }
+        }
+        return boost::shared_ptr<scoped_cJSON_t>();
+    }
+
+private:
+    boost::shared_ptr<json_stream_t> stream;
+    std::set<boost::shared_ptr<scoped_cJSON_t>, C> seen;
+};
+
 template <class F>
 class mapping_stream_t : public json_stream_t {
 public:

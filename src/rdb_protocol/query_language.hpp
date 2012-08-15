@@ -66,7 +66,7 @@ public:
     view_t(const namespace_repo_t<rdb_protocol_t>::access_t &_access,
            const std::string &_primary_key,
            boost::shared_ptr<json_stream_t> _stream)
-        : access(_access), primary_key(_primary_key), stream(_stream) 
+        : access(_access), primary_key(_primary_key), stream(_stream)
     { }
 
     namespace_repo_t<rdb_protocol_t>::access_t access;

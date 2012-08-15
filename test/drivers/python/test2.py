@@ -20,7 +20,7 @@ class RDBTest(unittest.TestCase):
     def setUpClass(cls):
         cls.conn = connect(os.getenv('HOST') or 'localhost',
                                  12346 + (int(os.getenv('PORT') or 2010)))
-        cls.table = table(".Welcome")
+        cls.table = table(".Welcome-rdb")
 
     def expect(self, query, expected):
         try:
