@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "utils.hpp"
-#include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
@@ -25,7 +24,7 @@
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/json.hpp"
+#include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/query_language.pb.h"
 
 enum point_write_result_t {
@@ -116,7 +115,7 @@ struct rdb_protocol_t {
 
     struct rget_read_response_t {
         typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
-        typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, query_language::shared_scoped_less> groups_t; //Present if the terminal was a groupedmapreduce
+        typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, query_language::shared_scoped_less_t> groups_t; //Present if the terminal was a groupedmapreduce
         typedef boost::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
 
         struct length_t {
@@ -344,7 +343,7 @@ struct rdb_protocol_t {
                                         superblock_t *superblock);
 
         void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-                                    const boost::function<void(backfill_chunk_t)> &chunk_fun,
+                                    chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
                                     superblock_t *superblock,
                                     btree_slice_t *btree,
                                     transaction_t *txn,

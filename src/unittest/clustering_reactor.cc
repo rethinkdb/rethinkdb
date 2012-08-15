@@ -1,5 +1,6 @@
 #include "unittest/gtest.hpp"
 
+#include "clustering/reactor/blueprint.hpp"
 #include "mock/branch_history_manager.hpp"
 #include "mock/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"

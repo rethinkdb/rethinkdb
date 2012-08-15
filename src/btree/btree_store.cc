@@ -1,9 +1,5 @@
 #include "btree/btree_store.hpp"
 
-#include "errors.hpp"
-#include <boost/function.hpp>
-#include <boost/variant.hpp>
-
 #include "btree/operations.hpp"
 #include "serializer/config.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -126,8 +122,7 @@ typename protocol_t::write_response_t btree_store_t<protocol_t>::write(
 template <class protocol_t>
 bool btree_store_t<protocol_t>::send_backfill(
         const region_map_t<protocol_t, state_timestamp_t> &start_point,
-        const boost::function<bool(const metainfo_t&)> &should_backfill,  // NOLINT
-        const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+        send_backfill_callback_t<protocol_t> *send_backfill_cb,
         typename protocol_t::backfill_progress_t *progress,
         scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
         signal_t *interruptor)
@@ -140,8 +135,8 @@ bool btree_store_t<protocol_t>::send_backfill(
     region_map_t<protocol_t, binary_blob_t> unmasked_metainfo;
     get_metainfo_internal(txn.get(), superblock->get(), &unmasked_metainfo);
     region_map_t<protocol_t, binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
-    if (should_backfill(metainfo)) {
-        protocol_send_backfill(start_point, chunk_fun, superblock.get(), btree.get(), txn.get(), progress, interruptor);
+    if (send_backfill_cb->should_backfill(metainfo)) {
+        protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), btree.get(), txn.get(), progress, interruptor);
         return true;
     }
     return false;
@@ -178,7 +173,7 @@ void btree_store_t<protocol_t>::reset_data(
     // reasoning that we're probably going to touch a leaf-node-sized
     // range of keys and that it won't be aligned right on a leaf node
     // boundary.
-    // TODO that's not reasonable; reset_data() is sometimes used to wipe out
+    // TOnDO that's not reasonable; reset_data() is sometimes used to wipe out
     // entire databases.
     const int expected_change_count = 2;
     acquire_superblock_for_write(rwi_write, expected_change_count, token, &txn, &superblock, interruptor);

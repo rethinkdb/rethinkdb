@@ -1,7 +1,6 @@
 #ifndef CONTAINERS_DATA_BUFFER_HPP_
 #define CONTAINERS_DATA_BUFFER_HPP_
 
-#include "containers/archive/archive.hpp"
 #include "containers/intrusive_ptr.hpp"
 #include "errors.hpp"
 

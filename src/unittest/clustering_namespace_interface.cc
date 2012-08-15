@@ -4,6 +4,7 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
+#include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 #include "mock/branch_history_manager.hpp"
 #include "mock/clustering_utils.hpp"

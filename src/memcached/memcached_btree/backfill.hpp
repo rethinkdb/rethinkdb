@@ -2,6 +2,9 @@
 #define MEMCACHED_BTREE_BACKFILL_HPP_
 
 #include "btree/backfill.hpp"
+#include "btree/keys.hpp"
+#include "containers/data_buffer.hpp"
+#include "repli_timestamp.hpp"
 #include "memcached/queries.hpp"
 
 class append_only_printf_buffer_t;

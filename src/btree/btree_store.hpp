@@ -4,10 +4,11 @@
 #include <string>
 
 #include "protocol_api.hpp"
-#include "btree/slice.hpp"
 #include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
+#include "buffer_cache/types.hpp"
 #include "perfmon/perfmon.hpp"
 
+class btree_slice_t;
 class io_backender_t;
 class superblock_t;
 class real_superblock_t;
@@ -72,8 +73,7 @@ public:
 
     bool send_backfill(
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
-            const boost::function<bool(const metainfo_t&)> &should_backfill,  // NOLINT
-            const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+            send_backfill_callback_t<protocol_t> *send_backfill_cb,
             typename protocol_t::backfill_progress_t *progress,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
@@ -106,7 +106,7 @@ protected:
                                                                  superblock_t *superblock) = 0;
 
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                                        const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+                                        chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
                                         superblock_t *superblock,
                                         btree_slice_t *btree,
                                         transaction_t *txn,

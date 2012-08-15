@@ -2,6 +2,7 @@
 
 #include "buffer_cache/buffer_cache.hpp"
 #include "containers/buffer_group.hpp"
+#include "containers/data_buffer.hpp"
 #include "memcached/memcached_btree/modify_oper.hpp"
 
 struct memcached_set_oper_t : public memcached_modify_oper_t {

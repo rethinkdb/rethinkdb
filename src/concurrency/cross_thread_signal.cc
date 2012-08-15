@@ -3,6 +3,8 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/runtime/coroutines.hpp"
+
 void cross_thread_signal_subscription_t::run() {
     parent_->on_signal_pulsed(keepalive_);
 }

@@ -215,14 +215,9 @@ write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
     return msg;
 }
 
-#define CHECK_RES(res) if (res != ARCHIVE_SUCCESS) {\
-                           return res;\
-                       }
-
-
 MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
     archive_result_t res = deserialize(s, &cjson->type);
-    CHECK_RES(res);
+    if (res) { return res; }
 
     switch (cjson->type) {
     case cJSON_False:
@@ -232,7 +227,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
         break;
     case cJSON_Number:
         res = deserialize(s, &cjson->valuedouble);
-        CHECK_RES(res);
+        if (res) { return res; }
         cjson->valueint = static_cast<int>(cjson->valuedouble);
         return ARCHIVE_SUCCESS;
         break;
@@ -240,7 +235,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
         {
             std::string str;
             res = deserialize(s, &str);
-            CHECK_RES(res);
+            if (res) { return res; }
             cjson->valuestring = strdup(str.c_str());
             return ARCHIVE_SUCCESS;
         }
@@ -249,11 +244,11 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
         {
             int size;
             res = deserialize(s, &size);
-            CHECK_RES(res);
+            if (res) { return res; }
             for (int i = 0; i < size; ++i) {
                 cJSON *item = cJSON_CreateBlank();
                 res = deserialize(s, item);
-                CHECK_RES(res);
+                if (res) { return res; }
                 cJSON_AddItemToArray(cjson, item);
             }
             return ARCHIVE_SUCCESS;
@@ -263,17 +258,17 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
         {
             int size;
             res = deserialize(s, &size);
-            CHECK_RES(res);
+            if (res) { return res; }
             for (int i = 0; i < size; ++i) {
                 //grab the key
                 std::string key;
                 res = deserialize(s, &key);
-                CHECK_RES(res);
+                if (res) { return res; }
 
                 //grab the item
                 cJSON *item = cJSON_CreateBlank();
                 res = deserialize(s, item);
-                CHECK_RES(res);
+                if (res) { return res; }
                 cJSON_AddItemToObject(cjson, key.c_str(), item);
             }
             return ARCHIVE_SUCCESS;
@@ -284,21 +279,3 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
         break;
     }
 }
-
-write_message_t &operator<<(write_message_t &msg, const boost::shared_ptr<scoped_cJSON_t> &cjson) {
-    rassert(NULL != cjson.get() && NULL != cjson->get());
-    msg << *cjson->get();
-    return msg;
-}
-
-MUST_USE archive_result_t deserialize(read_stream_t *s, boost::shared_ptr<scoped_cJSON_t> *cjson) {
-    cJSON *data = cJSON_CreateBlank();
-
-    archive_result_t res = deserialize(s, data);
-    CHECK_RES(res);
-
-    *cjson = boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(data));
-
-    return ARCHIVE_SUCCESS;
-}
-

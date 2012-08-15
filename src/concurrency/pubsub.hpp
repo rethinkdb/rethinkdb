@@ -2,8 +2,9 @@
 #define CONCURRENCY_PUBSUB_HPP_
 
 #include "concurrency/mutex_assertion.hpp"
+#include "containers/intrusive_list.hpp"
 #include "utils.hpp"
-#include "arch/runtime/runtime.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 
 /* Forward declaration */
 
