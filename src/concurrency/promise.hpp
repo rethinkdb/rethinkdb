@@ -26,7 +26,7 @@ struct promise_t : public home_thread_mixin_t {
         return &cond;
     }
     // TODO: get_value is very questionable.
-    const val_t &get_value() {
+    const val_t &get_value() const {
         assert_thread();
         return *value.get();
     }

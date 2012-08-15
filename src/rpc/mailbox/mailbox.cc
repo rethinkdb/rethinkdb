@@ -46,7 +46,7 @@ raw_mailbox_t::~raw_mailbox_t() {
     manager->unregister_mailbox(mailbox_id);
 }
 
-raw_mailbox_t::address_t raw_mailbox_t::get_address() {
+raw_mailbox_t::address_t raw_mailbox_t::get_address() const {
     address_t a;
     a.peer = manager->get_connectivity_service()->get_me();
     if (thread_mode == mailbox_any_thread) {

@@ -317,10 +317,13 @@ listener_t<protocol_t>::get_registrar_from_broadcaster_bcard(const boost::option
     }
 }
 
+
+/* `listener_intro_t` represents the introduction we expect to get from the
+   broadcaster if all goes well. */
 template <class protocol_t>
 class intro_receiver_t : public signal_t {
 public:
-    typename listener_t<protocol_t>::intro_t intro;
+    listener_intro_t<protocol_t> intro;
     void fill(state_timestamp_t its,
               typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t um,
               typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
