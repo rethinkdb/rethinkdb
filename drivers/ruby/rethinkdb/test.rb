@@ -2,6 +2,10 @@
 load 'rethinkdb_shortcuts.rb'
 r = RethinkDB::RQL
 # filter might work, merge into master and check
+# nth -- support []?
+# orderby -- reverse notation?
+# random, sample
+# reduce
 
 # BIG TODO:
 #   * Make Connection work with clusters, minimize network hops,
@@ -27,7 +31,7 @@ r = RethinkDB::RQL
 #   * POINTMUTATE
 #   * SOME MERGE
 
-# SLICE
+# SLICE, pointdelete, update
 
 ################################################################################
 #                                 CONNECTION                                   #
@@ -200,8 +204,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_filter #FILTER
-    #BROKEN: Can't filter on strings
-    #query_5 = rdb.filter{r[:name].eq('5')}
+    query_5 = rdb.filter{r[:name].eq('5')}
+    assert_equal(query_5.run, [$data[5]])
     query_2345 = rdb.filter{|row| r.and r[:id] >= 2,row[:id] <= 5}
     query_2345_alt = r.filter(rdb){|row| r.and r[:id] >= 2,row[:id] <= 5}
     assert_equal(query_2345.run, query_2345_alt.run)
@@ -210,6 +214,19 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(query_2345.run, $data[2..5])
     assert_equal(query_234.run, $data[2..4])
     assert_equal(query_23.run, $data[2..3])
+  end
+
+  def test_slice #SLICE
+    #TODO: should work for arrays as well
+    arr=[0,1,2,3,4,5]
+    assert_equal(r[arr].to_stream[1].run, 1)
+    assert_equal(r[arr].to_stream[2...6].run, r[arr].to_stream[2..-1].run)
+    assert_equal(r[arr].to_stream[2...5].run, r[arr].to_stream[2..5].run)
+  end
+
+  def test_mapmerge
+    assert_equal(r[{:a => 1}].mapmerge({:b => 2}).run, {'a' => 1, 'b' => 2})
+    assert_equal(r.mapmerge({:a => 1}, {:a => 2}).run, {'a' => 2})
   end
 
   def test_orderby #ORDERBY, MAP
@@ -247,7 +264,35 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.nth(2).run, $data[2])
   end
 
+  def test_javascript #JAVASCRIPT
+    assert_equal(r.javascript('1').run, 1)
+    assert_equal(r.js('1').run, 1)
+    assert_equal(r.js('2+2').run, 4)
+    assert_equal(r.js('"cows"').run, "cows")
+    assert_equal(r.js('[1,2,3]').run, [1,2,3])
+    assert_equal(r.js('{}').run, {})
+    assert_equal(r.js('{a: "whee"}').run, {"a" => "whee"})
+    assert_equal(r.js('this').run, {})
+
+    assert_equal(r.js('return 0;', :func).run, 0)
+    assert_raise(RuntimeError){r.js('undefined').run}
+    assert_raise(RuntimeError){r.js(body='return;').run}
+    assert_raise(RuntimeError){r.js(body='var x = {}; x.x = x; return x;').run}
+  end
+
+  def test_javascript_vars #JAVASCRIPT
+    assert_equal(r.let([['x', 2]], r.js('x')).run, 2)
+    assert_equal(r.let([['x', 2], ['y', 3]], r.js('x+y')).run, 5)
+    assert_equal(rdb.map{|x| r.js("#{x}")}.run, rdb.run)
+    assert_equal(rdb.map{    r.js("this")}.run, rdb.run)
+    assert_equal(rdb.map{|x| r.js("#{x}.num")}.run, rdb.map{r[:num]}.run)
+    assert_equal(rdb.map{    r.js("this.num")}.run, rdb.map{r[:num]}.run)
+    assert_equal(rdb.filter{|x| r.js("#{x}.id < 5")}.run, rdb.filter{r[:id] < 5}.run)
+    assert_equal(rdb.filter{    r.js("this.id < 5")}.run, rdb.filter{r[:id] < 5}.run)
+  end
+
   def test_pickattrs #PICKATTRS, #UNION, #LENGTH
+    #TODO: when union does implicit mapmerge, change
     q1=r.union(rdb.map{r.pickattrs(:id,:name)}, rdb.map{|row| row.pickattrs(:id,:num)})
     q2=r.union(rdb.map{r.attrs(:id,:name)}, rdb.map{|row| row.attrs(:id,:num)})
     q1v = q1.run
@@ -292,6 +337,8 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.run, $data)
 
     #MUTATE -- need fix
+    #PP.pp rdb.mutate{|row| row}.run #r.if(row[:id] < 5, nil, row)}.run
+    #PP.pp rdb.run
 
     #FOREACH, POINTDELETE
     #PP.pp rdb.foreach{rdb.pointdelete(:id, r[:id])}.run
