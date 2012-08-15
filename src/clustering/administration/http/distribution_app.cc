@@ -48,9 +48,10 @@ http_res_t distribution_app_t::handle(const http_req_t &req) {
         namespace_repo_t<memcached_protocol_t>::access_t ns_access(ns_repo, n_id, &interrupt);
 
         memcached_protocol_t::read_t read(distribution_get_query_t(depth), time(NULL));
-        memcached_protocol_t::read_response_t db_res = ns_access.get_namespace_if()->read_outdated(
-            read,
-            &interrupt);
+        memcached_protocol_t::read_response_t db_res;
+        ns_access.get_namespace_if()->read_outdated(read,
+                                                    &db_res,
+                                                    &interrupt);
 
         scoped_cJSON_t data(render_as_json(&boost::get<distribution_result_t>(db_res.result).key_counts));
         return http_json_res(data.get());

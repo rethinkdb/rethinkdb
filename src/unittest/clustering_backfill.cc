@@ -68,6 +68,7 @@ void run_backfill_test() {
     // Insert 10 values into both stores, then another 10 into only `backfiller_store` and not `backfillee_store`
     for (int i = 0; i < 20; i++) {
         dummy_protocol_t::write_t w;
+        dummy_protocol_t::write_response_t response;
         std::string key = std::string(1, 'a' + randint(26));
         w.values[key] = strprintf("%d", i);
 
@@ -91,7 +92,7 @@ void run_backfill_test() {
                     region,
                     binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
                 ),
-                w, ts,
+                w, &response, ts,
                 order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
                 &token,
                 &non_interruptor
