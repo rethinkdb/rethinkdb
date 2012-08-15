@@ -406,6 +406,12 @@ class BaseSelection(object):
         """
         raise NotImplementedError
 
+    def mutate(self, mapping):
+        """TODO: get rid of this ?"""
+        if not isinstance(mapping, internal.Function):
+            mapping = internal.Function(mapping)
+        return internal.Mutate(self, mapping)
+
 class MultiRowSelection(Stream, BaseSelection):
     """A sequence of rows which can be read or written."""
 

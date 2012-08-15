@@ -18,7 +18,7 @@ base_port = 11213 # port that RethinkDB runs from by default
 
 if opts["pkg_type"] == "rpm":
     def install(path):
-        return "rpm -i %s" % path
+        return "rpm -i %s --nodeps" % path
 
     def get_binary(path):
         return "rpm -qpil %s | grep /usr/bin" % path

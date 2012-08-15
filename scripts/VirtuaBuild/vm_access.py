@@ -19,7 +19,7 @@ class VM(object):
             print "(VM successfully started)"
         else:
             sys_exit("Error: Failed to connect to VM", -1)
-    def command(self, cmd, output = False, timeout = 1200):
+    def command(self, cmd, output = False, timeout = 1800):
         print "Executing on VM:", cmd
         proc = subprocess.Popen(["ssh %s '%s'" % (self.host, cmd)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell = True)
         start_time = time.time()
