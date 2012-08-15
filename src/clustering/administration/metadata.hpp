@@ -123,4 +123,25 @@ cJSON *render_as_json(cluster_directory_peer_type_t *peer_type);
 void apply_json_to(cJSON *, cluster_directory_peer_type_t *);
 void on_subfield_change(cluster_directory_peer_type_t *);
 
+
+/* If a name uniquely identifies a namespace then return it, otherwise
+ * return nothing. */
+template<class T>
+boost::optional<std::pair<uuid_t, deletable_t<T> > > metadata_get_by_name(
+    std::map<uuid_t, deletable_t<T> > map,
+    const std::string &name) {
+    boost::optional<std::pair<uuid_t, deletable_t<T> > > res;
+    for (typename std::map<uuid_t, deletable_t<T> >::iterator
+             it = map.begin(); it != map.end(); ++it) {
+        if (it->second.is_deleted() || it->second.get().name.in_conflict()) {
+            return boost::optional<std::pair<uuid_t, deletable_t<T> > >();
+        } else if (it->second.get().name.get() == name) {
+            if (res) return boost::optional<std::pair<uuid_t, deletable_t<T> > >();
+            res = *it;
+        }
+    }
+    return res;
+}
+
+
 #endif  // CLUSTERING_ADMINISTRATION_METADATA_HPP_
