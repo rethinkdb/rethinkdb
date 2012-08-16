@@ -27,9 +27,9 @@ public:
     }
 
     /* Render a cJSON entity to text for transfer/storage. */
-    std::string Print() const;
+    std::string Print() const THROWS_NOTHING;
     /* Render a cJSON entity to text for transfer/storage without any formatting. */
-    std::string PrintUnformatted() const;
+    std::string PrintUnformatted() const THROWS_NOTHING;
 
     /* Returns the number of items in an array (or object). */
     int GetArraySize() const {
@@ -37,46 +37,64 @@ public:
     }
     /* Retrieve item number "item" from array "array". Returns NULL if unsuccessful. */
     cJSON* GetArrayItem(int item) const {
-        return cJSON_GetArrayItem(val, item);
+        rassert(item >= 0);
+        cJSON *retval = cJSON_GetArrayItem(val, item);
+        rassert(retval);
+        return retval;
     }
     /* Get item "string" from object. Case insensitive. */
     cJSON* GetObjectItem(const char *string) const {
-        return cJSON_GetObjectItem(val, string);
+        rassert(string);
+        cJSON *retval = cJSON_GetObjectItem(val, string);
+        rassert(retval);
+        return retval;
     }
 
     /* Append item to the specified array/object. */
     void AddItemToArray(cJSON *item) {
+        rassert(item);
         return cJSON_AddItemToArray(val, item);
     }
     void AddItemToObject(const char *string, cJSON *item) {
+        rassert(string); rassert(item);
         return cJSON_AddItemToObject(val, string, item);
     }
 
     /* Remove/Detatch items from Arrays/Objects. */
     cJSON* DetachItemFromArray(int which) {
+        rassert(which >= 0);
         return cJSON_DetachItemFromArray(val, which);
     }
     void DeleteItemFromArray(int which) {
+        rassert(which >= 0);
         cJSON_DeleteItemFromArray(val, which);
     }
     cJSON* DetachItemFromObject(const char *string) {
-        return cJSON_DetachItemFromObject(val, string);
+        rassert(string);
+        cJSON *retval = cJSON_DetachItemFromObject(val, string);
+        rassert(retval);
+        return retval;
     }
     void DeleteItemFromObject(const char *string) {
+        rassert(string);
         cJSON_DeleteItemFromObject(val, string);
     }
 
     /* Update array items. */
     void ReplaceItemInArray(int which, cJSON *newitem) {
+        rassert(which >= 0); rassert(newitem);
         return cJSON_ReplaceItemInArray(val, which, newitem);
     }
     void ReplaceItemInObject(const char *string, cJSON *newitem) {
+        rassert(string); rassert(newitem);
         return cJSON_ReplaceItemInObject(val, string, newitem);
     }
 
     /* Copy function. */
     cJSON* DeepCopy() const {
-        return cJSON_DeepCopy(val);
+        cJSON *retval = cJSON_DeepCopy(val);
+        rassert(retval);
+        return retval;
     }
 };
 
@@ -97,9 +115,9 @@ public:
     }
 
     /* Render a cJSON entity to text for transfer/storage. */
-    std::string Print() const;
+    std::string Print() const THROWS_NOTHING;
     /* Render a cJSON entity to text for transfer/storage without any formatting. */
-    std::string PrintUnformatted() const;
+    std::string PrintUnformatted() const THROWS_NOTHING;
 
     /* Returns the number of items in an array (or object). */
     int GetArraySize() const {
@@ -107,40 +125,58 @@ public:
     }
     /* Retrieve item number "item" from array "array". Returns NULL if unsuccessful. */
     cJSON* GetArrayItem(int item) const {
-        return cJSON_GetArrayItem(val, item);
+        rassert(item >= 0);
+        cJSON *retval = cJSON_GetArrayItem(val, item);
+        rassert(retval);
+        return retval;
     }
     /* Get item "string" from object. Case insensitive. */
     cJSON* GetObjectItem(const char *string) const {
-        return cJSON_GetObjectItem(val, string);
+        rassert(string);
+        cJSON *retval = cJSON_GetObjectItem(val, string);
+        assert(retval);
+        return retval;
     }
 
     /* Append item to the specified array/object. */
     void AddItemToArray(cJSON *item) {
+        rassert(item);
         return cJSON_AddItemToArray(val, item);
     }
     void AddItemToObject(const char *string, cJSON *item) {
+        rassert(string); rassert(item);
         return cJSON_AddItemToObject(val, string, item);
     }
 
     /* Remove/Detatch items from Arrays/Objects. */
     cJSON* DetachItemFromArray(int which) {
-        return cJSON_DetachItemFromArray(val, which);
+        rassert(which >= 0);
+        cJSON *retval = cJSON_DetachItemFromArray(val, which);
+        rassert(retval);
+        return retval;
     }
     void DeleteItemFromArray(int which) {
+        rassert(which >= 0);
         cJSON_DeleteItemFromArray(val, which);
     }
     cJSON* DetachItemFromObject(const char *string) {
-        return cJSON_DetachItemFromObject(val, string);
+        rassert(string);
+        cJSON *retval = cJSON_DetachItemFromObject(val, string);
+        rassert(retval);
+        return retval;
     }
     void DeleteItemFromObject(const char *string) {
+        rassert(string);
         cJSON_DeleteItemFromObject(val, string);
     }
 
     /* Update array items. */
     void ReplaceItemInArray(int which, cJSON *newitem) {
+        rassert(which >= 0); rassert(newitem);
         return cJSON_ReplaceItemInArray(val, which, newitem);
     }
     void ReplaceItemInObject(const char *string, cJSON *newitem) {
+        rassert(string); rassert(newitem);
         return cJSON_ReplaceItemInObject(val, string, newitem);
     }
 };
@@ -164,8 +200,8 @@ public:
     explicit json_array_iterator_t(cJSON *target);
 };
 
-std::string cJSON_print_std_string(cJSON *json);
-std::string cJSON_print_unformatted_std_string(cJSON *json);
+std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING;
+std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING;
 
 void project(cJSON *json, std::set<std::string> keys);
 
