@@ -13,6 +13,8 @@ PROTOC_JS=$(PROTOC) --plugin=$(PROTOC_JS_PLUGIN) -I $(PROTOC_JS_IMPORT_DIR)
 PROTO_FILE_DIR=../../src/rdb_protocol/
 PROTO_FILE=$(PROTO_FILE_DIR)query_language.proto
 
+OUTPUTMODE=compiled
+
 # Compile the 
 lib: query_language.pb.js
 	rm -rf rethinkdb.js
@@ -26,7 +28,7 @@ lib: query_language.pb.js
 		--compiler_flags="--warning_level=VERBOSE" \
 		--compiler_flags="--create_source_map=./rethinkdb.js.map" \
 		--compiler_flags="--source_map_format=V3" \
-		--output_mode=compiled > rethinkdb.js
+		--output_mode=$(OUTPUTMODE) > rethinkdb.js
 
 # Compile the javascript stubs for the rethinkdb protocol
 query_language.pb.js: $(PROTO_FILE)

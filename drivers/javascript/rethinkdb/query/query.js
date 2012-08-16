@@ -1,7 +1,7 @@
-goog.provide('rethinkdb.query');
+goog.provide('rethinkdb.query2');
 
+goog.require('rethinkdb.query');
 goog.require('goog.asserts');
-goog.require('rethinkdb.query.Database');
 
 /**
  * @return {rethinkdb.query.Database}

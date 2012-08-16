@@ -1,8 +1,6 @@
 goog.provide('rethinkdb.query.Expression');
 
-goog.provide('rethinkdb.query.JSONExpression');
-
-goog.require('rethinkdb.net');
+goog.require('rethinkdb.query');
 goog.require('Query');
 
 /**
@@ -143,7 +141,10 @@ function makeBinary(className, builtinType, chainName, comparison) {
 
     // Chainable method on Expression
     rethinkdb.query.Expression.prototype[chainName] = function(other) {
-        return new newClass(this, other);
+        if (other instanceof rethinkdb.query.Expression)
+            return new newClass(this, other);
+        else
+            return new newClass(this, rethinkdb.query.expr(other));
     };
 }
 

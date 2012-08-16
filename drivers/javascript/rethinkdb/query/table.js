@@ -1,8 +1,5 @@
 goog.provide('rethinkdb.query.Table');
 
-goog.require('rethinkdb.net');
-goog.require('rethinkdb.query.Expression');
-goog.require('Term');
 
 /**
  * @constructor

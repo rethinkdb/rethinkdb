@@ -1,7 +1,5 @@
 goog.provide('rethinkdb.query.Database');
 
-goog.require('rethinkdb.query.Table');
-
 /**
  * @constructor
  */
