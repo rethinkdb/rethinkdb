@@ -129,7 +129,7 @@ const char *const METADATA_ERR_NONE = "No entry with that name.";
 const char *const METADATA_ERR_MULTIPLE = "Multiple entries with that name.";
 const char *const METADATA_ERR_CONFLICT = "Entry with that name is in conflict.";
 
-/* If a name uniquely identifies a namespace then return it, otherwise
+/* If a name uniquely identifies an entry then return it, otherwise
  * return nothing.  Also optionally reports its success/failure mode
  * with the optional argument [out], which allows better error
  * reporting for the clients. */
