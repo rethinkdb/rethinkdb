@@ -701,13 +701,13 @@ void parse_tableop_create(const TableopQuery::Create &c, std::string *datacenter
     }
 }
 
-void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) {
+void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
+    cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
     switch(t->type()) {
     case TableopQuery::CREATE: {
         const char *status;
         std::string dc_name, db_name, table_name, primary_key;
         parse_tableop_create(t->create(),&dc_name,&db_name,&table_name,&primary_key);
-        cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
 
         //Make sure namespace doesn't exist before we go any further.
         metadata_get_by_name(metadata.rdb_namespaces.namespaces, table_name, &status);
@@ -777,9 +777,59 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
         }
         res->set_status_code(Response::SUCCESS_EMPTY);
     } break;
-    case TableopQuery::DROP:
-    case TableopQuery::LIST:
-    default: crash("unimplemented");
+    case TableopQuery::DROP: crash("unimplemented"); break;
+    case TableopQuery::LIST: {
+        for (namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::
+                 iterator it = metadata.rdb_namespaces.namespaces.begin();
+             it != metadata.rdb_namespaces.namespaces.end();
+             ++it) {
+            if (it->second.is_deleted()) continue;
+            namespace_semilattice_metadata_t<rdb_protocol_t> ns_metadata =
+                it->second.get();
+            scoped_cJSON_t this_namespace(cJSON_CreateObject());
+            bool conflicted = false;
+
+            this_namespace.AddItemToObject(
+                "uuid",cJSON_CreateString(uuid_to_str(it->first).c_str()));
+
+            if (ns_metadata.name.in_conflict()) {
+                this_namespace.AddItemToObject("table_name", cJSON_CreateNull());
+                conflicted = true;
+            } else {
+                this_namespace.AddItemToObject(
+                    "table_name", cJSON_CreateString(ns_metadata.name.get().c_str()));
+            }
+
+            if (ns_metadata.database.in_conflict()) {
+                this_namespace.AddItemToObject("db_name", cJSON_CreateNull());
+                conflicted = true;
+            } else {
+                uuid_t table_id = ns_metadata.database.get();
+                databases_semilattice_metadata_t::database_map_t::iterator
+                    db_metadata_it = metadata.databases.databases.find(table_id);
+                if (db_metadata_it == metadata.databases.databases.end()
+                    || db_metadata_it->second.is_deleted()) {
+                    logERR("Namespace metadata contains invalid database ID!");
+                    throw runtime_exc_t("Namespace metadata is corrupted!", backtrace);
+                }
+                database_semilattice_metadata_t db_metadata =
+                    db_metadata_it->second.get();
+                if (db_metadata.name.in_conflict()) {
+                    this_namespace.AddItemToObject("db_name", cJSON_CreateNull());
+                    conflicted = true;
+                } else {
+                    this_namespace.AddItemToObject(
+                        "db_name", cJSON_CreateString(db_metadata.name.get().c_str()));
+
+                }
+            }
+
+            this_namespace.AddItemToObject("conflicted", cJSON_CreateBool(conflicted));
+            res->add_response(this_namespace.PrintUnformatted());
+        }
+        res->set_status_code(Response::SUCCESS_STREAM);
+    } break;
+    default: crash("unreachable");
     }
 }
 
