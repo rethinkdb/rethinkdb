@@ -1,12 +1,7 @@
 #include "concurrency/wait_any.hpp"
 
-void wait_any_t::wait_any_subscription_t::init(wait_any_t *parent) {
-    parent_ = parent;
-}
-
 void wait_any_t::wait_any_subscription_t::run() {
-    rassert(parent_ != NULL);
-    parent_->pulse_if_not_already_pulsed();
+    parent->pulse_if_not_already_pulsed();
 }
 
 wait_any_t::wait_any_t() {
@@ -47,8 +42,7 @@ wait_any_t::~wait_any_t() {
         wait_any_subscription_t *p = subs.head();
         subs.remove(p);
 
-        // Only delete the subscription if it was allocated in dynamic memory
-        if (p < &sub_storage[0] || p > &sub_storage[default_preallocated_subs - 1]) {
+        if (p->on_heap()) {
             delete p;
         }
     }
@@ -60,11 +54,10 @@ void wait_any_t::add(signal_t *s) {
 
     // Use preallocated subscriptions, if possible, to save on dynamic memory usage
     if (subs.size() < default_preallocated_subs) {
-        sub = &sub_storage[subs.size()];
+        sub = sub_storage[subs.size()].create(this, false);
     } else {
-        sub = new wait_any_subscription_t();
+        sub = new wait_any_subscription_t(this, true);
     }
-    sub->init(this);
     sub->reset(s);
     subs.push_back(sub);
 }
