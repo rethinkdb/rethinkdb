@@ -174,6 +174,36 @@ makeComparison('GreaterThanOrEqualsExpression', Builtin.Comparison.GE, 'ge');
  * @constructor
  * @extends {rethinkdb.query.ReadExpression}
  */
+rethinkdb.query.NotExpression = function(leftExpr) {
+    this.leftExpr_ = leftExpr;
+};
+goog.inherits(rethinkdb.query.NotExpression, rethinkdb.query.ReadExpression);
+
+rethinkdb.query.NotExpression.prototype.compile = function() {
+    var builtin = new Builtin();
+    builtin.setType(Builtin.BuiltinType.NOT);
+
+    var call = new Term.Call();
+    call.setBuiltin(builtin);
+    call.addArgs(this.leftExpr_.compile());
+    
+    var term = new Term();
+    term.setType(Term.TermType.CALL);
+    term.setCall(call);
+
+    return term;
+};
+
+rethinkdb.query.Expression.prototype.not = function() {
+    return new rethinkdb.query.NotExpression(this);
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'not',
+                    rethinkdb.query.Expression.prototype.not);
+
+/**
+ * @constructor
+ * @extends {rethinkdb.query.ReadExpression}
+ */
 rethinkdb.query.LengthExpression = function(leftExpr) {
     this.leftExpr_ = leftExpr;
 };
@@ -197,6 +227,8 @@ rethinkdb.query.LengthExpression.prototype.compile = function() {
 rethinkdb.query.Expression.prototype.length = function() {
     return new rethinkdb.query.LengthExpression(this);
 };
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'length',
+                    rethinkdb.query.Expression.prototype.length);
 
 /**
  * @param {...rethinkdb.query.Expression} var_args

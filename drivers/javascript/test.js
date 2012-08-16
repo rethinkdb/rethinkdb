@@ -25,6 +25,8 @@ function runTests() {
     q(1).add(3).mul(q(8).div(2)).run(print);
     welcome.map(q.R('num').add(12)).run(print);
 
+    q(true).not().run(print);
+
     welcome.length().run(print);
     welcome.filter({'id':1}).run(print);
     welcome.filter(q.R('id').eq(1)).run(print);
