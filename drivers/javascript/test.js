@@ -12,12 +12,14 @@ var conn = new rethinkdb.net.TcpConnection({host:'newton', port:12346},
 function() {
     console.log('connected');
 
-    welcome.distinct('id').run(function(response) {
-        console.log('response'); 
-        console.log(response);
-
-        conn.close();
-    });
+    welcome
+        .map(q.R('num'))
+        .reduce(q.expr(0), q.fn('a', 'b', q.expr(1)))
+        .run(function(response) {
+            console.log('response'); 
+            console.log(response);
+            conn.close();
+         });
 },
 function() {
     console.log('failed to connect');

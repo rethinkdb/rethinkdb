@@ -47,21 +47,25 @@ rethinkdb.query.table = function(table_identifier) {
 };
 
 /**
- * @param {string} arg
+ * @param {Array.<string>} args
  * @param {rethinkdb.query.Expression} body
  * @constructor
  */
-rethinkdb.query.FunctionExpression = function(arg, body) {
-    this.arg = arg;
+rethinkdb.query.FunctionExpression = function(args, body) {
+    this.args = args;
     this.body = body;
 };
 
 /**
+ * @param {...*} var_args
  * @return {rethinkdb.query.FunctionExpression}
  * @export
  */
-rethinkdb.query.fn = function(arg, body) {
-    return new rethinkdb.query.FunctionExpression(arg, body);
+rethinkdb.query.fn = function(var_args) {
+    var body = arguments[arguments.length - 1];
+    var args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
+
+    return new rethinkdb.query.FunctionExpression(args, body);
 };
 
 /**
