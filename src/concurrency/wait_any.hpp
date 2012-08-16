@@ -25,10 +25,24 @@ public:
 
     void add(signal_t *s);
 private:
-    friend class wait_any_subscription_t;
+    class wait_any_subscription_t : public signal_t::subscription_t, public intrusive_list_node_t<wait_any_subscription_t> {
+    public:
+        wait_any_subscription_t() : parent_(NULL) { }
+
+        void init(wait_any_t *parent);
+        virtual void run();
+    private:
+        wait_any_t *parent_;
+        DISABLE_COPYING(wait_any_subscription_t);
+    };
+
+    static const size_t default_preallocated_subs = 3;
+
     void pulse_if_not_already_pulsed();
 
     intrusive_list_t<wait_any_subscription_t> subs;
+
+    wait_any_subscription_t sub_storage[default_preallocated_subs];
 
     DISABLE_COPYING(wait_any_t);
 };
