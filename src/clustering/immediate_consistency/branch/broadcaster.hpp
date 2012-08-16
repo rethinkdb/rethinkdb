@@ -74,23 +74,12 @@ public:
 private:
     class incomplete_write_ref_t;
 
+    class shard_t;
     class dispatchee_t;
+    class shard_dispatchee_t;
 
-    /* Reads need to pick a single readable mirror to perform the operation.
-    Writes need to choose a readable mirror to get the reply from. Both use
-    `pick_a_readable_dispatchee()` to do the picking. You must hold
-    `dispatchee_mutex` and pass in `proof` of the mutex acquisition. (A
-    dispatchee is "readable" if a `replier_t` exists for it on the remote
-    machine.) */
-    void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);
-
-    void background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING;
-    void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
-
-    /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
-    and `newest_complete_timestamp`. It mostly exists as a form of executable
-    documentation. */
-    void sanity_check();
+    void sync_until_shutdown(auto_drainer_t::lock_t);
+    void sync_on_thread(int thread, state_timestamp_t go_at_least_to, state_timestamp_t *current_out);
 
     mailbox_manager_t *mailbox_manager;
 
@@ -103,27 +92,9 @@ private:
 
     branch_history_manager_t<protocol_t> *branch_history_manager;
 
-    /* If a write has begun, but some mirror might not have completed it yet,
-    then it goes in `incomplete_writes`. The idea is that a new mirror that
-    connects will use the union of a backfill and `incomplete_writes` as its
-    data, and that will guarantee it gets at least one copy of every write.
-    See the member function `sanity_check()` for a description of the
-    relationship between `incomplete_writes`, `current_timestamp`, and
-    `newest_complete_timestamp`. */
+    scoped_ptr_t<one_per_thread_t<shard_t> > shards;
 
-    /* `mutex` is held by new writes and reads being created, by writes
-    finishing, and by dispatchees joining, leaving, or upgrading. It protects
-    `incomplete_writes`, `current_timestamp`, `newest_complete_timestamp`,
-    `order_checkpoint`, `dispatchees`, and `readable_dispatchees`. */
-    mutex_assertion_t mutex;
-
-    std::list<boost::shared_ptr<incomplete_write_t> > incomplete_writes;
-    state_timestamp_t current_timestamp, newest_complete_timestamp;
-    order_checkpoint_t order_checkpoint;
-    semaphore_assertion_t enforce_max_outstanding_writes;
-
-    std::map<dispatchee_t *, auto_drainer_t::lock_t> dispatchees;
-    intrusive_list_t<dispatchee_t> readable_dispatchees;
+    auto_drainer_t drainer;
 
     registrar_t<listener_business_card_t<protocol_t>, broadcaster_t *, dispatchee_t> registrar;
 

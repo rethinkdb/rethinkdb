@@ -36,6 +36,12 @@ public:
         return t;
     }
 
+    state_timestamp_t plus_integer(int n) {
+        state_timestamp_t t;
+        t.num = num + n;
+        return t;
+    }
+
     // TODO get rid of this. This is only for a hack until we know what to do with timestamps
     uint64_t numeric_representation() const {
         return num;
@@ -74,6 +80,12 @@ public:
     static transition_timestamp_t starting_from(state_timestamp_t before) {
         transition_timestamp_t t;
         t.before = before;
+        return t;
+    }
+
+    transition_timestamp_t plus_integer(int n) {
+        transition_timestamp_t t;
+        t.before = before.plus_integer(n);
         return t;
     }
 

@@ -127,22 +127,21 @@ public:
     the mirrors. */
 
     typedef mailbox_t<void(typename protocol_t::write_t,
-                            transition_timestamp_t,
-                            order_token_t,
                             fifo_enforcer_write_token_t,
+                            order_token_t,
                             mailbox_addr_t<void()>)> write_mailbox_t;
 
     typedef mailbox_t<void(typename protocol_t::write_t,
-                           transition_timestamp_t,
-                           order_token_t,
                            fifo_enforcer_write_token_t,
+                           order_token_t,
                            mailbox_addr_t<void(typename protocol_t::write_response_t)>)> writeread_mailbox_t;
 
     typedef mailbox_t<void(typename protocol_t::read_t,
-                           state_timestamp_t,
-                           order_token_t,
                            fifo_enforcer_read_token_t,
+                           order_token_t,
                            mailbox_addr_t<void(typename protocol_t::read_response_t)>)> read_mailbox_t;
+
+    typedef mailbox_t<void(int64_t, transition_timestamp_t, int, int)> skip_mailbox_t;
 
     /* The master sends a single message to `intro_mailbox` at the very
     beginning. This tells the mirror what timestamp it's at, and also tells
@@ -164,8 +163,9 @@ public:
 
     typename intro_mailbox_t::address_t intro_mailbox;
     typename write_mailbox_t::address_t write_mailbox;
+    typename skip_mailbox_t::address_t skip_mailbox;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(intro_mailbox, write_mailbox);
+    RDB_MAKE_ME_SERIALIZABLE_2(intro_mailbox, write_mailbox, skip_mailbox);
 };
 
 /* `backfiller_business_card_t` represents a thing that is willing to serve
