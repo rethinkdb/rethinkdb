@@ -171,6 +171,34 @@ makeComparison('GreaterThanExpression', Builtin.Comparison.GT, 'gt');
 makeComparison('GreaterThanOrEqualsExpression', Builtin.Comparison.GE, 'ge');
 
 /**
+ * @constructor
+ * @extends {rethinkdb.query.ReadExpression}
+ */
+rethinkdb.query.LengthExpression = function(leftExpr) {
+    this.leftExpr_ = leftExpr;
+};
+goog.inherits(rethinkdb.query.LengthExpression, rethinkdb.query.ReadExpression);
+
+rethinkdb.query.LengthExpression.prototype.compile = function() {
+    var builtin = new Builtin();
+    builtin.setType(Builtin.BuiltinType.LENGTH);
+
+    var call = new Term.Call();
+    call.setBuiltin(builtin);
+    call.addArgs(this.leftExpr_.compile());
+    
+    var term = new Term();
+    term.setType(Term.TermType.CALL);
+    term.setCall(call);
+
+    return term;
+};
+
+rethinkdb.query.Expression.prototype.length = function() {
+    return new rethinkdb.query.LengthExpression(this);
+};
+
+/**
  * @param {...rethinkdb.query.Expression} var_args
  * @constructor
  * @extends {rethinkdb.query.ReadExpression}
