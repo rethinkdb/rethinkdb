@@ -474,9 +474,7 @@ store_t::store_t(io_backender_t *io_backend,
                  context_t *_ctx) :
     btree_store_t<rdb_protocol_t>(io_backend, filename, create, parent_perfmon_collection, _ctx),
     ctx(_ctx)
-{ 
-    BREAKPOINT;
-}
+{ }
 
 store_t::~store_t() {
     assert_thread();

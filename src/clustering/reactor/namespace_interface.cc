@@ -3,9 +3,11 @@
 template <class protocol_t>
 cluster_namespace_interface_t<protocol_t>::cluster_namespace_interface_t(
         mailbox_manager_t *mm,
-        clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > dv)
+        clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > dv,
+        typename protocol_t::context_t *_ctx)
     : mailbox_manager(mm),
       directory_view(dv),
+      ctx(_ctx),
       start_count(0),
       watcher_subscription(boost::bind(&cluster_namespace_interface_t::update_registrants, this, false)) {
     {

@@ -302,7 +302,8 @@ void test_cluster_group_t<protocol_t>::make_namespace_interface(int i, scoped_pt
     out->init(new cluster_namespace_interface_t<protocol_t>(
                                                             &test_clusters[i].mailbox_manager,
                                                             (&test_clusters[i])->directory_read_manager.get_root_view()
-                                                            ->subview(&test_cluster_group_t::extract_reactor_business_cards_no_optional)
+                                                            ->subview(&test_cluster_group_t::extract_reactor_business_cards_no_optional),
+                                                            NULL //<- null ctx will need to be made something real
                                                             ));
     (*out)->get_initial_ready_signal()->wait_lazily_unordered();
 }
