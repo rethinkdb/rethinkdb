@@ -33,6 +33,7 @@ scoped_cJSON_t::~scoped_cJSON_t() {
 /* Render a cJSON entity to text for transfer/storage. */
 std::string scoped_cJSON_t::Print() const {
     char *s = cJSON_Print(val);
+    rassert(s);
     std::string res(s);
     free(s);
 
@@ -41,6 +42,7 @@ std::string scoped_cJSON_t::Print() const {
 /* Render a cJSON entity to text for transfer/storage without any formatting. */
 std::string scoped_cJSON_t::PrintUnformatted() const {
     char *s = cJSON_PrintUnformatted(val);
+    rassert(s);
     std::string res(s);
     free(s);
 
@@ -95,17 +97,20 @@ cJSON *json_iterator_t::next() {
 json_object_iterator_t::json_object_iterator_t(cJSON *target)
     : json_iterator_t(target)
 {
+    rassert(target);
     rassert(target->type == cJSON_Object);
 }
 
 json_array_iterator_t::json_array_iterator_t(cJSON *target)
     : json_iterator_t(target)
 {
+    rassert(target);
     rassert(target->type == cJSON_Array);
 }
 
 std::string cJSON_print_std_string(cJSON *json) {
     char *s = cJSON_Print(json);
+    rassert(s);
     std::string res(s);
     free(s);
 
@@ -114,6 +119,7 @@ std::string cJSON_print_std_string(cJSON *json) {
 
 std::string cJSON_print_unformatted_std_string(cJSON *json) {
     char *s = cJSON_PrintUnformatted(json);
+    rassert(s);
     std::string res(s);
     free(s);
 
@@ -121,6 +127,7 @@ std::string cJSON_print_unformatted_std_string(cJSON *json) {
 }
 
 void project(cJSON *json, std::set<std::string> keys) {
+    rassert(json);
     rassert(json->type == cJSON_Object);
 
     json_object_iterator_t it(json);
@@ -128,6 +135,7 @@ void project(cJSON *json, std::set<std::string> keys) {
     std::vector<std::string> keys_to_delete;
 
     while (cJSON *node = it.next()) {
+        rassert(node->string);
         std::string str(node->string);
         if (!std_contains(keys, str)) {
             keys_to_delete.push_back(str);
@@ -149,6 +157,7 @@ cJSON *merge(cJSON *x, cJSON *y) {
     cJSON *hd;
 
     while ((hd = xit.next())) {
+        rassert(hd->string);
         keys.insert(hd->string);
     }
 
@@ -161,6 +170,7 @@ cJSON *merge(cJSON *x, cJSON *y) {
     keys.clear();
 
     while ((hd = yit.next())) {
+        rassert(hd->string);
         keys.insert(hd->string);
     }
 
@@ -189,6 +199,7 @@ write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
         break;
     case cJSON_String:
         {
+            rassert(cjson.valuestring);
             std::string s(cjson.valuestring);
             msg << s;
         }
@@ -201,6 +212,7 @@ write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
             cJSON *hd = cjson.child;
             while (hd) {
                 if (cjson.type == cJSON_Object) {
+                    rassert(hd->string);
                     msg << std::string(hd->string);
                 }
                 msg << *hd;
