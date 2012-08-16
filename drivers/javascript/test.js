@@ -6,12 +6,13 @@ global.TextDecoder = te.TextDecoder;
 var rethinkdb = require('./rethinkdb');
 
 var q = rethinkdb.query;
+var welcome = q.table('Welcome-rdb');
 
 var conn = new rethinkdb.net.TcpConnection({host:'newton', port:12346},
 function() {
     console.log('connected');
 
-    conn.run(q.expr([1,2,3,4]).map(q.fn('a', q.expr(1))), function(response) {
+    welcome.orderby('-num', 'id').run(function(response) {
         console.log('response'); 
         console.log(response);
 

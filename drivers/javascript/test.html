@@ -9,13 +9,6 @@
             var re = rethinkdb;
             var q = re.query;
 
-            var conn = new re.net.HttpConnection('/test.html');
-            conn.run(q.table('Welcome-rdb').filter(q.fn('bob', q.R('name').eq(q.expr(8)))), function(response) {
-                console.log('response'); 
-                console.log(response);
-
-                conn.close();
-            });
         </script>
     </body>
 </html>

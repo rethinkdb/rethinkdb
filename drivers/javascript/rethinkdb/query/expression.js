@@ -58,7 +58,7 @@ rethinkdb.query.WriteExpression = function() {};
 goog.inherits(rethinkdb.query.WriteExpression, rethinkdb.query.Expression);
 
 /** @override */
-rethinkdb.query.WriteExpression.prototype.buildQuery = goog.abstractMethod();
+rethinkdb.query.WriteExpression.prototype.buildQuery = goog.abstractMethod;
 
 /**
  * @constructor
@@ -516,7 +516,60 @@ rethinkdb.query.MapExpression.prototype.compile = function() {
     return term;
 };
 
-/** @export */
 rethinkdb.query.Expression.prototype.map = function(mapping) {
     return new rethinkdb.query.MapExpression(this, mapping);
 };
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'map',
+                    rethinkdb.query.Expression.prototype.map);
+
+/**
+ * @constructor
+ * @extends {rethinkdb.query.ReadExpression}
+ */
+rethinkdb.query.OrderByExpression = function(leftExpr, orderings) {
+    this.leftExpr_ = leftExpr;
+    this.orderings_ = orderings;
+};
+goog.inherits(rethinkdb.query.OrderByExpression, rethinkdb.query.ReadExpression);
+
+/** @override */
+rethinkdb.query.OrderByExpression.prototype.compile = function() {
+    var builtin = new Builtin();
+    builtin.setType(Builtin.BuiltinType.ORDERBY);
+
+    for (var i = 0; i < this.orderings_.length; i++) {
+        var ascending = true;
+        var attr = this.orderings_[i];
+
+        if (attr[0] === '-') {
+            ascending = false;
+            attr = attr.slice(1);
+        }
+
+        var orderby = new Builtin.OrderBy();
+        orderby.setAttr(attr);
+        orderby.setAscending(ascending);
+
+        builtin.addOrderBy(orderby);
+    }
+
+    var call = new Term.Call();
+    call.setBuiltin(builtin);
+    call.addArgs(this.leftExpr_.compile());
+
+    var term = new Term();
+    term.setType(Term.TermType.CALL);
+    term.setCall(call);
+
+    return term;
+};
+
+/**
+ * @param {...string} var_args
+ */
+rethinkdb.query.Expression.prototype.orderby = function(var_args) {
+    var orderings = Array.prototype.slice.call(arguments, 0);
+    return new rethinkdb.query.OrderByExpression(this, orderings);
+}
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'orderby',
+                    rethinkdb.query.Expression.prototype.orderby);

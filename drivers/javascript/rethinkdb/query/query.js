@@ -67,12 +67,12 @@ rethinkdb.query.fn = function(arg, body) {
 /**
  * @param {string} varName
  * @constructor
- * @extends {rethinkdb.query.Expression}
+ * @extends {rethinkdb.query.ReadExpression}
  */
 rethinkdb.query.VarExpression = function(varName) {
     this.varName_ = varName;
 };
-goog.inherits(rethinkdb.query.VarExpression, rethinkdb.query.Expression);
+goog.inherits(rethinkdb.query.VarExpression, rethinkdb.query.ReadExpression);
 
 /** @override */
 rethinkdb.query.VarExpression.prototype.compile = function() {
@@ -86,13 +86,13 @@ rethinkdb.query.VarExpression.prototype.compile = function() {
  * @param {rethinkdb.query.Expression} leftExpr
  * @param {string} attrName
  * @constructor
- * @extends {rethinkdb.query.Expression}
+ * @extends {rethinkdb.query.ReadExpression}
  */
 rethinkdb.query.AttrExpression = function(leftExpr, attrName) {
     this.leftExpr_ = leftExpr;
     this.attrName_ = attrName;
 };
-goog.inherits(rethinkdb.query.AttrExpression, rethinkdb.query.Expression);
+goog.inherits(rethinkdb.query.AttrExpression, rethinkdb.query.ReadExpression);
 
 /** @override */
 rethinkdb.query.AttrExpression.prototype.compile = function() {
@@ -114,12 +114,12 @@ rethinkdb.query.AttrExpression.prototype.compile = function() {
 /**
  * @param {string} attrName
  * @constructor
- * @extends {rethinkdb.query.Expression}
+ * @extends {rethinkdb.query.ReadExpression}
  */
 rethinkdb.query.ImplicitAttrExpression = function(attrName) {
     this.attrName_ = attrName;
 };
-goog.inherits(rethinkdb.query.ImplicitAttrExpression, rethinkdb.query.Expression);
+goog.inherits(rethinkdb.query.ImplicitAttrExpression, rethinkdb.query.ReadExpression);
 
 /** @override */
 rethinkdb.query.ImplicitAttrExpression.prototype.compile = function() {

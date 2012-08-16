@@ -9,7 +9,7 @@ goog.require('Term');
  * @extends {rethinkdb.query.ReadExpression}
  */
 rethinkdb.query.Table = function(tableName, opt_dbName) {
-    this.db_ = opt_dbName || rethinkdb.net.last_connection.getDefaultDb();
+    this.db_ = opt_dbName || null;
     this.name_ = tableName;
 };
 goog.inherits(rethinkdb.query.Table, rethinkdb.query.ReadExpression);
@@ -20,7 +20,7 @@ rethinkdb.query.Table.prototype.compile = function() {
 
     var table = new Term.Table();
     var tableRef = new TableRef();
-    tableRef.setDbName(this.db_);
+    tableRef.setDbName(this.db_ || rethinkdb.net.last_connection.getDefaultDb());
     tableRef.setTableName(this.name_);
     table.setTableRef(tableRef);
 
@@ -74,6 +74,7 @@ rethinkdb.query.InsertExpression = function(table, docs) {
 
     this.docs_ = docs;
 };
+goog.inherits(rethinkdb.query.InsertExpression, rethinkdb.query.WriteExpression);
 
 /** @override */
 rethinkdb.query.InsertExpression.prototype.buildQuery = function() {
