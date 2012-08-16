@@ -109,7 +109,7 @@ json_array_iterator_t::json_array_iterator_t(cJSON *target)
 }
 
 std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING {
-    rasser(json);
+    rassert(json);
     char *s = cJSON_Print(json);
     rassert(s);
     std::string res(s);

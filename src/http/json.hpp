@@ -4,6 +4,7 @@
 #include <string>
 #include <set>
 
+#include "errors.hpp"
 #include "http/json/cJSON.hpp"
 #include "containers/archive/archive.hpp"
 
@@ -134,7 +135,7 @@ public:
     cJSON* GetObjectItem(const char *string) const {
         rassert(string);
         cJSON *retval = cJSON_GetObjectItem(val, string);
-        assert(retval);
+        rassert(retval);
         return retval;
     }
 
