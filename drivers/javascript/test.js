@@ -12,7 +12,7 @@ var conn = new rethinkdb.net.TcpConnection({host:'newton', port:12346},
 function() {
     console.log('connected');
 
-    welcome.orderby('-num', 'id').run(function(response) {
+    welcome.between(q.expr(1), q.expr(5)).run(function(response) {
         console.log('response'); 
         console.log(response);
 

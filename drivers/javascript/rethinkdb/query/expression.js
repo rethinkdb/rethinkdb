@@ -271,21 +271,23 @@ rethinkdb.query.RangeExpression = function(leftExpr,
 goog.inherits(rethinkdb.query.RangeExpression, rethinkdb.query.ReadExpression);
 
 rethinkdb.query.RangeExpression.prototype.compile = function() {
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
-
-    var call = new Term.Call();
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.RANGE);
-
     var range = new Builtin.Range();
     range.setAttrname('id');
-    range.setLowerbound(/*TODO ?*/ new Term());
-    range.setUpperbound(/*TODO ?*/ new Term());
+    range.setLowerbound(this.startKey_.compile());
+    range.setUpperbound(this.endKey_.compile());
+
+    var builtin = new Builtin();
+    builtin.setType(Builtin.BuiltinType.RANGE);
     builtin.setRange(range);
 
+    var call = new Term.Call();
     call.setBuiltin(builtin);
+    call.addArgs(this.leftExpr_.compile());
+
+    var term = new Term();
+    term.setType(Term.TermType.CALL);
     term.setCall(call);
+
     return term;
 };
 
