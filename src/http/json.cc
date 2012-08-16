@@ -31,7 +31,7 @@ scoped_cJSON_t::~scoped_cJSON_t() {
 
 
 /* Render a cJSON entity to text for transfer/storage. */
-std::string scoped_cJSON_t::Print() const {
+std::string scoped_cJSON_t::Print() const THROWS_NOTHING {
     char *s = cJSON_Print(val);
     rassert(s);
     std::string res(s);
@@ -40,7 +40,7 @@ std::string scoped_cJSON_t::Print() const {
     return res;
 }
 /* Render a cJSON entity to text for transfer/storage without any formatting. */
-std::string scoped_cJSON_t::PrintUnformatted() const {
+std::string scoped_cJSON_t::PrintUnformatted() const THROWS_NOTHING {
     char *s = cJSON_PrintUnformatted(val);
     rassert(s);
     std::string res(s);
@@ -108,7 +108,8 @@ json_array_iterator_t::json_array_iterator_t(cJSON *target)
     rassert(target->type == cJSON_Array);
 }
 
-std::string cJSON_print_std_string(cJSON *json) {
+std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING {
+    rasser(json);
     char *s = cJSON_Print(json);
     rassert(s);
     std::string res(s);
@@ -117,7 +118,8 @@ std::string cJSON_print_std_string(cJSON *json) {
     return res;
 }
 
-std::string cJSON_print_unformatted_std_string(cJSON *json) {
+std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING {
+    rassert(json);
     char *s = cJSON_PrintUnformatted(json);
     rassert(s);
     std::string res(s);
