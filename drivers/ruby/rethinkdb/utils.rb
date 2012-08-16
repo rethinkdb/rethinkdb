@@ -40,7 +40,8 @@ module RethinkDB
 
     # These classes reference a tableref directly, rather than a term.
     def table_directs
-      [:insert, :insertstream, :pointupdate, :pointdelete, :pointmutate] end
+      [:insert, :insertstream, :pointupdate, :pointdelete, :pointmutate,
+       :create, :drop] end
   end
   module C; extend C_Mixin; end
 
