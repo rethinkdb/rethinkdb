@@ -143,6 +143,11 @@ class Function(object):
             mapping.arg = 'row'     # TODO: GET RID OF THIS
         self.body._write_ast(mapping.body)
 
+    def write_reduction(self, reduction, base):
+        reduction.var1 = self.args[0]
+        reduction.var2 = self.args[1]
+        self.body._write_ast(reduction.body)
+
 class Javascript(query.JSONExpression):
     def __init__(self, body):
         self.body = body
@@ -359,6 +364,17 @@ class Distinct(Transformer):
 
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.DISTINCT, self.parent)
+
+class Reduce(Transformer):
+    def __init__(self, parent, base, reduction):
+        self.parent = parent
+        self.base = query.expr(base)
+        self.reduction = reduction
+
+    def _write_ast(self, parent):
+        builtin = self._write_call(parent, p.Builtin.REDUCE, self.parent)
+        self.base._write_ast(builtin.reduce.base)
+        self.reduction.write_reduction(builtin.reduce, self.base)
 
 class Let(Selector):
     def __init__(self, expr, bindings):

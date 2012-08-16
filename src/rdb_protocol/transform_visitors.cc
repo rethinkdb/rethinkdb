@@ -126,6 +126,10 @@ void terminal_visitor_t::operator()(const Reduction &r) const {
     //we assume the result has already been set to groups_t
     rget_read_response_t::atom_t *res_atom = boost::get<rget_read_response_t::atom_t>(out);
     guarantee(res_atom);
+    if (!*res_atom) {
+        Term base = r.base();
+        *res_atom = eval(&base, env, b);
+    }
 
     query_language::new_val_scope_t scope(&env->scope);
     env->scope.put_in_scope(r.var1(), *res_atom);

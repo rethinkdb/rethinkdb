@@ -1355,6 +1355,10 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
             break;
         case Builtin::ADD:
             {
+                std::vector<std::string> argnames;
+                std::vector<boost::shared_ptr<scoped_cJSON_t> > values;
+                env->scope.dump(&argnames, &values);
+
                 if (c->args_size() == 0) {
                     return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNull()));
                 }
@@ -1586,7 +1590,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 
-                throw runtime_exc_t("Not implemented reduce", backtrace);
+                try {
+                    return boost::get<boost::shared_ptr<scoped_cJSON_t> >(stream->apply_terminal(c->builtin().reduce()));
+                } catch (const boost::bad_get &) {
+                    crash("Expected a json atom... something is implemented wrong in the clustering code\n");
+                }
                 // Start off accumulator with the base
                 //boost::shared_ptr<scoped_cJSON_t> acc = eval(c->mutable_builtin()->mutable_reduce()->mutable_base(), env);
 

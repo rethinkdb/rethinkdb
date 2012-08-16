@@ -345,7 +345,7 @@ class Expression(BaseExpression):
             mapping = internal.Function(mapping)
         return internal.Map(self, mapping)
 
-    def reduce(self, base, func):
+    def reduce(self, base, reduction):
         """Build up a result by repeatedly applying `func` to pairs of elements. Returns
         `base` if there are no elements.
 
@@ -359,7 +359,10 @@ class Expression(BaseExpression):
 
         >>> table('users').reduce(0, fn('a', 'b', R('$a') + R('$b.credits)))
         """
-        raise NotImplementedError
+
+        if not isinstance(reduction, internal.Function):
+            reduction = internal.Function(reduction)
+        return internal.Reduce(self, base, reduction)
 
     def distinct(self, *attrs):
         """Select distinct elements of the input.
