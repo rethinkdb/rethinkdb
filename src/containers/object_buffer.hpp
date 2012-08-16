@@ -6,8 +6,6 @@
 template <class T>
 class object_buffer_t {
 public:
-<<<<<<< HEAD
-
     // TODO: this object makes no guarantees that its parent still exists when it is destroyed
     //  is that ok?
     class destruction_sentinel_t {
@@ -27,12 +25,6 @@ public:
     ~object_buffer_t() {
         if (instantiated) {
             reset();
-=======
-    object_buffer_t() : instantiated(false) { };
-    ~object_buffer_t() {
-        if (instantiated) {
-            destroy();
->>>>>>> added a class object_buffer_t, which contains a data buffer of its templatized type, which may be constructed at will, to avoid extra dynamic allocation
         }
     };
 
