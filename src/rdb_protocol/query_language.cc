@@ -655,18 +655,17 @@ void check_query_type(const Query &q, type_checking_environment_t *env, bool *is
     }
 }
 
-typedef boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > > > maybe_ns_info_t;
-
-maybe_ns_info_t get_namespace_info(const std::string &name, runtime_environment_t *env) {
-    return metadata_get_by_name(
-        env->semilattice_metadata->get().rdb_namespaces.namespaces, name);
-}
-
 std::string get_primary_key(const std::string &table_name, runtime_environment_t *env, const backtrace_t &backtrace) {
-    maybe_ns_info_t ns_info = get_namespace_info(table_name, env);
+    const char *status;
+    boost::optional<std::pair<namespace_id_t, deletable_t<
+        namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_info =
+        metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces,
+                             table_name, &status);
 
     if (!ns_info) {
-        throw runtime_exc_t(strprintf("Namespace %s not found or names in conflict.", table_name.c_str()), backtrace);
+        rassert(status);
+        throw runtime_exc_t(strprintf("Namespace %s not found with error: %s",
+                                      table_name.c_str(), status), backtrace);
     }
 
     if (ns_info->second.get().primary_key.in_conflict()) {
@@ -705,34 +704,51 @@ void parse_tableop_create(const TableopQuery::Create &c, std::string *datacenter
 void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) {
     switch(t->type()) {
     case TableopQuery::CREATE: {
+        const char *status;
         std::string dc_name, db_name, table_name, primary_key;
         parse_tableop_create(t->create(),&dc_name,&db_name,&table_name,&primary_key);
         cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
 
+        //Make sure namespace doesn't exist before we go any further.
+        metadata_get_by_name(metadata.rdb_namespaces.namespaces, table_name, &status);
+        if (status != METADATA_ERR_NONE) {
+            if (status == METADATA_SUCCESS) {
+                throw runtime_exc_t(strprintf("Table %s already exists!",
+                                              table_name.c_str()), backtrace);
+            } else {
+                throw runtime_exc_t(strprintf("Table %s creation failed with error: %s",
+                                              table_name.c_str(), status), backtrace);
+            }
+        }
+
+        // Get datacenter ID.
         boost::optional<uuid_t> opt_datacenter_id = metadata_get_uuid_by_name(
-            metadata.datacenters.datacenters, dc_name);
+            metadata.datacenters.datacenters, dc_name, &status);
         if (!opt_datacenter_id) {
-            throw runtime_exc_t(strprintf("No datacenter %s found or names in conflict.",
-                                          dc_name.c_str()),backtrace);
+            rassert(status);
+            throw runtime_exc_t(strprintf("No datacenter %s found with error: %s",
+                                          dc_name.c_str(), status), backtrace);
         }
         uuid_t dc_id = *opt_datacenter_id;
 
+        // Get database ID.
         boost::optional<uuid_t> opt_database_id = metadata_get_uuid_by_name(
-            metadata.databases.databases, db_name);
+            metadata.databases.databases, db_name, &status);
         if (!opt_database_id) {
-            throw runtime_exc_t(strprintf("No database %s found or names in conflict.",
-                                          db_name.c_str()),backtrace);
+            rassert(status);
+            throw runtime_exc_t(strprintf("No database %s found with error: %s",
+                                          db_name.c_str(), status), backtrace);
         }
         uuid_t db_id = *opt_database_id;
 
+        // Create namespace, insert into metata, then join into real metadata.
         uuid_t namespace_id = generate_uuid();
         //TODO(mlucy): port number?
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
             new_namespace<rdb_protocol_t>(
                 env->this_machine, db_id, dc_id, table_name, primary_key, 11213);
-        //TODO(mlucy): make sure namespace doesn't exist
         metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, ns));
-        fill_in_blueprints(&metadata, env->directory_metadata->get(), env->this_machine);
+        fill_in_blueprints(&metadata,env->directory_metadata->get(),env->this_machine);
         env->semilattice_metadata->join(metadata);
 
         /* The following is an ugly hack, but it's probably what we want.  It
@@ -740,6 +756,7 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
            where we can do reads/writes on it.  We don't want to return until
            that has happened, so we try to do a read every `poll_ms`
            milliseconds until one succeeds, then return. */
+
         int64_t poll_ms = 200; //picked experimentally
         //This read won't succeed, but we care whether it fails with an exception.
         rdb_protocol_t::read_t bad_read(rdb_protocol_t::point_read_t(store_key_t("")));
