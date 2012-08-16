@@ -575,3 +575,45 @@ rethinkdb.query.Expression.prototype.orderby = function(var_args) {
 }
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'orderby',
                     rethinkdb.query.Expression.prototype.orderby);
+
+/**
+ * @param {rethinkdb.query.Expression} leftExpr
+ * @param {string=} opt_attr
+ * @constructor
+ * @extends {rethinkdb.query.ReadExpression}
+ */
+rethinkdb.query.DistinctExpression = function(leftExpr, opt_attr) {
+    this.leftExpr_ = leftExpr;
+    this.attr = opt_attr || null;
+};
+goog.inherits(rethinkdb.query.DistinctExpression, rethinkdb.query.ReadExpression);
+
+/** @override */
+rethinkdb.query.DistinctExpression.prototype.compile = function() {
+    var leftExpr = this.leftExpr_;
+    if (this.attr) {
+        leftExpr = leftExpr.map(rethinkdb.query.R(this.attr));
+    }
+
+    var builtin = new Builtin();
+    builtin.setType(Builtin.BuiltinType.DISTINCT);
+
+    var call = new Term.Call();
+    call.setBuiltin(builtin);
+    call.addArgs(leftExpr.compile());
+
+    var term = new Term();
+    term.setType(Term.TermType.CALL);
+    term.setCall(call);
+
+    return term;
+};
+
+/**
+ * @param {string=} opt_attr
+ */
+rethinkdb.query.Expression.prototype.distinct = function(opt_attr) {
+    return new rethinkdb.query.DistinctExpression(this, opt_attr);
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'distinct',
+                    rethinkdb.query.Expression.prototype.distinct);
