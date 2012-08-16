@@ -741,7 +741,7 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
         }
         uuid_t db_id = *opt_database_id;
 
-        // Create namespace, insert into metata, then join into real metadata.
+        // Create namespace, insert into metadata, then join into real metadata.
         uuid_t namespace_id = generate_uuid();
         //TODO(mlucy): port number?
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
@@ -757,7 +757,7 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
            until that has happened, so we try to do a read every `poll_ms`
            milliseconds until one succeeds, then return. */
 
-        int64_t poll_ms = 200; //picked experimentally
+        int64_t poll_ms = 200; //with this value, usually polls twice
         //This read won't succeed, but we care whether it fails with an exception.
         rdb_protocol_t::read_t bad_read(rdb_protocol_t::point_read_t(store_key_t("")));
         try {
@@ -790,15 +790,12 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
             throw runtime_exc_t(strprintf("No table %s found with error: %s",
                                           table_name.c_str(), status), backtrace);
         }
-        if (ns_metadata->second.is_deleted()) {
-            throw runtime_exc_t(strprintf("Table %s already dropped.",
-                                          table_name.c_str()), backtrace);
-        }
+        rassert(!ns_metadata->second.is_deleted());
 
         // Delete namespace
         //TODO: make metadata_get_by_name return an iterator instead to skip this step?
-        metadata.rdb_namespaces.namespaces.find(
-            ns_metadata->first)->second.mark_deleted();
+        metadata.rdb_namespaces.namespaces.find(ns_metadata->first)
+            ->second.mark_deleted();
         env->semilattice_metadata->join(metadata);
         res->set_status_code(Response::SUCCESS_EMPTY); //return immediately
     } break;
@@ -814,7 +811,7 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
             bool conflicted = false;
 
             this_namespace.AddItemToObject(
-                "uuid",cJSON_CreateString(uuid_to_str(it->first).c_str()));
+                "uuid", cJSON_CreateString(uuid_to_str(it->first).c_str()));
 
             if (ns_metadata.name.in_conflict()) {
                 this_namespace.AddItemToObject("table_name", cJSON_CreateNull());
