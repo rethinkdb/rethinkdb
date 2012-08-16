@@ -6,6 +6,7 @@
 template <class T>
 class object_buffer_t {
 public:
+<<<<<<< HEAD
 
     // TODO: this object makes no guarantees that its parent still exists when it is destroyed
     //  is that ok?
@@ -26,6 +27,12 @@ public:
     ~object_buffer_t() {
         if (instantiated) {
             reset();
+=======
+    object_buffer_t() : instantiated(false) { };
+    ~object_buffer_t() {
+        if (instantiated) {
+            destroy();
+>>>>>>> added a class object_buffer_t, which contains a data buffer of its templatized type, which may be constructed at will, to avoid extra dynamic allocation
         }
     };
 
@@ -36,7 +43,7 @@ public:
     { OBJECT_BUFFER_CREATE_INTERNAL(); }
 
     template <class arg1_t>
-    T * create(arg1_t arg1)
+    T * create(const arg1_t &arg1)
     { OBJECT_BUFFER_CREATE_INTERNAL(arg1); }
 
     template <class arg1_t, class arg2_t>
