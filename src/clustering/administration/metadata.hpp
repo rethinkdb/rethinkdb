@@ -141,7 +141,8 @@ boost::optional<std::pair<uuid_t, deletable_t<T> > > metadata_get_by_name(
     boost::optional<std::pair<uuid_t, deletable_t<T> > > res;
     for (typename std::map<uuid_t, deletable_t<T> >::iterator
              it = map.begin(); it != map.end(); ++it) {
-        if (it->second.is_deleted() || it->second.get().name.in_conflict()) {
+        if (it->second.is_deleted()) continue;
+        if (it->second.get().name.in_conflict()) {
             if (out) *out = METADATA_ERR_CONFLICT;
             return boost::optional<std::pair<uuid_t, deletable_t<T> > >();
         } else if (it->second.get().name.get() == name) {

@@ -777,7 +777,27 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
         }
         res->set_status_code(Response::SUCCESS_EMPTY);
     } break;
-    case TableopQuery::DROP: crash("unimplemented"); break;
+    case TableopQuery::DROP: {
+        const char *status;
+        std::string table_name = t->drop().table_name();
+        boost::optional<std::pair<uuid_t, deletable_t<
+            namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_metadata =
+            metadata_get_by_name(metadata.rdb_namespaces.namespaces,table_name,&status);
+        if (!ns_metadata) {
+            rassert(status);
+            throw runtime_exc_t(strprintf("No table %s found with error: %s",
+                                          table_name.c_str(), status), backtrace);
+        }
+        if (ns_metadata->second.is_deleted()) {
+            throw runtime_exc_t(strprintf("Table %s already dropped.",
+                                          table_name.c_str()), backtrace);
+        }
+        //TODO: make metadata_get_by_name return an iterator instead to skip this step?
+        metadata.rdb_namespaces.namespaces.find(
+            ns_metadata->first)->second.mark_deleted();
+        env->semilattice_metadata->join(metadata);
+        res->set_status_code(Response::SUCCESS_EMPTY); //return immediately
+    } break;
     case TableopQuery::LIST: {
         for (namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::
                  iterator it = metadata.rdb_namespaces.namespaces.begin();
