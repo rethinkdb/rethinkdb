@@ -48,7 +48,7 @@ module RethinkDB
     #   a = []
     #   c.iter(r.add(1,2)) {|val| a.push val}                    => false
     #   a                                                        => [3]
-    #   c.iter(r[[r.add(1,2), r.add(10,20)]]) {|val| a.push val} => true
+    #   c.iter(r[[r.add(10,20)]]) {|val| a.push val} => true
     #   a                                                        => [3, 30]
     def iter(query, &block)
       token_iter(dispatch(query), &block)
@@ -143,7 +143,7 @@ module RethinkDB
     # new row rather than an object containing attributes to be updated (may be
     # combined with <b>+mapmerge+</b> to achieve a similar effect to update).
     # May also return <b>+nil+</b> to delete the row.  For example, if we have a
-    # table <b>+table+</b, then:
+    # table <b>+table+</b>, then:
     #   table.mutate{|row| if(row[:id] < 5, nil, row)}
     # will delete everything with id less than 5, but leave the other rows untouched.
     def mutate
@@ -488,7 +488,7 @@ module RethinkDB
     #   r[1].modulo(2)
     #   r.mod(1,2)
     #   r[1].mod(2)
-    #   (r[1] - 2) # Note that (1 - r[2]) is *incorrect* because Ruby only
+    #   (r[1] % 2) # Note that (1 % r[2]) is *incorrect* because Ruby only
     #              # overloads based on the lefthand side.
     def modulo(a, b); S._ [:call, [:modulo], [expr(a), expr(b)]]; end
 
@@ -496,7 +496,7 @@ module RethinkDB
     # if any of them evaluate to true.  Sort of like <b>+or+</b> in ruby, but
     # takes arbitrarily many arguments and is *not* guaranteed to
     # short-circuit.  May also be called as if it were a instance method of
-    # RQL_Query for convenience, and overloads <b><tt>&</tt></b> if the lefthand
+    # RQL_Query for convenience, and overloads <b><tt>|</tt></b> if the lefthand
     # side is a query.  Also has the synonym <b>+or+</b>.  The following are
     # all equivalent:
     #   r[true]
@@ -504,25 +504,25 @@ module RethinkDB
     #   r.or(false, true)
     #   r[false].any(true)
     #   r[false].or(true)
-    #   (r[false] & true) # Note that (false & r[true]) is *incorrect* because
+    #   (r[false] | true) # Note that (false | r[true]) is *incorrect* because
     #                     # Ruby only overloads based on the lefthand side
     def any(pred, *rest)
       S._ [:call, [:any], [expr(pred), *(rest.map{|x| expr x})]];
     end
 
     # Take one or more predicate queries and construct a query that returns true
-    # if all of them evaluate to true.  Sort of like <b>+or+</b> in ruby, but
+    # if all of them evaluate to true.  Sort of like <b>+and+</b> in ruby, but
     # takes arbitrarily many arguments and is *not* guaranteed to
     # short-circuit.  May also be called as if it were a instance method of
-    # RQL_Query for convenience, and overloads <b><tt>|</tt></b> if the lefthand
-    # side is a query.  Also has the synonym <b>+or+</b>.  The following are
+    # RQL_Query for convenience, and overloads <b><tt>&</tt></b> if the lefthand
+    # side is a query.  Also has the synonym <b>+and+</b>.  The following are
     # all equivalent:
     #   r[false]
     #   r.all(false, true)
     #   r.and(false, true)
     #   r[false].all(true)
     #   r[false].and(true)
-    #   (r[false] | true) # Note that (false | r[true]) is *incorrect* because
+    #   (r[false] & true) # Note that (false & r[true]) is *incorrect* because
     #                     # Ruby only overloads based on the lefthand side
     def all(pred, *rest)
       S._ [:call, [:all], [expr(pred), *(rest.map{|x| expr x})]];

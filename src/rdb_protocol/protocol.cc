@@ -115,18 +115,17 @@ bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
     return lr->key_range < rr->key_range;
 }
 
-read_response_t read_t::unshard(std::vector<read_response_t> responses, temporary_cache_t *) const THROWS_NOTHING {
+void read_t::unshard(std::vector<read_response_t> responses, read_response_t *response, temporary_cache_t *) const THROWS_NOTHING {
     const point_read_t *pr = boost::get<point_read_t>(&read);
+    const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (pr) {
         rassert(responses.size() == 1);
         rassert(boost::get<point_read_response_t>(&responses[0].response));
-        return responses[0];
-    }
-
-    const rget_read_t *rg = boost::get<rget_read_t>(&read);
-    if (rg) {
+        *response = responses[0];
+    } else if (rg) {
         std::sort(responses.begin(), responses.end(), read_response_cmp);
-        rget_read_response_t rg_response;
+        response->response = rget_read_response_t();
+        rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
         typedef std::vector<read_response_t>::iterator rri_t;
@@ -220,10 +219,9 @@ read_response_t read_t::unshard(std::vector<read_response_t> responses, temporar
         } else {
             unreachable();
         }
-        return read_response_t(rg_response);
+    } else {
+        unreachable("Unknown read response.");
     }
-
-    unreachable("Unknown read response.");
 }
 
 bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> >& a,
@@ -249,18 +247,17 @@ void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
     stream->insert(stream->end(), merged.begin(), merged.end());
 }
 
-read_response_t read_t::multistore_unshard(std::vector<read_response_t> responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void read_t::multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     const point_read_t *pr = boost::get<point_read_t>(&read);
+    const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (pr) {
         rassert(responses.size() == 1);
         rassert(boost::get<point_read_response_t>(&responses[0].response));
-        return responses[0];
-    }
-
-    const rget_read_t *rg = boost::get<rget_read_t>(&read);
-    if (rg) {
+        *response = responses[0];
+    } else if (rg) {
         std::sort(responses.begin(), responses.end(), read_response_cmp);
-        rget_read_response_t rg_response;
+        response->response = rget_read_response_t();
+        rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
         typedef std::vector<read_response_t>::iterator rri_t;
@@ -294,11 +291,10 @@ read_response_t read_t::multistore_unshard(std::vector<read_response_t> response
              i != stream->end(); ++i) {
             rassert(i->second);
         }
-
-        return read_response_t(rg_response);
+        response->response = rg_response;
+    } else {
+        unreachable("Unknown read response.");
     }
-
-    unreachable("Unknown read response.");
 }
 
 
@@ -340,13 +336,13 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(w_shard_visitor(region), write);
 }
 
-write_response_t write_t::unshard(std::vector<write_response_t> responses, temporary_cache_t *) const THROWS_NOTHING {
+void write_t::unshard(std::vector<write_response_t> responses, write_response_t *response, temporary_cache_t *) const THROWS_NOTHING {
     rassert(responses.size() == 1);
-    return responses[0];
+    *response = responses[0];
 }
 
-write_response_t write_t::multistore_unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
-    return unshard(responses, cache);
+void write_t::multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING {
+    return unshard(responses, response, cache);
 }
 
 store_t::store_t(io_backender_t *io_backend,
@@ -359,6 +355,7 @@ store_t::~store_t() {
     assert_thread();
 }
 
+// TODO: get rid of this extra response_t copy on the stack
 struct read_visitor_t : public boost::static_visitor<read_response_t> {
     read_response_t operator()(const point_read_t& get) {
         return read_response_t(rdb_get(get.key, btree, txn, superblock));
@@ -377,14 +374,16 @@ private:
     superblock_t *superblock;
 };
 
-read_response_t store_t::protocol_read(const read_t &read,
-                                       btree_slice_t *btree,
-                                       transaction_t *txn,
-                                       superblock_t *superblock) {
+void store_t::protocol_read(const read_t &read,
+                            read_response_t *response,
+                            btree_slice_t *btree,
+                            transaction_t *txn,
+                            superblock_t *superblock) {
     read_visitor_t v(btree, txn, superblock);
-    return boost::apply_visitor(v, read.read);
+    *response = boost::apply_visitor(v, read.read);
 }
 
+// TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<write_response_t> {
     write_response_t operator()(const point_write_t &w) {
         return write_response_t(
@@ -406,13 +405,14 @@ private:
     repli_timestamp_t timestamp;
 };
 
-write_response_t store_t::protocol_write(const write_t &write,
-                                         transition_timestamp_t timestamp,
-                                         btree_slice_t *btree,
-                                         transaction_t *txn,
-                                         superblock_t *superblock) {
+void store_t::protocol_write(const write_t &write,
+                             write_response_t *response,
+                             transition_timestamp_t timestamp,
+                             btree_slice_t *btree,
+                             transaction_t *txn,
+                             superblock_t *superblock) {
     write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp());
-    return boost::apply_visitor(v, write.write);
+    *response = boost::apply_visitor(v, write.write);
 }
 
 struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<region_t> {

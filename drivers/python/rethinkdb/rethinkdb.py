@@ -857,7 +857,6 @@ def _make_builtin(name, builtin, *args):
     return Builtin
 
 not_ = _make_builtin("not_", p.Builtin.NOT, "term")
-element = _make_builtin("element", p.Builtin.ARRAYNTH, "array", "index")
 append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
 length = _make_builtin("length", p.Builtin.LENGTH, "sequence")
 array = _make_builtin("array", p.Builtin.STREAMTOARRAY, "stream")

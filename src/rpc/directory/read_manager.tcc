@@ -41,7 +41,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, rea
         case 'I': {
             /* Initial message from another peer */
             metadata_t initial_value;
-            fifo_enforcer_source_t::state_t metadata_fifo_state;
+            fifo_enforcer_state_t metadata_fifo_state;
             {
                 int res = deserialize(s, &initial_value);
                 guarantee(!res);  // In the spirit of unreachable...
@@ -122,7 +122,7 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t peer, uuid_t session_id, metadata_t initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
+void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t peer, uuid_t session_id, metadata_t initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
 

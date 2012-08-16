@@ -19,7 +19,7 @@ class RDBTest(unittest.TestCase):
     def setUpClass(cls):
         cls.conn = r.Connection(os.getenv('HOST') or 'localhost',
                                  12346 + (int(os.getenv('PORT') or 2010)))
-        cls.table = r.db("").Welcome
+        cls.table = r.db("")["Welcome-rdb"]
 
     def expect(self, query, expected):
         try:
@@ -200,11 +200,11 @@ class RDBTest(unittest.TestCase):
         expect(r.slice_(arr, -2, None), arr[-2:])
         expect(r.slice_(arr, None, None), arr[:])
 
-        expect(r.element(arr, 3), 3)
-        expect(r.element(arr, -1), 9)
-        fail(r.element(0, 0), "array")
-        fail(r.element(arr, .1), "integer")
-        fail(r.element([0], 1), "bounds")
+        expect(r.nth(arr, 3), 3)
+        expect(r.nth(arr, -1), 9)
+        fail(r.nth(0, 0), "array")
+        fail(r.nth(arr, .1), "integer")
+        fail(r.nth([0], 1), "bounds")
 
         expect(r.length([]), 0)
         expect(r.length(arr), len(arr))
