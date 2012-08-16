@@ -752,9 +752,9 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
         env->semilattice_metadata->join(metadata);
 
         /* The following is an ugly hack, but it's probably what we want.  It
-           takes about half a second for the new namespace to get to the point
-           where we can do reads/writes on it.  We don't want to return until
-           that has happened, so we try to do a read every `poll_ms`
+           takes about a third of a second for the new namespace to get to the
+           point where we can do reads/writes on it.  We don't want to return
+           until that has happened, so we try to do a read every `poll_ms`
            milliseconds until one succeeds, then return. */
 
         int64_t poll_ms = 200; //picked experimentally
@@ -780,6 +780,8 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
     case TableopQuery::DROP: {
         const char *status;
         std::string table_name = t->drop().table_name();
+
+        // Get namespace ID.
         boost::optional<std::pair<uuid_t, deletable_t<
             namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_metadata =
             metadata_get_by_name(metadata.rdb_namespaces.namespaces,table_name,&status);
@@ -792,6 +794,8 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
             throw runtime_exc_t(strprintf("Table %s already dropped.",
                                           table_name.c_str()), backtrace);
         }
+
+        // Delete namespace
         //TODO: make metadata_get_by_name return an iterator instead to skip this step?
         metadata.rdb_namespaces.namespaces.find(
             ns_metadata->first)->second.mark_deleted();
