@@ -36,7 +36,7 @@ public:
     { OBJECT_BUFFER_CREATE_INTERNAL(); }
 
     template <class arg1_t>
-    T * create(arg1_t arg1)
+    T * create(const arg1_t &arg1)
     { OBJECT_BUFFER_CREATE_INTERNAL(arg1); }
 
     template <class arg1_t, class arg2_t>
