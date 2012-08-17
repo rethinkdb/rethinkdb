@@ -38,16 +38,12 @@ public:
     /* Retrieve item number "item" from array "array". Returns NULL if unsuccessful. */
     cJSON* GetArrayItem(int item) const {
         rassert(item >= 0);
-        cJSON *retval = cJSON_GetArrayItem(val, item);
-        rassert(retval);
-        return retval;
+        return cJSON_GetArrayItem(val, item);
     }
-    /* Get item "string" from object. Case insensitive. */
+    /* Get item "string" from object. Case insensitive. Returns NULL if unsuccessful. */
     cJSON* GetObjectItem(const char *string) const {
         rassert(string);
-        cJSON *retval = cJSON_GetObjectItem(val, string);
-        rassert(retval);
-        return retval;
+        return cJSON_GetObjectItem(val, string);
     }
 
     /* Append item to the specified array/object. */
@@ -60,7 +56,7 @@ public:
         return cJSON_AddItemToObject(val, string, item);
     }
 
-    /* Remove/Detatch items from Arrays/Objects. */
+    /* Remove/Detatch items from Arrays/Objects. Returns NULL if unsuccessful. */
     cJSON* DetachItemFromArray(int which) {
         rassert(which >= 0);
         return cJSON_DetachItemFromArray(val, which);
@@ -71,9 +67,7 @@ public:
     }
     cJSON* DetachItemFromObject(const char *string) {
         rassert(string);
-        cJSON *retval = cJSON_DetachItemFromObject(val, string);
-        rassert(retval);
-        return retval;
+        return cJSON_DetachItemFromObject(val, string);
     }
     void DeleteItemFromObject(const char *string) {
         rassert(string);
@@ -126,16 +120,12 @@ public:
     /* Retrieve item number "item" from array "array". Returns NULL if unsuccessful. */
     cJSON* GetArrayItem(int item) const {
         rassert(item >= 0);
-        cJSON *retval = cJSON_GetArrayItem(val, item);
-        rassert(retval);
-        return retval;
+        return cJSON_GetArrayItem(val, item);
     }
-    /* Get item "string" from object. Case insensitive. */
+    /* Get item "string" from object. Case insensitive. Returns NULL if unsuccessful. */
     cJSON* GetObjectItem(const char *string) const {
         rassert(string);
-        cJSON *retval = cJSON_GetObjectItem(val, string);
-        rassert(retval);
-        return retval;
+        return cJSON_GetObjectItem(val, string);
     }
 
     /* Append item to the specified array/object. */
@@ -148,12 +138,10 @@ public:
         return cJSON_AddItemToObject(val, string, item);
     }
 
-    /* Remove/Detatch items from Arrays/Objects. */
+    /* Remove/Detatch items from Arrays/Objects. Returns NULL if unsuccessful. */
     cJSON* DetachItemFromArray(int which) {
         rassert(which >= 0);
-        cJSON *retval = cJSON_DetachItemFromArray(val, which);
-        rassert(retval);
-        return retval;
+        return cJSON_DetachItemFromArray(val, which);
     }
     void DeleteItemFromArray(int which) {
         rassert(which >= 0);
@@ -161,9 +149,7 @@ public:
     }
     cJSON* DetachItemFromObject(const char *string) {
         rassert(string);
-        cJSON *retval = cJSON_DetachItemFromObject(val, string);
-        rassert(retval);
-        return retval;
+        return cJSON_DetachItemFromObject(val, string);
     }
     void DeleteItemFromObject(const char *string) {
         rassert(string);
