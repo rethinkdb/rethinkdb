@@ -17,10 +17,6 @@ protob_server_t<request_t, response_t, context_t>::~protob_server_t() { }
 
 template <class request_t, class response_t, class context_t>
 void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t keepalive, response_t (*on_unparsable_query)(request_t *)) {
-#ifdef NDEBUG
-    google::protobuf::LogSilencer suppress_log_messages;
-#endif
-
     context_t ctx;
     scoped_ptr_t<tcp_conn_t> conn;
     nconn->ennervate(&conn);
