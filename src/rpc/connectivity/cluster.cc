@@ -135,9 +135,9 @@ void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<nascent
     // conn gets owned by the tcp_conn_stream_t.
     tcp_conn_t *conn;
     nconn->ennervate(&conn);
-    scoped_ptr_t<tcp_conn_stream_t> conn_stream(new tcp_conn_stream_t(conn));
+    tcp_conn_stream_t conn_stream(conn);
 
-    handle(conn_stream.get(), boost::none, boost::none, lock);
+    handle(&conn_stream, boost::none, boost::none, lock);
 }
 
 void connectivity_cluster_t::run_t::join_blocking(
