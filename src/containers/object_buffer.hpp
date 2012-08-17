@@ -9,7 +9,7 @@ public:
     object_buffer_t() : instantiated(false) { };
     ~object_buffer_t() {
         if (instantiated) {
-            destroy();
+            reset();
         }
     };
 
@@ -65,7 +65,7 @@ public:
         return reinterpret_cast<const T *>(&object_data[0]);
     }
 
-    void destroy() {
+    void reset() {
         rassert(instantiated);
         get()->~T();
         instantiated = false;
