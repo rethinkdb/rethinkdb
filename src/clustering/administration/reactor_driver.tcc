@@ -160,7 +160,7 @@ private:
             parent->directory_view->subview(boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1)),
             parent->branch_history_manager,
             watchable.get_watchable(),
-            svs.get(), namespace_collection));
+            svs.get(), namespace_collection, ctx));
 
         {
             typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::freeze_t reactor_directory_freeze(reactor->get_reactor_directory());

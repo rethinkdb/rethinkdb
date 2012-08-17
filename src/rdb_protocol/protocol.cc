@@ -116,7 +116,10 @@ bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
     return lr->key_range < rr->key_range;
 }
 
-void read_t::unshard(std::vector<read_response_t> responses, read_response_t *response, temporary_cache_t *) const THROWS_NOTHING {
+void read_t::unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
+    boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
+    query_language::runtime_environment_t env(ctx->pool_group, ctx->ns_repo, ctx->semilattice_metadata, js_runner, &ctx->interruptor);
+
     const point_read_t *pr = boost::get<point_read_t>(&read);
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (pr) {
@@ -157,18 +160,17 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
                 guarantee(_rr);
 
                 const groups_t *groups = boost::get<groups_t>(&(_rr->result));
-                query_language::runtime_environment_t *env = NULL; //obviously this is a problem
                 query_language::backtrace_t backtrace;
 
                 for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
-                    query_language::new_val_scope_t scope(&env->scope);
+                    query_language::new_val_scope_t scope(&env.scope);
                     Term base = gmr->reduction().base(),
                          body = gmr->reduction().body();
 
-                    env->scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, env, backtrace)));
-                    env->scope.put_in_scope(gmr->reduction().var2(), j->second);
+                    env.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
+                    env.scope.put_in_scope(gmr->reduction().var2(), j->second);
 
-                    (*res_groups)[j->first] = eval(&body, env, backtrace);
+                    (*res_groups)[j->first] = eval(&body, &env, backtrace);
                 }
             }
         } else if (const Reduction *r = boost::get<Reduction>(&*rg->terminal)) {
@@ -176,11 +178,10 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
             rg_response.result = atom_t();
             atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
 
-            query_language::runtime_environment_t *env = NULL; //obviously this is a problem
             query_language::backtrace_t backtrace;
 
             Term base = r->base();
-            *res_atom = eval(&base, env, backtrace);
+            *res_atom = eval(&base, &env, backtrace);
 
             for(rri_t i = responses.begin(); i != responses.end(); ++i) {
                 const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
@@ -188,11 +189,11 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
 
                 const atom_t *atom = boost::get<atom_t>(&(_rr->result));
 
-                query_language::new_val_scope_t scope(&env->scope);
-                env->scope.put_in_scope(r->var1(), *res_atom);
-                env->scope.put_in_scope(r->var2(), *atom);
+                query_language::new_val_scope_t scope(&env.scope);
+                env.scope.put_in_scope(r->var1(), *res_atom);
+                env.scope.put_in_scope(r->var2(), *atom);
                 Term body = r->body();
-                *res_atom = eval(&body, env, backtrace);
+                *res_atom = eval(&body, &env, backtrace);
             }
         } else if (boost::get<rdb_protocol_details::Length>(&*rg->terminal)) {
             rg_response.result = atom_t();
@@ -254,7 +255,10 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
 //    stream->insert(stream->end(), merged.begin(), merged.end());
 //}
 
-void read_t::multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void read_t::multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
+    boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
+    query_language::runtime_environment_t env(ctx->pool_group, ctx->ns_repo, ctx->semilattice_metadata, js_runner, &ctx->interruptor);
+
     const point_read_t *pr = boost::get<point_read_t>(&read);
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (pr) {
@@ -348,18 +352,17 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
                 guarantee(_rr);
 
                 const groups_t *groups = boost::get<groups_t>(&(_rr->result));
-                query_language::runtime_environment_t *env = NULL; //obviously this is a problem
                 query_language::backtrace_t backtrace;
 
                 for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
-                    query_language::new_val_scope_t scope(&env->scope);
+                    query_language::new_val_scope_t scope(&env.scope);
                     Term base = gmr->reduction().base(),
                          body = gmr->reduction().body();
 
-                    env->scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, env, backtrace)));
-                    env->scope.put_in_scope(gmr->reduction().var2(), j->second);
+                    env.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
+                    env.scope.put_in_scope(gmr->reduction().var2(), j->second);
 
-                    (*res_groups)[j->first] = eval(&body, env, backtrace);
+                    (*res_groups)[j->first] = eval(&body, &env, backtrace);
                 }
             }
         } else if (const Reduction *r = boost::get<Reduction>(&*rg->terminal)) {
@@ -367,11 +370,10 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
             rg_response.result = atom_t();
             atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
 
-            query_language::runtime_environment_t *env = NULL; //obviously this is a problem
             query_language::backtrace_t backtrace;
 
             Term base = r->base();
-            *res_atom = eval(&base, env, backtrace);
+            *res_atom = eval(&base, &env, backtrace);
 
             for(rri_t i = responses.begin(); i != responses.end(); ++i) {
                 const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
@@ -379,11 +381,11 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
 
                 const atom_t *atom = boost::get<atom_t>(&(_rr->result));
 
-                query_language::new_val_scope_t scope(&env->scope);
-                env->scope.put_in_scope(r->var1(), *res_atom);
-                env->scope.put_in_scope(r->var2(), *atom);
+                query_language::new_val_scope_t scope(&env.scope);
+                env.scope.put_in_scope(r->var1(), *res_atom);
+                env.scope.put_in_scope(r->var2(), *atom);
                 Term body = r->body();
-                *res_atom = eval(&body, env, backtrace);
+                *res_atom = eval(&body, &env, backtrace);
             }
         } else if (boost::get<rdb_protocol_details::Length>(&*rg->terminal)) {
             rg_response.result = atom_t();
@@ -458,13 +460,13 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(w_shard_visitor(region), write);
 }
 
-void write_t::unshard(std::vector<write_response_t> responses, write_response_t *response, temporary_cache_t *) const THROWS_NOTHING {
+void write_t::unshard(std::vector<write_response_t> responses, write_response_t *response, context_t *) const THROWS_NOTHING {
     rassert(responses.size() == 1);
     *response = responses[0];
 }
 
-void write_t::multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING {
-    return unshard(responses, response, cache);
+void write_t::multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING {
+    return unshard(responses, response, ctx);
 }
 
 store_t::store_t(io_backender_t *io_backend,

@@ -93,7 +93,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
                                      this, namespace_id,
                                      num_db_threads, stores_out, store_views.data(), ctx));
 
-        svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
+        svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores, ctx));
     } else {
         const int num_stores = 4 + randint(4);
         debugf("creating %d hash-sharded stores\n", num_stores);
@@ -112,7 +112,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
                                      this, namespace_id,
                                      num_db_threads, stores_out, store_views.data(), ctx));
 
-        svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
+        svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores, ctx));
 
         // Initialize the metadata in the underlying stores.
         scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;

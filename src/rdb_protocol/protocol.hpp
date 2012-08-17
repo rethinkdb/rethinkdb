@@ -88,9 +88,10 @@ struct rdb_protocol_t {
     // Construct a region containing only the specified key
     static region_t monokey_region(const store_key_t &k);
 
-    struct temporary_cache_t { };
-
     struct context_t { 
+        context_t() 
+            : pool_group(NULL), ns_repo(NULL)
+        { }
         context_t(extproc::pool_group_t *_pool_group,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo, 
                   boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > _semilattice_metadata)
@@ -200,8 +201,8 @@ struct rdb_protocol_t {
 
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(std::vector<read_response_t> responses, read_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
-        void multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
+        void unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : read(r.read) { }
@@ -273,8 +274,8 @@ struct rdb_protocol_t {
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(std::vector<write_response_t> responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
-        void multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
+        void unshard(std::vector<write_response_t> responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : write(w.write) { }

@@ -157,8 +157,6 @@ private:
     clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > directory_view;
     typename protocol_t::context_t *ctx;
 
-    typename protocol_t::temporary_cache_t temporary_cache;
-
     rng_t distributor_rng;
 
     std::set<reactor_activity_id_t> handled_activity_ids;

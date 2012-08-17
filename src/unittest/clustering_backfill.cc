@@ -107,7 +107,9 @@ void run_backfill_test() {
     /* Expose the backfiller to the cluster */
 
     store_view_t<dummy_protocol_t> *backfiller_store_ptr = &backfiller_store;
-    multistore_ptr_t<dummy_protocol_t> backfiller_multistore(&backfiller_store_ptr, 1);
+
+    dummy_protocol_t::context_t ctx;
+    multistore_ptr_t<dummy_protocol_t> backfiller_multistore(&backfiller_store_ptr, 1, &ctx);
 
     backfiller_t<dummy_protocol_t> backfiller(
         cluster.get_mailbox_manager(),
@@ -120,8 +122,9 @@ void run_backfill_test() {
     /* Run a backfill */
 
     // Uhh.. hehhehheh... this might be wrong.
+    dummy_protocol_t::context_t ctx2;
     store_view_t<dummy_protocol_t> *backfillee_store_ptr = &backfillee_store;
-    multistore_ptr_t<dummy_protocol_t> backfillee_multistore(&backfillee_store_ptr, 1);
+    multistore_ptr_t<dummy_protocol_t> backfillee_multistore(&backfillee_store_ptr, 1, &ctx2);
 
     cond_t interruptor;
     backfillee<dummy_protocol_t>(

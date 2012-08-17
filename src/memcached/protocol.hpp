@@ -54,7 +54,6 @@ public:
     static const std::string protocol_name;
     typedef hash_region_t<key_range_t> region_t;
 
-    struct temporary_cache_t { };
     struct context_t { };
 
     struct read_response_t {
@@ -72,8 +71,8 @@ public:
 
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(const std::vector<read_response_t>& responses, read_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
-        void multistore_unshard(const std::vector<read_response_t>& responses, read_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
+        void unshard(const std::vector<read_response_t>& responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void multistore_unshard(const std::vector<read_response_t>& responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : query(r.query), effective_time(r.effective_time) { }
@@ -97,8 +96,8 @@ public:
         typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> query_t;
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
-        void multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
+        void unshard(const std::vector<write_response_t>& responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : mutation(w.mutation), proposed_cas(w.proposed_cas), effective_time(w.effective_time) { }

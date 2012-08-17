@@ -41,7 +41,7 @@ static void run_read_write_test() {
     /* Set up a branch */
     mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
-    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
+    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1, NULL); //null ctx nothing copmlicated can happen
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(),
                                                 &branch_history_manager,
@@ -131,7 +131,7 @@ static void run_broadcaster_problem_test() {
     /* Set up a branch */
     mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
-    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
+    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1, NULL); //null ctx nothing complicated
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(),
                                                 &branch_history_manager,

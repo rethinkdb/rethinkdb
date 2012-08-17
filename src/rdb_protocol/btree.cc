@@ -260,6 +260,10 @@ public:
           env(_env), transform(_transform), terminal(_terminal)
     {
         response.last_considered_key = range.left;
+
+        if (terminal) {
+            boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result), *terminal);
+        }
     }
     bool handle_pair(const btree_key_t* key, const void *value) {
         store_key_t store_key(key);
@@ -301,7 +305,6 @@ public:
             cumulative_size += estimate_rget_response_size(stream->back().second);
             return int(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
         } else {
-            boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result), *terminal);
             for (json_list_t::iterator jt  = data.begin();
                                        jt != data.end();
                                        ++jt) {
