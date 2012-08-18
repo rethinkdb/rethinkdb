@@ -44,14 +44,14 @@ public:
 
     int num_stores() const { return store_views_.size(); }
 
-    void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token_out);
-    void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token_out);
+    void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token_out);
+    void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token_out);
 
     // TODO: I'm pretty sure every time we call this function we are
     // doing something stupid.
     region_map_t<protocol_t, version_range_t>
     get_all_metainfos(order_token_t order_token,
-                      scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
+                      object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
 		      signal_t *interruptor);
 
     typename protocol_t::region_t get_region(int i) const;
@@ -61,18 +61,18 @@ public:
     // get_all_metainfos but is a bit more scary.
     void set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
                            order_token_t order_token,
-                           scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                           object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                            signal_t *interruptor);
 
     bool send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                   send_backfill_callback_t<protocol_t> *send_backfill_cb,
                                   traversal_progress_combiner_t *progress,
-                                  scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
+                                  object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                                   signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(const typename protocol_t::backfill_chunk_t &chunk,
-                          scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                          object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                           signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -81,7 +81,7 @@ public:
               const typename protocol_t::read_t &read,
                typename protocol_t::read_response_t *response,
               order_token_t order_token,
-              scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
+              object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
               signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -91,13 +91,13 @@ public:
                typename protocol_t::write_response_t *response,
                transition_timestamp_t timestamp,
                order_token_t order_token,
-               scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+               object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_all_data(const typename protocol_t::region_t &subregion,
                         const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 private:
@@ -157,13 +157,13 @@ private:
     // Used by the constructors.
     void initialize(store_view_t<protocol_t> **_store_views) THROWS_NOTHING;
 
-    void switch_read_tokens(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_read_token_t> *internal_out);
+    void switch_read_tokens(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_read_token_t> *internal_out);
 
-    void switch_write_tokens(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_write_token_t> *internal_out);
+    void switch_write_tokens(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_write_token_t> *internal_out);
 
-    void switch_inner_read_token(int i, fifo_enforcer_read_token_t internal_token, signal_t *interruptor, scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *store_token);
+    void switch_inner_read_token(int i, fifo_enforcer_read_token_t internal_token, signal_t *interruptor, object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *store_token);
 
-    void switch_inner_write_token(int i, fifo_enforcer_write_token_t internal_token, signal_t *interruptor, scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *store_token);
+    void switch_inner_write_token(int i, fifo_enforcer_write_token_t internal_token, signal_t *interruptor, object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *store_token);
 
     // We _own_ these pointers and must delete them at destruction.
     const scoped_array_t<store_view_t<protocol_t> *> store_views_;

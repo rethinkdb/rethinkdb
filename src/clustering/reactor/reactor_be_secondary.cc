@@ -157,7 +157,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                 backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history_manager, svs);
 
                 /* Tell everyone in the cluster what state we're in. */
-                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+                object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
                 svs->new_read_token(&read_token);
 
                 typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
