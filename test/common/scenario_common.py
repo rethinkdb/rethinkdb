@@ -8,7 +8,7 @@ def prepare_option_parser_mode_flags(opt_parser):
     opt_parser["wrapper"] = StringFlag("--wrapper", None)
     opt_parser["mode"] = StringFlag("--mode", "debug")
     opt_parser["serve-flags"] = StringFlag("--serve-flags", "")
-    opt_parser["protocol"] = ChoiceFlag("--protocol", ["rdb", "memcached"])
+    opt_parser["protocol"] = ChoiceFlag("--protocol", ["rdb", "memcached"], "memcached")
 
 def parse_mode_flags(parsed_opts):
     mode = parsed_opts["mode"]
