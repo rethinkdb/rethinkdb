@@ -28,7 +28,7 @@ public:
               DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
               order_token_t order_token,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
         store->new_read_token(&read_token);
 
 #ifndef NDEBUG
@@ -42,7 +42,7 @@ public:
     void read_outdated(typename protocol_t::read_t read,
                        typename protocol_t::read_response_t *response,
                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
         store->new_read_token(&read_token);
 
 #ifndef NDEBUG
@@ -67,7 +67,7 @@ public:
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         store->new_write_token(&write_token);
 
         return store->write(
@@ -92,7 +92,7 @@ public:
         : next(n), current_timestamp(state_timestamp_t::zero()) {
         cond_t interruptor;
 
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
         next->store->new_read_token(&read_token);
 
         region_map_t<protocol_t, binary_blob_t> metainfo;
@@ -216,7 +216,7 @@ public:
             {
                 cond_t interruptor;
 
-                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+                object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
                 stores[i]->new_read_token(&read_token);
 
                 region_map_t<protocol_t, binary_blob_t> metadata;
@@ -230,7 +230,7 @@ public:
                     rassert(it->second.size() == 0);
                 }
 
-                scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+                object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
                 stores[i]->new_write_token(&write_token);
 
                 stores[i]->set_metainfo(

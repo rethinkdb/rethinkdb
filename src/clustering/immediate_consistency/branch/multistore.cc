@@ -79,15 +79,15 @@ typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_multistore_joine
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token_out) {
+void multistore_ptr_t<protocol_t>::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token_out) {
     fifo_enforcer_read_token_t token = external_source_.get()->enter_read();
-    external_token_out->init(new fifo_enforcer_sink_t::exit_read_t(external_sink_.get(), token));
+    external_token_out->create(external_sink_.get(), token);
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token_out) {
+void multistore_ptr_t<protocol_t>::new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token_out) {
     fifo_enforcer_write_token_t token = external_source_.get()->enter_write();
-    external_token_out->init(new fifo_enforcer_sink_t::exit_write_t(external_sink_.get(), token));
+    external_token_out->create(external_sink_.get(), token);
 }
 
 template <class protocol_t>
@@ -106,7 +106,7 @@ void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
 
             on_thread_t th(dest_thread);
 
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> store_token;
+            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> store_token;
             switch_inner_read_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
             region_map_t<protocol_t, binary_blob_t> metainfo;
@@ -130,7 +130,7 @@ void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
 template <class protocol_t>
 region_map_t<protocol_t, version_range_t>  multistore_ptr_t<protocol_t>::
 get_all_metainfos(order_token_t order_token,
-                  scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
+                  object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
 		  signal_t *interruptor) {
 
     scoped_array_t<fifo_enforcer_read_token_t> internal_tokens;
@@ -180,7 +180,7 @@ void multistore_ptr_t<protocol_t>::do_set_a_metainfo(int i,
 
         on_thread_t th(dest_thread);
 
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> store_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> store_token;
         switch_inner_write_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
         store_views_[i]->set_metainfo(new_metainfo.mask(get_region(i)), order_token, &store_token, &ct_interruptor);
@@ -193,7 +193,7 @@ void multistore_ptr_t<protocol_t>::do_set_a_metainfo(int i,
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
                                                      order_token_t order_token,
-                                                     scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                                                     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                                                      signal_t *interruptor) {
     scoped_array_t<fifo_enforcer_write_token_t> internal_tokens;
     switch_write_tokens(external_token, interruptor, &order_token, &internal_tokens);
@@ -298,7 +298,7 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
 
     try {
 
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> store_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> store_token;
         switch_inner_read_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
         store->send_backfill(start_point.mask(get_region(i)),
@@ -326,7 +326,7 @@ template <class protocol_t>
 bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                                             send_backfill_callback_t<protocol_t> *send_backfill_cb,
                                                             traversal_progress_combiner_t *progress,
-                                                            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
+                                                            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     guarantee(region_is_superset(get_multistore_joined_region(), start_point.get_domain()));
 
@@ -369,7 +369,7 @@ void multistore_ptr_t<protocol_t>::single_shard_receive_backfill(int i, const ty
     on_thread_t th(dest_thread);
 
     try {
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> store_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> store_token;
         switch_inner_write_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
         if (region_is_empty(ith_intersection)) {
@@ -389,7 +389,7 @@ void multistore_ptr_t<protocol_t>::single_shard_receive_backfill(int i, const ty
 
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::receive_backfill(const typename protocol_t::backfill_chunk_t &chunk,
-                                                    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                                                    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     guarantee(region_is_superset(get_multistore_joined_region(), chunk.get_region()));
 
@@ -434,7 +434,7 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
         {
             on_thread_t th(dest_thread);
 
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> store_token;
+            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> store_token;
             switch_inner_read_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
             if (region_is_empty(ith_intersection)) {
@@ -465,7 +465,7 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_
                                    const typename protocol_t::read_t &read,
                                    typename protocol_t::read_response_t *response,
                                    order_token_t order_token,
-                                   scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
+                                   object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     scoped_array_t<fifo_enforcer_read_token_t> internal_tokens;
     switch_read_tokens(external_token, interruptor, &order_token, &internal_tokens);
@@ -522,7 +522,7 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
     // TODO: Have an assertion about the new_metainfo region?
 
     try {
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> store_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> store_token;
         switch_inner_write_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
         if (region_is_empty(ith_intersection)) {
@@ -554,7 +554,7 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol
                                     typename protocol_t::write_response_t *response,
                                     transition_timestamp_t timestamp,
                                     order_token_t order_token,
-                                    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                                    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     scoped_array_t<fifo_enforcer_write_token_t> internal_tokens;
     switch_write_tokens(external_token, interruptor, &order_token, &internal_tokens);
@@ -591,7 +591,7 @@ void multistore_ptr_t<protocol_t>::single_shard_reset_all_data(int i,
     on_thread_t th(dest_thread);
 
     try {
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> store_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> store_token;
         switch_inner_write_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
         if (!region_overlaps(get_region(i), subregion)) {
@@ -613,7 +613,7 @@ void multistore_ptr_t<protocol_t>::single_shard_reset_all_data(int i,
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::reset_all_data(const typename protocol_t::region_t &subregion,
                                                   const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                                                  scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                                                  object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                                                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     scoped_array_t<fifo_enforcer_write_token_t> internal_tokens;
     order_token_t fake_order_token = order_token_t::ignore;
@@ -632,10 +632,10 @@ void multistore_ptr_t<protocol_t>::reset_all_data(const typename protocol_t::reg
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::switch_read_tokens(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_read_token_t> *internal_out) {
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local(external_token->release());
+void multistore_ptr_t<protocol_t>::switch_read_tokens(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_read_token_t> *internal_out) {
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(external_token);
 
-    wait_interruptible(local.get(), interruptor);
+    wait_interruptible(external_token->get(), interruptor);
 
     *order_token_ref = external_checkpoint_.get()->check_through(*order_token_ref);
 
@@ -648,10 +648,10 @@ void multistore_ptr_t<protocol_t>::switch_read_tokens(scoped_ptr_t<fifo_enforcer
 
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::switch_write_tokens(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_write_token_t> *internal_out) {
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local(external_token->release());
+void multistore_ptr_t<protocol_t>::switch_write_tokens(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_write_token_t> *internal_out) {
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(external_token);
 
-    wait_interruptible(local.get(), interruptor);
+    wait_interruptible(external_token->get(), interruptor);
 
     *order_token_ref = external_checkpoint_.get()->check_through(*order_token_ref);
 
@@ -663,7 +663,7 @@ void multistore_ptr_t<protocol_t>::switch_write_tokens(scoped_ptr_t<fifo_enforce
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::switch_inner_read_token(int i, fifo_enforcer_read_token_t internal_token, signal_t *interruptor, scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *store_token) {
+void multistore_ptr_t<protocol_t>::switch_inner_read_token(int i, fifo_enforcer_read_token_t internal_token, signal_t *interruptor, object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *store_token) {
     fifo_enforcer_sink_t *internal_sink = internal_sinks_[i].get();
     internal_sink->assert_thread();
 
@@ -674,7 +674,7 @@ void multistore_ptr_t<protocol_t>::switch_inner_read_token(int i, fifo_enforcer_
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::switch_inner_write_token(int i, fifo_enforcer_write_token_t internal_token, signal_t *interruptor, scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *store_token) {
+void multistore_ptr_t<protocol_t>::switch_inner_write_token(int i, fifo_enforcer_write_token_t internal_token, signal_t *interruptor, object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *store_token) {
     fifo_enforcer_sink_t *internal_sink = internal_sinks_[i].get();
     internal_sink->assert_thread();
 
