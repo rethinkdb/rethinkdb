@@ -1,44 +1,52 @@
-workloads = [
-    "$RETHINKDB/test/workloads/append_prepend.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/append_stress.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/big_values.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/cas.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/deletion.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/expiration.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/flags.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/fuzz.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/incr_decr.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/many_keys.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/memcached_suite.py $HOST:$PORT bogus-commands.t",
-    "$RETHINKDB/test/workloads/memcached_suite.py $HOST:$PORT cas.t",
-    "$RETHINKDB/test/workloads/memcached_suite.py $HOST:$PORT expirations.t",
-    "$RETHINKDB/test/workloads/memcached_suite.py $HOST:$PORT flags.t",
-    "$RETHINKDB/test/workloads/memcached_suite.py $HOST:$PORT getset.t",
-    "$RETHINKDB/test/workloads/memcached_suite.py $HOST:$PORT incrdecr.t",
-    "$RETHINKDB/test/workloads/memcached_suite.py $HOST:$PORT issue_108.t",
-    "$RETHINKDB/test/workloads/memcached_suite.py $HOST:$PORT issue_3.t",
-    "$RETHINKDB/test/workloads/memcached_suite.py $HOST:$PORT issue_68.t",
-    "$RETHINKDB/test/workloads/memcached_suite.py $HOST:$PORT issue_70.t",
-    "$RETHINKDB/test/workloads/memcached_suite.py $HOST:$PORT multiversioning.t",
-    "$RETHINKDB/test/workloads/memcached_suite.py $HOST:$PORT noreply.t",
-    "$RETHINKDB/test/workloads/multi_serial_mix.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/pipeline.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/rget.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/rget_huge.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/rget_no_blocking.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/unappend_unprepend.py $HOST:$PORT"
+workloads = {
+    "memcached": [
+    "$RETHINKDB/test/memcached_workloads/append_prepend.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/append_stress.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/big_values.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/cas.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/deletion.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/expiration.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/flags.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/fuzz.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/incr_decr.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/many_keys.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT bogus-commands.t",
+    "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT cas.t",
+    "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT expirations.t",
+    "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT flags.t",
+    "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT getset.t",
+    "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT incrdecr.t",
+    "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT issue_108.t",
+    "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT issue_3.t",
+    "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT issue_68.t",
+    "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT issue_70.t",
+    "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT multiversioning.t",
+    "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT noreply.t",
+    "$RETHINKDB/test/memcached_workloads/multi_serial_mix.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/pipeline.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/rget.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/rget_huge.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/rget_no_blocking.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/unappend_unprepend.py $HOST:$PORT"
+    ],
+    "rdb": [
+    "$RETHINKDB/test/rdb_workloads/test.py",
+    "$RETHINKDB/test/rdb_workloads/test2.py"
     ]
+    }
 
-for workload in workloads:
-    do_test(
-        "$RETHINKDB/test/scenarios/static_cluster.py '%s'" % workload,
-        repeat = 3,
-        inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads"]
-        )
+for protocol, workloads_for_protocol in workloads.iteritems():
+    for workload in workloads_for_protocol:
+        do_test(
+            "$RETHINKDB/test/scenarios/static_cluster.py --protocol %s '%s'" % (protocol, workload),
+            repeat = 3,
+            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common",
+                "test/memcached_workloads", "test/rdb_workloads", "drivers"]
+            )
 
 do_test(
-    "$RETHINKDB/test/scenarios/proxy_cluster.py '$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT'",
+    "$RETHINKDB/test/scenarios/proxy_cluster.py '$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT'",
     repeat = 3,
-    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads"]
+    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads"]
     )

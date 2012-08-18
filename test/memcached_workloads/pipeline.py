@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys, os, random
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import workload_common, time
+import memcached_workload_common, time
 from vcoptparse import *
 
 # "I am a string" -> ["I a", "m a s", "trin", "g"]
@@ -16,13 +16,13 @@ def rand_split(string, nsub_strings):
 
     return strings
 
-op = workload_common.option_parser_for_socket()
+op = memcached_workload_common.option_parser_for_socket()
 op["chunk_size"] = IntFlag("--chunk-size", 10)
 op["num_ints"] = IntFlag("--num-ints", 1000)
 op["num_chunks"] = IntFlag("--num-chunks", 50)
 opts = op.parse(sys.argv)
 
-with workload_common.make_socket_connection(opts) as s:
+with memcached_workload_common.make_socket_connection(opts) as s:
 
     ints = range(opts["num_ints"])
 

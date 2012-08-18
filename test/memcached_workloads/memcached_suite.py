@@ -1,10 +1,10 @@
 #!/usr/bin/python
 import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import subprocess, workload_common
+import subprocess, memcached_workload_common
 from vcoptparse import *
 
-op = workload_common.option_parser_for_socket()
+op = memcached_workload_common.option_parser_for_socket()
 op["suite-test"] = PositionalArg()
 opts = op.parse(sys.argv)
 

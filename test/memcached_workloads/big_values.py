@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import workload_common
+import memcached_workload_common
 
 def readline(s):
     buf = ""
@@ -64,10 +64,10 @@ def test_sizes(x, y, s):
     test_sizes_one_way("append", x, y, s)
     test_sizes_another_way("prepend", x, y, s)
 
-op = workload_common.option_parser_for_socket()
+op = memcached_workload_common.option_parser_for_socket()
 opts = op.parse(sys.argv)
 
-with workload_common.make_socket_connection(opts) as s:
+with memcached_workload_common.make_socket_connection(opts) as s:
 
     # 250 - the maximum small value
     # 251 - the minimum large buf (in a leaf node)
