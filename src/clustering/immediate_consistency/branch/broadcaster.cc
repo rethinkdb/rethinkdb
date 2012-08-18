@@ -343,54 +343,56 @@ void listener_write(
     wait_interruptible(&ack_cond, interruptor);
 }
 
+template <class response_t>
+void store_listener_response(response_t *result_out, const response_t &result_in, cond_t *done) {
+    *result_out = result_in;
+    done->pulse();
+}
+
 template<class protocol_t>
-typename protocol_t::write_response_t listener_writeread(
+void listener_writeread(
         mailbox_manager_t *mailbox_manager,
         const typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t &writeread_mailbox,
-        typename protocol_t::write_t w, transition_timestamp_t ts,
+        typename protocol_t::write_t w, typename protocol_t::write_response_t *response, transition_timestamp_t ts,
         order_token_t order_token, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
-    promise_t<typename protocol_t::write_response_t> resp_cond;
+    cond_t resp_cond;
     mailbox_t<void(typename protocol_t::write_response_t)> resp_mailbox(
         mailbox_manager,
-        boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &resp_cond, _1),
+        boost::bind(&store_listener_response<typename protocol_t::write_response_t>, response, _1, &resp_cond),
         mailbox_callback_mode_inline);
 
     send(mailbox_manager, writeread_mailbox,
          w, ts, order_token, token, resp_mailbox.get_address());
 
-    wait_interruptible(resp_cond.get_ready_signal(), interruptor);
-
-    return resp_cond.get_value();
+    wait_interruptible(&resp_cond, interruptor);
 }
 
 template<class protocol_t>
-typename protocol_t::read_response_t listener_read(
+void listener_read(
         mailbox_manager_t *mailbox_manager,
         const typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t &read_mailbox,
-        typename protocol_t::read_t r, state_timestamp_t ts,
+        typename protocol_t::read_t r, typename protocol_t::read_response_t *response, state_timestamp_t ts,
         order_token_t order_token, fifo_enforcer_read_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
-    promise_t<typename protocol_t::read_response_t> resp_cond;
+    cond_t resp_cond;
     mailbox_t<void(typename protocol_t::read_response_t)> resp_mailbox(
         mailbox_manager,
-        boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &resp_cond, _1),
+        boost::bind(&store_listener_response<typename protocol_t::read_response_t>, response, _1, &resp_cond),
         mailbox_callback_mode_inline);
 
     send(mailbox_manager, read_mailbox,
          r, ts, order_token, token, resp_mailbox.get_address());
 
-    wait_interruptible(resp_cond.get_ready_signal(), interruptor);
-
-    return resp_cond.get_value();
+    wait_interruptible(&resp_cond, interruptor);
 }
 
 template<class protocol_t>
-typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename protocol_t::read_t read, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+void broadcaster_t<protocol_t>::read(typename protocol_t::read_t read, typename protocol_t::read_response_t *response, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
 
     order_token.assert_read_mode();
 
@@ -415,9 +417,9 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
 
     try {
         wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
-        return listener_read<protocol_t>(mailbox_manager, reader->read_mailbox,
-                                         read, timestamp, order_token, enforcer_token,
-                                         &interruptor2);
+        listener_read<protocol_t>(mailbox_manager, reader->read_mailbox,
+                                  read, response, timestamp, order_token, enforcer_token,
+                                  &interruptor2);
     } catch (interrupted_exc_t) {
         if (interruptor->is_pulsed()) {
             throw;
@@ -500,9 +502,10 @@ template<class protocol_t>
 void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
         if (mirror->is_readable) {
-            typename protocol_t::write_response_t resp = listener_writeread<protocol_t>(mailbox_manager, mirror->writeread_mailbox,
-                                                                                        write_ref.get()->write, write_ref.get()->timestamp, order_token, token,
-                                                                                        mirror_lock.get_drain_signal());
+            typename protocol_t::write_response_t resp;
+            listener_writeread<protocol_t>(mailbox_manager, mirror->writeread_mailbox,
+                                           write_ref.get()->write, &resp, write_ref.get()->timestamp, order_token, token,
+                                           mirror_lock.get_drain_signal());
 
             if (write_ref.get()->callback) {
                 write_ref.get()->callback->on_response(mirror->get_peer(), resp);

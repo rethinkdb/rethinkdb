@@ -17,11 +17,11 @@ enum protob_server_callback_mode_t {
 template <class request_t, class response_t, class context_t>
 class protob_server_t {
 public:
-    protob_server_t(int port, boost::function<response_t(request_t *, context_t *)> _f, protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
+    protob_server_t(int port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*on_unparsable_query)(request_t *), protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
     ~protob_server_t();
 private:
 
-    void handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t);
+    void handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t, response_t (*on_unparsable_query)(request_t *));
     void send(const response_t &, tcp_conn_t *conn, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t);
 
     auto_drainer_t auto_drainer;
