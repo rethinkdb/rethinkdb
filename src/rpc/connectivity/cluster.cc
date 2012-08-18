@@ -12,6 +12,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/object_buffer.hpp"
 #include "containers/uuid.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
@@ -304,7 +305,7 @@ void connectivity_cluster_t::run_t::handle(
     established. When there are multiple connections trying to be established,
     this is referred to as a "conflict". */
 
-    scoped_ptr_t<map_insertion_sentry_t<peer_id_t, peer_address_t> >
+    object_buffer_t<map_insertion_sentry_t<peer_id_t, peer_address_t> >
         routing_table_entry_sentry;
 
     /* We pick one side of the connection to be the "leader" and the other side
@@ -345,9 +346,7 @@ void connectivity_cluster_t::run_t::handle(
 
             /* Register ourselves while in the critical section, so that whoever
             comes next will see us */
-            routing_table_entry_sentry.init(
-                new map_insertion_sentry_t<peer_id_t, peer_address_t>(
-                    &routing_table, other_id, other_address));
+            routing_table_entry_sentry.create(&routing_table, other_id, other_address);
         }
 
         /* We're good to go! Transmit the routing table to the follower, so it
@@ -389,9 +388,7 @@ void connectivity_cluster_t::run_t::handle(
 
             /* Register ourselves while in the critical section, so that whoever
             comes next will see us */
-            routing_table_entry_sentry.init(
-                new map_insertion_sentry_t<peer_id_t, peer_address_t>(
-                    &routing_table, other_id, other_address));
+            routing_table_entry_sentry.create(&routing_table, other_id, other_address);
         }
 
         /* Send our routing table to the leader */

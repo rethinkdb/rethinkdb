@@ -32,7 +32,7 @@ void direct_reader_t<protocol_t>::perform_read(
         const mailbox_addr_t<void(typename protocol_t::read_response_t)> &cont,
         auto_drainer_t::lock_t keepalive) {
     try {
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
         svs->new_read_token(&read_token);
 
 #ifndef NDEBUG

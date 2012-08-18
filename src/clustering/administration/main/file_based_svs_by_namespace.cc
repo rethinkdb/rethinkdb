@@ -113,7 +113,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores, ctx));
 
         // Initialize the metadata in the underlying stores.
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         (*svs_out)->new_write_token(&write_token);
 
         cond_t dummy_interruptor;

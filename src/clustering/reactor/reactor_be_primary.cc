@@ -269,7 +269,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
 
             /* Figure out what version of the data is already present in our
              * store so we don't backfill anything prior to it. */
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
             svs->new_read_token(&read_token);
             region_map_t<protocol_t, version_range_t> metainfo = svs->get_all_metainfos(order_source.check_in("reactor_t::be_primary").with_read_mode(), &read_token, interruptor);
             region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);

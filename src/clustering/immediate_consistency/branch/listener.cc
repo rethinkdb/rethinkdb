@@ -99,7 +99,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager_->get_branch(branch_id_);
     guarantee(region_is_superset(this_branch_history.region, svs_->get_multistore_joined_region()));
 
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs_->new_read_token(&read_token);
     region_map_t<protocol_t, version_range_t> start_point
         = svs_->get_all_metainfos(order_source->check_in("listener_t(A)").with_read_mode(), &read_token, interruptor);
@@ -153,7 +153,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         throw backfiller_lost_exc_t();
     }
 
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token2;
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token2;
     svs_->new_read_token(&read_token2);
 
     region_map_t<protocol_t, version_range_t> backfill_end_point
@@ -237,7 +237,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     rassert(svs_->get_multistore_joined_region() == this_branch_history.region);
 
     /* Snapshot the metainfo before we start receiving writes */
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs_->new_read_token(&read_token);
     region_map_t<protocol_t, version_range_t> initial_metainfo
         = svs_->get_all_metainfos(order_source->check_in("listener_t(C)").with_read_mode(), &read_token, interruptor);
@@ -402,7 +402,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         write_queue_has_drained_.pulse_if_not_already_pulsed();
     }
 
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink_, qe.fifo_token);
         if (qe.transition_timestamp.timestamp_before() < backfill_end_timestamp) {
@@ -464,7 +464,7 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
         /* Make sure the broadcaster isn't sending us too many writes */
         semaphore_assertion_t::acq_t sem_acq(&enforce_max_outstanding_writes_from_broadcaster_);
 
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -541,7 +541,7 @@ void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING
 {
     try {
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink_` in case we

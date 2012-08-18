@@ -46,7 +46,7 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
 
     /* Snapshot the starting point of the store; we'll need to record this
        and store it in the metadata. */
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     initial_svs->new_read_token(&read_token);
 
     region_map_t<protocol_t, version_range_t> origins = initial_svs->get_all_metainfos(order_source->check_in("broadcaster_t(read)").with_read_mode(), &read_token, interruptor);
@@ -81,7 +81,7 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
        entry in the global metadata so that we aren't left in a state where
        the store has been marked as belonging to a branch for which no
        information exists. */
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
     initial_svs->new_write_token(&write_token);
     initial_svs->set_all_metainfos(region_map_t<protocol_t, binary_blob_t>(initial_svs->get_multistore_joined_region(),
                                                                            binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),

@@ -53,7 +53,7 @@ public:
     { }
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const typename protocol_t::backfill_chunk_t& chunk, signal_t *interruptor) {
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         svs->new_write_token(&write_token);
         chunk_queue->finish_write(chunk_token);
 
@@ -154,7 +154,7 @@ void backfillee(
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs->new_read_token(&read_token);
 
     // TODO: This is bs.  order_token_t::ignore.  The svs needs an order checkpoint with its fifo enforcers.
@@ -288,7 +288,7 @@ void backfillee(
             }
         }
 
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
 
         svs->new_write_token(&write_token);
 
@@ -321,8 +321,7 @@ void backfillee(
     }
 
     /* Update the metadata to indicate that the backfill occurred */
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
-
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
     svs->new_write_token(&write_token);
 
     svs->set_all_metainfos(
