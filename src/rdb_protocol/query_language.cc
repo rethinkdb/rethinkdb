@@ -679,7 +679,7 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     return js_runner;
 }
 
-void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
+void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t, google::protobuf::FatalException) {
     rassert(q->token() == res->token());
     switch(q->type()) {
     case Query::READ:
@@ -706,7 +706,7 @@ void execute(Query *q, runtime_environment_t *env, Response *res, const backtrac
     }
 }
 
-void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
+void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t, google::protobuf::FatalException) {
     int type = r->GetExtension(extension::inferred_read_type);
 
     switch (type) {
@@ -767,7 +767,7 @@ void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::s
     point_delete(ns_access, id->get(), env, backtrace);
 }
 
-void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
+void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, broken_client_exc_t, google::protobuf::FatalException) {
     //TODO: When writes can return different responses, be more clever.
     res->set_status_code(Response::SUCCESS_JSON);
     switch (w->type()) {
@@ -925,7 +925,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 }
 
 //This doesn't create a scope for the evals
-void eval_let_binds(Term::Let *let, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+void eval_let_binds(Term::Let *let, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, google::protobuf::FatalException) {
     // Go through the bindings in a let and add them one by one
     for (int i = 0; i < let->binds_size(); ++i) {
         backtrace_t backtrace_bind = backtrace.with(strprintf("bind:%s", let->binds(i).var().c_str()));
@@ -964,7 +964,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_and_check_either(Term *t, runtime_environ
 }
 
 
-boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, google::protobuf::FatalException) {
     switch (t->type()) {
         case Term::VAR:
             return env->scope.get(t->var());
@@ -1134,7 +1134,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
     unreachable();
 }
 
-boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, google::protobuf::FatalException) {
     switch (t->type()) {
         case Term::VAR:
             crash("Eval stream should never be called on a var term (because"
@@ -1190,7 +1190,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env
     unreachable();
 }
 
-boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, google::protobuf::FatalException) {
     switch (c->builtin().type()) {
         //JSON -> JSON
         case Builtin::NOT:
@@ -1742,7 +1742,7 @@ boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_
     return eval_stream(term, &env, backtrace);
 }
 
-boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, google::protobuf::FatalException) {
     switch (c->builtin().type()) {
         //JSON -> JSON
         case Builtin::NOT:
@@ -1970,7 +1970,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 
 }
 
-namespace_repo_t<rdb_protocol_t>::access_t eval(TableRef *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+namespace_repo_t<rdb_protocol_t>::access_t eval(TableRef *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, google::protobuf::FatalException) {
     boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
         env->semilattice_metadata->get().rdb_namespaces.get_namespace_by_name(t->table_name());
 
@@ -1981,7 +1981,7 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(TableRef *t, runtime_environment
     }
 }
 
-view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, google::protobuf::FatalException) {
     switch (c->builtin().type()) {
         //JSON -> JSON
         case Builtin::NOT:
@@ -2083,7 +2083,7 @@ view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtra
 
 }
 
-view_t eval_view(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+view_t eval_view(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, google::protobuf::FatalException) {
     switch (t->type()) {
         case Term::VAR:
         case Term::LET:
@@ -2124,7 +2124,7 @@ view_t eval_view(Term *t, runtime_environment_t *env, const backtrace_t &backtra
     unreachable();
 }
 
-view_t eval_view(Term::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+view_t eval_view(Term::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, google::protobuf::FatalException) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(t->mutable_table_ref(), env, backtrace);
     std::string pk = get_primary_key(t->mutable_table_ref()->table_name(), env, backtrace);
     boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace));

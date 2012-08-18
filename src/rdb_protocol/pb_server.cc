@@ -18,7 +18,7 @@ static void put_backtrace(const query_language::backtrace_t &bt, Response *res_o
     }
 }
 
-Response on_unparsable_query(Query *q) {
+Response on_unparsable_query(Query *q, const std::string &message) {
     Response res;
     if (q->has_token()) {
         res.set_token(q->token());
@@ -27,7 +27,7 @@ Response on_unparsable_query(Query *q) {
     }
 
     res.set_status_code(Response::BROKEN_CLIENT);
-    res.set_error_message("bad protocol buffer (failed to deserialize); client is buggy");
+    res.set_error_message(message);
     return res;
 }
 
@@ -51,6 +51,10 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
         res.set_error_message(e.message);
         put_backtrace(e.backtrace, &res);
         return res;
+    } catch (const google::protobuf::FatalException &e) {
+        res.set_status_code(Response::RUNTIME_ERROR);
+        res.set_error_message("google::protobuf::FatalException thrown (details in log)");
+        return res;
     }
 
     cond_t interruptor;
@@ -68,6 +72,10 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
         } catch (const query_language::broken_client_exc_t &e) {
             res.set_status_code(Response::BROKEN_CLIENT);
             res.set_error_message(e.message);
+            return res;
+        } catch (const google::protobuf::FatalException &e) {
+            res.set_status_code(Response::RUNTIME_ERROR);
+            res.set_error_message("google::protobuf::FatalException thrown (details in log)");
             return res;
         }
     }

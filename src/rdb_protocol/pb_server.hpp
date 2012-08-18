@@ -26,6 +26,6 @@ private:
     namespace_repo_t<rdb_protocol_t> *ns_repo;
 };
 
-Response on_unparsable_query(Query *q);
+Response on_unparsable_query(Query *q, const std::string &message);
 
 #endif /* RDB_PROTOCOL_PB_SERVER_HPP_ */
