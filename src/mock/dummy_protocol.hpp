@@ -112,24 +112,24 @@ public:
         store_t(io_backender_t *io_backender, const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
         ~store_t();
 
-        void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;
-        void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out) THROWS_NOTHING;
+        void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;
+        void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) THROWS_NOTHING;
 
         void do_get_metainfo(order_token_t order_token,
-                             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                              signal_t *interruptor,
                              metainfo_t *out) THROWS_ONLY(interrupted_exc_t);
 
         void set_metainfo(const metainfo_t &new_metainfo,
                           order_token_t order_token,
-                          scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                          object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                           signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void read(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
                   const dummy_protocol_t::read_t &read,
                   dummy_protocol_t::read_response_t *response,
                   order_token_t order_token,
-                  scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                  object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void write(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
@@ -138,22 +138,22 @@ public:
                    dummy_protocol_t::write_response_t *response,
                    transition_timestamp_t timestamp,
                    order_token_t order_token,
-                   scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                   object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         bool send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
                            send_backfill_callback_t<dummy_protocol_t> *send_backfill_cb,
                            backfill_progress_t *progress,
-                           scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                           object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk,
-                              scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                              object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void reset_data(const dummy_protocol_t::region_t &subregion,
                         const metainfo_t &new_metainfo,
-                        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         std::map<std::string, std::string> values;

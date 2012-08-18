@@ -72,7 +72,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
 
             /* Tell the other peers that we are looking to shutdown and
              * offering backfilling until we do. */
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
             svs->new_read_token(&read_token);
             typename reactor_business_card_t<protocol_t>::nothing_when_safe_t
                 activity(svs->get_all_metainfos(order_source.check_in("be_nothing").with_read_mode(),
@@ -115,7 +115,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
 
         /* This actually erases the data. */
         {
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
             svs->new_write_token(&write_token);
 
             svs->reset_all_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), &write_token, interruptor);
