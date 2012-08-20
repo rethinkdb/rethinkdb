@@ -51,7 +51,7 @@ void server_test_helper_t::setup_server_and_run_tests() {
         run_serializer_tests();
     }
 
-    trace_call(thread_pool->shutdown_thread_pool);
+    trace_call_0(thread_pool->shutdown_thread_pool);
 }
 
 void server_test_helper_t::run_serializer_tests() {

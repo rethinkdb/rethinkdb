@@ -83,9 +83,14 @@ int64_t get_ticks_res();
 double ticks_to_secs(ticks_t ticks);
 
 #ifndef NDEBUG
-#define trace_call(fn, args...) do {                                          \
+#define trace_call(fn, ...) do {                                        \
         debugf("%s:%u: %s: entered\n", __FILE__, __LINE__, stringify(fn));  \
-        fn(args);                                                           \
+        fn(__VA_ARGS__);                                                \
+        debugf("%s:%u: %s: returned\n", __FILE__, __LINE__, stringify(fn)); \
+    } while (0)
+#define trace_call_0(fn) do {                                           \
+        debugf("%s:%u: %s: entered\n", __FILE__, __LINE__, stringify(fn));  \
+        fn();                                                           \
         debugf("%s:%u: %s: returned\n", __FILE__, __LINE__, stringify(fn)); \
     } while (0)
 #define TRACEPOINT debugf("%s:%u reached\n", __FILE__, __LINE__)
