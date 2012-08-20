@@ -234,27 +234,6 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
     return a.first < b.first;
 }
 
-//void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
-//                              std::vector<read_response_t>::iterator end,
-//                              rget_read_response_t *response) {
-//    std::vector<boost::shared_ptr<scoped_cJSON_t> > merged;
-//
-//    for (std::vector<read_response_t>::iterator i = begin; i != end; ++i) {
-//        const rget_read_response_t *delta = boost::get<rget_read_response_t>(&i->response);
-//        rassert(delta);
-//        const stream_t *stream = boost::get<stream_t>(&delta->result);
-//        guarantee(stream);
-//        merged.insert(merged.end(), stream->begin(), stream->end());
-//
-//        if (response->last_considered_key < delta->last_considered_key) {
-//            response->last_considered_key = delta->last_considered_key;
-//        }
-//    }
-//    stream_t *stream = boost::get<stream_t>(&response->result);
-//    guarantee(stream);
-//    stream->insert(stream->end(), merged.begin(), merged.end());
-//}
-
 void read_t::multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
     query_language::runtime_environment_t env(ctx->pool_group, ctx->ns_repo, ctx->semilattice_metadata, js_runner, &ctx->interruptor);
@@ -265,9 +244,7 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
         rassert(responses.size() == 1);
         rassert(boost::get<point_read_response_t>(&responses[0].response));
         *response = responses[0];
-    }
-
-    if (rg) {
+    } else if (rg) {
         response->response = rget_read_response_t();
         rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
