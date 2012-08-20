@@ -37,24 +37,47 @@ print "Connection established.\n"
 
 def crossover(s1, s2, p=0.3)
   snew = s1.dup
-  snew.each_index{|i| snew[i] = s2[i] if (rand < p and s2[i])}
+  snew.each_index {|i|
+    rhs = s2[i]
+    if rand < p and rhs != nil
+      if rhs.class != Array || rand < p
+        snew[i] = rhs
+      else
+        lhs = snew[i].class == Array ? snew[i] : [snew[i]]
+        snew[i] = crossover(lhs, rhs, p)
+      end
+    end
+  }
 end
 
 $i=0
 while true
   $templates.each { |t|
-    #s = t
-    s = crossover(t, $templates[rand($templates.length)])
-    if $i >= options[:index]
-      print "##{$i+=1}: sexp: #{s.inspect}\n"
+    s = t
+    $f = 0
+    while s == t && $f < 20
+      s = crossover(t, $templates[rand($templates.length)])
       begin
-        PP.pp((RethinkDB::S._ s).run)
-      rescue Exception => e
-        print "Failed with: #{e.class}\n"
+        q = (RethinkDB::S._ s).query
+      rescue Exception
+        s = t
       end
-      sleep 1
-    else
-      $i += 1
+      $f += 1
     end
+    if $f < 20
+      if $i >= options[:index]
+        print "##{$i}: sexp: #{t.inspect}\n"
+        print "##{$i}: sexp: #{s.inspect}\n"
+        begin
+          PP.pp((RethinkDB::S._ s).run)
+        rescue Exception => e
+          print "Failed with: #{e.class}\n"
+        end
+        sleep 1
+      end
+    else
+      print "##{$i}: SKIPPING\n"
+    end
+    $i += 1
   }
 end
