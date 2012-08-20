@@ -1042,6 +1042,10 @@ void mc_buf_lock_t::release() {
         }
     }
 
+#ifndef AGGRESSIVE_BUF_UNLOADING
+#define AGGRESSIVE_BUF_UNLOADING 0
+#endif
+
 #if AGGRESSIVE_BUF_UNLOADING == 1
     // If this code is enabled, then it will cause bufs to be unloaded very aggressively.
     // This is useful for catching bugs in which something expects a buf to remain valid even though
