@@ -73,24 +73,28 @@ def R(name):
         raise NotImplementedError(". not handled")
     return internal.ImplicitAttr(name)
 
-def fn(arg, *args):
+def fn(*x):
     """Create a function.
     See :func:`Selectable.filter` for examples.
 
     The last argument is the body of the function,
     and the other arguments are the parameter names.
 
-    :param args: args[:-1] are names of parameters,
-        args[-1] is the function body
-    :type args: list(str/:class:`JSONExpression`)
+    :param args: names of parameters
+    :param body: body of function
+    :type body: :class:`JSONExpression` or :class:`StreamExpression`
+    :rtype: :class:`rethinkdb.internal.JSONFunction` or :class:`rethinkdb.internal.StreamFunction`
 
     >>> fn(3)                           # lambda: 3
     >>> fn("x", R("$x") + 1)            # lambda x: x + 1
     >>> fn("x", "y", R("$x") + R("$y))  # lambda x, y: x + y
     """
-    if not args:
-        return internal.Function(arg)
-    return internal.Function(args[-1], arg, *args[:-1])
+    body = x[-1]
+    args = x[:-1]
+    if isinstance(body, Stream):
+        return internal.StreamFunction(body, *args)
+    else:
+        return internal.JSONFunction(body, *args)
 
 def js(expr=None, body=None):
     if (expr is not None) + (body is not None) != 1:
@@ -227,8 +231,8 @@ class Expression(BaseExpression):
         """
         if isinstance(selector, dict):
             selector = internal.All(*[R(k) == v for k, v in selector.iteritems()])
-        if not isinstance(selector, internal.Function):
-            selector = internal.Function(selector)
+        if not isinstance(selector, internal.JSONFunction):
+            selector = internal.JSONFunction(selector)
 
         return internal.Filter(self, selector)
 
@@ -335,15 +339,31 @@ class Expression(BaseExpression):
 
         :param mapping: The expression to evaluate
         :type mapping: :class:`JSONExpression`
-        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
+        :returns: :class:`Stream`, :class:`JSONExpression` (depends on input)
 
-        >>> expr([1, 2, 3]).map(R('@') * 2) # gives [2, 4, 6]
+        >>> expr([1, 2, 3]).map(R('@') * 2) # gives JSONExpression evaluating to [2, 4, 6]
         >>> table('users').map(R('age'))
         >>> table('users').map(fn('user', table('posts').filter({'userid': R('$user.id')})))
         """
-        if not isinstance(mapping, internal.Function):
-            mapping = internal.Function(mapping)
+        if not isinstance(mapping, internal.JSONFunction):
+            mapping = internal.JSONFunction(mapping)
         return internal.Map(self, mapping)
+
+    def concat_map(self, mapping):
+        """Evaluate `mapping` for each element. The result of `mapping` must be
+        a stream; all those streams will be concatenated to produce the result
+        of `concat_map()`.
+
+        :param mapping: The mapping to evaluate
+        :type mapping: :class:`Stream`   # TODO fixme
+        :returns: :class:`Stream`
+
+        >>> expr([1, 2, 3]).concat_map(fn("a", expr([R("$a"), "test"]).to_stream())).run()
+        [1, "test", 2, "test", 3, "test"]
+        """
+        if not isinstance(mapping, internal.StreamFunction):
+            mapping = internal.StreamFunction(mapping)
+        return internal.ConcatMap(self, mapping)
 
     def reduce(self, base, func):
         """Build up a result by repeatedly applying `func` to pairs of elements. Returns
@@ -351,7 +371,7 @@ class Expression(BaseExpression):
 
         `base` should be an identity (`func(base, e) == e`).
 
-        :type base: :class:`Function`, :class:`JSON`
+        :type base: :class:`JSONFunction`, :class:`JSON`
         :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
 
         >>> expr([1, 2, 3]).reduce(0, fn('a', 'b', R('$a') + R('$b'))).run()
@@ -408,14 +428,14 @@ class BaseSelection(object):
         >>> table('users').filter(R('warnings') > 5).update({'banned': True})
 
         """
-        if not isinstance(mapping, internal.Function):
-            mapping = internal.Function(mapping)
+        if not isinstance(mapping, internal.JSONFunction):
+            mapping = internal.JSONFunction(mapping)
         return internal.Update(self, mapping)
 
     def mutate(self, mapping):
         """TODO: get rid of this ?"""
-        if not isinstance(mapping, internal.Function):
-            mapping = internal.Function(mapping)
+        if not isinstance(mapping, internal.JSONFunction):
+            mapping = internal.JSONFunction(mapping)
         return internal.Mutate(self, mapping)
 
 class MultiRowSelection(Stream, BaseSelection):
