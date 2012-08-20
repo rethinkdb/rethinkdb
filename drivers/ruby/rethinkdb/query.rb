@@ -1,5 +1,6 @@
 module RethinkDB
   class RQL_Query #S-expression representation of a query
+    @@default_datacenter='Welcome-dc'
     def initialize(init_body); @body = init_body; end
 
     def ==(rhs)

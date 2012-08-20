@@ -76,9 +76,9 @@
  */
 
 #ifndef NDEBUG
-#define DEBUG_ONLY_VAR
+#define DEBUG_VAR
 #else
-#define DEBUG_ONLY_VAR __attribute__((unused))
+#define DEBUG_VAR __attribute__((unused))
 #endif
 
 #define UNUSED __attribute__((unused))

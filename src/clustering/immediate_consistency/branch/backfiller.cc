@@ -36,7 +36,7 @@ backfiller_business_card_t<protocol_t> backfiller_t<protocol_t>::get_business_ca
 }
 
 template <class protocol_t>
-bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, UNUSED region_map_t<protocol_t, version_range_t> start_point,
+bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, DEBUG_VAR region_map_t<protocol_t, version_range_t> start_point,
                                                          mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_cont) {
     rassert(metainfo.get_domain() == start_point.get_domain());
     region_map_t<protocol_t, version_range_t> end_point =

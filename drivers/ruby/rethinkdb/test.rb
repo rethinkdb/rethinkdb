@@ -573,65 +573,79 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test___write #three underscores so it runs first
-    rdb.delete.run
+    table_name = rand().to_s
+    rdb2 = r.db('Welcome-db',table_name)
+    orig_lst = r.list.run
+    assert_equal(rdb2.create.run, nil)
+    assert_raise(RuntimeError) {rdb2.create.run}
+    lst = r.list.run
+    assert_equal(orig_lst.length+1, lst.length)
+    obj = lst.find{|x| x['table_name'] == table_name}
+    assert_equal(obj['db_name'], 'Welcome-db')
+    assert_equal(obj['conflicted'], false)
+
+    rdb2.delete.run
     $data = []
     len = 10
     Array.new(len).each_index{|i| $data << {'id'=>i,'num'=>i,'name'=>i.to_s}}
 
     #INSERT, UPDATE
-    assert_equal(rdb.insert($data).run['inserted'], len)
-    assert_equal(rdb.insert($data + $data).run['inserted'], len*2)
-    assert_equal(rdb.run, $data)
-    assert_equal(rdb.insert({:id => 0, :broken => true}).run['inserted'], 1)
-    assert_equal(rdb.insert({:id => 1, :broken => true}).run['inserted'], 1)
-    assert_equal(rdb.run[2..len-1], $data[2..len-1])
-    assert_equal(rdb.run[0]['broken'], true)
-    assert_equal(rdb.run[1]['broken'], true)
-    #PP.pp rdb.update{|x| r.if(x.attr?(:broken), $data[0], nil)}.run
-    update = rdb.filter{r[:id].eq(0)}.update{$data[0]}.run
+    assert_equal(rdb2.insert($data).run['inserted'], len)
+    assert_equal(rdb2.insert($data + $data).run['inserted'], len*2)
+    assert_equal(rdb2.run, $data)
+    assert_equal(rdb2.insert({:id => 0, :broken => true}).run['inserted'], 1)
+    assert_equal(rdb2.insert({:id => 1, :broken => true}).run['inserted'], 1)
+    assert_equal(rdb2.run[2..len-1], $data[2..len-1])
+    assert_equal(rdb2.run[0]['broken'], true)
+    assert_equal(rdb2.run[1]['broken'], true)
+    #PP.pp rdb2.update{|x| r.if(x.attr?(:broken), $data[0], nil)}.run
+    update = rdb2.filter{r[:id].eq(0)}.update{$data[0]}.run
     assert_equal(update, {'errors' => 0, 'updated' => 1, 'skipped' => 0})
-    update = rdb.update{|x| r.if(x.attr?(:broken), $data[1], x)}.run
+    update = rdb2.update{|x| r.if(x.attr?(:broken), $data[1], x)}.run
     assert_equal(update, {'errors' => 0, 'updated' => len, 'skipped' => 0})
-    assert_equal(rdb.run, $data)
+    assert_equal(rdb2.run, $data)
 
     #DELETE
-    assert_equal(rdb.filter{r[:id] < 5}.delete.run['deleted'], 5)
-    assert_equal(rdb.run, $data[5..-1])
-    assert_equal(rdb.delete.run['deleted'], len-5)
-    assert_equal(rdb.run, [])
+    assert_equal(rdb2.filter{r[:id] < 5}.delete.run['deleted'], 5)
+    assert_equal(rdb2.run, $data[5..-1])
+    assert_equal(rdb2.delete.run['deleted'], len-5)
+    assert_equal(rdb2.run, [])
 
     #INSERTSTREAM
-    assert_equal(rdb.insertstream(r.arraytostream r[$data]).run['inserted'], len)
-    assert_equal(rdb.run, $data)
+    assert_equal(rdb2.insertstream(r.arraytostream r[$data]).run['inserted'], len)
+    assert_equal(rdb2.run, $data)
 
     #MUTATE -- need fix
-    assert_equal(rdb.mutate{|row| row}.run, {'modified' => len, 'deleted' => 0})
-    assert_equal(rdb.run, $data)
-    assert_equal(rdb.mutate{|row| r.if(row[:id] < 5, nil, row)}.run,
+    assert_equal(rdb2.mutate{|row| row}.run, {'modified' => len, 'deleted' => 0})
+    assert_equal(rdb2.run, $data)
+    assert_equal(rdb2.mutate{|row| r.if(row[:id] < 5, nil, row)}.run,
                  {'modified' => 5, 'deleted' => len-5})
-    assert_equal(rdb.run, $data[5..-1])
-    assert_equal(rdb.insert($data[0...5]).run, {'inserted' => 5})
-    #PP.pp rdb.run
+    assert_equal(rdb2.run, $data[5..-1])
+    assert_equal(rdb2.insert($data[0...5]).run, {'inserted' => 5})
+    #PP.pp rdb2.run
 
     #FOREACH, POINTDELETE
-    #PP.pp rdb.foreach{rdb.pointdelete(:id, r[:id])}.run
-    #PP.pp rdb.foreach{|x| rdb.foreach{|y| rdb.insert({:id => x[:id]*y[:id]})}}.run
+    #PP.pp rdb2.foreach{rdb2.pointdelete(:id, r[:id])}.run
+    #PP.pp rdb2.foreach{|x| rdb2.foreach{|y| rdb2.insert({:id => x[:id]*y[:id]})}}.run
     # RETURN VALUE SHOULD CHANGE
-    rdb.foreach{|row| [rdb.get(row[:id]).delete, rdb.insert(row)]}.run
-    assert_equal(rdb.run, $data)
-    rdb.foreach{|row| rdb.get(row[:id]).delete}.run
-    assert_equal(rdb.run, [])
+    rdb2.foreach{|row| [rdb2.get(row[:id]).delete, rdb2.insert(row)]}.run
+    assert_equal(rdb2.run, $data)
+    rdb2.foreach{|row| rdb2.get(row[:id]).delete}.run
+    assert_equal(rdb2.run, [])
 
-    rdb.insert($data).run
-    assert_equal(rdb.run, $data)
-    query = rdb.get(0).update{{:id => 0, :broken => 5}}
+    rdb2.insert($data).run
+    assert_equal(rdb2.run, $data)
+    query = rdb2.get(0).update{{:id => 0, :broken => 5}}
     assert_equal(query.run, {'updated'=>1,'errors'=>0})
-    query = rdb.get(0).update{|row| r.if(row.attr?(:broken), $data[0], r.error('err'))}
+    query = rdb2.get(0).update{|row| r.if(row.attr?(:broken), $data[0], r.error('err'))}
     assert_equal(query.run, {'updated'=>1,'errors'=>0})
-    assert_equal(rdb.run, $data)
+    assert_equal(rdb2.run, $data)
 
     #POINTMUTATE -- unimplemented
 
-    assert_equal(rdb.run, $data)
+    assert_equal(rdb2.run, $data)
+    assert_equal(rdb2.drop.run, nil)
+    assert_raise(RuntimeError){rdb2.drop.run}
+    assert_equal(r.list.run, orig_lst)
   end
 end

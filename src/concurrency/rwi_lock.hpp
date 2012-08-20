@@ -76,7 +76,7 @@ public:
                 lock = NULL;
             }
         }
-        void assert_is_holding(rwi_lock_t *l) {
+        void assert_is_holding(DEBUG_VAR rwi_lock_t *l) {
             rassert(lock == l);
         }
         ~read_acq_t() {
@@ -99,7 +99,7 @@ public:
                 lock = NULL;
             }
         }
-        void assert_is_holding(UNUSED rwi_lock_t *l) {
+        void assert_is_holding(DEBUG_VAR rwi_lock_t *l) {
             rassert(lock == l);
         }
         ~write_acq_t() {

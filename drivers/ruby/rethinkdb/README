@@ -1,0 +1,24 @@
+The easiest way to start playing with the ruby client is to use `irb`
+and load the quickstart module.  e.g.:
+# PORT_OFFSET=32300 irb --readline -r 'quickstart'
+Loaded shortcut: r
+Connection: $c
+Welcome-rdb table: $rdb (i.e. `$rdb = r.db('Welcome-db','Welcome-rdb')`)
+Examples: `r.list.run`, `$rdb.insert({:id => 0}).run`, `$rdb.run`
+irb(main):001:0> r.list
+=> #<RethinkDB::RQL_Query:0x7fe4f31beda8 @body=[:list]>
+irb(main):002:0> r.list.run
+=> [{"db_name"=>"Welcome-db", "table_name"=>"Welcome-rdb", "conflicted"=>false, "uuid"=>"5e15bfbe-3cca-3bd1-1ef1-fe8565c5a0a8"}, {"db_name"=>"Welcome-db", "table_name"=>"Welcome-rdb-2", "conflicted"=>false, "uuid"=>"67a68d63-fb6b-f6ef-e6b5-de252abfa7bc"}]
+irb(main):003:0> PP.pp r.list.run
+[{"db_name"=>"Welcome-db",
+  "table_name"=>"Welcome-rdb",
+  "conflicted"=>false,
+  "uuid"=>"5e15bfbe-3cca-3bd1-1ef1-fe8565c5a0a8"},
+ {"db_name"=>"Welcome-db",
+  "table_name"=>"Welcome-rdb-2",
+  "conflicted"=>false,
+  "uuid"=>"67a68d63-fb6b-f6ef-e6b5-de252abfa7bc"}]
+=> #<IO:0x7fe4f4d5dac8>
+r.add(3,5).run
+=> 8
+irb(main):005:0>

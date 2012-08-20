@@ -474,7 +474,7 @@ void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::st
 
 /* Declared in `logger.hpp`, not `clustering/administration/logger.hpp` like the
 other things in this file. */
-void log_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t level, const char *format, ...) {
+void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
     va_list args;
     va_start(args, format);
     vlog_internal(src_file, src_line, level, format, args);

@@ -64,7 +64,7 @@ bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, buf_lock_t *no
     }
 }
 
-void validate(DEBUG_ONLY_VAR value_sizer_t<void> *sizer, DEBUG_ONLY_VAR const node_t *node) {
+void validate(DEBUG_VAR value_sizer_t<void> *sizer, DEBUG_VAR const node_t *node) {
 #ifndef NDEBUG
     if (node->magic == sizer->btree_leaf_magic()) {
         leaf::validate(sizer, reinterpret_cast<const leaf_node_t *>(node));

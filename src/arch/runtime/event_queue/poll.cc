@@ -144,7 +144,7 @@ void poll_event_queue_t::adjust_resource(fd_t resource, int events, linux_event_
     }
 }
 
-void poll_event_queue_t::forget_resource(fd_t resource, UNUSED linux_event_callback_t *cb) {
+void poll_event_queue_t::forget_resource(fd_t resource, DEBUG_VAR linux_event_callback_t *cb) {
     rassert(cb);
 
     // Erase the callback from the map

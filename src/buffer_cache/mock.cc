@@ -151,7 +151,7 @@ mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn) :
     txn->cache->bufs->set_size(block_id + 1);
     internal_buf = new internal_buf_t(txn->cache, block_id, txn->recency_timestamp);
     txn->cache->bufs->get(block_id) = internal_buf;
-    bool locked __attribute__((unused)) = internal_buf->lock.lock(rwi_write, NULL);
+    DEBUG_VAR bool locked = internal_buf->lock.lock(rwi_write, NULL);
     rassert(locked);
 }
 

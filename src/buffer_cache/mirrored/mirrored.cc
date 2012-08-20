@@ -149,7 +149,7 @@ private:
 // This loads a block from the serializer and stores it into buf.
 void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account) {
     if (should_lock) {
-        bool locked UNUSED = lock.lock(rwi_write, NULL);
+        DEBUG_VAR bool locked = lock.lock(rwi_write, NULL);
         rassert(locked);
     } else {
         // We should have at least *some* kind of lock on the buffer, shouldn't we?
@@ -1091,7 +1091,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
 }
 
 /* This version is only for read transactions from the writeback!  And some unit tests use it. */
-mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED int fook, UNUSED bool dont_assert_about_shutting_down) :
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED int fook, DEBUG_VAR bool dont_assert_about_shutting_down) :
     cache(_cache),
     expected_change_count(0),
     access(_access),
