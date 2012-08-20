@@ -332,6 +332,18 @@ class Get(query.RowSelection):
         parent.get_by_key.attrname = self.key
         self.value._write_ast(parent.get_by_key.key)
 
+class If(query.JSONExpression):
+    def __init__(self, test, true_branch, false_branch):
+        self.test = query.expr(test)
+        self.true_branch = query.expr(true_branch)
+        self.false_branch = query.expr(false_branch)
+
+    def _write_ast(self, parent):
+        parent.type = p.Term.IF
+        self.test._write_ast(parent.if_.test)
+        self.true_branch._write_ast(parent.if_.true_branch)
+        self.false_branch._write_ast(parent.if_.false_branch)
+
 class Map(Transformer):
     def __init__(self, parent, mapping):
         self.parent = parent

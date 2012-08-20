@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys, random, time, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import workload_common
+import memcached_workload_common
 from vcoptparse import *
 
 # "I am a string" -> ["I a", "m a s", "trin", "g"]
@@ -40,11 +40,11 @@ def garbage():
 def funny():
     return "Yo dawg"
 
-op = workload_common.option_parser_for_socket()
+op = memcached_workload_common.option_parser_for_socket()
 op["duration"] = IntFlag("--duration", 1000)
 opts = op.parse(sys.argv)
 
-with workload_common.make_socket_connection(opts) as s:
+with memcached_workload_common.make_socket_connection(opts) as s:
     sent_log = open('fuzz_sent', 'w')
     recv_log = open('fuzz_recv', 'w')
 

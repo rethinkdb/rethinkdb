@@ -62,10 +62,11 @@ void run_get_set_test(namespace_interface_t<dummy_protocol_t> *nsi, order_source
 
     {
         dummy_protocol_t::write_t w;
+        dummy_protocol_t::write_response_t wr;
         w.values["a"] = "floop";
 
         cond_t interruptor;
-        dummy_protocol_t::write_response_t wr = nsi->write(w, order_source->check_in("unittest::run_get_set_test(A)"), &interruptor);
+        nsi->write(w, &wr, order_source->check_in("unittest::run_get_set_test(A)"), &interruptor);
 
         EXPECT_EQ(wr.old_values.size(), 1);
         EXPECT_EQ(wr.old_values["a"], "");
@@ -73,11 +74,12 @@ void run_get_set_test(namespace_interface_t<dummy_protocol_t> *nsi, order_source
 
     {
         dummy_protocol_t::write_t w;
+        dummy_protocol_t::write_response_t wr;
         w.values["a"] = "flup";
         w.values["q"] = "flarp";
 
         cond_t interruptor;
-        dummy_protocol_t::write_response_t wr = nsi->write(w, order_source->check_in("unittest::run_get_set_test(B)"), &interruptor);
+        nsi->write(w, &wr, order_source->check_in("unittest::run_get_set_test(B)"), &interruptor);
 
         EXPECT_EQ(wr.old_values.size(), 2);
         EXPECT_EQ(wr.old_values["a"], "floop");
@@ -86,12 +88,13 @@ void run_get_set_test(namespace_interface_t<dummy_protocol_t> *nsi, order_source
 
     {
         dummy_protocol_t::read_t r;
+        dummy_protocol_t::read_response_t rr;
         r.keys.keys.insert("a");
         r.keys.keys.insert("q");
         r.keys.keys.insert("z");
 
         cond_t interruptor;
-        dummy_protocol_t::read_response_t rr = nsi->read(r, order_source->check_in("unittest::run_get_set_test(C)").with_read_mode(), &interruptor);
+        nsi->read(r, &rr, order_source->check_in("unittest::run_get_set_test(C)").with_read_mode(), &interruptor);
 
         EXPECT_EQ(rr.values.size(), 3);
         EXPECT_EQ(rr.values["a"], "flup");

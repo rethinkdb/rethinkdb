@@ -48,7 +48,7 @@ def sys_exit(message, exit_code, shut_down = True):
         target.shut_down()
     sys.exit(exit_code)
 
-suse2 = VM('suse2', '12c1cf78-5dc5-4baa-8e93-ac6fdd1ebf1f', 'root@192.168.0.173', 'rethinkdb@lex-luthor') # this SUSE uses an older version of GCC (where tests happen)
+suse2 = VM('suse2', '2c082dde-eac6-493d-855d-8220a2aae070', 'root@192.168.0.173', control_user) # this SUSE uses an older version of GCC (where tests happen)
 suse = VM('suse', '7bd61095-36c6-4e98-a2c2-4ce6322de5d7', 'root@192.168.0.173', control_user) # this SUSE uses a new version of GCC (where builds happen)
 redhat5_1 = VM('redhat5_1', '32340f79-cea9-42ca-94d5-2da13d408d02', 'root@192.168.0.159', control_user)
 ubuntu = VM('ubuntu', '1f4521a0-6e74-4d20-b4b9-9ffd8e231423', 'root@192.168.0.172', control_user)

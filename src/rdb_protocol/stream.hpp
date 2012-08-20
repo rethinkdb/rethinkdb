@@ -84,7 +84,8 @@ private:
         rdb_protocol_t::rget_read_t rget_read(range, batch_size);
         rdb_protocol_t::read_t read(rget_read);
         try {
-            rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, interruptor);
+            rdb_protocol_t::read_response_t res;
+            ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
             rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
             rassert(p_res);
 
@@ -117,56 +118,6 @@ private:
     bool finished;
 
     backtrace_t backtrace;
-};
-
-class stream_multiplexer_t {
-public:
-
-    stream_multiplexer_t() { }
-    explicit stream_multiplexer_t(boost::shared_ptr<json_stream_t> _stream)
-        : stream(_stream)
-    { }
-
-    typedef std::vector<boost::shared_ptr<scoped_cJSON_t> > cJSON_vector_t;
-
-    class stream_t : public json_stream_t {
-    public:
-        explicit stream_t(boost::shared_ptr<stream_multiplexer_t> _parent)
-            : parent(_parent), index(0)
-        {
-            rassert(parent->stream);
-        }
-
-        boost::shared_ptr<scoped_cJSON_t> next() {
-            while (index >= parent->data.size()) {
-                if (!parent->maybe_read_more()) {
-                    return boost::shared_ptr<scoped_cJSON_t>();
-                }
-            }
-
-            return parent->data[index++];
-        }
-    private:
-        boost::shared_ptr<stream_multiplexer_t> parent;
-        cJSON_vector_t::size_type index;
-    };
-
-private:
-    friend class stream_t;
-
-    bool maybe_read_more() {
-        if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            data.push_back(json);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    //TODO this should probably not be a vector
-    boost::shared_ptr<json_stream_t> stream;
-
-    cJSON_vector_t data;
 };
 
 class union_stream_t : public json_stream_t {
@@ -213,6 +164,28 @@ public:
 private:
     boost::shared_ptr<json_stream_t> stream;
     P p;
+};
+
+template <class C>
+class distinct_stream_t : public json_stream_t {
+public:
+    typedef boost::function<bool(boost::shared_ptr<scoped_cJSON_t>)> predicate;  // NOLINT
+    distinct_stream_t(boost::shared_ptr<json_stream_t> _stream, const C &_c)
+        : stream(_stream), seen(_c)
+    { }
+
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+            if (seen.insert(json).second) { // was this not already present?
+                return json;
+            }
+        }
+        return boost::shared_ptr<scoped_cJSON_t>();
+    }
+
+private:
+    boost::shared_ptr<json_stream_t> stream;
+    std::set<boost::shared_ptr<scoped_cJSON_t>, C> seen;
 };
 
 template <class F>

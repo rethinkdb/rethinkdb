@@ -174,6 +174,7 @@ public:
     }
 };
 
+// TODO: get rid of this extra response_t copy on the stack
 struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     const std::vector<read_response_t> &bits;
 
@@ -251,11 +252,12 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     }
 };
 
-read_response_t read_t::unshard(const std::vector<read_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void read_t::unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     read_unshard_visitor_t v(responses);
-    return boost::apply_visitor(v, query);
+    *response = boost::apply_visitor(v, query);
 }
 
+// TODO: get rid of this extra response_t copy on the stack
 struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     const std::vector<read_response_t> &bits;
 
@@ -344,10 +346,9 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_res
     }
 };
 
-
-read_response_t read_t::multistore_unshard(const std::vector<read_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void read_t::multistore_unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     read_multistore_unshard_visitor_t v(responses);
-    return boost::apply_visitor(v, query);
+    *response = boost::apply_visitor(v, query);
 }
 
 /* `write_t::get_region()` */
@@ -374,14 +375,14 @@ write_t write_t::shard(DEBUG_ONLY_VAR const region_t &region) const THROWS_NOTHI
 
 /* `write_response_t::unshard()` */
 
-write_response_t write_t::unshard(const std::vector<write_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void write_t::unshard(const std::vector<write_response_t>& responses, write_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     /* TODO: Make sure the request type matches the response type */
     rassert(responses.size() == 1);
-    return responses[0];
+    *response = responses[0];
 }
 
-write_response_t write_t::multistore_unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
-    return unshard(responses, cache);
+void write_t::multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING {
+    unshard(responses, response, cache);
 }
 
 
@@ -491,14 +492,16 @@ private:
     exptime_t effective_time;
 };
 
-read_response_t store_t::protocol_read(const read_t &read,
-                                       btree_slice_t *btree,
-                                       transaction_t *txn,
-                                       superblock_t *superblock) {
+void store_t::protocol_read(const read_t &read,
+                            read_response_t *response,
+                            btree_slice_t *btree,
+                            transaction_t *txn,
+                            superblock_t *superblock) {
     read_visitor_t v(btree, txn, superblock, read.effective_time);
-    return boost::apply_visitor(v, read.query);
+    *response = boost::apply_visitor(v, read.query);
 }
 
+// TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<write_response_t> {
     write_response_t operator()(const get_cas_mutation_t &m) {
         return write_response_t(
@@ -533,14 +536,15 @@ private:
     repli_timestamp_t timestamp;
 };
 
-write_response_t store_t::protocol_write(const write_t &write,
-                                         transition_timestamp_t timestamp,
-                                         btree_slice_t *btree,
-                                         transaction_t *txn,
-                                         superblock_t *superblock) {
+void store_t::protocol_write(const write_t &write,
+                             write_response_t *response,
+                             transition_timestamp_t timestamp,
+                             btree_slice_t *btree,
+                             transaction_t *txn,
+                             superblock_t *superblock) {
     // TODO: should this be calling to_repli_timestamp on a transition_timestamp_t?  Does this not use the timestamp-before, when we'd want the timestamp-after?
     write_visitor_t v(btree, txn, superblock, write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
-    return boost::apply_visitor(v, write.mutation);
+    *response = boost::apply_visitor(v, write.mutation);
 }
 
 class memcached_backfill_callback_t : public backfill_callback_t {

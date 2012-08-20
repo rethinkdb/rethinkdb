@@ -229,7 +229,21 @@ void check_arg_count(const Term::Call &c, int n_args, const backtrace_t &backtra
             "%s takes %d argument%s (%d given)",
             fn_name,
             n_args,
-            n_args > 1 ? "s" : "",
+            n_args != 1 ? "s" : "",
+            c.args_size()
+            ),
+            backtrace);
+    }
+}
+
+void check_arg_count_at_least(const Term::Call &c, int n_args, const backtrace_t &backtrace) {
+    if (c.args_size() < n_args) {
+        const char* fn_name = Builtin::BuiltinType_Name(c.builtin().type()).c_str();
+        throw bad_query_exc_t(strprintf(
+            "%s takes at least %d argument%s (%d given)",
+            fn_name,
+            n_args,
+            n_args != 1 ? "s" : "",
             c.args_size()
             ),
             backtrace);
@@ -240,6 +254,16 @@ void check_function_args(const Term::Call &c, const term_type_t &arg_type, int n
                          type_checking_environment_t *env, bool *is_det_out,
                          const backtrace_t &backtrace) {
     check_arg_count(c, n_args, backtrace);
+    for (int i = 0; i < c.args_size(); ++i) {
+        check_term_type(c.args(i), arg_type, env, is_det_out, backtrace.with(strprintf("arg:%d", i)));
+    }
+}
+
+void check_function_args_at_least(const Term::Call &c, const term_type_t &arg_type, int n_args,
+                                  type_checking_environment_t *env, bool *is_det_out,
+                                  const backtrace_t &backtrace) {
+    // requires the number of arguments to be at least n_args
+    check_arg_count_at_least(c, n_args, backtrace);
     for (int i = 0; i < c.args_size(); ++i) {
         check_term_type(c.args(i), arg_type, env, is_det_out, backtrace.with(strprintf("arg:%d", i)));
     }
@@ -260,7 +284,7 @@ void check_function_args(const Term::Call &c, const term_type_t &arg1_type, cons
                          const backtrace_t &backtrace) {
     check_arg_count(c, 2, backtrace);
     check_term_type(c.args(0), arg1_type, env, is_det_out, backtrace.with("arg:0"));
-    check_term_type(c.args(1), arg2_type, env, is_det_out, backtrace.with("arg:0"));
+    check_term_type(c.args(1), arg2_type, env, is_det_out, backtrace.with("arg:1"));
 }
 
 term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *env, const backtrace_t &backtrace) {
@@ -380,11 +404,14 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             check_function_args(c, TERM_TYPE_JSON, 2, env, &deterministic, backtrace);
             return term_info_t(TERM_TYPE_JSON, deterministic);
             break;
+        case Builtin::COMPARE:
+            check_function_args_at_least(c, TERM_TYPE_JSON, 1, env, &deterministic, backtrace);
+            return term_info_t(TERM_TYPE_JSON, deterministic);
+            break;
         case Builtin::ADD:
         case Builtin::SUBTRACT:
         case Builtin::MULTIPLY:
         case Builtin::DIVIDE:
-        case Builtin::COMPARE:
         case Builtin::ANY:
         case Builtin::ALL:
             check_function_args(c, TERM_TYPE_JSON, c.args_size(), env, &deterministic, backtrace);
@@ -767,8 +794,9 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
                 try {
                     namespace_repo_t<rdb_protocol_t>::access_t ns_access(
                         env->ns_repo, namespace_id, env->interruptor);
+                    rdb_protocol_t::read_response_t res;
                     ns_access.get_namespace_if()->read(
-                        bad_read, order_token_t::ignore, env->interruptor);
+                        bad_read, &res, order_token_t::ignore, env->interruptor);
                     break;
                 } catch (cannot_perform_query_exc_t e) { } //continue loop
             }
@@ -919,12 +947,13 @@ void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const back
 
 void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::string &pk, boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env, const backtrace_t &backtrace) {
     if (!data->GetObjectItem(pk.c_str())) {
-        throw runtime_exc_t(strprintf("Must have a field named %s (The primary key).", pk.c_str()), backtrace);
+        throw runtime_exc_t(strprintf("Must have a field named \"%s\" (The primary key).", pk.c_str()), backtrace);
     }
 
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(data->GetObjectItem(pk.c_str()))), data));
-        ns_access.get_namespace_if()->write(write, order_token_t::ignore, env->interruptor);
+        rdb_protocol_t::write_response_t response;
+        ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
@@ -933,7 +962,8 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
 void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace) {
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_std_string(id))));
-        ns_access.get_namespace_if()->write(write, order_token_t::ignore, env->interruptor);
+        rdb_protocol_t::write_response_t response;
+        ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
@@ -1111,8 +1141,7 @@ void eval_let_binds(Term::Let *let, runtime_environment_t *env, const backtrace_
             env->scope.put_in_scope(let->binds(i).var(),
                     eval(let->mutable_binds(i)->mutable_term(), env, backtrace_bind));
         } else if (type.type == TERM_TYPE_STREAM || type.type == TERM_TYPE_VIEW) {
-            env->stream_scope.put_in_scope(let->binds(i).var(),
-                    boost::shared_ptr<stream_multiplexer_t>(new stream_multiplexer_t(eval_stream(let->mutable_binds(i)->mutable_term(), env, backtrace_bind))));
+            throw runtime_exc_t("Cannot bind streams/views to variable names", backtrace);
         } else if (type.type == TERM_TYPE_ARBITRARY) {
             eval(let->mutable_binds(i)->mutable_term(), env, backtrace_bind);
             unreachable("This term has type `TERM_TYPE_ARBITRARY`, so "
@@ -1150,7 +1179,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             {
                 // Push the scope
                 variable_val_scope_t::new_scope_t new_scope(&env->scope);
-                variable_stream_scope_t::new_scope_t new_stream_scope(&env->stream_scope);
                 variable_type_scope_t::new_scope_t new_type_scope(&env->type_env.scope);
 
                 eval_let_binds(t->mutable_let(), env, backtrace);
@@ -1234,7 +1262,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
 
                 try {
                     rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(key->Print())));
-                    rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, env->interruptor);
+                    rdb_protocol_t::read_response_t res;
+                    ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
 
                     rdb_protocol_t::point_read_response_t *p_res = boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
                     return p_res->data;
@@ -1314,13 +1343,14 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
 boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     switch (t->type()) {
         case Term::VAR:
-            return boost::shared_ptr<json_stream_t>(new stream_multiplexer_t::stream_t(env->stream_scope.get(t->var())));
+            crash("Eval stream should never be called on a var term (because"
+                "streams can't be bound to vars) how did you get here and why"
+                    "did you think this was a nice place to come to?");
             break;
         case Term::LET:
             {
                 // Push the scope
                 variable_val_scope_t::new_scope_t new_scope(&env->scope);
-                variable_stream_scope_t::new_scope_t new_stream_scope(&env->stream_scope);
                 variable_type_scope_t::new_scope_t new_type_scope(&env->type_env.scope);
 
                 eval_let_binds(t->mutable_let(), env, backtrace);
@@ -2038,16 +2068,11 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
             break;
         case Builtin::DISTINCT:
             {
-                shared_scoped_less_t comparator(backtrace);
-                std::set<boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> seen(comparator);
-
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 
-                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    seen.insert(json);
-                }
+                shared_scoped_less_t comparator(backtrace);
 
-                return boost::shared_ptr<in_memory_stream_t>(new in_memory_stream_t(seen.begin(), seen.end()));
+                return boost::shared_ptr<json_stream_t>(new distinct_stream_t<shared_scoped_less_t>(stream, comparator));
             }
             break;
         case Builtin::SLICE:
@@ -2162,7 +2187,7 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(
         return namespace_repo_t<rdb_protocol_t>::access_t(
             env->ns_repo, namespace_info->first, env->interruptor);
     } else {
-        throw runtime_exc_t(strprintf("Namespace %s either not found, ambigious or namespace metadata in conflict.", t->table_name().c_str()), backtrace);
+        throw runtime_exc_t(strprintf("Namespace %s either not found, ambiguous or namespace metadata in conflict.", t->table_name().c_str()), backtrace);
     }
 }
 

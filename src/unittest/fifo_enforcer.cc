@@ -6,6 +6,7 @@
 
 #include "arch/timing.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/fifo_enforcer_queue.hpp"
 #include "concurrency/wait_any.hpp"
 #include "mock/unittest_utils.hpp"
 #include "unittest/gtest.hpp"

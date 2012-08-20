@@ -17,5 +17,5 @@ for scenario in scenarios:
         do_test(
             scenario % {"workload": w},
             repeat = 3,
-            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "bench/stress-client/stress"]
+            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]
             )

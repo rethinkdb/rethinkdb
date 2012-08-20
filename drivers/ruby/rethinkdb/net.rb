@@ -31,9 +31,11 @@ module RethinkDB
     end
 
     def dispatch msg
+      # if msg.class == RethinkDB::RQL_Query
+      #   File.open("sexp.txt", "a") {|f| f.write(msg.sexp.inspect+"\n")}
+      # end
       if msg.class != Query then return dispatch msg.query end
       payload = msg.serialize_to_string
-      #File.open("payloads.txt", "a") {|f| f.write(payload.inspect+"\n")}
       packet = [payload.length].pack('L<') + payload
       @socket.send(packet, 0)
       return msg.token
