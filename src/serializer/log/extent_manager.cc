@@ -5,10 +5,6 @@
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/log_serializer.hpp"
 
-#define EXTENT_UNRESERVED (off64_t(-2))
-#define EXTENT_IN_USE (off64_t(-3))
-#define EXTENT_FREE_LIST_END (off64_t(-4))
-
 struct extent_info_t {
 
     enum state_t {

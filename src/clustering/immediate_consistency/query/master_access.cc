@@ -6,7 +6,7 @@
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
 
-// TODO: Did we mean to use this macro?
+// TODO: Was this macro supposed to be used?
 // #define THROTTLE_THRESHOLD 200
 
 template <class protocol_t>

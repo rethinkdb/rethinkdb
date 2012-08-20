@@ -8,9 +8,6 @@
 #ifndef NDEBUG
 
 #define ORDER_INVALID (-2)
-#define ORDER_INVALID (-2)
-
-#define ORDER_IGNORE (-1)
 #define ORDER_IGNORE (-1)
 
 const order_token_t order_token_t::ignore(order_bucket_t::invalid(), ORDER_IGNORE, false, "order_token_t::ignore");
