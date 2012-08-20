@@ -5,9 +5,9 @@
 
 #include "rdb_protocol/stream_cache.hpp"
 
-query_server_t::query_server_t(int port, extproc::pool_group_t *_pool_group, const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata, namespace_repo_t<rdb_protocol_t> * _ns_repo)
+query_server_t::query_server_t(int port, int http_port, extproc::pool_group_t *_pool_group, const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata, namespace_repo_t<rdb_protocol_t> * _ns_repo)
     : pool_group(_pool_group),
-      server(port, boost::bind(&query_server_t::handle, this, _1, _2), &on_unparsable_query, INLINE),
+      server(port, http_port, boost::bind(&query_server_t::handle, this, _1, _2), &on_unparsable_query, INLINE),
       semilattice_metadata(_semilattice_metadata), ns_repo(_ns_repo)
 { }
 

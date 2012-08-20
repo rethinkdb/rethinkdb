@@ -7,10 +7,10 @@
 #include "arch/arch.hpp"
 
 template <class request_t, class response_t, class context_t>
-protob_server_t<request_t, response_t, context_t>::protob_server_t(int port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *), protob_server_callback_mode_t _cb_mode)
+protob_server_t<request_t, response_t, context_t>::protob_server_t(int port, int http_port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *), protob_server_callback_mode_t _cb_mode)
     : f(_f), on_unparsable_query(_on_unparsable_query), cb_mode(_cb_mode) {
     tcp_listener.init(new tcp_listener_t(port, boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
-    http_server.init(new http_server_t(port + 1, this));
+    http_server.init(new http_server_t(http_port, this));
 }
 
 template <class request_t, class response_t, class context_t>
