@@ -153,7 +153,7 @@ void pool_t::spawn_workers(int num) {
     guarantee(num_workers() <= config()->max_workers);
 
     // Spawn off `num` processes.
-    pid_t pids[num];
+    scoped_array_t<pid_t> pids(num);
     scoped_array_t<scoped_fd_t> fds(num);
     {
         on_thread_t switcher(spawner()->home_thread());

@@ -119,7 +119,7 @@ public:
 
     enum perfmon_result_type_t {
         type_value,
-        type_map,
+        type_map
     };
 
     perfmon_result_t();

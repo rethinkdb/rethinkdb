@@ -312,10 +312,10 @@ bool fsck(value_sizer_t<void> *sizer, const btree_key_t *left_exclusive_or_null,
     }
 
     // sizeof(offs) is guaranteed to be less than the block_size() thanks to assertions above.
-    uint16_t offs[node->num_pairs];
-    memcpy(offs, node->pair_offsets, node->num_pairs * sizeof(uint16_t));
+    scoped_array_t<uint16_t> offs(node->num_pairs);
+    memcpy(offs.data(), node->pair_offsets, node->num_pairs * sizeof(uint16_t));
 
-    std::sort(offs, offs + node->num_pairs);
+    std::sort(offs.data(), offs.data() + node->num_pairs);
 
     if (failed(node->num_pairs == 0 || node->frontmost <= offs[0],
                "smallest pair offset is before frontmost offset")
@@ -544,13 +544,13 @@ private:
 
 
 void garbage_collect(value_sizer_t<void> *sizer, leaf_node_t *node, int num_tstamped, int *preserved_index) {
-    uint16_t indices[node->num_pairs];
+    scoped_array_t<uint16_t> indices(node->num_pairs);
 
     for (int i = 0; i < node->num_pairs; ++i) {
         indices[i] = i;
     }
 
-    std::sort(indices, indices + node->num_pairs, indirect_index_comparator_t(node->pair_offsets));
+    std::sort(indices.data(), indices.data() + node->num_pairs, indirect_index_comparator_t(node->pair_offsets));
 
     int mand_offset;
     UNUSED int cost = mandatory_cost(sizer, node, num_tstamped, &mand_offset);
