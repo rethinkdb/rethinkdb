@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import random, time, sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import workload_common
+import memcached_workload_common
 from vcoptparse import *
 
 def random_key(opts):
@@ -124,7 +124,7 @@ def test(opts, mc, clone, deleted):
             random_action(opts, mc, clone, deleted)
 
 def option_parser_for_serial_mix():
-    op = workload_common.option_parser_for_memcache()
+    op = memcached_workload_common.option_parser_for_memcache()
     op["keysize"] = IntFlag("--keysize", 250)
     op["valuesize"] = IntFlag("--valuesize", 10000)
     op["thorough"] = BoolFlag("--thorough")
@@ -153,7 +153,7 @@ if __name__ == "__main__":
         print "Loading from %r..." % opts["load"]
         with open(opts["load"]) as f:
             clone, deleted = pickle.load(f)
-    with workload_common.make_memcache_connection(opts) as mc:
+    with memcached_workload_common.make_memcache_connection(opts) as mc:
         test(opts, mc, clone, deleted)
     if opts["save"] is not None:
         print "Saving to %r..." % opts["save"]

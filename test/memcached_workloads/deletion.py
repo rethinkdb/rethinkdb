@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import workload_common
+import memcached_workload_common
 from vcoptparse import *
 
 def mid(a):
@@ -22,14 +22,14 @@ reorder_funs = {
 # The general goal is to trigger all the various edge cases of the leveling
 # code.
 
-op = workload_common.option_parser_for_memcache()
+op = memcached_workload_common.option_parser_for_memcache()
 op['max_key'] = IntFlag("--max-key", 1000)
 op['key_len'] = IntFlag("--key-len", 4)
 op['val_len'] = IntFlag("--val-len", 45)
 op['pattern'] = ChoiceFlag("--pattern", reorder_funs.keys(), "fwd")
 opts = op.parse(sys.argv)
 
-with workload_common.make_memcache_connection(opts) as mc:
+with memcached_workload_common.make_memcache_connection(opts) as mc:
     keys = [("%0" + str(opts['key_len']) + "d") % (key,) for key in xrange(opts['max_key']+1)]
     val = 'Q' * opts['val_len']
 

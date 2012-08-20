@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys, socket, random, time, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import workload_common
+import memcached_workload_common
 from vcoptparse import *
 
 # A hacky function that reads a response from a socket of an expected size.
@@ -14,11 +14,11 @@ def read_response_of_expected_size(s, n):
             return data
     return data
 
-op = workload_common.option_parser_for_socket()
+op = memcached_workload_common.option_parser_for_socket()
 op["n_appends"] = IntFlag("--num-appends", 20000)
 opts = op.parse(sys.argv)
 
-with workload_common.make_socket_connection(opts) as s:
+with memcached_workload_common.make_socket_connection(opts) as s:
 
     def send(x):
         # print str

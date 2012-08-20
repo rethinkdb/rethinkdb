@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import os, sys, random, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, "common")))
-import workload_common
+import memcached_workload_common
 from line import *
 from vcoptparse import *
 
@@ -19,7 +19,7 @@ def expect_line(sock_file, expected_line):
     if actual_line != expected_line:
         raise ValueError("Expected %r; got %r" % (expected_line, actual_line))
 
-op = workload_common.option_parser_for_socket()
+op = memcached_workload_common.option_parser_for_socket()
 op["count"] = IntFlag("--count", 100000)
 opts = op.parse(sys.argv)
 
@@ -34,7 +34,7 @@ for i in range(0, opts["count"]):
     value = 'x' * (50 + 500 * i % 2)
     pairs.append((key, value))
 
-with workload_common.make_socket_connection(opts) as s:
+with memcached_workload_common.make_socket_connection(opts) as s:
     f = s.makefile()
     print "Creating test data"
     for i, (key, value) in enumerate(pairs):

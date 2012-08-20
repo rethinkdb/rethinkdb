@@ -10,51 +10,65 @@ and is outside the scope of this document. The list of tests to be run nightly
 lives here in `rethinkdb/test/full_test/`; see the "Nightly test lists" section
 for more information.
 
-Workloads
----------
+Memcached Workloads
+-------------------
 
-A workload is a command that runs queries against a RethinkDB server at some
-host and ports. Workloads are specified as a command which, when executed in
-`bash` with environment variables `HOST`, `HTTP_PORT`, and `MC_PORT` set
-appropriately, will open some connections to the database and run queries.
-`HTTP_PORT` is a RethinkDB administrative HTTP server; the workload mustn't
-change the server's configuration. `MC_PORT` is a memcached server. `PORT` is an
-alias for `MC_PORT`. There are two types of workloads: "continuous" workloads
-are workloads that run until they receive `SIGINT`, but "discrete" workloads
-will stop on their own. A workload is considered to have succeeded if it returns
-0.
+A memcached workload is a command that runs memcached queries against a
+RethinkDB server at some host and ports. Workloads are specified as a command
+which, when executed in `bash` with environment variables `HOST`, `HTTP_PORT`,
+and `PORT` set appropriately, will open some connections to the database and run
+queries. `HTTP_PORT` is a RethinkDB administrative HTTP server; the workload
+mustn't change the server's configuration. `PORT` is a memcached server. There
+are two types of workloads: "continuous" workloads are workloads that run until
+they receive `SIGINT`, but "discrete" workloads will stop on their own. A
+workload is considered to have succeeded if it returns 0.
 
 Here are some examples:
 * A trivial discrete workload: 
     `true`
 * A discrete workload using the stress client:
-    `rethinkdb/bench/stress-client/stress -s $HOST:$MC_PORT`
+    `rethinkdb/bench/stress-client/stress -s $HOST:$PORT`
 * A continuous workload using the stress client:
-    `rethinkdb/bench/stress-client/stress -s $HOST:$MC_PORT --duration infinity`
+    `rethinkdb/bench/stress-client/stress -s $HOST:$PORT --duration infinity`
 
-In the `rethinkdb/test/workloads/` directory, there are many workload scripts
+In the `rethinkdb/test/memcached_workloads/` directory, there are many workload scripts
 written in Python. For example:
 * A discrete workload that tests append and prepend operations:
-    `rethinkdb/test/workloads/append_prepend.py $HOST:$MC_PORT`
+    `rethinkdb/test/memcached_workloads/append_prepend.py $HOST:$PORT`
 * A continuous workload that sends a variety of operations:
-    `rethinkdb/test/workloads/serial_mix.py $HOST:$MC_PORT --duration forever`
+    `rethinkdb/test/memcached_workloads/serial_mix.py $HOST:$PORT --duration forever`
 
 A workload may create files in its current directory. The main purpose of this
 is when several workloads are meant to be run in series. The first one can put
 some data in the database and then record what it wrote to a file; the second
 one can open the file and verify that the data is still present in the database.
-`rethinkdb/test/workloads/serial_mix.py $HOST:$MC_PORT --save data_file` and
-`rethinkdb/test/workloads/serial_mix.py $HOST:$MC_PORT --load data_file` are
-such a pair of workloads. Sometimes this construct is called a "split workload"
-or "two-phase workload". Workloads that can be run an arbitrary number of times
-against the same server, saving data in between, are called "n-phase workloads".
+`serial_mix.py $HOST:$PORT --save data_file` and `serial_mix.py $HOST:$PORT
+--load data_file` are such a pair of workloads. Sometimes this construct is
+called a "split workload" or "two-phase workload". Workloads that can be run an
+arbitrary number of times against the same server, saving data in between, are
+called "n-phase workloads".
+
+RDB Protocol Workloads
+----------------------
+
+RDB protocol workloads are like memcached workloads except that they run RDB
+protocol queries instead of memcached queries. The `PORT` environment variable
+refers to a RDB protcocol query port instead of a memcached query port. In
+addition, they accept two more environment variables: `DB_NAME` and
+`TABLE_NAME`. These specify what table to run the queries against. The table is
+expected to use `id` as the primary key attribute.
+
+RDB protocol workloads live in `rethinkdb/test/rdb_workloads`.
 
 Scenarios
 ---------
 
 A scenario is a script that starts up one or more instances of RethinkDB and
-runs a workload or workloads against them. The scenarios live in
-`rethinkdb/test/scenarios/`.
+runs a workload or workloads against them. They can be switched between
+memcached and RDB protocol workloads with a `--protocol` switch, which defaults
+to `memcached` but can also be `rdb`.
+
+The scenarios live in `rethinkdb/test/scenarios/`.
 
 Here are some examples:
 * `scenarios/static_cluster.py <DISCRETE WORKLOAD>` starts a cluster of three
@@ -87,7 +101,7 @@ I recommend running tests something like this:
 For example, to run the `static_cluster.py` scenario with the
 `append_prepend.py` workload, you could type:
 
-    ~/rethinkdb/test$ (rm -rf scratch; mkdir scratch; cd scratch; ../scenarios/static_cluster.py '../workloads/append_prepend.py $HOST:$MC_PORT')
+    ~/rethinkdb/test$ (rm -rf scratch; mkdir scratch; cd scratch; ../scenarios/static_cluster.py '../memcached_workloads/append_prepend.py $HOST:$PORT')
 
 Interface tests
 ---------------

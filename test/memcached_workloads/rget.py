@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import os, sys, random, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, "common")))
-import workload_common
+import memcached_workload_common
 from line import *
 
 key_padding = ''.zfill(20)
@@ -67,7 +67,7 @@ def check_results(res, expected_count):
     if not is_sorted_output(res):
         raise ValueError("received unsorted rget output")
 
-op = workload_common.option_parser_for_socket()
+op = memcached_workload_common.option_parser_for_socket()
 opts = op.parse(sys.argv)
 
 foo_count = 100
@@ -75,7 +75,7 @@ fop_count = 1000
 max_results = foo_count+fop_count
 
 host, port = opts["address"]
-with workload_common.MemcacheConnection(host, port) as mc:
+with memcached_workload_common.MemcacheConnection(host, port) as mc:
     print "Creating test data"
     mc.set('z1', 'bar', time=1) # we expect it to expire before we check it later
     for i in range(0,foo_count):
@@ -83,7 +83,7 @@ with workload_common.MemcacheConnection(host, port) as mc:
     for i in range(0,fop_count):
         mc.set(gen_key('fop', i), gen_value('fop', i))
 
-with workload_common.make_socket_connection(opts) as s:
+with memcached_workload_common.make_socket_connection(opts) as s:
     print "Testing rget"
 
     print "Checking simple rget requests with open/closed boundaries"
