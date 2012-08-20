@@ -34,7 +34,7 @@ enum archive_result_t {
     ARCHIVE_SOCK_ERROR = -1,
     ARCHIVE_SOCK_EOF = -2,
     ARCHIVE_RANGE_ERROR = -3,
-    ARCHIVE_GENERIC_ERROR = 1,
+    ARCHIVE_GENERIC_ERROR = 1
 };
 
 // We wrap things in this class for making friend declarations more
@@ -124,7 +124,8 @@ MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
         u.v = x;                                                        \
         msg.append(u.buf, sizeof(typ2));                                \
         return msg;                                                     \
-    }
+    }                                                                   \
+    void archive_prim_make_write_serializable_nonsensical_declaration(typ1, typ2)
 
 // Makes typ1 serializable, sending a typ2 over the wire.  Has range
 // checking on the closed interval [lo, hi] when deserializing.
@@ -148,7 +149,8 @@ MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
         }                                                               \
         *x = typ1(u.v);                                                 \
         return ARCHIVE_SUCCESS;                                         \
-    }
+    }                                                                   \
+    void archive_prim_make_ranged_serializable_nonsensical_declaration(typ1, typ2)
 
 // Designed for <stdint.h>'s u?int[0-9]+_t types, which are just sent
 // raw over the wire.
@@ -169,7 +171,8 @@ MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
         }                                                               \
         *x = u.v;                                                       \
         return ARCHIVE_SUCCESS;                                         \
-    }
+    }                                                                   \
+    void archive_prim_make_raw_serializable_nonsensical_declaration(typ)
 
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(int8_t);
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(uint8_t);
