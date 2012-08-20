@@ -219,7 +219,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::interrupt_updates_and_free_session(session_t *session, UNUSED auto_drainer_t::lock_t global_keepalive) THROWS_NOTHING {
+void directory_read_manager_t<metadata_t>::interrupt_updates_and_free_session(session_t *session, auto_drainer_t::lock_t global_keepalive) THROWS_NOTHING {
     assert_thread();
     global_keepalive.assert_is_holding(&global_drainer);
 

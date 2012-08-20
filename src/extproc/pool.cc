@@ -199,7 +199,7 @@ pool_t::worker_t::worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd)
 
 pool_t::worker_t::~worker_t() {}
 
-void pool_t::worker_t::on_event(UNUSED int events) {
+void pool_t::worker_t::on_event(int events) {
     // NB. We are not in coroutine context when this method is called.
     if (attached_) {
         on_error();

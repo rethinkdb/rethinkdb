@@ -286,7 +286,7 @@ void extent_manager_t::release_extent(off64_t extent) {
     current_transaction->free_queue().push_back(extent);
 }
 
-void extent_manager_t::end_transaction(DEBUG_ONLY_VAR const transaction_t &t) {
+void extent_manager_t::end_transaction(DEBUG_VAR const transaction_t &t) {
     rassert(current_transaction == &t);
     current_transaction = NULL;
 }

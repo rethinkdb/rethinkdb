@@ -27,13 +27,13 @@ public:
     void flush_buffer(UNUSED signal_t *interruptor) { }
     bool is_write_open() { return false; }
 
-    void read(void *buf, size_t nbytes, UNUSED signal_t *interruptor) {
+    void read(void *buf, size_t nbytes, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw no_more_data_exc_t();
         if (fread(buf, nbytes, 1, file) == 0)
             throw no_more_data_exc_t();
     }
 
-    void read_line(std::vector<char> *dest, UNUSED signal_t *interruptor) {
+    void read_line(std::vector<char> *dest, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw no_more_data_exc_t();
         int limit = MEGABYTE;
         dest->clear();

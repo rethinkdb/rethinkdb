@@ -57,7 +57,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    backfill_session_id_t backfill_session_id,
                                    perfmon_collection_t *backfill_stats_parent,
                                    signal_t *interruptor,
-                                   DEBUG_ONLY_VAR order_source_t *order_source)
+                                   order_source_t *order_source)
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
     mailbox_manager_(mm),
@@ -202,7 +202,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    broadcaster_t<protocol_t> *broadcaster,
                                    perfmon_collection_t *backfill_stats_parent,
                                    signal_t *interruptor,
-                                   DEBUG_ONLY_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
+                                   DEBUG_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager_(mm),
     branch_history_manager_(bhm),
     svs_(broadcaster->release_bootstrap_svs_for_listener()),
@@ -540,7 +540,7 @@ void listener_t<protocol_t>::on_read(typename protocol_t::read_t read,
 
 template <class protocol_t>
 void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
-        DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
+        DEBUG_VAR state_timestamp_t expected_timestamp,
         order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,

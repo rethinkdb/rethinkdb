@@ -446,7 +446,7 @@ public:
         chunk_fun_cb->send_chunk(chunk_t::delete_range(region_t(range)));
     }
 
-    void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
+    void on_deletion(const btree_key_t *key, repli_timestamp_t recency) {
         chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency));
     }
 
@@ -559,7 +559,7 @@ void store_t::protocol_reset_data(const region_t& subregion,
     rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock);
 }
 
-region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, UNUSED int num_cpu_shards) {
+region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
     rassert(subregion_number >= 0);
     rassert(subregion_number < num_cpu_shards);
 

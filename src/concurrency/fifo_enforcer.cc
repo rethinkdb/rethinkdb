@@ -3,7 +3,7 @@
 #include "concurrency/cond_var.hpp"
 #include "concurrency/wait_any.hpp"
 
-void fifo_enforcer_state_t::advance_by_read(DEBUG_ONLY_VAR fifo_enforcer_read_token_t token) THROWS_NOTHING {
+void fifo_enforcer_state_t::advance_by_read(DEBUG_VAR fifo_enforcer_read_token_t token) THROWS_NOTHING {
     rassert(timestamp == token.timestamp);
     num_reads++;
 }
