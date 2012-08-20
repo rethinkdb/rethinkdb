@@ -16,7 +16,7 @@ temp_file_t::temp_file_t(const char *tmpl) {
     filename.init(len + 1);
     memcpy(filename.data(), tmpl, len+1);
     int fd = mkstemp(filename.data());
-    guarantee_err(fd != -1, "Couldn't create a temporary file");
+    guaranteef_err(fd != -1, "Couldn't create a temporary file");
     close(fd);
 }
 

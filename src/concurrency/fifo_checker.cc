@@ -50,11 +50,11 @@ order_token_t order_token_t::with_read_mode() const {
 }
 
 void order_token_t::assert_read_mode() const {
-    rassert(is_ignore() || read_mode_, "Expected an order token in read mode");
+    rassert(is_ignore() || read_mode_);
 }
 
 void order_token_t::assert_write_mode() const {
-    rassert(is_ignore() || !read_mode_, "Expected an order token in write mode");
+    rassert(is_ignore() || !read_mode_);
 }
 
 const std::string& order_token_t::tag() const { return tag_; }
@@ -98,12 +98,12 @@ void order_sink_t::verify_token_value_and_update(order_token_t token, std::pair<
     // to ensure that multiple actions don't get interrupted.  And
     // resending the same action isn't normally a problem.
     if (token.read_mode_) {
-        rassert(token.value_ >= ls_pair->first.value, "read_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%s)", token.value_, ls_pair->first.value, token.tag_.c_str(), ls_pair->first.tag.c_str(), uuid_to_str(token.bucket_.uuid_).c_str());
+        rassertf(token.value_ >= ls_pair->first.value, "read_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%s)", token.value_, ls_pair->first.value, token.tag_.c_str(), ls_pair->first.tag.c_str(), uuid_to_str(token.bucket_.uuid_).c_str());
         if (ls_pair->second.value < token.value_) {
             ls_pair->second = tagged_seen_t(token.value_, token.tag_);
         }
     } else {
-        rassert(token.value_ >= ls_pair->second.value, "write_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%s)", token.value_, ls_pair->second.value, token.tag_.c_str(), ls_pair->second.tag.c_str(), uuid_to_str(token.bucket_.uuid_).c_str());
+        rassertf(token.value_ >= ls_pair->second.value, "write_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%s)", token.value_, ls_pair->second.value, token.tag_.c_str(), ls_pair->second.tag.c_str(), uuid_to_str(token.bucket_.uuid_).c_str());
         ls_pair->first = ls_pair->second = tagged_seen_t(token.value_, token.tag_);
     }
 }
@@ -119,7 +119,7 @@ void plain_sink_t::check_out(order_token_t token) {
             bucket_ = token.bucket_;
             have_bucket_ = true;
         } else {
-            rassert(token.bucket_ == bucket_, "plain_sink_t can only be used with one order_source_t. for %s (last seens %s, %s)", token.tag_.c_str(), ls_pair_.first.tag.c_str(), ls_pair_.second.tag.c_str());
+            rassertf(token.bucket_ == bucket_, "plain_sink_t can only be used with one order_source_t. for %s (last seens %s, %s)", token.tag_.c_str(), ls_pair_.first.tag.c_str(), ls_pair_.second.tag.c_str());
         }
 
         order_sink_t::verify_token_value_and_update(token, &ls_pair_);

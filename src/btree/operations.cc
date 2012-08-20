@@ -70,28 +70,28 @@ void superblock_metainfo_iterator_t::advance(char * p) {
     if (cur == end) {
         goto check_failed;
     }
-    rassert(end - cur >= static_cast<ptrdiff_t>(sizeof(sz_t)), "Superblock metainfo data is corrupted: walked past the end off the buffer");
+    rassertf(end - cur >= static_cast<ptrdiff_t>(sizeof(sz_t)), "Superblock metainfo data is corrupted: walked past the end off the buffer");
     if (end - cur < static_cast<ptrdiff_t>(sizeof(sz_t))) {
         goto check_failed;
     }
     key_size = *reinterpret_cast<sz_t*>(cur);
     cur += sizeof(sz_t);
 
-    rassert(end - cur >= static_cast<int64_t>(key_size), "Superblock metainfo data is corrupted: walked past the end off the buffer");
+    rassertf(end - cur >= static_cast<int64_t>(key_size), "Superblock metainfo data is corrupted: walked past the end off the buffer");
     if (end - cur < static_cast<int64_t>(key_size)) {
         goto check_failed;
     }
     key_ptr = cur;
     cur += key_size;
 
-    rassert(end - cur >= static_cast<ptrdiff_t>(sizeof(sz_t)), "Superblock metainfo data is corrupted: walked past the end off the buffer");
+    rassertf(end - cur >= static_cast<ptrdiff_t>(sizeof(sz_t)), "Superblock metainfo data is corrupted: walked past the end off the buffer");
     if (end - cur < static_cast<ptrdiff_t>(sizeof(sz_t))) {
         goto check_failed;
     }
     value_size = *reinterpret_cast<sz_t*>(cur);
     cur += sizeof(sz_t);
 
-    rassert(end - cur >= static_cast<int64_t>(value_size), "Superblock metainfo data is corrupted: walked past the end off the buffer");
+    rassertf(end - cur >= static_cast<int64_t>(value_size), "Superblock metainfo data is corrupted: walked past the end off the buffer");
     if (end - cur < static_cast<int64_t>(value_size)) {
         goto check_failed;
     }
@@ -380,7 +380,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
     }
 
     bool success UNUSED = internal_node::insert(sizer->block_size(), last_buf, median, buf->get_block_id(), rbuf.get_block_id());
-    rassert(success, "could not insert internal btree node");
+    rassertf(success, "could not insert internal btree node");
 
     // We've split the node; now figure out where the key goes and release the other buf (since we're done with it).
     if (0 >= sized_strcmp(key->contents, key->size, median->contents, median->size)) {

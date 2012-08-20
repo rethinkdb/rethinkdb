@@ -91,7 +91,7 @@ bool insert(UNUSED block_size_t block_size, buf_lock_t *node_buf, const btree_ke
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
 
     //TODO: write a unit test for this
-    rassert(key->size <= MAX_KEY_SIZE, "key too large");
+    rassertf(key->size <= MAX_KEY_SIZE, "key too large");
     if (is_full(node)) return false;
     if (node->npairs == 0) {
         btree_key_t special;
@@ -102,7 +102,7 @@ bool insert(UNUSED block_size_t block_size, buf_lock_t *node_buf, const btree_ke
     }
 
     int index = get_offset_index(node, key);
-    rassert(!impl::is_equal(&get_pair_by_index(node, index)->key, key),
+    rassertf(!impl::is_equal(&get_pair_by_index(node, index)->key, key),
         "tried to insert duplicate key into internal node!");
     uint16_t offset = impl::insert_pair(node_buf, lnode, key);
     impl::insert_offset(node_buf, offset, index);
@@ -166,7 +166,7 @@ void merge(block_size_t block_size, const internal_node_t *node, buf_lock_t *rno
     // get the key in parent which points to node
     const btree_key_t *key_from_parent = &get_pair_by_index(parent, get_offset_index(parent, &get_pair_by_index(node, 0)->key))->key;
 
-    guarantee(sizeof(internal_node_t) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
+    guaranteef(sizeof(internal_node_t) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
         (block_size.value() - node->frontmost_offset) + (block_size.value() - rnode->frontmost_offset) + key_from_parent->size < block_size.value(),
         "internal nodes too full to merge");
 
@@ -261,7 +261,7 @@ bool level(block_size_t block_size, buf_lock_t *node_buf, buf_lock_t *sibling_bu
 
     validate(block_size, node);
     validate(block_size, sibling);
-    guarantee(!change_unsafe(node), "level made internal node dangerously full");
+    guaranteef(!change_unsafe(node), "level made internal node dangerously full");
     return true;
 }
 
@@ -303,14 +303,14 @@ void update_key(buf_lock_t *node_buf, const btree_key_t *key_to_replace, const b
     block_id_t tmp_lnode = get_pair_by_index(node, index)->lnode;
     impl::delete_pair(node_buf, node->pair_offsets[index]);
 
-    guarantee(sizeof(internal_node_t) + (node->npairs) * sizeof(*node->pair_offsets) + impl::pair_size_with_key(replacement_key) < node->frontmost_offset,
+    guaranteef(sizeof(internal_node_t) + (node->npairs) * sizeof(*node->pair_offsets) + impl::pair_size_with_key(replacement_key) < node->frontmost_offset,
         "cannot fit updated key in internal node");
 
     uint16_t new_offset = impl::insert_pair(node_buf, tmp_lnode, replacement_key);
     node_buf->set_data(const_cast<uint16_t *>(&node->pair_offsets[index]), &new_offset, sizeof(new_offset));
 
-    rassert(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs-1, internal_key_comp(node)),
-            "Invalid key given to update_key: offsets no longer in sorted order");
+    rassertf(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs-1, internal_key_comp(node)),
+             "Invalid key given to update_key: offsets no longer in sorted order");
     rassert(get_pair_by_index(node, node->npairs-1)->key.size == 0);
 }
 
@@ -331,8 +331,8 @@ void validate(UNUSED block_size_t block_size, UNUSED const internal_node_t *node
         rassert(node->pair_offsets[i] < block_size.value());
         rassert(node->pair_offsets[i] >= node->frontmost_offset);
     }
-    rassert(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs-1, internal_key_comp(node)),
-        "Offsets no longer in sorted order");
+    rassertf(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs-1, internal_key_comp(node)),
+             "Offsets no longer in sorted order");
     rassert(get_pair_by_index(node, node->npairs-1)->key.size == 0);
 #endif
 }

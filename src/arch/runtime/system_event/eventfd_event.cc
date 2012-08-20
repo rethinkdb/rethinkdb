@@ -10,27 +10,27 @@
 
 eventfd_event_t::eventfd_event_t() {
     eventfd_ = eventfd(0, 0);
-    guarantee_err(eventfd_ != -1, "Could not create eventfd");
+    guaranteef_err(eventfd_ != -1, "Could not create eventfd");
 
     int res = fcntl(eventfd_, F_SETFL, O_NONBLOCK);
-    guarantee_err(res == 0, "Could not make eventfd non-blocking");
+    guaranteef_err(res == 0, "Could not make eventfd non-blocking");
 }
 
 eventfd_event_t::~eventfd_event_t() {
     int res = close(eventfd_);
-    guarantee_err(res == 0, "Could not close eventfd");
+    guaranteef_err(res == 0, "Could not close eventfd");
 }
 
 uint64_t eventfd_event_t::read() {
     uint64_t value;
     int res = eventfd_read(eventfd_, &value);
-    guarantee_err(res == 0, "Could not read from eventfd");
+    guaranteef_err(res == 0, "Could not read from eventfd");
     return value;
 }
 
 void eventfd_event_t::write(uint64_t value) {
     int res = eventfd_write(eventfd_, value);
-    guarantee_err(res == 0, "Could not write to eventfd");
+    guaranteef_err(res == 0, "Could not write to eventfd");
 }
 
 #endif // NO_EVENTFD

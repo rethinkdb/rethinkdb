@@ -18,11 +18,12 @@ replier_t<protocol_t>::replier_t(listener_t<protocol_t> *l) :
     backfiller(listener->mailbox_manager(),
                listener->branch_history_manager(),
                listener->svs()) {
+
+    /* Even though you can have a listener that only watches some of a
+       branch, you can't have a replier for some subset of a
+       branch. */
     rassert(listener->svs()->get_multistore_joined_region() ==
-            listener->branch_history_manager()->get_branch(listener->branch_id()).region,
-            "Even though you can have a listener that only watches some subset "
-            "of a branch, you can't have a replier for some subset of a "
-            "branch.");
+         listener->branch_history_manager()->get_branch(listener->branch_id()).region);
 
     /* Notify the broadcaster that we can reply to queries */
     send(listener->mailbox_manager(),

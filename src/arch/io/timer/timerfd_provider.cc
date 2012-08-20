@@ -21,10 +21,10 @@ timerfd_provider_t::timerfd_provider_t(linux_event_queue_t *_queue,
     int res;
 
     timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
-    guarantee_err(timer_fd != -1, "Could not create timer");
+    guaranteef_err(timer_fd != -1, "Could not create timer");
 
     res = fcntl(timer_fd, F_SETFL, O_NONBLOCK);
-    guarantee_err(res == 0, "Could not make timer non-blocking");
+    guaranteef_err(res == 0, "Could not make timer non-blocking");
 
     itimerspec timer_spec;
     bzero(&timer_spec, sizeof(timer_spec));
@@ -32,7 +32,7 @@ timerfd_provider_t::timerfd_provider_t(linux_event_queue_t *_queue,
     timer_spec.it_value.tv_nsec = timer_spec.it_interval.tv_nsec = nsecs;
 
     res = timerfd_settime(timer_fd, 0, &timer_spec, NULL);
-    guarantee_err(res == 0, "Could not arm the timer");
+    guaranteef_err(res == 0, "Could not arm the timer");
 
     queue->watch_resource(timer_fd, poll_event_in, this);
 }
@@ -40,7 +40,7 @@ timerfd_provider_t::timerfd_provider_t(linux_event_queue_t *_queue,
 timerfd_provider_t::~timerfd_provider_t() {
     queue->forget_resource(timer_fd, this);
     int res = close(timer_fd);
-    guarantee_err(res == 0, "Could not close the timer.");
+    guaranteef_err(res == 0, "Could not close the timer.");
 }
 
 void timerfd_provider_t::on_event(int events) {
@@ -52,7 +52,7 @@ void timerfd_provider_t::on_event(int events) {
     eventfd_t nexpirations;
 
     res = eventfd_read(timer_fd, &nexpirations);
-    guarantee_err(res == 0 || errno == EAGAIN, "Could not read timer_fd value");
+    guaranteef_err(res == 0 || errno == EAGAIN, "Could not read timer_fd value");
     if (res == 0) {
         callback->on_timer(nexpirations);
     }

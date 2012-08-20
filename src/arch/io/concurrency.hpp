@@ -11,23 +11,23 @@ class system_mutex_t {
 public:
     system_mutex_t() {
         int res = pthread_mutex_init(&m, NULL);
-        guarantee(res == 0, "Could not initialize pthread mutex.");
+        guaranteef(res == 0, "Could not initialize pthread mutex.");
     }
     ~system_mutex_t() {
         int res = pthread_mutex_destroy(&m);
-        guarantee(res == 0, "Could not destroy pthread mutex.");
+        guaranteef(res == 0, "Could not destroy pthread mutex.");
     }
     class lock_t {
         system_mutex_t *parent;
     public:
         explicit lock_t(system_mutex_t *p) : parent(p) {
             int res = pthread_mutex_lock(&parent->m);
-            guarantee(res == 0, "Could not acquire pthread mutex.");
+            guaranteef(res == 0, "Could not acquire pthread mutex.");
         }
         void unlock() {
             guarantee(parent);
             int res = pthread_mutex_unlock(&parent->m);
-            guarantee(res == 0, "Could not release pthread mutex.");
+            guaranteef(res == 0, "Could not release pthread mutex.");
             parent = NULL;
         }
         ~lock_t() {
@@ -42,23 +42,23 @@ class system_cond_t {
 public:
     system_cond_t() {
         int res = pthread_cond_init(&c, NULL);
-        guarantee(res == 0, "Could not initialize pthread cond.");
+        guaranteef(res == 0, "Could not initialize pthread cond.");
     }
     ~system_cond_t() {
         int res = pthread_cond_destroy(&c);
-        guarantee(res == 0, "Could not destroy pthread cond.");
+        guaranteef(res == 0, "Could not destroy pthread cond.");
     }
     void wait(system_mutex_t *mutex) {
         int res = pthread_cond_wait(&c, &mutex->m);
-        guarantee(res == 0, "Could not wait on pthread cond.");
+        guaranteef(res == 0, "Could not wait on pthread cond.");
     }
     void signal() {
         int res = pthread_cond_signal(&c);
-        guarantee(res == 0, "Could not signal pthread cond.");
+        guaranteef(res == 0, "Could not signal pthread cond.");
     }
     void broadcast() {
         int res = pthread_cond_broadcast(&c);
-        guarantee(res == 0, "Could not broadcast pthread cond.");
+        guaranteef(res == 0, "Could not broadcast pthread cond.");
     }
 };
 

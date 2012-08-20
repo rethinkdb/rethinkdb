@@ -25,11 +25,11 @@ void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
     // Unblock a signal that will tell us to shutdown
     sigset_t sigmask;
     int res = sigemptyset(&sigmask);
-    guarantee_err(res == 0, "Could not get a full sigmask");
+    guaranteef_err(res == 0, "Could not get a full sigmask");
     res = sigaddset(&sigmask, IO_SHUTDOWN_NOTIFY_SIGNAL);
-    guarantee_err(res == 0, "Could not add a signal to the set");
+    guaranteef_err(res == 0, "Could not add a signal to the set");
     res = pthread_sigmask(SIG_UNBLOCK, &sigmask, NULL);
-    guarantee_err(res == 0, "Could not block signal");
+    guaranteef_err(res == 0, "Could not block signal");
 
     linux_aio_getevents_noeventfd_t *parent = static_cast<linux_aio_getevents_noeventfd_t *>(arg);
 
@@ -53,12 +53,12 @@ void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
 
         // Push the events on the parent thread's list
         int res = pthread_mutex_lock(&parent->io_mutex);
-        guarantee(res == 0, "Could not lock io mutex");
+        guaranteef(res == 0, "Could not lock io mutex");
 
         std::copy(events, events + nevents, std::back_inserter(parent->io_events));
 
         res = pthread_mutex_unlock(&parent->io_mutex);
-        guarantee(res == 0, "Could not unlock io mutex");
+        guaranteef(res == 0, "Could not unlock io mutex");
 
         // Notify the parent's thread it's got events
         parent->aio_notify_event.write(nevents);
@@ -79,11 +79,11 @@ linux_aio_getevents_noeventfd_t::linux_aio_getevents_noeventfd_t(linux_diskmgr_a
 
     // Create the mutex to sync IO and poll threads
     res = pthread_mutex_init(&io_mutex, NULL);
-    guarantee(res == 0, "Could not create io mutex");
+    guaranteef(res == 0, "Could not create io mutex");
 
     // Start the second thread to watch IO
     res = pthread_create(&io_thread, NULL, &linux_aio_getevents_noeventfd_t::io_event_loop, this);
-    guarantee(res == 0, "Could not create io thread");
+    guaranteef(res == 0, "Could not create io thread");
 }
 
 linux_aio_getevents_noeventfd_t::~linux_aio_getevents_noeventfd_t()
@@ -95,19 +95,19 @@ linux_aio_getevents_noeventfd_t::~linux_aio_getevents_noeventfd_t()
     sa.sa_sigaction = &shutdown_signal_handler;
     sa.sa_flags = SA_SIGINFO;
     res = sigaction(IO_SHUTDOWN_NOTIFY_SIGNAL, &sa, NULL);
-    guarantee_err(res == 0, "Could not install shutdown signal handler in the IO thread");
+    guaranteef_err(res == 0, "Could not install shutdown signal handler in the IO thread");
 
     shutting_down = true;
 
     res = pthread_kill(io_thread, IO_SHUTDOWN_NOTIFY_SIGNAL);
-    guarantee(res == 0, "Could not notify the io thread about shutdown");
+    guaranteef(res == 0, "Could not notify the io thread about shutdown");
 
     res = pthread_join(io_thread, NULL);
-    guarantee(res == 0, "Could not join the io thread");
+    guaranteef(res == 0, "Could not join the io thread");
 
     // Destroy the mutex to sync IO and poll threads
     res = pthread_mutex_destroy(&io_mutex);
-    guarantee(res == 0, "Could not destroy io mutex");
+    guaranteef(res == 0, "Could not destroy io mutex");
 
     parent->queue->forget_resource(aio_notify_event.get_notify_fd(), this);
 }
@@ -127,7 +127,7 @@ void linux_aio_getevents_noeventfd_t::on_event(int event_mask) {
 
     // Notify code that waits on the events
     int res = pthread_mutex_lock(&io_mutex);
-    guarantee(res == 0, "Could not lock io mutex");
+    guaranteef(res == 0, "Could not lock io mutex");
 
     for(unsigned int i = 0; i < io_events.size(); i++) {
         parent->aio_notify(reinterpret_cast<iocb *>(io_events[i].obj), io_events[i].res);
@@ -135,6 +135,6 @@ void linux_aio_getevents_noeventfd_t::on_event(int event_mask) {
     io_events.clear();
 
     res = pthread_mutex_unlock(&io_mutex);
-    guarantee(res == 0, "Could not unlock io mutex");
+    guaranteef(res == 0, "Could not unlock io mutex");
 }
 

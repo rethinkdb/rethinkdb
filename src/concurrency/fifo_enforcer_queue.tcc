@@ -90,7 +90,7 @@ T fifo_enforcer_queue_t<T>::produce_next_value() {
         }
     }
     //We're in this function when we don't actually have a value to return
-    rassert(!control.get(), "Control return true but we don't actually have a value to return. This class is incorrectly implemented.");
+    rassertf(!control.get(), "Control return true but we don't actually have a value to return. This class is incorrectly implemented.");
     crash("Unreachable\n");
     return T();
 }

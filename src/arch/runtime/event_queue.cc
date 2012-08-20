@@ -51,7 +51,7 @@ void event_queue_base_t::watch_signal(const sigevent *evp, UNUSED linux_event_ca
     sa.sa_flags = SA_SIGINFO;
 
     int res = sigaction(evp->sigev_signo, &sa, NULL);
-    guarantee_err(res == 0, "Could not install signal handler in event queue");
+    guaranteef_err(res == 0, "Could not install signal handler in event queue");
 }
 
 void event_queue_base_t::forget_signal(UNUSED const sigevent *evp, UNUSED linux_event_callback_t *cb) {

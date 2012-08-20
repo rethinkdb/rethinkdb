@@ -71,7 +71,7 @@ public:
         vector_read_stream_t read_stream(&data_vec);
         T t;
         int res = deserialize(&read_stream, &t);
-        guarantee_err(res == 0, "corruption in disk-backed queue");
+        guaranteef_err(res == 0, "corruption in disk-backed queue");
         return t;
     }
 

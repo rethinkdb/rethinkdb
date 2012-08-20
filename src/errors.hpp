@@ -30,6 +30,9 @@
 #define DEBUG_ONLY_CODE(expr) ((void)(0))
 #endif
 
+// A macro that expands to nothing.
+#define EXPAND_TO_NOTHING
+
 /* This macro needs to exist because gcc and icc disagree on how to number the
  * attributes to methods. ICC does different number for methods and functions
  * and it's too unwieldy to make programs use these macros so we're just going
@@ -81,66 +84,77 @@
 #define UNUSED __attribute__((unused))
 #define MUST_USE __attribute__((warn_unused_result))
 
-// TODO: Abort probably is not the right thing to do here.
-#define fail_due_to_user_error(msg, ...) do {                           \
-        report_user_error(msg, ##__VA_ARGS__);                          \
+#define fail_due_to_user_error(...) do {                                \
+        report_user_error(__VA_ARGS__);                                 \
         exit(-1);                                                       \
     } while (0)
 
-#define crash(msg, ...) do {                                        \
-        report_fatal_error(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
+#define crash(...) do {                                                 \
+        report_fatal_error(__FILE__, __LINE__, __VA_ARGS__);            \
         BREAKPOINT; /* this used to be abort(), but it didn't cause VALGRIND to print a backtrace */ \
         abort();                                                    \
     } while (0)
 
-#define crash_or_trap(msg, ...) do {                                \
-        report_fatal_error(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
+#define crash_or_trap(...) do {                                     \
+        report_fatal_error(__FILE__, __LINE__, __VA_ARGS__);        \
         BREAKPOINT;                                                 \
     } while (0)
 
+#define crash_or_trap_err(err, ...) do {                                \
+        report_fatal_errno_error(__FILE__, __LINE__, err, __VA_ARGS__); \
+        BREAKPOINT;                                                     \
+    } while (0)
+
+void report_fatal_errno_error(const char *file, int line, int errsv, const char *msg, ...) __attribute__((format (printf, 4, 5)));
 void report_fatal_error(const char*, int, const char*, ...) __attribute__((format (printf, 3, 4)));
 void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
 
 #define stringify(x) #x
 
 #define format_assert_message(assert_type, cond) assert_type " failed: [" stringify(cond) "] "
-#define guarantee(cond, msg...) do {    \
+#define guaranteef(cond, msg...) do {    \
         if (!(cond)) {                  \
             crash_or_trap(format_assert_message("Guarantee", cond) msg); \
         }                               \
     } while (0)
-#define guarantee_xerr(cond, err, msg, args...) do {                            \
-        if (!(cond)) {                                                          \
-            if (err == 0) {                                                     \
-                crash_or_trap(format_assert_message("Guarantee", cond) msg, ##args); \
-            } else {                                                            \
-                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, err, strerror(err), ##args);  \
-            }                                                                   \
-        }                                                                       \
+#define guarantee(cond) guaranteef(cond, "")
+#define guarantee_xerr(cond, err, ...) do {                             \
+        if (!(cond)) {                                                  \
+            if ((err) == 0) {                                           \
+                crash_or_trap(format_assert_message("Guarantee", cond) __VA_ARGS__); \
+            } else {                                                    \
+                crash_or_trap_err((err), format_assert_message("Guarantee", cond) __VA_ARGS__); \
+            }                                                           \
+        }                                                               \
     } while (0)
-#define guarantee_err(cond, msg, args...) guarantee_xerr(cond, errno, msg, ##args)
+#define guaranteef_err(cond, ...) guarantee_xerr(cond, errno, __VA_ARGS__)
+#define guarantee_err(cond) guarantee_err(cond, "");
 
-#define unreachable(msg, ...) crash("Unreachable code: " msg, ##__VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
-#define not_implemented(msg, ...) crash_or_trap("Not implemented: " msg, ##__VA_ARGS__)
+#define unreachable(...) crash("Unreachable code: " __VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
+#define not_implemented(...) crash_or_trap("Not implemented: " __VA_ARGS__)
 
 #ifdef NDEBUG
-#define rassert(cond, msg...) ((void)(0))
+#define rassertf(cond, msg...) ((void)(0))
+#define rassertf(cond) ((void)(0))
 #define rassert_err(cond, msg...) ((void)(0))
+#define rassertf_err(cond, msg...) ((void)(0))
 #else
-#define rassert(cond, msg...) do {                                        \
+#define rassertf(cond, msg...) do {                                        \
         if (!(cond)) {                                                    \
             crash_or_trap(format_assert_message("Assertion", cond) msg);  \
         }                                                                 \
     } while (0)
-#define rassert_err(cond, msg, args...) do {                                \
-        if (!(cond)) {                                                      \
-            if (errno == 0) {                                               \
-                crash_or_trap(format_assert_message("Assert", cond) msg);   \
+#define rassert(cond) rassertf(cond, "")
+#define rassertf_err(cond, ...) do {                                    \
+        if (!(cond)) {                                                  \
+            if (errno == 0) {                                           \
+                crash_or_trap(format_assert_message("Assert", cond) __VA_ARGS__); \
             } else {                                                        \
-                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, errno, strerror(errno), ##args);  \
+                crash_or_trap_err(errno, format_assert_message("Assert", cond) __VA_ARGS__); \
             }                                                               \
         }                                                                   \
     } while (0)
+#define rassert_err(cond) rassertf_err(cond, "")
 #endif
 
 void install_generic_crash_handler();

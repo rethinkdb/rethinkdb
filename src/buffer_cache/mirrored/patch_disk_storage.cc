@@ -47,7 +47,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t *_cache, block_id_t start_
         // Load and parse config block
         mc_config_block_t *config_block = reinterpret_cast<mc_config_block_t *>(cache->serializer->malloc());
         cache->serializer->block_read(cache->serializer->index_read(start_id), config_block, DEFAULT_DISK_ACCOUNT);
-        guarantee(mc_config_block_t::expected_magic == config_block->magic, "Invalid mirrored cache config block magic");
+        guaranteef(mc_config_block_t::expected_magic == config_block->magic, "Invalid mirrored cache config block magic");
         number_of_blocks = config_block->cache.n_patch_log_blocks;
         cache->serializer->free(config_block);
 

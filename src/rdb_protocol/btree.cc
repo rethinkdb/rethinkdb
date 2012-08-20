@@ -89,7 +89,7 @@ boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction
     vector_read_stream_t read_stream(&data_vec);
 
     int res = deserialize(&read_stream, &data);
-    guarantee_err(res == 0, "corruption detected... this should probably be an exception\n");
+    guaranteef_err(res == 0, "corruption detected... this should probably be an exception\n");
 
     return data;
 }
@@ -128,7 +128,7 @@ point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_
     wm << data;
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
-    guarantee_err(res == 0, "Serialization for json data failed... this shouldn't happen.\n");
+    guaranteef_err(res == 0, "Serialization for json data failed... this shouldn't happen.\n");
 
     blob_t blob(new_value->value_ref(), blob::btree_maxreflen);
 

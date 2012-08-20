@@ -602,9 +602,9 @@ void listener_t<protocol_t>::advance_current_timestamp_and_pulse_waiters(transit
          it != synchronize_waiters_.upper_bound(current_timestamp_);
          ++it) {
         if (it->first < current_timestamp_) {
-            rassert(it->second->is_pulsed(), "This cond should have already been pulsed because we assume timestamps move in discrete minimal steps.");
+            // This cond should have already been pulsed because we assume timestamps move in discrete minimal steps.
+            rassert(it->second->is_pulsed());
         } else {
-            // TODO: What if something's waiting eagerly?
             it->second->pulse();
         }
     }

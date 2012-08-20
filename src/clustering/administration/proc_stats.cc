@@ -263,7 +263,7 @@ proc_stats_collector_t::instantaneous_stats_collector_t::instantaneous_stats_col
     // time(NULL) it results in a negative uptime stat.
     struct timespec now;
     int res = clock_gettime(CLOCK_MONOTONIC, &now);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+    guaranteef_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
     start_time = now.tv_sec;
 }
 
@@ -282,7 +282,7 @@ perfmon_result_t *proc_stats_collector_t::instantaneous_stats_collector_t::end_s
     // Basic process stats (version, pid, uptime)
     struct timespec now;
     int res = clock_gettime(CLOCK_MONOTONIC, &now);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+    guaranteef_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
 
     result->insert("uptime", new perfmon_result_t(strprintf("%ld", now.tv_sec - start_time)));
     result->insert("timestamp", new perfmon_result_t(format_time(now)));

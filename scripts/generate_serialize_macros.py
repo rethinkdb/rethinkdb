@@ -33,7 +33,7 @@ def generate_make_serializable_macro(nfields):
     # See the note in the comment below.
     print "    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;"
     print "#define RDB_MAKE_SERIALIZABLE_%d(...) RDB_EXPAND_SERIALIZABLE_%d(inline, __VA_ARGS__)" % (nfields, nfields)
-    print "#define RDB_IMPL_SERIALIZABLE_%d(...) RDB_EXPAND_SERIALIZABLE_%d(, __VA_ARGS__)" % (nfields, nfields)
+    print "#define RDB_IMPL_SERIALIZABLE_%d(...) RDB_EXPAND_SERIALIZABLE_%d(EXPAND_TO_NOTHING, __VA_ARGS__)" % (nfields, nfields)
 
 def generate_make_me_serializable_macro(nfields):
     print "#define RDB_MAKE_ME_SERIALIZABLE_%d(%s) \\" % \

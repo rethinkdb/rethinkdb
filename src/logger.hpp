@@ -16,16 +16,16 @@ void log_internal(const char *src_file, int src_line, log_level_t level, const c
 void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
 
 #ifndef NDEBUG
-#define logDBG(fmt, args...) log_internal(__FILE__, __LINE__, log_level_debug, (fmt), ##args)
+#define logDBG(...) log_internal(__FILE__, __LINE__, log_level_debug, __VA_ARGS__)
 #define vlogDBG(fmt, args) vlog_internal(__FILE__, __LINE__, log_level_debug, (fmt), (args))
 #else
-#define logDBG(fmt, args...) ((void)0)
+#define logDBG(...) ((void)0)
 #define vlogDBG(fmt, args) ((void)0)
 #endif
 
-#define logINF(fmt, args...) log_internal(__FILE__, __LINE__, log_level_info, (fmt), ##args)
-#define logWRN(fmt, args...) log_internal(__FILE__, __LINE__, log_level_warn, (fmt), ##args)
-#define logERR(fmt, args...) log_internal(__FILE__, __LINE__, log_level_error, (fmt), ##args)
+#define logINF(...) log_internal(__FILE__, __LINE__, log_level_info, __VA_ARGS__)
+#define logWRN(...) log_internal(__FILE__, __LINE__, log_level_warn, __VA_ARGS__)
+#define logERR(...) log_internal(__FILE__, __LINE__, log_level_error, __VA_ARGS__)
 
 #define vlogINF(fmt, args) vlog_internal(__FILE__, __LINE__, log_level_info, (fmt), (args))
 #define vlogWRN(fmt, args) vlog_internal(__FILE__, __LINE__, log_level_warn, (fmt), (args))

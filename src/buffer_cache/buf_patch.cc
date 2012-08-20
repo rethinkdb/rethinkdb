@@ -90,7 +90,7 @@ buf_patch_t::buf_patch_t(const block_id_t _block_id, const patch_counter_t _patc
 }
 
 bool buf_patch_t::applies_before(const buf_patch_t *p) const {
-    rassert(block_id == p->block_id, "Tried to compare incomparable patches");
+    rassertf(block_id == p->block_id, "Tried to compare incomparable patches");
     return applies_to_block_sequence_id < p->applies_to_block_sequence_id
         || (applies_to_block_sequence_id == p->applies_to_block_sequence_id && patch_counter < p->patch_counter);
 }

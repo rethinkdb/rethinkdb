@@ -36,7 +36,7 @@ ip_address_t::ip_address_t(const std::string &host) {
     int res;
     boost::function<void ()> fn = boost::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(NULL), &hint, &addr_possibilities, &res);
     thread_pool_t::run_in_blocker_pool(fn);
-    guarantee_err(res == 0, "getaddrinfo() failed");
+    guaranteef_err(res == 0, "getaddrinfo() failed");
 
     struct sockaddr_in *addr_in = reinterpret_cast<struct sockaddr_in *>(addr_possibilities->ai_addr);
     addr = addr_in->sin_addr;
@@ -60,7 +60,7 @@ ip_address_t ip_address_t::us() {
 
     char name[HOST_NAME_MAX+1];
     int res = gethostname(name, sizeof(name));
-    guarantee(res == 0, "gethostname() failed: %s\n", strerror(errno));
+    guaranteef(res == 0, "gethostname() failed: %s\n", strerror(errno));
 
     return ip_address_t(name);
 }
@@ -69,6 +69,6 @@ std::string ip_address_t::as_dotted_decimal() const {
     char buffer[INET_ADDRSTRLEN + 1];
     const char *result = inet_ntop(AF_INET, reinterpret_cast<const void*>(&addr),
         buffer, INET_ADDRSTRLEN);
-    guarantee(result == buffer, "Could not format IP address");
+    guaranteef(result == buffer, "Could not format IP address");
     return std::string(buffer);
 }

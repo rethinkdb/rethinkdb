@@ -17,7 +17,7 @@ linux_event_watcher_t::~linux_event_watcher_t() {
 linux_event_watcher_t::watch_t::watch_t(linux_event_watcher_t *p, int e) :
     parent(p), event(e)
 {
-    rassert(!*parent->get_watch_slot(event), "something's already watching that event.");
+    rassertf(!*parent->get_watch_slot(event), "something's already watching that event.");
     *parent->get_watch_slot(event) = this;
     parent->remask();
 }
@@ -54,7 +54,7 @@ void linux_event_watcher_t::remask() {
 void linux_event_watcher_t::on_event(int event) {
 
     int error_mask = poll_event_err | poll_event_hup | poll_event_rdhup;
-    guarantee((event & (error_mask | old_mask)) == event, "Unexpected event received (from operating system?).");
+    guaranteef((event & (error_mask | old_mask)) == event, "Unexpected event received (from operating system?).");
 
     if (event & error_mask) {
 

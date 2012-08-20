@@ -477,7 +477,7 @@ void connectivity_cluster_t::run_t::handle(
             called. */
         }
 
-        guarantee(!conn->is_read_open(), "the connection is still open for "
+        guaranteef(!conn->is_read_open(), "the connection is still open for "
             "read, which means we had a problem other than the TCP "
             "connection closing or dying");
 
@@ -517,7 +517,7 @@ uuid_t connectivity_cluster_t::get_connection_session_id(peer_id_t peer) THROWS_
         &thread_info.get()->connection_map;
     std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator it =
         connection_map->find(peer);
-    rassert(it != connection_map->end(), "You're trying to access the session "
+    rassertf(it != connection_map->end(), "You're trying to access the session "
         "ID for an unconnected peer. Note that we are not considered to be "
         "connected to ourself until after a connectivity_cluster_t::run_t "
         "has been created.");
@@ -616,7 +616,7 @@ peer_address_t connectivity_cluster_t::get_peer_address(peer_id_t p) THROWS_NOTH
         &thread_info.get()->connection_map;
     std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator it =
         connection_map->find(p);
-    rassert(it != connection_map->end(), "You can only call get_peer_address() "
+    rassertf(it != connection_map->end(), "You can only call get_peer_address() "
         "on a peer that we're currently connected to. Note that we're not "
         "considered to be connected to ourself until after the "
         "connectivity_cluster_t::run_t has been constructed.");

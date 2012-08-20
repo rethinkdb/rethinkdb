@@ -123,7 +123,7 @@ public:
     int64_t& level_count(int level) {
         rassert(level >= 0);
         if (size_t(level) >= level_counts.size()) {
-            rassert(size_t(level) == level_counts.size(), "Somehow we skipped a level! (level = %d, slice = %p)", level, slice);
+            rassertf(size_t(level) == level_counts.size(), "Somehow we skipped a level! (level = %d, slice = %p)", level, slice);
             level_counts.resize(level + 1, 0);
         }
         return level_counts[level];
@@ -208,9 +208,9 @@ public:
     std::vector<acquisition_waiter_callback_t *>& acquisition_waiter_stack(int level) {
         rassert(level >= 0);
         if (level >= static_cast<int>(acquisition_waiter_stacks.size())) {
-            rassert(level == static_cast<int>(acquisition_waiter_stacks.size()),
-                    "Somehow we skipped a level! (level = %d, stacks.size() = %d, slice = %p)",
-                    level, static_cast<int>(acquisition_waiter_stacks.size()), slice);
+            rassertf(level == static_cast<int>(acquisition_waiter_stacks.size()),
+                     "Somehow we skipped a level! (level = %d, stacks.size() = %d, slice = %p)",
+                     level, static_cast<int>(acquisition_waiter_stacks.size()), slice);
             acquisition_waiter_stacks.resize(level + 1);
         }
         return acquisition_waiter_stacks[level];
@@ -447,7 +447,7 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf
     state->helper->process_a_leaf(state->transaction_ptr, buf->get(), left_exclusive_or_null, right_inclusive_or_null, &population_change);
 
     if (state->helper->btree_node_mode() != rwi_write) {
-        rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
+        rassertf(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
     } else if (population_change != 0) {
         buf_lock_t stat_block(state->transaction_ptr, state->stat_block, rwi_write, buffer_cache_order_mode_ignore);
         static_cast<btree_statblock_t *>(stat_block.get_data_major_write())->population += population_change;

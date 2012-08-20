@@ -132,7 +132,7 @@ public:
 
     branch_birth_certificate_t<protocol_t> get_branch(branch_id_t branch) THROWS_NOTHING {
         typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator it = bh.branches.find(branch);
-        guarantee(it != bh.branches.end(), "no such branch");
+        guarantee(it != bh.branches.end());
         return it->second;
     }
 

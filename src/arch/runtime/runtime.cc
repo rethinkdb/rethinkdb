@@ -18,8 +18,8 @@ int get_num_threads() {
 
 #ifndef NDEBUG
 void assert_good_thread_id(int thread) {
-    rassert(thread >= 0, "(thread = %d)", thread);
-    rassert(thread < get_num_threads(), "(thread = %d, n_threads = %d)", thread, get_num_threads());
+    rassertf(thread >= 0, "(thread = %d)", thread);
+    rassertf(thread < get_num_threads(), "(thread = %d, n_threads = %d)", thread, get_num_threads());
 }
 #endif
 

@@ -92,7 +92,7 @@ struct coro_globals_t {
 static __thread coro_globals_t *cglobals = NULL;
 
 coro_runtime_t::coro_runtime_t() {
-    rassert(!cglobals, "coro runtime initialized twice on this thread");
+    rassertf(!cglobals, "coro runtime initialized twice on this thread");
     cglobals = new coro_globals_t;
 }
 
@@ -128,9 +128,9 @@ coro_t::coro_t() :
 
 #ifndef NDEBUG
     cglobals->coro_count++;
-    rassert(cglobals->coro_count < MAX_COROS_PER_THREAD, "Too many "
-            "coroutines allocated on this thread. This is problem due to a "
-            "misuse of the coroutines\n");
+    rassertf(cglobals->coro_count < MAX_COROS_PER_THREAD, "Too many "
+             "coroutines allocated on this thread. This is problem due to a "
+             "misuse of the coroutines\n");
 #endif
 }
 
@@ -209,13 +209,13 @@ coro_t *coro_t::self() {   /* class method */
 }
 
 void coro_t::wait() {   /* class method */
-    rassert(self(), "Not in a coroutine context");
-    rassert(cglobals->assert_finite_coro_waiting_counter == 0,
+    rassertf(self(), "Not in a coroutine context");
+    rassertf(cglobals->assert_finite_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
         cglobals->finite_waiting_call_sites.top().first.c_str(), cglobals->finite_waiting_call_sites.top().second
         );
 
-    rassert(cglobals->assert_no_coro_waiting_counter == 0,
+    rassertf(cglobals->assert_no_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
         cglobals->no_waiting_call_sites.top().first.c_str(), cglobals->no_waiting_call_sites.top().second
         );
@@ -240,7 +240,7 @@ void coro_t::wait() {   /* class method */
 }
 
 void coro_t::yield() {  /* class method */
-    rassert(self(), "Not in a coroutine context");
+    rassertf(self(), "Not in a coroutine context");
     self()->notify_later_ordered();
     self()->wait();
 }
@@ -251,7 +251,7 @@ void coro_t::notify_now_deprecated() {
     rassert(current_thread_ == linux_thread_pool_t::thread_id);
 
 #ifndef NDEBUG
-    rassert(cglobals->assert_no_coro_waiting_counter == 0,
+    rassertf(cglobals->assert_no_coro_waiting_counter == 0,
         "This code path is not supposed to use notify_now_deprecated() or spawn_now_dangerously().");
 
     /* Record old value of `assert_finite_coro_waiting_counter`. It must be legal to call
@@ -310,7 +310,7 @@ void coro_t::notify_later_ordered() {
 
 void coro_t::move_to_thread(int thread) {
     assert_good_thread_id(thread);
-    rassert(coro_t::self(), "coro_t::move_to_thread() called when not in a coroutine.");
+    rassertf(coro_t::self(), "coro_t::move_to_thread() called when not in a coroutine.");
     if (thread == linux_thread_pool_t::thread_id) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;

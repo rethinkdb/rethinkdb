@@ -84,7 +84,7 @@ public:
     state_timestamp_t timestamp_after() const {
         state_timestamp_t after;
         after.num = before.num + 1;
-        guarantee(after > before, "timestamp counter overflowed");
+        guaranteef(after > before, "timestamp counter overflowed");
         return after;
     }
 

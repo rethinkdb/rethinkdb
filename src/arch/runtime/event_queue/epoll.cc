@@ -47,7 +47,7 @@ epoll_event_queue_t::epoll_event_queue_t(linux_queue_parent_t *_parent)
     // Create a poll fd
 
     epoll_fd = epoll_create1(0);
-    guarantee_err(epoll_fd >= 0, "Could not create epoll fd");
+    guaranteef_err(epoll_fd >= 0, "Could not create epoll fd");
 }
 
 void epoll_event_queue_t::run() {
@@ -70,7 +70,7 @@ void epoll_event_queue_t::run() {
         // it probably means that epoll_fd is no longer valid. There's
         // no reason to try epoll_wait again, unless we can create a
         // new descriptor (which we probably can't at this point).
-        guarantee_err(res != -1, "Waiting for epoll events failed");
+        guaranteef_err(res != -1, "Waiting for epoll events failed");
 
         // nevents might be used by forget_resource during the loop
         nevents = res;
@@ -121,7 +121,7 @@ void epoll_event_queue_t::run() {
 
 epoll_event_queue_t::~epoll_event_queue_t() {
     UNUSED int res = close(epoll_fd);
-    rassert_err(res == 0, "Could not close epoll_fd");
+    rassertf_err(res == 0, "Could not close epoll_fd");
 }
 
 void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_event_callback_t *cb) {
@@ -132,7 +132,7 @@ void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_ev
     event.data.ptr = cb;
 
     int res = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, resource, &event);
-    guarantee_err(res == 0, "Could not watch resource\n");
+    guaranteef_err(res == 0, "Could not watch resource\n");
 
     DEBUG_ONLY_CODE(events_requested[cb] = watch_mode);
 }
@@ -145,7 +145,7 @@ void epoll_event_queue_t::adjust_resource(fd_t resource, int watch_mode, linux_e
     event.data.ptr = cb;
 
     int res = epoll_ctl(epoll_fd, EPOLL_CTL_MOD, resource, &event);
-    guarantee_err(res == 0, "Could not adjust resource");
+    guaranteef_err(res == 0, "Could not adjust resource");
 
     // Go through the queue of messages in the current poll cycle and if any are referring
     // to the resource we are adjusting, remove any events that we are no longer requesting.
@@ -167,7 +167,7 @@ void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t 
     event.data.ptr = NULL;
 
     int res = epoll_ctl(epoll_fd, EPOLL_CTL_DEL, resource, &event);
-    guarantee_err(res == 0, "Couldn't remove resource from watching");
+    guaranteef_err(res == 0, "Couldn't remove resource from watching");
 
     // Go through the queue of messages in the current poll cycle and
     // clean out the ones that are referencing the resource we're

@@ -82,7 +82,7 @@ public:
 
 void get_btree_key_distribution(btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, int depth_limit, int *key_count_out, std::vector<store_key_t> *keys_out) {
     get_distribution_traversal_helper_t helper(depth_limit, keys_out);
-    rassert(keys_out->empty(), "Why is this output paremeter not an empty vector\n");
+    rassertf(keys_out->empty(), "Why is this output paremeter not an empty vector\n");
 
     cond_t non_interruptor;
     btree_parallel_traversal(txn, superblock, slice, &helper, &non_interruptor);

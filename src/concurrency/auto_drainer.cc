@@ -19,7 +19,7 @@ auto_drainer_t::lock_t::lock_t() : parent(NULL) {
 
 auto_drainer_t::lock_t::lock_t(auto_drainer_t *p) : parent(p) {
     rassert(parent != NULL);
-    rassert(!parent->draining.is_pulsed(), "New processes should not acquire "
+    rassertf(!parent->draining.is_pulsed(), "New processes should not acquire "
         "a draining `auto_drainer_t`.");
     parent->incref();
 }
@@ -41,7 +41,7 @@ void auto_drainer_t::lock_t::reset() {
 }
 
 signal_t *auto_drainer_t::lock_t::get_drain_signal() const {
-    rassert(parent, "calling `get_drain_signal()` on a nil "
+    rassertf(parent, "calling `get_drain_signal()` on a nil "
         "`auto_drainer_t::lock_t`.");
     return &parent->draining;
 }

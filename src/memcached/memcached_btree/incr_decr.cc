@@ -76,7 +76,7 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         blob_acq_t acqs;
         b.expose_region(txn, rwi_write, 0, b.valuesize(), &group, &acqs);
         rassert(group.num_buffers() == 1);
-        rassert(group.get_buffer(0).size == tmp.size(), "expecting %zd == %d", group.get_buffer(0).size, tmp.size());
+        rassertf(group.get_buffer(0).size == tmp.size(), "expecting %zd == %d", group.get_buffer(0).size, tmp.size());
         memcpy(group.get_buffer(0).data, tmp.data(), tmp.size());
 
         return true;

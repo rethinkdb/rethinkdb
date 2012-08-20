@@ -27,8 +27,7 @@ public:
         map = m;
         std::pair<typename std::map<key_t, value_t>::iterator, bool> iterator_and_is_new =
             map->insert(std::make_pair(key, value));
-        rassert(iterator_and_is_new.second, "value to be inserted already "
-            "exists. don't do that.");
+        rassertf(iterator_and_is_new.second, "value to be inserted already exists. don't do that.");
         it = iterator_and_is_new.first;
     }
 private:

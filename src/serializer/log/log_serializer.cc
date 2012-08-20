@@ -137,7 +137,7 @@ struct ls_start_existing_fsm_t :
         }
 
         if (state == state_start_lba) {
-            guarantee(metablock_found, "Could not find any valid metablock.");
+            guaranteef(metablock_found, "Could not find any valid metablock.");
 
             ser->latest_block_sequence_id = metablock_buffer.block_sequence_id;
 

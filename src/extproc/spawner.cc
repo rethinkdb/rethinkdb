@@ -27,7 +27,7 @@ static void sigchld_handler(int signo) {
 
     int status;
     pid_t pid = waitpid(-1, &status, WNOHANG);
-    guarantee_err(-1 != pid, "could not waitpid()");
+    guaranteef_err(-1 != pid, "could not waitpid()");
 
     // We might spawn processes other than the spawner, whose deaths we ignore.
     // waitpid() might also return 0, indicating some event other than child
@@ -44,15 +44,15 @@ spawner_t::spawner_t(info_t *info)
     spawner_pid = pid_;
 
     // Check that the spawner hasn't already exited.
-    guarantee(0 == waitpid(pid_, NULL, WNOHANG),
-              "spawner process already died!");
+    guaranteef(0 == waitpid(pid_, NULL, WNOHANG),
+               "spawner process already died!");
 
     // Establish SIGCHLD handler for spawner.
     struct sigaction act;
     memset(&act, 0, sizeof act);
     act.sa_handler = sigchld_handler;
-    guarantee_err(0 == sigemptyset(&act.sa_mask), "could not empty signal mask");
-    guarantee_err(0 == sigaction(SIGCHLD, &act, NULL), "could not set SIGCHLD handler");
+    guaranteef_err(0 == sigemptyset(&act.sa_mask), "could not empty signal mask");
+    guaranteef_err(0 == sigaction(SIGCHLD, &act, NULL), "could not set SIGCHLD handler");
 }
 
 spawner_t::~spawner_t() {
@@ -60,8 +60,8 @@ spawner_t::~spawner_t() {
     struct sigaction act;
     memset(&act, 0, sizeof act);
     act.sa_handler = SIG_DFL;
-    guarantee_err(0 == sigemptyset(&act.sa_mask), "could not empty signal mask");
-    guarantee_err(0 == sigaction(SIGCHLD, &act, NULL), "could not unset SIGCHLD handler");
+    guaranteef_err(0 == sigemptyset(&act.sa_mask), "could not empty signal mask");
+    guaranteef_err(0 == sigaction(SIGCHLD, &act, NULL), "could not unset SIGCHLD handler");
 
     guarantee(spawner_pid > 0);
     spawner_pid = -1;
@@ -69,21 +69,21 @@ spawner_t::~spawner_t() {
 
 void spawner_t::create(info_t *info) {
     int fds[2];
-    guarantee_err(0 == socketpair(AF_UNIX, SOCK_STREAM, 0, fds),
-                  "could not create socketpair for spawner");
+    guaranteef_err(0 == socketpair(AF_UNIX, SOCK_STREAM, 0, fds),
+                   "could not create socketpair for spawner");
 
     pid_t pid = fork();
-    guarantee_err(-1 != pid, "could not fork spawner process");
+    guaranteef_err(-1 != pid, "could not fork spawner process");
 
     if (0 == pid) {
         // We're the child; run the spawner.
-        guarantee_err(0 == close(fds[0]), "could not close fd");
+        guaranteef_err(0 == close(fds[0]), "could not close fd");
         exec_spawner(fds[1]);
         unreachable();
     }
 
     // We're the parent. Return.
-    guarantee_err(0 == close(fds[1]), "could not close fd");
+    guaranteef_err(0 == close(fds[1]), "could not close fd");
     info->pid = pid;
     info->socket.reset(fds[0]);
 }
@@ -102,7 +102,7 @@ pid_t spawner_t::spawn_process(scoped_fd_t *socket) {
 
     // Send one half to the spawner process.
     guarantee(0 == socket_.send_fd(fds[1]));
-    guarantee_err(0 == close(fds[1]), "could not close fd");
+    guaranteef_err(0 == close(fds[1]), "could not close fd");
     socket->reset(fds[0]);
 
     // Receive the pid from the spawner process.
@@ -126,7 +126,7 @@ void spawner_t::exec_spawner(fd_t socket) {
     // command-line SIGINT should trigger a clean shutdown, not a crash.
     //
     // TODO(rntz): This is an ugly, hackish way to handle the problem.
-    guarantee_err(0 == setpgid(0, 0), "spawner: could not set PGID");
+    guaranteef_err(0 == setpgid(0, 0), "spawner: could not set PGID");
 
     // We ignore SIGCHLD so that we don't accumulate zombie children.
     {
@@ -136,8 +136,8 @@ void spawner_t::exec_spawner(fd_t socket) {
         memset(&act, 0, sizeof act);
         act.sa_handler = SIG_IGN;
 
-        guarantee_err(0 == sigaction(SIGCHLD, &act, NULL),
-                      "spawner: Could not ignore SIGCHLD");
+        guaranteef_err(0 == sigaction(SIGCHLD, &act, NULL),
+                       "spawner: Could not ignore SIGCHLD");
     }
 
     for (;;) {
@@ -158,13 +158,13 @@ void spawner_t::exec_spawner(fd_t socket) {
 
         if (0 == pid) {
             // We're the child/worker.
-            guarantee_err(0 == close(socket), "worker: could not close fd");
+            guaranteef_err(0 == close(socket), "worker: could not close fd");
             exec_worker(fd);
             unreachable();
         }
 
         // We're the parent.
-        guarantee_err(0 == close(fd), "spawner: couldn't close fd");
+        guaranteef_err(0 == close(fd), "spawner: couldn't close fd");
 
         // Send back its pid. Wish we could use unix_socket_stream_t for this,
         // but its destructor calls shutdown(), and we can't have that happening
@@ -174,7 +174,7 @@ void spawner_t::exec_spawner(fd_t socket) {
         while (sz) {
             ssize_t w = write(socket, buf, sz);
             if (w == -1 && errno == EINTR) continue;
-            guarantee_err(w > 0, "spawner: could not write() to engine socket");
+            guaranteef_err(w > 0, "spawner: could not write() to engine socket");
             guarantee((size_t)w <= sz);
             sz -= w, buf += w;
         }
@@ -184,9 +184,8 @@ void spawner_t::exec_spawner(fd_t socket) {
 // Runs the worker process. Does not return.
 void spawner_t::exec_worker(fd_t sockfd) {
     // Makes sure we get SIGTERMed when our parent (the spawner) dies.
-    // TODO(rntz): prctl is linux-specific.
-    guarantee_err(0 == prctl(PR_SET_PDEATHSIG, SIGTERM),
-                  "worker: could not set parent-death signal");
+    guaranteef_err(0 == prctl(PR_SET_PDEATHSIG, SIGTERM),
+                   "worker: could not set parent-death signal");
 
     // Receive one job and run it.
     scoped_fd_t fd(sockfd);

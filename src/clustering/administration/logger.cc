@@ -157,11 +157,11 @@ log_message_t assemble_log_message(log_level_t level, const std::string &message
 
     struct timespec timestamp;
     res = clock_gettime(CLOCK_REALTIME, &timestamp);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+    guaranteef_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
 
     struct timespec uptime;
     res = clock_gettime(CLOCK_MONOTONIC, &uptime);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+    guaranteef_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
     if (uptime.tv_nsec < uptime_reference.tv_nsec) {
         uptime.tv_nsec += 1000000000;
         uptime.tv_sec -= 1;
@@ -270,7 +270,7 @@ private:
 
 fallback_log_writer_t::fallback_log_writer_t() {
     int res = clock_gettime(CLOCK_MONOTONIC, &uptime_reference);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+    guaranteef_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
 
     filelock.l_type = F_WRLCK;
     filelock.l_whence = SEEK_SET;
@@ -286,11 +286,11 @@ fallback_log_writer_t::fallback_log_writer_t() {
 }
 
 void fallback_log_writer_t::install(const std::string &logfile_name) {
-    rassert(filename == "", "Attempted to install a fallback_log_writer_t that was already installed.");
+    rassertf(filename == "", "Attempted to install a fallback_log_writer_t that was already installed.");
     filename = logfile_name;
 
     fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
-    rassert(fd.get() != -1, "%s", (std::string("failed to open log file") + strerror(errno)).c_str());
+    rassertf(fd.get() != -1, "%s", (std::string("failed to open log file") + strerror(errno)).c_str());
 }
 
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {

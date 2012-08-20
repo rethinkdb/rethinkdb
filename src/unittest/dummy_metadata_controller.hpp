@@ -32,14 +32,17 @@ private:
     class view_t : public semilattice_readwrite_view_t<metadata_t> {
     public:
         explicit view_t(dummy_semilattice_controller_t *c) : controller(c) { }
+        ~view_t() {
+            // Used with rasserts below to increase likelihood of
+            // catching use-after-destroy.
+            controller = NULL;
+        }
         metadata_t get() {
-            rassert(controller, "accessing a `dummy_semilattice_controller_t`'s "
-                "view after the controller was destroyed.");
+            rassert(controller);
             return controller->metadata;
         }
         void join(const metadata_t &new_metadata) {
-            rassert(controller, "accessing a `dummy_semilattice_controller_t`'s "
-                "view after the controller was destroyed.");
+            rassert(controller);
             {
                 mutex_t::acq_t change_acq(&controller->change_lock);
                 semilattice_join(&controller->metadata, new_metadata);
@@ -54,8 +57,7 @@ private:
             if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
         }
         publisher_t<boost::function<void()> > *get_publisher() {
-            rassert(controller, "accessing a `dummy_semilattice_controller_t`'s "
-                "view after the controller was destroyed.");
+            rassert(controller);
             return controller->change_publisher.get_publisher();
         }
         dummy_semilattice_controller_t *controller;

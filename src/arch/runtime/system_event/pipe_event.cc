@@ -9,21 +9,21 @@
 
 pipe_event_t::pipe_event_t() {
     int res = pipe(pipefd);
-    guarantee_err(res == 0, "Could not create system event pipe");
+    guaranteef_err(res == 0, "Could not create system event pipe");
 
     res = fcntl(pipefd[0], F_SETFL, O_NONBLOCK);
-    guarantee_err(res == 0, "Could not make pipe[0] non-blocking");
+    guaranteef_err(res == 0, "Could not make pipe[0] non-blocking");
 
     res = fcntl(pipefd[1], F_SETFL, O_NONBLOCK);
-    guarantee_err(res == 0, "Could not make pipe[1] non-blocking");
+    guaranteef_err(res == 0, "Could not make pipe[1] non-blocking");
 }
 
 pipe_event_t::~pipe_event_t() {
     int res = close(pipefd[0]);
-    guarantee_err(res == 0, "Could not close pipefd[0]");
+    guaranteef_err(res == 0, "Could not close pipefd[0]");
 
     res = close(pipefd[1]);
-    guarantee_err(res == 0, "Could not close pipefd[1]");
+    guaranteef_err(res == 0, "Could not close pipefd[1]");
 }
 
 uint64_t pipe_event_t::read() {

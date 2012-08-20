@@ -334,8 +334,8 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
     unsigned int block_id = static_config->block_index(offset);
 
     gc_entry *entry = entries.get(extent_id);
-    rassert(entry->i_array[block_id] == 1, "with block_id = %u", block_id);
-    rassert(entry->g_array[block_id] == 0, "with block_id = %u", block_id);
+    rassertf(entry->i_array[block_id] == 1, "with block_id = %u", block_id);
+    rassertf(entry->g_array[block_id] == 0, "with block_id = %u", block_id);
     entry->i_array.set(block_id, 0);
     entry->update_g_array(block_id);
 
@@ -612,7 +612,7 @@ void data_block_manager_t::run_gc() {
                 which should have caused the extent to be released and gc_state.current_entry to
                 become NULL. */
 
-                rassert(gc_state.current_entry == NULL, "%zd garbage blocks left on the extent, %zd i_array blocks, %zd t_array blocks.\n", gc_state.current_entry->g_array.count(), gc_state.current_entry->i_array.count(), gc_state.current_entry->t_array.count());
+                rassertf(gc_state.current_entry == NULL, "%zd garbage blocks left on the extent, %zd i_array blocks, %zd t_array blocks.\n", gc_state.current_entry->g_array.count(), gc_state.current_entry->i_array.count(), gc_state.current_entry->t_array.count());
 
                 rassert(gc_state.refcount == 0);
 

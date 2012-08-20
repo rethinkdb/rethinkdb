@@ -457,7 +457,7 @@ void broadcaster_t<protocol_t>::spawn_write(typename protocol_t::write_t write, 
         this, write, timestamp, cb);
     incomplete_writes.push_back(write_wrapper);
 
-    rassert(cb->write == NULL, "You can't reuse the same callback for two writes.");
+    rassertf(cb->write == NULL, "You can't reuse the same callback for two writes.");
     cb->write = write_wrapper.get();
 
     /* Create a reference so that `write` doesn't declare itself

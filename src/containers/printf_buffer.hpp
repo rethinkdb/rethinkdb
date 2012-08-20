@@ -130,7 +130,7 @@ void printf_buffer_t<N>::vappendf(const char *format, va_list ap) {
         // the snprintfs return the number of characters they _would_
         // have written, not including the '\0'.
         int size = vsnprintf(ptr_ + length_, N - length_, format, ap);
-        rassert(size >= 0, "vsnprintf failed, bad format string?");
+        rassertf(size >= 0, "vsnprintf failed, bad format string?");
 
         if (size < N - length_) {
             length_ += size;
@@ -149,7 +149,7 @@ void printf_buffer_t<N>::vappendf(const char *format, va_list ap) {
         char tmp[1];
 
         int size = vsnprintf(tmp, sizeof(tmp), format, ap);
-        rassert(size >= 0, "vsnprintf failed, bad format string?");
+        rassertf(size >= 0, "vsnprintf failed, bad format string?");
 
         int64_t alloc_limit = round_up_to_power_of_two(length_ + 1);
         if (length_ + size + 1 <= alloc_limit) {

@@ -62,7 +62,7 @@ void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::push() {
 
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::pop() {
-    guarantee(saved_mb_slot != static_cast<uint32_t>(-1), "Popping without a saved state");
+    guaranteef(saved_mb_slot != static_cast<uint32_t>(-1), "Popping without a saved state");
     mb_slot = saved_mb_slot;
     saved_mb_slot = static_cast<uint32_t>(-1);
 }

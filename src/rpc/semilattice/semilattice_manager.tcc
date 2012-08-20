@@ -47,14 +47,14 @@ semilattice_manager_t<metadata_t>::root_view_t::root_view_t(semilattice_manager_
 
 template<class metadata_t>
 metadata_t semilattice_manager_t<metadata_t>::root_view_t::get() {
-    rassert(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
+    rassertf(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
     return parent->metadata;
 }
 
 template<class metadata_t>
 void semilattice_manager_t<metadata_t>::root_view_t::join(const metadata_t &added_metadata) {
-    rassert(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
+    rassertf(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
 
     metadata_version_t new_version = ++parent->metadata_version;
@@ -78,7 +78,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::join(const metadata_t &adde
 
 template<class metadata_t>
 void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
-    rassert(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
+    rassertf(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
     sync_from_query_id_t query_id = parent->next_sync_from_query_id++;
     promise_t<metadata_version_t> response_cond;
@@ -96,7 +96,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, s
 
 template<class metadata_t>
 void semilattice_manager_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
-    rassert(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
+    rassertf(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
     sync_to_query_id_t query_id = parent->next_sync_to_query_id++;
     cond_t response_cond;
@@ -114,7 +114,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, sig
 
 template<class metadata_t>
 publisher_t<boost::function<void()> > *semilattice_manager_t<metadata_t>::root_view_t::get_publisher() {
-    rassert(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
+    rassertf(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
     return parent->metadata_publisher.get_publisher();
 }

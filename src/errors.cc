@@ -36,6 +36,37 @@ void report_user_error(const char *msg, ...) {
     va_end(args);
 }
 
+void report_fatal_errno_error(const char *file, int line, int errsv, const char *msg, ...) {
+    // TODO: Umm, duplicate code.
+    if (crashed) {
+        va_list args;
+        va_start(args, msg);
+        fprintf(stderr, "Crashing while already crashed (at %s:%d). Printing error message to stderr.\n", file, line);
+        vfprintf(stderr, msg, args);
+        va_end(args);
+        return;
+    }
+
+    crashed = true;
+
+    thread_log_writer_disabler_t disabler;
+
+    va_list args;
+    va_start(args, msg);
+    logERR("Error in %s at line %d (errno %d - %s:", file, line, errsv, strerror(errsv));
+    vlogERR(msg, args);
+    va_end(args);
+
+    /* Don't print backtraces in valgrind mode because valgrind issues lots of spurious
+    warnings when print_backtrace() is run. */
+#if !defined(VALGRIND)
+    logERR("Backtrace:");
+    logERR("%s", format_backtrace().c_str());
+#endif
+
+    logERR("Exiting.");
+}
+
 void report_fatal_error(const char *file, int line, const char *msg, ...) {
     if (crashed) {
         va_list args;
@@ -110,13 +141,13 @@ void install_generic_crash_handler() {
     bzero(&action, sizeof(action));
     action.sa_handler = generic_crash_handler;
     res = sigaction(SIGSEGV, &action, NULL);
-    guarantee_err(res == 0, "Could not install SEGV handler");
+    guaranteef_err(res == 0, "Could not install SEGV handler");
 #endif
 
     bzero(&action, sizeof(action));
     action.sa_handler = ignore_crash_handler;
     res = sigaction(SIGPIPE, &action, NULL);
-    guarantee_err(res == 0, "Could not install PIPE handler");
+    guaranteef_err(res == 0, "Could not install PIPE handler");
 
     std::set_terminate(&terminate_handler);
 }

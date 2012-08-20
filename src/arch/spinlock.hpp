@@ -20,11 +20,11 @@ public:
 private:
     void lock() {
         int res = pthread_spin_lock(&l);
-        guarantee_err(res == 0, "could not lock spin lock");
+        guaranteef_err(res == 0, "could not lock spin lock");
     }
     void unlock() {
         int res = pthread_spin_unlock(&l);
-        guarantee_err(res == 0, "could not unlock spin lock");
+        guaranteef_err(res == 0, "could not unlock spin lock");
     }
 
     pthread_spinlock_t l;

@@ -179,7 +179,7 @@ cJSON *merge(cJSON *x, cJSON *y) {
     for (std::set<std::string>::iterator it = keys.begin();
                                          it != keys.end();
                                          ++it) {
-        rassert(!cJSON_GetObjectItem(res, it->c_str()), "Overlapping names in merge, name was: %s\n", it->c_str());
+        rassertf(!cJSON_GetObjectItem(res, it->c_str()), "Overlapping names in merge, name was: %s\n", it->c_str());
         cJSON_AddItemToObject(res, it->c_str(), cJSON_DetachItemFromObject(y, it->c_str()));
     }
 

@@ -219,7 +219,7 @@ public:
         combined_metainfo_.update(metainfo);
 
         --countdown_;
-        rassert(countdown_ >= 0, "countdown_ is %d\n", countdown_);
+        rassertf(countdown_ >= 0, "countdown_ is %d\n", countdown_);
 
         if (countdown_ == 0) {
             bool tmp = should_backfill_cb_->should_backfill(combined_metainfo_);

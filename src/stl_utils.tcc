@@ -87,7 +87,7 @@ std::map<B, A> invert_bijection_map(const std::map<A, B> &bijection) {
     std::map<B, A> inverted;
     for (typename std::map<A, B>::const_iterator it = bijection.begin(); it != bijection.end(); ++it) {
         DEBUG_ONLY_VAR bool inserted = inverted.insert(std::make_pair(it->second, it->first)).second;
-        rassert(inserted, "The map that was given is not a bijection and can't be inverted");
+        rassertf(inserted, "The map that was given is not a bijection and can't be inverted");
     }
     return inverted;
 }

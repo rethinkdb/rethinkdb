@@ -40,8 +40,8 @@ public:
             data.swap(buf->data);
         }
 
-        rassert(data.has() || token, "creating buf snapshot without data or block token");
-        rassert(snapshot_refcount + active_refcount, "creating buf snapshot with 0 refcount");
+        rassert(data.has() || token);
+        rassert(snapshot_refcount + active_refcount > 0);
     }
 
 private:
@@ -68,7 +68,7 @@ public:
         if (data.has()) {
             return data.get();
         }
-        rassert(token, "buffer snapshot lacks both token and data");
+        rassertf(token, "buffer snapshot lacks both token and data");
 
 
         // Use a temporary to avoid putting our data member in an allocated-but-uninitialized state.
@@ -78,7 +78,7 @@ public:
             tmp.init_malloc(cache->serializer);
             cache->serializer->block_read(token, tmp.get(), io_account);
         }
-        rassert(!data.has(), "data changed while holding mutex");
+        rassertf(!data.has(), "data changed while holding mutex");
         data.swap(tmp);
 
         return data.get();
@@ -86,7 +86,7 @@ public:
 
     void release_data() {
         cache->assert_thread();
-        rassert(active_refcount, "releasing snapshot data with no active references");
+        rassertf(active_refcount, "releasing snapshot data with no active references");
         --active_refcount;
         if (0 == active_refcount + snapshot_refcount) {
             delete this;
@@ -95,7 +95,7 @@ public:
 
     void release() {
         cache->assert_thread();
-        rassert(snapshot_refcount, "releasing snapshot with no references");
+        rassertf(snapshot_refcount, "releasing snapshot with no references");
         --snapshot_refcount;
         if (0 == snapshot_refcount + active_refcount) {
             delete this;
@@ -436,7 +436,7 @@ void mc_inner_buf_t::release_snapshot_data(void *data) {
     // reference to a block_token_t, whose destructor switches to the serializer thread.
     rassert(coro_t::self());
     cache->assert_thread();
-    rassert(data, "tried to release NULL snapshot data");
+    rassertf(data, "tried to release NULL snapshot data");
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
         // TODO (sam): Obviously this comparison is disgusting.
         if (snap->data.equals(data)) {
@@ -461,7 +461,7 @@ void mc_inner_buf_t::update_data_token(const void *the_data, const intrusive_ptr
     cache->assert_thread();
     // TODO (sam): Obviously this comparison is disgusting.
     if (data.equals(the_data)) {
-        rassert(!data_token, "data token already up-to-date");
+        rassertf(!data_token, "data token already up-to-date");
         data_token = token;
         return;
     }
@@ -470,7 +470,7 @@ void mc_inner_buf_t::update_data_token(const void *the_data, const intrusive_ptr
         if (!snap->data.equals(the_data)) {
             continue;
         }
-        rassert(!snap->token, "snapshot data token already up-to-date");
+        rassertf(!snap->token, "snapshot data token already up-to-date");
         snap->token = token;
         return;
     }
@@ -552,7 +552,7 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
     patches_serialized_size_at_start = -1;
 
     if (snapshotted) {
-        rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
+        rassertf(is_read_mode(mode), "Only read access is allowed to block snapshots");
         // Our snapshotting-specific code can't handle weird read
         // modes, unfortunately.
 
@@ -814,7 +814,7 @@ void mc_buf_lock_t::apply_patch(buf_patch_t *_patch) {
     rassert(mode == rwi_write);
     // TODO (sam): Obviously something's f'd up about this.
     rassert(inner_buf->data.equals(data));
-    rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
+    rassertf(data, "Probably tried to write to a buffer acquired with !should_load.");
     rassert(_patch->get_block_id() == inner_buf->block_id);
 
     scoped_ptr_t<buf_patch_t> patch(_patch);
@@ -855,7 +855,7 @@ void *mc_buf_lock_t::get_data_major_write() {
     rassert(mode == rwi_write);
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
-    rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
+    rassertf(data, "Probably tried to write to a buffer acquired with !should_load.");
 
     inner_buf->assert_thread();
 
@@ -897,7 +897,7 @@ void mc_buf_lock_t::mark_deleted() {
         // change that if it returned false.
         inner_buf->data.free(inner_buf->cache->serializer);
     } else {
-        rassert(!inner_buf->data.has(), "We snapshotted with deletion in mind but inner_buf still has a live data.");
+        rassertf(!inner_buf->data.has(), "We snapshotted with deletion in mind but inner_buf still has a live data.");
     }
 
     rassert(!inner_buf->data.has());
@@ -1145,7 +1145,7 @@ mc_transaction_t::~mc_transaction_t() {
 
     cache->stats->pm_transactions_active.end(&start_time);
 
-    rassert(num_buf_locks_acquired == 0, "num_buf_locks_acquired = %ld", num_buf_locks_acquired);
+    rassertf(num_buf_locks_acquired == 0, "num_buf_locks_acquired = %ld", num_buf_locks_acquired);
     guarantee(num_buf_locks_acquired == 0);
 
     block_pm_duration commit_timer(&cache->stats->pm_transactions_committing);
@@ -1198,14 +1198,14 @@ void mc_transaction_t::maybe_finalize_version() {
 }
 
 void mc_transaction_t::snapshot() {
-    rassert(is_read_mode(get_access()), "Can only make a snapshot in non-writing transaction");
-    rassert(snapshot_version == mc_inner_buf_t::faux_version_id, "Tried to take a snapshot after having acquired a first block");
+    rassertf(is_read_mode(get_access()), "Can only make a snapshot in non-writing transaction");
+    rassertf(snapshot_version == mc_inner_buf_t::faux_version_id, "Tried to take a snapshot after having acquired a first block");
 
     snapshotted = true;
 }
 
 void mc_transaction_t::set_account(mc_cache_account_t *_cache_account) {
-    rassert(cache_account == NULL, "trying to set the transaction's cache_account twice");
+    rassertf(cache_account == NULL, "trying to set the transaction's cache_account twice");
 
     cache_account = _cache_account;
 }
@@ -1346,9 +1346,9 @@ mc_cache_t::~mc_cache_t() {
     shutting_down = true;
     serializer->unregister_read_ahead_cb(this);
 
-    rassert(num_live_non_writeback_transactions == 0,
-            "num_live_non_writeback_transactions is %d\n",
-            num_live_non_writeback_transactions);
+    rassertf(num_live_non_writeback_transactions == 0,
+             "num_live_non_writeback_transactions is %d\n",
+             num_live_non_writeback_transactions);
 
     /* Wait for all transactions to commit before shutting down */
     if (num_live_non_writeback_transactions + num_live_writeback_transactions > 0) {
@@ -1367,9 +1367,9 @@ mc_cache_t::~mc_cache_t() {
     }
 
     rassert(!writeback.has_active_flushes());
-    rassert(num_live_writeback_transactions + num_live_non_writeback_transactions == 0,
-            "num_live_writeback_transactions = %d, num_live_non_writeback_transactions = %d",
-            num_live_writeback_transactions, num_live_non_writeback_transactions);
+    rassertf(num_live_writeback_transactions + num_live_non_writeback_transactions == 0,
+             "num_live_writeback_transactions = %d, num_live_non_writeback_transactions = %d",
+             num_live_writeback_transactions, num_live_non_writeback_transactions);
 
     /* Perform a final sync */
     struct : public writeback_t::sync_callback_t, public cond_t {
@@ -1401,7 +1401,7 @@ block_size_t mc_cache_t::get_block_size() {
 
 void mc_cache_t::register_snapshot(mc_transaction_t *txn) {
     ++stats->pm_registered_snapshots;
-    rassert(txn->snapshot_version == mc_inner_buf_t::faux_version_id, "Snapshot has been already created for this transaction");
+    rassertf(txn->snapshot_version == mc_inner_buf_t::faux_version_id, "Snapshot has been already created for this transaction");
 
     txn->snapshot_version = next_snapshot_version++;
     active_snapshots[txn->snapshot_version] = txn;

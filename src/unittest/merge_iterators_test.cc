@@ -83,7 +83,8 @@ std::list<int> parse_list_of_ints(const std::string &_l) {
         }
     }
 
-    rassert(w.empty(), "we put a space at the end of l for a reason!");
+    // we put a space at the end of l for a reason!
+    rassert(w.empty());
 
     return result;
 }
@@ -112,7 +113,8 @@ test_iterator_t::data_blocks_t parse_data_blocks(const std::string &_db) {
         }
     }
 
-    rassert(w.empty(), "we put a space at the end of db for a reason!");
+    // we put a space at the end of db for a reason!
+    rassert(w.empty());
 
     if (!current_list.empty()) {
         result.push_back(current_list);

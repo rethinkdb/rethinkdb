@@ -56,7 +56,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
     addr.sin_addr = host.addr;
     bzero(addr.sin_zero, sizeof(addr.sin_zero));
 
-    guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
+    guaranteef_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
 
     int res = connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)); if (res != 0) {
         if (errno == EINPROGRESS) {
@@ -91,7 +91,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
     rassert(sock.get() != INVALID_FD);
 
     int res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
-    guarantee_err(res == 0, "Could not make socket non-blocking");
+    guaranteef_err(res == 0, "Could not make socket non-blocking");
 }
 
 linux_tcp_conn_t::write_buffer_t * linux_tcp_conn_t::get_write_buffer() {
@@ -482,19 +482,19 @@ void linux_tcp_conn_t::set_keepalive(int idle_seconds, int try_interval_seconds,
     int res;
     int keepalive = 1;
     res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
-    guarantee_err(res == 0, "setsockopt(SO_KEEPALIVE) failed");
+    guaranteef_err(res == 0, "setsockopt(SO_KEEPALIVE) failed");
     res = setsockopt(sock.get(), SOL_TCP, TCP_KEEPIDLE, &idle_seconds, sizeof(idle_seconds));
-    guarantee_err(res == 0, "setsockopt(TCP_KEEPIDLE) failed");
+    guaranteef_err(res == 0, "setsockopt(TCP_KEEPIDLE) failed");
     res = setsockopt(sock.get(), SOL_TCP, TCP_KEEPINTVL, &try_interval_seconds, sizeof(try_interval_seconds));
-    guarantee_err(res == 0, "setsockopt(TCP_KEEPINTVL) failed");
+    guaranteef_err(res == 0, "setsockopt(TCP_KEEPINTVL) failed");
     res = setsockopt(sock.get(), SOL_TCP, TCP_KEEPCNT, &try_count, sizeof(try_count));
-    guarantee_err(res == 0, "setsockopt(TCP_KEEPCNT) failed");
+    guaranteef_err(res == 0, "setsockopt(TCP_KEEPCNT) failed");
 }
 
 void linux_tcp_conn_t::set_keepalive() {
     int keepalive = 0;
     int res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
-    guarantee_err(res == 0, "setsockopt(SO_KEEPALIVE) failed");
+    guaranteef_err(res == 0, "setsockopt(SO_KEEPALIVE) failed");
 }
 
 linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
@@ -645,10 +645,10 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
 
     // Start listening to connections
     int res = listen(sock.get(), 5);
-    guarantee_err(res == 0, "Couldn't listen to the socket");
+    guaranteef_err(res == 0, "Couldn't listen to the socket");
 
     res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
-    guarantee_err(res == 0, "Could not make socket non-blocking");
+    guaranteef_err(res == 0, "Could not make socket non-blocking");
 
     // Start the accept loop
     accept_loop_drainer.init(new auto_drainer_t);
@@ -665,11 +665,11 @@ int linux_nonthrowing_tcp_listener_t::get_port() { return port; }
 
 void linux_nonthrowing_tcp_listener_t::init_socket() {
     int sock_fd = sock.get();
-    guarantee_err(sock_fd != INVALID_FD, "Couldn't create socket");
+    guaranteef_err(sock_fd != INVALID_FD, "Couldn't create socket");
 
     int sockoptval = 1;
     int res = setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval));
-    guarantee_err(res != -1, "Could not set REUSEADDR option");
+    guaranteef_err(res != -1, "Could not set REUSEADDR option");
 
     /* XXX Making our socket NODELAY prevents the problem where responses to
      * pipelined requests are delayed, since the TCP Nagle algorithm will
@@ -683,7 +683,7 @@ void linux_nonthrowing_tcp_listener_t::init_socket() {
      * runtime option for it.
      */
     res = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
-    guarantee_err(res != -1, "Could not set TCP_NODELAY option");
+    guaranteef_err(res != -1, "Could not set TCP_NODELAY option");
 }
 
 bool linux_nonthrowing_tcp_listener_t::bind_socket() {
@@ -767,7 +767,7 @@ linux_nonthrowing_tcp_listener_t::~linux_nonthrowing_tcp_listener_t() {
 
     if (bound) {
         int res = shutdown(sock.get(), SHUT_RDWR);
-        guarantee_err(res == 0, "Could not shutdown main socket");
+        guaranteef_err(res == 0, "Could not shutdown main socket");
     }
 
     // scoped_fd_t destructor will close() the socket
@@ -863,7 +863,7 @@ std::vector<std::string> get_ips() {
                 char buf[INET_ADDRSTRLEN + 1] = { 0 };
                 const char *res = inet_ntop(AF_INET, &in_addr->sin_addr, buf, INET_ADDRSTRLEN);
 
-                guarantee_err(res != NULL, "inet_ntop failed");
+                guaranteef_err(res != NULL, "inet_ntop failed");
 
                 ret.push_back(std::string(buf));
             }
@@ -874,7 +874,7 @@ std::vector<std::string> get_ips() {
                 char buf[INET_ADDRSTRLEN + 1] = { 0 };
                 const char *res = inet_ntop(AF_INET6, &in6_addr->sin6_addr, buf, INET6_ADDRSTRLEN);
 
-                guarantee_err(res != NULL, "inet_ntop failed on an ipv6 address");
+                guaranteef_err(res != NULL, "inet_ntop failed on an ipv6 address");
 
                 ret.push_back(std::string(buf));
             }

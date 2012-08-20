@@ -26,7 +26,7 @@ void message_multiplexer_t::run_t::on_message(peer_id_t source, read_stream_t *s
     archive_result_t res = deserialize(stream, &tag);
     if (res) { throw fake_archive_exc_t(); }
     client_t *client = parent->clients[tag];
-    guarantee(client != NULL, "Got a message for an unfamiliar tag. Apparently "
+    guaranteef(client != NULL, "Got a message for an unfamiliar tag. Apparently "
         "we aren't compatible with the cluster on the other end.");
     client->run->message_handler->on_message(source, stream);
 }

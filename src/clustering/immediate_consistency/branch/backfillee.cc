@@ -276,7 +276,7 @@ void backfillee(
                                                         jt++) {
                 typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
                 if (!region_is_empty(ixn)) {
-                    rassert(version_is_ancestor(branch_history_manager,
+                    rassertf(version_is_ancestor(branch_history_manager,
                         it->second.earliest,
                         jt->second.latest,
                         ixn),

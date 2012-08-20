@@ -22,10 +22,10 @@ linux_aio_getevents_eventfd_t::linux_aio_getevents_eventfd_t(linux_diskmgr_aio_t
     : parent(_parent) {
     // Create aio notify fd
     aio_notify_fd = eventfd(0, 0);
-    guarantee_err(aio_notify_fd != -1, "Could not create aio notification fd");
+    guaranteef_err(aio_notify_fd != -1, "Could not create aio notification fd");
 
     int res = fcntl(aio_notify_fd, F_SETFL, O_NONBLOCK);
-    guarantee_err(res == 0, "Could not make aio notify fd non-blocking");
+    guaranteef_err(res == 0, "Could not make aio notify fd non-blocking");
 
     parent->queue->watch_resource(aio_notify_fd, poll_event_in, this);
 }
@@ -34,7 +34,7 @@ linux_aio_getevents_eventfd_t::~linux_aio_getevents_eventfd_t() {
     parent->queue->forget_resource(aio_notify_fd, this);
 
     int res = close(aio_notify_fd);
-    guarantee_err(res == 0, "Could not close aio_notify_fd");
+    guaranteef_err(res == 0, "Could not close aio_notify_fd");
 }
 
 void linux_aio_getevents_eventfd_t::prep(iocb *req) {
@@ -52,7 +52,7 @@ void linux_aio_getevents_eventfd_t::on_event(int event_mask) {
     // TODO: What exactly is an eventfd_t?
     eventfd_t nevents_total;
     int res = eventfd_read(aio_notify_fd, &nevents_total);
-    guarantee_err(res == 0, "Could not read aio_notify_fd value");
+    guaranteef_err(res == 0, "Could not read aio_notify_fd value");
 
     // Note: O(1) array allocators are hard. To avoid all the
     // complexity, we'll use a fixed sized array and call io_getevents

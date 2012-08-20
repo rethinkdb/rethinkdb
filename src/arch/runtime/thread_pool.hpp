@@ -126,8 +126,8 @@ void linux_thread_pool_t::run_in_blocker_pool(const Callable &fn)
     job.fn = &fn;
     job.suspended = coro_t::self();
 
-    rassert(thread_pool->generic_blocker_pool != NULL,
-            "thread_pool_t::run_in_blocker_pool called while generic_thread_pool uninitialized");
+    rassertf(thread_pool->generic_blocker_pool != NULL,
+             "thread_pool_t::run_in_blocker_pool called while generic_thread_pool uninitialized");
     thread_pool->generic_blocker_pool->do_job(&job);
 
     // Give up execution, to be resumed when the done callback is made

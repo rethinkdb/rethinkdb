@@ -32,7 +32,7 @@ void http_req_t::resource_t::assign(const std::string &_val) {
 }
 
 void http_req_t::resource_t::assign(const char * _val, size_t size) {
-    rassert(size > 0 && _val[0] == resource_parts_sep_char[0], "resource path must start with a '/'");
+    rassertf(size > 0 && _val[0] == resource_parts_sep_char[0], "resource path must start with a '/'");
     val.reset(new char[size]);
     memcpy(val.get(), _val, size);
     val_size = size;
@@ -284,7 +284,7 @@ std::string human_readable_status(int code) {
     case 505:
         return "HTTP Version Not Supported";
     default:
-        rassert(false, "Unknown code %d.", code);
+        rassertf(false, "Unknown code %d.", code);
         return "(Unknown status code)";
     }
 }

@@ -12,10 +12,10 @@ void* blocker_pool_t::event_loop(void *arg) {
     {
         sigset_t sigmask;
         int res = sigfillset(&sigmask);
-        guarantee_err(res == 0, "Could not get a full sigmask");
+        guaranteef_err(res == 0, "Could not get a full sigmask");
 
         res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
-        guarantee_err(res == 0, "Could not block signal");
+        guaranteef_err(res == 0, "Could not block signal");
     }
 
     while (true) {
@@ -67,7 +67,7 @@ blocker_pool_t::blocker_pool_t(int nthreads, linux_event_queue_t *_queue)
     for (size_t i = 0; i < threads.size(); ++i) {
         int res = pthread_create(&threads[i], NULL,
             &blocker_pool_t::event_loop, reinterpret_cast<void*>(this));
-        guarantee(res == 0, "Could not create blocker-pool thread.");
+        guaranteef(res == 0, "Could not create blocker-pool thread.");
     }
 
     // Register with event queue so we get the completion events
@@ -94,7 +94,7 @@ blocker_pool_t::~blocker_pool_t() {
     /* Wait for stuff to actually shut down */
     for (size_t i = 0; i < threads.size(); ++i) {
         int res = pthread_join(threads[i], NULL);
-        guarantee(res == 0, "Could not join blocker-pool thread.");
+        guaranteef(res == 0, "Could not join blocker-pool thread.");
     }
 }
 

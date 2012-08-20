@@ -32,7 +32,7 @@ pool_t::pool_t(pool_group_t *group)
 pool_t::~pool_t() {
     // All workers should be idle before we shut down (clients can interrupt
     // them if necessary).
-    guarantee(busy_workers_.empty(), "Busy workers at pool shutdown!");
+    guaranteef(busy_workers_.empty(), "Busy workers at pool shutdown!");
 
     // Kill worker processes.
     worker_t *w;
@@ -116,7 +116,7 @@ void pool_t::detach_worker(worker_t *worker) {
     busy_workers_.remove(worker);
     worker_semaphore_.unlock();
 
-    guarantee_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
+    guaranteef_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
 
     // Alas, we can't call repair_invariants now, since we're not allowed to
     // block.
@@ -159,7 +159,7 @@ void pool_t::spawn_workers(int num) {
         on_thread_t switcher(spawner()->home_thread());
         for (int i = 0; i < num; ++i) {
             pids[i] = spawner()->spawn_process(&fds[i]);
-            guarantee(-1 != pids[i], "could not spawn worker process");
+            guaranteef(-1 != pids[i], "could not spawn worker process");
         }
     }
 
@@ -168,8 +168,8 @@ void pool_t::spawn_workers(int num) {
         worker_t *worker = new worker_t(this, pids[i], &fds[i]);
 
         // Send it a job that just loops accepting jobs.
-        guarantee(0 == job_acceptor_t().send_over(worker),
-                  "Could not initialize worker process.");
+        guaranteef(0 == job_acceptor_t().send_over(worker),
+                   "Could not initialize worker process.");
 
         // We've successfully spawned one worker.
         guarantee(num_spawning_workers_ > 0); // sanity
@@ -183,7 +183,7 @@ void pool_t::end_worker(workers_t *list, worker_t *worker) {
     rassert(worker && worker->pool_ == this);
 
     list->remove(worker);
-    guarantee_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
+    guaranteef_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
     delete worker;
 }
 
@@ -235,7 +235,7 @@ job_handle_t::~job_handle_t() {
         debugf("job handle still connected on destruction, interrupting\n");
         interrupt();
     }
-    rassert(!connected(), "job handle still connected on destruction");
+    rassertf(!connected(), "job handle still connected on destruction");
 }
 
 int job_handle_t::begin(pool_t *pool, const job_t &job) {

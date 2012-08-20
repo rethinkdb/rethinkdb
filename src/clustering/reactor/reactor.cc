@@ -67,7 +67,7 @@ directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::set(typename 
 template <class protocol_t>
 directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_without_changing_id(typename reactor_business_card_t<protocol_t>::activity_t activity) {
     typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
-    rassert(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
+    rassertf(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
 
     our_value_change.buffer.activities[reactor_activity_id].second = activity;
     return our_value_change.commit();
@@ -86,7 +86,7 @@ template<class protocol_t>
 void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
     blueprint_t<protocol_t> blueprint = blueprint_watchable->get();
     blueprint.assert_valid();
-    rassert(std_contains(blueprint.peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
+    rassertf(std_contains(blueprint.peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
 
     std::map<typename protocol_t::region_t, typename blueprint_details::role_t> blueprint_roles =
         blueprint.peers_roles.find(get_me())->second;
@@ -114,7 +114,7 @@ void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
 template<class protocol_t>
 void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
     blueprint_t<protocol_t> blueprint = blueprint_watchable->get();
-    rassert(std_contains(blueprint.peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
+    rassertf(std_contains(blueprint.peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
 
     std::map<typename protocol_t::region_t, typename blueprint_details::role_t> blueprint_roles =
         (*blueprint.peers_roles.find(get_me())).second;

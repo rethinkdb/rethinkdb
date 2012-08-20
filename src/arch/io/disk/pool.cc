@@ -28,7 +28,7 @@ void pool_diskmgr_t::action_t::run() {
     } else {
         res = pwrite(fd, buf, count, offset);
     }
-    guarantee_err((size_t)res == count, "pread()/pwrite() failed.");
+    guaranteef_err((size_t)res == count, "pread()/pwrite() failed.");
 }
 
 void pool_diskmgr_t::action_t::done() {

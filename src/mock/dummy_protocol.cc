@@ -55,7 +55,7 @@ dummy_protocol_t::region_t dummy_protocol_t::read_t::get_region() const {
 }
 
 dummy_protocol_t::read_t dummy_protocol_t::read_t::shard(region_t region) const {
-    rassert(region_is_superset(get_region(), region),
+    rassertf(region_is_superset(get_region(), region),
         "Parameter to `shard()` should be a subset of read's region.");
     read_t r;
     r.keys = region_intersection(region, keys);
@@ -67,11 +67,10 @@ void dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, dummy
     for (size_t i = 0; i < resps.size(); ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].values.begin();
                 it != resps[i].values.end(); it++) {
-            rassert(keys.keys.count((*it).first) != 0,
-                "We got a response that doesn't match our request");
-            rassert(response->values.count((*it).first) == 0,
-                "Part of the query was run multiple times, or a response was "
-                "duplicated.");
+            // Make sure our response matches our request.
+            rassert(keys.keys.count((*it).first) != 0);
+            // Make sure we only get our response once.
+            rassert(response->values.count((*it).first) == 0);
             response->values[(*it).first] = (*it).second;
         }
     }
@@ -91,8 +90,7 @@ dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
 }
 
 dummy_protocol_t::write_t dummy_protocol_t::write_t::shard(region_t region) const {
-    rassert(region_is_superset(get_region(), region),
-        "Parameter to `shard()` should be a subset of the write's region.");
+    rassert(region_is_superset(get_region(), region));
     write_t w;
     for (std::map<std::string, std::string>::const_iterator it = values.begin();
             it != values.end(); it++) {
@@ -108,11 +106,10 @@ void dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, wri
     for (size_t i = 0; i < resps.size(); ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].old_values.begin();
                 it != resps[i].old_values.end(); it++) {
-            rassert(values.find((*it).first) != values.end(),
-                "We got a response that doesn't match our request.");
-            rassert(response->old_values.count((*it).first) == 0,
-                "Part of the query was run multiple times, or a response was "
-                "duplicated.");
+            // Make sure response matches request.
+            rassert(values.find((*it).first) != values.end());
+            // Make sure response only comes once, not twice.
+            rassert(response->old_values.count((*it).first) == 0);
             response->old_values[(*it).first] = (*it).second;
         }
     }

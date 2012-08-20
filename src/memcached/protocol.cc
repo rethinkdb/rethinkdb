@@ -234,14 +234,14 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 
         for (int i = 0, e = bits.size(); i < e; i++) {
             const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
-            rassert(result, "Bad boost::get\n");
+            rassert(result);
 
 #ifndef NDEBUG
             for (std::map<store_key_t, int>::const_iterator it = result->key_counts.begin();
                  it != result->key_counts.end();
                  ++it) {
-                rassert(!std_contains(res.key_counts, it->first), "repeated key '%*.*s'",
-                        static_cast<int>(it->first.size()), static_cast<int>(it->first.size()), it->first.contents());
+                rassertf(!std_contains(res.key_counts, it->first), "repeated key '%*.*s'",
+                         static_cast<int>(it->first.size()), static_cast<int>(it->first.size()), it->first.contents());
             }
 #endif
             res.key_counts.insert(result->key_counts.begin(), result->key_counts.end());
@@ -311,7 +311,7 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_res
         int64_t total_keys_in_res = 0;
         for (int i = 0, e = bits.size(); i < e; ++i) {
             const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
-            rassert(result, "Bad boost::get\n");
+            rassert(result);
 
             int64_t tmp_total_keys = 0;
             for (std::map<store_key_t, int>::const_iterator it = result->key_counts.begin();

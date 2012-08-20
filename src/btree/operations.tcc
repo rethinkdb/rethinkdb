@@ -161,7 +161,7 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
             if (!expired) {
-                rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
+                rassert(tstamp != repli_timestamp_t::invalid);
                 leaf_patched_remove(&kv_loc->buf, key, tstamp, km_proof);
                 population_change = -1;
                 kv_loc->stats->pm_keys_set.record();

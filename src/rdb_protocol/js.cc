@@ -242,11 +242,11 @@ struct compile_task_t : auto_task_t<compile_task_t> {
         p += src_.size();
 
         memcpy(p, end, endsz);
-        rassert(p - buf->data() == size - endsz,
-                "\np - buf->data() = %ld\nsize = %ld\nendsz = %lu",
-                p - buf->data(),
-                size,
-                endsz);
+        rassertf(p - buf->data() == size - endsz,
+                 "\np - buf->data() = %ld\nsize = %ld\nendsz = %lu",
+                 p - buf->data(),
+                 size,
+                 endsz);
     }
 
     v8::Handle<v8::Function> mkFunc(std::string *errmsg) {

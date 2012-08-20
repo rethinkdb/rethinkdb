@@ -140,7 +140,7 @@ public:
 
     // Important: 'update' assumes that new_values regions do not intersect
     void update(const region_map_t& new_values) {
-        rassert(region_is_superset(get_domain(), new_values.get_domain()), "Update cannot expand the domain of a region_map.");
+        rassertf(region_is_superset(get_domain(), new_values.get_domain()), "Update cannot expand the domain of a region_map.");
         std::vector<typename protocol_t::region_t> overlay_regions;
         for (const_iterator i = new_values.begin(); i != new_values.end(); ++i) {
             overlay_regions.push_back((*i).first);

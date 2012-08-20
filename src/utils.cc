@@ -93,7 +93,7 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
 void format_time(struct timespec time, append_only_printf_buffer_t *buf) {
     struct tm t;
     struct tm *res1 = localtime_r(&time.tv_sec, &t);
-    guarantee_err(res1 == &t, "gmtime_r() failed.");
+    guaranteef_err(res1 == &t, "gmtime_r() failed.");
     buf->appendf(
         "%04d-%02d-%02dT%02d:%02d:%02d.%09ld",
         t.tm_year+1900,
@@ -222,7 +222,7 @@ void debugf_prefix_buf(printf_buffer_t<1000> *buf) {
     struct timespec t;
 
     int res = clock_gettime(CLOCK_REALTIME, &t);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+    guaranteef_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
 
     format_time(t, buf);
 
@@ -236,9 +236,9 @@ void debugf_dump_buf(printf_buffer_t<1000> *buf) {
     // flockfile both stderr and stdout because there's no established
     // rule about which one should be locked first.)
     size_t nitems = fwrite(buf->data(), 1, buf->size(), stderr);
-    guarantee_err(nitems == size_t(buf->size()), "trouble writing to stderr");
+    guaranteef_err(nitems == size_t(buf->size()), "trouble writing to stderr");
     int res = fflush(stderr);
-    guarantee_err(res == 0, "fflush(stderr) failed");
+    guaranteef_err(res == 0, "fflush(stderr) failed");
 }
 
 void debugf(const char *msg, ...) {
@@ -309,7 +309,7 @@ int randint(int n) {
     if (!TLS_get_rng_initialized()) {
         struct timespec ts;
         int res = clock_gettime(CLOCK_REALTIME, &ts);
-        guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+        guaranteef_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
         srand48_r(ts.tv_nsec, &buffer);
         TLS_set_rng_initialized(true);
     } else {

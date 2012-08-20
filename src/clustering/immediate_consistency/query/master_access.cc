@@ -6,7 +6,8 @@
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
 
-#define THROTTLE_THRESHOLD 200
+// TODO: Did we mean to use this macro?
+// #define THROTTLE_THRESHOLD 200
 
 template <class protocol_t>
 master_access_t<protocol_t>::master_access_t(

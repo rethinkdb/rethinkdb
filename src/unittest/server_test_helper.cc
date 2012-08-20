@@ -91,7 +91,7 @@ bool server_test_helper_t::acq_check_if_blocks_until_buf_released(buf_lock_t *ne
         already_acquired_block->release();
         if (result) {
             nap(500);
-            rassert(acq_coro.signaled, "Waiting acquire did not complete following release. May be a bug in the test.");
+            rassertf(acq_coro.signaled, "Waiting acquire did not complete following release. May be a bug in the test.");
         }
     }
 

@@ -46,7 +46,7 @@ public:
         for (typename role_map_t::const_iterator it =  peers_roles.begin();
                                                  it != peers_roles.end();
                                                  it++) {
-            rassert(keys(it->second) == ref_regions, "Found blueprint with different peers having different sharding schemes.");
+            rassertf(keys(it->second) == ref_regions, "Found blueprint with different peers having different sharding schemes.");
         }
     }
 

@@ -118,7 +118,7 @@ public:
 
     void rethread(int new_thread) {
 
-        rassert(publisher.subscriptions.empty(), "Cannot rethread a "
+        rassertf(publisher.subscriptions.empty(), "Cannot rethread a "
             "`publisher_t` that has subscribers.");
 
         real_home_thread = new_thread;

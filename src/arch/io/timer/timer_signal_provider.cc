@@ -35,7 +35,7 @@ timer_signal_provider_t::timer_signal_provider_t(linux_event_queue_t *_queue,
 
     // Create the timer
     int res = timer_create(CLOCK_MONOTONIC, &evp, &timerid);
-    guarantee_err(res == 0, "Could not create timer");
+    guaranteef_err(res == 0, "Could not create timer");
 
     // Arm the timer
     itimerspec timer_spec;
@@ -44,12 +44,12 @@ timer_signal_provider_t::timer_signal_provider_t(linux_event_queue_t *_queue,
     timer_spec.it_value.tv_nsec = timer_spec.it_interval.tv_nsec = nsecs;
 
     res = timer_settime(timerid, 0, &timer_spec, NULL);
-    guarantee_err(res == 0, "Could not arm the timer");
+    guaranteef_err(res == 0, "Could not arm the timer");
 }
 
 timer_signal_provider_t::~timer_signal_provider_t() {
     int res = timer_delete(timerid);
-    guarantee_err(res == 0, "Could not close the timer.");
+    guaranteef_err(res == 0, "Could not close the timer.");
     queue->forget_signal(&evp, this);
 }
 

@@ -25,7 +25,7 @@ bool raw_mailbox_t::address_t::is_nil() const {
 }
 
 peer_id_t raw_mailbox_t::address_t::get_peer() const {
-    rassert(!is_nil(), "A nil address has no peer");
+    rassertf(!is_nil(), "A nil address has no peer");
     return peer;
 }
 
@@ -90,8 +90,7 @@ mailbox_manager_t::mailbox_table_t::mailbox_table_t() {
 }
 
 mailbox_manager_t::mailbox_table_t::~mailbox_table_t() {
-    rassert(mailboxes.empty(), "Please destroy all mailboxes before destroying "
-        "the cluster");
+    rassertf(mailboxes.empty(), "Please destroy all mailboxes before destroying the cluster");
 }
 
 raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::id_t id) {

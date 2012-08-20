@@ -149,7 +149,7 @@ struct entry_iter_t {
 
     bool done(value_sizer_t<void> *sizer) const {
         int bs = sizer->block_size().value();
-        rassert(offset <= bs, "offset=%d, bs=%d", offset, bs);
+        rassertf(offset <= bs, "offset=%d, bs=%d", offset, bs);
         return offset == bs;
     }
 
@@ -416,7 +416,7 @@ void validate(DEBUG_ONLY_VAR value_sizer_t<void> *sizer, DEBUG_ONLY_VAR const le
     do_nothing_fscker_t fits;
     std::string msg;
     bool fscked_successfully = fsck(sizer, NULL, NULL, node, &fits, &msg);
-    rassert(fscked_successfully, "%s", msg.c_str());
+    rassertf(fscked_successfully, "%s", msg.c_str());
 #endif
 }
 
@@ -932,7 +932,7 @@ void split(value_sizer_t<void> *sizer, leaf_node_t *node, leaf_node_t *rnode, bt
 
     // Now prev_rcost and rcost envelope mandatory / 2.
     rassert(prev_rcost < mandatory / 2);
-    rassert(rcost >= mandatory / 2, "rcost = %d, mandatory / 2 = %d, i = %d", rcost, mandatory / 2, i);
+    rassertf(rcost >= mandatory / 2, "rcost = %d, mandatory / 2 = %d, i = %d", rcost, mandatory / 2, i);
 
     int s;
     int end_rcost;
@@ -1148,7 +1148,7 @@ void assert_not_old_timestamp(DEBUG_ONLY_VAR leaf_node_t *node, DEBUG_ONLY_VAR r
         repli_timestamp_t old_tstamp = get_timestamp(node, node->frontmost);
         // Timestamps aren't unique (because they're low-resolution)
         // but they are in order.
-        rassert(tstamp >= old_tstamp, "tstamp = %lu, old_tstamp = %lu, key=%.*s", tstamp.longtime, old_tstamp.longtime, key->size, key->contents);
+        rassertf(tstamp >= old_tstamp, "tstamp = %lu, old_tstamp = %lu, key=%.*s", tstamp.longtime, old_tstamp.longtime, key->size, key->contents);
     }
 #endif
 }
@@ -1298,7 +1298,7 @@ void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node
         entry_iter_t iter = entry_iter_t::make(node);
         while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
-            rassert(earliest_so_far >= tstamp, "asserted earliest_so_far (%lu) >= tstamp (%lu)", earliest_so_far.longtime, tstamp.longtime);
+            rassertf(earliest_so_far >= tstamp, "asserted earliest_so_far (%lu) >= tstamp (%lu)", earliest_so_far.longtime, tstamp.longtime);
             earliest_so_far = tstamp;
 
             if (tstamp < minimum_tstamp) {

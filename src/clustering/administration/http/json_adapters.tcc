@@ -111,7 +111,7 @@ json_vclock_adapter_t<T>::json_vclock_adapter_t(vclock_t<T> *target, const vcloc
 template <class T>
 json_adapter_if_t::json_adapter_map_t json_vclock_adapter_t<T>::get_subfields_impl() {
     json_adapter_if_t::json_adapter_map_t res = with_ctx_get_json_subfields(target_, ctx_);
-    rassert(!std_contains(res, "resolve"), "Programmer error: do not put anything with a \"resolve\" subfield in a vector clock.\n");
+    rassertf(!std_contains(res, "resolve"), "Programmer error: do not put anything with a \"resolve\" subfield in a vector clock.\n");
     res["resolve"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_resolver_t<T>(target_, ctx_));
 
     return res;

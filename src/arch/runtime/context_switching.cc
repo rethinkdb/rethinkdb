@@ -22,7 +22,7 @@ LGPL. */
 context_ref_t::context_ref_t() : pointer(NULL) { }
 
 context_ref_t::~context_ref_t() {
-    rassert(is_nil(), "You're leaking a context.");
+    rassertf(is_nil(), "You're leaking a context.");
 }
 
 bool context_ref_t::is_nil() {
@@ -86,8 +86,8 @@ artificial_stack_t::~artificial_stack_t() {
     /* `context` must now point to what it was when we were created. If it
     doesn't, that means we're deleting the stack but the corresponding context
     is still "out there" somewhere. */
-    rassert(!context.is_nil(), "we never got our context back");
-    rassert(address_in_stack(context.pointer), "we got the wrong context back");
+    rassertf(!context.is_nil(), "we never got our context back");
+    rassertf(address_in_stack(context.pointer), "we got the wrong context back");
 
     /* Set `context.pointer` to nil to avoid tripping an assertion in its
     destructor. */
@@ -142,11 +142,11 @@ void context_switch(context_ref_t *current_context_out, context_ref_t *dest_cont
     `catch`-block. We use the non-standard GCC-only interface "cxxabi.h" to
     figure out if we're in the catch clause of an exception handler. In C++0x we
     will be able to use std::current_exception() instead. */
-    rassert(!abi::__cxa_current_exception_type(), "It's not safe to switch "
+    rassertf(!abi::__cxa_current_exception_type(), "It's not safe to switch "
         "coroutine stacks in the catch-clause of an exception handler.");
 
-    rassert(current_context_out->is_nil(), "that variable already holds a context");
-    rassert(!dest_context_in->is_nil(), "cannot switch to nil context");
+    rassertf(current_context_out->is_nil(), "that variable already holds a context");
+    rassertf(!dest_context_in->is_nil(), "cannot switch to nil context");
 
     /* `lightweight_swapcontext()` won't set `dest_context_in->pointer` to NULL,
     so we have to do that ourselves. */

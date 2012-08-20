@@ -18,7 +18,7 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *_queue, linux_thre
 
     for (int i = 0; i < thread_pool->n_threads; i++) {
         int res = pthread_spin_init(&incoming_messages_lock, PTHREAD_PROCESS_PRIVATE);
-        guarantee(res == 0, "Could not initialize spin lock");
+        guaranteef(res == 0, "Could not initialize spin lock");
 
         // Create notify fd for other cores that send work to us
         notify[i].notifier_thread = i;
@@ -35,7 +35,7 @@ linux_message_hub_t::~linux_message_hub_t() {
         rassert(queues[i].msg_local_list.empty());
 
         res = pthread_spin_destroy(&incoming_messages_lock);
-        guarantee(res == 0, "Could not destroy spin lock");
+        guaranteef(res == 0, "Could not destroy spin lock");
     }
 
     rassert(incoming_messages.empty());

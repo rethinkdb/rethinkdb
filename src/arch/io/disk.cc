@@ -66,7 +66,7 @@ public:
     }
 
     ~linux_templated_disk_manager_t() {
-        rassert(outstanding_txn == 0, "Closing a file with outstanding txns\n");
+        rassert(outstanding_txn == 0);
     }
 
     void *create_account(int pri, int outstanding_requests_limit) {
@@ -192,7 +192,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     struct stat64 file_stat;
     memset(&file_stat, 0, sizeof(file_stat));  // make valgrind happy
     int res = stat64(path, &file_stat);
-    guarantee_err(res == 0 || errno == ENOENT, "Could not stat file '%s'", path);
+    guaranteef_err(res == 0 || errno == ENOENT, "Could not stat file '%s'", path);
 
     if (res == -1 && errno == ENOENT) {
         if (!(mode & mode_create)) {
@@ -254,12 +254,12 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
 
     if (is_block) {
         res = ioctl(fd.get(), BLKGETSIZE64, &file_size);
-        guarantee_err(res != -1, "Could not determine block device size");
+        guaranteef_err(res != -1, "Could not determine block device size");
     } else {
         off64_t size = lseek64(fd.get(), 0, SEEK_END);
-        guarantee_err(size != -1, "Could not determine file size");
+        guaranteef_err(size != -1, "Could not determine file size");
         res = lseek64(fd.get(), 0, SEEK_SET);
-        guarantee_err(res != -1, "Could not reset file position");
+        guaranteef_err(res != -1, "Could not reset file position");
 
         file_size = size;
     }
@@ -294,7 +294,7 @@ size_t linux_file_t::get_size() {
 void linux_file_t::set_size(size_t size) {
     rassert(!is_block);
     int res = ftruncate(fd.get(), size);
-    guarantee_err(res == 0, "Could not ftruncate()");
+    guaranteef_err(res == 0, "Could not ftruncate()");
     fsync(fd.get()); // Make sure that the metadata change gets persisted
                      // before we start writing to the resized file.
                      // (to be safe in case of system crashes etc.)
@@ -315,7 +315,7 @@ void linux_file_t::set_size_at_least(size_t size) {
 }
 
 void linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
-    rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
+    rassertf(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
     verify(offset, length, buf);
     diskmgr->submit_read(fd.get(), buf, length, offset,
         account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),
@@ -323,7 +323,7 @@ void linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_fil
 }
 
 void linux_file_t::write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
-    rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
+    rassertf(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
 #ifdef DEBUG_DUMP_WRITES
     debugf("--- WRITE BEGIN ---\n");
@@ -345,7 +345,7 @@ void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
     if (res == -1 && errno == EINTR) {
         goto tryagain;
     }
-    rassert(size_t(res) == length, "Blocking read failed");
+    rassertf(size_t(res) == length, "Blocking read failed");
     (void)res;
 }
 
@@ -356,7 +356,7 @@ void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf)
     if (res == -1 && errno == EINTR) {
         goto tryagain;
     }
-    rassert(size_t(res) == length, "Blocking write failed");
+    rassertf(size_t(res) == length, "Blocking write failed");
     (void)res;
 }
 

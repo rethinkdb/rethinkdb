@@ -33,14 +33,14 @@ void blocking_fd_watcher_t::on_shutdown_write() {
 bool blocking_fd_watcher_t::wait_for_read(signal_t *interruptor) {
     guarantee(read_open_);
     // blocking IO and interruption don't go together nicely
-    guarantee(!interruptor, "blocking_fd_watcher_t doesn't support interruption");
+    guaranteef(!interruptor, "blocking_fd_watcher_t doesn't support interruption");
     return true;
 }
 
 bool blocking_fd_watcher_t::wait_for_write(signal_t *interruptor) {
     guarantee(write_open_);
     // blocking IO and interruption don't go together nicely
-    guarantee(!interruptor, "blocking_fd_watcher_t doesn't support interruption");
+    guaranteef(!interruptor, "blocking_fd_watcher_t doesn't support interruption");
     return true;
 }
 
@@ -53,8 +53,8 @@ linux_event_fd_watcher_t::linux_event_fd_watcher_t(fd_t fd)
       event_callback_(NULL),
       event_watcher_(fd, this)
 {
-    guarantee_err(0 == fcntl(fd, F_SETFL, O_NONBLOCK),
-                  "Could not make fd non-blocking.");
+    guaranteef_err(0 == fcntl(fd, F_SETFL, O_NONBLOCK),
+                   "Could not make fd non-blocking.");
 }
 
 void linux_event_fd_watcher_t::init_callback(linux_event_callback_t *cb) {

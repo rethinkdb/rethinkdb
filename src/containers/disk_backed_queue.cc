@@ -31,7 +31,7 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
        get deleted as soon as the serializer is destroyed or if the process
        crashes */
     int res = unlink(filename.c_str());
-    guarantee_err(res == 0, "unlink() failed");
+    guaranteef_err(res == 0, "unlink() failed");
 
     /* Create the cache. */
     mirrored_cache_static_config_t cache_static_config;

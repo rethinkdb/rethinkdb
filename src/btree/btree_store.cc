@@ -260,7 +260,7 @@ void btree_store_t<protocol_t>::get_metainfo_internal(transaction_t *txn, buf_lo
         {
             vector_read_stream_t key(&i->first);
             DEBUG_ONLY_VAR archive_result_t res = deserialize(&key, &region);
-            rassert(!res, "res = %d", res);
+            rassertf(!res, "res = %d", res);
         }
 
         result.push_back(std::make_pair(

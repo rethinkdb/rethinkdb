@@ -40,7 +40,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_0(...) RDB_EXPAND_SERIALIZABLE_0(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_0(...) RDB_EXPAND_SERIALIZABLE_0(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_0(...) RDB_EXPAND_SERIALIZABLE_0(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_0() \
     friend class write_message_t; \
@@ -66,7 +66,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_1(...) RDB_EXPAND_SERIALIZABLE_1(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_1(...) RDB_EXPAND_SERIALIZABLE_1(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_1(...) RDB_EXPAND_SERIALIZABLE_1(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_1(field1) \
     friend class write_message_t; \
@@ -98,7 +98,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_2(...) RDB_EXPAND_SERIALIZABLE_2(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_2(...) RDB_EXPAND_SERIALIZABLE_2(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_2(...) RDB_EXPAND_SERIALIZABLE_2(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_2(field1, field2) \
     friend class write_message_t; \
@@ -136,7 +136,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_3(...) RDB_EXPAND_SERIALIZABLE_3(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_3(...) RDB_EXPAND_SERIALIZABLE_3(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_3(...) RDB_EXPAND_SERIALIZABLE_3(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_3(field1, field2, field3) \
     friend class write_message_t; \
@@ -180,7 +180,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_4(...) RDB_EXPAND_SERIALIZABLE_4(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_4(...) RDB_EXPAND_SERIALIZABLE_4(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_4(...) RDB_EXPAND_SERIALIZABLE_4(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_4(field1, field2, field3, field4) \
     friend class write_message_t; \
@@ -230,7 +230,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_5(...) RDB_EXPAND_SERIALIZABLE_5(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_5(...) RDB_EXPAND_SERIALIZABLE_5(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_5(...) RDB_EXPAND_SERIALIZABLE_5(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_5(field1, field2, field3, field4, field5) \
     friend class write_message_t; \
@@ -286,7 +286,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_6(...) RDB_EXPAND_SERIALIZABLE_6(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_6(...) RDB_EXPAND_SERIALIZABLE_6(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_6(...) RDB_EXPAND_SERIALIZABLE_6(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_6(field1, field2, field3, field4, field5, field6) \
     friend class write_message_t; \
@@ -348,7 +348,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_7(...) RDB_EXPAND_SERIALIZABLE_7(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_7(...) RDB_EXPAND_SERIALIZABLE_7(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_7(...) RDB_EXPAND_SERIALIZABLE_7(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_7(field1, field2, field3, field4, field5, field6, field7) \
     friend class write_message_t; \
@@ -416,7 +416,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_8(...) RDB_EXPAND_SERIALIZABLE_8(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_8(...) RDB_EXPAND_SERIALIZABLE_8(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_8(...) RDB_EXPAND_SERIALIZABLE_8(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_8(field1, field2, field3, field4, field5, field6, field7, field8) \
     friend class write_message_t; \
@@ -490,7 +490,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_9(...) RDB_EXPAND_SERIALIZABLE_9(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_9(...) RDB_EXPAND_SERIALIZABLE_9(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_9(...) RDB_EXPAND_SERIALIZABLE_9(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_9(field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     friend class write_message_t; \
@@ -570,7 +570,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_10(...) RDB_EXPAND_SERIALIZABLE_10(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_10(...) RDB_EXPAND_SERIALIZABLE_10(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_10(...) RDB_EXPAND_SERIALIZABLE_10(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_10(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     friend class write_message_t; \
@@ -656,7 +656,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_11(...) RDB_EXPAND_SERIALIZABLE_11(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_11(...) RDB_EXPAND_SERIALIZABLE_11(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_11(...) RDB_EXPAND_SERIALIZABLE_11(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_11(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     friend class write_message_t; \
@@ -748,7 +748,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_12(...) RDB_EXPAND_SERIALIZABLE_12(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_12(...) RDB_EXPAND_SERIALIZABLE_12(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_12(...) RDB_EXPAND_SERIALIZABLE_12(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_12(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     friend class write_message_t; \
@@ -846,7 +846,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_13(...) RDB_EXPAND_SERIALIZABLE_13(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_13(...) RDB_EXPAND_SERIALIZABLE_13(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_13(...) RDB_EXPAND_SERIALIZABLE_13(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_13(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     friend class write_message_t; \
@@ -950,7 +950,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_14(...) RDB_EXPAND_SERIALIZABLE_14(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_14(...) RDB_EXPAND_SERIALIZABLE_14(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_14(...) RDB_EXPAND_SERIALIZABLE_14(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_14(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     friend class write_message_t; \
@@ -1060,7 +1060,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_15(...) RDB_EXPAND_SERIALIZABLE_15(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_15(...) RDB_EXPAND_SERIALIZABLE_15(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_15(...) RDB_EXPAND_SERIALIZABLE_15(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_15(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     friend class write_message_t; \
@@ -1176,7 +1176,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_16(...) RDB_EXPAND_SERIALIZABLE_16(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_16(...) RDB_EXPAND_SERIALIZABLE_16(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_16(...) RDB_EXPAND_SERIALIZABLE_16(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_16(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     friend class write_message_t; \
@@ -1298,7 +1298,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_17(...) RDB_EXPAND_SERIALIZABLE_17(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_17(...) RDB_EXPAND_SERIALIZABLE_17(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_17(...) RDB_EXPAND_SERIALIZABLE_17(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_17(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     friend class write_message_t; \
@@ -1426,7 +1426,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_18(...) RDB_EXPAND_SERIALIZABLE_18(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_18(...) RDB_EXPAND_SERIALIZABLE_18(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_18(...) RDB_EXPAND_SERIALIZABLE_18(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_18(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     friend class write_message_t; \
@@ -1560,7 +1560,7 @@ the class scope. */
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_SERIALIZABLE_19(...) RDB_EXPAND_SERIALIZABLE_19(inline, __VA_ARGS__)
-#define RDB_IMPL_SERIALIZABLE_19(...) RDB_EXPAND_SERIALIZABLE_19(, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_19(...) RDB_EXPAND_SERIALIZABLE_19(EXPAND_TO_NOTHING, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_19(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     friend class write_message_t; \

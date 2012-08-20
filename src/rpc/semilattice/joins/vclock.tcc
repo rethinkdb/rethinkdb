@@ -14,7 +14,7 @@ vclock_t<T>::vclock_t(const stamped_value_t &_value) {
 
 template <class T>
 void vclock_t<T>::cull_old_values() {
-    rassert(!values.empty(), "As a precondition, values should never be empty\n");
+    rassertf(!values.empty(), "As a precondition, values should never be empty\n");
     value_map_t to_delete;
 
     for (typename value_map_t::iterator p = values.begin(); p != values.end(); ++p) {
@@ -30,7 +30,7 @@ void vclock_t<T>::cull_old_values() {
                                         d_it++) {
         values.erase(d_it->first);
     }
-    rassert(!values.empty(), "As a postcondition, values should never be empty\n");
+    rassertf(!values.empty(), "As a postcondition, values should never be empty\n");
 }
 
 template <class T>

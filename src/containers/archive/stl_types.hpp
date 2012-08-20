@@ -135,7 +135,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::string *out) {
         return ARCHIVE_SOCK_EOF;
     }
 
-    rassert(num_read == sz, "force_read returned an invalid value %ld", num_read);
+    rassertf(num_read == sz, "force_read returned an invalid value %ld", num_read);
 
     out->assign(v.data(), v.size());
 

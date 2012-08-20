@@ -53,7 +53,7 @@ void coro_fifo_acq_t::leave() {
         fifo_->inform_ready_to_leave(this);
         ready_to_leave_.wait();
         fifo_->inform_left_and_notified();
-        rassert(!in_a_list(), "should have been removed from the acquisitor_queue_");
+        rassertf(!in_a_list(), "should have been removed from the acquisitor_queue_");
         initialized_ = false;
     }
 }
