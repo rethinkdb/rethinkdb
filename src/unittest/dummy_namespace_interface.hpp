@@ -23,7 +23,7 @@ public:
     explicit dummy_performer_t(store_view_t<protocol_t> *s) :
         store(s) { }
 
-    void read(typename protocol_t::read_t read,
+    void read(const typename protocol_t::read_t &read,
               typename protocol_t::read_response_t *response,
               DEBUG_VAR state_timestamp_t expected_timestamp,
               order_token_t order_token,
@@ -39,7 +39,7 @@ public:
         return store->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, &read_token, interruptor);
     }
 
-    void read_outdated(typename protocol_t::read_t read,
+    void read_outdated(const typename protocol_t::read_t &read,
                        typename protocol_t::read_response_t *response,
                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
@@ -56,7 +56,7 @@ public:
                            interruptor);
     }
 
-    void write(typename protocol_t::write_t write,
+    void write(const typename protocol_t::write_t &write,
                typename protocol_t::write_response_t *response,
                transition_timestamp_t transition_timestamp,
                order_token_t order_token) THROWS_NOTHING {
@@ -103,12 +103,12 @@ public:
         }
     }
 
-    void read(typename protocol_t::read_t read, typename protocol_t::read_response_t *response, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         order_sink.check_out(otok);
         next->read(read, response, current_timestamp, otok, interruptor);
     }
 
-    void write(typename protocol_t::write_t write, typename protocol_t::write_response_t *response, order_token_t otok) THROWS_NOTHING {
+    void write(const typename protocol_t::write_t &write, typename protocol_t::write_response_t *response, order_token_t otok) THROWS_NOTHING {
         order_sink.check_out(otok);
         transition_timestamp_t transition_timestamp = transition_timestamp_t::starting_from(current_timestamp);
         current_timestamp = transition_timestamp.timestamp_after();
@@ -136,7 +136,7 @@ public:
     explicit dummy_sharder_t(std::vector<shard_t> _shards)
         : shards(_shards) { }
 
-    void read(typename protocol_t::read_t read, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) {
+    void read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::read_response_t> responses;
         for (size_t i = 0; i < shards.size(); ++i) {
@@ -153,7 +153,7 @@ public:
         read.unshard(responses, response, &ctx);
     }
 
-    void read_outdated(typename protocol_t::read_t read, typename protocol_t::read_response_t *response, signal_t *interruptor) {
+    void read_outdated(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::read_response_t> responses;
         for (size_t i = 0; i < shards.size(); ++i) {
@@ -170,7 +170,7 @@ public:
         read.unshard(responses, response, &ctx);
     }
 
-    void write(typename protocol_t::write_t write, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) {
+    void write(const typename protocol_t::write_t &write, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::write_response_t> responses;
         for (size_t i = 0; i < shards.size(); ++i) {
@@ -251,15 +251,15 @@ public:
         sharder.init(new dummy_sharder_t<protocol_t>(shards_of_this_db));
     }
 
-    void read(typename protocol_t::read_t read, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+    void read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
         return sharder->read(read, response, tok, interruptor);
     }
 
-    void read_outdated(typename protocol_t::read_t read, typename protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+    void read_outdated(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
         return sharder->read_outdated(read, response, interruptor);
     }
 
-    void write(typename protocol_t::write_t write, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+    void write(const typename protocol_t::write_t &write, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
         return sharder->write(write, response, tok, interruptor);
     }
 

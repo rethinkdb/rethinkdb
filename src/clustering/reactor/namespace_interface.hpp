@@ -65,11 +65,11 @@ public:
         return &start_cond;
     }
 
-    void read(typename protocol_t::read_t r, typename protocol_t::read_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read(const typename protocol_t::read_t &r, typename protocol_t::read_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    void read_outdated(typename protocol_t::read_t r, typename protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read_outdated(const typename protocol_t::read_t &r, typename protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    void write(typename protocol_t::write_t w, typename protocol_t::write_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void write(const typename protocol_t::write_t &w, typename protocol_t::write_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     std::set<typename protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
@@ -108,7 +108,7 @@ private:
             /* `how_to_make_token` and `how_to_run_query` have type pointer-to-member-function. */
             void (master_access_t<protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),  // NOLINT
             void (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, op_response_type *response, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
-            op_type op,
+            const op_type &op,
             op_response_type *response,
             order_token_t order_token,
             signal_t *interruptor)

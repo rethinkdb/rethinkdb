@@ -22,7 +22,7 @@ cluster_namespace_interface_t<protocol_t>::cluster_namespace_interface_t(
 
 
 template <class protocol_t>
-void cluster_namespace_interface_t<protocol_t>::read(typename protocol_t::read_t r,
+void cluster_namespace_interface_t<protocol_t>::read(const typename protocol_t::read_t &r,
                                                      typename protocol_t::read_response_t *response,
                                                      order_token_t order_token,
                                                      signal_t *interruptor)
@@ -33,7 +33,7 @@ void cluster_namespace_interface_t<protocol_t>::read(typename protocol_t::read_t
 }
 
 template <class protocol_t>
-void cluster_namespace_interface_t<protocol_t>::read_outdated(typename protocol_t::read_t r, typename protocol_t::read_response_t *response, signal_t *interruptor)
+void cluster_namespace_interface_t<protocol_t>::read_outdated(const typename protocol_t::read_t &r, typename protocol_t::read_response_t *response, signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     /* This seems kind of silly. We do it this way because
        `dispatch_outdated_read` needs to be able to see `outdated_read_info_t`,
@@ -42,7 +42,7 @@ void cluster_namespace_interface_t<protocol_t>::read_outdated(typename protocol_
 }
 
 template <class protocol_t>
-void cluster_namespace_interface_t<protocol_t>::write(typename protocol_t::write_t w,
+void cluster_namespace_interface_t<protocol_t>::write(const typename protocol_t::write_t &w,
                                                       typename protocol_t::write_response_t *response,
                                                       order_token_t order_token,
                                                       signal_t *interruptor)
@@ -77,7 +77,7 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
        member-function. */
     void (master_access_t<protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),  // NOLINT
     void (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
-    op_type op,
+    const op_type &op,
     op_response_type *response,
     order_token_t order_token,
     signal_t *interruptor)
@@ -430,9 +430,6 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
         update_registrants(false);
     }
 }
-
-
-
 
 
 #include "memcached/protocol.hpp"
