@@ -8,7 +8,7 @@ struct disk_stat_t {
     uint64_t disk_space_used;
     uint64_t disk_space_total;
 
-    disk_stat_t(const std::string &filepath) {
+    explicit disk_stat_t(const std::string &filepath) {
         int res;
         // get disk space data using statvfs
         struct statvfs fsdata;
