@@ -1,11 +1,13 @@
 # Makefile for various bits of the javascript driver
 
-CLOSURE_LIB=/home/wmrowan/rethink/google-closure-library/
+RETHINKDB_HOME=../../
+EXTERNAL=$(RETHINKDB_HOME)external/
+CLOSURE_LIB=$(EXTERNAL)google-closure-library/
 CLOSURE_BUILDER=$(CLOSURE_LIB)closure/bin/build/closurebuilder.py
-CLOSURE_COMPILER=/home/wmrowan/rethink/compiler.jar
+CLOSURE_COMPILER=$(EXTERNAL)google-closure-compiler/compiler.jar
 
 PROTOC=protoc
-PROTOC_JS_HOME_DIR=/home/wmrowan/rethink/protobuf-plugin-closure/
+PROTOC_JS_HOME_DIR=$(EXTERNAL)protobuf-plugin-closure/
 PROTOC_JS_PLUGIN=$(PROTOC_JS_HOME_DIR)protoc-gen-js
 PROTOC_JS_IMPORT_DIR=$(PROTOC_JS_HOME_DIR)js/
 PROTOC_JS=$(PROTOC) --plugin=$(PROTOC_JS_PLUGIN) -I $(PROTOC_JS_IMPORT_DIR)
