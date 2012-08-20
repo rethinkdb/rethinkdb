@@ -54,7 +54,7 @@ buf_patch_t *buf_patch_t::load_patch(const char *source) {
             result = new leaf_erase_presence_patch_t(block_id, patch_counter, source, remaining_length);
             break;
         default:
-            guarantee_patch_format(false, "Unsupported patch operation code");
+            guarantee_patch_format(false);
             return NULL;
         }
         result->set_block_sequence_id(applies_to_block_sequence_id);
