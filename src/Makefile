@@ -656,16 +656,29 @@ oprof-report:
 	@echo "    OPREPORT[$(OPROF_BINARY)] -> $(OPROF_RESULT)"
 	$(QUIET) opreport --merge=lib,unitmask -a --symbols --callgraph --threshold 1 --sort sample "--session-dir=$(realpath $(OPROF_SESSION))" -l "$(realpath $(OPROF_BINARY))" > $(OPROF_RESULT)
 
-# Build rules
-drivers: rdb_protocol/query_language.proto
+
+PYTHON_PBDIR:=../drivers/python/rethinkdb
+PYTHON_PBFILE:=rdb_protocol/query_language_pb2.py
+RUBY_PBDIR:=../drivers/ruby/rethinkdb
+RUBY_PBFILE:=query_language.pb.rb
 ifeq ($(BUILD_DRIVERS), 1)
+drivers: $(PYTHON_PBDIR)/$(PYTHON_PBFILE) $(RUBY_PBDIR)/$(RUBY_PBFILE)
+PROTOFILE:=rdb_protocol/query_language.proto
+$(PYTHON_PBDIR)/$(PYTHON_PBFILE): $(PROTOFILE)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[PY] $^"
+endif
+	$(QUIET) protoc $(PROTOCFLAGS) --python_out $(PYTHON_PBDIR) $^
+
+$(RUBY_PBDIR)/$(RUBY_PBFILE): $(PROTOFILE)
+ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[RB] $^"
 endif
-	$(QUIET) protoc $(PROTOCFLAGS) --python_out ../drivers/python/rethinkdb/ $^
-	$(QUIET) rprotoc $(PROTOCFLAGS) --out ../drivers/ruby/rethinkdb $^ 2>&1 | (grep -v "../drivers/ruby/rethinkdb/query_language.pb.rb writing..." || true)
-endif
+	$(QUIET) rprotoc $(PROTOCFLAGS) --out $(RUBY_PBDIR) $^ | \
+		(grep -v 'writing...' || true)
+else
+drivers:
+endif #BUILD_DRIVERS
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
 rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py

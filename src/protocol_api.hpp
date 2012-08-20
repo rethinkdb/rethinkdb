@@ -54,6 +54,8 @@ public:
         return s;
     }
 
+    virtual signal_t *get_initial_ready_signal() { return 0; }
+
 protected:
     virtual ~namespace_interface_t() { }
 };

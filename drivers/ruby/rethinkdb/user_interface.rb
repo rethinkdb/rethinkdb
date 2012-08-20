@@ -69,6 +69,18 @@ module RethinkDB
   # in the RQL_Mixin module, and instance method variants are provided only for
   # convenience.  If you don't see your method here, check there.
   class RQL_Query
+    # Create a table.  When run, either returns <b>+nil+</b>or raises.  For
+    # example:
+    #   r.db('Welcome-db','Welcome-rdb').create
+    def create(datacenter=nil)
+      S._ [:create, (datacenter || @@default_datacenter), @body]
+    end
+
+    # Drop a table.  When run, either returns <b>+nil+</b>or raises.  For
+    # example:
+    #   r.db('Welcome-db','Welcome-rdb').drop
+    def drop(); S._ [:drop, *@body]; end
+
     # Convert from an RQL query representing a variable to the name of that
     # variable.  Used e.g. in constructing javascript functions.
     def to_s
@@ -847,5 +859,8 @@ module RethinkDB
     #   r.append([1,2,3], 4)
     #   r[[1,2,3]].append(4)
     def arrayappend(arr, el); S._ [:call, [:arrayappend], [expr(arr), expr(el)]]; end
+
+    # List all the tables currently in the cluster.
+    def list(); S._ [:list]; end
   end
 end

@@ -255,7 +255,9 @@ try {
         http_rdb_protocol_port,
         &extproc_pool_group,
         semilattice_manager_cluster.get_root_view(),
-        &rdb_namespace_repo);
+        directory_read_manager.get_root_view(),
+        &rdb_namespace_repo,
+        machine_id);
     logINF("Listening for RDB protocol traffic on port %d.\n", rdb_protocol_port);
     logINF("Listening for HTTP RDB protocol traffic on port %d.\n",
            http_rdb_protocol_port);
