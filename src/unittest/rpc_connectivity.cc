@@ -571,11 +571,11 @@ void run_check_headers_test() {
     // Read & check its header.
     const int64_t len = strlen(cluster_proto_header);
     {
-        char data[len+1];
-        int64_t read = force_read(&conn, data, len);
+        scoped_array_t<char> data(len + 1);
+        int64_t read = force_read(&conn, data.data(), len);
         ASSERT_GE(read, 0);
         data[read] = 0;         // null-terminate
-        ASSERT_STREQ(cluster_proto_header, data);
+        ASSERT_STREQ(cluster_proto_header, data.data());
     }
 
     // Send it an initially okay-looking but ultimately malformed header.
