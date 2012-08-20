@@ -628,22 +628,40 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
     }
 }
 
-void check_tableop_query_type(const TableopQuery &t) {
-    check_protobuf(TableopQuery::TableopQueryType_IsValid(t.type()));
+void check_meta_query_type(const MetaQuery &t) {
+    check_protobuf(MetaQuery::MetaQueryType_IsValid(t.type()));
     switch(t.type()) {
-    case TableopQuery::CREATE:
-        check_protobuf(t.has_create());
-        check_protobuf(!t.has_drop());
+    case MetaQuery::CREATE_DB: unreachable("unimplemented");
+        check_protobuf(t.has_db_name());
+        check_protobuf(!t.has_create_table());
+        check_protobuf(!t.has_drop_table());
         break;
-    case TableopQuery::DROP:
-        check_protobuf(!t.has_create());
-        check_protobuf(t.has_drop());
+    case MetaQuery::DROP_DB: unreachable("unimplemented");
+        check_protobuf(t.has_db_name());
+        check_protobuf(!t.has_create_table());
+        check_protobuf(!t.has_drop_table());
         break;
-    case TableopQuery::LIST:
-        check_protobuf(!t.has_create());
-        check_protobuf(!t.has_drop());
+    case MetaQuery::LIST_DBS: unreachable("unimplemented");
+        check_protobuf(!t.has_db_name());
+        check_protobuf(!t.has_create_table());
+        check_protobuf(!t.has_drop_table());
         break;
-    default: unreachable("Unhandled TableopQuery.");
+    case MetaQuery::CREATE_TABLE:
+        check_protobuf(!t.has_db_name());
+        check_protobuf(t.has_create_table());
+        check_protobuf(!t.has_drop_table());
+        break;
+    case MetaQuery::DROP_TABLE:
+        check_protobuf(!t.has_db_name());
+        check_protobuf(!t.has_create_table());
+        check_protobuf(t.has_drop_table());
+        break;
+    case MetaQuery::LIST_TABLES:
+        check_protobuf(t.has_db_name());
+        check_protobuf(!t.has_create_table());
+        check_protobuf(!t.has_drop_table());
+        break;
+    default: unreachable("Unhandled MetaQuery.");
     }
 }
 
@@ -653,30 +671,30 @@ void check_query_type(const Query &q, type_checking_environment_t *env, bool *is
     case Query::READ:
         check_protobuf(q.has_read_query());
         check_protobuf(!q.has_write_query());
-        check_protobuf(!q.has_tableop_query());
+        check_protobuf(!q.has_meta_query());
         check_read_query_type(q.read_query(), env, is_det_out, backtrace);
         break;
     case Query::WRITE:
         check_protobuf(q.has_write_query());
         check_protobuf(!q.has_read_query());
-        check_protobuf(!q.has_tableop_query());
+        check_protobuf(!q.has_meta_query());
         check_write_query_type(q.write_query(), env, is_det_out, backtrace);
         break;
     case Query::CONTINUE:
         check_protobuf(!q.has_read_query());
         check_protobuf(!q.has_write_query());
-        check_protobuf(!q.has_tableop_query());
+        check_protobuf(!q.has_meta_query());
         break;
     case Query::STOP:
         check_protobuf(!q.has_read_query());
         check_protobuf(!q.has_write_query());
-        check_protobuf(!q.has_tableop_query());
+        check_protobuf(!q.has_meta_query());
         break;
-    case Query::TABLEOP:
-        check_protobuf(q.has_tableop_query());
+    case Query::META:
+        check_protobuf(q.has_meta_query());
         check_protobuf(!q.has_read_query());
         check_protobuf(!q.has_write_query());
-        check_tableop_query_type(q.tableop_query());
+        check_meta_query_type(q.meta_query());
         break;
     default:
         unreachable("unhandled Query");
@@ -712,30 +730,26 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     return js_runner;
 }
 
-void parse_tableop_create(const TableopQuery::Create &c, std::string *datacenter,
-                          std::string *db_name, std::string *table_name,
-                          std::string *primary_key) {
+void parse_create_table(const MetaQuery::CreateTable &c, std::string *datacenter,
+                        std::string *db_name, std::string *table_name,
+                        std::string *primary_key) {
     *datacenter = c.datacenter();
-    if (c.table_ref().has_db_name()) {
-        *db_name = c.table_ref().db_name();
-    } else {
-        *db_name = "Welcome-db";
-    }
+    *db_name = c.table_ref().db_name();
     *table_name = c.table_ref().table_name();
-    if (c.has_primary_key()) {
-        *primary_key = c.primary_key();
-    } else {
-        *primary_key = "id";
-    }
+    *primary_key = c.primary_key();
 }
 
-void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
+void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
-    switch(t->type()) {
-    case TableopQuery::CREATE: {
+    switch(m->type()) {
+    case MetaQuery::CREATE_DB:
+    case MetaQuery::DROP_DB:
+    case MetaQuery::LIST_DBS:
+        unreachable("unimplemented");
+    case MetaQuery::CREATE_TABLE: {
         const char *status;
         std::string dc_name, db_name, table_name, primary_key;
-        parse_tableop_create(t->create(),&dc_name,&db_name,&table_name,&primary_key);
+        parse_create_table(m->create_table(),&dc_name,&db_name,&table_name,&primary_key);
 
         //Make sure namespace doesn't exist before we go any further.
         metadata_get_by_name(metadata.rdb_namespaces.namespaces, table_name, &status);
@@ -807,9 +821,10 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
         }
         res->set_status_code(Response::SUCCESS_EMPTY);
     } break;
-    case TableopQuery::DROP: {
+    case MetaQuery::DROP_TABLE: {
         const char *status;
-        std::string table_name = t->drop().table_name();
+        UNUSED std::string db_name = m->drop_table().db_name();
+        std::string table_name = m->drop_table().table_name();
 
         // Get namespace ID.
         boost::optional<std::pair<uuid_t, deletable_t<
@@ -829,7 +844,8 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
         env->semilattice_metadata->join(metadata);
         res->set_status_code(Response::SUCCESS_EMPTY); //return immediately
     } break;
-    case TableopQuery::LIST: {
+    case MetaQuery::LIST_TABLES: { //TODO: make actually care about table
+        UNUSED std::string db_name = m->db_name();
         for (namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::
                  iterator it = metadata.rdb_namespaces.namespaces.begin();
              it != metadata.rdb_namespaces.namespaces.end();
@@ -906,8 +922,8 @@ void execute(Query *q, runtime_environment_t *env, Response *res, const backtrac
             stream_cache->erase(q->token());
         }
         break;
-    case Query::TABLEOP:
-        execute_tableop(q->mutable_tableop_query(), env, res, backtrace);
+    case Query::META:
+        execute_meta(q->mutable_meta_query(), env, res, backtrace);
         break;
     default:
         crash("unreachable");

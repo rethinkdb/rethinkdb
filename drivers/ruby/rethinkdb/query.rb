@@ -1,6 +1,5 @@
 module RethinkDB
   class RQL_Query #S-expression representation of a query
-    @@default_datacenter='Welcome-dc'
     def initialize(init_body); @body = init_body; end
 
     def ==(rhs)
@@ -18,7 +17,7 @@ module RethinkDB
     def clean_lst lst
       case lst.class.hash
       when Array.hash               then lst.map{|z| clean_lst(z)}
-      when RQL_Query.hash, Tbl.hash then lst.sexp
+      when RQL_Query.hash           then lst.sexp
                                     else lst
       end
     end
@@ -56,19 +55,7 @@ module RethinkDB
   end
   module RQL; extend RQL_Mixin; end
 
-  # Created by r.db('').Welcome or r.db('','Welcome').  Sort of
-  # complicated because sometimes it needs to be a table term, while
-  # other times it need to be a tableref, and we also need to support
-  # the .Welcome syntax for compatability with the Python client.
-  class Tbl
-    def initialize (name, table=nil); @db = name; @table = table; end
-    def sexp; [:table, @db, @table]; end
-    def method_missing(m, *a, &b)
-      if    not @table                 then @table = m; return self
-      elsif m == :expr                 then S._ [:table, @db, @table]
-      elsif C.table_directs.include? m then S._([@db, @table]).send(m, *a, &b)
-                                       else S._([:table, @db, @table]).send(m, *a, &b)
-      end
-    end
+  class Database
+    def method_missing(m, *a, &b); self.table(m, *a, &b); end
   end
 end

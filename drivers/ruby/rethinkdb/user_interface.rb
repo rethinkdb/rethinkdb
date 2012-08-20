@@ -1,3 +1,6 @@
+load 'semantic_classes.rb'
+load 'tables.rb'
+load 'connection.rb'
 # Right now, this is a place to record high-level spec changes that need to
 # happen.  TODO:
 # * UPDATE needs to be changed to do an implicit mapmerge on its righthand side
@@ -11,76 +14,11 @@
 # * The following are going away: ARRAYNTH
 # * I don't understand how GROUPEDMAPREDUCE works.
 module RethinkDB
-  # A network connection to the RethinkDB cluster.
-  class Connection
-    # Create a new connection to <b>+host+</b> on port <b>+port+</b>.  Example:
-    #   c = Connection.new('localhost')
-    def initialize(host, port=12346)
-      @@last = self
-      @socket = TCPSocket.open(host, port)
-      @waiters = {}
-      @data = {}
-      @mutex = Mutex.new
-      start_listener
-    end
-
-    # Run the RQL query <b>+query+</b>.  Returns either a list of JSON values or
-    # a single JSON value depending on <b>+query+</b>.  (Note that JSON values
-    # will be converted to Ruby datatypes by the time you receive them.)
-    # Example (assuming a connection <b>+c+</b> and that you've mixed in
-    # shortcut <b>+r+</b>):
-    #   c.run(r.add(1,2))                         => 3
-    #   c.run(r[[r.add(1,2)]])                    => [3]
-    #   c.run(r[[r.add(1,2), r.add(10,20)]])      => [3, 30]
-    def run query
-      a = []
-      token_iter(dispatch query){|row| a.push row} ? a : a[0]
-    end
-
-    # Run the RQL query <b>+query+</b> and iterate over the results.  The
-    # <b>+block+</b> you provide should take a single argument, which will be
-    # bound to a single JSON value each time your block is invoked.  Returns
-    # <b>+true+</b> if your query returned a sequence of values or
-    # <b>+false+</b> if your query returned a single value.  (Note that JSON
-    # values will be converted to Ruby datatypes by the time you receive them.)
-    # Example (assuming a connection <b>+c+</b> and that you've mixed in
-    # shortcut <b>+r+</b>):
-    #   a = []
-    #   c.iter(r.add(1,2)) {|val| a.push val}                    => false
-    #   a                                                        => [3]
-    #   c.iter(r[[r.add(10,20)]]) {|val| a.push val} => true
-    #   a                                                        => [3, 30]
-    def iter(query, &block)
-      token_iter(dispatch(query), &block)
-    end
-
-    # Close the connection.
-    def close
-      @listener.terminate!
-      @socket.close
-    end
-  end
-
-  # An RQL query that can be sent to the RethinkDB cluster.  Queries are either
+  # An RQL query that can be sent to the RethinkDB cluster.  This class contains
+  # only functions that work for any type of query.  Queries are either
   # constructed by methods in the RQL module, or by invoking the instance
   # methods of a query on other queries.
-  #
-  # Note: many things that look like instance methods of queries actually reside
-  # in the RQL_Mixin module, and instance method variants are provided only for
-  # convenience.  If you don't see your method here, check there.
   class RQL_Query
-    # Create a table.  When run, either returns <b>+nil+</b>or raises.  For
-    # example:
-    #   r.db('Welcome-db','Welcome-rdb').create
-    def create(datacenter=nil)
-      S._ [:create, (datacenter || @@default_datacenter), @body]
-    end
-
-    # Drop a table.  When run, either returns <b>+nil+</b>or raises.  For
-    # example:
-    #   r.db('Welcome-db','Welcome-rdb').drop
-    def drop(); S._ [:drop, *@body]; end
-
     # Convert from an RQL query representing a variable to the name of that
     # variable.  Used e.g. in constructing javascript functions.
     def to_s
@@ -163,28 +101,6 @@ module RethinkDB
           S._ [:pointmutate, *(@body[1..-1] + [[vname, RQL.expr(yield(v))]])]}
       else S.with_var{|vname,v| S._ [:mutate, @body, [vname, RQL.expr(yield(v))]]}
       end
-    end
-
-    # Insert one or more rows into the invoking query, which *must* be a table.
-    # Rows with duplicate primary key (usually :id) are ignored, with no
-    # guarantees about which row 'wins'.  May also provide only one row to
-    # insert.  For example, if we have a table <b>+table+</b>, the following are
-    # equivalent:
-    #   table.insert({:id => 1, :name => 'Bob'})
-    #   table.insert([{:id => 1, :name => 'Bob'}])
-    #   table.insert([{:id => 1, :name => 'Bob'}, {:id => 1, :name => 'Bob'}])
-    def insert(rows)
-      rows = [rows] if rows.class != Array
-      S.with_var {|vname,v| S._ [:insert, @body, rows.map{|x| RQL.expr x}]}
-    end
-
-    # Insert a stream into the invoking query, which *must* be a table.  Often
-    # used to insert one table into another.  For example:
-    #   table.insertstream(table2.filter{|row| row[:id] < 5})
-    # will insert every row in <b>+table2+</b> with id less than 5 into
-    # <b>+table+</b>.
-    def insertstream(stream)
-      S.with_var {|vname,v| S._ [:insertstream, @body, stream]}
     end
 
     # For each row in the invoking query, execute 1 or more write queries (to
@@ -273,14 +189,12 @@ module RethinkDB
     #   r[[1,2,3,4]].to_stream[1..-1]
     def skip(seq, n); seq[n..-1]; end
 
-    # Construct a new table reference, which may then be treated as a query for
-    # chaining (see the functions in RQL_Query).  There are two identical ways
-    # of getting access to a namespace: passing it as the second argument, or
-    # calling it as an instance method if no second argument was provided.  For
-    # instance, to access the namespace Welcome, either of these works:
-    #   db('','Welcome')
+    # Construct a new database reference.  Usually used as a stepping stone to
+    # ta table.  For instance, to access the table <b>+Welcome+</b>, either of
+    # these works:
+    #   db('').table('Welcome')
     #   db('').Welcome
-    def db(db_name, table_name=nil); Tbl.new db_name, table_name; end
+    def db(db_name); Database.new db_name; end
 
     # A shortcut for RQL_Mixin#expr.  The following are equivalent:
     #   r.expr(5)
