@@ -123,4 +123,48 @@ cJSON *render_as_json(cluster_directory_peer_type_t *peer_type);
 void apply_json_to(cJSON *, cluster_directory_peer_type_t *);
 void on_subfield_change(cluster_directory_peer_type_t *);
 
+
+const char *const METADATA_SUCCESS = 0;
+const char *const METADATA_ERR_NONE = "No entry with that name.";
+const char *const METADATA_ERR_MULTIPLE = "Multiple entries with that name.";
+const char *const METADATA_ERR_CONFLICT = "Entry with that name is in conflict.";
+
+/* If a name uniquely identifies an entry then return it, otherwise
+ * return nothing.  Also optionally reports its success/failure mode
+ * with the optional argument [out], which allows better error
+ * reporting for the clients. */
+template<class T>
+boost::optional<std::pair<uuid_t, deletable_t<T> > > metadata_get_by_name(
+    std::map<uuid_t, deletable_t<T> > map,
+    const std::string &name,
+    const char **const out = 0) {
+    boost::optional<std::pair<uuid_t, deletable_t<T> > > res;
+    for (typename std::map<uuid_t, deletable_t<T> >::iterator
+             it = map.begin(); it != map.end(); ++it) {
+        if (it->second.is_deleted()) continue;
+        if (it->second.get().name.in_conflict()) {
+            if (out) *out = METADATA_ERR_CONFLICT;
+            return boost::optional<std::pair<uuid_t, deletable_t<T> > >();
+        } else if (it->second.get().name.get() == name) {
+            if (res) {
+                if (out) *out = METADATA_ERR_MULTIPLE;
+                return boost::optional<std::pair<uuid_t, deletable_t<T> > >();
+            }
+            res = *it;
+        }
+    }
+    if (out) *out = res ? METADATA_SUCCESS : METADATA_ERR_NONE;
+    return res;
+}
+template<class T>
+boost::optional<uuid_t> metadata_get_uuid_by_name(
+    std::map<uuid_t, deletable_t<T> > map,
+    const std::string &name,
+    const char **const out = 0) {
+    boost::optional<std::pair<uuid_t, deletable_t<T> > > m =
+        metadata_get_by_name(map, name, out);
+    boost::optional<uuid_t> u;
+    if (m) u = m->first;
+    return u;
+}
 #endif  // CLUSTERING_ADMINISTRATION_METADATA_HPP_
