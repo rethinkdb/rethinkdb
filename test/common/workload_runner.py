@@ -3,22 +3,44 @@ from vcoptparse import *
 
 # TODO: Merge this file into `scenario_common.py`?
 
-class Ports(object):
+class MemcachedPorts(object):
     def __init__(self, host, http_port, memcached_port):
         self.host = host
         self.http_port = http_port
         self.memcached_port = memcached_port
+    def add_to_environ(self, env):
+        env["HOST"] = self.host
+        env["HTTP_PORT"] = str(self.http_port)
+        env["PORT"] = str(self.memcached_port)
 
-def run(command_line, ports, timeout):
+class RDBPorts(object):
+    def __init__(self, host, http_port, rdb_port, db_name, table_name):
+        self.host = host
+        self.http_port = http_port
+        self.rdb_port = rdb_port
+        self.db_name = db_name
+        self.table_name = table_name
+    def add_to_environ(self, env):
+        env["HOST"] = self.host
+        env["HTTP_PORT"] = str(self.http_port)
+        env["PORT"] = str(self.rdb_port)
+        env["DB_NAME"] = self.db_name
+        env["TABLE_NAME"] = self.table_name
+
+def run(protocol, command_line, ports, timeout):
+    assert protocol in ["rdb", "memcached"]
+    if protocol == "memcached":
+        assert isinstance(ports, MemcachedPorts)
+    else:
+        assert isinstance(ports, RDBPorts)
+
     start_time = time.time()
     end_time = start_time + timeout
-    print "Running %r..." % command_line
+    print "Running %s workload %r..." % (protocol, command_line)
 
     # Set up environment
     new_environ = os.environ.copy()
-    new_environ["HOST"] = ports.host
-    new_environ["HTTP_PORT"] = str(ports.http_port)
-    new_environ["MC_PORT"] = new_environ["PORT"] = str(ports.memcached_port)
+    ports.add_to_environ(new_environ)
 
     proc = subprocess.Popen(command_line, shell = True, env = new_environ, preexec_fn = lambda: os.setpgid(0, 0))
 
@@ -42,8 +64,14 @@ def run(command_line, ports, timeout):
     raise RuntimeError("workload timed out before completion")
 
 class ContinuousWorkload(object):
-    def __init__(self, command_line, ports):
+    def __init__(self, command_line, protocol, ports):
+        assert protocol in ["rdb", "memcached"]
+        if protocol == "memcached":
+            assert isinstance(ports, MemcachedPorts)
+        else:
+            assert isinstance(ports, RDBPorts)
         self.command_line = command_line
+        self.protocol = protocol
         self.ports = ports
         self.running = False
 
@@ -52,13 +80,11 @@ class ContinuousWorkload(object):
 
     def start(self):
         assert not self.running
-        print "Starting %r..." % self.command_line
+        print "Starting %s workload %r..." % (self.protocol, self.command_line)
 
         # Set up environment
         new_environ = os.environ.copy()
-        new_environ["HOST"] = self.ports.host
-        new_environ["HTTP_PORT"] = str(self.ports.http_port)
-        new_environ["MC_PORT"] = new_environ["PORT"] = str(self.ports.memcached_port)
+        self.ports.add_to_environ(new_environ)
 
         self.proc = subprocess.Popen(self.command_line, shell = True, env = new_environ, preexec_fn = lambda: os.setpgid(0, 0))
 
@@ -120,12 +146,12 @@ def prepare_option_parser_for_split_or_continuous_workload(op, allow_between = F
     op["timeout-after"] = IntFlag("--timeout-after", 600)
 
 class SplitOrContinuousWorkload(object):
-    def __init__(self, opts, ports):
-        self.opts, self.ports = opts, ports
+    def __init__(self, opts, protocol, ports):
+        self.opts, self.protocol, self.ports = opts, protocol, ports
     def __enter__(self):
         self.continuous_workloads = []
         for cl in self.opts["workload-during"]:
-            cwl = ContinuousWorkload(cl, self.ports)
+            cwl = ContinuousWorkload(cl, self.protocol, self.ports)
             cwl.__enter__()
             self.continuous_workloads.append(cwl)
         return self
@@ -139,7 +165,7 @@ class SplitOrContinuousWorkload(object):
                 self.check()
     def run_before(self):
         if self.opts["workload-before"] is not None:
-            run(self.opts["workload-before"], self.ports, self.opts["timeout-before"])
+            run(self.protocol, self.opts["workload-before"], self.ports, self.opts["timeout-before"])
         if self.opts["workload-during"]:
             for cwl in self.continuous_workloads:
                 cwl.start()
@@ -151,7 +177,7 @@ class SplitOrContinuousWorkload(object):
         self.check()
         assert "workload-between" in self.opts, "pass allow_between=True to prepare_option_parser_for_split_or_continuous_workload()"
         if self.opts["workload-between"] is not None:
-            run(self.opts["workload-between"], self.ports, self.opts["timeout-between"])
+            run(self.protocol, self.opts["workload-between"], self.ports, self.opts["timeout-between"])
         if self.opts["workload-during"]:
             self._spin_continuous_workloads(self.opts["extra-between"])
     def run_after(self):
@@ -160,7 +186,7 @@ class SplitOrContinuousWorkload(object):
             for cwl in self.continuous_workloads:
                 cwl.stop()
         if self.opts["workload-after"] is not None:
-            run(self.opts["workload-after"], self.ports, self.opts["timeout-after"])
+            run(self.protocol, self.opts["workload-after"], self.ports, self.opts["timeout-after"])
     def __exit__(self, exc = None, ty = None, tb = None):
         if self.opts["workload-during"] is not None:
             for cwl in self.continuous_workloads:

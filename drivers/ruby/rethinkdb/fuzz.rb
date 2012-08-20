@@ -60,10 +60,10 @@ def mangle_many_bytes(s,prob)
   return s2
 end
 
+$i=0
 while true
-  i=0
   templates.each { |s|
-    print "template: #{s.inspect} (##{i+=1})\n"
+    print "template: #{s.inspect} (##{$i+=1})\n"
     bsend(s)
     bsend(mangle_one_byte(s))
     bsend(mangle_many_bytes(s, 0.3))

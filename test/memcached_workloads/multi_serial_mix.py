@@ -2,7 +2,7 @@
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import multiprocessing, time, pickle
-import workload_common, serial_mix
+import memcached_workload_common, serial_mix
 from vcoptparse import *
 
 def child(opts, log_path, load, save):
@@ -16,7 +16,7 @@ def child(opts, log_path, load, save):
         with open(load) as f:
             clone, deleted = pickle.load(f)
     print "Starting test against server at %s:%d..." % opts["address"]
-    with workload_common.make_memcache_connection(opts) as mc:
+    with memcached_workload_common.make_memcache_connection(opts) as mc:
         serial_mix.test(opts, mc, clone, deleted)
     if save is not None:
         print "Saving to %r..." % save

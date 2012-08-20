@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import workload_common
+import memcached_workload_common
 
 # TODO: This readline function is copied and pasted from big_values.py.
 def readline(s):
@@ -36,10 +36,10 @@ def test_sizes(s, cmd, lo, hi):
     expect(s, "a" * lo + "\r\n")
     expect(s, "END\r\n")
 
-op = workload_common.option_parser_for_socket()
+op = memcached_workload_common.option_parser_for_socket()
 opts = op.parse(sys.argv)
 
-with workload_common.make_socket_connection(opts) as s:
+with memcached_workload_common.make_socket_connection(opts) as s:
 
     sizes = [1, 100, 300, 1000, 8000, 700000]
 

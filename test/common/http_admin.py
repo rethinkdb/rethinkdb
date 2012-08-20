@@ -86,7 +86,7 @@ class Blueprint(object):
         return "Blueprint(%r)" % self.to_json()
 
 class Namespace(object):
-    def __init__(self, uuid, json_data):
+    def __init__(self, uuid, json_data, protocol):
         self.uuid = validate_uuid(uuid)
         self.blueprint = Blueprint(json_data[u"blueprint"])
         self.primary_uuid = None if json_data[u"primary_uuid"] is None else validate_uuid(json_data[u"primary_uuid"])
@@ -97,6 +97,7 @@ class Namespace(object):
         self.port = json_data[u"port"]
         self.primary_pinnings = json_data[u"primary_pinnings"]
         self.secondary_pinnings = json_data[u"secondary_pinnings"]
+        self.protocol = protocol
 
     def check(self, data):
         return data[u"name"] == self.name and \
@@ -137,7 +138,7 @@ class Namespace(object):
 
 class DummyNamespace(Namespace):
     def __init__(self, uuid, json_data):
-        Namespace.__init__(self, uuid, json_data)
+        Namespace.__init__(self, uuid, json_data, "dummy")
 
     def shards_to_json(self):
         return self.shards
@@ -185,7 +186,7 @@ class DummyNamespace(Namespace):
 
 class MemcachedNamespace(Namespace):
     def __init__(self, uuid, json_data):
-        Namespace.__init__(self, uuid, json_data)
+        Namespace.__init__(self, uuid, json_data, "memcached")
 
     def shards_to_json(self):
         # Build the ridiculously formatted shard data
@@ -235,6 +236,64 @@ class MemcachedNamespace(Namespace):
     def __str__(self):
         return "Memcached" + Namespace.__str__(self)
 
+class RDBNamespace(Namespace):
+    def __init__(self, uuid, json_data):
+        Namespace.__init__(self, uuid, json_data, "rdb")
+
+    def shards_to_json(self):
+        # Build the ridiculously formatted shard data
+        shard_json = []
+        last_split = u""
+        for split in self.shards:
+            shard_json.append(json.dumps([urllib.quote(last_split), urllib.quote(split)]))
+            last_split = split
+        shard_json.append(json.dumps([urllib.quote(last_split), None]))
+        return shard_json
+
+    def parse_shards(self, shards):
+        # Build the ridiculously formatted shard data
+        splits = [ ]
+        last_split = u""
+        matches = None
+        parsed_shards = [ ]
+        for shard in shards:
+            left, right = json.loads(shard)
+            assert isinstance(left, basestring)
+            assert right is None or isinstance(right, basestring)
+            parsed_shards.append((urllib.unquote(left), urllib.unquote(right) if right is not None else None))
+        parsed_shards.sort()
+        last_split = u""
+        for left, right in parsed_shards:
+            assert left == last_split
+            if right is not None:
+                splits.append(right)
+            last_split = right
+        assert last_split is None
+        assert sorted(splits) == splits
+        return splits
+
+    def add_shard(self, split_point):
+        if isinstance(split_point, str):
+            split_point = unicode(split_point)
+        assert split_point not in self.shards
+        self.shards.append(split_point)
+        self.shards.sort()
+
+    def remove_shard(self, split_point):
+        if isinstance(split_point, str):
+            split_point = unicode(split_point)
+        assert split_point in self.shards
+        self.shards.remove(split_point)
+
+    def __str__(self):
+        return "RDB" + Namespace.__str__(self)
+
+namespace_classes_by_protocol_name = {
+    "dummy": DummyNamespace,
+    "memcached": MemcachedNamespace,
+    "rdb": RDBNamespace
+    }
+
 class Machine(object):
     def __init__(self, uuid, json_data):
         self.uuid = validate_uuid(uuid)
@@ -261,6 +320,7 @@ class ClusterAccess(object):
         self.datacenters = { }
         self.dummy_namespaces = { }
         self.memcached_namespaces = { }
+        self.rdb_namespaces = { }
         self.conflicts = [ ]
 
         self.update_cluster_data(0)
@@ -303,6 +363,8 @@ class ClusterAccess(object):
             retval += "\n%s: %s" % (i, self.dummy_namespaces[i])
         for i in self.memcached_namespaces.iterkeys():
             retval += "\n%s: %s" % (i, self.memcached_namespaces[i])
+        for i in self.rdb_namespaces.iterkeys():
+            retval += "\n%s: %s" % (i, self.rdb_namespaces[i])
         return retval
 
     def print_machines(self):
@@ -314,6 +376,8 @@ class ClusterAccess(object):
             print "%s: %s" % (i, self.dummy_namespaces[i])
         for i in self.memcached_namespaces.iterkeys():
             print "%s: %s" % (i, self.memcached_namespaces[i])
+        for i in self.rdb_namespaces.iterkeys():
+            print "%s: %s" % (i, self.rdb_namespaces[i])
 
     def print_datacenters(self):
         for i in self.datacenters.iterkeys():
@@ -358,8 +422,9 @@ class ClusterAccess(object):
 
     def find_namespace(self, what):
         nss = {}
-        nss.update(self.memcached_namespaces)
         nss.update(self.dummy_namespaces)
+        nss.update(self.memcached_namespaces)
+        nss.update(self.rdb_namespaces)
         return self._find_thing(what, Namespace, "namespace", nss)
 
     def get_directory(self):
@@ -392,11 +457,7 @@ class ClusterAccess(object):
         namespace = self.find_namespace(namespace)
         primary = None if primary is None else self.find_datacenter(primary)
         namespace.primary_uuid = primary.uuid
-        if isinstance(namespace, MemcachedNamespace):
-            name = "memcached_namespaces"
-        else:
-            name = "dummy_namespaces"
-        self.do_query("POST", "/ajax/semilattice/%s/%s/primary_uuid" % (name, namespace.uuid), primary.uuid)
+        self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/primary_uuid" % (namespace.protocol, namespace.uuid), primary.uuid)
         self.update_cluster_data(10)
 
     def set_namespace_affinities(self, namespace, affinities = { }):
@@ -405,11 +466,7 @@ class ClusterAccess(object):
         for datacenter, count in affinities.iteritems():
             aff_dict[self.find_datacenter(datacenter).uuid] = count
         namespace.replica_affinities.update(aff_dict)
-        if isinstance(namespace, MemcachedNamespace):
-            name = "memcached_namespaces"
-        else:
-            name = "dummy_namespaces"
-        self.do_query("POST", "/ajax/semilattice/%s/%s/replica_affinities" % (name, namespace.uuid), aff_dict)
+        self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/replica_affinities" % (namespace.protocol, namespace.uuid), aff_dict)
         self.update_cluster_data(10)
 
     def set_namespace_ack_expectations(self, namespace, ack_expectations = { }):
@@ -418,14 +475,11 @@ class ClusterAccess(object):
         for datacenter, count in ack_expectations.iteritems():
             ae_dict[self.find_datacenter(datacenter).uuid] = count
         namespace.ack_expectations.update(ae_dict)
-        if isinstance(namespace, MemcachedNamespace):
-            name = "memcached_namespaces"
-        else:
-            name = "dummy_namespaces"
-        self.do_query("POST", "/ajax/semilattice/%s/%s/ack_expectations" % (name, namespace.uuid), ae_dict)
+        self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/ack_expectations" % (namespace.protocol, namespace.uuid), ae_dict)
         self.update_cluster_data(10)
 
-    def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }, check = True):
+    def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }, primary_key = None, check = False):
+        assert protocol in ["dummy", "memcached", "rdb"]
         if port is None:
             port = random.randint(10000, 20000)
         if name is None:
@@ -437,15 +491,25 @@ class ClusterAccess(object):
         aff_dict = { }
         for datacenter, count in affinities.iteritems():
             aff_dict[self.find_datacenter(datacenter).uuid] = count
-        info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/new" % protocol, {
+        data_to_post = {
             "name": name,
             "port": port,
             "primary_uuid": primary,
             "replica_affinities": aff_dict
-            })
+            }
+        if protocol == "rdb":
+            if primary_key is None:
+                primary_key = "id"
+            # Right now `primary_key` is required to be `"id"` because the
+            # server doesn't support setting the primary key.
+            # data_to_post["primary_key"] = primary_key
+            assert primary_key == "id"
+        else:
+            assert primary_key is None
+        info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/new" % protocol, data_to_post)
         assert len(info) == 1
         uuid, json_data = next(info.iteritems())
-        type_class = {"memcached": MemcachedNamespace, "dummy": DummyNamespace}[protocol]
+        type_class = namespace_classes_by_protocol_name[protocol]
         namespace = type_class(uuid, json_data)
         getattr(self, "%s_namespaces" % protocol)[namespace.uuid] = namespace
         self.update_cluster_data(10)
@@ -466,10 +530,15 @@ class ClusterAccess(object):
                     raise
 
     def rename(self, target, name):
-        type_targets = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces, Machine: self.machines, Datacenter: self.datacenters }
-        type_objects = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces", Machine: "machines", Datacenter: "datacenters" }
-        assert type_targets[type(target)][target.uuid] is target
-        object_type = type_objects[type(target)]
+        types = {
+            DummyNamespace: (self.dummy_namespaces, "dummy_namespaces"),
+            MemcachedNamespace: (self.memcached_namespaces, "memcached_namespaces"),
+            RDBNamespace: (self.rdb_namespaces, "rdb_namespaces"),
+            Machine: (self.machines, "machines"),
+            Datacenter: (self.datacenters, "datacenters")
+            }
+        assert types[type(target)][0][target.uuid] is target
+        object_type = types[type(target)][1]
         target.name = name
         info = self.do_query("POST", "/ajax/semilattice/%s/%s/name" % (object_type, target.uuid), name)
 
@@ -479,10 +548,15 @@ class ClusterAccess(object):
     def resolve_conflict(self, conflict, value):
         assert conflict in self.conflicts
         assert value in conflict.values
-        type_targets = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces, Machine: self.machines, Datacenter: self.datacenters }
-        type_objects = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces", Machine: "machines", Datacenter: "datacenters" }
-        assert type_targets[type(conflict.target)][conflict.target.uuid] is conflict.target
-        object_type = type_objects[type(conflict.target)]
+        types = {
+            DummyNamespace: (self.dummy_namespaces, "dummy_namespaces"),
+            MemcachedNamespace: (self.memcached_namespaces, "memcached_namespaces"),
+            RDBNamespace: (self.rdb_namespaces, "rdb_namespaces"),
+            Machine: (self.machines, "machines"),
+            Datacenter: (self.datacenters, "datacenters")
+            }
+        assert types[type(conflict.target)][conflict.target.uuid] is conflict.target
+        object_type = types[type(conflict.target)]
         info = self.do_query("POST", "/ajax/semilattice/%s/%s/%s/resolve" % (object_type, conflict.target.uuid, conflict.field), value)
         # Remove the conflict and update the field in the target
         self.conflicts.remove(conflict)
@@ -491,41 +565,27 @@ class ClusterAccess(object):
 
     def add_namespace_shard(self, namespace, split_point):
         namespace = self.find_namespace(namespace)
-        type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
-        type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
-        assert type_namespaces[type(namespace)][namespace.uuid] is namespace
-        protocol = type_protocols[type(namespace)]
         namespace.add_shard(split_point)
-        info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
+        info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/shards" % (namespace.protocol, namespace.uuid), namespace.shards_to_json())
         self.update_cluster_data(10)
 
     def remove_namespace_shard(self, namespace, split_point):
         namespace = self.find_namespace(namespace)
-        type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
-        type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
-        assert type_namespaces[type(namespace)][namespace.uuid] is namespace
-        protocol = type_protocols[type(namespace)]
         namespace.remove_shard(split_point)
-        info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
+        info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/shards" % (namespace.protocol, namespace.uuid), namespace.shards_to_json())
         self.update_cluster_data(10)
 
     def change_namespace_shards(self, namespace, adds=[], removes=[]):
         namespace = self.find_namespace(namespace)
-        type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
-        type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
-        assert type_namespaces[type(namespace)][namespace.uuid] is namespace
-        protocol = type_protocols[type(namespace)]
         for split_point in adds:
             namespace.add_shard(split_point)
         for split_point in removes:
             namespace.remove_shard(split_point)
-        info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
+        info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/shards" % (namespace.protocol, namespace.uuid), namespace.shards_to_json())
         self.update_cluster_data(10)
 
     def get_datacenter_in_namespace(self, namespace, primary = None):
         namespace = self.find_namespace(namespace)
-        type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
-        assert type_namespaces[type(namespace)][namespace.uuid] is namespace
         if primary is not None:
             return self.datacenters[namespace.primary_uuid]
 
@@ -534,15 +594,6 @@ class ClusterAccess(object):
         for uuid in namespace.replica_affinities.iterkeys():
             datacenters.append(self.datacenters[uuid])
         return random.choice(datacenters)
-
-    def get_machine_in_datacenter(self, datacenter):
-        datacenter = self.find_datacenter(datacenter)
-        # Build a list of machines in the given datacenter
-        machines = [ ]
-        for serv in self.machines.itervalues():
-            if serv.datacenter_uuid == datacenter.uuid:
-                machines.append(serv)
-        return random.choice(machines)
 
     def get_progress(self):
         return self.do_query("GET", "/ajax/progress")
@@ -563,16 +614,15 @@ class ClusterAccess(object):
 
     def is_blueprint_satisfied(self, namespace):
         namespace = self.find_namespace(namespace)
-        key_name = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces" }[type(namespace)]
         directory = self.do_query("GET", "/ajax/directory/_")
-        blueprint = self.do_query("GET", "/ajax/semilattice/%s/%s/blueprint" % (key_name, namespace.uuid))
+        blueprint = self.do_query("GET", "/ajax/semilattice/%s_namespaces/%s/blueprint" % (namespace.protocol, namespace.uuid))
         for peer, shards in blueprint["peers_roles"].iteritems():
             if peer in directory:
                 subdirectory = directory[peer]
             else:
                 return False
-            if namespace.uuid in subdirectory[key_name]["reactor_bcards"]:
-                reactor_bcard = subdirectory[key_name]["reactor_bcards"][namespace.uuid]
+            if namespace.uuid in subdirectory[namespace.protocol + "_namespaces"]["reactor_bcards"]:
+                reactor_bcard = subdirectory[namespace.protocol + "_namespaces"]["reactor_bcards"][namespace.uuid]
             else:
                 return False
             for shard_range, shard_role in shards.iteritems():
@@ -637,6 +687,7 @@ class ClusterAccess(object):
         remove_nones(expected[u"datacenters"])
         remove_nones(expected[u"dummy_namespaces"])
         remove_nones(expected[u"memcached_namespaces"])
+        remove_nones(expected[u"rdb_namespaces"])
         return expected
 
     def _verify_cluster_data_chunk(self, local, remote):
@@ -646,9 +697,13 @@ class ClusterAccess(object):
                 if value == u"VALUE_IN_CONFLICT":
                     if obj not in self.conflicts:
                         # Get the possible values and create a value conflict object
-                        type_objects = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces", Machine: "machines", Datacenter: "datacenters" }
-                        object_type = type_objects[type(obj)]
-                        resolve_data = self.do_query("GET", "/ajax/semilattice/%s/%s/%s/resolve" % (object_type, obj.uuid, field))
+                        if isinstance(obj, Namespace):
+                            path = obj.protocol + "_namespaces"
+                        elif isinstance(obj, Machine):
+                            path = "machine"
+                        elif isinstance(obj, Datacenter):
+                            path = "datacenter"
+                        resolve_data = self.do_query("GET", "/ajax/semilattice/%s/%s/%s/resolve" % (path, obj.uuid, field))
                         self.conflicts.append(ValueConflict(obj, field, resolve_data))
                     print "Warning: value conflict"
                     check_obj = False
@@ -662,6 +717,7 @@ class ClusterAccess(object):
         self._verify_cluster_data_chunk(self.datacenters, data[u"datacenters"])
         self._verify_cluster_data_chunk(self.dummy_namespaces, data[u"dummy_namespaces"])
         self._verify_cluster_data_chunk(self.memcached_namespaces, data[u"memcached_namespaces"])
+        self._verify_cluster_data_chunk(self.rdb_namespaces, data[u"rdb_namespaces"])
 
     def update_cluster_data(self, timeout):
         data = self._verify_consistent_cluster(timeout)
@@ -669,5 +725,6 @@ class ClusterAccess(object):
         self._pull_cluster_data(data[u"datacenters"], self.datacenters, Datacenter)
         self._pull_cluster_data(data[u"dummy_namespaces"], self.dummy_namespaces, DummyNamespace)
         self._pull_cluster_data(data[u"memcached_namespaces"], self.memcached_namespaces, MemcachedNamespace)
+        self._pull_cluster_data(data[u"rdb_namespaces"], self.rdb_namespaces, RDBNamespace)
         self._verify_cluster_data(data)
         return data

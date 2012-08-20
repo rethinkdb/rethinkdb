@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import time, sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import workload_common
+import memcached_workload_common
 
 def expect(b, msg):
     if (not b):
@@ -48,10 +48,10 @@ def past_test(mc):
     expect(mc.get("p") == None, "Wait, we got a value?!")
     print "   Done past_test."
 
-op = workload_common.option_parser_for_memcache()
+op = memcached_workload_common.option_parser_for_memcache()
 opts = op.parse(sys.argv)
 
-with workload_common.make_memcache_connection(opts) as mc:
+with memcached_workload_common.make_memcache_connection(opts) as mc:
     zero_test(mc)
     basic_test(mc)
     absolute_test(mc)
