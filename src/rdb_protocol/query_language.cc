@@ -5,6 +5,7 @@
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
+#include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/internal_extensions.pb.h"
@@ -773,7 +774,8 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
         //TODO(mlucy): port number?
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
             new_namespace<rdb_protocol_t>(
-                env->this_machine, db_id, dc_id, table_name, primary_key, 11213);
+                env->this_machine, db_id, dc_id, table_name, primary_key,
+                port_constants::namespace_port);
         metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, ns));
         fill_in_blueprints(&metadata,env->directory_metadata->get(),env->this_machine);
         env->semilattice_metadata->join(metadata);
