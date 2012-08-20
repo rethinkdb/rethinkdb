@@ -19,7 +19,8 @@ OUTPUTMODE=compiled
 lib: query_language.pb.js
 	rm -rf rethinkdb.js
 	rm -rf rethinkdb.map.js
-	$(CLOSURE_BUILDER) --root=$(CLOSURE_LIB) --root=rethinkdb/ --namespace=rethinkdb \
+	bash -c 'cat <(echo "(function(){") \
+		<($(CLOSURE_BUILDER) --root=$(CLOSURE_LIB) --root=rethinkdb/ --namespace=rethinkdb \
 		--compiler_jar=$(CLOSURE_COMPILER) \
 		--compiler_flags="--compilation_level=ADVANCED_OPTIMIZATIONS" \
 		--compiler_flags="--accept_const_keyword" \
@@ -28,7 +29,8 @@ lib: query_language.pb.js
 		--compiler_flags="--warning_level=VERBOSE" \
 		--compiler_flags="--create_source_map=./rethinkdb.js.map" \
 		--compiler_flags="--source_map_format=V3" \
-		--output_mode=$(OUTPUTMODE) > rethinkdb.js
+		--output_mode=$(OUTPUTMODE)) \
+		<(echo "}).call(this);") > rethinkdb.js'
 
 # Compile the javascript stubs for the rethinkdb protocol
 query_language.pb.js: $(PROTO_FILE)

@@ -40,12 +40,11 @@ rethinkdb.net.Connection.prototype.run = function(expr, callback) {
 
     // RDB protocol requires a 4 byte little endian length field at the head of the request
     var length = data.byteLength;
-    var lengthBuffer = (new Uint32Array(1)).buffer;
-    var lengthBufferView = new DataView(lengthBuffer);
-    lengthBufferView.setUint32(0, length, true);
+    var finalArray = new Uint8Array(length + 4);
+    (new DataView(finalArray.buffer)).setInt32(0, length, true);
+    finalArray.set(data, 4);
     
-    this.send_(lengthBuffer);
-    this.send_(data);
+    this.send_(finalArray.buffer);
 };
 goog.exportProperty(rethinkdb.net.Connection.prototype, 'run',
                     rethinkdb.net.Connection.prototype.run);

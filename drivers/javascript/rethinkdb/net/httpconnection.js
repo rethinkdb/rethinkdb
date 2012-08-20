@@ -9,17 +9,7 @@ goog.require('rethinkdb.net.Connection');
  */
 rethinkdb.net.HttpConnection = function(url, db_name) {
     goog.base(this, db_name);
-    var self = this;
-
-    var xhr = self.xhr_ = new XMLHttpRequest();
-    xhr.open("GET", url, true);
-
-    xhr.onreadystatechange = function(e) {
-        if (xhr.readyState === 4 &&
-            xhr.status === 200) {
-                self.recv_(xhr.response); 
-        }
-    };
+    this.url_ = url;
 };
 goog.inherits(rethinkdb.net.HttpConnection, rethinkdb.net.Connection);
 
@@ -31,9 +21,17 @@ goog.inherits(rethinkdb.net.HttpConnection, rethinkdb.net.Connection);
  * @override
  */
 rethinkdb.net.HttpConnection.prototype.send_ = function(data) {
-    if (this.xhr_) {
-        this.xhr_.send(data);
-    } else {
-        throw "Connection not open";
-    }
+    var xhr = new XMLHttpRequest();
+    xhr.responseType = "arraybuffer";
+    xhr.open("POST", this.url_, true);
+
+    var self = this;
+    xhr.onreadystatechange = function(e) {
+        if (xhr.readyState === 4 &&
+            xhr.status === 200) {
+                self.recv_(new Uint8Array(xhr.response)); 
+        }
+    };
+
+    xhr.send(data);
 };
