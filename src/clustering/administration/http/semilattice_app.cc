@@ -74,10 +74,10 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 {
                     scoped_cJSON_t absolute_change(change.release());
                     std::vector<std::string> parts(req.resource.begin(), req.resource.end());
-                    for (std::vector<std::string>::reverse_iterator it = parts.rbegin(); it != parts.rend(); it++) {
+                    for (std::vector<std::string>::reverse_iterator jt = parts.rbegin(); jt != parts.rend(); ++jt) {
                         scoped_cJSON_t inner(absolute_change.release());
                         absolute_change.reset(cJSON_CreateObject());
-                        absolute_change.AddItemToObject(it->c_str(), inner.release());
+                        absolute_change.AddItemToObject(jt->c_str(), inner.release());
                     }
                     logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }
@@ -131,10 +131,10 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 {
                     scoped_cJSON_t absolute_change(change.release());
                     std::vector<std::string> parts(req.resource.begin(), req.resource.end());
-                    for (std::vector<std::string>::reverse_iterator it = parts.rbegin(); it != parts.rend(); it++) {
+                    for (std::vector<std::string>::reverse_iterator jt = parts.rbegin(); jt != parts.rend(); ++jt) {
                         scoped_cJSON_t inner(absolute_change.release());
                         absolute_change.reset(cJSON_CreateObject());
-                        absolute_change.AddItemToObject(it->c_str(), inner.release());
+                        absolute_change.AddItemToObject(jt->c_str(), inner.release());
                     }
                     logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }

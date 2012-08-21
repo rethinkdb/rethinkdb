@@ -794,11 +794,9 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
                 signal_timer_t start_poll(poll_ms);
                 wait_interruptible(&start_poll, env->interruptor);
                 try {
-                    namespace_repo_t<rdb_protocol_t>::access_t ns_access(
-                        env->ns_repo, namespace_id, env->interruptor);
-                    rdb_protocol_t::read_response_t res;
-                    ns_access.get_namespace_if()->read(
-                        bad_read, &res, order_token_t::ignore, env->interruptor);
+                    namespace_repo_t<rdb_protocol_t>::access_t ns_access(env->ns_repo, namespace_id, env->interruptor);
+                    rdb_protocol_t::read_response_t read_res;
+                    ns_access.get_namespace_if()->read(bad_read, &read_res, order_token_t::ignore, env->interruptor);
                     break;
                 } catch (cannot_perform_query_exc_t e) { } //continue loop
             }
@@ -1612,9 +1610,9 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 } else if (arg->type() == cJSON_Array) {
                     boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(arg->DeepCopy()));
                     for (int i = 1; i < c->args_size(); ++i) {
-                        boost::shared_ptr<scoped_cJSON_t> arg = eval_and_check(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)), cJSON_Array, "Cannot ADD arrays to non-arrays");
+                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_and_check(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)), cJSON_Array, "Cannot ADD arrays to non-arrays");
                         for(int j = 0; j < arg->GetArraySize(); ++j) {
-                            res->AddItemToArray(cJSON_DeepCopy(arg->GetArrayItem(j)));
+                            res->AddItemToArray(cJSON_DeepCopy(arg2->GetArrayItem(j)));
                         }
                     }
                     return res;
@@ -1636,8 +1634,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     }
 
                     for (int i = 1; i < c->args_size(); ++i) {
-                        boost::shared_ptr<scoped_cJSON_t> arg = eval_and_check(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands to SUBTRACT must be numbers.");
-                        result -= arg->get()->valuedouble;
+                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_and_check(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands to SUBTRACT must be numbers.");
+                        result -= arg2->get()->valuedouble;
                     }
                 }
 
@@ -1671,8 +1669,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     }
 
                     for (int i = 1; i < c->args_size(); ++i) {
-                        boost::shared_ptr<scoped_cJSON_t> arg = eval_and_check(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands to DIVIDE must be numbers.");
-                        result /= arg->get()->valuedouble;
+                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_and_check(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands to DIVIDE must be numbers.");
+                        result /= arg2->get()->valuedouble;
                     }
                 }
 

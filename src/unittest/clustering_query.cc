@@ -100,13 +100,14 @@ static void run_read_write_test() {
         dummy_protocol_t::read_t r;
         dummy_protocol_t::read_response_t rr;
         r.keys.keys.insert((*it).first);
-        cond_t interruptor;
+        // TODO: What's with this fake interruptor?
+        cond_t fake_interruptor;
         fifo_enforcer_sink_t::exit_read_t read_token;
         master_access.new_read_token(&read_token);
         master_access.read(r, &rr,
                            order_source.check_in("unittest::run_read_write_test(clustering_query.cc)").with_read_mode(),
                            &read_token,
-                           &interruptor);
+                           &fake_interruptor);
         EXPECT_EQ((*it).second, rr.values[(*it).first]);
     }
 }
