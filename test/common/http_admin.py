@@ -717,7 +717,7 @@ class ClusterAccess(object):
         self._verify_cluster_data_chunk(self.datacenters, data[u"datacenters"])
         self._verify_cluster_data_chunk(self.dummy_namespaces, data[u"dummy_namespaces"])
         self._verify_cluster_data_chunk(self.memcached_namespaces, data[u"memcached_namespaces"])
-        self._verify_cluster_data_chunk(self.memcached_namespaces, data[u"rdb_namespaces"])
+        self._verify_cluster_data_chunk(self.rdb_namespaces, data[u"rdb_namespaces"])
 
     def update_cluster_data(self, timeout):
         data = self._verify_consistent_cluster(timeout)
