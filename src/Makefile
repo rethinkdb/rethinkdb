@@ -172,6 +172,10 @@ CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
 CXXFLAGS+=-DNO_MEMCACHE
 endif
 
+ifeq ($(DISABLE_BREAKPOINTS),1)
+CXXFLAGS+=-DDISABLE_BREAKPOINTS
+endif
+
 ifneq ($(TRIAL),0)
 ifeq ($(TIMEBOMB),0)
 TIMEBOMB:=21
