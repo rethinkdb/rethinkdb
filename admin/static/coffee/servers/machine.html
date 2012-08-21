@@ -11,7 +11,7 @@
 
     <ul class="nav nav-tabs">
         <li class="active"><a href="#machines/{{server_id}}/overview" data-target="#machine-overview" id="machine-overview-link" data-toggle="tab" class="tab-link">Statistics</a></li>
-        <li><a href="#machines/{{server_id}}/data" data-target="#machine-data" id="machine-data-link" data-toggle="tab" class="tab-link">Data</a></li>
+        <li><a href="#machines/{{server_id}}/data" data-target="#machine-data" id="machine-data-link" data-toggle="tab" class="tab-link">Data on this server</a></li>
         <li><a href="#machines/{{server_id}}/assignments" data-target="#machine-assignments" id="machine-assignments-link" data-toggle="tab" class="tab-link">Assignments</a></li>
         <li><a href="#machines/{{server_id}}/operations" data-target="#machine-operations" id="machine-operations-link" data-toggle="tab" class="tab-link">Operations</a></li>
         <li><a href="#machines/{{server_id}}/logs" data-target="#machine-log_entries" id="machine-log_entries-link" data-toggle="tab" class="tab-link">Recent log entries</a></li>
@@ -130,7 +130,7 @@
     {{/unless}}
     {{#each data.namespaces}}
     <div class="namespace">
-        <h4>Namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
+        <h4>Table <a href="/#tables/{{uuid}}">{{name}}</a>:</h4>
         <ul class="shard_ul">
             {{#each shards}}
             <li class="shard_li">
@@ -155,7 +155,7 @@
     {{/unless}}
     {{#each data.namespaces}}
     <div class="namespace">
-        <h4>Namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
+        <h4>Table <a href="/#tables/{{uuid}}">{{name}}</a>:</h4>
         <ul class="shard_ul">
             {{#each shards}}
             <li class="shard_li">
@@ -211,7 +211,7 @@
 
 
 <script id="reason-set_secondary-need_replica-template" type="text/x-handlebars-template">
-    You need a replica to replace this master, please <a href="#namespaces/{{namespace_id}}/replication">increase</a> your number of replicas.
+    You need a replica to replace this master, please <a href="#tables/{{namespace_id}}/replication">increase</a> your number of replicas.
 </script>
 
 <script id="reason-set_nothing-set_secondary_first-template" type="text/x-handlebars-template">
@@ -219,12 +219,12 @@
 </script>
 
 <script id="reason-set_master-datacenter_not_primary-template" type="text/x-handlebars-template">
-    You have to <a href="#namespaces/{{namespace_id}}/replication">set</a> this server's datacenter as the primary one first.
+    You have to <a href="#tables/{{namespace_id}}/replication">set</a> this server's datacenter as the primary one first.
 </script>
 
 
 <script id="reason-set_nothing-unsatisfiable_goals-template" type="text/x-handlebars-template">
-    <a href="#namespaces/{{namespace_id}}/replication">Lower</a> the number of replicas or <a href="#servers">add a machine</a> in this datacenter to avoid unsatisfiable goals.
+    <a href="#tables/{{namespace_id}}/replication">Lower</a> the number of replicas or <a href="#servers">add a machine</a> in this datacenter to avoid unsatisfiable goals.
 </script>
 
 <script id="reason-set_primary-set_secondary_first-template" type="text/x-handlebars-template">
@@ -232,7 +232,7 @@
 </script>
 
 <script id="reason-set_primary-set_datecenter_as_primary-template" type="text/x-handlebars-template">
-    You have to <a href="#namespaces/{{namespace_id}}/replication">set</a> this server's datacenter as the primary one first.
+    You have to <a href="#tables/{{namespace_id}}/replication">set</a> this server's datacenter as the primary one first.
 </script>
 
 <script id="reason-set_primary-no_datacenter-template" type="text/x-handlebars-template">
@@ -240,7 +240,7 @@
 </script>
 
 <script id="reason-set_secondary-increase_replicas-template" type="text/x-handlebars-template">
-    You have to <a href="#namespaces/{{namespace_id}}/replication">increase</a> your number of replicas first.
+    You have to <a href="#tables/{{namespace_id}}/replication">increase</a> your number of replicas first.
 </script>
 
 
@@ -249,7 +249,7 @@
 <script id="alert-set_server-template" type="text/x-handlebars-template">
     <div class="alert" data-alert="alert">
         <a class="close" href="#">&times;</a>
-        <p>You successfully set this server as a {{role}} for the shard {{shard}} of the namespace {{namespace_name}}</p>
+        <p>You successfully set this server as a {{role}} for the shard {{shard}} of the table {{namespace_name}}</p>
     </div>
 </script>
 
@@ -279,7 +279,7 @@
     This server is master for some data. Please <a href="#machines/{{server_id}}/assignments" class="to_assignments-link">make</a> it at least secondary.
 </script>
 <script id="reason-cannot_unassign-goals-template" type="text/x-handlebars-template">
-    You have to lower the number of replicas of the following namespaces to avoid unsatisfiable goals: {{links_to_namespaces_inline namespaces_need_less_replicas "replication"}}
+    You have to lower the number of replicas of the following tables to avoid unsatisfiable goals: {{links_to_namespaces_inline namespaces_need_less_replicas "replication"}}
 </script>
 
 <script id="machine_view-recent_log_entry-template" type="text/x-handlebars-template">

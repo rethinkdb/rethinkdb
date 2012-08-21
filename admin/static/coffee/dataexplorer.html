@@ -27,20 +27,20 @@
 </script>
 
 <script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
-    You have to choose the database that contains the namespaces you want to query on.
+    You have to choose the database that contains the tables you want to query on.
 </script>
 <script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
-    You have to choose a namespace where you will run your query.
+    You have to choose a table where you will run your query.
 </script>
 
 
 <script id="dataexplorer_default_view-template" type="text/x-handlebars-template">
     <h2>Quick Start</h2>
-    <p>You can automatically build a query by clicking on a namespace or on a previous query. You can then modify them as you wish.</p>
+    <p>You can automatically build a query by clicking on a table or on a previous query. You can then modify them as you wish.</p>
     <p>The data explorer is equipped with a suggestion feature, but if you are lost, you can find more details in the <a href="#help">help page</a>.</p>
 
     <div class="namespaces_available_container">
-        <h3>Namespaces available</h3>
+        <h3>Tables available</h3>
 
         {{#if has_namespaces}}
         <ul class="namaspaces_available_list">
@@ -49,7 +49,7 @@
             {{/each}}
         </ul>
         {{else}}
-        There is no namespace available. <br />Start by <a href="#namespaces">creating one</a>.
+        There is no table available. <br />Start by <a href="#tables">creating one</a>.
         {{/if}}
    </div>
     <div class="history_queries">
