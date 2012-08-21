@@ -11,7 +11,7 @@ public:
     //  is that ok?
     class destruction_sentinel_t {
     public:
-        destruction_sentinel_t(object_buffer_t<T> *_parent) : parent(_parent) { }
+        explicit destruction_sentinel_t(object_buffer_t<T> *_parent) : parent(_parent) { }
 
         ~destruction_sentinel_t() {
             if (parent->has()) {

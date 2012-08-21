@@ -101,7 +101,7 @@ public:
 template <class T>
 class standard_subfield_change_functor_t : public subfield_change_functor_t {
 public:
-    standard_subfield_change_functor_t(T *target);
+    explicit standard_subfield_change_functor_t(T *target);
     void on_change();
 private:
     T *target;
@@ -158,7 +158,7 @@ class json_adapter_t : public json_adapter_if_t {
 private:
     typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
 public:
-    json_adapter_t(T *);
+    explicit json_adapter_t(T *);
 
 private:
     json_adapter_map_t get_subfields_impl();
@@ -202,7 +202,7 @@ private:
 template <class T>
 class json_read_only_adapter_t : public json_adapter_t<T> {
 public:
-    json_read_only_adapter_t(T *);
+    explicit json_read_only_adapter_t(T *);
 
 private:
     void apply_impl(cJSON *);
@@ -232,7 +232,7 @@ private:
 template <class T>
 class json_temporary_adapter_t : public json_read_only_adapter_t<T> {
 public:
-    json_temporary_adapter_t(const T &value);
+    explicit json_temporary_adapter_t(const T &value);
 
 private:
     T value_;
