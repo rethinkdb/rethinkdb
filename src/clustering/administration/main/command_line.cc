@@ -12,6 +12,7 @@
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
+#include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/logger.hpp"
@@ -22,8 +23,6 @@
 #include "utils.hpp"
 
 namespace po = boost::program_options;
-
-static const int default_peer_port = 20300;
 
 class host_and_port_t {
 public:
@@ -201,7 +200,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                 namespace_semilattice_metadata_t<memcached_protocol_t> namespace_metadata;
 
                 namespace_metadata.name = vclock_t<std::string>("Welcome-memcached", our_machine_id);
-                namespace_metadata.port = vclock_t<int>(11213, our_machine_id);
+                namespace_metadata.port = vclock_t<int>(port_constants::namespace_port, our_machine_id);
 
                 persistable_blueprint_t<memcached_protocol_t> blueprint;
                 {
@@ -330,10 +329,10 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
 po::options_description get_network_options() {
     po::options_description desc("Network options");
     desc.add_options()
-        ("port", po::value<int>()->default_value(default_peer_port), "port for receiving connections from other nodes")
-        ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes (for development)")
-        ("port-offset,o", po::value<int>()->default_value(0), "set up parsers for namespaces on the namespace's port + this value (for development)")
-        ("http-port", po::value<int>()->default_value(0), "port for http admin console (defaults to `port + 1000`)")
+        ("port", po::value<int>()->default_value(port_defaults::peer_port), "port for receiving connections from other nodes")
+        ("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)")
+        ("port-offset,o", po::value<int>()->default_value(port_defaults::port_offset), "set up parsers for namespaces on the namespace's port + this value (for development)")
+        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console (defaults to `port + 1000`)")
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
     return desc;
 }
@@ -374,7 +373,7 @@ po::options_description get_rethinkdb_admin_options() {
     po::options_description desc("Allowed options");
     desc.add_options()
         DEBUG_ONLY(
-            ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes"))
+            ("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
     desc.add(get_disk_options());
@@ -526,7 +525,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 #ifndef NDEBUG
         int client_port = vm["client-port"].as<int>();
 #else
-        int client_port = 0;
+        int client_port = port_defaults::client_port;
 #endif
         bool exit_on_failure = false;
         if (vm.count("exit-failure") > 0)
