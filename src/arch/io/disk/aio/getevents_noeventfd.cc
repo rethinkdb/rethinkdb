@@ -52,9 +52,10 @@ void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
         guarantee_xerr(nevents >= 1, -nevents, "Waiting for AIO event failed");
 
         // Push the events on the parent thread's list
-        int res = pthread_mutex_lock(&parent->io_mutex);
-        guarantee(res == 0, "Could not lock io mutex");
+        int lockres = pthread_mutex_lock(&parent->io_mutex);
+        guarantee(lockres == 0, "Could not lock io mutex");
 
+        // TODO: WTF is this shit?  This is a complete bullshit way to send this information between threads.
         std::copy(events, events + nevents, std::back_inserter(parent->io_events));
 
         res = pthread_mutex_unlock(&parent->io_mutex);

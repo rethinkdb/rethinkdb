@@ -280,6 +280,7 @@ module 'NamespaceView', ->
             @render_data_repartition(true)
             return @
 
+        # TODO refactor without the boolean - Check machine view
         render_data_in_memory: (force_render) =>
             data_in_memory = 0
             data_total = 0

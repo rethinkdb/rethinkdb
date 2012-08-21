@@ -87,7 +87,7 @@ public:
         : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), key_gen_fun(_key_gen_fun), osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-                                           this, osource, tag, auto_drainer_t::lock_t(drainer.get())));
+                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     template <class protocol_t>
@@ -100,7 +100,7 @@ public:
           osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-                                           this, osource, tag, auto_drainer_t::lock_t(drainer.get())));
+                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     template <class protocol_t>
@@ -113,7 +113,7 @@ public:
           osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-                                           this, osource, tag, auto_drainer_t::lock_t(drainer.get())));
+                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     void stop() {
@@ -146,10 +146,7 @@ private:
 
     scoped_ptr_t<auto_drainer_t> drainer;
 
-    void insert_forever(
-            order_source_t *osource,
-            const std::string &msg,
-            auto_drainer_t::lock_t keepalive) {
+    void insert_forever(const std::string &msg, auto_drainer_t::lock_t keepalive) {
         try {
             std::string tag = strprintf("insert_forever(%p,%s)", this, msg.c_str());
             for (int i = 0; ; i++) {
