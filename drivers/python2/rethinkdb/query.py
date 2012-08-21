@@ -73,24 +73,55 @@ def R(name):
         raise NotImplementedError(". not handled")
     return internal.ImplicitAttr(name)
 
-def fn(arg, *args):
+def fn(*x):
     """Create a function.
     See :func:`Selectable.filter` for examples.
 
     The last argument is the body of the function,
     and the other arguments are the parameter names.
 
-    :param args: args[:-1] are names of parameters,
-        args[-1] is the function body
-    :type args: list(str/:class:`JSONExpression`)
+    :param args: names of parameters
+    :param body: body of function
+    :type body: :class:`JSONExpression` or :class:`StreamExpression`
+    :rtype: :class:`rethinkdb.JSONFunction` or :class:`rethinkdb.StreamFunction`
 
     >>> fn(3)                           # lambda: 3
     >>> fn("x", R("$x") + 1)            # lambda x: x + 1
     >>> fn("x", "y", R("$x") + R("$y))  # lambda x, y: x + y
     """
-    if not args:
-        return internal.Function(arg)
-    return internal.Function(args[-1], arg, *args[:-1])
+    body = x[-1]
+    args = x[:-1]
+    if isinstance(body, Stream):
+        return StreamFunction(body, *args)
+    else:
+        return JSONFunction(body, *args)
+
+class JSONFunction(object):
+    """TODO document me"""
+    def __init__(self, body, *args):
+        self.body = expr(body)
+        self.args = args
+
+    def write_mapping(self, mapping):
+        if self.args:
+            mapping.arg = self.args[0]
+        else:
+            mapping.arg = 'row'     # TODO: GET RID OF THIS
+        self.body._write_ast(mapping.body)
+
+class StreamFunction(object):
+    """TODO document me"""
+    def __init__(self, body, *args):
+        assert isinstance(body, Stream)
+        self.body = body
+        self.args = args
+
+    def write_mapping(self, mapping):
+        if self.args:
+            mapping.arg = self.args[0]
+        else:
+            mapping.arg = 'row'     # TODO: GET RID OF THIS
+        self.body._write_ast(mapping.body)
 
 def js(expr=None, body=None):
     if (expr is not None) + (body is not None) != 1:
@@ -132,7 +163,7 @@ class BaseExpression(object):
 
         >>> conn = rethinkdb.net.connect() # Connect to localhost, default port
         >>> res = table('db_name.table_name').insert({ 'a': 1, 'b': 2 }).run(conn)
-        >>> res = table('db_name.table_name').all().run() # uses conn since it's the last created connection
+        >>> res = table('db_name.table_name').run() # uses conn since it's the last created connection
         """
         raise NotImplementedError
 
@@ -227,8 +258,8 @@ class Expression(BaseExpression):
         """
         if isinstance(selector, dict):
             selector = internal.All(*[R(k) == v for k, v in selector.iteritems()])
-        if not isinstance(selector, internal.Function):
-            selector = internal.Function(selector)
+        if not isinstance(selector, JSONFunction):
+            selector = JSONFunction(selector)
 
         return internal.Filter(self, selector)
 
@@ -237,12 +268,11 @@ class Expression(BaseExpression):
             if index.step is not None:
                 raise ValueError("slice stepping is unsupported")
             return internal.Slice(self, index.start, index.stop)
-        elif isinstance(index, int):
-            return internal.Nth(self, index)
+        elif isinstance(index, str):
+            # TODO: Move this case to JSONExpression
+            return internal.Attr(self, index)
         else:
-            if isinstance(self, JSONExpression):
-                return internal.Attr(self, index)
-            raise TypeError("stream indices must be integers, not " + index.__class__.__name__)
+            return internal.Nth(self, index)
 
     def nth(self, index):
         """Select the element at `index`.
@@ -335,15 +365,31 @@ class Expression(BaseExpression):
 
         :param mapping: The expression to evaluate
         :type mapping: :class:`JSONExpression`
-        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
+        :returns: :class:`Stream`, :class:`JSONExpression` (depends on input)
 
-        >>> expr([1, 2, 3]).map(R('@') * 2) # gives [2, 4, 6]
+        >>> expr([1, 2, 3]).map(R('@') * 2) # gives JSONExpression evaluating to [2, 4, 6]
         >>> table('users').map(R('age'))
         >>> table('users').map(fn('user', table('posts').filter({'userid': R('$user.id')})))
         """
-        if not isinstance(mapping, internal.Function):
-            mapping = internal.Function(mapping)
+        if not isinstance(mapping, JSONFunction):
+            mapping = JSONFunction(mapping)
         return internal.Map(self, mapping)
+
+    def concat_map(self, mapping):
+        """Evaluate `mapping` for each element. The result of `mapping` must be
+        a stream; all those streams will be concatenated to produce the result
+        of `concat_map()`.
+
+        :param mapping: The mapping to evaluate
+        :type mapping: :class:`Stream`   # TODO fixme
+        :returns: :class:`Stream`
+
+        >>> expr([1, 2, 3]).concat_map(fn("a", expr([R("$a"), "test"]).to_stream())).run()
+        [1, "test", 2, "test", 3, "test"]
+        """
+        if not isinstance(mapping, StreamFunction):
+            mapping = StreamFunction(mapping)
+        return internal.ConcatMap(self, mapping)
 
     def reduce(self, base, func):
         """Build up a result by repeatedly applying `func` to pairs of elements. Returns
@@ -351,7 +397,7 @@ class Expression(BaseExpression):
 
         `base` should be an identity (`func(base, e) == e`).
 
-        :type base: :class:`Function`, :class:`JSON`
+        :type base: :class:`JSONFunction`, :class:`JSON`
         :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
 
         >>> expr([1, 2, 3]).reduce(0, fn('a', 'b', R('$a') + R('$b'))).run()
@@ -360,6 +406,37 @@ class Expression(BaseExpression):
         >>> table('users').reduce(0, fn('a', 'b', R('$a') + R('$b.credits)))
         """
         raise NotImplementedError
+
+    def grouped_map_reduce(self, group_mapping, value_mapping, reduction_base, reduction_func):
+        """Group elements by `group_mapping`, then apply `value_mapping` to each
+        one, then reduce the group into a single value using `reduction_base`
+        and `reduction_func`. Returns a `JSONExpression` which is a JSON object
+        where the keys are the return values of `group_mapping` and the values
+        are the results of the reduction.
+
+        :param group_mapping: Function to sort values by
+        :type group_mapping: :class:`JSONFunction`
+        :param value_mapping: Function to transform values by before reduction
+        :type value_mapping: :class:`JSONFunction`
+        :param reduction_base: Base value for reduction, as in `Expression.reduce()`
+        :type reduction_base: :class:`JSONExpression`
+        :param reduction_func: Combiner function for reduction
+        :type reduction_func: :class:`JSONFunction`
+
+        >>> table('transactions').grouped_map_reduce(
+                fn("txn", R("$txn.category_name")),
+                fn("txn", R("$txn.dollar_value")),
+                0,
+                fn("a", "b", R("$a") + R("$b"))
+                ).run()
+        # Returns an object where keys are transaction category names and values
+        # are total dollar values in those categories
+        """
+        if not isinstance(group_mapping, JSONFunction):
+            group_mapping = JSONFunction(group_mapping)
+        if not isinstance(value_mapping, JSONFunction):
+            value_mapping = JSONFunction(value_mapping)
+        return internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func)
 
     def distinct(self, *attrs):
         """Select distinct elements of the input.
@@ -380,6 +457,16 @@ class Expression(BaseExpression):
             return self.map(internal.ImplicitAttr(attr))
         else:
             return self.map([internal.ImplicitAttr(x) for x in (attr,) + attrs])
+
+    def length(self):
+        return internal.Length(self)
+
+    def __len__(self):
+        raise ValueError("To construct a `rethinkdb.JSONExpression` "
+            "representing the length of a RethinkDB protocol term, call "
+            "`expr.length()`. (We couldn't overload `len(expr)` because it's "
+            "illegal to return anything other than an integer from `__len__()` "
+            "in Python.)")
 
 ##########################################
 # DATA OBJECTS - SELECTION, STREAM, ETC. #
@@ -408,14 +495,14 @@ class BaseSelection(object):
         >>> table('users').filter(R('warnings') > 5).update({'banned': True})
 
         """
-        if not isinstance(mapping, internal.Function):
-            mapping = internal.Function(mapping)
+        if not isinstance(mapping, JSONFunction):
+            mapping = JSONFunction(mapping)
         return internal.Update(self, mapping)
 
     def mutate(self, mapping):
         """TODO: get rid of this ?"""
-        if not isinstance(mapping, internal.Function):
-            mapping = internal.Function(mapping)
+        if not isinstance(mapping, JSONFunction):
+            mapping = JSONFunction(mapping)
         return internal.Mutate(self, mapping)
 
 class MultiRowSelection(Stream, BaseSelection):
@@ -438,8 +525,8 @@ class JSONExpression(Expression):
     >>> expr(1) < 2 # Whenever possible, ReQL converts Python types to expressions implicitly.
     >>> expr(1) + 2 # Addition. We can do `-`, `*`, `/`, and `%` in the same way.
     >>> expr(1) < 2 # We can also do `>`, `<=`, `>=`, `==`, etc.
-    >>> expr(1) < 2 & 3 < 4 # We use `&` and `|` to encode `and` and `or` since we can't overload
-                            # these in Python"""
+    >>> (expr(1) < 2) & (expr(3) < 4) # We use `&` and `|` to encode `and` and `or` since we can't overload these in Python
+    """
 
     def to_stream(self):
         """Convert a JSON array into a stream."""
@@ -484,6 +571,26 @@ class JSONExpression(Expression):
         return internal.Sub(self)
     def __pos__(self):
         return self
+
+    def __or__(self, other):
+        return internal.Any(self, other)
+    def __and__(self, other):
+        return internal.All(self, other)
+
+    def __ror__(self, other):
+        return internal.Any(other, self)
+    def __rand__(self, othe):
+        return internal.All(other, self)
+
+    def __invert__(self):
+        return internal.Not(self)
+
+    def has_attr(self, name):
+        return internal.Has(self, name)
+    def extend(self, other):
+        return internal.Extend(self, other)
+    def append(self, other):
+        return internal.Append(self, other)
 
 class JSONLiteral(JSONExpression):
     """A literal JSON value."""
@@ -536,6 +643,27 @@ def expr(val):
     if isinstance(val, JSONExpression):
         return val
     return JSONLiteral(val)
+
+def if_then_else(test, true_branch, false_branch):
+    """If `test` returns `true`, evaluates to `true_branch`. If `test` returns
+    `false`, evaluates to `false_branch`. If `test` returns a non-boolean value,
+    fails at runtime.
+
+    `true_branch` and `false_branch` can be any subclass of :class:`Expression`.
+    They need not be the same, but they must be convertible to the same type;
+    the type that they can both be converted to will be the return type of
+    `if_then_else()`. So if one is a :class:`Stream` and the other is a
+    :class:`MultiRowSelection`, the result will be a :class:`Stream`. But if
+    one is a :class:`Stream` and the other is a :class:`JSONExpression`, then
+    `if_then_else()` will throw an exception rather than return an expression
+    object at all.
+
+    :param test: The condition to switch on
+    :type test: :class:`JSONExpression`
+    :param true_branch: The return value if `test` is `true`
+    :param false_branch: The return value if `test` is `false`
+    """
+    return internal.If(test, true_branch, false_branch)
 
 class RowSelection(JSONExpression, BaseSelection):
     """A single row from a table which can be read or written."""

@@ -369,7 +369,7 @@ std::vector<std::string> admin_cluster_link_t::get_datacenter_ids(const std::str
     return get_ids_internal(base, "datacenters");
 }
 
-std::vector<std::string> admin_cluster_link_t::get_conflicted_ids(const std::string& base UNUSED) {
+std::vector<std::string> admin_cluster_link_t::get_conflicted_ids(const std::string& base) {
     std::set<std::string> unique_set;
     std::vector<std::string> results;
 
@@ -1220,16 +1220,16 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
 
             // If namespaces were selected, only list stats belonging to those namespaces
             if (!namespace_filters.empty()) {
-                for (perfmon_result_t::const_iterator i = stats.begin(); i != stats.end(); ++i) {
-                    if (is_uuid(i->first) && namespace_filters.count(str_to_uuid(i->first)) == 1) {
+                for (perfmon_result_t::const_iterator j = stats.begin(); j != stats.end(); ++j) {
+                    if (is_uuid(j->first) && namespace_filters.count(str_to_uuid(j->first)) == 1) {
                         // Try to convert the uuid to a (unique) name
-                        std::string id = i->first;
+                        std::string id = j->first;
                         try {
                             uuid_t temp = str_to_uuid(id);
                             id = get_info_from_id(uuid_to_str(temp))->name;
                         } catch (...) {
                         }
-                        admin_stats_to_table(machine_name, id, *i->second, &stats_table);
+                        admin_stats_to_table(machine_name, id, *j->second, &stats_table);
                     }
                 }
             } else {

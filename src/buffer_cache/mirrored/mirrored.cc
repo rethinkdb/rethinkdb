@@ -149,7 +149,7 @@ private:
 // This loads a block from the serializer and stores it into buf.
 void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account) {
     if (should_lock) {
-        bool locked UNUSED = lock.lock(rwi_write, NULL);
+        DEBUG_VAR bool locked = lock.lock(rwi_write, NULL);
         rassert(locked);
     } else {
         // We should have at least *some* kind of lock on the buffer, shouldn't we?
@@ -431,15 +431,15 @@ void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file
 }
 
 // TODO (sam): Look at who's passing this void pointer.
-void mc_inner_buf_t::release_snapshot_data(void *data) {
+void mc_inner_buf_t::release_snapshot_data(void *_data) {
     // This should never be called in non-coroutine context, since it could release the last
     // reference to a block_token_t, whose destructor switches to the serializer thread.
     rassert(coro_t::self());
     cache->assert_thread();
-    rassert(data, "tried to release NULL snapshot data");
+    rassert(_data, "tried to release NULL snapshot data");
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
         // TODO (sam): Obviously this comparison is disgusting.
-        if (snap->data.equals(data)) {
+        if (snap->data.equals(_data)) {
             snap->release_data();
             return;
         }
@@ -1042,6 +1042,10 @@ void mc_buf_lock_t::release() {
         }
     }
 
+#ifndef AGGRESSIVE_BUF_UNLOADING
+#define AGGRESSIVE_BUF_UNLOADING 0
+#endif
+
 #if AGGRESSIVE_BUF_UNLOADING == 1
     // If this code is enabled, then it will cause bufs to be unloaded very aggressively.
     // This is useful for catching bugs in which something expects a buf to remain valid even though
@@ -1091,7 +1095,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
 }
 
 /* This version is only for read transactions from the writeback!  And some unit tests use it. */
-mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED int fook, UNUSED bool dont_assert_about_shutting_down) :
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED int fook, DEBUG_VAR bool dont_assert_about_shutting_down) :
     cache(_cache),
     expected_change_count(0),
     access(_access),
@@ -1281,37 +1285,37 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
 }
 
 mc_cache_t::mc_cache_t(serializer_t *_serializer,
-                       mirrored_cache_config_t *dynamic_config,
+                       mirrored_cache_config_t *_dynamic_config,
                        perfmon_collection_t *perfmon_parent) :
-    dynamic_config(*dynamic_config),
+    dynamic_config(*_dynamic_config),
     serializer(_serializer),
     stats(new mc_cache_stats_t(perfmon_parent)),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
-        dynamic_config->max_size / _serializer->get_block_size().ser_value(),
+        dynamic_config.max_size / _serializer->get_block_size().ser_value(),
         this),
     writeback(
         this,
-        dynamic_config->wait_for_flush,
-        dynamic_config->flush_timer_ms,
-        dynamic_config->flush_dirty_size / _serializer->get_block_size().ser_value(),
-        dynamic_config->max_dirty_size / _serializer->get_block_size().ser_value(),
-        dynamic_config->flush_waiting_threshold,
-        dynamic_config->max_concurrent_flushes),
+        dynamic_config.wait_for_flush,
+        dynamic_config.flush_timer_ms,
+        dynamic_config.flush_dirty_size / _serializer->get_block_size().ser_value(),
+        dynamic_config.max_dirty_size / _serializer->get_block_size().ser_value(),
+        dynamic_config.flush_waiting_threshold,
+        dynamic_config.max_concurrent_flushes),
     /* Build list of free blocks (the free_list constructor blocks) */
     free_list(_serializer, stats.get()),
     shutting_down(false),
     num_live_writeback_transactions(0),
     num_live_non_writeback_transactions(0),
     to_pulse_when_last_transaction_commits(NULL),
-    max_patches_size_ratio((dynamic_config->wait_for_flush || dynamic_config->flush_timer_ms == 0) ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
+    max_patches_size_ratio((dynamic_config.wait_for_flush || dynamic_config.flush_timer_ms == 0) ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
     read_ahead_registered(false),
     next_snapshot_version(mc_inner_buf_t::faux_version_id+1) {
 
     {
         on_thread_t thread_switcher(serializer->home_thread());
-        reads_io_account.init(serializer->make_io_account(dynamic_config->io_priority_reads));
-        writes_io_account.init(serializer->make_io_account(dynamic_config->io_priority_writes));
+        reads_io_account.init(serializer->make_io_account(dynamic_config.io_priority_reads));
+        writes_io_account.init(serializer->make_io_account(dynamic_config.io_priority_writes));
     }
 
 #ifndef NDEBUG

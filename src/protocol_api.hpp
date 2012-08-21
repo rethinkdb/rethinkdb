@@ -54,6 +54,8 @@ public:
         return s;
     }
 
+    virtual signal_t *get_initial_ready_signal() { return 0; }
+
 protected:
     virtual ~namespace_interface_t() { }
 };
@@ -106,7 +108,7 @@ public:
             regions.push_back(it->first);
         }
         typename protocol_t::region_t join;
-        DEBUG_ONLY_VAR region_join_result_t join_result = region_join(regions, &join);
+        region_join_result_t join_result = region_join(regions, &join);
         guarantee(join_result == REGION_JOIN_OK);
         return join;
     }

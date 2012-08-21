@@ -37,7 +37,7 @@ public:
 };
 
 inline void intrusive_ptr_add_ref(data_buffer_t *buffer) {
-    UNUSED int64_t res = __sync_add_and_fetch(&buffer->ref_count_, 1);
+    DEBUG_VAR int64_t res = __sync_add_and_fetch(&buffer->ref_count_, 1);
     rassert(res > 0);
 }
 

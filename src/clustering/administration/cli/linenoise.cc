@@ -95,6 +95,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include "clustering/administration/cli/linenoise.hpp"
+#include "containers/scoped.hpp"
 
 #define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
 #define LINENOISE_MAX_LINE 4096
@@ -315,7 +316,8 @@ static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, si
         }
 
         // We need to truncate the line, then add on completions
-        char new_buf[2 * (longest_completion + strlen(buf)) + 1];
+        scoped_array_t<char> new_buf_array(2 * (longest_completion + strlen(buf)) + 1);
+        char *new_buf = new_buf_array.data();
         strcpy(new_buf, buf);
         size_t new_buflen = strlen(new_buf);
 
@@ -351,7 +353,8 @@ static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, si
             // Refresh with the longest common prefix of all completions
             if (completionHasSpaces(new_buf + new_buflen)) {
                 // Any spaces in the completion need to be replaced with "\ "
-                char temp[total_length * 2 + 1];
+                scoped_array_t<char> temp_array(total_length * 2 + 1);
+                char *temp = temp_array.data();
                 temp[0] = '\0';
 
                 int last_copy = 0;

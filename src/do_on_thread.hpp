@@ -43,7 +43,7 @@ struct thread_doer_t :
     void do_return_home() {
         state = state_go_home;
 
-        DEBUG_ONLY_VAR bool no_switch = continue_on_thread(home_thread(), this);
+        DEBUG_VAR bool no_switch = continue_on_thread(home_thread(), this);
         rassert(!no_switch);
     }
 

@@ -131,18 +131,6 @@ class InsertStream(WriteQuery):
 # OPERATIONS #
 ##############
 
-class Function(object):
-    def __init__(self, body, *args):
-        self.body = query.expr(body)
-        self.args = args
-
-    def write_mapping(self, mapping):
-        if self.args:
-            mapping.arg = self.args[0]
-        else:
-            mapping.arg = 'row'     # TODO: GET RID OF THIS
-        self.body._write_ast(mapping.body)
-
 class Javascript(query.JSONExpression):
     def __init__(self, body):
         self.body = body
@@ -334,6 +322,7 @@ class Get(query.RowSelection):
 
 class If(query.JSONExpression):
     def __init__(self, test, true_branch, false_branch):
+        # TODO: Actually support things other than `JSONExpression`
         self.test = query.expr(test)
         self.true_branch = query.expr(true_branch)
         self.false_branch = query.expr(false_branch)
@@ -352,6 +341,32 @@ class Map(Transformer):
     def _write_ast(self, parent):
         builtin = self._write_call(parent, p.Builtin.MAP, self.parent)
         self.mapping.write_mapping(builtin.map.mapping)
+
+class ConcatMap(Transformer):
+    def __init__(self, parent, mapping):
+        self.parent = parent
+        self.mapping = mapping
+
+    def _write_ast(self, parent):
+        builtin = self._write_call(parent, p.Builtin.CONCATMAP, self.parent)
+        self.mapping.write_mapping(builtin.concat_map.mapping)
+
+class GroupedMapReduce(query.JSONExpression):
+    def __init__(self, input, group_mapping, value_mapping, reduction_base, reduction_func):
+        self.input = input
+        self.group_mapping = group_mapping
+        self.value_mapping = value_mapping
+        self.reduction_base = query.expr(reduction_base)
+        self.reduction_func = reduction_func
+
+    def _write_ast(self, parent):
+        builtin = self._write_call(parent, p.Builtin.GROUPEDMAPREDUCE, self.input)
+        self.group_mapping.write_mapping(builtin.grouped_map_reduce.group_mapping)
+        self.value_mapping.write_mapping(builtin.grouped_map_reduce.value_mapping)
+        self.reduction_base._write_ast(builtin.grouped_map_reduce.reduction.base)
+        builtin.grouped_map_reduce.reduction.var1 = self.reduction_func.args[0]
+        builtin.grouped_map_reduce.reduction.var2 = self.reduction_func.args[1]
+        self.reduction_func.body._write_ast(builtin.grouped_map_reduce.reduction.body)
 
 class Distinct(Transformer):
     def __init__(self, parent):

@@ -209,9 +209,9 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     value_sizer_t<void> *sizer = &rdb_sizer;
 
     struct : public value_deleter_t {
-        void delete_value(transaction_t *txn, void *value) {
-            blob_t blob(static_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
-            blob.clear(txn);
+        void delete_value(transaction_t *_txn, void *_value) {
+            blob_t blob(static_cast<rdb_value_t *>(_value)->value_ref(), blob::btree_maxreflen);
+            blob.clear(_txn);
         }
     } deleter;
 

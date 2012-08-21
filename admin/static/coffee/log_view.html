@@ -84,7 +84,7 @@
 </script>
 
 <script id="log-single_value-template" type="text/x-handlebars-template">
-    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to 
+    Set table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to 
     {{#if value}}
     {{value}}
     {{/if}}
@@ -97,7 +97,7 @@
 </script>
 
 <script id="log-machines_values-template" type="text/x-handlebars-template">
-    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
+    Set table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
     <ul class="pretty_logs_ul">
         {{#each machines}}
         <li class="pretty_logs_li">Machine <a href="#machines/{{machine_id}}">{{machine_name}}: {{value}}</li>
@@ -106,7 +106,7 @@
 </script>
 
 <script id="log-datacenters_values-template" type="text/x-handlebars-template">
-    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
+    Set table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
     <ul class="pretty_logs_ul">
         {{#each datacenters}}
         <li class="pretty_logs_li">Datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>: {{value}}</li>
@@ -116,7 +116,7 @@
 
 
 <script id="log-shards_values-template" type="text/x-handlebars-template">
-    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
+    Set table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
     <ul class="pretty_logs_ul">
         {{#each shards}}
         {{#if is_null}}
@@ -129,7 +129,7 @@
 </script>
 
 <script id="log-shards_list_values-template" type="text/x-handlebars-template">
-    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
+    Set table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
     <ul class="pretty_logs_ul">
         {{#each shards}}
         <li class="pretty_logs_li">{{shard}}: [ {{links_to_machines machines}} ]</li>
@@ -138,7 +138,7 @@
 </script>
 
 <script id="log-new_namespace-template" type="text/x-handlebars-template">
-    Create a new namespace {{namespace_name}} with primary datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a> on port {{port}}}<br/>
+    Create a new table {{namespace_name}} with primary datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a> on port {{port}}}<br/>
 </script>
 <script id="log-new_datacenter-template" type="text/x-handlebars-template">
     Create a new datacenter {{datacenter_name}}<br/>
@@ -176,7 +176,7 @@
 </script>
 
 <script id="log-namespace_value-small_template" type="text/x-handlebars-template">
-    Change namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}}<br/>
+    Change table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}}<br/>
 </script>
 
 <script id="log-new_something-small_template" type="text/x-handlebars-template">

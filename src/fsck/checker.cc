@@ -462,8 +462,8 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
             // used yet, if the database is very young.
             bool all_zero = true;
             char *buf = reinterpret_cast<char *>(b.realbuf);
-            for (int i = 0; i < DEVICE_BLOCK_SIZE; ++i) {
-                all_zero &= (buf[i] == 0);
+            for (int j = 0; j < DEVICE_BLOCK_SIZE; ++j) {
+                all_zero &= (buf[j] == 0);
             }
             if (all_zero) {
                 errs->zeroed_count++;

@@ -12,6 +12,7 @@
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
+#include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/logger.hpp"
@@ -22,8 +23,6 @@
 #include "utils.hpp"
 
 namespace po = boost::program_options;
-
-static const int default_peer_port = 20300;
 
 class host_and_port_t {
 public:
@@ -201,7 +200,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                 namespace_semilattice_metadata_t<memcached_protocol_t> namespace_metadata;
 
                 namespace_metadata.name = vclock_t<std::string>("Welcome-memcached", our_machine_id);
-                namespace_metadata.port = vclock_t<int>(11213, our_machine_id);
+                namespace_metadata.port = vclock_t<int>(port_constants::namespace_port, our_machine_id);
 
                 persistable_blueprint_t<memcached_protocol_t> blueprint;
                 {
@@ -239,39 +238,15 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
             {
                 /* add an rdb namespace */
                 namespace_id_t namespace_id = generate_uuid();
-                namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata;
 
-                namespace_metadata.name = vclock_t<std::string>("Welcome-rdb", our_machine_id);
-                namespace_metadata.primary_key = vclock_t<std::string>("id", our_machine_id);
-                namespace_metadata.port = vclock_t<int>(11213, our_machine_id);
+                namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata =
+                    new_namespace<rdb_protocol_t>(our_machine_id, database_id, datacenter_id, "Welcome-rdb", "id", port_constants::namespace_port);
 
                 persistable_blueprint_t<rdb_protocol_t> blueprint;
                 std::map<rdb_protocol_t::region_t, blueprint_details::role_t> roles;
                 roles.insert(std::make_pair(rdb_protocol_t::region_t::universe(), blueprint_details::role_primary));
                 blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
                 namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<rdb_protocol_t> >(blueprint, our_machine_id);
-
-                namespace_metadata.primary_datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);
-
-                std::map<datacenter_id_t, int> affinities;
-                affinities.insert(std::make_pair(datacenter_id, 0));
-                namespace_metadata.replica_affinities = vclock_t<std::map<datacenter_id_t, int> >(affinities, our_machine_id);
-
-                std::map<datacenter_id_t, int> ack_expectations;
-                ack_expectations.insert(std::make_pair(datacenter_id, 1));
-                namespace_metadata.ack_expectations = vclock_t<std::map<datacenter_id_t, int> >(ack_expectations, our_machine_id);
-
-                std::set<rdb_protocol_t::region_t> shards;
-                shards.insert(rdb_protocol_t::region_t::universe());
-                namespace_metadata.shards = vclock_t<std::set<rdb_protocol_t::region_t> >(shards, our_machine_id);
-
-                region_map_t<rdb_protocol_t, machine_id_t> primary_pinnings(rdb_protocol_t::region_t::universe(), nil_uuid());
-                namespace_metadata.primary_pinnings = vclock_t<region_map_t<rdb_protocol_t, machine_id_t> >(primary_pinnings, our_machine_id);
-
-                region_map_t<rdb_protocol_t, std::set<machine_id_t> > secondary_pinnings(rdb_protocol_t::region_t::universe(), std::set<machine_id_t>());
-                namespace_metadata.secondary_pinnings = vclock_t<region_map_t<rdb_protocol_t, std::set<machine_id_t> > >(secondary_pinnings, our_machine_id);
-
-                namespace_metadata.database = vclock_t<datacenter_id_t>(database_id, our_machine_id);
 
                 semilattice_metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
             }
@@ -354,10 +329,10 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
 po::options_description get_network_options() {
     po::options_description desc("Network options");
     desc.add_options()
-        ("port", po::value<int>()->default_value(default_peer_port), "port for receiving connections from other nodes")
-        ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes (for development)")
-        ("port-offset,o", po::value<int>()->default_value(0), "set up parsers for namespaces on the namespace's port + this value (for development)")
-        ("http-port", po::value<int>()->default_value(0), "port for http admin console (defaults to `port + 1000`)")
+        ("port", po::value<int>()->default_value(port_defaults::peer_port), "port for receiving connections from other nodes")
+        ("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)")
+        ("port-offset,o", po::value<int>()->default_value(port_defaults::port_offset), "set up parsers for namespaces on the namespace's port + this value (for development)")
+        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console (defaults to `port + 1000`)")
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
     return desc;
 }
@@ -398,7 +373,7 @@ po::options_description get_rethinkdb_admin_options() {
     po::options_description desc("Allowed options");
     desc.add_options()
         DEBUG_ONLY(
-            ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes"))
+            ("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
     desc.add(get_disk_options());
@@ -550,7 +525,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 #ifndef NDEBUG
         int client_port = vm["client-port"].as<int>();
 #else
-        int client_port = 0;
+        int client_port = port_defaults::client_port;
 #endif
         bool exit_on_failure = false;
         if (vm.count("exit-failure") > 0)
@@ -661,8 +636,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     // Attempt to create the directory early so that the log file can use it.
     if (!check_existence(filepath)) {
         new_directory = true;
-        int res = mkdir(filepath.c_str(), 0755);
-        if (res != 0) {
+        int mkdir_res = mkdir(filepath.c_str(), 0755);
+        if (mkdir_res != 0) {
             fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
             return 1;
         }
