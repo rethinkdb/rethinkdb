@@ -267,6 +267,24 @@ class RDBTest(unittest.TestCase):
             [10, "test", 20, "test", 30, "test"]
             )
 
+    def test_grouped_map_reduce(self):
+        raise ValueError("Skip this test because it locks up for some reason")
+        purchases = [
+            {"category": "food", "cost": 8},
+            {"category": "food", "cost": 22},
+            {"category": "food", "cost": 11},
+            {"category": "entertainment", "cost": 6}
+            ]
+        self.expect(
+            expr(purchases).to_stream().grouped_map_reduce(
+                R("category"),
+                R("cost"),
+                0,
+                fn("a", "b", R("$a") + R("$b"))
+                ),
+            {"food": 41, "entertainment": 6}
+            )
+
     def test_ordering(self):
         expect = self.expect
         fail = self.error_exec
