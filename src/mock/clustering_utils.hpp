@@ -25,7 +25,7 @@ class test_store_t {
 public:
     test_store_t(io_backender_t *io_backender, order_source_t *order_source) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
-            store(io_backender, temp_file.name(), true, &get_global_perfmon_collection(), NULL) {
+            store(io_backender, temp_file.name(), true, &get_global_perfmon_collection(), &ctx) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> token;
@@ -38,6 +38,7 @@ public:
     }
 
     temp_file_t temp_file;
+    typename protocol_t::context_t ctx;
     typename protocol_t::store_t store;
 };
 

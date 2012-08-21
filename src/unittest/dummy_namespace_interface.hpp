@@ -152,7 +152,8 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        read.unshard(responses, response, NULL); //This is passing in a null ctx, this assume this unittest isn't doing anything complicated enough to need a ctx.
+        typename protocol_t::context_t ctx;
+        read.unshard(responses, response, &ctx);
     }
 
     void read_outdated(typename protocol_t::read_t read, typename protocol_t::read_response_t *response, signal_t *interruptor) {
@@ -168,7 +169,8 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        read.unshard(responses, response, NULL); //We're passing in a null ctx here. This assumes that the unittest isn't doing anything too complicated
+        typename protocol_t::context_t ctx;
+        read.unshard(responses, response, &ctx);
     }
 
     void write(typename protocol_t::write_t write, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) {
@@ -185,7 +187,9 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        write.unshard(responses, response, NULL); //null ctx, problem if you want to do complicated things
+
+        typename protocol_t::context_t ctx;
+        write.unshard(responses, response, &ctx);
     }
 
 private:

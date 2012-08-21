@@ -280,7 +280,8 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     mock::test_store_t<dummy_protocol_t> store2(io_backender, order_source);
     store_view_t<dummy_protocol_t> *store2_ptr = &store2.store;
     dummy_protocol_t::region_t subregion('a', 'm');
-    multistore_ptr_t<dummy_protocol_t> store_ptr(&store2_ptr, 1, NULL, subregion); //null ctx nothing complicated
+    dummy_protocol_t::context_t ctx;
+    multistore_ptr_t<dummy_protocol_t> store_ptr(&store2_ptr, 1, &ctx, subregion);
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         io_backender,

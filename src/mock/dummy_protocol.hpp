@@ -107,7 +107,7 @@ public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
         store_t();
-        store_t(io_backender_t *io_backender, const std::string& filename, bool create, perfmon_collection_t *collection = NULL, context_t *ctx = NULL);
+        store_t(io_backender_t *io_backender, const std::string& filename, bool create, perfmon_collection_t *collection, context_t *ctx) __attribute__((nonnull(6)));
         ~store_t();
 
         void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;
