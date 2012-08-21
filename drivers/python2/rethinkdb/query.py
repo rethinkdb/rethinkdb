@@ -396,24 +396,6 @@ class BaseExpression(BaseQuery):
                 order.append((attr, True))
         return self._make_selector(internal.OrderBy(self, order))
 
-    def random(self):
-        """Select a random element.
-
-        This is a Selector.
-
-        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
-        """
-        raise NotImplementedError
-
-    def sample(self, count):
-        """Select `count` elements at random.
-
-        This is a Selector.
-
-        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
-        """
-        raise NotImplementedError
-
     def map(self, mapping):
         """Evaluate `mapping` for each element, with the implicit
         variable containing the element if mapping does not bind it.
