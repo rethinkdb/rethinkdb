@@ -17,7 +17,7 @@ query_server_t::query_server_t(
     uuid_t _this_machine)
     : pool_group(_pool_group),
       server(port, boost::bind(&query_server_t::handle, this, _1, _2), &on_unparsable_query, INLINE),
-      semilattice_metadata(_semilattice_metadata), 
+      semilattice_metadata(_semilattice_metadata),
       directory_metadata(_directory_metadata),
       ns_repo(_ns_repo),
       this_machine(_this_machine)

@@ -794,10 +794,9 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
                 try {
                     namespace_repo_t<rdb_protocol_t>::access_t ns_access(
                         env->ns_repo, namespace_id, env->interruptor);
-
-                    rdb_protocol_t::read_response_t ignored;
+                    rdb_protocol_t::read_response_t res;
                     ns_access.get_namespace_if()->read(
-                        bad_read, &ignored, order_token_t::ignore, env->interruptor);
+                        bad_read, &res, order_token_t::ignore, env->interruptor);
                     break;
                 } catch (cannot_perform_query_exc_t e) { } //continue loop
             }
