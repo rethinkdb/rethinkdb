@@ -17,7 +17,8 @@ query_server_t::query_server_t(
     namespace_repo_t<rdb_protocol_t> *_ns_repo,
     uuid_t _this_machine)
     : pool_group(_pool_group),
-      server(port, http_port, boost::bind(&query_server_t::handle, this, _1, _2), &on_unparsable_query, INLINE),
+      server(port, http_port, boost::bind(&query_server_t::handle, this, _1, _2),
+             &on_unparsable_query, INLINE),
       semilattice_metadata(_semilattice_metadata),
       directory_metadata(_directory_metadata),
       ns_repo(_ns_repo),
