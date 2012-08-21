@@ -81,6 +81,8 @@ typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_F
 
 } // namespace rdb_protocol_details
 
+class cluster_semilattice_metadata_t;
+
 struct rdb_protocol_t {
     static const std::string protocol_name;
     typedef hash_region_t<key_range_t> region_t;
@@ -94,14 +96,17 @@ struct rdb_protocol_t {
         { }
         context_t(extproc::pool_group_t *_pool_group,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo, 
-                  boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > _semilattice_metadata)
-            : pool_group(_pool_group), ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata)
+                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+                  machine_id_t _machine_id)
+            : pool_group(_pool_group), ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata),
+              machine_id(_machine_id)
         { }
 
         extproc::pool_group_t *pool_group;
         namespace_repo_t<rdb_protocol_t> *ns_repo;
-        boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > semilattice_metadata;
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
         cond_t interruptor; //TODO figure out where we're going to want to interrupt this from and put this there instead
+        machine_id_t machine_id;
     };
 
     struct point_read_response_t {

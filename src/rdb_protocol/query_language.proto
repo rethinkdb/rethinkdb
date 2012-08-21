@@ -292,12 +292,31 @@ message WriteQuery {
     optional PointMutate point_mutate = 10;
 };
 
+message TableopQuery {
+    enum TableopQueryType {
+        CREATE = 1;
+        DROP = 2;
+        LIST = 3;
+    };
+    required TableopQueryType type = 1;
+
+    message Create {
+        required string datacenter  = 1;
+        required TableRef table_ref = 2;
+        optional string primary_key = 3;
+    };
+    optional Create create = 2;
+
+    optional TableRef drop = 3;
+};
+
 message Query {
     enum QueryType {
-        READ = 1;
-        WRITE = 2;
-        CONTINUE = 3;
-        STOP = 4;
+        READ     = 1; //Begin reading from a stream (and possibly finish if it's short)
+        WRITE    = 2; //Write to a table (currently does not create a stream)
+        CONTINUE = 3; //Continue reading from a stream
+        STOP     = 4; //Stop reading from a stream and release its resources
+        TABLEOP  = 5; //Meta operations that create, drop, or list tables
     }
 
     required QueryType type = 1;
@@ -306,6 +325,7 @@ message Query {
 
     optional ReadQuery read_query = 3;
     optional WriteQuery write_query = 4;
+    optional TableopQuery tableop_query = 5;
 }
 
 message Response {

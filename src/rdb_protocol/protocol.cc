@@ -118,7 +118,7 @@ bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
 
 void read_t::unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
-    query_language::runtime_environment_t env(ctx->pool_group, ctx->ns_repo, ctx->semilattice_metadata, js_runner, &ctx->interruptor);
+    query_language::runtime_environment_t env(ctx->pool_group, ctx->ns_repo, ctx->semilattice_metadata, js_runner, &ctx->interruptor, ctx->machine_id);
 
     const point_read_t *pr = boost::get<point_read_t>(&read);
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
@@ -236,7 +236,7 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
 
 void read_t::multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
-    query_language::runtime_environment_t env(ctx->pool_group, ctx->ns_repo, ctx->semilattice_metadata, js_runner, &ctx->interruptor);
+    query_language::runtime_environment_t env(ctx->pool_group, ctx->ns_repo, ctx->semilattice_metadata, js_runner, &ctx->interruptor, ctx->machine_id);
 
     const point_read_t *pr = boost::get<point_read_t>(&read);
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
@@ -471,7 +471,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
 
     read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, rdb_protocol_t::context_t *ctx) :
         btree(btree_), txn(txn_), superblock(superblock_), 
-        env(ctx->pool_group, ctx->ns_repo, ctx->semilattice_metadata, boost::make_shared<js::runner_t>(), &ctx->interruptor)
+        env(ctx->pool_group, ctx->ns_repo, ctx->semilattice_metadata, boost::make_shared<js::runner_t>(), &ctx->interruptor, ctx->machine_id)
     { }
 
 private:

@@ -5,6 +5,7 @@
 #include "rdb_protocol/stream.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/js.hpp"
+#include "clustering/administration/metadata.hpp"
 
 namespace query_language {
 
@@ -49,18 +50,42 @@ typedef variable_val_scope_t::new_scope_t new_val_scope_t;
 //Implicit value typedef
 typedef implicit_value_t<boost::shared_ptr<scoped_cJSON_t> >::impliciter_t implicit_value_setter_t;
 
+
 class runtime_environment_t {
 public:
-    runtime_environment_t(extproc::pool_group_t *_pool_group,
-                          namespace_repo_t<rdb_protocol_t> *_ns_repo,
-                          boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > _semilattice_metadata,
-                          boost::shared_ptr<js::runner_t> _js_runner,
-                          signal_t *_interruptor)
+    runtime_environment_t(
+        extproc::pool_group_t *_pool_group,
+        namespace_repo_t<rdb_protocol_t> *_ns_repo,
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+            _semilattice_metadata,
+        clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
+            _directory_metadata,
+        boost::shared_ptr<js::runner_t> _js_runner,
+        signal_t *_interruptor,
+        uuid_t _this_machine)
+        : pool(_pool_group->get()),
+          ns_repo(_ns_repo),
+          semilattice_metadata(_semilattice_metadata),
+          directory_metadata(_directory_metadata),
+          js_runner(_js_runner),
+          interruptor(_interruptor),
+          this_machine(_this_machine)
+    { }
+
+    runtime_environment_t(
+        extproc::pool_group_t *_pool_group,
+        namespace_repo_t<rdb_protocol_t> *_ns_repo,
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+            _semilattice_metadata,
+        boost::shared_ptr<js::runner_t> _js_runner,
+        signal_t *_interruptor,
+        uuid_t _this_machine)
         : pool(_pool_group->get()),
           ns_repo(_ns_repo),
           semilattice_metadata(_semilattice_metadata),
           js_runner(_js_runner),
-          interruptor(_interruptor)
+          interruptor(_interruptor),
+          this_machine(_this_machine)
     { }
 
     variable_val_scope_t scope;
@@ -72,7 +97,10 @@ public:
     namespace_repo_t<rdb_protocol_t> *ns_repo;
     //TODO this should really just be the namespace metadata... but
     //constructing views is too hard :-/
-    boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > semilattice_metadata;
+    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+        semilattice_metadata;
+    clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
+        directory_metadata;
 
   private:
     // Ideally this would be a scoped_ptr_t<js::runner_t>, but unfortunately we
@@ -94,6 +122,7 @@ public:
     boost::shared_ptr<js::runner_t> get_js_runner();
 
     signal_t *interruptor;
+    uuid_t this_machine;
 };
 
 } //namespace query_language

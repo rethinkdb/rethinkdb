@@ -5,6 +5,7 @@
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
+#include "clustering/administration/suggester.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/internal_extensions.pb.h"
 #include "rdb_protocol/js.hpp"
@@ -599,41 +600,72 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
     }
 }
 
+void check_tableop_query_type(const TableopQuery &t) {
+    check_protobuf(TableopQuery::TableopQueryType_IsValid(t.type()));
+    switch(t.type()) {
+    case TableopQuery::CREATE:
+        check_protobuf(t.has_create());
+        check_protobuf(!t.has_drop());
+        break;
+    case TableopQuery::DROP:
+        check_protobuf(!t.has_create());
+        check_protobuf(t.has_drop());
+        break;
+    case TableopQuery::LIST:
+        check_protobuf(!t.has_create());
+        check_protobuf(!t.has_drop());
+        break;
+    default: unreachable("Unhandled TableopQuery.");
+    }
+}
+
 void check_query_type(const Query &q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
     check_protobuf(Query::QueryType_IsValid(q.type()));
     switch (q.type()) {
     case Query::READ:
         check_protobuf(q.has_read_query());
         check_protobuf(!q.has_write_query());
+        check_protobuf(!q.has_tableop_query());
         check_read_query_type(q.read_query(), env, is_det_out, backtrace);
         break;
     case Query::WRITE:
         check_protobuf(q.has_write_query());
         check_protobuf(!q.has_read_query());
+        check_protobuf(!q.has_tableop_query());
         check_write_query_type(q.write_query(), env, is_det_out, backtrace);
         break;
-    case Query::CONTINUE: break;
+    case Query::CONTINUE:
         check_protobuf(!q.has_read_query());
         check_protobuf(!q.has_write_query());
-    case Query::STOP: break;
+        check_protobuf(!q.has_tableop_query());
+        break;
+    case Query::STOP:
         check_protobuf(!q.has_read_query());
         check_protobuf(!q.has_write_query());
+        check_protobuf(!q.has_tableop_query());
+        break;
+    case Query::TABLEOP:
+        check_protobuf(q.has_tableop_query());
+        check_protobuf(!q.has_read_query());
+        check_protobuf(!q.has_write_query());
+        check_tableop_query_type(q.tableop_query());
+        break;
     default:
         unreachable("unhandled Query");
     }
 }
 
-typedef boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > > > maybe_ns_info_t;
-
-maybe_ns_info_t get_namespace_info(const std::string &name, runtime_environment_t *env) {
-    return env->semilattice_metadata->get().get_namespace_by_name(name);
-}
-
 std::string get_primary_key(const std::string &table_name, runtime_environment_t *env, const backtrace_t &backtrace) {
-    maybe_ns_info_t ns_info = get_namespace_info(table_name, env);
+    const char *status;
+    boost::optional<std::pair<namespace_id_t, deletable_t<
+        namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_info =
+        metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces,
+                             table_name, &status);
 
     if (!ns_info) {
-        throw runtime_exc_t(strprintf("Namespace %s not found or names in conflict.", table_name.c_str()), backtrace);
+        rassert(status);
+        throw runtime_exc_t(strprintf("Namespace %s not found with error: %s",
+                                      table_name.c_str(), status), backtrace);
     }
 
     if (ns_info->second.get().primary_key.in_conflict()) {
@@ -650,6 +682,178 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
         js_runner->begin(pool);
     }
     return js_runner;
+}
+
+void parse_tableop_create(const TableopQuery::Create &c, std::string *datacenter,
+                          std::string *db_name, std::string *table_name,
+                          std::string *primary_key) {
+    *datacenter = c.datacenter();
+    if (c.table_ref().has_db_name()) {
+        *db_name = c.table_ref().db_name();
+    } else {
+        *db_name = "Welcome-db";
+    }
+    *table_name = c.table_ref().table_name();
+    if (c.has_primary_key()) {
+        *primary_key = c.primary_key();
+    } else {
+        *primary_key = "id";
+    }
+}
+
+void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
+    cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
+    switch(t->type()) {
+    case TableopQuery::CREATE: {
+        const char *status;
+        std::string dc_name, db_name, table_name, primary_key;
+        parse_tableop_create(t->create(),&dc_name,&db_name,&table_name,&primary_key);
+
+        //Make sure namespace doesn't exist before we go any further.
+        metadata_get_by_name(metadata.rdb_namespaces.namespaces, table_name, &status);
+        if (status != METADATA_ERR_NONE) {
+            if (status == METADATA_SUCCESS) {
+                throw runtime_exc_t(strprintf("Table %s already exists!",
+                                              table_name.c_str()), backtrace);
+            } else {
+                throw runtime_exc_t(strprintf("Table %s creation failed with error: %s",
+                                              table_name.c_str(), status), backtrace);
+            }
+        }
+
+        // Get datacenter ID.
+        boost::optional<uuid_t> opt_datacenter_id = metadata_get_uuid_by_name(
+            metadata.datacenters.datacenters, dc_name, &status);
+        if (!opt_datacenter_id) {
+            rassert(status);
+            throw runtime_exc_t(strprintf("No datacenter %s found with error: %s",
+                                          dc_name.c_str(), status), backtrace);
+        }
+        uuid_t dc_id = *opt_datacenter_id;
+
+        // Get database ID.
+        boost::optional<uuid_t> opt_database_id = metadata_get_uuid_by_name(
+            metadata.databases.databases, db_name, &status);
+        if (!opt_database_id) {
+            rassert(status);
+            throw runtime_exc_t(strprintf("No database %s found with error: %s",
+                                          db_name.c_str(), status), backtrace);
+        }
+        uuid_t db_id = *opt_database_id;
+
+        // Create namespace, insert into metadata, then join into real metadata.
+        uuid_t namespace_id = generate_uuid();
+        //TODO(mlucy): port number?
+        namespace_semilattice_metadata_t<rdb_protocol_t> ns =
+            new_namespace<rdb_protocol_t>(
+                env->this_machine, db_id, dc_id, table_name, primary_key, 11213);
+        metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, ns));
+        fill_in_blueprints(&metadata, env->directory_metadata->get(), env->this_machine);
+        env->semilattice_metadata->join(metadata);
+
+        /* The following is an ugly hack, but it's probably what we want.  It
+           takes about a third of a second for the new namespace to get to the
+           point where we can do reads/writes on it.  We don't want to return
+           until that has happened, so we try to do a read every `poll_ms`
+           milliseconds until one succeeds, then return. */
+
+        int64_t poll_ms = 200; //with this value, usually polls twice
+        //This read won't succeed, but we care whether it fails with an exception.
+        rdb_protocol_t::read_t bad_read(rdb_protocol_t::point_read_t(store_key_t("")));
+        try {
+            for (;;) {
+                signal_timer_t start_poll(poll_ms);
+                wait_interruptible(&start_poll, env->interruptor);
+                try {
+                    namespace_repo_t<rdb_protocol_t>::access_t ns_access(
+                        env->ns_repo, namespace_id, env->interruptor);
+
+                    rdb_protocol_t::read_response_t ignored;
+                    ns_access.get_namespace_if()->read(
+                        bad_read, &ignored, order_token_t::ignore, env->interruptor);
+                    break;
+                } catch (cannot_perform_query_exc_t e) { } //continue loop
+            }
+        } catch (interrupted_exc_t e) {
+            throw runtime_exc_t("Query interrupted, probably by user.", backtrace);
+        }
+        res->set_status_code(Response::SUCCESS_EMPTY);
+    } break;
+    case TableopQuery::DROP: {
+        const char *status;
+        std::string table_name = t->drop().table_name();
+
+        // Get namespace ID.
+        boost::optional<std::pair<uuid_t, deletable_t<
+            namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_metadata =
+            metadata_get_by_name(metadata.rdb_namespaces.namespaces,table_name,&status);
+        if (!ns_metadata) {
+            rassert(status);
+            throw runtime_exc_t(strprintf("No table %s found with error: %s",
+                                          table_name.c_str(), status), backtrace);
+        }
+        rassert(!ns_metadata->second.is_deleted());
+
+        // Delete namespace
+        //TODO: make metadata_get_by_name return an iterator instead to skip this step?
+        metadata.rdb_namespaces.namespaces.find(ns_metadata->first)
+            ->second.mark_deleted();
+        env->semilattice_metadata->join(metadata);
+        res->set_status_code(Response::SUCCESS_EMPTY); //return immediately
+    } break;
+    case TableopQuery::LIST: {
+        for (namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::
+                 iterator it = metadata.rdb_namespaces.namespaces.begin();
+             it != metadata.rdb_namespaces.namespaces.end();
+             ++it) {
+            if (it->second.is_deleted()) continue;
+            namespace_semilattice_metadata_t<rdb_protocol_t> ns_metadata =
+                it->second.get();
+            scoped_cJSON_t this_namespace(cJSON_CreateObject());
+            bool conflicted = false;
+
+            this_namespace.AddItemToObject(
+                "uuid", cJSON_CreateString(uuid_to_str(it->first).c_str()));
+
+            if (ns_metadata.name.in_conflict()) {
+                this_namespace.AddItemToObject("table_name", cJSON_CreateNull());
+                conflicted = true;
+            } else {
+                this_namespace.AddItemToObject(
+                    "table_name", cJSON_CreateString(ns_metadata.name.get().c_str()));
+            }
+
+            if (ns_metadata.database.in_conflict()) {
+                this_namespace.AddItemToObject("db_name", cJSON_CreateNull());
+                conflicted = true;
+            } else {
+                uuid_t table_id = ns_metadata.database.get();
+                databases_semilattice_metadata_t::database_map_t::iterator
+                    db_metadata_it = metadata.databases.databases.find(table_id);
+                if (db_metadata_it == metadata.databases.databases.end()
+                    || db_metadata_it->second.is_deleted()) {
+                    logERR("Namespace metadata contains invalid database ID!");
+                    throw runtime_exc_t("Namespace metadata is corrupted!", backtrace);
+                }
+                database_semilattice_metadata_t db_metadata =
+                    db_metadata_it->second.get();
+                if (db_metadata.name.in_conflict()) {
+                    this_namespace.AddItemToObject("db_name", cJSON_CreateNull());
+                    conflicted = true;
+                } else {
+                    this_namespace.AddItemToObject(
+                        "db_name", cJSON_CreateString(db_metadata.name.get().c_str()));
+
+                }
+            }
+
+            this_namespace.AddItemToObject("conflicted", cJSON_CreateBool(conflicted));
+            res->add_response(this_namespace.PrintUnformatted());
+        }
+        res->set_status_code(Response::SUCCESS_STREAM);
+    } break;
+    default: crash("unreachable");
+    }
 }
 
 void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
@@ -673,6 +877,9 @@ void execute(Query *q, runtime_environment_t *env, Response *res, const backtrac
             res->set_status_code(Response::SUCCESS_EMPTY);
             stream_cache->erase(q->token());
         }
+        break;
+    case Query::TABLEOP:
+        execute_tableop(q->mutable_tableop_query(), env, res, backtrace);
         break;
     default:
         crash("unreachable");
@@ -1942,12 +2149,16 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 
 }
 
-namespace_repo_t<rdb_protocol_t>::access_t eval(TableRef *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
-    boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
-        env->semilattice_metadata->get().get_namespace_by_name(t->table_name());
-
+namespace_repo_t<rdb_protocol_t>::access_t eval(
+    TableRef *t, runtime_environment_t *env, const backtrace_t &backtrace)
+    THROWS_ONLY(runtime_exc_t) {
+    boost::optional<std::pair<namespace_id_t, deletable_t<
+        namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
+        metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces,
+                             t->table_name());
     if (namespace_info) {
-        return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, namespace_info->first, env->interruptor);
+        return namespace_repo_t<rdb_protocol_t>::access_t(
+            env->ns_repo, namespace_info->first, env->interruptor);
     } else {
         throw runtime_exc_t(strprintf("Namespace %s either not found, ambiguous or namespace metadata in conflict.", t->table_name().c_str()), backtrace);
     }
