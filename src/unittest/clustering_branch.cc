@@ -150,7 +150,8 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
         dummy_protocol_t::read_t r;
         r.keys.keys.insert((*it).first);
         cond_t non_interruptor;
-        dummy_protocol_t::read_response_t resp = (*broadcaster)->read(r, &exiter, order_source->check_in("unittest::run_read_write_test(read)").with_read_mode(), &non_interruptor);
+        dummy_protocol_t::read_response_t resp;
+        (*broadcaster)->read(r, &resp, &exiter, order_source->check_in("unittest::run_read_write_test(read)").with_read_mode(), &non_interruptor);
         EXPECT_EQ((*it).second, resp.values[(*it).first]);
     }
 }
