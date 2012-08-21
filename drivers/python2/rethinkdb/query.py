@@ -434,6 +434,13 @@ class Expression(BaseExpression):
     def length(self):
         return internal.Length(self)
 
+    def __len__(self):
+        raise ValueError("To construct a `rethinkdb.JSONExpression` "
+            "representing the length of a RethinkDB protocol term, call "
+            "`expr.length()`. (We couldn't overload `len(expr)` because it's "
+            "illegal to return anything other than an integer from `__len__()` "
+            "in Python.)")
+
 ##########################################
 # DATA OBJECTS - SELECTION, STREAM, ETC. #
 ##########################################
