@@ -139,14 +139,21 @@ def let(*bindings):
 #####################################
 # SELECTORS - QUERYING THE DATABASE #
 #####################################
-class BaseExpression(object):
-    """A base class for all ReQL expressions. An expression encodes an
-    operation that can be evaluated on the server via
-    :func:`rethinkdb.net.Connection.run` or
-    :func:`self.run`. Expressions can be as simple as JSON values that
-    get evaluated to themselves, or as complex as queries with
-    multiple subqueries with table joins.
-    """
+class BaseQuery(object):
+    """A base class for all ReQL queries. Queries can be run by calling the
+    :meth:`rethinkdb.net.Connection.run()` method or by calling :meth:`run()` on
+    the query object itself.
+
+    There are two types of queries: expressions and write queries. Expressions
+    are instances of :class:`JSONExpression` or :class:`Stream`. They can be as
+    simple as fetching a single document, or even just doing some arithmetic
+    server-side, or as complicated as joins involving subqueries and multiple
+    tables, but expressions never modify the database. Write queries are
+    instances of :class:`WriteQuery`."""
+
+    def _finalize_query(self, root):
+        raise NotImplementedError()
+
     def run(conn=None):
         """Evaluate the expression on the server using the connection
         specified by `conn`. If `conn` is empty, uses the last created
@@ -165,9 +172,19 @@ class BaseExpression(object):
         >>> res = table('db_name.table_name').insert({ 'a': 1, 'b': 2 }).run(conn)
         >>> res = table('db_name.table_name').run() # uses conn since it's the last created connection
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
-class Expression(BaseExpression):
+class WriteQuery(BaseQuery):
+    """All queries that modify the database are instances of :class:`WriteQuery.
+    """
+    def _finalize_query(self, root):
+        root.type = p.Query.WRITE
+        self._write_write_query(root.write_query)
+
+    def _write_write_query(self, parent):
+        raise NotImplementedError()
+
+class BaseExpression(BaseQuery):
     """Base class for everything"""
 
     def _finalize_query(self, root):
@@ -226,14 +243,14 @@ class Expression(BaseExpression):
 
         We can of course specify this query as a ReQL expression directly:
 
-        >>> table('users').filter(R('state') == 'CA' &
-        >>>                       R('age') == R('jobs_held') + R('colleges_attended'))
+        >>> table('users').filter((R('state') == 'CA') &
+        >>>                       (R('age') == R('jobs_held') + R('colleges_attended')))
 
         We can use subqueries as well:
 
         >>> # Select all Californians whose age is equal to the number
         >>> of users in the database
-        >>> table('users').filter( { 'state': 'CA', 'age': table('users').count() })
+        >>> table('users').filter( { 'state': 'CA', 'age': table('users').length() })
 
         So far we've been grabbing attributes from the implicit
         scope. We can bind the value of each row to a variable and
@@ -250,7 +267,7 @@ class Expression(BaseExpression):
         >>> table('users').filter(fn('user',
         >>>     R('$user.age') == table('posts').filter(fn('post',
                   R('$post.author.first_name') == R('$user.first_name')))
-                  .count()))
+                  .length()))
 
         :param selector: the constraint
         :type selector: dict, :class:`JSONExpression`
@@ -421,7 +438,7 @@ class Expression(BaseExpression):
         :type group_mapping: :class:`JSONFunction`
         :param value_mapping: Function to transform values by before reduction
         :type value_mapping: :class:`JSONFunction`
-        :param reduction_base: Base value for reduction, as in `Expression.reduce()`
+        :param reduction_base: Base value for reduction, as in `BaseExpression.reduce()`
         :type reduction_base: :class:`JSONExpression`
         :param reduction_func: Combiner function for reduction
         :type reduction_func: :class:`JSONFunction`
@@ -474,7 +491,7 @@ class Expression(BaseExpression):
 ##########################################
 # DATA OBJECTS - SELECTION, STREAM, ETC. #
 ##########################################
-class Stream(Expression):
+class Stream(BaseExpression):
     """A sequence of JSON values which can be read."""
     def to_array(self):
         """Convert the stream into a JSON array."""
@@ -511,7 +528,7 @@ class BaseSelection(object):
 class MultiRowSelection(Stream, BaseSelection):
     """A sequence of rows which can be read or written."""
 
-class JSONExpression(Expression):
+class JSONExpression(BaseExpression):
     """A JSON value.
 
     Use :func:`expr` to create expressions for JSON values.
@@ -652,14 +669,14 @@ def if_then_else(test, true_branch, false_branch):
     `false`, evaluates to `false_branch`. If `test` returns a non-boolean value,
     fails at runtime.
 
-    `true_branch` and `false_branch` can be any subclass of :class:`Expression`.
-    They need not be the same, but they must be convertible to the same type;
-    the type that they can both be converted to will be the return type of
-    `if_then_else()`. So if one is a :class:`Stream` and the other is a
-    :class:`MultiRowSelection`, the result will be a :class:`Stream`. But if
-    one is a :class:`Stream` and the other is a :class:`JSONExpression`, then
-    `if_then_else()` will throw an exception rather than return an expression
-    object at all.
+    `true_branch` and `false_branch` can be any subclass of
+    :class:`BaseExpression`. They need not be the same, but they must be
+    convertible to the same type; the type that they can both be converted to
+    will be the return type of `if_then_else()`. So if one is a :class:`Stream`
+    and the other is a :class:`MultiRowSelection`, the result will be a
+    :class:`Stream`. But if one is a :class:`Stream` and the other is a
+    :class:`JSONExpression`, then `if_then_else()` will throw an exception
+    rather than return an expression object at all.
 
     :param test: The condition to switch on
     :type test: :class:`JSONExpression`
@@ -680,10 +697,9 @@ def db_create(db_name, primary_datacenter=None):
     related tables as well as configuration options that apply to
     these tables.
 
-    When run via :func:`rethinkdb.net.Connection.run` or
-    :func:`Expression.run`, `run` has no return value in case of
-    success, and raises :class:`rethinkdb.net.QueryError` in case of
-    failure.
+    When run via :func:`rethinkdb.net.Connection.run` or :func:`BaseQuery.run`,
+    `run` has no return value in case of success, and raises
+    :class:`rethinkdb.net.QueryError` in case of failure.
 
     :param db_name: The name of the database to be created.
     :type db_name: str
@@ -692,8 +708,8 @@ def db_create(db_name, primary_datacenter=None):
       omitted, the cluster-level default datacenter will be used as
       primary for this database.
     :type primary_datacenter: str
-    :returns: :class:`Expression` -- a ReQL expression that encodes
-      the database creation operation.
+    :returns: :class:`MetaQuery` -- a ReQL expression that encodes the database
+     creation operation.
 
     :Example:
 
@@ -706,15 +722,14 @@ def db_drop(db_name):
     """Create a ReQL expression that drops a database within a
     RethinkDB cluster.
 
-    When run via :func:`rethinkdb.net.Connection.run` or
-    :func:`Expression.run`, `run` has no return value in case of
-    success, and raises :class:`rethinkdb.net.QueryError` in case of
-    failure.
+    When run via :func:`rethinkdb.net.Connection.run` or :func:`BaseQuery.run`,
+    `run` has no return value in case of success, and raises
+    :class:`rethinkdb.net.QueryError` in case of failure.
 
     :param db_name: The name of the database to be dropped.
     :type db_name: str
-    :returns: :class:`Expression` -- a ReQL expression that encodes
-      the database dropping operation.
+    :returns: :class:`MetaQuery` -- a ReQL expression that encodes the database
+        dropping operation.
 
     :Example:
 
@@ -727,11 +742,11 @@ def db_list():
     RethinkDB cluster.
 
     When run via :func:`rethinkdb.net.Connection.run` or
-    :func:`Expression.run`, `run` returns a list of database name
+    :func:`BaseQuery.run`, `run` returns a list of database name
     strings in case of success, and raises
     :class:`rethinkdb.net.QueryError` in case of failure.
 
-    :returns: :class:`Expression` -- a ReQL expression that encodes
+    :returns: :class:`MetaQuery` -- a ReQL expression that encodes
       the database listing operation.
 
     :Example:
@@ -771,7 +786,7 @@ class Database(object):
           that will be used as a primary key for the document. If
           missing, defaults to 'id'.
         :type primary_key: str
-        :returns: :class:`JSONExpression` -- a ReQL expression that
+        :returns: :class:`MetaQuery` -- a ReQL expression that
           encodes the table creation operation.
 
         :Example:
@@ -792,7 +807,7 @@ class Database(object):
 
         :param table_name: The name of the table to be dropped.
         :type table_name: str
-        :returns: :class:`JSONExpression` -- a ReQL expression that
+        :returns: :class:`MetaQuery` -- a ReQL expression that
           encodes the table creation operation.
 
         :Example:
@@ -810,7 +825,7 @@ class Database(object):
         strings in case of success, and raises
         :class:`rethinkdb.net.QueryError` in case of failure.
 
-        :returns: :class:`TableCreate` -- a ReQL expression that
+        :returns: :class:`MetaQuery` -- a ReQL expression that
           encodes the table creation operation.
 
         :Example:
@@ -870,6 +885,7 @@ class Table(MultiRowSelection):
 
         :param docs: the document(s) to insert
         :type docs: dict/list(dict)
+        :rtype: :class:`WriteQuery`
         """
         if isinstance(docs, dict):
             return internal.Insert(self, [docs])
@@ -884,7 +900,7 @@ class Table(MultiRowSelection):
 
         :param key: the key to look for
         :type key: JSON value
-        :returns: :class:`RowSelection`, :class:`JSONExpression`
+        :rtype: :class:`RowSelection`
 
         >>> q = table('users').get(10)  # get user with primary key 10
         """
