@@ -335,8 +335,7 @@ struct rdb_protocol_t {
 
         rdb_protocol_t::backfill_chunk_t shard(const rdb_protocol_t::region_t &region) const THROWS_NOTHING;
 
-        // TODO: This is bad.
-        RDB_MAKE_ME_SERIALIZABLE_0();
+        RDB_MAKE_ME_SERIALIZABLE_1(val);
     };
 
     typedef traversal_progress_combiner_t backfill_progress_t;
