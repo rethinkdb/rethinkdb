@@ -844,15 +844,32 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         env->semilattice_metadata->join(metadata);
         res->set_status_code(Response::SUCCESS_EMPTY); //return immediately
     } break;
-    case MetaQuery::LIST_TABLES: { //TODO: make actually care about table
-        UNUSED std::string db_name = m->db_name();
+    case MetaQuery::LIST_TABLES: { //TODO: make actually care about DB
+        std::string db_name = m->db_name();
         for (namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::
                  iterator it = metadata.rdb_namespaces.namespaces.begin();
              it != metadata.rdb_namespaces.namespaces.end();
              ++it) {
             if (it->second.is_deleted()) continue;
-            namespace_semilattice_metadata_t<rdb_protocol_t> ns_metadata =
-                it->second.get();
+            namespace_semilattice_metadata_t<rdb_protocol_t>
+                ns_metadata = it->second.get();
+
+            /* Check whether the database name is correct. */
+            if (ns_metadata.database.in_conflict()) continue;
+            uuid_t table_id = ns_metadata.database.get();
+            databases_semilattice_metadata_t::database_map_t::iterator
+                db_metadata_it = metadata.databases.databases.find(table_id);
+            if (db_metadata_it == metadata.databases.databases.end()
+                || db_metadata_it->second.is_deleted()) {
+                logERR("Namespace metadata contains invalid database ID!");
+                throw runtime_exc_t("Namespace metadata is corrupted!", backtrace);
+            }
+            database_semilattice_metadata_t
+                db_metadata = db_metadata_it->second.get();
+            if (db_metadata.name.in_conflict() || db_metadata.name.get() != db_name) {
+                continue;
+            }
+
             scoped_cJSON_t this_namespace(cJSON_CreateObject());
             bool conflicted = false;
 
@@ -865,30 +882,6 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
             } else {
                 this_namespace.AddItemToObject(
                     "table_name", cJSON_CreateString(ns_metadata.name.get().c_str()));
-            }
-
-            if (ns_metadata.database.in_conflict()) {
-                this_namespace.AddItemToObject("db_name", cJSON_CreateNull());
-                conflicted = true;
-            } else {
-                uuid_t table_id = ns_metadata.database.get();
-                databases_semilattice_metadata_t::database_map_t::iterator
-                    db_metadata_it = metadata.databases.databases.find(table_id);
-                if (db_metadata_it == metadata.databases.databases.end()
-                    || db_metadata_it->second.is_deleted()) {
-                    logERR("Namespace metadata contains invalid database ID!");
-                    throw runtime_exc_t("Namespace metadata is corrupted!", backtrace);
-                }
-                database_semilattice_metadata_t db_metadata =
-                    db_metadata_it->second.get();
-                if (db_metadata.name.in_conflict()) {
-                    this_namespace.AddItemToObject("db_name", cJSON_CreateNull());
-                    conflicted = true;
-                } else {
-                    this_namespace.AddItemToObject(
-                        "db_name", cJSON_CreateString(db_metadata.name.get().c_str()));
-
-                }
             }
 
             this_namespace.AddItemToObject("conflicted", cJSON_CreateBool(conflicted));

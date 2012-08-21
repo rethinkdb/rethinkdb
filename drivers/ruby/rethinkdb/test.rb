@@ -573,7 +573,6 @@ class ClientTest < Test::Unit::TestCase
     lst = wdb.list_tables.run
     assert_equal(orig_lst.length+1, lst.length)
     obj = lst.find{|x| x['table_name'] == table_name}
-    assert_equal(obj['db_name'], 'Welcome-db')
     assert_equal(obj['conflicted'], false)
     rdb2.delete.run
 
