@@ -39,7 +39,7 @@
     <h3 class="title">Database profile</h3>
     <div class="section summary">
         <p>
-            {{num_namespaces}} {{pluralize_noun "namespace" num_amespaces}} with
+            {{num_namespaces}} {{pluralize_noun "table" num_amespaces}} with
             <ul>
                 <li>{{num_rdb}} using rdb protocol</li>
                 <li>{{num_memcached}} using memcached</li>
@@ -55,7 +55,7 @@
 
 
 <script id="database_overview-container-template" type="text/x-handlebars-template">
-    <h3 class="title">Namespaces in this database</h3>
+    <h3 class="title">Tables in this database</h3>
     <div class="namespaces-list">
     </div>
 </script>
@@ -85,7 +85,7 @@
 <script id="database-namespace_view-template" type="text/x-handlebars-template">
     <span class="status">{{humanize_namespace_reachability reachability}}</span>
     <span class="name">    
-        <a href="#namespaces/{{id}}">{{name}}</a>
+        <a href="#tables/{{id}}">{{name}}</a>
     </span>
     <p class="quick_info">
     {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}, replication: {{> backfill_progress_summary}}

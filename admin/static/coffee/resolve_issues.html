@@ -89,7 +89,7 @@
     <h4>This machine is responsible for the following masters:</h4>
     <ul>
       {{#each masters}}
-      <li>Namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+      <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
       {{/each}}
     </ul>
     {{else}}
@@ -101,7 +101,7 @@
     <h4>This machine is responsible for the following replicas:</h4>
     <ul>
       {{#each replicas}}
-      <li>Namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+      <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
       {{/each}}
     </ul>
     {{else}}
@@ -171,7 +171,7 @@
         {{/if}}
         </div>
         <hr />
-        <h4>The goals you have specified are impossible for the namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a></h4>
+        <h4>The goals you have specified are impossible for the table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a></h4>
         {{#each datacenters_with_issues}}
         <p class="description">You require {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} for the datacenter <a href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> but you only have {{num_machines}} {{pluralize_noun "server" this.num_machines}} available.</p>
         {{/each}}

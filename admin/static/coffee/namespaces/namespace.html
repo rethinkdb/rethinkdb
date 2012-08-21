@@ -11,11 +11,11 @@
       </div>
 
     <ul class="nav nav-tabs">
-        <li class="active"><a href="#namespaces/{{namespace_id}}/overview" data-target="#namespace-overview" id="namespace-overview-link" class="tab-link" data-toggle="tab">Overview</a></li>
-        <li><a href="#namespaces/{{namespace_id}}/replication" data-target="#namespace-replication" id="namespace-replication-link" class="tab-link" data-toggle="tab">Replication</a></li>
-        <li><a href="#namespaces/{{namespace_id}}/shards" data-target="#namespace-sharding" id="namespace-sharding-link" class="tab-link" data-toggle="tab">Shards</a></li>
-        <li><a href="#namespaces/{{namespace_id}}/assignments" data-target="#namespace-pinning" id="namespace-pinning-link" class="tab-link" data-toggle="tab">Machine assignments</a></li>
-        <li><a href="#namespaces/{{namespace_id}}/other" data-target="#namespace-other" id="namespace-other-link" class="tab-link" data-toggle="tab">Other operations</a></li>
+        <li class="active"><a href="#tables/{{namespace_id}}/overview" data-target="#namespace-overview" id="namespace-overview-link" class="tab-link" data-toggle="tab">Overview</a></li>
+        <li><a href="#tables/{{namespace_id}}/replication" data-target="#namespace-replication" id="namespace-replication-link" class="tab-link" data-toggle="tab">Replication</a></li>
+        <li><a href="#tables/{{namespace_id}}/shards" data-target="#namespace-sharding" id="namespace-sharding-link" class="tab-link" data-toggle="tab">Shards</a></li>
+        <li><a href="#tables/{{namespace_id}}/assignments" data-target="#namespace-pinning" id="namespace-pinning-link" class="tab-link" data-toggle="tab">Machine assignments</a></li>
+        <li><a href="#tables/{{namespace_id}}/other" data-target="#namespace-other" id="namespace-other-link" class="tab-link" data-toggle="tab">Other operations</a></li>
     </ul>
 
     <div id="user-alert-space"></div>
@@ -40,15 +40,15 @@
 </script>
 
 <script id="namespace_view-not_found-template" type="text/x-handlebars-template">
-    <p>Namespace {{id}} could not be found.</p>
+    <p>Table {{id}} could not be found.</p>
 </script>
 
 <script id="namespace_view_title-template" type="text/x-handlebars-template">
-    <h1>Namespace overview for {{name}}</h1>
+    <h1>Table overview for {{name}}</h1>
 </script>
 
 <script id="namespace_view-profile-template" type="text/x-handlebars-template">
-    <h3 class="title">Namespace profile</h3>
+    <h3 class="title">Table profile</h3>
     <div class="section summary">
         <p class="protocol">Protocol: {{protocol}}</p>
         <p class="port">Port: {{port}}</p>
@@ -113,7 +113,7 @@
                     <li class="title-legend"><h4>More statistics</h4></li>
 
                     <li class="more_statistics">
-                        This namespace has {{shards_length}} {{pluralize_noun "shard" shards_length}} and contains {{total_keys}} keys.
+                        This table has {{shards_length}} {{pluralize_noun "shard" shards_length}} and contains {{total_keys}} keys.
                     </li>
                     <li class="more_statistics">
                         {{#if max_keys}}
@@ -151,7 +151,7 @@
 
 
                     <li class="more_statistics">
-                        This namespace has {{shards_length}} {{pluralize_noun "shard" shards_length}} and contains {{total_keys}} keys.
+                        This table has {{shards_length}} {{pluralize_noun "shard" shards_length}} and contains {{total_keys}} keys.
                     </li>
                     <li class="more_statistics">
                         {{#if max_keys}}
@@ -189,7 +189,7 @@
                     <li class="title-legend"><h4>More statistics</h4></li>
 
                     <li class="more_statistics">
-                    This namespace has one shard and contains {{total_keys}} keys.
+                    This table has one shard and contains {{total_keys}} keys.
                     </li>                   <li class="more_statistics">
                         Biggest shard has {{max_keys}} keys
                     </li>
@@ -211,7 +211,7 @@
     <h3 class="title">Other operations</h3>
     <div class="other_section rename_namespace">
         <input type="button" class="btn other_button rename_namespace-button" value="Rename"/>
-        <p>Rename the namespace</p>
+        <p>Rename the table</p>
     </div>
     <div class="other_section import_data">
         <input type="button" class="btn other_button import_data-button" value="Import"/>
@@ -223,7 +223,7 @@
     </div>
     <div class="other_section delete_namespace-container">
         <input type="button" class="btn other_button delete_namespace-button" value="Delete"/>
-        <p>Delete the namespace</p>
+        <p>Delete the table</p>
     </div>
 
 
