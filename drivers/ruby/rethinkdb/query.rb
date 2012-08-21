@@ -2,23 +2,22 @@ module RethinkDB
   class RQL_Query #S-expression representation of a query
     def initialize(init_body); @body = init_body; end
 
-    def ==(rhs)
-      raise SyntaxError,"
-      Cannot use inline ==/!= with RQL queries, use .eq() instead.
-      If you need to see whether two queries are the same, compare
-      their S-expression representations like: `query1.sexp ==
-      query2.sexp`."
-    end
+    # def ==(rhs)
+    #   raise SyntaxError,"
+    #   Cannot use inline ==/!= with RQL queries, use .eq() instead.
+    #   If you need to see whether two queries are the same, compare
+    #   their S-expression representations like: `query1.sexp ==
+    #   query2.sexp`."
+    # end
 
     # Turn into an actual S-expression (we wrap it in a class so that
     # instance methods may be invoked).
     def sexp; clean_lst @body; end
     def body; @body; end
     def clean_lst lst
-      case lst.class.hash
-      when Array.hash               then lst.map{|z| clean_lst(z)}
-      when RQL_Query.hash           then lst.sexp
-                                    else lst
+      if    lst.kind_of? RQL_Query then lst.sexp
+      elsif lst.class == Array         then lst.map{|z| clean_lst(z)}
+      else                                  lst
       end
     end
 
@@ -33,9 +32,6 @@ module RethinkDB
       else raise RuntimeError, "No last connection, open a new one."
       end
     end
-
-    def -@; S._ [:call, [:subtract], [@body]]; end
-    def +@; S._ [:call, [:add], [@body]]; end
 
     # Dereference aliases (see utils.rb) and possibly dispatch to RQL
     # (because the caller may be trying to use the more convenient
@@ -58,4 +54,35 @@ module RethinkDB
   class Database
     def method_missing(m, *a, &b); self.table(m, *a, &b); end
   end
+
+  class Meta_Query < RQL_Query; end
+  class Write_Query < RQL_Query; end
+  class Expression < RQL_Query; end
+    class JSON_Expression < Expression; end
+      class Single_Row_Selection < JSON_Expression; end
+    class Stream_Expression < Expression; end
+      class Multi_Row_Selection < Stream_Expression; end
+
+  # A query of unknown or generic type.
+  class Untyped_Query < RQL_Query
+    def method_missing(m, *args, &block)
+      if (m2 = C.method_aliases[m]); return self.send(m2, *args, &block); end
+      if    JSON_Expression.instance_methods.include? m.to_s
+      then  JSON_Expression.new(@body).send(m, *args, &block)
+      elsif Stream_Expression.instance_methods.include? m.to_s
+      then  Stream_Expression.new(@body).send(m, *args, &block)
+      else super(m, *args, &block)
+      end
+    end
+  end
+
+  class Table
+    def method_missing(m, *args, &block)
+      Multi_Row_Selection.new(@body).send(m, *args, &block);
+    end
+  end
 end
+
+load 'tables.rb'
+load 'reads.rb'
+load 'writes.rb'

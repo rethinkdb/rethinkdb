@@ -35,8 +35,9 @@ module RethinkDB
   end
 
   # A table in a particular RethinkDB database.  Also acts as a stream query.
-  class Table < Stream_Query
+  class Table
     # A table named <b>+name+</b> residing in database <b>+db_name+</b>.
+
     def initialize(db_name, name);
       @db_name = db_name;
       @table_name = name;
@@ -52,7 +53,7 @@ module RethinkDB
     #   table.insert([{:id => 1, :name => 'Bob'}, {:id => 1, :name => 'Bob'}])
     def insert(rows)
       rows = [rows] if rows.class != Array
-      Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| RQL.expr x}]
+      Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| S.r(x)}]
     end
 
     # Insert a stream into the table.  Often used to insert one table into
@@ -70,7 +71,7 @@ module RethinkDB
     # attribute.  For example, if we have a table <b>+table+</b>:
     #   table.get(0)
     def get(key, keyname=:id)
-      Point_Read_Query.new [:getbykey, [@db_name, @table_name], keyname, RQL.expr(key)]
+      Single_Row_Selection.new [:getbykey, [@db_name, @table_name], keyname, S.r(key)]
     end
   end
 end

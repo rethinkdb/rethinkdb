@@ -62,7 +62,7 @@ module RethinkDB
     @@gensym_counter = 0
     def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
     def with_var; sym = gensym; yield sym, RQL.var(sym); end
-    def _ x; RQL_Query.new x; end
+    def r x; RQL.expr(x); end
   end
   module S; extend S_Mixin; end
 end
