@@ -5,9 +5,10 @@
 #include <vector>
 
 #include "clustering/administration/metadata.hpp"
-#include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
 #include "http/http.hpp"
+
+template <class> class watchable_t;
 
 class stat_http_app_t : public http_app_t {
 public:

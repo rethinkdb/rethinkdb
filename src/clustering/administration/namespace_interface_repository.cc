@@ -1,8 +1,11 @@
 #include "clustering/administration/namespace_interface_repository.hpp"
-#include "concurrency/cross_thread_signal.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+
+#include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
+
 
 #define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
 
