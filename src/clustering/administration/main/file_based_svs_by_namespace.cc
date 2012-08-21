@@ -82,7 +82,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
         stores_out->stores()->init(num_stores);
 
-        debugf("loading %d hash-sharded stores\n", num_stores);
 
         // TODO: Exceptions?  Can exceptions happen, and then
         // store_views' values would leak.  That is, are we handling
@@ -96,7 +95,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores, ctx));
     } else {
         const int num_stores = 4 + randint(4);
-        debugf("creating %d hash-sharded stores\n", num_stores);
         stores_out->stores()->init(num_stores);
 
         // TODO: How do we specify what the stores' regions are?
