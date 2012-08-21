@@ -80,7 +80,7 @@ void apply_json_to(cJSON *change, key_range_t *target) {
         apply_json_to(first, &left);
         if (second->type == cJSON_NULL) {
             *target = key_range_t(key_range_t::closed, left,
-                                  key_range_t::none,   store_key_t(""));
+                                  key_range_t::none, store_key_t());
         } else {
             store_key_t right;
             apply_json_to(second, &right);
