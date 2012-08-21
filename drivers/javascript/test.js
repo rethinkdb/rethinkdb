@@ -22,6 +22,10 @@ var q = rethinkdb.query;
 var welcome = q.table('Welcome-rdb');
 
 function runTests() {
+    for (var i = 0; i < 10; i++) {
+        welcome.insert({'id':i, 'num':20-i}).run(print);
+    }
+
     q(1).add(3).mul(q(8).div(2)).run(print);
     welcome.map(q.R('num').add(12)).run(print);
 

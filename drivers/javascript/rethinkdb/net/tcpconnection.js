@@ -93,30 +93,41 @@ rethinkdb.net.TcpConnection.prototype.send_ = function(data) {
  * @private
  */
 rethinkdb.net.TcpConnection.prototype.tcpRecv_ = function(node_data) {
-    if (this.recvBuffer_ === null) {
-        // This is the head of a new response
+    var rcvArray = new Uint8Array(node_data);
+    var read = 0;
+    var available = rcvArray.byteLength;
 
-        goog.asserts.assert(node_data.length >= 4);
-        var responseSize = node_data.readUInt32LE(0);
-        this.recvBuffer_ = new Uint8Array(responseSize + 4);
-        this.recvD_ = 0;
+    while (available > 0) {
+        if (this.recvBuffer_ === null) {
+            // This is the head of a new response
 
-    } //else We're still buffering from an earlier response
+            goog.asserts.assert(available >= 4);
+            var view = new DataView(rcvArray.buffer, read, available);
+            var responseSize = view.getUint32(0, true);
+            this.recvBuffer_ = new Uint8Array(responseSize + 4);
+            this.recvD_ = 0;
+        }
 
-    var byteArray = new Uint8Array(node_data);
+        var left = this.recvBuffer_.byteLength - this.recvD_;
+        var toRead = available < left ? available : left;
 
-    this.recvBuffer_.set(byteArray, this.recvD_);
-    this.recvD_ += byteArray.length;
+        var readView = new Uint8Array(rcvArray.buffer, read, toRead);
+        this.recvBuffer_.set(readView, this.recvD_);
 
-    if (this.recvD_ >= this.recvBuffer_.length) {
-        // We've finished this response, send it up
+        this.recvD_ += toRead;
+        read += toRead;
+        available -= toRead;
+        left -= toRead;
 
-        var buff = this.recvBuffer_;
-        this.recvBuffer_ = null;
-        this.recvD_ = 0;
-        this.recv_(buff);
+        if (left <= 0) {
+            // We've finished this response, send it up
 
-    } //else We still need to wait for more data
+            var buff = this.recvBuffer_;
+            this.recvBuffer_ = null;
+            this.recvD_ = 0;
+            this.recv_(buff);
+        }
+    }
 };
 
 /**
