@@ -564,17 +564,18 @@ class ClientTest < Test::Unit::TestCase
 
   def test___write #three underscores so it runs first
     rdb2 = rdb
-    # table_name = rand().to_s
-    # rdb2 = r.db('Welcome-db').table(table_name)
-    # orig_lst = r.list.run
-    # assert_equal(rdb2.create.run, nil)
-    # assert_raise(RuntimeError) {rdb2.create.run}
-    # lst = r.list.run
-    # assert_equal(orig_lst.length+1, lst.length)
-    # obj = lst.find{|x| x['table_name'] == table_name}
-    # assert_equal(obj['db_name'], 'Welcome-db')
-    # assert_equal(obj['conflicted'], false)
-    # rdb2.delete.run
+    table_name = rand().to_s
+    wdb=r.db('Welcome-db')
+    orig_lst = wdb.list_tables.run
+    PP.pp orig_lst
+    assert_equal(wdb.create_table(table_name).run, nil)
+    assert_raise(RuntimeError){wdb.create_table(table_name).run}
+    lst = wdb.list_tables.run
+    assert_equal(orig_lst.length+1, lst.length)
+    obj = lst.find{|x| x['table_name'] == table_name}
+    assert_equal(obj['db_name'], 'Welcome-db')
+    assert_equal(obj['conflicted'], false)
+    rdb2.delete.run
 
     $data = []
     len = 10
@@ -635,8 +636,8 @@ class ClientTest < Test::Unit::TestCase
     #POINTMUTATE -- unimplemented
 
     assert_equal(rdb2.run, $data)
-    #assert_equal(rdb2.drop.run, nil)
-    #assert_raise(RuntimeError){rdb2.drop.run}
-    #assert_equal(r.list.run, orig_lst)
+    assert_equal(wdb.drop_table(table_name).run, nil)
+    assert_raise(RuntimeError){wdb.drop_table(table_name).run}
+    assert_equal(wdb.list_tables.run, orig_lst)
   end
 end
