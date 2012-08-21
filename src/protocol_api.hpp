@@ -63,6 +63,10 @@ protected:
 /* Some `protocol_t::region_t` functions can be implemented in terms of other
 functions. Here are default implementations for those functions. */
 
+/* Forward declaration to make this work. */
+template <class region_t>
+bool region_is_superset(const region_t &, const region_t &);
+
 template<class region_t>
 bool region_is_empty(const region_t &r) {
     return region_is_superset(region_t::empty(), r);

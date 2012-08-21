@@ -10,26 +10,29 @@
 #include "rpc/semilattice/joins/vclock.hpp"
 
 template <class protocol_t>
-multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **store_views,
-                                               int num_store_views,
+multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **store_views, int num_store_views,
+                                               typename protocol_t::context_t *_ctx,
                                                const typename protocol_t::region_t &region)
     : store_views_(num_store_views),
       region_(region),
       external_checkpoint_("multistore_ptr_t"),
       internal_sources_(num_store_views),
-      internal_sinks_(num_store_views) {
+      internal_sinks_(num_store_views),
+      ctx(_ctx) {
 
     initialize(store_views);
 }
 
 template <class protocol_t>
 multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inner,
+                                               typename protocol_t::context_t *_ctx,
                                                const typename protocol_t::region_t &region)
     : store_views_(inner->num_stores()),
       region_(region),
       external_checkpoint_("multistore_ptr_t"),
       internal_sources_(inner->num_stores()),
-      internal_sinks_(inner->num_stores()) {
+      internal_sinks_(inner->num_stores()),
+      ctx(_ctx) {
 
     rassert(region_is_superset(inner->region_, region));
 
@@ -483,8 +486,7 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_
         throw interrupted_exc_t();
     }
 
-    typename protocol_t::temporary_cache_t fake_cache;
-    read.multistore_unshard(responses, response, &fake_cache);
+    read.multistore_unshard(responses, response, ctx);
 }
 
 // Because boost::bind only takes 10 arguments.
@@ -574,8 +576,7 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol
         throw interrupted_exc_t();
     }
 
-    typename protocol_t::temporary_cache_t fake_cache;
-    write.multistore_unshard(responses, response, &fake_cache);
+    write.multistore_unshard(responses, response, ctx);
 }
 
 template <class protocol_t>

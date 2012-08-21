@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
 #include "btree/depth_first_traversal.hpp"
@@ -10,8 +11,14 @@
 #include "btree/operations.hpp"
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
-#include "rdb_protocol/btree.hpp"
 #include "containers/scoped.hpp"
+#include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/environment.hpp"
+#include "rdb_protocol/query_language.hpp"
+#include "rdb_protocol/transform_visitors.hpp"
+
+typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
+typedef std::list<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > keyed_json_list_t;
 
 #define MAX_RDB_VALUE_SIZE MAX_IN_NODE_VALUE_SIZE
 
@@ -244,30 +251,82 @@ size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*js
 
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
-    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn, int max) :
-        transaction(txn), maximum(max), cumulative_size(0) { }
+    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn, int max,
+                                              query_language::runtime_environment_t *_env,
+                                              const rdb_protocol_details::transform_t &_transform,
+                                              boost::optional<rdb_protocol_details::terminal_t> _terminal,
+                                              const key_range_t &range)
+        : transaction(txn), maximum(max), cumulative_size(0),
+          env(_env), transform(_transform), terminal(_terminal)
+    {
+        response.last_considered_key = range.left;
+
+        if (terminal) {
+            boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result), *terminal);
+        }
+    }
     bool handle_pair(const btree_key_t* key, const void *value) {
+        store_key_t store_key(key);
+        if (response.last_considered_key < store_key) {
+            response.last_considered_key = store_key;
+        }
+
         const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
-        boost::shared_ptr<scoped_cJSON_t> data = get_data(rdb_value, transaction);
 
-        typedef rget_read_response_t::stream_t stream_t;
-        stream_t *stream = boost::get<stream_t>(&response.result);
-        guarantee(stream);
-        stream->push_back(std::make_pair(store_key_t(key), data));
+        json_list_t data;
+        data.push_back(get_data(rdb_value, transaction));
 
-        cumulative_size += estimate_rget_response_size(stream->back().second);
-        return static_cast<ssize_t>(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
+        //Apply transforms to the data
+        typedef rdb_protocol_details::transform_t::iterator tit_t;
+        for (tit_t it  = transform.begin();
+                   it != transform.end();
+                   ++it) {
+            json_list_t tmp;
+
+            for (json_list_t::iterator jt  = data.begin();
+                                       jt != data.end();
+                                       ++jt) {
+                boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env), *it);
+            }
+            data.clear();
+            data.splice(data.begin(), tmp);
+        }
+
+        if (!terminal) {
+            typedef rget_read_response_t::stream_t stream_t;
+            stream_t *stream = boost::get<stream_t>(&response.result);
+            guarantee(stream);
+            for (json_list_t::iterator it =  data.begin();
+                                       it != data.end();
+                                       ++it) {
+                stream->push_back(std::make_pair(key, *it));
+            }
+
+            cumulative_size += estimate_rget_response_size(stream->back().second);
+            return int(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
+        } else {
+            for (json_list_t::iterator jt  = data.begin();
+                                       jt != data.end();
+                                       ++jt) {
+                boost::apply_visitor(query_language::terminal_visitor_t(*jt, env, &response.result), *terminal);
+            }
+            return true;
+        }
     }
     transaction_t *transaction;
     int maximum;
     rget_read_response_t response;
     size_t cumulative_size;
+    query_language::runtime_environment_t *env;
+    rdb_protocol_details::transform_t transform;
+    boost::optional<rdb_protocol_details::terminal_t> terminal;
 };
 
 rget_read_response_t rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-        int maximum, transaction_t *txn, superblock_t *superblock) {
-
-    rdb_rget_depth_first_traversal_callback_t callback(txn, maximum);
+                                    int maximum, transaction_t *txn, superblock_t *superblock,
+                                    query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
+                                    boost::optional<rdb_protocol_details::terminal_t> terminal) {
+    rdb_rget_depth_first_traversal_callback_t callback(txn, maximum, env, transform, terminal, range);
     btree_depth_first_traversal(slice, txn, superblock, range, &callback);
     if (callback.cumulative_size >= rget_max_chunk_size) {
         callback.response.truncated = true;

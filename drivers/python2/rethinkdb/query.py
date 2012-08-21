@@ -83,7 +83,7 @@ def fn(*x):
     :param args: names of parameters
     :param body: body of function
     :type body: :class:`JSONExpression` or :class:`StreamExpression`
-    :rtype: :class:`rethinkdb.internal.JSONFunction` or :class:`rethinkdb.internal.StreamFunction`
+    :rtype: :class:`rethinkdb.JSONFunction` or :class:`rethinkdb.StreamFunction`
 
     >>> fn(3)                           # lambda: 3
     >>> fn("x", R("$x") + 1)            # lambda x: x + 1
@@ -92,9 +92,36 @@ def fn(*x):
     body = x[-1]
     args = x[:-1]
     if isinstance(body, Stream):
-        return internal.StreamFunction(body, *args)
+        return StreamFunction(body, *args)
     else:
-        return internal.JSONFunction(body, *args)
+        return JSONFunction(body, *args)
+
+class JSONFunction(object):
+    """TODO document me"""
+    def __init__(self, body, *args):
+        self.body = expr(body)
+        self.args = args
+
+    def write_mapping(self, mapping):
+        if self.args:
+            mapping.arg = self.args[0]
+        else:
+            mapping.arg = 'row'     # TODO: GET RID OF THIS
+        self.body._write_ast(mapping.body)
+
+class StreamFunction(object):
+    """TODO document me"""
+    def __init__(self, body, *args):
+        assert isinstance(body, Stream)
+        self.body = body
+        self.args = args
+
+    def write_mapping(self, mapping):
+        if self.args:
+            mapping.arg = self.args[0]
+        else:
+            mapping.arg = 'row'     # TODO: GET RID OF THIS
+        self.body._write_ast(mapping.body)
 
 def js(expr=None, body=None):
     if (expr is not None) + (body is not None) != 1:
@@ -112,14 +139,21 @@ def let(*bindings):
 #####################################
 # SELECTORS - QUERYING THE DATABASE #
 #####################################
-class BaseExpression(object):
-    """A base class for all ReQL expressions. An expression encodes an
-    operation that can be evaluated on the server via
-    :func:`rethinkdb.net.Connection.run` or
-    :func:`self.run`. Expressions can be as simple as JSON values that
-    get evaluated to themselves, or as complex as queries with
-    multiple subqueries with table joins.
-    """
+class BaseQuery(object):
+    """A base class for all ReQL queries. Queries can be run by calling the
+    :meth:`rethinkdb.net.Connection.run()` method or by calling :meth:`run()` on
+    the query object itself.
+
+    There are two types of queries: expressions and write queries. Expressions
+    are instances of :class:`JSONExpression` or :class:`Stream`. They can be as
+    simple as fetching a single document, or even just doing some arithmetic
+    server-side, or as complicated as joins involving subqueries and multiple
+    tables, but expressions never modify the database. Write queries are
+    instances of :class:`WriteQuery`."""
+
+    def _finalize_query(self, root):
+        raise NotImplementedError()
+
     def run(conn=None):
         """Evaluate the expression on the server using the connection
         specified by `conn`. If `conn` is empty, uses the last created
@@ -136,11 +170,21 @@ class BaseExpression(object):
 
         >>> conn = rethinkdb.net.connect() # Connect to localhost, default port
         >>> res = table('db_name.table_name').insert({ 'a': 1, 'b': 2 }).run(conn)
-        >>> res = table('db_name.table_name').all().run() # uses conn since it's the last created connection
+        >>> res = table('db_name.table_name').run() # uses conn since it's the last created connection
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
-class Expression(BaseExpression):
+class WriteQuery(BaseQuery):
+    """All queries that modify the database are instances of :class:`WriteQuery.
+    """
+    def _finalize_query(self, root):
+        root.type = p.Query.WRITE
+        self._write_write_query(root.write_query)
+
+    def _write_write_query(self, parent):
+        raise NotImplementedError()
+
+class BaseExpression(BaseQuery):
     """Base class for everything"""
 
     def _finalize_query(self, root):
@@ -199,14 +243,14 @@ class Expression(BaseExpression):
 
         We can of course specify this query as a ReQL expression directly:
 
-        >>> table('users').filter(R('state') == 'CA' &
-        >>>                       R('age') == R('jobs_held') + R('colleges_attended'))
+        >>> table('users').filter((R('state') == 'CA') &
+        >>>                       (R('age') == R('jobs_held') + R('colleges_attended')))
 
         We can use subqueries as well:
 
         >>> # Select all Californians whose age is equal to the number
         >>> of users in the database
-        >>> table('users').filter( { 'state': 'CA', 'age': table('users').count() })
+        >>> table('users').filter( { 'state': 'CA', 'age': table('users').length() })
 
         So far we've been grabbing attributes from the implicit
         scope. We can bind the value of each row to a variable and
@@ -223,7 +267,7 @@ class Expression(BaseExpression):
         >>> table('users').filter(fn('user',
         >>>     R('$user.age') == table('posts').filter(fn('post',
                   R('$post.author.first_name') == R('$user.first_name')))
-                  .count()))
+                  .length()))
 
         :param selector: the constraint
         :type selector: dict, :class:`JSONExpression`
@@ -231,8 +275,8 @@ class Expression(BaseExpression):
         """
         if isinstance(selector, dict):
             selector = internal.All(*[R(k) == v for k, v in selector.iteritems()])
-        if not isinstance(selector, internal.JSONFunction):
-            selector = internal.JSONFunction(selector)
+        if not isinstance(selector, JSONFunction):
+            selector = JSONFunction(selector)
 
         return internal.Filter(self, selector)
 
@@ -241,12 +285,11 @@ class Expression(BaseExpression):
             if index.step is not None:
                 raise ValueError("slice stepping is unsupported")
             return internal.Slice(self, index.start, index.stop)
-        elif isinstance(index, int):
-            return internal.Nth(self, index)
+        elif isinstance(index, str):
+            # TODO: Move this case to JSONExpression
+            return internal.Attr(self, index)
         else:
-            if isinstance(self, JSONExpression):
-                return internal.Attr(self, index)
-            raise TypeError("stream indices must be integers, not " + index.__class__.__name__)
+            return internal.Nth(self, index)
 
     def nth(self, index):
         """Select the element at `index`.
@@ -345,8 +388,8 @@ class Expression(BaseExpression):
         >>> table('users').map(R('age'))
         >>> table('users').map(fn('user', table('posts').filter({'userid': R('$user.id')})))
         """
-        if not isinstance(mapping, internal.JSONFunction):
-            mapping = internal.JSONFunction(mapping)
+        if not isinstance(mapping, JSONFunction):
+            mapping = JSONFunction(mapping)
         return internal.Map(self, mapping)
 
     def concat_map(self, mapping):
@@ -361,8 +404,8 @@ class Expression(BaseExpression):
         >>> expr([1, 2, 3]).concat_map(fn("a", expr([R("$a"), "test"]).to_stream())).run()
         [1, "test", 2, "test", 3, "test"]
         """
-        if not isinstance(mapping, internal.StreamFunction):
-            mapping = internal.StreamFunction(mapping)
+        if not isinstance(mapping, StreamFunction):
+            mapping = StreamFunction(mapping)
         return internal.ConcatMap(self, mapping)
 
     def reduce(self, base, func):
@@ -379,7 +422,10 @@ class Expression(BaseExpression):
 
         >>> table('users').reduce(0, fn('a', 'b', R('$a') + R('$b.credits)))
         """
-        raise NotImplementedError
+
+        if not isinstance(reduction, internal.Function):
+            reduction = internal.Function(reduction)
+        return internal.Reduce(self, base, reduction)
 
     def grouped_map_reduce(self, group_mapping, value_mapping, reduction_base, reduction_func):
         """Group elements by `group_mapping`, then apply `value_mapping` to each
@@ -392,7 +438,7 @@ class Expression(BaseExpression):
         :type group_mapping: :class:`JSONFunction`
         :param value_mapping: Function to transform values by before reduction
         :type value_mapping: :class:`JSONFunction`
-        :param reduction_base: Base value for reduction, as in `Expression.reduce()`
+        :param reduction_base: Base value for reduction, as in `BaseExpression.reduce()`
         :type reduction_base: :class:`JSONExpression`
         :param reduction_func: Combiner function for reduction
         :type reduction_func: :class:`JSONFunction`
@@ -406,10 +452,10 @@ class Expression(BaseExpression):
         # Returns an object where keys are transaction category names and values
         # are total dollar values in those categories
         """
-        if not isinstance(group_mapping, internal.JSONFunction):
-            group_mapping = internal.JSONFunction(group_mapping)
-        if not isinstance(value_mapping, internal.JSONFunction):
-            value_mapping = internal.JSONFunction(value_mapping)
+        if not isinstance(group_mapping, JSONFunction):
+            group_mapping = JSONFunction(group_mapping)
+        if not isinstance(value_mapping, JSONFunction):
+            value_mapping = JSONFunction(value_mapping)
         return internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func)
 
     def distinct(self, *attrs):
@@ -432,10 +478,20 @@ class Expression(BaseExpression):
         else:
             return self.map([internal.ImplicitAttr(x) for x in (attr,) + attrs])
 
+    def length(self):
+        return internal.Length(self)
+
+    def __len__(self):
+        raise ValueError("To construct a `rethinkdb.JSONExpression` "
+            "representing the length of a RethinkDB protocol term, call "
+            "`expr.length()`. (We couldn't overload `len(expr)` because it's "
+            "illegal to return anything other than an integer from `__len__()` "
+            "in Python.)")
+
 ##########################################
 # DATA OBJECTS - SELECTION, STREAM, ETC. #
 ##########################################
-class Stream(Expression):
+class Stream(BaseExpression):
     """A sequence of JSON values which can be read."""
     def to_array(self):
         """Convert the stream into a JSON array."""
@@ -459,20 +515,20 @@ class BaseSelection(object):
         >>> table('users').filter(R('warnings') > 5).update({'banned': True})
 
         """
-        if not isinstance(mapping, internal.JSONFunction):
-            mapping = internal.JSONFunction(mapping)
+        if not isinstance(mapping, JSONFunction):
+            mapping = JSONFunction(mapping)
         return internal.Update(self, mapping)
 
     def mutate(self, mapping):
         """TODO: get rid of this ?"""
-        if not isinstance(mapping, internal.JSONFunction):
-            mapping = internal.JSONFunction(mapping)
+        if not isinstance(mapping, JSONFunction):
+            mapping = JSONFunction(mapping)
         return internal.Mutate(self, mapping)
 
 class MultiRowSelection(Stream, BaseSelection):
     """A sequence of rows which can be read or written."""
 
-class JSONExpression(Expression):
+class JSONExpression(BaseExpression):
     """A JSON value.
 
     Use :func:`expr` to create expressions for JSON values.
@@ -489,8 +545,8 @@ class JSONExpression(Expression):
     >>> expr(1) < 2 # Whenever possible, ReQL converts Python types to expressions implicitly.
     >>> expr(1) + 2 # Addition. We can do `-`, `*`, `/`, and `%` in the same way.
     >>> expr(1) < 2 # We can also do `>`, `<=`, `>=`, `==`, etc.
-    >>> expr(1) < 2 & 3 < 4 # We use `&` and `|` to encode `and` and `or` since we can't overload
-                            # these in Python"""
+    >>> (expr(1) < 2) & (expr(3) < 4) # We use `&` and `|` to encode `and` and `or` since we can't overload these in Python
+    """
 
     def to_stream(self):
         """Convert a JSON array into a stream."""
@@ -535,6 +591,26 @@ class JSONExpression(Expression):
         return internal.Sub(self)
     def __pos__(self):
         return self
+
+    def __or__(self, other):
+        return internal.Any(self, other)
+    def __and__(self, other):
+        return internal.All(self, other)
+
+    def __ror__(self, other):
+        return internal.Any(other, self)
+    def __rand__(self, othe):
+        return internal.All(other, self)
+
+    def __invert__(self):
+        return internal.Not(self)
+
+    def has_attr(self, name):
+        return internal.Has(self, name)
+    def extend(self, other):
+        return internal.Extend(self, other)
+    def append(self, other):
+        return internal.Append(self, other)
 
 class JSONLiteral(JSONExpression):
     """A literal JSON value."""
@@ -588,6 +664,27 @@ def expr(val):
         return val
     return JSONLiteral(val)
 
+def if_then_else(test, true_branch, false_branch):
+    """If `test` returns `true`, evaluates to `true_branch`. If `test` returns
+    `false`, evaluates to `false_branch`. If `test` returns a non-boolean value,
+    fails at runtime.
+
+    `true_branch` and `false_branch` can be any subclass of
+    :class:`BaseExpression`. They need not be the same, but they must be
+    convertible to the same type; the type that they can both be converted to
+    will be the return type of `if_then_else()`. So if one is a :class:`Stream`
+    and the other is a :class:`MultiRowSelection`, the result will be a
+    :class:`Stream`. But if one is a :class:`Stream` and the other is a
+    :class:`JSONExpression`, then `if_then_else()` will throw an exception
+    rather than return an expression object at all.
+
+    :param test: The condition to switch on
+    :type test: :class:`JSONExpression`
+    :param true_branch: The return value if `test` is `true`
+    :param false_branch: The return value if `test` is `false`
+    """
+    return internal.If(test, true_branch, false_branch)
+
 class RowSelection(JSONExpression, BaseSelection):
     """A single row from a table which can be read or written."""
 
@@ -600,10 +697,9 @@ def db_create(db_name, primary_datacenter=None):
     related tables as well as configuration options that apply to
     these tables.
 
-    When run via :func:`rethinkdb.net.Connection.run` or
-    :func:`Expression.run`, `run` has no return value in case of
-    success, and raises :class:`rethinkdb.net.QueryError` in case of
-    failure.
+    When run via :func:`rethinkdb.net.Connection.run` or :func:`BaseQuery.run`,
+    `run` has no return value in case of success, and raises
+    :class:`rethinkdb.net.QueryError` in case of failure.
 
     :param db_name: The name of the database to be created.
     :type db_name: str
@@ -612,8 +708,8 @@ def db_create(db_name, primary_datacenter=None):
       omitted, the cluster-level default datacenter will be used as
       primary for this database.
     :type primary_datacenter: str
-    :returns: :class:`Expression` -- a ReQL expression that encodes
-      the database creation operation.
+    :returns: :class:`MetaQuery` -- a ReQL expression that encodes the database
+     creation operation.
 
     :Example:
 
@@ -626,15 +722,14 @@ def db_drop(db_name):
     """Create a ReQL expression that drops a database within a
     RethinkDB cluster.
 
-    When run via :func:`rethinkdb.net.Connection.run` or
-    :func:`Expression.run`, `run` has no return value in case of
-    success, and raises :class:`rethinkdb.net.QueryError` in case of
-    failure.
+    When run via :func:`rethinkdb.net.Connection.run` or :func:`BaseQuery.run`,
+    `run` has no return value in case of success, and raises
+    :class:`rethinkdb.net.QueryError` in case of failure.
 
     :param db_name: The name of the database to be dropped.
     :type db_name: str
-    :returns: :class:`Expression` -- a ReQL expression that encodes
-      the database dropping operation.
+    :returns: :class:`MetaQuery` -- a ReQL expression that encodes the database
+        dropping operation.
 
     :Example:
 
@@ -647,11 +742,11 @@ def db_list():
     RethinkDB cluster.
 
     When run via :func:`rethinkdb.net.Connection.run` or
-    :func:`Expression.run`, `run` returns a list of database name
+    :func:`BaseQuery.run`, `run` returns a list of database name
     strings in case of success, and raises
     :class:`rethinkdb.net.QueryError` in case of failure.
 
-    :returns: :class:`Expression` -- a ReQL expression that encodes
+    :returns: :class:`MetaQuery` -- a ReQL expression that encodes
       the database listing operation.
 
     :Example:
@@ -691,7 +786,7 @@ class Database(object):
           that will be used as a primary key for the document. If
           missing, defaults to 'id'.
         :type primary_key: str
-        :returns: :class:`JSONExpression` -- a ReQL expression that
+        :returns: :class:`MetaQuery` -- a ReQL expression that
           encodes the table creation operation.
 
         :Example:
@@ -712,7 +807,7 @@ class Database(object):
 
         :param table_name: The name of the table to be dropped.
         :type table_name: str
-        :returns: :class:`JSONExpression` -- a ReQL expression that
+        :returns: :class:`MetaQuery` -- a ReQL expression that
           encodes the table creation operation.
 
         :Example:
@@ -730,7 +825,7 @@ class Database(object):
         strings in case of success, and raises
         :class:`rethinkdb.net.QueryError` in case of failure.
 
-        :returns: :class:`TableCreate` -- a ReQL expression that
+        :returns: :class:`MetaQuery` -- a ReQL expression that
           encodes the table creation operation.
 
         :Example:
@@ -790,6 +885,7 @@ class Table(MultiRowSelection):
 
         :param docs: the document(s) to insert
         :type docs: dict/list(dict)
+        :rtype: :class:`WriteQuery`
         """
         if isinstance(docs, dict):
             return internal.Insert(self, [docs])
@@ -804,7 +900,7 @@ class Table(MultiRowSelection):
 
         :param key: the key to look for
         :type key: JSON value
-        :returns: :class:`RowSelection`, :class:`JSONExpression`
+        :rtype: :class:`RowSelection`
 
         >>> q = table('users').get(10)  # get user with primary key 10
         """

@@ -49,7 +49,8 @@ void run_with_broadcaster(
     /* Set up a broadcaster and initial listener */
     mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
-    multistore_ptr_t<dummy_protocol_t> initial_svs(&initial_store_ptr, 1);
+    dummy_protocol_t::context_t ctx;
+    multistore_ptr_t<dummy_protocol_t> initial_svs(&initial_store_ptr, 1, &ctx);
     cond_t interruptor;
 
     scoped_ptr_t<broadcaster_t<dummy_protocol_t> > broadcaster(
@@ -211,7 +212,8 @@ void run_backfill_test(io_backender_t *io_backender,
     /* Set up a second mirror */
     mock::test_store_t<dummy_protocol_t> store2(io_backender, order_source);
     store_view_t<dummy_protocol_t> *store2_ptr = &store2.store;
-    multistore_ptr_t<dummy_protocol_t> store2_multi_ptr(&store2_ptr, 1);
+    dummy_protocol_t::context_t ctx;
+    multistore_ptr_t<dummy_protocol_t> store2_multi_ptr(&store2_ptr, 1, &ctx);
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         io_backender,
@@ -278,7 +280,8 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     mock::test_store_t<dummy_protocol_t> store2(io_backender, order_source);
     store_view_t<dummy_protocol_t> *store2_ptr = &store2.store;
     dummy_protocol_t::region_t subregion('a', 'm');
-    multistore_ptr_t<dummy_protocol_t> store_ptr(&store2_ptr, 1, subregion);
+    dummy_protocol_t::context_t ctx;
+    multistore_ptr_t<dummy_protocol_t> store_ptr(&store2_ptr, 1, &ctx, subregion);
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         io_backender,

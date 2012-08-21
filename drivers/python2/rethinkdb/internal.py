@@ -73,56 +73,51 @@ class TableList(query.BaseExpression):
 # WRITE QUERIES #
 #################
 
-class WriteQuery(query.BaseExpression):
-    def _finalize_query(self, root):
-        root.type = p.Query.WRITE
-        self._write_ast(root.write_query)
-
-class Insert(WriteQuery):
+class Insert(query.WriteQuery):
     def __init__(self, table, entries):
         self.table = table
         self.entries = [query.expr(e) for e in entries]
 
-    def _write_ast(self, parent):
+    def _write_write_query(self, parent):
         parent.type = p.WriteQuery.INSERT
         self.table._write_ref_ast(parent.insert.table_ref)
         for entry in self.entries:
             entry._write_ast(parent.insert.terms.add())
 
-class Delete(WriteQuery):
+class Delete(query.WriteQuery):
     def __init__(self, parent_view):
         self.parent_view = parent_view
 
-    def _write_ast(self, parent):
+    def _write_write_query(self, parent):
         parent.type = p.WriteQuery.DELETE
         self.parent_view._write_ast(parent.delete.view)
 
-class Update(WriteQuery):
+class Update(query.WriteQuery):
     def __init__(self, parent_view, mapping):
         self.parent_view = parent_view
         self.mapping = mapping
 
-    def _write_ast(self, parent):
+    def _write_write_query(self, parent):
         parent.type = p.WriteQuery.UPDATE
         self.parent_view._write_ast(parent.update.view)
         self.mapping.write_mapping(parent.update.mapping)
 
-class Mutate(WriteQuery):
+class Mutate(query.WriteQuery):
     def __init__(self, parent_view, mapping):
         self.parent_view = parent_view
         self.mapping = mapping
 
-    def _write_ast(self, parent):
+    def _write_write_query(self, parent):
         parent.type = p.WriteQuery.MUTATE
         self.parent_view._write_ast(parent.mutate.view)
         self.mapping.write_mapping(parent.mutate.mapping)
 
-class InsertStream(WriteQuery):
+class InsertStream(query.WriteQuery):
     def __init__(self, table, stream):
         self.table = table
         self.stream = stream
 
-    def _write_ast(self, parent):
+    def _write_write_query(self, parent):
         parent.type = p.WriteQuery.INSERTSTREAM
         self.table._write_ref_ast(parent.insert_stream.table_ref)
         self.stream._write_ast(parent.insert_stream.stream)
@@ -130,31 +125,6 @@ class InsertStream(WriteQuery):
 ##############
 # OPERATIONS #
 ##############
-
-class JSONFunction(object):
-    def __init__(self, body, *args):
-        self.body = query.expr(body)
-        self.args = args
-
-    def write_mapping(self, mapping):
-        if self.args:
-            mapping.arg = self.args[0]
-        else:
-            mapping.arg = 'row'     # TODO: GET RID OF THIS
-        self.body._write_ast(mapping.body)
-
-class StreamFunction(object):
-    def __init__(self, body, *args):
-        assert isinstance(body, query.Stream)
-        self.body = body
-        self.args = args
-
-    def write_mapping(self, mapping):
-        if self.args:
-            mapping.arg = self.args[0]
-        else:
-            mapping.arg = 'row'     # TODO: GET RID OF THIS
-        self.body._write_ast(mapping.body)
 
 class Javascript(query.JSONExpression):
     def __init__(self, body):
@@ -347,6 +317,7 @@ class Get(query.RowSelection):
 
 class If(query.JSONExpression):
     def __init__(self, test, true_branch, false_branch):
+        # TODO: Actually support things other than `JSONExpression`
         self.test = query.expr(test)
         self.true_branch = query.expr(true_branch)
         self.false_branch = query.expr(false_branch)
@@ -398,6 +369,17 @@ class Distinct(Transformer):
 
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.DISTINCT, self.parent)
+
+class Reduce(Transformer):
+    def __init__(self, parent, base, reduction):
+        self.parent = parent
+        self.base = query.expr(base)
+        self.reduction = reduction
+
+    def _write_ast(self, parent):
+        builtin = self._write_call(parent, p.Builtin.REDUCE, self.parent)
+        self.base._write_ast(builtin.reduce.base)
+        self.reduction.write_reduction(builtin.reduce, self.base)
 
 class Let(Selector):
     def __init__(self, expr, bindings):

@@ -17,7 +17,7 @@ import traceback
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python2')))
 
 from rethinkdb import *
-import rethinkdb.internal as I
+import rethinkdb.internal
 
 class RDBTest(unittest.TestCase):
     @classmethod
@@ -34,7 +34,7 @@ class RDBTest(unittest.TestCase):
             self.assertNotEqual(str(query), '')
             self.assertEqual(res, expected)
         except Exception, e:
-            root_ast = I.p.Query()
+            root_ast = rethinkdb.internal.p.Query()
             query._finalize_query(root_ast)
             print root_ast
             raise
@@ -62,92 +62,80 @@ class RDBTest(unittest.TestCase):
         expect = self.expect
         fail = self.error_exec
 
-        expect(I.Add(3, 4), 7)
-        expect(I.Add(3, 4, 5), 12)
-        fail(I.Add(4, [0]), "number")
+        expect(expr(3) + 4, 7)
+        expect(expr(3) + 4 + 5, 12)
+        fail(expr(4) + [0], "number")
 
-        expect(I.Sub(3), -3)
-        expect(I.Sub(0, 3), -3)
-        expect(I.Sub(10, 1, 2), 7)
-        fail(I.Sub([0]), "number")
-        fail(I.Sub(4, [0]), "number")
+        expect(-expr(3), -3)
+        expect(expr(0) - 3, -3)
+        expect(expr(10) - 1 - 2, 7)
+        fail(-expr([0]), "number")
+        fail(expr(4) - [0], "number")
 
-        expect(I.Mul(1), 1)
-        expect(I.Mul(4, 5), 20)
-        expect(I.Mul(4, 5, 6), 120)
-        fail(I.Mul(4, [0]), "number")
+        expect(expr(4) * 5, 20)
+        expect(expr(4) * 5 * 6, 120)
+        fail(expr(4) * [0], "number")
 
-        expect(I.Div(4), 1/4.)
-        expect(I.Div(6, 3), 2)
-        expect(I.Div(12, 3, 4), 1)
-        fail(I.Div([0]), "number")
-        fail(I.Div(4, [0]), "number")
+        expect(expr(6) / 3, 2)
+        expect(expr(12) / 3 / 4, 1)
+        fail(expr(4) / [0], "number")
 
-        expect(I.Mod(4, 3), 1)
-        fail(I.Mod([], 3), "number")
-        fail(I.Mod(3, []), "number")
+        expect(expr(4) % 3, 1)
+        fail(expr([]) % 3, "number")
+        fail(expr(3) % [], "number")
 
-        expect(I.Mul(I.Add(3, 4), I.Sub(6), I.Add(-5, 3)), 84)
+        expect((expr(3) + 4) * -expr(6) * (expr(-5) + 3), 84)
 
     def test_cmp(self):
         expect = self.expect
         fail = self.error_exec
 
-        expect(I.CompareEQ(3, 3), True)
-        expect(I.CompareEQ(3, 4), False)
+        expect(expr(3) == 3, True)
+        expect(expr(3) == 4, False)
 
-        expect(I.CompareNE(3, 3), False)
-        expect(I.CompareNE(3, 4), True)
+        expect(expr(3) != 3, False)
+        expect(expr(3) != 4, True)
 
-        expect(I.CompareGT(3, 2), True)
-        expect(I.CompareGT(3, 3), False)
+        expect(expr(3) > 2, True)
+        expect(expr(3) > 3, False)
 
-        expect(I.CompareGE(3, 3), True)
-        expect(I.CompareGE(3, 4), False)
+        expect(expr(3) >= 3, True)
+        expect(expr(3) >= 4, False)
 
-        expect(I.CompareLT(3, 3), False)
-        expect(I.CompareLT(3, 4), True)
+        expect(expr(3) < 3, False)
+        expect(expr(3) < 4, True)
 
-        expect(I.CompareLE(3, 3), True)
-        expect(I.CompareLE(3, 4), True)
-        expect(I.CompareLE(3, 2), False)
+        expect(expr(3) <= 3, True)
+        expect(expr(3) <= 4, True)
+        expect(expr(3) <= 2, False)
 
-        expect(I.CompareEQ(1, 1, 2), False)
-        expect(I.CompareEQ(5, 5, 5), True)
+        expect(expr("asdf") == "asdf", True)
+        expect(expr("asd") == "asdf", False)
+        expect(expr("a") < "b", True)
 
-        expect(I.CompareLT(3, 4), True)
-        expect(I.CompareLT(3, 4, 5), True)
-        expect(I.CompareLT(5, 6, 7, 7), False)
+        expect(expr(True) == True, True)
+        expect(expr(False) < True, True)
 
-        expect(I.CompareEQ("asdf", "asdf"), True)
-        expect(I.CompareEQ("asd", "asdf"), False)
-        expect(I.CompareLT("a", "b"), True)
-
-        expect(I.CompareEQ(True, True), True)
-        expect(I.CompareLT(False, True), True)
-
-        expect(I.CompareLT(False, True, 1, "", []), True)
-        expect(I.CompareGT([], "", 1, True, False), True)
-        expect(I.CompareLT(False, True, "", 1, []), False)
+        expect(expr(True) < 1, True)
+        expect(expr(1) < "", True)
+        expect(expr("") < [], True)
 
     def test_junctions(self):
-        self.expect(I.Any(False), False)
-        self.expect(I.Any(True, False), True)
-        self.expect(I.Any(False, True), True)
-        self.expect(I.Any(False, False, True), True)
+        self.expect(expr(True) | False, True)
+        self.expect(expr(False) | True, True)
+        self.expect(expr(False) | False | True, True)
 
-        self.expect(I.All(False), False)
-        self.expect(I.All(True, False), False)
-        self.expect(I.All(True, True), True)
-        self.expect(I.All(True, True, True), True)
+        self.expect(expr(True) & False, False)
+        self.expect(expr(True) & True, True)
+        self.expect(expr(True) & True & True, True)
 
-        self.error_exec(I.All(True, 3), "bool")
-        self.error_exec(I.Any(True, 4), "bool")
+        self.error_exec(expr(True) & 3, "bool")
+        self.error_exec(expr(True) & 4, "bool")
 
     def test_not(self):
-        self.expect(I.Not(True), False)
-        self.expect(I.Not(False), True)
-        self.error_exec(I.Not(3), "bool")
+        self.expect(~expr(True), False)
+        self.expect(~expr(False), True)
+        self.error_exec(~expr(3), "bool")
 
     def test_let(self):
         self.expect(let(("x", 3), R("$x")), 3)
@@ -157,67 +145,70 @@ class RDBTest(unittest.TestCase):
         self.error_query(R("$x"), "not in scope")
 
     def test_if(self):
-        self.expect(I.If(True, 3, 4), 3)
-        self.expect(I.If(False, 4, 5), 5)
-        self.expect(I.If(I.CompareEQ(3, 3), "foo", "bar"), "foo")
+        self.expect(if_then_else(True, 3, 4), 3)
+        self.expect(if_then_else(False, 4, 5), 5)
+        self.expect(if_then_else(expr(3) == 3, "foo", "bar"), "foo")
 
-        self.error_exec(I.If(5, 1, 2), "bool")
+        self.error_exec(if_then_else(5, 1, 2), "bool")
 
     def test_attr(self):
-        self.expect(I.Has({"foo": 3}, "foo"), True)
-        self.expect(I.Has({"foo": 3}, "bar"), False)
+        self.expect(expr({"foo": 3}).has_attr("foo"), True)
+        self.expect(expr({"foo": 3}).has_attr("bar"), False)
 
-        self.expect(I.Attr({"foo": 3}, "foo"), 3)
-        self.error_exec(I.Attr({"foo": 3}, "bar"), "missing")
+        self.expect(expr({"foo": 3})["foo"], 3)
+        self.error_exec(expr({"foo": 3})["bar"], "missing")
 
-        self.expect(I.Attr(I.Attr({"a": {"b": 3}}, "a"), "b"), 3)
+        self.expect(expr({"a": {"b": 3}})["a"]["b"], 3)
 
     def test_extend(self):
-        self.expect(I.Extend({"a": 5}, {"b": 3}), {"a": 5, "b": 3})
-        self.expect(I.Extend({"a": 5}, {"a": 3}), {"a": 3})
-        self.expect(I.Extend(I.Extend({"a": 5, "b": 1}, {"a": 3}), {"b": 6}), {"a": 3, "b": 6})
+        self.expect(expr({"a": 5}).extend({"b": 3}), {"a": 5, "b": 3})
+        self.expect(expr({"a": 5}).extend({"a": 3}), {"a": 3})
+        self.expect(expr({"a": 5, "b": 1}).extend({"a": 3}).extend({"b": 6}), {"a": 3, "b": 6})
 
-        self.error_exec(I.Extend(5, {"a": 3}), "object")
-        self.error_exec(I.Extend({"a": 5}, 5), "object")
+        self.error_exec(expr(5).extend({"a": 3}), "object")
+        self.error_exec(expr({"a": 5}).extend(5), "object")
 
     def test_array(self):
         expect = self.expect
         fail = self.error_exec
 
-        expect(I.Append([], 2), [2])
-        expect(I.Append([1], 2), [1, 2])
-        fail(I.Append(3, 0), "array")
+        expect(expr([]).append(2), [2])
+        expect(expr([1]).append(2), [1, 2])
+        fail(expr(3).append(0), "array")
 
-        expect(I.Add([1], [2]), [1, 2])
-        expect(I.Add([1, 2], []), [1, 2])
-        fail(I.Add(1, [1]), "number")
-        fail(I.Add([1], 1), "array")
+        expect(expr([1]) + [2], [1, 2])
+        expect(expr([1, 2]) + [], [1, 2])
+        fail(expr(1) + [1], "number")
+        fail(expr([1]) + 1, "array")
+
+        # TODO: Arrays accept negative indices, streams do not. That's kinda
+        # confusing.
 
         arr = range(10)
-        expect(I.Slice(expr(arr), 0, 3), arr[0: 3])
-        expect(I.Slice(expr(arr), 0, 0), arr[0: 0])
-        expect(I.Slice(expr(arr), 5, 15), arr[5: 15])
-        expect(I.Slice(expr(arr), 5, -3), arr[5: -3])
-        expect(I.Slice(expr(arr), -5, -3), arr[-5: -3])
-        fail(I.Slice(expr(1), 0, 0), "array")
-        fail(I.Slice(expr(arr), .5, 0), "integer")
-        fail(I.Slice(expr(arr), 0, 1.01), "integer")
-        fail(I.Slice(expr(arr), 5, 3), "greater")
-        expect(I.Slice(expr(arr), 5, None), arr[5:])
-        expect(I.Slice(expr(arr), None, 7), arr[:7])
-        expect(I.Slice(expr(arr), None, -2), arr[:-2])
-        expect(I.Slice(expr(arr), -2, None), arr[-2:])
-        expect(I.Slice(expr(arr), None, None), arr[:])
+        expect(expr(arr)[0:3], arr[0: 3])
+        expect(expr(arr)[0:0], arr[0: 0])
+        expect(expr(arr)[5:15], arr[5: 15])
+        expect(expr(arr)[5:-3], arr[5: -3])
+        expect(expr(arr)[-5:-3], arr[-5: -3])
+        fail(expr(1)[0:0], "array")
+        fail(expr(arr)[expr(.5):0], "integer")
+        fail(expr(arr)[0:expr(1.01)], "integer")
+        fail(expr(arr)[5:3], "greater")
+        expect(expr(arr)[5:None], arr[5:])
+        expect(expr(arr)[None:7], arr[:7])
+        expect(expr(arr)[None:-2], arr[:-2])
+        expect(expr(arr)[-2:None], arr[-2:])
+        expect(expr(arr)[None:None], arr[:])
 
-        expect(I.Nth(expr(arr), 3), 3)
-        expect(I.Nth(expr(arr), -1), 9)
-        fail(I.Nth(expr(0), 0), "array")
-        fail(I.Nth(expr(arr), .1), "integer")
-        fail(I.Nth(expr([0]), 1), "bounds")
+        expect(expr(arr)[3], 3)
+        expect(expr(arr)[-1], 9)
+        fail(expr(0)[0], "array")
+        fail(expr(arr)[expr(.1)], "integer")
+        fail(expr([0])[1], "bounds")
 
-        expect(I.Length(expr([])), 0)
-        expect(I.Length(expr(arr)), len(arr))
-        fail(I.Length(expr(0)), "array")
+        expect(expr([]).length(), 0)
+        expect(expr(arr).length(), len(arr))
+        fail(expr(0).length(), "array")
 
     def test_stream(self):
         expect = self.expect
@@ -226,12 +217,11 @@ class RDBTest(unittest.TestCase):
 
         expect(expr(arr).to_stream().to_array(), arr)
 
-        expect(I.Nth(I.ToStream(arr), 0), 0)
-        expect(I.Nth(I.ToStream(arr), 5), 5)
-        fail(I.Nth(I.ToStream(arr), []), "integer")
-        fail(I.Nth(I.ToStream(arr), .4), "integer")
-        fail(I.Nth(I.ToStream(arr), -5), "nonnegative")
-        fail(I.Nth(I.ToStream([0]), 1), "bounds")
+        expect(expr(arr).to_stream()[0], 0)
+        expect(expr(arr).to_stream()[5], 5)
+        fail(expr(arr).to_stream()[.4], "integer")
+        fail(expr(arr).to_stream()[-1], "nonnegative")
+        fail(expr([0]).to_stream()[1], "bounds")
 
     def test_stream_fancy(self):
         expect = self.expect
