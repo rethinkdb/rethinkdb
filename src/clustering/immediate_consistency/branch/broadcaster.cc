@@ -245,29 +245,6 @@ public:
         return write_mailbox.get_peer();
     }
 
-    typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
-    bool is_readable;
-    typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t writeread_mailbox;
-    typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
-
-    /* This is used to enforce that operations are performed on the
-       destination machine in the same order that we send them, even if the
-       network layer reorders the messages. */
-    fifo_enforcer_source_t fifo_source;
-
-    // Accompanies the fifo_source.  It is questionable that we have a
-    // separate order source just for the background writes.  What
-    // about other writes that could interact with the background
-    // writes?
-    // TODO: Is something wrong with the ordering guarantees between background writes and other writes?
-    order_source_t order_source;
-
-    perfmon_counter_t queue_count;
-    perfmon_membership_t queue_count_membership;
-    unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
-    calling_callback_t background_write_caller;
-    coro_pool_t<boost::function<void()> > background_write_workers;
-
 private:
     /* The constructor spawns `send_intro()` in the background. */
     void send_intro(
@@ -311,11 +288,38 @@ private:
         }
     }
 
+public:
+    typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
+    bool is_readable;
+    typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t writeread_mailbox;
+    typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
+
+    /* This is used to enforce that operations are performed on the
+       destination machine in the same order that we send them, even if the
+       network layer reorders the messages. */
+    fifo_enforcer_source_t fifo_source;
+
+    // Accompanies the fifo_source.  It is questionable that we have a
+    // separate order source just for the background writes.  What
+    // about other writes that could interact with the background
+    // writes?
+    // TODO: Is something wrong with the ordering guarantees between background writes and other writes?
+    order_source_t order_source;
+
+    perfmon_counter_t queue_count;
+    perfmon_membership_t queue_count_membership;
+    unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
+    calling_callback_t background_write_caller;
+
+private:
+    coro_pool_t<boost::function<void()> > background_write_workers;
     broadcaster_t *controller;
     auto_drainer_t drainer;
 
     typename listener_business_card_t<protocol_t>::upgrade_mailbox_t upgrade_mailbox;
     typename listener_business_card_t<protocol_t>::downgrade_mailbox_t downgrade_mailbox;
+
+    DISABLE_COPYING(dispatchee_t);
 };
 
 /* Functions to send a read or write to a mirror and wait for a response.
