@@ -6,158 +6,6 @@ import types
 
 import query_language_pb2 as p
 
-#############################
-# VARIABLE/ATTRIBUTE ACCESS #
-#############################
-def R(name):
-    """Get the value of a variable or attribute.
-
-    To get a variable, prefix the name with `$`.
-
-    >>> R('$user')
-
-    To get attributes of variables, use dot notation.
-
-    >>> R('$user.name')
-    >>> R('$user.options.ads')
-
-    Filter and map bind the current element to the implicit variable.
-
-    To access an attribute of the implicit variable, pass the attribute name.
-
-    >>> R('name')
-    >>> R('options.ads')
-
-    To get the implicit variable, use '@'.
-
-    >>> R('@')
-
-    For attributes that would be misinterpreted, use alternative notations.
-
-    >>> R('@.$special')     # get implicit var's "$special" attribute
-    >>> R('@')['$special']  # the same
-    >>> R('@')['a.b.c']     # get an attribute named "a.b.c"
-
-    See information on scoping rules for more details.
-
-    :param name: The name of the variable (prefixed with `$`),
-      implicit attribute (prefixed with `@`), or inner attributes
-      (separated by `.`)
-    :type name: str
-    :returns: :class:`JSONExpression`
-
-    >>> table('users').insert({ 'name': Joe,
-                                'age': 30,
-                                'address': { 'city': 'Mountain View', 'state': 'CA' }
-                              }).run()
-    >>> table('users').filter(R('age') == 30) # access attribute age from the implicit row variable
-    >>> table('users').filter(R('address.city') == 'Mountain View') # access subattribute city
-                                                                    # of attribute address from
-                                                                    # the implicit row variable
-    >>> table('users').filter(fn('row', R('$row.age') == 30)) # access attribute age from the
-                                                              # variable 'row'
-    >>> table('users').filter(fn('row', R('$row.address.city') == 'Mountain View')) # access subattribute city
-                                                                                     # of attribute address from
-                                                                                     # the variable 'row'
-    >>> table('users').filter(fn('row', R('age') == 30)) # error - binding a row disables implicit scope
-    >>> table('users').filter(fn('row', R('$age') == 30)) # error - no variable 'age' is defined
-    >>> table('users').filter(R('$age') == 30) # error - no variable '$age' is defined, use 'age'
-    """
-    if name.startswith('$'):
-        if '.' not in name:
-            return JSONExpression(internal.Var(name[1:]))
-        raise NotImplementedError("$ with . not handled")
-    if name.startswith('@'):
-        raise NotImplementedError("@ not handled")
-    if '.' in name:
-        raise NotImplementedError(". not handled")
-    return JSONExpression(internal.ImplicitAttr(name))
-
-def fn(*x):
-    """Create a function.
-    See :func:`Selectable.filter` for examples.
-
-    The last argument is the body of the function,
-    and the other arguments are the parameter names.
-
-    :param args: names of parameters
-    :param body: body of function
-    :type body: :class:`JSONExpression` or :class:`StreamExpression`
-    :rtype: :class:`rethinkdb.JSONFunction` or :class:`rethinkdb.StreamFunction`
-
-    >>> fn(3)                           # lambda: 3
-    >>> fn("x", R("$x") + 1)            # lambda x: x + 1
-    >>> fn("x", "y", R("$x") + R("$y))  # lambda x, y: x + y
-    """
-    body = x[-1]
-    args = x[:-1]
-    if isinstance(body, Stream):
-        return StreamFunction(body, *args)
-    else:
-        return JSONFunction(body, *args)
-
-class JSONFunction(object):
-    """TODO document me"""
-    def __init__(self, body, *args):
-        self.body = expr(body)
-        self.args = args
-
-    def write_mapping(self, mapping):
-        assert len(self.args) <= 1
-        if self.args:
-            mapping.arg = self.args[0]
-        else:
-            mapping.arg = 'row'     # TODO: GET RID OF THIS
-        self.body._inner._write_ast(mapping.body)
-
-    def write_reduction(self, reduction, base):
-        assert len(self.args) == 2
-        base._inner._write_ast(reduction.body)
-        reduction.var1 = self.args[0]
-        reduction.var2 = self.args[1]
-        self.body._inner._write_ast(reduction.body)
-
-class StreamFunction(object):
-    """TODO document me"""
-    def __init__(self, body, *args):
-        assert isinstance(body, Stream)
-        self.body = body
-        self.args = args
-
-    def write_mapping(self, mapping):
-        if self.args:
-            mapping.arg = self.args[0]
-        else:
-            mapping.arg = 'row'     # TODO: GET RID OF THIS
-        self.body._inner._write_ast(mapping.body)
-
-def js(expr=None, body=None):
-    if (expr is not None) + (body is not None) != 1:
-        raise ValueError('exactly one of expr or body must be passed')
-    if body is not None:
-        return JSONExpression(internal.Javascript(body))
-    else:
-        return JSONExpression(internal.Javascript(u'return (%s);' % expr))
-
-def let(*bindings):
-    body = bindings[-1]
-    bindings = bindings[:-1]
-    if len(bindings) == 0:
-        raise ValueError("need at least one binding")
-    if isinstance(body, MultiRowSelection):
-        t = MultiRowSelection
-    elif isinstance(body, Stream):
-        t = Stream
-    elif isinstance(body, RowSelection):
-        t = RowSelection
-    else:
-        body = expr(body)
-        t = JSONExpression
-    return t(internal.Let(body, bindings))
-
-#####################################
-# SELECTORS - QUERYING THE DATABASE #
-#####################################
 class BaseQuery(object):
     """A base class for all ReQL queries. Queries can be run by calling the
     :meth:`rethinkdb.net.Connection.run()` method or by calling :meth:`run()` on
@@ -191,20 +39,6 @@ class BaseQuery(object):
         >>> res = table('db_name.table_name').insert({ 'a': 1, 'b': 2 }).run(conn)
         >>> res = table('db_name.table_name').run() # uses conn since it's the last created connection
         """
-        raise NotImplementedError()
-
-class WriteQuery(BaseQuery):
-    """All queries that modify the database are instances of :class:`WriteQuery.
-    """
-    def __init__(self, inner):
-        assert isinstance(inner, internal.WriteQueryInner)
-        self._inner = inner
-
-    def _finalize_query(self, root):
-        root.type = p.Query.WRITE
-        self._inner._write_write_query(root.write_query)
-
-    def _write_write_query(self, parent):
         raise NotImplementedError()
 
 class BaseExpression(BaseQuery):
@@ -505,43 +339,6 @@ class BaseExpression(BaseQuery):
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
 
-##########################################
-# DATA OBJECTS - SELECTION, STREAM, ETC. #
-##########################################
-class Stream(BaseExpression):
-    """A sequence of JSON values which can be read."""
-    def to_array(self):
-        """Convert the stream into a JSON array."""
-        return JSONExpression(internal.ToArray(self))
-
-class BaseSelection(object):
-    """Something which can be read or written."""
-    def delete(self):
-        """Delete all rows in the selection from the database."""
-        return WriteQuery(internal.Delete(self))
-
-    def update(self, mapping):
-        """Update all rows in the selection by merging the current contents
-        with the value of `mapping`.
-
-        The merge is recursive, see :
-
-        >>> table('users').filter(R('warnings') > 5).update({'banned': True})
-
-        """
-        if not isinstance(mapping, JSONFunction):
-            mapping = JSONFunction(mapping)
-        return WriteQuery(internal.Update(self, mapping))
-
-    def mutate(self, mapping):
-        """TODO: get rid of this ?"""
-        if not isinstance(mapping, JSONFunction):
-            mapping = JSONFunction(mapping)
-        return WriteQuery(internal.Mutate(self, mapping))
-
-class MultiRowSelection(Stream, BaseSelection):
-    """A sequence of rows which can be read or written."""
-
 class JSONExpression(BaseExpression):
     """A JSON value.
 
@@ -626,6 +423,12 @@ class JSONExpression(BaseExpression):
     def append(self, other):
         return JSONExpression(internal.Append(self, other))
 
+class Stream(BaseExpression):
+    """A sequence of JSON values which can be read."""
+    def to_array(self):
+        """Convert the stream into a JSON array."""
+        return JSONExpression(internal.ToArray(self))
+
 def expr(val):
     """Converts a python value to a ReQL :class:`JSONExpression`.
 
@@ -672,12 +475,196 @@ def if_then_else(test, true_branch, false_branch):
         t = JSONExpression
     return t(internal.If(test, true_branch, false_branch))
 
+def R(name):
+    """Get the value of a variable or attribute.
+
+    To get a variable, prefix the name with `$`.
+
+    >>> R('$user')
+
+    To get attributes of variables, use dot notation.
+
+    >>> R('$user.name')
+    >>> R('$user.options.ads')
+
+    Filter and map bind the current element to the implicit variable.
+
+    To access an attribute of the implicit variable, pass the attribute name.
+
+    >>> R('name')
+    >>> R('options.ads')
+
+    To get the implicit variable, use '@'.
+
+    >>> R('@')
+
+    For attributes that would be misinterpreted, use alternative notations.
+
+    >>> R('@.$special')     # get implicit var's "$special" attribute
+    >>> R('@')['$special']  # the same
+    >>> R('@')['a.b.c']     # get an attribute named "a.b.c"
+
+    See information on scoping rules for more details.
+
+    :param name: The name of the variable (prefixed with `$`),
+      implicit attribute (prefixed with `@`), or inner attributes
+      (separated by `.`)
+    :type name: str
+    :returns: :class:`JSONExpression`
+
+    >>> table('users').insert({ 'name': Joe,
+                                'age': 30,
+                                'address': { 'city': 'Mountain View', 'state': 'CA' }
+                              }).run()
+    >>> table('users').filter(R('age') == 30) # access attribute age from the implicit row variable
+    >>> table('users').filter(R('address.city') == 'Mountain View') # access subattribute city
+                                                                    # of attribute address from
+                                                                    # the implicit row variable
+    >>> table('users').filter(fn('row', R('$row.age') == 30)) # access attribute age from the
+                                                              # variable 'row'
+    >>> table('users').filter(fn('row', R('$row.address.city') == 'Mountain View')) # access subattribute city
+                                                                                     # of attribute address from
+                                                                                     # the variable 'row'
+    >>> table('users').filter(fn('row', R('age') == 30)) # error - binding a row disables implicit scope
+    >>> table('users').filter(fn('row', R('$age') == 30)) # error - no variable 'age' is defined
+    >>> table('users').filter(R('$age') == 30) # error - no variable '$age' is defined, use 'age'
+    """
+    if name.startswith('$'):
+        if '.' not in name:
+            return JSONExpression(internal.Var(name[1:]))
+        raise NotImplementedError("$ with . not handled")
+    if name.startswith('@'):
+        raise NotImplementedError("@ not handled")
+    if '.' in name:
+        raise NotImplementedError(". not handled")
+    return JSONExpression(internal.ImplicitAttr(name))
+
+def js(expr=None, body=None):
+    if (expr is not None) + (body is not None) != 1:
+        raise ValueError('exactly one of expr or body must be passed')
+    if body is not None:
+        return JSONExpression(internal.Javascript(body))
+    else:
+        return JSONExpression(internal.Javascript(u'return (%s);' % expr))
+
+def let(*bindings):
+    body = bindings[-1]
+    bindings = bindings[:-1]
+    if len(bindings) == 0:
+        raise ValueError("need at least one binding")
+    if isinstance(body, MultiRowSelection):
+        t = MultiRowSelection
+    elif isinstance(body, Stream):
+        t = Stream
+    elif isinstance(body, RowSelection):
+        t = RowSelection
+    else:
+        body = expr(body)
+        t = JSONExpression
+    return t(internal.Let(body, bindings))
+
+def fn(*x):
+    """Create a function.
+    See :func:`Selectable.filter` for examples.
+
+    The last argument is the body of the function,
+    and the other arguments are the parameter names.
+
+    :param args: names of parameters
+    :param body: body of function
+    :type body: :class:`JSONExpression` or :class:`StreamExpression`
+    :rtype: :class:`rethinkdb.JSONFunction` or :class:`rethinkdb.StreamFunction`
+
+    >>> fn(3)                           # lambda: 3
+    >>> fn("x", R("$x") + 1)            # lambda x: x + 1
+    >>> fn("x", "y", R("$x") + R("$y))  # lambda x, y: x + y
+    """
+    body = x[-1]
+    args = x[:-1]
+    if isinstance(body, Stream):
+        return StreamFunction(body, *args)
+    else:
+        return JSONFunction(body, *args)
+
+class JSONFunction(object):
+    """TODO document me"""
+    def __init__(self, body, *args):
+        self.body = expr(body)
+        self.args = args
+
+    def write_mapping(self, mapping):
+        assert len(self.args) <= 1
+        if self.args:
+            mapping.arg = self.args[0]
+        else:
+            mapping.arg = 'row'     # TODO: GET RID OF THIS
+        self.body._inner._write_ast(mapping.body)
+
+    def write_reduction(self, reduction, base):
+        assert len(self.args) == 2
+        base._inner._write_ast(reduction.body)
+        reduction.var1 = self.args[0]
+        reduction.var2 = self.args[1]
+        self.body._inner._write_ast(reduction.body)
+
+class StreamFunction(object):
+    """TODO document me"""
+    def __init__(self, body, *args):
+        assert isinstance(body, Stream)
+        self.body = body
+        self.args = args
+
+    def write_mapping(self, mapping):
+        if self.args:
+            mapping.arg = self.args[0]
+        else:
+            mapping.arg = 'row'     # TODO: GET RID OF THIS
+        self.body._inner._write_ast(mapping.body)
+
+class BaseSelection(object):
+    """Something which can be read or written."""
+    def delete(self):
+        """Delete all rows in the selection from the database."""
+        return WriteQuery(internal.Delete(self))
+
+    def update(self, mapping):
+        """Update all rows in the selection by merging the current contents
+        with the value of `mapping`.
+
+        The merge is recursive, see :
+
+        >>> table('users').filter(R('warnings') > 5).update({'banned': True})
+
+        """
+        if not isinstance(mapping, JSONFunction):
+            mapping = JSONFunction(mapping)
+        return WriteQuery(internal.Update(self, mapping))
+
+    def mutate(self, mapping):
+        """TODO: get rid of this ?"""
+        if not isinstance(mapping, JSONFunction):
+            mapping = JSONFunction(mapping)
+        return WriteQuery(internal.Mutate(self, mapping))
+
 class RowSelection(JSONExpression, BaseSelection):
     """A single row from a table which can be read or written."""
 
-###########################
-# DATABASE ADMINISTRATION #
-###########################
+class MultiRowSelection(Stream, BaseSelection):
+    """A sequence of rows which can be read or written."""
+
+class WriteQuery(BaseQuery):
+    """All queries that modify the database are instances of :class:`WriteQuery.
+    """
+    def __init__(self, inner):
+        assert isinstance(inner, internal.WriteQueryInner)
+        self._inner = inner
+
+    def _finalize_query(self, root):
+        root.type = p.Query.WRITE
+        self._inner._write_write_query(root.write_query)
+
+    def _write_write_query(self, parent):
+        raise NotImplementedError()
 
 class MetaQuery(BaseQuery):
     def __init__(self, inner):
@@ -747,9 +734,6 @@ def db_list():
     """
     raise NotImplementedError()
 
-##############################################
-# LEAF SELECTORS - DATABASE AND TABLE ACCESS #
-##############################################
 class Database(object):
     """A ReQL expression that encodes a RethinkDB database. Most
     database-related operations (including table access) can be
@@ -921,7 +905,6 @@ def table(table_ref):
         return db(db_name).table(table_name)
     else:
         return Table(table_ref)
-
 
 # this happens at the end since it's a circular import
 import internal
