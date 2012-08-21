@@ -132,6 +132,7 @@ module RethinkDB
     def streamtoarray(); JSON_Expression.new [:call, [:streamtoarray], [@body]]; end
   end
 
+  # A special case of Stream_Expression that you can write to.
   class Multi_Row_Selection < Stream_Expression
     # Delete all rows of the invoking query.  For example, if we have
     # a table

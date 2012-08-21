@@ -56,12 +56,6 @@ module RethinkDB
   end
 
   class Meta_Query < RQL_Query; end
-  class Write_Query < RQL_Query; end
-  class Expression < RQL_Query; end
-    class JSON_Expression < Expression; end
-      class Single_Row_Selection < JSON_Expression; end
-    class Stream_Expression < Expression; end
-      class Multi_Row_Selection < Stream_Expression; end
 
   # A query of unknown or generic type.
   class Untyped_Query < RQL_Query

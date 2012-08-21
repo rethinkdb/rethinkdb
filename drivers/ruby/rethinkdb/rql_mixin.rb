@@ -1,28 +1,4 @@
-# Right now, this is a place to record high-level spec changes that need to
-# happen.  TODO:
-# * UPDATE needs to be changed to do an implicit mapmerge on its righthand side
-#   (this will make its behavior line up with the Python documentation).
-# * UPDATE needs to work if you return NIL
-# * MUTATE needs to be renamed to REPLACE (Joe and Tim and I just talked about
-#   this) and maintain its current behavior rather than changing to match
-#   UPDATE.
-# * The following are unimplemented: REDUCE, GROUPEDMAPREDUCE, POINTMUTATE
-# * The following are buggy: UPDATE, POINTUPDATE, FOREACH
-# * I don't understand how GROUPEDMAPREDUCE works.
 module RethinkDB
-  # An RQL query that can be sent to the RethinkDB cluster.  This class contains
-  # only functions that work for any type of query.  Queries are either
-  # constructed by methods in the RQL module, or by invoking the instance
-  # methods of a query on other queries.
-  class RQL_Query
-    # Run the invoking query using the most recently opened connection.  See
-    # Connection#run for more details.
-    def run; connection_send :run; end
-    # Run the invoking query and iterate over the results using the most
-    # recently opened connection.  See Connection#iter for more details.
-    def iter; connection_send :iter; end
-  end
-
   # This module may be included/extended to gain access to the RQL query
   # construction functions.  By far the most common way of gaining access to
   # those functions, however, is to include/extend RethinkDB::Shortcuts_Mixin to
