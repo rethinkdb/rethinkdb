@@ -41,7 +41,7 @@
 </script>
 
 <script id="datacenter_view_title-template" type="text/x-handlebars-template">
-    <h1>Datacenter overview for {{name}}</h1> (<a href="#" class="rename-datacenter">rename</a>)
+    <h1>Datacenter overview for {{name}}</h1>
 </script>
 
 <script id="datacenter_view_profile-template" type="text/x-handlebars-template">
@@ -99,9 +99,9 @@
 
 <script id="datacenter_view-operations-template" type="text/x-handlebars-template">
     <h3 class="title">Operations on this datacenter</h3>
-    <div class="other_section rename_server">
+    <div class="other_section rename_datacenter">
         <input type="button" class="btn other_button rename_datacenter-button" value="Rename"/>
-        <p>Rename the server</p>
+        <p>Rename this datacenter</p>
     </div>
     <div class="other_section unassign_datacenter">
         <input type="button" class="btn other_button delete_datacenter-button" {{#unless can_delete}}disabled="disabled"{{/unless}} value="Delete this datacenter"/>
