@@ -17,6 +17,7 @@ class query_server_t {
 public:
     query_server_t(
         int port,
+        int http_port,
         extproc::pool_group_t *_pool_group,
         const boost::shared_ptr
             <semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >

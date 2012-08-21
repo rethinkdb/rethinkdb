@@ -11,6 +11,7 @@
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 #include "clustering/administration/main/initial_join.hpp"
+#include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
@@ -263,15 +264,19 @@ try {
 
     rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
     // TODO: make this not be shitty (port offsets and such)
-    int rdb_protocol_port = 12346 + ports.port_offset;
+    int rdb_protocol_port = base_ports::rdb_protocol + ports.port_offset;
+    int http_rdb_protocol_port = base_ports::http_rdb_protocol + ports.port_offset;
     query_server_t rdb_pb_server(
         rdb_protocol_port,
+        http_rdb_protocol_port,
         &extproc_pool_group,
         semilattice_manager_cluster.get_root_view(),
         directory_read_manager.get_root_view(),
         &rdb_namespace_repo,
         machine_id);
     logINF("Listening for RDB protocol traffic on port %d.\n", rdb_protocol_port);
+    logINF("Listening for HTTP RDB protocol traffic on port %d.\n",
+           http_rdb_protocol_port);
 
     scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
         new metadata_persistence::semilattice_watching_persister_t(
