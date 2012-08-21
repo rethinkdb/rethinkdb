@@ -131,7 +131,7 @@ class InsertStream(WriteQuery):
 # OPERATIONS #
 ##############
 
-class Function(object):
+class JSONFunction(object):
     def __init__(self, body, *args):
         self.body = query.expr(body)
         self.args = args
@@ -143,10 +143,18 @@ class Function(object):
             mapping.arg = 'row'     # TODO: GET RID OF THIS
         self.body._write_ast(mapping.body)
 
-    def write_reduction(self, reduction, base):
-        reduction.var1 = self.args[0]
-        reduction.var2 = self.args[1]
-        self.body._write_ast(reduction.body)
+class StreamFunction(object):
+    def __init__(self, body, *args):
+        assert isinstance(body, query.Stream)
+        self.body = body
+        self.args = args
+
+    def write_mapping(self, mapping):
+        if self.args:
+            mapping.arg = self.args[0]
+        else:
+            mapping.arg = 'row'     # TODO: GET RID OF THIS
+        self.body._write_ast(mapping.body)
 
 class Javascript(query.JSONExpression):
     def __init__(self, body):
@@ -357,6 +365,15 @@ class Map(Transformer):
     def _write_ast(self, parent):
         builtin = self._write_call(parent, p.Builtin.MAP, self.parent)
         self.mapping.write_mapping(builtin.map.mapping)
+
+class ConcatMap(Transformer):
+    def __init__(self, parent, mapping):
+        self.parent = parent
+        self.mapping = mapping
+
+    def _write_ast(self, parent):
+        builtin = self._write_call(parent, p.Builtin.CONCATMAP, self.parent)
+        self.mapping.write_mapping(builtin.concat_map.mapping)
 
 class Distinct(Transformer):
     def __init__(self, parent):

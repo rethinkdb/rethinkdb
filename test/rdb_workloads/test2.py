@@ -262,6 +262,11 @@ class RDBTest(unittest.TestCase):
         expect(distinct([1, 2, 3, 2]), [1, 2, 3])
         expect(distinct([True, 2, False, 2]), [True, 2, False])
 
+        expect(
+            expr([1, 2, 3]).to_stream().concat_map(fn("a", expr([R("$a") * 10, "test"]).to_stream())).to_array(),
+            [10, "test", 20, "test", 30, "test"]
+            )
+
     def test_ordering(self):
         expect = self.expect
         fail = self.error_exec
