@@ -4,7 +4,6 @@
 #include <string>
 #include <set>
 
-#include "errors.hpp"
 #include "http/json/cJSON.hpp"
 #include "containers/archive/archive.hpp"
 
