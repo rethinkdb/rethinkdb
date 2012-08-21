@@ -194,7 +194,7 @@ void run_interruptjob_test(extproc::pool_t *pool) {
         ASSERT_EQ(0, handle.begin(pool, collatz_job_t(n)));
 
         // Run a few iterations.
-        for (int i = 0; i < 10; ++i) {
+        for (int j = 0; j < 10; ++j) {
             int result;
             ASSERT_EQ(ARCHIVE_SUCCESS, deserialize(&handle, &result));
             ASSERT_NE(1, result);
