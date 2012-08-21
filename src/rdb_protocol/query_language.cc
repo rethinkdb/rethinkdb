@@ -933,7 +933,7 @@ void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const back
         } else {
             stream_cache->insert(r, key, stream);
         }
-        DEBUG_ONLY_VAR bool b = stream_cache->serve(key, res);
+        DEBUG_VAR bool b = stream_cache->serve(key, res);
         rassert(b);
         break; //status code set in [serve]
     }
@@ -2192,7 +2192,7 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(
     }
 }
 
-view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+view_t eval_view(Term::Call *c, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     switch (c->builtin().type()) {
         //JSON -> JSON
         case Builtin::NOT:

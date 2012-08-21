@@ -30,7 +30,7 @@ void fifo_enforcer_queue_t<T>::push(fifo_enforcer_read_token_t token, const T &t
 }
 
 template <class T>
-void fifo_enforcer_queue_t<T>::finish_read(DEBUG_ONLY_VAR fifo_enforcer_read_token_t read_token) {
+void fifo_enforcer_queue_t<T>::finish_read(DEBUG_VAR fifo_enforcer_read_token_t read_token) {
     if (read_counter) { --(*read_counter); }
 
     assert_thread();

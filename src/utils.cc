@@ -161,7 +161,7 @@ on_thread_t::~on_thread_t() {
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
     struct timeval t;
-    int res __attribute__((unused)) = gettimeofday(&t, NULL);
+    DEBUG_VAR int res = gettimeofday(&t, NULL);
     rassert(0 == res);
     return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
 }
@@ -277,7 +277,7 @@ debugf_in_dtor_t::~debugf_in_dtor_t() {
     debugf("%s", message.c_str());
 }
 
-rng_t::rng_t( UNUSED int seed) {
+rng_t::rng_t(DEBUG_VAR int seed) {
     memset(&buffer_, 0, sizeof(buffer_));
 #ifndef NDEBUG
     if (seed == -1) {

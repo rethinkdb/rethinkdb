@@ -22,7 +22,7 @@ public:
         ~acq_t();
         void reset();
         void reset(mutex_t *l, bool eager = false);
-        void assert_is_holding(UNUSED mutex_t *m) const {
+        void assert_is_holding(DEBUG_VAR mutex_t *m) const {
             rassert(lock_ == m);
         }
     private:

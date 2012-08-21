@@ -25,7 +25,7 @@ public:
 
     void read(typename protocol_t::read_t read,
               typename protocol_t::read_response_t *response,
-              DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
+              DEBUG_VAR state_timestamp_t expected_timestamp,
               order_token_t order_token,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;

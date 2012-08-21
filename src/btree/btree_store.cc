@@ -64,7 +64,7 @@ btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
         write_message_t msg;
         typename protocol_t::region_t kr = protocol_t::region_t::universe();   // `operator<<` needs a non-const reference  // TODO <- what
         msg << kr;
-        DEBUG_ONLY_VAR int res = send_write_message(&key, &msg);
+        DEBUG_VAR int res = send_write_message(&key, &msg);
         rassert(!res);
         set_superblock_metainfo(txn.get(), sb_buf, key.vector(), std::vector<char>());
     }
@@ -226,7 +226,7 @@ void btree_store_t<protocol_t>::update_metainfo(const metainfo_t &old_metainfo, 
         vector_stream_t key;
         write_message_t msg;
         msg << i->first;
-        DEBUG_ONLY_VAR int res = send_write_message(&key, &msg);
+        DEBUG_VAR int res = send_write_message(&key, &msg);
         rassert(!res);
 
         std::vector<char> value(static_cast<const char*>((*i).second.data()),
@@ -260,7 +260,7 @@ void btree_store_t<protocol_t>::get_metainfo_internal(transaction_t *txn, buf_lo
         typename protocol_t::region_t region;
         {
             vector_read_stream_t key(&i->first);
-            DEBUG_ONLY_VAR archive_result_t res = deserialize(&key, &region);
+            DEBUG_VAR archive_result_t res = deserialize(&key, &region);
             rassert(!res, "res = %d", res);
         }
 

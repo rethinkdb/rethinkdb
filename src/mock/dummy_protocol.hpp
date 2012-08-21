@@ -84,7 +84,7 @@ public:
             return r;
         }
 
-        backfill_chunk_t shard(DEBUG_ONLY_VAR const region_t &r) const THROWS_NOTHING {
+        backfill_chunk_t shard(DEBUG_VAR const region_t &r) const THROWS_NOTHING {
             rassert(r.keys.find(key) != r.keys.end());
             return *this;
         }

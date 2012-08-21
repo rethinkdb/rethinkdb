@@ -368,7 +368,7 @@ region_t write_t::get_region() const THROWS_NOTHING {
 
 /* `write_t::shard()` */
 
-write_t write_t::shard(DEBUG_ONLY_VAR const region_t &region) const THROWS_NOTHING {
+write_t write_t::shard(DEBUG_VAR const region_t &region) const THROWS_NOTHING {
     rassert(region == get_region());
     return *this;
 }
@@ -558,7 +558,7 @@ public:
         chunk_fun_cb_->send_chunk(chunk_t::delete_range(region_t(range)));
     }
 
-    void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
+    void on_deletion(const btree_key_t *key, repli_timestamp_t recency) {
         chunk_fun_cb_->send_chunk(chunk_t::delete_key(to_store_key(key), recency));
     }
 
