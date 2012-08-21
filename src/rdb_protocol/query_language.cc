@@ -229,7 +229,21 @@ void check_arg_count(const Term::Call &c, int n_args, const backtrace_t &backtra
             "%s takes %d argument%s (%d given)",
             fn_name,
             n_args,
-            n_args > 1 ? "s" : "",
+            n_args != 1 ? "s" : "",
+            c.args_size()
+            ),
+            backtrace);
+    }
+}
+
+void check_arg_count_at_least(const Term::Call &c, int n_args, const backtrace_t &backtrace) {
+    if (c.args_size() < n_args) {
+        const char* fn_name = Builtin::BuiltinType_Name(c.builtin().type()).c_str();
+        throw bad_query_exc_t(strprintf(
+            "%s takes at least %d argument%s (%d given)",
+            fn_name,
+            n_args,
+            n_args != 1 ? "s" : "",
             c.args_size()
             ),
             backtrace);
@@ -240,6 +254,16 @@ void check_function_args(const Term::Call &c, const term_type_t &arg_type, int n
                          type_checking_environment_t *env, bool *is_det_out,
                          const backtrace_t &backtrace) {
     check_arg_count(c, n_args, backtrace);
+    for (int i = 0; i < c.args_size(); ++i) {
+        check_term_type(c.args(i), arg_type, env, is_det_out, backtrace.with(strprintf("arg:%d", i)));
+    }
+}
+
+void check_function_args_at_least(const Term::Call &c, const term_type_t &arg_type, int n_args,
+                                  type_checking_environment_t *env, bool *is_det_out,
+                                  const backtrace_t &backtrace) {
+    // requires the number of arguments to be at least n_args
+    check_arg_count_at_least(c, n_args, backtrace);
     for (int i = 0; i < c.args_size(); ++i) {
         check_term_type(c.args(i), arg_type, env, is_det_out, backtrace.with(strprintf("arg:%d", i)));
     }
@@ -260,7 +284,7 @@ void check_function_args(const Term::Call &c, const term_type_t &arg1_type, cons
                          const backtrace_t &backtrace) {
     check_arg_count(c, 2, backtrace);
     check_term_type(c.args(0), arg1_type, env, is_det_out, backtrace.with("arg:0"));
-    check_term_type(c.args(1), arg2_type, env, is_det_out, backtrace.with("arg:0"));
+    check_term_type(c.args(1), arg2_type, env, is_det_out, backtrace.with("arg:1"));
 }
 
 term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *env, const backtrace_t &backtrace) {
@@ -380,11 +404,14 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             check_function_args(c, TERM_TYPE_JSON, 2, env, &deterministic, backtrace);
             return term_info_t(TERM_TYPE_JSON, deterministic);
             break;
+        case Builtin::COMPARE:
+            check_function_args_at_least(c, TERM_TYPE_JSON, 1, env, &deterministic, backtrace);
+            return term_info_t(TERM_TYPE_JSON, deterministic);
+            break;
         case Builtin::ADD:
         case Builtin::SUBTRACT:
         case Builtin::MULTIPLY:
         case Builtin::DIVIDE:
-        case Builtin::COMPARE:
         case Builtin::ANY:
         case Builtin::ALL:
             check_function_args(c, TERM_TYPE_JSON, c.args_size(), env, &deterministic, backtrace);
