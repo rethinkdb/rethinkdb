@@ -48,7 +48,7 @@ void directory_write_manager_t<metadata_t>::on_change() THROWS_NOTHING {
 }
 
 template<class metadata_t>
-void directory_write_manager_t<metadata_t>::send_initialization(peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state, auto_drainer_t::lock_t) THROWS_NOTHING {
+void directory_write_manager_t<metadata_t>::send_initialization(peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t) THROWS_NOTHING {
     message_service->send_message(peer,
         boost::bind(&directory_write_manager_t::write_initialization, _1, initial_value, metadata_fifo_state)
         );
@@ -62,7 +62,7 @@ void directory_write_manager_t<metadata_t>::send_update(peer_id_t peer, const me
 }
 
 template<class metadata_t>
-void directory_write_manager_t<metadata_t>::write_initialization(write_stream_t *os, const metadata_t &initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state) THROWS_NOTHING {
+void directory_write_manager_t<metadata_t>::write_initialization(write_stream_t *os, const metadata_t &initial_value, fifo_enforcer_state_t metadata_fifo_state) THROWS_NOTHING {
     write_message_t msg;
     uint8_t code = 'I';
     msg << code;

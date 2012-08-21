@@ -2,6 +2,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/coro_pool.hpp"
+#include "concurrency/fifo_enforcer_queue.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/death_runner.hpp"
