@@ -136,7 +136,7 @@ class BaseExpression(object):
 
         >>> conn = rethinkdb.net.connect() # Connect to localhost, default port
         >>> res = table('db_name.table_name').insert({ 'a': 1, 'b': 2 }).run(conn)
-        >>> res = table('db_name.table_name').all().run() # uses conn since it's the last created connection
+        >>> res = table('db_name.table_name').run() # uses conn since it's the last created connection
         """
         raise NotImplementedError
 
@@ -241,12 +241,11 @@ class Expression(BaseExpression):
             if index.step is not None:
                 raise ValueError("slice stepping is unsupported")
             return internal.Slice(self, index.start, index.stop)
-        elif isinstance(index, int):
-            return internal.Nth(self, index)
+        elif isinstance(index, str):
+            # TODO: Move this case to JSONExpression
+            return internal.Attr(self, index)
         else:
-            if isinstance(self, JSONExpression):
-                return internal.Attr(self, index)
-            raise TypeError("stream indices must be integers, not " + index.__class__.__name__)
+            return internal.Nth(self, index)
 
     def nth(self, index):
         """Select the element at `index`.
@@ -432,6 +431,9 @@ class Expression(BaseExpression):
         else:
             return self.map([internal.ImplicitAttr(x) for x in (attr,) + attrs])
 
+    def length(self):
+        return internal.Length(self)
+
 ##########################################
 # DATA OBJECTS - SELECTION, STREAM, ETC. #
 ##########################################
@@ -489,8 +491,8 @@ class JSONExpression(Expression):
     >>> expr(1) < 2 # Whenever possible, ReQL converts Python types to expressions implicitly.
     >>> expr(1) + 2 # Addition. We can do `-`, `*`, `/`, and `%` in the same way.
     >>> expr(1) < 2 # We can also do `>`, `<=`, `>=`, `==`, etc.
-    >>> expr(1) < 2 & 3 < 4 # We use `&` and `|` to encode `and` and `or` since we can't overload
-                            # these in Python"""
+    >>> (expr(1) < 2) & (expr(3) < 4) # We use `&` and `|` to encode `and` and `or` since we can't overload these in Python
+    """
 
     def to_stream(self):
         """Convert a JSON array into a stream."""
@@ -535,6 +537,26 @@ class JSONExpression(Expression):
         return internal.Sub(self)
     def __pos__(self):
         return self
+
+    def __or__(self, other):
+        return internal.Any(self, other)
+    def __and__(self, other):
+        return internal.All(self, other)
+
+    def __ror__(self, other):
+        return internal.Any(other, self)
+    def __rand__(self, othe):
+        return internal.All(other, self)
+
+    def __invert__(self):
+        return internal.Not(self)
+
+    def has_attr(self, name):
+        return internal.Has(self, name)
+    def extend(self, other):
+        return internal.Extend(self, other)
+    def append(self, other):
+        return internal.Append(self, other)
 
 class JSONLiteral(JSONExpression):
     """A literal JSON value."""
@@ -587,6 +609,27 @@ def expr(val):
     if isinstance(val, JSONExpression):
         return val
     return JSONLiteral(val)
+
+def if_then_else(test, true_branch, false_branch):
+    """If `test` returns `true`, evaluates to `true_branch`. If `test` returns
+    `false`, evaluates to `false_branch`. If `test` returns a non-boolean value,
+    fails at runtime.
+
+    `true_branch` and `false_branch` can be any subclass of :class:`Expression`.
+    They need not be the same, but they must be convertible to the same type;
+    the type that they can both be converted to will be the return type of
+    `if_then_else()`. So if one is a :class:`Stream` and the other is a
+    :class:`MultiRowSelection`, the result will be a :class:`Stream`. But if
+    one is a :class:`Stream` and the other is a :class:`JSONExpression`, then
+    `if_then_else()` will throw an exception rather than return an expression
+    object at all.
+
+    :param test: The condition to switch on
+    :type test: :class:`JSONExpression`
+    :param true_branch: The return value if `test` is `true`
+    :param false_branch: The return value if `test` is `false`
+    """
+    return internal.If(test, true_branch, false_branch)
 
 class RowSelection(JSONExpression, BaseSelection):
     """A single row from a table which can be read or written."""
