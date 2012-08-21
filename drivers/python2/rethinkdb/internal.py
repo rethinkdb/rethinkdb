@@ -347,6 +347,7 @@ class Get(query.RowSelection):
 
 class If(query.JSONExpression):
     def __init__(self, test, true_branch, false_branch):
+        # TODO: Actually support things other than `JSONExpression`
         self.test = query.expr(test)
         self.true_branch = query.expr(true_branch)
         self.false_branch = query.expr(false_branch)
