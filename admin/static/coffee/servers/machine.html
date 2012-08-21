@@ -10,7 +10,7 @@
     </div>
 
     <ul class="nav nav-tabs">
-        <li class="active"><a href="#machines/{{server_id}}/statistics" data-target="#machine-statistics" id="machine-statistics-link" data-toggle="tab" class="tab-link">Statistics</a></li>
+        <li class="active"><a href="#machines/{{server_id}}/overview" data-target="#machine-overview" id="machine-overview-link" data-toggle="tab" class="tab-link">Statistics</a></li>
         <li><a href="#machines/{{server_id}}/data" data-target="#machine-data" id="machine-data-link" data-toggle="tab" class="tab-link">Data</a></li>
         <li><a href="#machines/{{server_id}}/assignments" data-target="#machine-assignments" id="machine-assignments-link" data-toggle="tab" class="tab-link">Assignments</a></li>
         <li><a href="#machines/{{server_id}}/operations" data-target="#machine-operations" id="machine-operations-link" data-toggle="tab" class="tab-link">Operations</a></li>
@@ -18,8 +18,8 @@
     </ul>
     <div class="tab-content">  
         <div id="user-alert-space"></div>
-        <div class="tab-pane active" id="machine-statistics">
-            <div class="section machine-stats"></div>
+        <div class="tab-pane active" id="machine-overview">
+            <div class="section overview"></div>
         </div>
         <div class="tab-pane" id="machine-data">
             <div class="section data"></div>
@@ -64,6 +64,63 @@
 
 <script id="machine_view_title-template" type="text/x-handlebars-template">
     <h1>Machine overview for {{name}}</h1>
+</script>
+
+<script id="machine_overview-container-template" type="text/x-handlebars-template">
+    <h3 class="title">Disk usage</h3>
+    <div class="pie_disk-container"></div>
+
+    <h3 class="title">RAM usage</h3>
+    <div class="pie_ram-container"></div>
+</script>
+
+<script id="machine_overview-pie_disk-container-template" type="text/x-handlebars-template">
+    <div class="two-panel-section">
+        <div class="disk_usage-container panel-left">
+            <svg class="pie_chart-disk" width="300" height="200">
+                <text x="100" y="135" class="loading_text-pie_disk">Loading data...</text>
+            </svg>
+        </div>
+        <div class="pie_legend panel-right">
+            <ul class="legend">
+                <li class="title-legend"><h4>Legend</h4></li>
+                <li class="disk_used-legend">Used disk: {{disk_used}}</li>
+                <li class="disk_free-legend">Free disk: {{disk_free}}</li>
+            </ul>
+            <ul class="legend">
+                <li class="title-legend"><h4>More statistics</h4></li>
+                <li class="more_statistics">Disk space: {{disk_total}}</li>
+                <li class="more_statistics">Used disk / disk space: {{disk_used_percent}}</li>
+                <li class="more_statistics">Disk space used by RethinkDB: {{disk_rdb}}</li>
+                <li class="more_statistics">Disk used by RethinkDB / disk used: {{disk_rdb_used_percent}}</li>
+            </ul>
+        </div>
+    </div>
+</script>
+
+
+<script id="machine_overview-pie_ram-container-template" type="text/x-handlebars-template">
+    <div class="two-panel-section">
+        <div class="ram_usage-container panel-left">
+            <svg class="pie_chart-ram" width="300" height="200">
+                <text x="100" y="135" class="loading_text-pie_ram">Loading data...</text>
+            </svg>
+        </div>
+        <div class="pie_legend panel-right">
+            <ul class="legend">
+                <li class="title-legend"><h4>Legend</h4></li>
+                <li class="ram_used-legend">Used RAM: {{ram_used}}</li>
+                <li class="ram_free-legend">Free RAM: {{ram_free}}</li>
+            </ul>
+            <ul class="legend">
+                <li class="title-legend"><h4>More statistics</h4></li>
+                <li class="more_statistics">Total RAM: {{ram_total}}</li>
+                <li class="more_statistics">Used RAM / total RAM: {{ram_used_percent}}</li>
+                <li class="more_statistics">RAM used by RethinkDB: {{ram_rdb}}</li>
+                <li class="more_statistics">RAM used by RethinkDB / used ram: {{ram_rdb_used_percent}}</li>
+            </ul>
+        </div>
+    </div>
 </script>
 
 <script id="machine_view_data-template" type="text/x-handlebars-template">

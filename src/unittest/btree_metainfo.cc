@@ -151,18 +151,18 @@ void run_metainfo_test() {
             if (print_log_messages) {
                 puts("scan...");
             }
-            for (size_t i = 0; i < pairs.size(); ++i) {
-                std::map<std::string, std::string>::iterator it = mirror_copy.find(vector_to_string(pairs[i].first));
+            for (size_t j = 0; j < pairs.size(); ++j) {
+                std::map<std::string, std::string>::iterator it = mirror_copy.find(vector_to_string(pairs[j].first));
                 if (it == mirror_copy.end()) {
                     if (print_log_messages) {
-                        printf("    '%s' = '%s' (expected <not found>)\n", vector_to_string(pairs[i].first).c_str(), vector_to_string(pairs[i].second).c_str());
+                        printf("    '%s' = '%s' (expected <not found>)\n", vector_to_string(pairs[j].first).c_str(), vector_to_string(pairs[j].second).c_str());
                     }
                     ADD_FAILURE() << "extra key";
                 } else {
                     if (print_log_messages) {
-                        printf("    '%s' = '%s' (expected '%s')\n", vector_to_string(pairs[i].first).c_str(), vector_to_string(pairs[i].second).c_str(), it->second.c_str());
+                        printf("    '%s' = '%s' (expected '%s')\n", vector_to_string(pairs[j].first).c_str(), vector_to_string(pairs[j].second).c_str(), it->second.c_str());
                     }
-                    EXPECT_EQ(it->second, vector_to_string(pairs[i].second));
+                    EXPECT_EQ(it->second, vector_to_string(pairs[j].second));
                     mirror_copy.erase(it);
                 }
             }

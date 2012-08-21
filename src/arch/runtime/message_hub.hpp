@@ -49,8 +49,8 @@ private:
     linux_message_hub_t that is not called on the thread that the message hub belongs to. */
     void pull_messages(int thread);
 
-    linux_event_queue_t *queue;
-    linux_thread_pool_t *thread_pool;
+    linux_event_queue_t *queue_;
+    linux_thread_pool_t *thread_pool_;
 
     /* Queue for messages going from this->current_thread to other threads */
     struct thread_queue_t {
@@ -59,10 +59,10 @@ private:
         /* Messages are cached here before being pushed to the global list so that we don't
         have to acquire the spinlock as often */
         msg_list_t msg_local_list;
-    } queues[MAX_THREADS];
+    } queues_[MAX_THREADS];
 
-    msg_list_t incoming_messages;
-    pthread_spinlock_t incoming_messages_lock;
+    msg_list_t incoming_messages_;
+    pthread_spinlock_t incoming_messages_lock_;
 
     /* We keep one notify_t for each other message hub that we interact with. When it has
     messages for us, it signals the appropriate notify_t from our set of notify_ts. We get
@@ -83,11 +83,11 @@ private:
         /* hub->notify[i].parent = hub */
         linux_message_hub_t *parent;
     };
-    notify_t *notify;
+    notify_t *notify_;
 
     /* The thread that we queue messages originating from. (Recall that there is one
     message_hub_t per thread.) */
-    unsigned int current_thread;
+    unsigned int current_thread_;
 };
 
 #endif // ARCH_RUNTIME_MESSAGE_HUB_HPP_

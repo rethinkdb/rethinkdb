@@ -208,16 +208,16 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
         union {
             char x[sizeof(uint32_t)];
             uint32_t y;
-        } data;
+        } u;
         rassert(key.size() < UINT32_MAX);
         rassert(value.size() < UINT32_MAX);
 
-        data.y = key.size();
-        metainfo.insert(metainfo.end(), data.x, data.x + sizeof(uint32_t));
+        u.y = key.size();
+        metainfo.insert(metainfo.end(), u.x, u.x + sizeof(uint32_t));
         metainfo.insert(metainfo.end(), key.begin(), key.end());
 
-        data.y = value.size();
-        metainfo.insert(metainfo.end(), data.x, data.x + sizeof(uint32_t));
+        u.y = value.size();
+        metainfo.insert(metainfo.end(), u.x, u.x + sizeof(uint32_t));
         metainfo.insert(metainfo.end(), value.begin(), value.end());
     }
 

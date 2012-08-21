@@ -905,5 +905,5 @@ void data_block_manager_t::gc_stat_t::operator-=(int64_t num) {
     *perfmon -= num;
 }
 
-data_block_manager_t::gc_stats_t::gc_stats_t(log_serializer_stats_t *stats)
-    : old_total_blocks(&stats->pm_serializer_old_total_blocks), old_garbage_blocks(&stats->pm_serializer_old_garbage_blocks) { }
+data_block_manager_t::gc_stats_t::gc_stats_t(log_serializer_stats_t *_stats)
+    : old_total_blocks(&_stats->pm_serializer_old_total_blocks), old_garbage_blocks(&_stats->pm_serializer_old_garbage_blocks) { }

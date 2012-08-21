@@ -23,10 +23,10 @@ directory_echo_version_t directory_echo_writer_t<internal_t>::our_value_change_t
 }
 
 template<class internal_t>
-directory_echo_writer_t<internal_t>::ack_waiter_t::ack_waiter_t(directory_echo_writer_t *parent, peer_id_t peer, directory_echo_version_t version) {
+directory_echo_writer_t<internal_t>::ack_waiter_t::ack_waiter_t(directory_echo_writer_t *parent, peer_id_t peer, directory_echo_version_t _version) {
     mutex_assertion_t::acq_t acq(&parent->ack_lock);
     std::map<peer_id_t, directory_echo_version_t>::iterator it = parent->last_acked.find(peer);
-    if (it != parent->last_acked.end() && (*it).second >= version) {
+    if (it != parent->last_acked.end() && (*it).second >= _version) {
         pulse();
         return;
     }
@@ -36,9 +36,7 @@ directory_echo_writer_t<internal_t>::ack_waiter_t::ack_waiter_t(directory_echo_w
         it2 = parent->waiters.insert(std::make_pair(peer, std::multimap<directory_echo_version_t, ack_waiter_t *>())).first;
     }
     map_entry.init(
-        new multimap_insertion_sentry_t<directory_echo_version_t, ack_waiter_t *>(
-            &(*it2).second, version, this
-            )
+        new multimap_insertion_sentry_t<directory_echo_version_t, ack_waiter_t *>(&it2->second, _version, this)
         );
 }
 
@@ -52,18 +50,18 @@ directory_echo_writer_t<internal_t>::directory_echo_writer_t(
     { }
 
 template<class internal_t>
-void directory_echo_writer_t<internal_t>::on_ack(peer_id_t peer, directory_echo_version_t version, auto_drainer_t::lock_t lock) {
+void directory_echo_writer_t<internal_t>::on_ack(peer_id_t peer, directory_echo_version_t _version, auto_drainer_t::lock_t lock) {
     lock.assert_is_holding(&drainer);
     mutex_assertion_t::acq_t acq(&ack_lock);
     std::map<peer_id_t, directory_echo_version_t>::iterator it = last_acked.find(peer);
-    if (it == last_acked.end() || (*it).second < version) {
-        last_acked[peer] = version;
+    if (it == last_acked.end() || it->second < _version) {
+        last_acked[peer] = _version;
     }
     typename std::map<peer_id_t, std::multimap<directory_echo_version_t, ack_waiter_t *> >::iterator it2 =
         waiters.find(peer);
     if (it2 != waiters.end()) {
         for (typename std::multimap<directory_echo_version_t, ack_waiter_t *>::iterator it3 = (*it2).second.begin();
-                it3 != (*it2).second.upper_bound(version); it3++) {
+                it3 != (*it2).second.upper_bound(_version); it3++) {
             if (!(*it3).second->is_pulsed()) {
                 (*it3).second->pulse();
             }

@@ -20,13 +20,13 @@ module 'MachineView', ->
             log_initial '(initializing) machine view: container'
 
             # Panels for machine view
-            @title = new MachineView.Title(model: @model)
-            @profile = new MachineView.Profile(model: @model)
-            @data = new MachineView.Data(model: @model)
-            @assignments = new MachineView.Assignments(model: @model)
-            @operations = new MachineView.Operations(model: @model)
-            @stats_panel = new Vis.StatsPanel(@model.get_stats_for_performance)
-            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
+            @title = new MachineView.Title model: @model
+            @profile = new MachineView.Profile model: @model
+            @data = new MachineView.Data model: @model
+            @assignments = new MachineView.Assignments model: @model
+            @operations = new MachineView.Operations model: @model
+            @overview = new MachineView.Overview model: @model
+            @performance_graph = new Vis.OpsPlot @model.get_stats_for_performance
             @logs = new LogView.Container
                 route: "/ajax/log/"+@model.get('id')+"_?"
                 template_header: Handlebars.compile $('#log-header-machine-template').html()
@@ -50,7 +50,7 @@ module 'MachineView', ->
             @.$('.performance-graph').html @performance_graph.render().$el
 
             # display stats sparklines
-            @.$('.machine-stats').html @stats_panel.render().$el
+            @.$('.overview').html @overview.render().$el
 
             # display the data on the machines
             @.$('.data').html @data.render().$el
@@ -67,9 +67,9 @@ module 'MachineView', ->
             if tab?
                 @.$('.active').removeClass('active')
                 switch tab
-                    when 'stats'
-                        @.$('#machine-statistics').addClass('active')
-                        @.$('#machine-statistics-link').tab('show')
+                    when 'overview'
+                        @.$('#machine-overview').addClass('active')
+                        @.$('#machine-overview-link').tab('show')
                     when 'data'
                         @.$('#machine-data').addClass('active')
                         @.$('#machine-data-link').tab('show')
@@ -96,7 +96,7 @@ module 'MachineView', ->
             @title.destroy()
             @profile.destroy()
             @data.destroy()
-            @stats_panel.destroy()
+            @overview.destroy()
             @performance_graph.destroy()
             @logs.destroy()
 
@@ -158,6 +158,145 @@ module 'MachineView', ->
         destroy: =>
             directory.off 'all', @render
             @model.off 'all', @render
+
+
+    class @Overview extends Backbone.View
+        className: 'machine-overview'
+        container_template: Handlebars.compile $('#machine_overview-container-template').html()
+        pie_disk_template: Handlebars.compile $('#machine_overview-pie_disk-container-template').html()
+        pie_ram_template: Handlebars.compile $('#machine_overview-pie_ram-container-template').html()
+
+        initialize: =>
+            @model.on 'change:stats', @render_pie_disk
+            @model.on 'change:stats', @render_pie_ram
+            @disk_data = {}
+            @ram_data = {}
+
+        render: =>
+            @.$el.html @container_template {}
+            @render_pie_disk()
+            @render_pie_ram()
+
+            #TODO: Add network and CPU if relevant?
+            return @
+
+        render_pie_disk: =>
+            if @model.get('stats')? and @model.get('stats')['sys']?
+                disk_rdb = 0
+                for namespace in namespaces.models
+                    if @model.get('stats')[namespace.get('id')]?
+                        for key of @model.get('stats')[namespace.get('id')].serializers
+                            if @model.get('stats')[namespace.get('id')].serializers[key].cache?.blocks_in_memory?
+                                disk_rdb += parseInt(@model.get('stats')[namespace.get('id')].serializers[key].cache.blocks_total) * parseInt(@model.get('stats')[namespace.get('id')].serializers[key].cache.block_size)
+
+                data =
+                    disk_used: human_readable_units @model.get('stats')['sys']['global_disk_space_used'], units_space
+                    disk_free: human_readable_units @model.get('stats')['sys']['global_disk_space_free'], units_space
+                    disk_total: human_readable_units @model.get('stats')['sys']['global_disk_space_total'], units_space
+                    disk_used_percent: Math.ceil(100*@model.get('stats')['sys']['global_disk_space_used']/@model.get('stats')['sys']['global_disk_space_total'])+'%'
+                    disk_rdb: human_readable_units disk_rdb, units_space
+                    disk_rdb_used_percent: Math.ceil(100*disk_rdb/@model.get('stats')['sys']['global_disk_space_used'])+'%'
+
+                need_update = false
+                for key of data
+                    if not @disk_data[key]? or @disk_data[key] != data[key]
+                        need_update = true
+                        break
+        
+                if need_update
+                    @.$('.pie_disk-container').html @pie_disk_template data
+
+                    r = 80
+                    width = 300
+                    height = 200
+                    color = (i) ->
+                        if i is 0
+                            return '#1f77b4'
+                        else
+                            return '#f00'
+                                    
+                    data_pie = [@model.get('stats')['sys']['global_disk_space_free'], @model.get('stats')['sys']['global_disk_space_used']]
+        
+                    if $('.pie_chart-disk').length is 1
+                        @disk_data = data
+
+                        arc = d3.svg.arc().innerRadius(0).outerRadius(r)
+                        svg = d3.select('.pie_chart-disk').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
+                        arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc)
+            else
+                setTimeout(@render_pie_disk, 1000)
+
+                data =
+                    disk_used: 'Loading...'
+                    disk_free: 'Loading...'
+                    disk_total: 'Loading...'
+                    disk_used_percent: 'Loading...'
+                    disk_rdb: 'Loading...'
+                    disk_rdb_used_percent: 'Loading...'
+
+                @.$('.pie_disk-container').html @pie_disk_template data
+
+        render_pie_ram: =>
+            if @model.get('stats')? and @model.get('stats').proc? and @model.get('stats').proc.global_mem_used?
+                ram_rdb = 0
+                for namespace in namespaces.models
+                    if @model.get('stats')[namespace.get('id')]?
+                        for key of @model.get('stats')[namespace.get('id')].serializers
+                            if @model.get('stats')[namespace.get('id')].serializers[key].cache?.blocks_in_memory?
+                                ram_rdb += parseInt(@model.get('stats')[namespace.get('id')].serializers[key].cache.blocks_in_memory) * parseInt(@model.get('stats')[namespace.get('id')].serializers[key].cache.block_size)
+
+                data =
+                    ram_used: human_readable_units @model.get('stats').proc.global_mem_used, units_space
+                    ram_free: human_readable_units @model.get('stats').proc.global_mem_total-@model.get('stats').proc.global_mem_used, units_space
+                    ram_total: human_readable_units @model.get('stats').proc.global_mem_total, units_space
+                    ram_used_percent: Math.ceil(100*@model.get('stats').proc.global_mem_used/@model.get('stats').proc.global_mem_total)+'%'
+                    ram_rdb: human_readable_units ram_rdb, units_space
+                    ram_rdb_used_percent: Math.ceil(100*ram_rdb/@model.get('stats').proc.global_mem_used)+'%'
+
+                need_update = false
+                for key of data
+                    if not @ram_data[key]? or @ram_data[key] != data[key]
+                        need_update = true
+                        break
+        
+                if need_update
+                    @.$('.pie_ram-container').html @pie_ram_template data
+
+                    r = 80
+                    width = 300
+                    height = 200
+                    color = (i) ->
+                        if i is 0
+                            return '#1f77b4'
+                        else
+                            return '#f00'
+                                    
+                    data_pie = [@model.get('stats').proc.global_mem_total-@model.get('stats').proc.global_mem_used, @model.get('stats').proc.global_mem_used]
+        
+                    if $('.pie_chart-ram').length is 1
+                        @ram_data = data
+
+                        arc = d3.svg.arc().innerRadius(0).outerRadius(r)
+                        svg = d3.select('.pie_chart-ram').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
+                        arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc)
+            else
+                setTimeout(@render_pie_ram, 1000)
+
+                data =
+                    ram_used: 'Loading...'
+                    ram_free: 'Loading...'
+                    ram_total: 'Loading...'
+                    ram_used_percent: 'Loading...'
+                    ram_rdb: 'Loading...'
+                    ram_rdb_used_percent: 'Loading...'
+
+                @.$('.pie_ram-container').html @pie_ram_template data
+
+
+        destroy: =>
+            @model.on 'change:stats', @render_disk
+
+
 
     class @Data extends Backbone.View
         className: 'machine-data-view'
