@@ -312,10 +312,10 @@ bool fsck(value_sizer_t<void> *sizer, const btree_key_t *left_exclusive_or_null,
     }
 
     // sizeof(offs) is guaranteed to be less than the block_size() thanks to assertions above.
-    uint16_t offs[node->num_pairs];
-    memcpy(offs, node->pair_offsets, node->num_pairs * sizeof(uint16_t));
+    scoped_array_t<uint16_t> offs(node->num_pairs);
+    memcpy(offs.data(), node->pair_offsets, node->num_pairs * sizeof(uint16_t));
 
-    std::sort(offs, offs + node->num_pairs);
+    std::sort(offs.data(), offs.data() + node->num_pairs);
 
     if (failed(node->num_pairs == 0 || node->frontmost <= offs[0],
                "smallest pair offset is before frontmost offset")
@@ -411,7 +411,7 @@ bool fsck(value_sizer_t<void> *sizer, const btree_key_t *left_exclusive_or_null,
 }
 
 
-void validate(DEBUG_ONLY_VAR value_sizer_t<void> *sizer, DEBUG_ONLY_VAR const leaf_node_t *node) {
+void validate(DEBUG_VAR value_sizer_t<void> *sizer, DEBUG_VAR const leaf_node_t *node) {
 #ifndef NDEBUG
     do_nothing_fscker_t fits;
     std::string msg;
@@ -544,13 +544,13 @@ private:
 
 
 void garbage_collect(value_sizer_t<void> *sizer, leaf_node_t *node, int num_tstamped, int *preserved_index) {
-    uint16_t indices[node->num_pairs];
+    scoped_array_t<uint16_t> indices(node->num_pairs);
 
     for (int i = 0; i < node->num_pairs; ++i) {
         indices[i] = i;
     }
 
-    std::sort(indices, indices + node->num_pairs, indirect_index_comparator_t(node->pair_offsets));
+    std::sort(indices.data(), indices.data() + node->num_pairs, indirect_index_comparator_t(node->pair_offsets));
 
     int mand_offset;
     UNUSED int cost = mandatory_cost(sizer, node, num_tstamped, &mand_offset);
@@ -1142,7 +1142,7 @@ bool lookup(value_sizer_t<void> *sizer, const leaf_node_t *node, const btree_key
     return false;
 }
 
-void assert_not_old_timestamp(DEBUG_ONLY_VAR leaf_node_t *node, DEBUG_ONLY_VAR repli_timestamp_t tstamp, DEBUG_ONLY_VAR const btree_key_t *key) {
+void assert_not_old_timestamp(DEBUG_VAR leaf_node_t *node, DEBUG_VAR repli_timestamp_t tstamp, DEBUG_VAR const btree_key_t *key) {
 #ifndef NDEBUG
     if (node->num_pairs > 0 && node->frontmost < node->tstamp_cutpoint) {
         repli_timestamp_t old_tstamp = get_timestamp(node, node->frontmost);
@@ -1155,7 +1155,7 @@ void assert_not_old_timestamp(DEBUG_ONLY_VAR leaf_node_t *node, DEBUG_ONLY_VAR r
 
 // Inserts a key/value pair into the node.  Hopefully you've already
 // cleaned up the old value, if there is one.
-void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, DEBUG_VAR key_modification_proof_t km_proof) {
     rassert(!is_full(sizer, node, key, value));
     rassert(!km_proof.is_fake());
 
@@ -1212,7 +1212,7 @@ void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *ke
 // This asserts that the key is in the node.  TODO: This means we're
 // already sure the key is in the node, which means we're doing an
 // unnecessary binary search.
-void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, DEBUG_VAR key_modification_proof_t km_proof) {
     rassert(!km_proof.is_fake());
 
     assert_not_old_timestamp(node, tstamp, key);

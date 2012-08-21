@@ -265,7 +265,7 @@ void blob_t::expose_region(transaction_t *txn, access_t mode, int64_t offset, in
     if (blob::is_small(ref_, maxreflen_)) {
         char *b = blob::small_buffer(ref_, maxreflen_);
 #ifndef NDEBUG
-        UNUSED int n = blob::small_size(ref_, maxreflen_);
+        int n = blob::small_size(ref_, maxreflen_);
         rassert(0 <= offset && offset <= n);
         rassert(0 <= size && size <= n && offset + size <= n);
 #endif
@@ -670,7 +670,7 @@ bool deep_fsck(block_getter_t *getter, block_size_t bs, const char *ref, int max
 }  // namespace blob
 
 bool blob_t::traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, blob::traverse_helper_t *helper) {
-    UNUSED int64_t old_end = old_offset + old_size;
+    DEBUG_VAR int64_t old_end = old_offset + old_size;
     int64_t new_end = new_offset + new_size;
     rassert(new_offset <= old_offset && new_end >= old_end);
     block_size_t block_size = txn->get_cache()->get_block_size();
@@ -724,7 +724,7 @@ void blob_t::deallocate_to_dimensions(transaction_t *txn, int levels, int64_t ne
         memmove(buf, buf + new_offset, new_size);
         blob::set_small_size(ref_, maxreflen_, new_size);
     } else {
-        UNUSED bool res = traverse_to_dimensions(txn, levels, new_offset, new_size, blob::ref_value_offset(ref_, maxreflen_), valuesize(), &helper);
+        DEBUG_VAR bool res = traverse_to_dimensions(txn, levels, new_offset, new_size, blob::ref_value_offset(ref_, maxreflen_), valuesize(), &helper);
         blob::set_big_offset(ref_, maxreflen_, new_offset);
         blob::set_big_size(ref_, maxreflen_, new_size);
         rassert(res);

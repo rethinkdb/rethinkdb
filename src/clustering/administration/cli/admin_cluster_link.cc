@@ -369,7 +369,7 @@ std::vector<std::string> admin_cluster_link_t::get_datacenter_ids(const std::str
     return get_ids_internal(base, "datacenters");
 }
 
-std::vector<std::string> admin_cluster_link_t::get_conflicted_ids(const std::string& base UNUSED) {
+std::vector<std::string> admin_cluster_link_t::get_conflicted_ids(const std::string& base) {
     std::set<std::string> unique_set;
     std::vector<std::string> results;
 

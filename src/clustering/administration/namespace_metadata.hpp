@@ -53,7 +53,7 @@ public:
 
 class vclock_builder_t {
 public:
-    vclock_builder_t(const machine_id_t &_machine) : machine(_machine) { }
+    explicit vclock_builder_t(const machine_id_t &_machine) : machine(_machine) { }
     template<class T>
     vclock_t<T> build(const T &arg) { return vclock_t<T>(arg, machine); }
 private:

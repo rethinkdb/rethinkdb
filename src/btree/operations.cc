@@ -379,7 +379,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
         insert_root(last_buf->get_block_id(), sb);
     }
 
-    bool success UNUSED = internal_node::insert(sizer->block_size(), last_buf, median, buf->get_block_id(), rbuf.get_block_id());
+    DEBUG_VAR bool success = internal_node::insert(sizer->block_size(), last_buf, median, buf->get_block_id(), rbuf.get_block_id());
     rassert(success, "could not insert internal btree node");
 
     // We've split the node; now figure out where the key goes and release the other buf (since we're done with it).
