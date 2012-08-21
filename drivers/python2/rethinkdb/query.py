@@ -103,11 +103,19 @@ class JSONFunction(object):
         self.args = args
 
     def write_mapping(self, mapping):
+        assert len(self.args) <= 1
         if self.args:
             mapping.arg = self.args[0]
         else:
             mapping.arg = 'row'     # TODO: GET RID OF THIS
         self.body._inner._write_ast(mapping.body)
+
+    def write_reduction(self, reduction, base):
+        assert len(self.args) == 2
+        base._inner._write_ast(reduction.body)
+        reduction.var1 = self.args[0]
+        reduction.var2 = self.args[1]
+        self.body._inner._write_ast(reduction.body)
 
 class StreamFunction(object):
     """TODO document me"""

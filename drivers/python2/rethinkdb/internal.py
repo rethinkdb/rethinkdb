@@ -376,10 +376,7 @@ class GroupedMapReduce(ExpressionInner):
         builtin = self._write_call(parent, p.Builtin.GROUPEDMAPREDUCE, self.input)
         self.group_mapping.write_mapping(builtin.grouped_map_reduce.group_mapping)
         self.value_mapping.write_mapping(builtin.grouped_map_reduce.value_mapping)
-        self.reduction_base._inner._write_ast(builtin.grouped_map_reduce.reduction.base)
-        builtin.grouped_map_reduce.reduction.var1 = self.reduction_func.args[0]
-        builtin.grouped_map_reduce.reduction.var2 = self.reduction_func.args[1]
-        self.reduction_func.body._inner._write_ast(builtin.grouped_map_reduce.reduction.body)
+        self.reduction_func.write_reduction(builtin.grouped_map_reduce.reduction, self.reduction_base)
 
 class Distinct(ExpressionInner):
     def __init__(self, parent):
