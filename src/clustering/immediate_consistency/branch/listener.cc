@@ -357,7 +357,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
+void listener_t<protocol_t>::on_write(const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
@@ -373,7 +373,7 @@ void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::enqueue_write(typename protocol_t::write_t write,
+void listener_t<protocol_t>::enqueue_write(const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
@@ -439,7 +439,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::on_writeread(typename protocol_t::write_t write,
+void listener_t<protocol_t>::on_writeread(const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
@@ -458,7 +458,7 @@ void listener_t<protocol_t>::on_writeread(typename protocol_t::write_t write,
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t write,
+void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
@@ -520,7 +520,7 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::on_read(typename protocol_t::read_t read,
+void listener_t<protocol_t>::on_read(const typename protocol_t::read_t &read,
         state_timestamp_t expected_timestamp,
         order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,
@@ -539,7 +539,7 @@ void listener_t<protocol_t>::on_read(typename protocol_t::read_t read,
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
+void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &read,
         DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
         order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,
