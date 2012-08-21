@@ -92,12 +92,12 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
 
     context_t ctx;
     request_t request;
-    bool parseFailed = request.ParseFromArray(data, req_size);
+    bool parseSucceeded = request.ParseFromArray(data, req_size);
 
     response_t response;
     switch(cb_mode) {
     case INLINE:
-        if (!parseFailed) {
+        if (parseSucceeded) {
             response = f(&request, &ctx);
         } else {
             response = on_unparsable_query(&request);

@@ -388,6 +388,17 @@ class Distinct(ExpressionInner):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.DISTINCT, self.parent)
 
+class Reduce(ExpressionInner):
+    def __init__(self, parent, base, reduction):
+        self.parent = parent
+        self.base = query.expr(base)
+        self.reduction = reduction
+
+    def _write_ast(self, parent):
+        builtin = self._write_call(parent, p.Builtin.REDUCE, self.parent)
+        self.base._inner._write_ast(builtin.reduce.base)
+        self.reduction.write_reduction(builtin.reduce, self.base)
+
 class Let(ExpressionInner):
     def __init__(self, expr, bindings):
         self.expr = expr

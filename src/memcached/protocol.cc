@@ -252,7 +252,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     }
 };
 
-void read_t::unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void read_t::unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
     read_unshard_visitor_t v(responses);
     *response = boost::apply_visitor(v, query);
 }
@@ -346,7 +346,7 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_res
     }
 };
 
-void read_t::multistore_unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void read_t::multistore_unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
     read_multistore_unshard_visitor_t v(responses);
     *response = boost::apply_visitor(v, query);
 }
@@ -375,14 +375,14 @@ write_t write_t::shard(DEBUG_VAR const region_t &region) const THROWS_NOTHING {
 
 /* `write_response_t::unshard()` */
 
-void write_t::unshard(const std::vector<write_response_t>& responses, write_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void write_t::unshard(const std::vector<write_response_t>& responses, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
     /* TODO: Make sure the request type matches the response type */
     rassert(responses.size() == 1);
     *response = responses[0];
 }
 
-void write_t::multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING {
-    unshard(responses, response, cache);
+void write_t::multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING {
+    unshard(responses, response, ctx);
 }
 
 
@@ -449,8 +449,9 @@ region_t memcached_protocol_t::cpu_sharding_subspace(int subregion_number, int n
 store_t::store_t(io_backender_t *io_backend,
                  const std::string& filename,
                  bool create,
-                 perfmon_collection_t *parent_perfmon_collection) :
-    btree_store_t<memcached_protocol_t>(io_backend, filename, create, parent_perfmon_collection) { }
+                 perfmon_collection_t *parent_perfmon_collection,
+                 context_t *ctx) :
+    btree_store_t<memcached_protocol_t>(io_backend, filename, create, parent_perfmon_collection, ctx) { }
 
 store_t::~store_t() {
     assert_thread();

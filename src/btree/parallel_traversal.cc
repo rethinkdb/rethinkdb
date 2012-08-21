@@ -88,8 +88,10 @@ public:
 
     ~traversal_state_t() {
         if (!interrupted) {
-            for (size_t i = 0; i < acquisition_waiter_stacks.size(); i++) {
-                rassert(acquisition_waiter_stacks[i].empty());
+            for (size_t i = 0; i < acquisition_waiter_stacks.size(); ++i) {
+                for (size_t j = 0; j < acquisition_waiter_stacks[i].size(); ++j) {
+                    acquisition_waiter_stacks[i][j]->cancel();
+                }
             }
         }
     }

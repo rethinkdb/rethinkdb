@@ -773,12 +773,12 @@ linux_nonthrowing_tcp_listener_t::~linux_nonthrowing_tcp_listener_t() {
     // scoped_fd_t destructor will close() the socket
 }
 
-void linux_nonthrowing_tcp_listener_t::on_event(int events) {
+void linux_nonthrowing_tcp_listener_t::on_event(int) {
     /* This is only called in cases of error; normal input events are recieved
     via event_listener.watch(). */
 
     if (log_next_error) {
-        logERR("poll()/epoll() sent linux_nonthrowing_tcp_listener_t errors: %d.", events);
+        //logERR("poll()/epoll() sent linux_nonthrowing_tcp_listener_t errors: %d.", events);
         log_next_error = false;
     }
 }

@@ -444,15 +444,15 @@ class BaseExpression(BaseQuery):
 
         `base` should be an identity (`func(base, e) == e`).
 
-        :type base: :class:`JSONFunction`, :class:`JSON`
-        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
+        :type base: :class:`JSONFunction`
+        :rtype: :class:`JSONExpression`
 
         >>> expr([1, 2, 3]).reduce(0, fn('a', 'b', R('$a') + R('$b'))).run()
         6
-
-        >>> table('users').reduce(0, fn('a', 'b', R('$a') + R('$b.credits)))
         """
-        raise NotImplementedError
+        if not isinstance(func, JSONFunction):
+            func = JSONFunction(func)
+        return JSONExpression(internal.Reduce(self, base, func))
 
     def grouped_map_reduce(self, group_mapping, value_mapping, reduction_base, reduction_func):
         """Group elements by `group_mapping`, then apply `value_mapping` to each

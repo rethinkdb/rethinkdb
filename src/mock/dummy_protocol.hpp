@@ -36,9 +36,7 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
     };
 
-    class temporary_cache_t {
-        /* Dummy protocol doesn't need to cache anything */
-    };
+    class context_t { };
 
     class read_response_t {
     public:
@@ -51,8 +49,8 @@ public:
     public:
         region_t get_region() const;
         read_t shard(region_t region) const;
-        void unshard(std::vector<read_response_t> resps, read_response_t *response, temporary_cache_t *cache) const;
-        void multistore_unshard(const std::vector<read_response_t>& resps, read_response_t *response, temporary_cache_t *cache) const;
+        void unshard(std::vector<read_response_t> resps, read_response_t *response, context_t *cache) const;
+        void multistore_unshard(const std::vector<read_response_t>& resps, read_response_t *response, context_t *cache) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
         region_t keys;
@@ -68,8 +66,8 @@ public:
     public:
         region_t get_region() const;
         write_t shard(region_t region) const;
-        void unshard(std::vector<write_response_t> resps, write_response_t *response, temporary_cache_t *cache) const;
-        void multistore_unshard(const std::vector<write_response_t>& resps, write_response_t *response, temporary_cache_t *cache) const;
+        void unshard(std::vector<write_response_t> resps, write_response_t *response, context_t *cache) const;
+        void multistore_unshard(const std::vector<write_response_t>& resps, write_response_t *response, context_t *cache) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(values);
         std::map<std::string, std::string> values;
@@ -109,7 +107,7 @@ public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
         store_t();
-        store_t(io_backender_t *io_backender, const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
+        store_t(io_backender_t *io_backender, const std::string& filename, bool create, perfmon_collection_t *collection, context_t *ctx) __attribute__((nonnull(6)));
         ~store_t();
 
         void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;

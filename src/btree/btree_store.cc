@@ -9,7 +9,8 @@ template <class protocol_t>
 btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
                                          const std::string& filename,
                                          bool create,
-                                         perfmon_collection_t *parent_perfmon_collection) :
+                                         perfmon_collection_t *parent_perfmon_collection,
+                                         typename protocol_t::context_t *) :
     store_view_t<protocol_t>(protocol_t::region_t::universe()),
     perfmon_collection(),
     perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, filename)

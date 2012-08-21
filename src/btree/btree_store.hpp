@@ -29,7 +29,8 @@ public:
     btree_store_t(io_backender_t *io_backender,
                   const std::string& filename,
                   bool create,
-                  perfmon_collection_t *parent_perfmon_collection);
+                  perfmon_collection_t *parent_perfmon_collection,
+                  typename protocol_t::context_t *);
     virtual ~btree_store_t();
 
     /* store_view_t interface */
