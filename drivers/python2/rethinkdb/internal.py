@@ -131,31 +131,6 @@ class InsertStream(WriteQuery):
 # OPERATIONS #
 ##############
 
-class JSONFunction(object):
-    def __init__(self, body, *args):
-        self.body = query.expr(body)
-        self.args = args
-
-    def write_mapping(self, mapping):
-        if self.args:
-            mapping.arg = self.args[0]
-        else:
-            mapping.arg = 'row'     # TODO: GET RID OF THIS
-        self.body._write_ast(mapping.body)
-
-class StreamFunction(object):
-    def __init__(self, body, *args):
-        assert isinstance(body, query.Stream)
-        self.body = body
-        self.args = args
-
-    def write_mapping(self, mapping):
-        if self.args:
-            mapping.arg = self.args[0]
-        else:
-            mapping.arg = 'row'     # TODO: GET RID OF THIS
-        self.body._write_ast(mapping.body)
-
 class Javascript(query.JSONExpression):
     def __init__(self, body):
         self.body = body
