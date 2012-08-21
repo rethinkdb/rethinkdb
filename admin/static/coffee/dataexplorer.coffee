@@ -307,6 +307,17 @@ module 'DataExplorerView', ->
 
 
         execute_query: =>
+            console.log 'executing query'
+            callback = msg ->
+                console.log msg
+
+            conn = new rethinkdb.net.HttpConnection 'http://newton:23000/', ''
+            q = rethinkdb.query
+            q(1).add(3).run(print)
+
+            
+
+            ###
             query = @.$('.input_query').val()
             @data_container.add_query(query)
             window.router.sidebar.add_query(query)
@@ -370,6 +381,7 @@ module 'DataExplorerView', ->
                 delete result[result.length-1]['phone']['mobile']
                 delete result[result.length-1]['website']
             @data_container.render(query, result)
+            ###
 
         clear_query: =>
             @.$('.input_query').val ''
