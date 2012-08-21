@@ -69,7 +69,7 @@
     {{/unless}}
     {{#each data.namespaces}}
     <div class="namespace">
-      <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
+      <h4>Shards for table <a href="/#tables/{{uuid}}">{{name}}</a>:</h4>
       <ul class="shard_ul">
         {{#each shards}}
         <li class="shard_li">
@@ -113,7 +113,7 @@
 </script>
 
 <script id="reason-cannot_delete-goals-template" type="text/x-handlebars-template">
-    This datacenter is a primary one for the following namespaces {{links_to_namespaces_inline namespaces_where_primary "replication"}} and therefore cannot be deleted.
+    This datacenter is a primary one for the following tables {{links_to_namespaces_inline namespaces_where_primary "replication"}} and therefore cannot be deleted.
 </script>
 
 <script id="remove_datacenter-modal-template" type="text/x-handlebars-template">

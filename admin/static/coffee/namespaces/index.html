@@ -1,10 +1,10 @@
 <script id="database_list-template" type="text/x-handlebars-template">
-  <h1>Namespaces in the cluster</h1>
+  <h1>Tables in the cluster</h1>
   <div id="user-alert-space"></div>
   <div class="actions-bar">
       <input type="button" class="btn add-database" value="Add database" />
-    <input type="button" class="btn add-namespace" value="Add namespace" />
-    <input type="button" class="btn for-multiple-elements disabled remove-namespace" value="Remove selected namespaces" />
+    <input type="button" class="btn add-namespace" value="Add table" />
+    <input type="button" class="btn for-multiple-elements disabled remove-namespace" value="Remove selected tables" />
   </div>
   <div class="collapsible-list">
   </div>
@@ -34,9 +34,9 @@
     </td>
     <td class="element-detail-container">
         <span class="status">{{humanize_namespace_reachability reachability}}</span>
-            <div class="label label-namespace">Namespace</div>
+            <div class="label label-namespace">Table</div>
             <span class="name">    
-                <a href="#namespaces/{{id}}">{{name}}</a>
+                <a href="#tables/{{id}}">{{name}}</a>
             </span>
             <p class="quick_info">
             {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}, replication: {{> backfill_progress_summary}}
@@ -68,7 +68,7 @@
 
 
 <script id="fail_rename_namespace-template" type="text/x-handlebars-template">
-    Sorry, something went wrong. The namespace might not be up to date, please refresh.
+    Sorry, something went wrong. The table might not be up to date, please refresh.
 </script>
 
 
@@ -99,8 +99,7 @@
 <script id="add_namespace-modal-template" type="text/x-handlebars-template">
   <div class="alert alert-error error_answer"></div>
   <form class="form">
-    <fieldset>
-      <legend>Namespace details</legend>
+    <fielTablelegend>Table details</legend>
       <div class="clearfix">
         <label for="name">Name</label>
         <div class="input">
@@ -130,7 +129,7 @@
       <hr />
       <div class="user-tip">
         <p>* You can tweak configuration options for
-          the namespace once it's created.</p>
+          the table once it's created.</p>
       </div>
     </fieldset>
   </form>
@@ -139,17 +138,17 @@
 <script id="added_namespace-alert-template" type="text/x-handlebars-template">
   <div class="alert" data-alert="alert">
     <a class="close" href="#">&times;</a>
-    <p>You added namespace <span class="name">{{name}}</span>. You can now <a href="#namespaces/{{uuid}}">configure</a> it further.</p>
+    <p>You added table <span class="name">{{name}}</span>. You can now <a href="#tables/{{uuid}}">configure</a> it further.</p>
   </div>
 </script>
 
 <script id="remove_namespace-modal-template" type="text/x-handlebars-template">
-  <div class="alert alert-error">Removing the namespace will delete all the data. This action cannot be reversed.</div>
+  <div class="alert alert-error">Removing the table will delete all the data. This action cannot be reversed.</div>
   <div class="alert alert-error error_answer"></div>
-  <h4>Are you sure you want to remove {{#if namespaces_length_is_one}}this{{else}}these{{/if}} namespaces:</h4>
+  <h4>Are you sure you want to remove {{#if namespaces_length_is_one}}this{{else}}these{{/if}} tables:</h4>
   <ul class="namespace-list">
     {{#each namespaces}}
-    <li><a href="#namespaces/{{id}}">{{name}}</a></li>
+    <li><a href="#tables/{{id}}">{{name}}</a></li>
     {{/each}}
   </ul>
 </script>
@@ -157,14 +156,14 @@
 <script id="removed_namespace-alert-template" type="text/x-handlebars-template">
   <div class="alert" data-alert="alert">
     <a class="close" href="#">&times;</a>
-    <p>You removed namespace <span class="name">{{comma_separated_simple deleted_namespaces}}</span>.</p>
+    <p>You removed table <span class="name">{{comma_separated_simple deleted_namespaces}}</span>.</p>
   </div>
 </script>
 
 <script id="error_adding_namespace-template" type="text/x-handlebars-template">
   <div class="alert alert-error" data-alert="alert">
     <a class="close" href="#">&times;</a>
-    <p>You cannot create a new namespace without first creating a new datacenter. <a href="#servers">Create one</a></p>
+    <p>You cannot create a new table without first creating a new datacenter. <a href="#servers">Create one</a></p>
   </div>
 </script>
 

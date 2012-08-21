@@ -25,7 +25,7 @@
               {{#if has_namespaces_without_masters}}
               <p class="details">{{num_namespaces_without_masters}} 
               <a href="#" class="json" rel="dashboard_details" data-content="{{pluralize_noun "Namespace" num_master_offline}} with shards not available: {{links_to_namespaces namespaces_without_masters}}" data-title="Availability problems">
-              {{pluralize_noun "namespace" num_namespaces_without_masters}}
+              {{pluralize_noun "table" num_namespaces_without_masters}}
               </a>
               {{pluralize_verb_to_have num_namespaces_without_masters}} some shards without master.</p>
               {{/if}}
@@ -67,7 +67,7 @@
           <td class="no-problems-detected conflicts">
               <h3>Consistency</h3>
               <p class="message">No conflicts detected</p>
-              <p class="details">{{num_namespaces}} of {{num_namespaces}} namespaces are operating correctly</p>
+              <p class="details">{{num_namespaces}} of {{num_namespaces}} tables are operating correctly</p>
           </td>
           {{/if}}
       </tr>
