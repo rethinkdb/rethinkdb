@@ -1427,32 +1427,42 @@ Database view
 */
 
 .machine-view {
-    .list_stats {
-        float: left;
-        list-style: none;
-        li {
-            display: inline-block;
-            padding: 5px 0px 0px 0px;
-        }
-        .title{
-            width: 90px;
-        }
-        .minichart{
-            width: 80px;
-            .progress{
-                height: 15px;
-                width: 75px;
-                margin: 0px 0px -3px 0px;
-                padding: 0px;
+    .pie_legend{
+        .legend{
+            margin: 0px 0px 0px 0px;
+            li{
+                list-style: none;
+            }
+            .title-legend{
+                margin: 0px 0px 10px 0px;
+            }
+            .disk_used-legend{
+                border-left: 40px solid #f00;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .disk_free-legend{
+                border-left: 40px solid #1f77b4;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .ram_used-legend{
+                border-left: 40px solid #f00;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .ram_free-legend{
+                border-left: 40px solid #1f77b4;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .more_statistics{
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
             }
         }
-        .value{
-            width: 140px;
-        }
     }
-    .machine-stats{
-        overflow: hidden;
-    }
+
     .label{
         position: relative;
         bottom: 3px;

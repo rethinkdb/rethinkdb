@@ -395,7 +395,7 @@ module 'DatacenterView', ->
         on_submit: =>
             super
 
-            # For when /ajax will handle post request
+            # That creates huge logs. Should post specific data multiple times instead?
             data = {}
             data['datacenters'] = {}
             for datacenter in datacenters.models

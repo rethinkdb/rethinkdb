@@ -23,8 +23,8 @@ struct disk_stat_t {
                 "(errno = %d)", filepath.c_str(), strerror(errno), errno));
         }
 
-        disk_space_total = fsdata.f_bsize * fsdata.f_blocks / KILOBYTE;
-        disk_space_free = fsdata.f_bsize * fsdata.f_bfree / KILOBYTE;
+        disk_space_total = fsdata.f_bsize * fsdata.f_blocks;
+        disk_space_free = fsdata.f_bsize * fsdata.f_bfree;
         disk_space_used = disk_space_total - disk_space_free;
     }
 };
