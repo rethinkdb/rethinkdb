@@ -279,6 +279,7 @@ class RDBTest(unittest.TestCase):
         raise ValueError("Skip this test because it locks up for some reason")
         expect(expr([1, 2, 3]).to_stream().reduce(0, fn("a", "b", R("$a") + R("$b"))), 6)
         expect(expr([1, 2, 3]).reduce(0, fn("a", "b", R("$a") + R("$b"))), 6)
+        expect(expr([]).reduce(21, fn("a", "b", 0)), 21)
 
     def test_ordering(self):
         expect = self.expect
