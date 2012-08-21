@@ -33,7 +33,7 @@ std::string key_to_debug_str(const store_key_t &key) {
 }
 
 key_range_t::key_range_t() :
-    left(""), right(store_key_t("")) { }
+    left(), right(store_key_t()) { }
 
 key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const store_key_t& r) {
     switch (lm) {
@@ -51,7 +51,7 @@ key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const sto
                 return;
             }
         case none:
-            left = store_key_t("");
+            left = store_key_t();
             break;
         default:
             unreachable();
