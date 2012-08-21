@@ -65,13 +65,13 @@ def R(name):
     """
     if name.startswith('$'):
         if '.' not in name:
-            return internal.Var(name[1:])
+            return JSONExpression(internal.Var(name[1:]))
         raise NotImplementedError("$ with . not handled")
     if name.startswith('@'):
         raise NotImplementedError("@ not handled")
     if '.' in name:
         raise NotImplementedError(". not handled")
-    return internal.ImplicitAttr(name)
+    return JSONExpression(internal.ImplicitAttr(name))
 
 def fn(*x):
     """Create a function.
@@ -107,7 +107,7 @@ class JSONFunction(object):
             mapping.arg = self.args[0]
         else:
             mapping.arg = 'row'     # TODO: GET RID OF THIS
-        self.body._write_ast(mapping.body)
+        self.body._inner._write_ast(mapping.body)
 
 class StreamFunction(object):
     """TODO document me"""
@@ -121,20 +121,31 @@ class StreamFunction(object):
             mapping.arg = self.args[0]
         else:
             mapping.arg = 'row'     # TODO: GET RID OF THIS
-        self.body._write_ast(mapping.body)
+        self.body._inner._write_ast(mapping.body)
 
 def js(expr=None, body=None):
     if (expr is not None) + (body is not None) != 1:
         raise ValueError('exactly one of expr or body must be passed')
     if body is not None:
-        return internal.Javascript(body)
+        return JSONExpression(internal.Javascript(body))
     else:
-        return internal.Javascript(u'return (%s);' % expr)
+        return JSONExpression(internal.Javascript(u'return (%s);' % expr))
 
 def let(*bindings):
-    if len(bindings) < 2:
+    body = bindings[-1]
+    bindings = bindings[:-1]
+    if len(bindings) == 0:
         raise ValueError("need at least one binding")
-    return internal.Let(bindings[-1], bindings[:-1])
+    if isinstance(body, MultiRowSelection):
+        t = MultiRowSelection
+    elif isinstance(body, Stream):
+        t = Stream
+    elif isinstance(body, RowSelection):
+        t = RowSelection
+    else:
+        body = expr(body)
+        t = JSONExpression
+    return t(internal.Let(body, bindings))
 
 #####################################
 # SELECTORS - QUERYING THE DATABASE #
@@ -177,26 +188,45 @@ class BaseQuery(object):
 class WriteQuery(BaseQuery):
     """All queries that modify the database are instances of :class:`WriteQuery.
     """
+    def __init__(self, inner):
+        assert isinstance(inner, internal.WriteQueryInner)
+        self._inner = inner
+
     def _finalize_query(self, root):
         root.type = p.Query.WRITE
-        self._write_write_query(root.write_query)
+        self._inner._write_write_query(root.write_query)
 
     def _write_write_query(self, parent):
         raise NotImplementedError()
 
 class BaseExpression(BaseQuery):
-    """Base class for everything"""
+    """Base class for expressions"""
+
+    def __init__(self, inner):
+        assert isinstance(inner, internal.ExpressionInner)
+        self._inner = inner
 
     def _finalize_query(self, root):
         root.type = p.Query.READ
-        self._write_ast(root.read_query.term)
+        self._inner._write_ast(root.read_query.term)
 
-    def _write_call(self, parent, builtin, *args):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = builtin
-        for arg in args:
-            arg._write_ast(parent.call.args.add())
-        return parent.call.builtin
+    def _make_selector(self, inner):
+        if isinstance(self, MultiRowSelection):
+            return MultiRowSelection(inner)
+        elif isinstance(self, Stream):
+            return Stream(inner)
+        elif isinstance(self, JSONExpression):
+            return JSONExpression(inner)
+        else:
+            raise TypeError("unexpected subtype")
+
+    def _make_transform(self, inner):
+        if isinstance(self, Stream):
+            return Stream(inner)
+        elif isinstance(self, JSONExpression):
+            return JSONExpression(inner)
+        else:
+            raise TypeError("unexpected subtype")
 
     def between(self, start_key, end_key, start_inclusive=True, end_inclusive=True):
         """Select all elements between two keys.
@@ -216,7 +246,7 @@ class BaseExpression(BaseQuery):
         >>> table('users').between(10, 20) # all users with ids between 10 and 20
         >>> expr([1, 2, 3, 4]).between(2, 4) # [2, 3, 4]
         """
-        return internal.Between(self, start_key, end_key, start_inclusive, end_inclusive)
+        return self._make_selector(internal.Between(self, start_key, end_key, start_inclusive, end_inclusive))
 
     def filter(self, selector):
         """Select all elements that fit the specified condition.
@@ -274,22 +304,22 @@ class BaseExpression(BaseQuery):
         :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
         """
         if isinstance(selector, dict):
-            selector = internal.All(*[R(k) == v for k, v in selector.iteritems()])
+            selector = JSONExpression(internal.All(*[R(k) == v for k, v in selector.iteritems()]))
         if not isinstance(selector, JSONFunction):
             selector = JSONFunction(selector)
 
-        return internal.Filter(self, selector)
+        return self._make_selector(internal.Filter(self, selector))
 
     def __getitem__(self, index):
         if isinstance(index, slice):
             if index.step is not None:
                 raise ValueError("slice stepping is unsupported")
-            return internal.Slice(self, index.start, index.stop)
+            return self._make_selector(internal.Slice(self, index.start, index.stop))
         elif isinstance(index, str):
             # TODO: Move this case to JSONExpression
-            return internal.Attr(self, index)
+            return JSONExpression(internal.Attr(self, index))
         else:
-            return internal.Nth(self, index)
+            return JSONExpression(internal.Nth(self, index))
 
     def nth(self, index):
         """Select the element at `index`.
@@ -356,7 +386,7 @@ class BaseExpression(BaseQuery):
                 order.append((attr[1:], False))
             else:
                 order.append((attr, True))
-        return internal.OrderBy(self, order)
+        return self._make_selector(internal.OrderBy(self, order))
 
     def random(self):
         """Select a random element.
@@ -390,7 +420,7 @@ class BaseExpression(BaseQuery):
         """
         if not isinstance(mapping, JSONFunction):
             mapping = JSONFunction(mapping)
-        return internal.Map(self, mapping)
+        return self._make_transform(internal.Map(self, mapping))
 
     def concat_map(self, mapping):
         """Evaluate `mapping` for each element. The result of `mapping` must be
@@ -398,7 +428,7 @@ class BaseExpression(BaseQuery):
         of `concat_map()`.
 
         :param mapping: The mapping to evaluate
-        :type mapping: :class:`Stream`   # TODO fixme
+        :type mapping: :class:`StreamFunction`   # TODO fixme
         :returns: :class:`Stream`
 
         >>> expr([1, 2, 3]).concat_map(fn("a", expr([R("$a"), "test"]).to_stream())).run()
@@ -406,7 +436,7 @@ class BaseExpression(BaseQuery):
         """
         if not isinstance(mapping, StreamFunction):
             mapping = StreamFunction(mapping)
-        return internal.ConcatMap(self, mapping)
+        return self._make_transform(internal.ConcatMap(self, mapping))
 
     def reduce(self, base, func):
         """Build up a result by repeatedly applying `func` to pairs of elements. Returns
@@ -453,7 +483,7 @@ class BaseExpression(BaseQuery):
             group_mapping = JSONFunction(group_mapping)
         if not isinstance(value_mapping, JSONFunction):
             value_mapping = JSONFunction(value_mapping)
-        return internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func)
+        return JSONExpression(internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func))
 
     def distinct(self, *attrs):
         """Select distinct elements of the input.
@@ -467,16 +497,16 @@ class BaseExpression(BaseQuery):
         """
         if attrs:
             return self.pluck(*attrs).distinct()
-        return internal.Distinct(self)
+        return self._make_transform(internal.Distinct(self))
 
-    def pluck(self, attr, *attrs):
-        if not attrs:
-            return self.map(internal.ImplicitAttr(attr))
+    def pluck(self, attr_or_attrs):
+        if isinstance(attr_or_attrs, str):
+            return self.map(fn("r", R("$r")[attr_or_attrs]))
         else:
-            return self.map([internal.ImplicitAttr(x) for x in (attr,) + attrs])
+            return self.map(fn("r", [R("$r")[a] for a in attr_or_attrs]))
 
     def length(self):
-        return internal.Length(self)
+        return JSONExpression(internal.Count(self))
 
     def __len__(self):
         raise ValueError("To construct a `rethinkdb.JSONExpression` "
@@ -492,16 +522,13 @@ class Stream(BaseExpression):
     """A sequence of JSON values which can be read."""
     def to_array(self):
         """Convert the stream into a JSON array."""
-        return internal.ToArray(self)
-
-    def count(self):
-        return internal.Count(self)
+        return JSONExpression(internal.ToArray(self))
 
 class BaseSelection(object):
     """Something which can be read or written."""
     def delete(self):
         """Delete all rows in the selection from the database."""
-        return internal.Delete(self)
+        return WriteQuery(internal.Delete(self))
 
     def update(self, mapping):
         """Update all rows in the selection by merging the current contents
@@ -514,13 +541,13 @@ class BaseSelection(object):
         """
         if not isinstance(mapping, JSONFunction):
             mapping = JSONFunction(mapping)
-        return internal.Update(self, mapping)
+        return WriteQuery(internal.Update(self, mapping))
 
     def mutate(self, mapping):
         """TODO: get rid of this ?"""
         if not isinstance(mapping, JSONFunction):
             mapping = JSONFunction(mapping)
-        return internal.Mutate(self, mapping)
+        return WriteQuery(internal.Mutate(self, mapping))
 
 class MultiRowSelection(Stream, BaseSelection):
     """A sequence of rows which can be read or written."""
@@ -547,104 +574,67 @@ class JSONExpression(BaseExpression):
 
     def to_stream(self):
         """Convert a JSON array into a stream."""
-        return internal.ToStream(self)
+        return Stream(internal.ToStream(self))
 
     def __lt__(self, other):
-        return internal.CompareLT(self, other)
+        return JSONExpression(internal.CompareLT(self, other))
     def __le__(self, other):
-        return internal.CompareLE(self, other)
+        return JSONExpression(internal.CompareLE(self, other))
     def __eq__(self, other):
-        return internal.CompareEQ(self, other)
+        return JSONExpression(internal.CompareEQ(self, other))
     def __ne__(self, other):
-        return internal.CompareNE(self, other)
+        return JSONExpression(internal.CompareNE(self, other))
     def __gt__(self, other):
-        return internal.CompareGT(self, other)
+        return JSONExpression(internal.CompareGT(self, other))
     def __ge__(self, other):
-        return internal.CompareGE(self, other)
+        return JSONExpression(internal.CompareGE(self, other))
 
     def __add__(self, other):
-        return internal.Add(self, other)
+        return JSONExpression(internal.Add(self, other))
     def __sub__(self, other):
-        return internal.Sub(self, other)
+        return JSONExpression(internal.Sub(self, other))
     def __mul__(self, other):
-        return internal.Mul(self, other)
+        return JSONExpression(internal.Mul(self, other))
     def __div__(self, other):
-        return internal.Div(self, other)
+        return JSONExpression(internal.Div(self, other))
     def __mod__(self, other):
-        return internal.Mod(self, other)
+        return JSONExpression(internal.Mod(self, other))
 
     def __radd__(self, other):
-        return internal.Add(other, self)
+        return JSONExpression(internal.Add(other, self))
     def __rsub__(self, other):
-        return internal.Sub(other, self)
+        return JSONExpression(internal.Sub(other, self))
     def __rmul__(self, other):
-        return internal.Mul(other, self)
+        return JSONExpression(internal.Mul(other, self))
     def __rdiv__(self, other):
-        return internal.Div(other, self)
+        return JSONExpression(internal.Div(other, self))
     def __rmod__(self, other):
-        return internal.Mod(other, self)
+        return JSONExpression(internal.Mod(other, self))
 
     def __neg__(self):
-        return internal.Sub(self)
+        return JSONExpression(internal.Sub(self))
     def __pos__(self):
         return self
 
     def __or__(self, other):
-        return internal.Any(self, other)
+        return JSONExpression(internal.Any(self, other))
     def __and__(self, other):
-        return internal.All(self, other)
+        return JSONExpression(internal.All(self, other))
 
     def __ror__(self, other):
-        return internal.Any(other, self)
+        return JSONExpression(internal.Any(other, self))
     def __rand__(self, othe):
-        return internal.All(other, self)
+        return JSONExpression(internal.All(other, self))
 
     def __invert__(self):
-        return internal.Not(self)
+        return JSONExpression(internal.Not(self))
 
     def has_attr(self, name):
-        return internal.Has(self, name)
+        return JSONExpression(internal.Has(self, name))
     def extend(self, other):
-        return internal.Extend(self, other)
+        return JSONExpression(internal.Extend(self, other))
     def append(self, other):
-        return internal.Append(self, other)
-
-class JSONLiteral(JSONExpression):
-    """A literal JSON value."""
-
-    def __init__(self, value):
-        self.value = value
-        if isinstance(value, bool):
-            self.type = p.Term.BOOL
-            self.valueattr = 'valuebool'
-        elif isinstance(value, (int, float)):
-            self.type = p.Term.NUMBER
-            self.valueattr = 'number'
-        elif isinstance(value, (str, unicode)):
-            self.type = p.Term.STRING
-            self.valueattr = 'valuestring'
-        elif isinstance(value, dict):
-            self.type = p.Term.OBJECT
-        elif isinstance(value, list):
-            self.type = p.Term.ARRAY
-        elif value is None:
-            self.type = p.Term.JSON_NULL
-        else:
-            raise TypeError("argument must be a JSON-compatible type (bool/int/float/str/unicode/dict/list),"
-                            " not %r" % value.__class__.__name__)
-
-    def _write_ast(self, parent):
-        parent.type = self.type
-        if self.type == p.Term.ARRAY:
-            for value in self.value:
-                expr(value)._write_ast(parent.array.add())
-        elif self.type == p.Term.OBJECT:
-            for key, value in self.value.iteritems():
-                pair = parent.object.add()
-                pair.var = key
-                expr(value)._write_ast(pair.term)
-        elif self.value is not None:
-            setattr(parent, self.valueattr, self.value)
+        return JSONExpression(internal.Append(self, other))
 
 def expr(val):
     """Converts a python value to a ReQL :class:`JSONExpression`.
@@ -659,7 +649,7 @@ def expr(val):
     """
     if isinstance(val, JSONExpression):
         return val
-    return JSONLiteral(val)
+    return JSONExpression(internal.JSONLiteral(val))
 
 def if_then_else(test, true_branch, false_branch):
     """If `test` returns `true`, evaluates to `true_branch`. If `test` returns
@@ -680,7 +670,17 @@ def if_then_else(test, true_branch, false_branch):
     :param true_branch: The return value if `test` is `true`
     :param false_branch: The return value if `test` is `false`
     """
-    return internal.If(test, true_branch, false_branch)
+    if isinstance(true_branch, MultiRowSelection) and isinstance(false_branch, MultiRowSelection):
+        t = MultiRowSelection
+    elif isinstance(true_branch, Stream) and isinstance(false_branch, Stream):
+        t = Stream
+    elif isinstance(true_branch, RowSelection) and isinstance(false_branch, RowSelection):
+        t = RowSelection
+    elif not isinstance(true_branch, Stream) and not isinstance(false_branch, Stream):
+        true_branch = expr(true_branch)
+        false_branch = expr(false_branch)
+        t = JSONExpression
+    return t(internal.If(test, true_branch, false_branch))
 
 class RowSelection(JSONExpression, BaseSelection):
     """A single row from a table which can be read or written."""
@@ -688,6 +688,11 @@ class RowSelection(JSONExpression, BaseSelection):
 ###########################
 # DATABASE ADMINISTRATION #
 ###########################
+
+class MetaQuery(BaseQuery):
+    def __init__(self, inner):
+        raise NotImplementedError()
+
 def db_create(db_name, primary_datacenter=None):
     """Create a ReQL expression that creates a database within a
     RethinkDB cluster. A RethinkDB database is an object that contains
@@ -713,7 +718,7 @@ def db_create(db_name, primary_datacenter=None):
     >>> q = db_create('db_name')
     >>> q = db_create('db_name', primary_datacenter='us_west')
     """
-    raise NotImplementedError
+    raise NotImplementedError()
 
 def db_drop(db_name):
     """Create a ReQL expression that drops a database within a
@@ -732,7 +737,7 @@ def db_drop(db_name):
 
     >>> q = db_drop('db_name')
     """
-    raise NotImplementedError
+    raise NotImplementedError()
 
 def db_list():
     """Create a ReQL expression that lists all databases within a
@@ -750,7 +755,7 @@ def db_list():
 
     >>> q = db_list() # returns a list of names, e.g. ['db1', 'db2', 'db3']
     """
-    raise NotImplementedError
+    raise NotImplementedError()
 
 ##############################################
 # LEAF SELECTORS - DATABASE AND TABLE ACCESS #
@@ -791,7 +796,7 @@ class Database(object):
         >>> q = db('db_name').create('posts') # uses primary key 'id'
         >>> q = db('db_name').create('users', primary_key='user_id')
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def drop(self, table_name):
         """Create a ReQL expression that drops a table within this
@@ -811,7 +816,7 @@ class Database(object):
 
         >>> q = db('db_name').drop('posts')
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def list(self):
         """Create a ReQL expression that lists all tables within this
@@ -829,7 +834,7 @@ class Database(object):
 
         >>> q = db('db_name').list() # returns a list of tables, e.g. ['table1', 'table2']
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def table(self, table_name):
         """Create a ReQL expression that encodes a table within this
@@ -874,6 +879,7 @@ class Table(MultiRowSelection):
           connection object.
         :type db_expr: :class:`Database`
         """
+        BaseExpression.__init__(self, internal.Table(self))
         self.table_name = table_name
         self.db_expr = db_expr
 
@@ -885,12 +891,12 @@ class Table(MultiRowSelection):
         :rtype: :class:`WriteQuery`
         """
         if isinstance(docs, dict):
-            return internal.Insert(self, [docs])
+            return WriteQuery(internal.Insert(self, [docs]))
         else:
-            return internal.Insert(self, docs)
+            return WriteQuery(internal.Insert(self, docs))
 
     def insert_stream(self, stream):
-        return internal.InsertStream(self, stream)
+        return WriteQuery(internal.InsertStream(self, stream))
 
     def get(self, key):
         """Select a row by primary key. If the key doesn't exist, returns null.
@@ -901,15 +907,11 @@ class Table(MultiRowSelection):
 
         >>> q = table('users').get(10)  # get user with primary key 10
         """
-        return internal.Get(self, key)
+        return RowSelection(internal.Get(self, key))
 
     def _write_ref_ast(self, parent):
         parent.db_name = self.db_expr.db_name
         parent.table_name = self.table_name
-
-    def _write_ast(self, parent):
-        parent.type = p.Term.TABLE
-        self._write_ref_ast(parent.table.table_ref)
 
 def table(table_ref):
     """Get a reference to a table within a RethinkDB cluster.

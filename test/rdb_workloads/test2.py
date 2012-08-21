@@ -315,7 +315,7 @@ class RDBTest(unittest.TestCase):
 
         self.expect(self.table.filter({"a": 3}), [docs[0]])
 
-        self.error_exec(self.table.filter({"a": self.table.count() + ""}), "numbers")
+        self.error_exec(self.table.filter({"a": self.table.length() + ""}), "numbers")
 
         self.error_exec(self.table.insert({"a": 3}), "id")
 
