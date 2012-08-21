@@ -653,8 +653,8 @@ class MultiRowSelection(Stream, BaseSelection):
     """A sequence of rows which can be read or written."""
 
 class WriteQuery(BaseQuery):
-    """All queries that modify the database are instances of :class:`WriteQuery.
-    """
+    """All queries that modify the database are instances of
+    :class:`WriteQuery`."""
     def __init__(self, inner):
         assert isinstance(inner, internal.WriteQueryInner)
         self._inner = inner
