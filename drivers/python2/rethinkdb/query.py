@@ -384,6 +384,37 @@ class Expression(BaseExpression):
             reduction = internal.Function(reduction)
         return internal.Reduce(self, base, reduction)
 
+    def grouped_map_reduce(self, group_mapping, value_mapping, reduction_base, reduction_func):
+        """Group elements by `group_mapping`, then apply `value_mapping` to each
+        one, then reduce the group into a single value using `reduction_base`
+        and `reduction_func`. Returns a `JSONExpression` which is a JSON object
+        where the keys are the return values of `group_mapping` and the values
+        are the results of the reduction.
+
+        :param group_mapping: Function to sort values by
+        :type group_mapping: :class:`JSONFunction`
+        :param value_mapping: Function to transform values by before reduction
+        :type value_mapping: :class:`JSONFunction`
+        :param reduction_base: Base value for reduction, as in `Expression.reduce()`
+        :type reduction_base: :class:`JSONExpression`
+        :param reduction_func: Combiner function for reduction
+        :type reduction_func: :class:`JSONFunction`
+
+        >>> table('transactions').grouped_map_reduce(
+                fn("txn", R("$txn.category_name")),
+                fn("txn", R("$txn.dollar_value")),
+                0,
+                fn("a", "b", R("$a") + R("$b"))
+                ).run()
+        # Returns an object where keys are transaction category names and values
+        # are total dollar values in those categories
+        """
+        if not isinstance(group_mapping, internal.JSONFunction):
+            group_mapping = internal.JSONFunction(group_mapping)
+        if not isinstance(value_mapping, internal.JSONFunction):
+            value_mapping = internal.JSONFunction(value_mapping)
+        return internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func)
+
     def distinct(self, *attrs):
         """Select distinct elements of the input.
 
