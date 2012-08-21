@@ -1,7 +1,11 @@
 #!/usr/bin/python
 # coding=utf8
-# TO RUN: PORT=1234 python insert_scan.py
-# also respects HOST env variable (defaults to localhost)
+
+# Environment variables:
+# HOST: location of server (default = "localhost")
+# PORT: port that server listens for RDB protocol traffic on (default = 14356)
+# DB_NAME: database to look for test table in (default = "")
+# TABLE_NAME: table to run tests against (default = "Welcome-rdb")
 
 import json
 import os
@@ -10,7 +14,7 @@ import unittest
 import sys
 import traceback
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'drivers', 'python2')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python2')))
 
 from rethinkdb import *
 import rethinkdb.internal as I
@@ -18,9 +22,11 @@ import rethinkdb.internal as I
 class RDBTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.conn = connect(os.getenv('HOST') or 'localhost',
-                                 12346 + (int(os.getenv('PORT') or 2010)))
-        cls.table = table(".Welcome-rdb")
+        cls.conn = connect(
+            os.environ.get('HOST', 'localhost'),
+            int(os.environ.get('PORT', 12346+2010))
+            )
+        cls.table = table(os.environ.get('DB_NAME', '') + "." + os.environ.get('TABLE_NAME', 'Welcome-rdb'))
 
     def expect(self, query, expected):
         try:

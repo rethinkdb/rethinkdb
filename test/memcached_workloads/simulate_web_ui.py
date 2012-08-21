@@ -1,10 +1,12 @@
 #!/usr/bin/python
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import workload_common
+import memcached_workload_common
 import httplib, time
 
-op = workload_common.option_parser_for_socket()
+# This isn't really a memcached workload...
+
+op = memcached_workload_common.option_parser_for_socket()
 opts = op.parse(sys.argv)
 host, port = opts["address"]
 

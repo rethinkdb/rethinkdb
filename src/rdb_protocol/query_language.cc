@@ -948,7 +948,7 @@ void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const back
 
 void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::string &pk, boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env, const backtrace_t &backtrace) {
     if (!data->GetObjectItem(pk.c_str())) {
-        throw runtime_exc_t(strprintf("Must have a field named %s (The primary key).", pk.c_str()), backtrace);
+        throw runtime_exc_t(strprintf("Must have a field named \"%s\" (The primary key).", pk.c_str()), backtrace);
     }
 
     try {

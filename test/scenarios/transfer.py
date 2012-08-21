@@ -25,11 +25,11 @@ with driver.Metacluster() as metacluster:
     http1 = http_admin.ClusterAccess([("localhost", process1.http_port)])
     dc = http1.add_datacenter()
     http1.move_server_to_datacenter(files1.machine_name, dc)
-    ns = http1.add_namespace(protocol = "memcached", primary = dc)
+    ns = scenario_common.prepare_table_for_workload(opts, http1, primary = dc)
     http1.wait_until_blueprint_satisfied(ns)
 
-    workload_ports_1 = scenario_common.get_workload_ports(ns.port, [process1])
-    workload_runner.run(opts["workload1"], workload_ports_1, opts["timeout"])
+    workload_ports_1 = scenario_common.get_workload_ports(opts, ns, [process1])
+    workload_runner.run(opts["protocol"], opts["workload1"], workload_ports_1, opts["timeout"])
 
     print "Bringing up new server..."
     files2 = driver.Files(metacluster, db_path = "db-second", executable_path = executable_path, command_prefix = command_prefix)
@@ -54,7 +54,7 @@ with driver.Metacluster() as metacluster:
     http2.check_no_issues()
     http2.wait_until_blueprint_satisfied(ns.name)
 
-    workload_ports_2 = scenario_common.get_workload_ports(http2.find_namespace(ns.name).port, [process2])
-    workload_runner.run(opts["workload2"], workload_ports_2, opts["timeout"])
+    workload_ports_2 = scenario_common.get_workload_ports(opts, http2.find_namespace(ns.name), [process2])
+    workload_runner.run(opts["protocol"], opts["workload2"], workload_ports_2, opts["timeout"])
 
     cluster.check_and_stop()

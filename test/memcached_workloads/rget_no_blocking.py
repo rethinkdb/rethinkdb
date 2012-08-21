@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import os, sys, socket, random, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, "common")))
-import workload_common
+import memcached_workload_common
 from line import *
 
 key_padding = ''.zfill(20)
@@ -49,7 +49,7 @@ def get_results(s):
 class TimeoutException(Exception):
     pass
 
-op = workload_common.option_parser_for_socket()
+op = memcached_workload_common.option_parser_for_socket()
 opts = op.parse(sys.argv)
 
 # Test:
@@ -65,12 +65,12 @@ updated_value = gen_value('changed', updated_key_id)
 orig_value = gen_value('foo', updated_key_id)
 
 host, port = opts["address"]
-with workload_common.MemcacheConnection(host, port) as mc:
+with memcached_workload_common.MemcacheConnection(host, port) as mc:
     print "Creating test data"
     for i in range(0, rget_keys):
         mc.set(gen_key('foo', i), gen_value('foo', i))
 
-    with workload_common.make_socket_connection(opts) as s:
+    with memcached_workload_common.make_socket_connection(opts) as s:
         print "Starting rget"
         s.send('rget %s %s %d %d %d\r\n' % (gen_key('foo', 0), gen_key('fop', 0), 0, 1, rget_keys))
         print "Started rget"
@@ -81,7 +81,7 @@ with workload_common.MemcacheConnection(host, port) as mc:
         # This is a crude way, but is probably the simplest
         time.sleep(5)
 
-        with workload_common.make_socket_connection(opts) as us:
+        with memcached_workload_common.make_socket_connection(opts) as us:
 
             print "Starting concurrent update"
 
