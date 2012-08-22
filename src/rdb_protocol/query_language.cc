@@ -1254,9 +1254,14 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
                 return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateString(t->valuestring().c_str())));
             }
             break;
-        case Term::JSON:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_Parse(t->jsonstring().c_str())));
-            break;
+        case Term::JSON: {
+            const char *str = t->jsonstring().c_str();
+            boost::shared_ptr<scoped_cJSON_t> json(new scoped_cJSON_t(cJSON_Parse(str)));
+            if (!json->get()) {
+                throw runtime_exc_t(strprintf("Malformed JSON: %s", str), backtrace);
+            }
+            return json;
+        } break;
         case Term::BOOL:
             {
                 return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(t->valuebool())));
