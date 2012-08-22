@@ -42,6 +42,7 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
             valid = (endptr != buffer);
         } else {
             valid = false;
+            number = 0;  // Appease -Wconditional-uninitialized.
         }
 
         if (!valid) {
