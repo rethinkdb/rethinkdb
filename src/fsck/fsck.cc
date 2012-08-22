@@ -12,7 +12,7 @@
 namespace fsck {
 
 // TODO: Should this still be UNUSED?
-__attribute__((noreturn)) void usage(UNUSED const char *name) {
+NORETURN void usage(UNUSED const char *name) {
     help_pager_t *help = help_pager_t::instance();
     help->pagef("Usage:\n"
                 "        rethinkdb fsck [OPTIONS] -f <file_1> [-f <file_2> ...] [--metadata-file <file>]\n");

@@ -9,7 +9,7 @@ namespace reactor_business_card_details {
 // ctx-less json adapter concept for backfill location
 json_adapter_if_t::json_adapter_map_t get_json_subfields(backfill_location_t *target);
 cJSON *render_as_json(backfill_location_t *target);
-void apply_json_to(cJSON *, backfill_location_t *);
+void apply_json_to(cJSON *, backfill_location_t *) NORETURN;
 void on_subfield_change(backfill_location_t *);
 
 // ctx-less json adapter for primary_when_safe
