@@ -739,8 +739,43 @@ void parse_create_table(const MetaQuery::CreateTable &c, std::string *datacenter
     *primary_key = c.primary_key();
 }
 
+class namespace_predicate_t {
+public:
+    bool operator()(namespace_semilattice_metadata_t<rdb_protocol_t> ns) {
+        if (name && (ns.name.in_conflict() || ns.name.get() != *name)) {
+            return false;
+        } else if (db_id && (ns.database.in_conflict() || ns.database.get() != *db_id)) {
+            return false;
+        }
+        return true;
+    }
+    namespace_predicate_t(): name(0), db_id(0) { }
+    explicit namespace_predicate_t(std::string &_name): name(&_name), db_id(0) { }
+    explicit namespace_predicate_t(uuid_t &_db_id): name(0), db_id(&_db_id) { }
+    namespace_predicate_t(std::string &_name, uuid_t &_db_id):
+        name(&_name), db_id(&_db_id) { }
+private:
+    const std::string *name;
+    const uuid_t *db_id;
+};
+
+static void meta_check(const char *status, const char *want,
+                       const std::string &operation, const backtrace_t &backtrace) {
+    if (status != want) {
+        if (status == METADATA_SUCCESS) status = "Entry already exists.";
+        throw runtime_exc_t(strprintf("Error during operation `%s`: %s",
+                                      operation.c_str(), status), backtrace);
+    }
+}
+
 void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
+    const metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+        ns_searcher(metadata.rdb_namespaces.namespaces);
+    const metadata_searcher_t<database_semilattice_metadata_t>
+        db_searcher(metadata.databases.databases);
+    const metadata_searcher_t<datacenter_semilattice_metadata_t>
+        dc_searcher(metadata.datacenters.datacenters);
     switch(m->type()) {
     case MetaQuery::CREATE_DB:
     case MetaQuery::DROP_DB:
@@ -751,45 +786,28 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         std::string dc_name, db_name, table_name, primary_key;
         parse_create_table(m->create_table(),&dc_name,&db_name,&table_name,&primary_key);
 
-        //Make sure namespace doesn't exist before we go any further.
-        metadata_get_by_name(metadata.rdb_namespaces.namespaces, table_name, &status);
-        if (status != METADATA_ERR_NONE) {
-            if (status == METADATA_SUCCESS) {
-                throw runtime_exc_t(strprintf("Table %s already exists!",
-                                              table_name.c_str()), backtrace);
-            } else {
-                throw runtime_exc_t(strprintf("Table %s creation failed with error: %s",
-                                              table_name.c_str(), status), backtrace);
-            }
-        }
+        /* Get database ID. */
+        metadata_searcher_t<database_semilattice_metadata_t>::const_iterator
+            db_entry = db_searcher.find_uniq_name(db_name, &status);
+        meta_check(status, METADATA_SUCCESS, "FIND_DATABASE "+db_name, backtrace);
+        uuid_t db_id = db_entry->first;
 
-        // Get datacenter ID.
-        boost::optional<uuid_t> opt_datacenter_id = metadata_get_uuid_by_name(
-            metadata.datacenters.datacenters, dc_name, &status);
-        if (!opt_datacenter_id) {
-            rassert(status);
-            throw runtime_exc_t(strprintf("No datacenter %s found with error: %s",
-                                          dc_name.c_str(), status), backtrace);
-        }
-        uuid_t dc_id = *opt_datacenter_id;
+        /* Ensure table doesn't already exist. */
+        ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
+        meta_check(status, METADATA_ERR_NONE, "CREATE_TABLE "+table_name, backtrace);
 
-        // Get database ID.
-        boost::optional<uuid_t> opt_database_id = metadata_get_uuid_by_name(
-            metadata.databases.databases, db_name, &status);
-        if (!opt_database_id) {
-            rassert(status);
-            throw runtime_exc_t(strprintf("No database %s found with error: %s",
-                                          db_name.c_str(), status), backtrace);
-        }
-        uuid_t db_id = *opt_database_id;
+        /* Get datacenter ID. */
+        metadata_searcher_t<datacenter_semilattice_metadata_t>::const_iterator
+            dc_entry = dc_searcher.find_uniq_name(dc_name, &status);
+        meta_check(status, METADATA_SUCCESS, "FIND_DATACENTER "+dc_name, backtrace);
+        uuid_t dc_id = dc_entry->first;
 
-        // Create namespace, insert into metadata, then join into real metadata.
+        /* Create namespace, insert into metadata, then join into real metadata. */
         uuid_t namespace_id = generate_uuid();
-        //TODO(mlucy): port number?
+        //TODO(mlucy): What is the port for?  Why is it always the same?
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
-            new_namespace<rdb_protocol_t>(
-                env->this_machine, db_id, dc_id, table_name, primary_key,
-                port_constants::namespace_port);
+            new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, table_name,
+                                          primary_key, port_constants::namespace_port);
         metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, ns));
         fill_in_blueprints(&metadata,env->directory_metadata->get(),env->this_machine);
         env->semilattice_metadata->join(metadata);

@@ -129,6 +129,54 @@ const char *const METADATA_ERR_NONE = "No entry with that name.";
 const char *const METADATA_ERR_MULTIPLE = "Multiple entries with that name.";
 const char *const METADATA_ERR_CONFLICT = "Entry with that name is in conflict.";
 
+template<class T>
+class metadata_searcher_t {
+public:
+    typedef std::map<uuid_t, deletable_t<T> > metamap_t;
+    typedef typename metamap_t::const_iterator const_iterator;
+    const_iterator begin() const {return map.begin();}
+    const_iterator end() const {return map.end();}
+
+    explicit metadata_searcher_t(const metamap_t &_map): map(_map) { }
+
+    template<class callable_t>
+    const_iterator find_next(const_iterator start, callable_t predicate) const {
+        const_iterator it;
+        for (it = start; it != end(); ++it) {
+            if (it->second.is_deleted()) continue;
+            if (predicate(it->second.get())) break;
+        }
+        return it;
+    }
+    template<class callable_t>
+    const_iterator find_uniq(callable_t predicate, const char **out=0) const {
+        const_iterator it, retval;
+        if (out) *out = METADATA_SUCCESS;
+        retval = it = find_next(begin(), predicate);
+        if (it == end()) {
+            if (out) *out = METADATA_ERR_NONE;
+        } else if (find_next(++it, predicate) != end()) {
+            if (out) *out = METADATA_ERR_MULTIPLE;
+            retval = end();
+        }
+        return retval;
+    }
+
+    struct name_predicate_t {
+        bool operator()(T metadata) {
+            return !metadata.name.in_conflict() && metadata.name.get() == name;
+        }
+        name_predicate_t(const std::string &_name): name(_name) { }
+    private:
+        const std::string &name;
+    };
+    const_iterator find_uniq_name(const std::string &name, const char **out=0) const {
+        return find_uniq(name_predicate_t(name), out);
+    }
+private:
+    const metamap_t &map;
+};
+
 /* If a name uniquely identifies an entry then return it, otherwise
  * return nothing.  Also optionally reports its success/failure mode
  * with the optional argument [out], which allows better error
