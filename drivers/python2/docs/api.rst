@@ -11,5 +11,3 @@ API Reference Documentation
 **********************************************************
 
 .. automodule:: rethinkdb.query
-   :members:
-   :show-inheritance:

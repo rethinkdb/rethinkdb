@@ -1,8 +1,49 @@
-"""TODO"""
+"""To communicate with a RethinkDB server, construct queries using this module
+and then pass them to the server using the :mod:`rethinkdb.net` module.
 
-# __all__ = ['R', 'fn', 'expr', 'db', 'db_create', 'db_drop', 'db_list', 'table']
+.. autoclass:: BaseQuery
+    :members:
 
-import types
+.. autoclass:: BaseExpression
+    :members:
+
+.. autoclass:: JSONExpression
+    :members:
+
+    .. automethod:: __lt__
+
+.. autoclass:: StreamExpression
+    :members:
+
+.. autofunction:: expr
+.. autofunction:: if_then_else
+.. autofunction:: R
+.. autofunction:: js
+.. autofunction:: let
+.. autofunction:: fn
+.. autoclass:: JSONFunction
+.. autoclass:: StreamFunction
+
+Write queries section is here
+
+.. autoclass:: BaseSelection
+    :members:
+.. autoclass:: RowSelection
+.. autoclass:: MultiRowSelection
+.. autoclass:: WriteQuery
+
+Meta queries section is here
+
+.. autoclass:: MetaQuery
+.. autofunction:: db_create
+.. autofunction:: db_drop
+.. autofunction:: db_list
+.. autoclass:: Database
+    :members:
+.. autofunction:: db
+.. autoclass:: Table
+.. autofunction:: table
+"""
 
 import query_language_pb2 as p
 
@@ -340,23 +381,13 @@ class BaseExpression(BaseQuery):
             "in Python.)")
 
 class JSONExpression(BaseExpression):
-    """A JSON value.
+    """An expression that evaluates to a JSON value.
 
-    Use :func:`expr` to create expressions for JSON values.
-
-    >>> expr(1)      # returns :class:`JSONExpression` that encodes JSON value 1.
-    >>> expr([1, 2]) # returns :class:`JSONExpression` that encodes a JSON array.
-    >>> expr("foo")  # returns :class:`JSONExpression` that encodes a JSON string.
-    >>> expr({ 'name': 'Joe', 'age': 30 }) # returns :class:`JSONExpression` that encodes a JSON object.
+    Use :func:`expr` to create a :class:`JSONExpression` that encodes a literal
+    JSON value.
 
     Python operators enable comparisons, logic, and algebra to be performed
     on JSON expressions.
-
-    >>> conn.run(expr(1) < expr(2)) # Evaluates 1 < 2 on the server and returns True.
-    >>> expr(1) < 2 # Whenever possible, ReQL converts Python types to expressions implicitly.
-    >>> expr(1) + 2 # Addition. We can do `-`, `*`, `/`, and `%` in the same way.
-    >>> expr(1) < 2 # We can also do `>`, `<=`, `>=`, `==`, etc.
-    >>> (expr(1) < 2) & (expr(3) < 4) # We use `&` and `|` to encode `and` and `or` since we can't overload these in Python
     """
 
     def to_stream(self):
@@ -364,6 +395,7 @@ class JSONExpression(BaseExpression):
         return StreamExpression(internal.ToStream(self))
 
     def __lt__(self, other):
+        """Returns an expression that compares this to some other expression."""
         return JSONExpression(internal.CompareLT(self, other))
     def __le__(self, other):
         return JSONExpression(internal.CompareLE(self, other))
