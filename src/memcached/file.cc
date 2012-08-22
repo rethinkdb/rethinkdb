@@ -13,7 +13,7 @@ private:
     file_progress_bar_t progress_bar;
 
 public:
-    file_memcached_interface_t(const char *filename) :
+    explicit file_memcached_interface_t(const char *filename) :
         file(fopen(filename, "r")),
         progress_bar(std::string("Import"), file)
     { }
