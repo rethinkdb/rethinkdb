@@ -6,14 +6,18 @@ goog.require('rethinkdb.net.HttpConnection');
 
 /**
  * Shorthand for connection constructor.
- * @export	
+ * @export
  */
-rethinkdb.net.connect = function(host_or_list, port, db_name) {
-    return new rethinkdb.net.TcpConnection(host_or_list, port, db_name);
+rethinkdb.net.connect = function(host_or_list, onConnect, onFailure) {
+    if (typeof require !== 'undefined' && require('net')) {
+        return new rethinkdb.net.TcpConnection(host_or_list, onConnect, onFailure);
+    } else {
+        return new rethinkdb.net.HttpConnection(host_or_list, onConnect, onFailure);
+    }
 }
 
 /**
  * Reference to the last created connection.
- * @export	
+ * @export
  */
 rethinkdb.net.last_connection = null;

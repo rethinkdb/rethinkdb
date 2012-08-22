@@ -17,7 +17,7 @@ PROTO_FILE=$(PROTO_FILE_DIR)query_language.proto
 
 OUTPUTMODE=compiled
 
-# Compile the 
+# Compile the rethinkdb library
 lib: query_language.pb.js
 	rm -rf rethinkdb.js
 	rm -rf rethinkdb.map.js
@@ -37,6 +37,10 @@ lib: query_language.pb.js
 # Compile the javascript stubs for the rethinkdb protocol
 query_language.pb.js: $(PROTO_FILE)
 	$(PROTOC_JS) -I $(PROTO_FILE_DIR)  --js_out=rethinkdb $(PROTO_FILE)
+
+test:
+	$(CLOSURE_BUILDER) --root=$(CLOSURE_LIB) --root=rethinkdb/ --namespace=rethinkdb_test \
+	--output_mode=script > rethinkdb-test.js \
 
 clean:
 	rm -rf rethinkdb.js

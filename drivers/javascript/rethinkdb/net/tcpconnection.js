@@ -72,21 +72,19 @@ goog.inherits(rethinkdb.net.TcpConnection, rethinkdb.net.Connection);
  * @override
  */
 rethinkdb.net.TcpConnection.prototype.send_ = function(data) {
-    if (this.socket_) {
-
-        // This is required because the node socket has to take a native node
-        // buffer, not an ArrayBuffer. Even though ArrayBuffers are supported
-        // by node, there is no simple way to convert between them.
-        var bufferData = new Buffer(data.byteLength);
-        var byteArray = new Uint8Array(data);
-        for (var i = 0; i < data.byteLength; i++) {
-            bufferData[i] = byteArray[i];
-        }
-
-        this.socket_.write(bufferData);
-    } else {
+    if (!this.socket_)
         throw "Connection not open";
+
+    // This is required because the node socket has to take a native node
+    // buffer, not an ArrayBuffer. Even though ArrayBuffers are supported
+    // by node, there is no simple way to convert between them.
+    var bufferData = new Buffer(data.byteLength);
+    var byteArray = new Uint8Array(data);
+    for (var i = 0; i < data.byteLength; i++) {
+        bufferData[i] = byteArray[i];
     }
+
+    this.socket_.write(bufferData);
 };
 
 /**
@@ -134,12 +132,11 @@ rethinkdb.net.TcpConnection.prototype.tcpRecv_ = function(node_data) {
  * @override
  */
 rethinkdb.net.TcpConnection.prototype.close = function() {
-    if (this.socket_) {
-        this.socket_.end();
-        this.socket_ = null;
-    } else {
+    if (!this.socket_)
         throw "Connection not open";
-    }
+
+    this.socket_.end();
+    this.socket_ = null;
 };
 goog.exportProperty(rethinkdb.net.TcpConnection.prototype, 'close',
                     rethinkdb.net.TcpConnection.prototype.close);
