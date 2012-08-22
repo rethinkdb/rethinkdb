@@ -1720,9 +1720,10 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     default:
                         crash("Unknown comparison operator.");
                         break;
+                    }
+
                     if (!result)
                         break;
-                    }
 
                     lhs = rhs;
                 }
