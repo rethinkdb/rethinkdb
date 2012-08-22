@@ -1,16 +1,29 @@
 """To communicate with a RethinkDB server, construct queries using this module
 and then pass them to the server using the :mod:`rethinkdb.net` module.
 
+.. contents::
+
 .. autoclass:: BaseQuery
     :members:
 
 .. autoclass:: ReadQuery
     :members:
 
+JSON expressions
+================
+
 .. autoclass:: JSONExpression
     :members:
 
+    .. automethod:: __eq__
+    .. automethod:: __ne__
     .. automethod:: __lt__
+    .. automethod:: __le__
+    .. automethod:: __gt__
+    .. automethod:: __ge__
+
+Stream expressions
+==================
 
 .. autoclass:: StreamExpression
     :members:
@@ -24,7 +37,8 @@ and then pass them to the server using the :mod:`rethinkdb.net` module.
 .. autoclass:: JSONFunction
 .. autoclass:: StreamFunction
 
-Write queries section is here
+Write queries
+=============
 
 .. autoclass:: BaseSelection
     :members:
@@ -32,7 +46,8 @@ Write queries section is here
 .. autoclass:: MultiRowSelection
 .. autoclass:: WriteQuery
 
-Meta queries section is here
+Manipulating databases and tables
+=================================
 
 .. autoclass:: MetaQuery
 .. autofunction:: db_create
@@ -110,18 +125,71 @@ class JSONExpression(ReadQuery):
         """
         return StreamExpression(internal.ToStream(self))
 
-    def __lt__(self, other):
-        """Returns an expression that compares this to some other expression."""
-        return JSONExpression(internal.CompareLT(self, other))
-    def __le__(self, other):
-        return JSONExpression(internal.CompareLE(self, other))
     def __eq__(self, other):
+        """Evaluates to `true` if `self` evaluates to the same value as `other`.
+
+        :param other: The object to compare against
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression` evaluating to a boolean
+        """
         return JSONExpression(internal.CompareEQ(self, other))
+
     def __ne__(self, other):
+        """Evaluates to `true` if `self` evaluates to the same value as `other`.
+         Equivalent to `~(self == other)`.
+
+        :param other: The object to compare against
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression` evaluating to a boolean
+        """
         return JSONExpression(internal.CompareNE(self, other))
+
+    def __lt__(self, other):
+        """Evaluates to `true` if `self` evaluates to a value that is strictly
+        less than what `other` evaluates to.
+
+        TODO: define ordering
+
+        :param other: The object to compare against
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression` evaluating to a boolean
+        """
+        return JSONExpression(internal.CompareLT(self, other))
+
+    def __le__(self, other):
+        """Evaluates to `true` if `self` evaluates to a value that is less than
+        or equal to what `other` evaluates to.
+
+        TODO: define ordering
+
+        :param other: The object to compare against
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression` evaluating to a boolean
+        """
+        return JSONExpression(internal.CompareLE(self, other))
+
     def __gt__(self, other):
+        """Evaluates to `true` if `self` evaluates to a value that is strictly
+        greater than what `other` evaluates to.
+
+        TODO: define ordering
+
+        :param other: The object to compare against
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression` evaluating to a boolean
+        """
         return JSONExpression(internal.CompareGT(self, other))
+
     def __ge__(self, other):
+        """Evaluates to `true` if `self` evaluates to a value that is greater
+        than or equal to what `other` evaluates to.
+
+        TODO: define ordering
+
+        :param other: The object to compare against
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression` evaluating to a boolean
+        """
         return JSONExpression(internal.CompareGE(self, other))
 
     def __add__(self, other):
