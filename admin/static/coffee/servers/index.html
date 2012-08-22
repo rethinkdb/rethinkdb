@@ -29,9 +29,9 @@
     <div class="machine details">
         <span class="status">{{humanize_machine_reachability status}}</span>
 
-        <div class="label label-machine">Machine</div>
+        <div class="label label-machine">Server</div>
         <span class="name">
-            <a href="#machines/{{id}}">{{name}}</a>
+            <a href="#servers/{{id}}">{{name}}</a>
         </span>
         {{#if unassigned_machine}}
         <p class="quick_info">Not assigned to any datacenter</p>
@@ -120,7 +120,7 @@
     <div class="header_container">
         <div class="expanded arrow"></div>
         <div class="datacenter summary">
-            <div class="element-type">Unasssigned machines</div>
+            <div class="element-type">Unasssigned servers</div>
         </div>
     </div>
 
@@ -198,7 +198,7 @@
 <script id="set_datacenter-alert-template" type="text/x-handlebars-template">
   <div class="alert" data-alert="alert">
     <a class="close" href="#">&times;</a>
-    <p>Set datacenter for {{pluralize_noun "machine" machine_count}} {{machines_first.name}}{{#each machines_rest}}, {{name}}{{/each}} to {{datacenter_name}}.</p>
+    <p>Set datacenter for {{pluralize_noun "server" machine_count}} {{machines_first.name}}{{#each machines_rest}}, {{name}}{{/each}} to {{datacenter_name}}.</p>
   </div>
 </script>
 

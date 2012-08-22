@@ -48,13 +48,13 @@
     <h3 class="title">Datacenter profile</h3>
     <div class="section summary">
         <p class="status">Status: {{humanize_datacenter_reachability status}}</p>
-        <p class="status">Machines: {{status.reachable}} of {{status.total}} reachable</p>
+        <p class="status">Servers: {{status.reachable}} of {{status.total}} reachable</p>
         {{#unless stats_up_to_date}}
         <p>The stats displayed might not be up to date<br />
         (One server might be overload with queries).</p>
         {{/unless}}
     </div>
-    <h3 class="title">Machines</h3>
+    <h3 class="title">Servers</h3>
     <div class="section dc-machine-list">
         <ul>
         {{display_truncated_machines list_machines}}
@@ -84,7 +84,7 @@
 
 <script id="datacenter_view-recent_log_entry-template" type="text/x-handlebars-template">
     <div class="entry-metadata">
-        <p class="from-machine">Reported from <a href="#machines/{{machine_uuid}}">{{machine_name}}</a></p>
+        <p class="from-machine">Reported from <a href="#servers/{{machine_uuid}}">{{machine_name}}</a></p>
         <p class="datetime"><abbr class="timeago" title="{{timeago_timestamp}}">{{timeago_timestamp}}</abbr></p>
     </div>
     <p class="level">{{level}}</p>
@@ -117,7 +117,7 @@
 </script>
 
 <script id="remove_datacenter-modal-template" type="text/x-handlebars-template">
-  <div class="alert alert-error">Removing the datacenter will remove all the responsabilities of the machines in it.</div>
+  <div class="alert alert-error">Removing the datacenter will remove all the responsabilities of the servers in it.</div>
   <div class="alert alert-error error_answer"></div>
   <p>Are you sure you want to remove this datacenter <a href="#datacenters/{{id}}">{{name}}</a>?</p>
 </script>
