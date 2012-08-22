@@ -121,7 +121,7 @@ multistore_ptr_t<protocol_t> *broadcaster_t<protocol_t>::release_bootstrap_svs_f
 /* `incomplete_write_t` represents a write that has been sent to some nodes
    but not completed yet. */
 template <class protocol_t>
-class broadcaster_t<protocol_t>::incomplete_write_t : public home_thread_mixin_t {
+class broadcaster_t<protocol_t>::incomplete_write_t : public home_thread_mixin_debug_only_t {
 public:
     incomplete_write_t(broadcaster_t *p, const typename protocol_t::write_t &w, transition_timestamp_t ts, write_callback_t *cb) :
         write(w), timestamp(ts), callback(cb), sem_acq(&p->enforce_max_outstanding_writes), parent(p), incomplete_count(0) { }

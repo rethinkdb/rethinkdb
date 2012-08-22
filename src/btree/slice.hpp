@@ -40,7 +40,7 @@ cache for the purpose of storing a btree. There are many btree_slice_ts per
 btree_key_value_store_t. */
 
 class btree_slice_t :
-    public home_thread_mixin_t
+    public home_thread_mixin_debug_only_t
 {
 public:
     // Blocks

@@ -21,9 +21,7 @@ enum mailbox_thread_mode_t {
     mailbox_any_thread
 };
 
-struct raw_mailbox_t :
-    public home_thread_mixin_t
-{
+struct raw_mailbox_t : public home_thread_mixin_t {
 private:
     friend struct mailbox_manager_t;
 
