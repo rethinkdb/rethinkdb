@@ -300,7 +300,7 @@ message MetaQuery {
 
         CREATE_TABLE  = 4;
         DROP_TABLE    = 5;
-        LIST_TABLES   = 6; //db_name
+        LIST_TABLES   = 6;
     };
     required MetaQueryType type = 1;
     optional string db_name = 2;

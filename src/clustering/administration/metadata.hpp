@@ -148,6 +148,11 @@ public:
         }
         return it;
     }
+    iterator find_next(iterator start) {
+        iterator it;
+        for (it = start; it != end(); ++it) if (it->second.is_deleted()) continue;
+        return it;
+    }
     template<class callable_t>
     iterator find_uniq(callable_t predicate, const char **out=0) {
         iterator it, retval;

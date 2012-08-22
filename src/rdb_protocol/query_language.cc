@@ -749,7 +749,6 @@ public:
         }
         return true;
     }
-    namespace_predicate_t(): name(0), db_id(0) { }
     explicit namespace_predicate_t(std::string &_name): name(&_name), db_id(0) { }
     explicit namespace_predicate_t(uuid_t &_db_id): name(0), db_id(&_db_id) { }
     namespace_predicate_t(std::string &_name, uuid_t &_db_id):
@@ -788,10 +787,47 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
     const char *status;
     switch(m->type()) {
-    case MetaQuery::CREATE_DB:
-    case MetaQuery::DROP_DB:
-    case MetaQuery::LIST_DBS:
-        unreachable("unimplemented");
+    case MetaQuery::CREATE_DB: {
+        std::string db_name = m->db_name();
+
+        /* Ensure database doesn't already exist. */
+        db_searcher.find_uniq(db_name, &status);
+        meta_check(status, METADATA_ERR_NONE, "CREATE_DB "+db_name, bt);
+
+        /* Create namespace, insert into metadata, then join into real metadata. */
+        database_semilattice_metadata_t db;
+        db.name = vclock_t<std::string>(db_name, env->this_machine);
+        metadata.databases.databases.insert(std::make_pair(generate_uuid(), db));
+        env->semilattice_metadata->join(metadata);
+        res->set_status_code(Response::SUCCESS_EMPTY); //return immediately.
+    } break;
+    case MetaQuery::DROP_DB: {
+        std::string db_name = m->db_name();
+
+        // Get database metadata.
+        metadata_searcher_t<database_semilattice_metadata_t>::iterator
+            db_metadata = db_searcher.find_uniq(db_name, &status);
+        meta_check(status, METADATA_SUCCESS, "DROP_DB "+db_name, bt);
+        rassert(!db_metadata->second.is_deleted());
+
+        // Delete database.
+        db_metadata->second.mark_deleted();
+        env->semilattice_metadata->join(metadata);
+        res->set_status_code(Response::SUCCESS_EMPTY);
+    } break;
+    case MetaQuery::LIST_DBS: {
+        for (metadata_searcher_t<database_semilattice_metadata_t>::iterator
+                 it = db_searcher.find_next(db_searcher.begin());
+             it != db_searcher.end(); it = db_searcher.find_next(++it)) {
+
+            // For each undeleted and unconflicted entry in the metadata, add a response.
+            rassert(!it->second.is_deleted());
+            if (it->second.get().name.in_conflict()) continue;
+            scoped_cJSON_t json(cJSON_CreateString(it->second.get().name.get().c_str()));
+            res->add_response(json.PrintUnformatted());
+        }
+        res->set_status_code(Response::SUCCESS_STREAM);
+    } break;
     case MetaQuery::CREATE_TABLE: {
         std::string dc_name, db_name, table_name, primary_key;
         parse_create_table(m->create_table(),&dc_name,&db_name,&table_name,&primary_key);
@@ -865,6 +901,8 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
                  ::iterator it = ns_searcher.find_next(ns_searcher.begin(), pred);
              it != ns_searcher.end(); it = ns_searcher.find_next(++it, pred)) {
+
+            // For each undeleted and unconflicted entry in the metadata, add a response.
             rassert(!it->second.is_deleted());
             if (it->second.get().name.in_conflict()) continue;
             scoped_cJSON_t json(cJSON_CreateString(it->second.get().name.get().c_str()));
