@@ -180,7 +180,6 @@ int64_t value_size(const char *ref, int maxreflen) {
         rassert(smallsize == maxreflen);
         return blob::big_size(ref, maxreflen);
     }
-    return 0;
 }
 
 
