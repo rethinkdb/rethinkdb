@@ -247,17 +247,17 @@ public:
 
 private:
     /* The constructor spawns `send_intro()` in the background. */
-    void send_intro(
-                    listener_business_card_t<protocol_t> to_send_intro_to,
+    void send_intro(listener_business_card_t<protocol_t> to_send_intro_to,
                     state_timestamp_t intro_timestamp,
                     auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING {
         keepalive.assert_is_holding(&drainer);
+        const int32_t cpu_sharding_factor = 1;
         send(controller->mailbox_manager, to_send_intro_to.intro_mailbox,
-            intro_timestamp,
-            upgrade_mailbox.get_address(),
-            downgrade_mailbox.get_address()
-            );
+             intro_timestamp,
+             cpu_sharding_factor,
+             upgrade_mailbox.get_address(),
+             downgrade_mailbox.get_address());
     }
 
     /* `upgrade()` and `downgrade()` are mailbox callbacks. */

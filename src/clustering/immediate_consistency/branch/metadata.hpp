@@ -144,16 +144,18 @@ public:
                            fifo_enforcer_read_token_t,
                            mailbox_addr_t<void(typename protocol_t::read_response_t)>)> read_mailbox_t;
 
-    /* The master sends a single message to `intro_mailbox` at the very
-    beginning. This tells the mirror what timestamp it's at, and also tells
-    it where to send upgrade/downgrade messages. */
+    /* The master sends a single message to `intro_mailbox` at the
+    very beginning. This tells the mirror what timestamp it's at, the
+    master's cpu sharding subspace count, and also tells it where to
+    send upgrade/downgrade messages. */
 
     typedef mailbox_t<void(typename writeread_mailbox_t::address_t,
                            typename read_mailbox_t::address_t)> upgrade_mailbox_t;
 
     typedef mailbox_t<void(mailbox_addr_t<void()>)> downgrade_mailbox_t;
 
-    typedef mailbox_t<void(state_timestamp_t,
+    typedef mailbox_t<void(state_timestamp_t starting_timestamp,
+                           int32_t cpu_sharding_factor,
                            typename upgrade_mailbox_t::address_t,
                            typename downgrade_mailbox_t::address_t)> intro_mailbox_t;
 

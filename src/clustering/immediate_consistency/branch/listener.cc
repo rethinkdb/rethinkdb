@@ -121,6 +121,8 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     try_start_receiving_writes(broadcaster_metadata, interruptor);
     guarantee(registration_done_cond_.get_ready_signal()->is_pulsed());
 
+    guarantee(registration_done_cond_.get_value().cpu_sharding_factor == 1);
+
     state_timestamp_t streaming_begin_point =
         registration_done_cond_.get_value().broadcaster_begin_timestamp;
 
@@ -250,6 +252,8 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     try_start_receiving_writes(broadcaster_metadata, interruptor);
     guarantee(registration_done_cond_.get_ready_signal()->is_pulsed());
 
+    guarantee(registration_done_cond_.get_value().cpu_sharding_factor == 1);
+
 #ifndef NDEBUG
     region_map_t<protocol_t, version_range_t> expected_initial_metainfo(svs_->get_multistore_joined_region(),
                                                                         version_range_t(version_t(branch_id_,
@@ -314,10 +318,12 @@ class intro_receiver_t : public signal_t {
 public:
     listener_intro_t<protocol_t> intro;
     void fill(state_timestamp_t its,
+              int cpu_sharding_factor,
               typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t um,
               typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
         guarantee(!is_pulsed());
         intro.broadcaster_begin_timestamp = its;
+        intro.cpu_sharding_factor = cpu_sharding_factor;
         intro.upgrade_mailbox = um;
         intro.downgrade_mailbox = dm;
         pulse();
@@ -333,7 +339,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
     intro_receiver_t<protocol_t> intro_receiver;
     typename listener_business_card_t<protocol_t>::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
-                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1, _2, _3));
+                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1, _2, _3, _4));
 
     try {
         registrant_.init(new registrant_t<listener_business_card_t<protocol_t> >(

@@ -40,9 +40,10 @@ There are four ways a `listener_t` can go wrong:
 template <class protocol_t>
 class listener_intro_t {
 public:
+    int cpu_sharding_factor;
+    state_timestamp_t broadcaster_begin_timestamp;
     typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
     typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
-    state_timestamp_t broadcaster_begin_timestamp;
 };
 
 
