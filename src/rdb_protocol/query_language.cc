@@ -709,15 +709,6 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     return js_runner;
 }
 
-void parse_create_table(const MetaQuery::CreateTable &c, std::string *datacenter,
-                        std::string *db_name, std::string *table_name,
-                        std::string *primary_key) {
-    *datacenter = c.datacenter();
-    *db_name = c.table_ref().db_name();
-    *table_name = c.table_ref().table_name();
-    *primary_key = c.primary_key();
-}
-
 class namespace_predicate_t {
 public:
     bool operator()(namespace_semilattice_metadata_t<rdb_protocol_t> ns) {
@@ -818,8 +809,10 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         res->set_status_code(Response::SUCCESS_STREAM);
     } break;
     case MetaQuery::CREATE_TABLE: {
-        std::string dc_name, db_name, table_name, primary_key;
-        parse_create_table(m->create_table(),&dc_name,&db_name,&table_name,&primary_key);
+        std::string dc_name = m->create_table().datacenter();
+        std::string db_name = m->create_table().table_ref().db_name();
+        std::string table_name = m->create_table().table_ref().table_name();
+        std::string primary_key = m->create_table().primary_key();
 
         uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE "+db_name, bt);
         uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name,"FIND_DATACENTER "+dc_name,bt);
