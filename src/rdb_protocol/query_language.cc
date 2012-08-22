@@ -685,8 +685,7 @@ void check_query_type(const Query &q, type_checking_environment_t *env, bool *is
 
 std::string get_primary_key(const std::string &table_name, runtime_environment_t *env, const backtrace_t &backtrace) {
     const char *status;
-    boost::optional< std::pair<namespace_id_t, deletable_t<
-        namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_info =
+    boost::optional< std::pair<namespace_id_t, deletable_t< namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_info =
         metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces,
                              table_name, &status);
 
@@ -735,7 +734,7 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
     case TableopQuery::CREATE: {
         const char *status;
         std::string dc_name, db_name, table_name, primary_key;
-        parse_tableop_create(t->create(),&dc_name,&db_name,&table_name,&primary_key);
+        parse_tableop_create(t->create(), &dc_name, &db_name, &table_name, &primary_key);
 
         //Make sure namespace doesn't exist before we go any further.
         metadata_get_by_name(metadata.rdb_namespaces.namespaces, table_name, &status);
@@ -810,9 +809,8 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
         std::string table_name = t->drop().table_name();
 
         // Get namespace ID.
-        boost::optional<std::pair<uuid_t, deletable_t<
-            namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_metadata =
-            metadata_get_by_name(metadata.rdb_namespaces.namespaces,table_name,&status);
+        boost::optional<std::pair<uuid_t, deletable_t< namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_metadata =
+            metadata_get_by_name(metadata.rdb_namespaces.namespaces, table_name, &status);
         if (!ns_metadata) {
             rassert(status);
             throw runtime_exc_t(strprintf("No table %s found with error: %s",
@@ -2179,10 +2177,8 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 namespace_repo_t<rdb_protocol_t>::access_t eval(
     TableRef *t, runtime_environment_t *env, const backtrace_t &backtrace)
     THROWS_ONLY(runtime_exc_t) {
-    boost::optional<std::pair<namespace_id_t, deletable_t<
-        namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
-        metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces,
-                             t->table_name());
+    boost::optional<std::pair<namespace_id_t, deletable_t< namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
+        metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces, t->table_name());
     if (namespace_info) {
         return namespace_repo_t<rdb_protocol_t>::access_t(
             env->ns_repo, namespace_info->first, env->interruptor);
