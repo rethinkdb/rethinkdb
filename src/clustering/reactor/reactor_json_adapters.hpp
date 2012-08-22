@@ -1,5 +1,5 @@
-#ifndef CLUSTERING_REACTOR_JSON_ADAPTERS_HPP_
-#define CLUSTERING_REACTOR_JSON_ADAPTERS_HPP_
+#ifndef CLUSTERING_REACTOR_REACTOR_JSON_ADAPTERS_HPP_
+#define CLUSTERING_REACTOR_REACTOR_JSON_ADAPTERS_HPP_
 
 #include "clustering/reactor/metadata.hpp"
 #include "http/json.hpp"
@@ -137,4 +137,4 @@ void apply_json_to(cJSON *, reactor_business_card_t<protocol_t> *);
 template <class protocol_t>
 void on_subfield_change(reactor_business_card_t<protocol_t> *);
 
-#endif /* CLUSTERING_REACTOR_JSON_ADAPTERS_HPP_ */
+#endif /* CLUSTERING_REACTOR_REACTOR_JSON_ADAPTERS_HPP_ */
