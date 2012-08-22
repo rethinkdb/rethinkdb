@@ -317,7 +317,7 @@ class RDBTest(unittest.TestCase):
         for doc in docs:
             self.expect(self.table.get(doc['id']), doc)
 
-        self.expect(self.table.distinct('a'), [3, 9])
+        self.expect(self.table.map(R("a")).distinct(), [3, 9])
 
         self.expect(self.table.filter({"a": 3}), [docs[0]])
 
@@ -435,10 +435,10 @@ class RDBTest(unittest.TestCase):
     def test_range(self):
         self.clear_table()
 
-        docs = [{"id": n, "a": -n} for n in range(10)]
+        docs = [{"id": n, "a": "x" * n} for n in range(10)]
         self.do_insert(docs)
 
-        self.expect(self.table.between(2, 3), docs[2:4])
+        self.expect(self.table.range(2, 3), docs[2:4])
 
     def test_js(self):
         self.expect(js('2'), 2)
