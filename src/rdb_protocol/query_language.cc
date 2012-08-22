@@ -2169,6 +2169,9 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
         case Builtin::ARRAYTOSTREAM:
             {
                 boost::shared_ptr<scoped_cJSON_t> array = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
+                if (array->get()->type != cJSON_Array) {
+                    throw runtime_exc_t("TO_STREAM called on non-array", backtrace);
+                }
                 json_array_iterator_t it(array->get());
 
                 return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it));
