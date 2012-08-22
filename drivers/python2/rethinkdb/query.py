@@ -12,11 +12,11 @@ class BaseQuery(object):
     the query object itself.
 
     There are two types of queries: expressions and write queries. Expressions
-    are instances of :class:`JSONExpression` or :class:`Stream`. They can be as
-    simple as fetching a single document, or even just doing some arithmetic
-    server-side, or as complicated as joins involving subqueries and multiple
-    tables, but expressions never modify the database. Write queries are
-    instances of :class:`WriteQuery`."""
+    are instances of :class:`JSONExpression` or :class:`StreamExpression`. They
+    can be as simple as fetching a single document, or even just doing some
+    arithmetic server-side, or as complicated as joins involving subqueries and
+    multiple tables, but expressions never modify the database. Write queries
+    are instances of :class:`WriteQuery`."""
 
     def _finalize_query(self, root):
         raise NotImplementedError()
@@ -55,16 +55,16 @@ class BaseExpression(BaseQuery):
     def _make_selector(self, inner):
         if isinstance(self, MultiRowSelection):
             return MultiRowSelection(inner)
-        elif isinstance(self, Stream):
-            return Stream(inner)
+        elif isinstance(self, StreamExpression):
+            return StreamExpression(inner)
         elif isinstance(self, JSONExpression):
             return JSONExpression(inner)
         else:
             raise TypeError("unexpected subtype")
 
     def _make_transform(self, inner):
-        if isinstance(self, Stream):
-            return Stream(inner)
+        if isinstance(self, StreamExpression):
+            return StreamExpression(inner)
         elif isinstance(self, JSONExpression):
             return JSONExpression(inner)
         else:
@@ -83,7 +83,7 @@ class BaseExpression(BaseQuery):
         :type start_inclusive: bool
         :param end_inclusive: if True, includes rows with `end_key`
         :type end_inclusive: bool
-        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
+        :returns: :class:`StreamExpression`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
 
         >>> table('users').between(10, 20) # all users with ids between 10 and 20
         >>> expr([1, 2, 3, 4]).between(2, 4) # [2, 3, 4]
@@ -143,7 +143,7 @@ class BaseExpression(BaseQuery):
 
         :param selector: the constraint
         :type selector: dict, :class:`JSONExpression`
-        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
+        :returns: :class:`StreamExpression`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
         """
         if isinstance(selector, dict):
             selector = JSONExpression(internal.All(*[R(k) == v for k, v in selector.iteritems()]))
@@ -189,7 +189,7 @@ class BaseExpression(BaseQuery):
 
         :param offset: The number of elements to skip.
         :type offset: int
-        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
+        :returns: :class:`StreamExpression`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
 
         """
         return self[offset:]
@@ -203,7 +203,7 @@ class BaseExpression(BaseQuery):
 
         :param count: The number of elements to select.
         :type count: int
-        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
+        :returns: :class:`StreamExpression`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
         """
         return self[:count]
 
@@ -217,7 +217,7 @@ class BaseExpression(BaseQuery):
 
         :param ordering: attribute names to order by
         :type ordering: list(str)
-        :returns: :class:`Stream`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
+        :returns: :class:`StreamExpression`, :class:`MultiRowSelection`, :class:`JSONExpression` (depends on input)
 
         >>> table('users').orderby('name')  # order users by name A-Z
         >>> table('users').orderby('-level', 'name') # levels high-low, then names A-Z
@@ -236,7 +236,7 @@ class BaseExpression(BaseQuery):
 
         :param mapping: The expression to evaluate
         :type mapping: :class:`JSONExpression`
-        :returns: :class:`Stream`, :class:`JSONExpression` (depends on input)
+        :returns: :class:`StreamExpression`, :class:`JSONExpression` (depends on input)
 
         >>> expr([1, 2, 3]).map(R('@') * 2) # gives JSONExpression evaluating to [2, 4, 6]
         >>> table('users').map(R('age'))
@@ -253,7 +253,7 @@ class BaseExpression(BaseQuery):
 
         :param mapping: The mapping to evaluate
         :type mapping: :class:`StreamFunction`   # TODO fixme
-        :returns: :class:`Stream`
+        :returns: :class:`StreamExpression`
 
         >>> expr([1, 2, 3]).concat_map(fn("a", expr([R("$a"), "test"]).to_stream())).run()
         [1, "test", 2, "test", 3, "test"]
@@ -317,7 +317,7 @@ class BaseExpression(BaseQuery):
 
         :param attrs: The attributes to find distinct combinations of.
         :type attrs: str
-        :returns: :class:`Stream`, class `JSONExpression` (depends on input)
+        :returns: :class:`StreamExpression`, class `JSONExpression` (depends on input)
         """
         if attrs:
             return self.pluck(*attrs).distinct()
@@ -361,7 +361,7 @@ class JSONExpression(BaseExpression):
 
     def to_stream(self):
         """Convert a JSON array into a stream."""
-        return Stream(internal.ToStream(self))
+        return StreamExpression(internal.ToStream(self))
 
     def __lt__(self, other):
         return JSONExpression(internal.CompareLT(self, other))
@@ -423,7 +423,7 @@ class JSONExpression(BaseExpression):
     def append(self, other):
         return JSONExpression(internal.Append(self, other))
 
-class Stream(BaseExpression):
+class StreamExpression(BaseExpression):
     """A sequence of JSON values which can be read."""
     def to_array(self):
         """Convert the stream into a JSON array."""
@@ -452,11 +452,12 @@ def if_then_else(test, true_branch, false_branch):
     `true_branch` and `false_branch` can be any subclass of
     :class:`BaseExpression`. They need not be the same, but they must be
     convertible to the same type; the type that they can both be converted to
-    will be the return type of `if_then_else()`. So if one is a :class:`Stream`
-    and the other is a :class:`MultiRowSelection`, the result will be a
-    :class:`Stream`. But if one is a :class:`Stream` and the other is a
-    :class:`JSONExpression`, then `if_then_else()` will throw an exception
-    rather than return an expression object at all.
+    will be the return type of `if_then_else()`. So if one is a
+    :class:`StreamExpression` and the other is a :class:`MultiRowSelection`, the
+    result will be a :class:`StreamExpression`. But if one is a
+    :class:`StreamExpression` and the other is a :class:`JSONExpression`, then
+    `if_then_else()` will throw an exception rather than return an expression
+    object at all.
 
     :param test: The condition to switch on
     :type test: :class:`JSONExpression`
@@ -465,11 +466,11 @@ def if_then_else(test, true_branch, false_branch):
     """
     if isinstance(true_branch, MultiRowSelection) and isinstance(false_branch, MultiRowSelection):
         t = MultiRowSelection
-    elif isinstance(true_branch, Stream) and isinstance(false_branch, Stream):
-        t = Stream
+    elif isinstance(true_branch, StreamExpression) and isinstance(false_branch, StreamExpression):
+        t = StreamExpression
     elif isinstance(true_branch, RowSelection) and isinstance(false_branch, RowSelection):
         t = RowSelection
-    elif not isinstance(true_branch, Stream) and not isinstance(false_branch, Stream):
+    elif not isinstance(true_branch, StreamExpression) and not isinstance(false_branch, StreamExpression):
         true_branch = expr(true_branch)
         false_branch = expr(false_branch)
         t = JSONExpression
@@ -554,8 +555,8 @@ def let(*bindings):
         raise ValueError("need at least one binding")
     if isinstance(body, MultiRowSelection):
         t = MultiRowSelection
-    elif isinstance(body, Stream):
-        t = Stream
+    elif isinstance(body, StreamExpression):
+        t = StreamExpression
     elif isinstance(body, RowSelection):
         t = RowSelection
     else:
@@ -581,7 +582,7 @@ def fn(*x):
     """
     body = x[-1]
     args = x[:-1]
-    if isinstance(body, Stream):
+    if isinstance(body, StreamExpression):
         return StreamFunction(body, *args)
     else:
         return JSONFunction(body, *args)
@@ -610,7 +611,7 @@ class JSONFunction(object):
 class StreamFunction(object):
     """TODO document me"""
     def __init__(self, body, *args):
-        assert isinstance(body, Stream)
+        assert isinstance(body, StreamExpression)
         self.body = body
         self.args = args
 
@@ -649,7 +650,7 @@ class BaseSelection(object):
 class RowSelection(JSONExpression, BaseSelection):
     """A single row from a table which can be read or written."""
 
-class MultiRowSelection(Stream, BaseSelection):
+class MultiRowSelection(StreamExpression, BaseSelection):
     """A sequence of rows which can be read or written."""
 
 class WriteQuery(BaseQuery):
