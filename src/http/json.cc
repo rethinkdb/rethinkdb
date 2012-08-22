@@ -184,6 +184,19 @@ cJSON *merge(cJSON *x, cJSON *y) {
     return res;
 }
 
+std::string cJSON_type_to_string(int type) {
+    switch (type) {
+    case cJSON_False: return "bool"; break;
+    case cJSON_True: return "bool"; break;
+    case cJSON_NULL: return "null"; break;
+    case cJSON_Number: return "number"; break;
+    case cJSON_String: return "string"; break;
+    case cJSON_Array: return "array"; break;
+    case cJSON_Object: return "object"; break;
+    default: unreachable(); break;
+    }
+}
+
 write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
     msg << cjson.type;
 

@@ -34,6 +34,8 @@ private:
     backtrace_t backtrace;
 };
 
+void require_type(const cJSON *, int type, const backtrace_t &);
+
 } //namespace query_language
 
 #endif /* RDB_PROTOCOL_JSON_HPP_ */
