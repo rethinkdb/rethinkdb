@@ -33,6 +33,10 @@
 #include "http/json/cJSON.hpp"
 #include "errors.hpp"
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunreachable-code"
+#endif
+
 static const char *ep;
 
 const char *cJSON_GetErrorPtr() {return ep;}
