@@ -470,6 +470,7 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_
                                    order_token_t order_token,
                                    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    // RSI: for each store, check if region is empty before creating internal read tokens
     scoped_array_t<fifo_enforcer_read_token_t> internal_tokens;
     switch_read_tokens(external_token, interruptor, &order_token, &internal_tokens);
 
