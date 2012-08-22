@@ -38,10 +38,6 @@ lib: query_language.pb.js
 query_language.pb.js: $(PROTO_FILE)
 	$(PROTOC_JS) -I $(PROTO_FILE_DIR)  --js_out=rethinkdb $(PROTO_FILE)
 
-test:
-	$(CLOSURE_BUILDER) --root=$(CLOSURE_LIB) --root=rethinkdb/ --namespace=rethinkdb_test \
-	--output_mode=script > rethinkdb-test.js \
-
 clean:
 	rm -rf rethinkdb.js
 	rm -rf rethinkdb.js.map

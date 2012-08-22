@@ -18,6 +18,7 @@ rethinkdb.net.connect = function(host_or_list, onConnect, onFailure) {
 
 /**
  * Reference to the last created connection.
+ * @type {?rethinkdb.net.Connection}
  * @export
  */
 rethinkdb.net.last_connection = null;

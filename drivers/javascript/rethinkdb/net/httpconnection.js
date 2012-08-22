@@ -94,7 +94,7 @@ rethinkdb.net.HttpConnection.prototype.send_ = function(data) {
 /**
  * @override
  */
-rethinkdb.net.TcpConnection.prototype.close = function() {
+rethinkdb.net.HttpConnection.prototype.close = function() {
     if (!this.url_)
         throw "Connection not open";
 

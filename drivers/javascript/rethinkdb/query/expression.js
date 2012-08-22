@@ -25,7 +25,7 @@ rethinkdb.query.Expression.prototype.compile = goog.abstractMethod;
 /** @return {!Query} */
 rethinkdb.query.Expression.prototype.buildQuery = goog.abstractMethod;
 
-/** 
+/**
  * @constructor
  * @extends {rethinkdb.query.Expression}
  */
@@ -48,7 +48,7 @@ rethinkdb.query.ReadExpression.prototype.buildQuery = function() {
     return query;
 };
 
-/** 
+/**
  * @constructor
  * @extends {rethinkdb.query.Expression}
  */
@@ -85,7 +85,7 @@ function makeBinaryConstructor() {
      */
     return function(left, right) {
         this.left_ = left;
-        this.right_ = right;   
+        this.right_ = right;
     };
 }
 
@@ -216,7 +216,7 @@ rethinkdb.query.LengthExpression.prototype.compile = function() {
     var call = new Term.Call();
     call.setBuiltin(builtin);
     call.addArgs(this.leftExpr_.compile());
-    
+
     var term = new Term();
     term.setType(Term.TermType.CALL);
     term.setCall(call);
@@ -290,7 +290,10 @@ rethinkdb.query.AllExpression = function(var_args) {
 goog.inherits(rethinkdb.query.AllExpression, rethinkdb.query.BooleanExpression);
 
 rethinkdb.query.Expression.prototype.and = function(predicate) {
-    return new rethinkdb.query.AllExpression(this, predicate);
+    if (predicate instanceof rethinkdb.query.Expression)
+        return new rethinkdb.query.AllExpression(this, predicate);
+    else
+        return new rethinkdb.query.AllExpression(this, rethinkdb.query.expr(predicate));
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'and',
                     rethinkdb.query.Expression.prototype.and);
@@ -307,7 +310,10 @@ rethinkdb.query.AnyExpression = function(var_args) {
 goog.inherits(rethinkdb.query.AnyExpression, rethinkdb.query.BooleanExpression);
 
 rethinkdb.query.Expression.prototype.or = function(predicate) {
-    return new rethinkdb.query.AnyExpression(this, predicate);
+    if (predicate instanceof rethinkdb.query.Expression)
+        return new rethinkdb.query.AnyExpression(this, predicate);
+    else
+        return new rethinkdb.query.AnyExpression(this, rethinkdb.query.expr(predicate));
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'or',
                     rethinkdb.query.Expression.prototype.or);

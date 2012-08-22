@@ -3,5 +3,9 @@ var te = require('./encoding.js');
 global.TextEncoder = te.TextEncoder;
 global.TextDecoder = te.TextDecoder;
 
+global.exit = function() {
+    process.exit();
+}
+
 global.rethinkdb = require('./rethinkdb');
-var tests = require('./rethinkdb');
+require('./rethinkdb/test.js');

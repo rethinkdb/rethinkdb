@@ -10,13 +10,14 @@ goog.require('rethinkdb.net.Connection');
  * @export
  */
 rethinkdb.net.TcpConnection = function(host_or_list, onConnect, onFailure) {
-	var /** @const */ DEFAULT_PORT = 11211;
+	var /** @const */ DEFAULT_PORT = 12346;
 	var /** @const */ DEFAULT_HOST = 'localhost';
 
     goog.base(this, null);
 
     this.recvBuffer_ = null;
     this.revdD_ = 0;
+    this.socket_ = null;
 
 	var self = this;
 
