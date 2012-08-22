@@ -21,7 +21,7 @@ template <class> class multistore_ptr_t;
 struct mailbox_manager_t;
 
 template<class protocol_t>
-class broadcaster_t : public home_thread_mixin_t {
+class broadcaster_t : public home_thread_mixin_debug_only_t {
 private:
     class incomplete_write_t;
 

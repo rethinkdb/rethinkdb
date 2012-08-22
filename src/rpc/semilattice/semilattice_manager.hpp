@@ -31,10 +31,7 @@ Currently it's not thread-safe at all; all accesses to the metadata must be on
 the home thread of the `semilattice_manager_t`. */
 
 template<class metadata_t>
-class semilattice_manager_t :
-    public home_thread_mixin_t,
-    public message_handler_t,
-    private peers_list_callback_t {
+class semilattice_manager_t : public home_thread_mixin_t, public message_handler_t, private peers_list_callback_t {
 public:
     semilattice_manager_t(message_service_t *service, const metadata_t &initial_metadata);
     ~semilattice_manager_t() THROWS_NOTHING;

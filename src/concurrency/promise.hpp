@@ -9,7 +9,7 @@
 is transmitted to the thing waiting on the condition variable. */
 
 template <class val_t>
-struct promise_t : public home_thread_mixin_t {
+struct promise_t : public home_thread_mixin_debug_only_t {
 
     promise_t() { }
     void pulse(const val_t &v) {

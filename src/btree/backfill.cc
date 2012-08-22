@@ -14,7 +14,7 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "protocol_api.hpp"
 
-struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
+struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_debug_only_t {
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null, DEBUG_ONLY_VAR int *population_change_out) {
         assert_thread();
         rassert(*population_change_out == 0);

@@ -16,7 +16,7 @@
  * needed for linux_event_watcher_t is not in place (eg. external JS processes).
  */
 
-class fd_watcher_t : public home_thread_mixin_t {
+class fd_watcher_t : public home_thread_mixin_debug_only_t {
   public:
     fd_watcher_t() {}
     virtual ~fd_watcher_t() {}

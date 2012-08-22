@@ -35,7 +35,7 @@ private:
     DISABLE_COPYING(linux_disk_manager_t);
 };
 
-class io_backender_t : public home_thread_mixin_t {
+class io_backender_t : public home_thread_mixin_debug_only_t {
 public:
     virtual void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
                                    perfmon_collection_t *stats,
