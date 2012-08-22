@@ -133,15 +133,15 @@ template<class T>
 class metadata_searcher_t {
 public:
     typedef std::map<uuid_t, deletable_t<T> > metamap_t;
-    typedef typename metamap_t::const_iterator const_iterator;
-    const_iterator begin() const {return map.begin();}
-    const_iterator end() const {return map.end();}
+    typedef typename metamap_t::iterator iterator;
+    iterator begin() {return map->begin();}
+    iterator end() {return map->end();}
 
-    explicit metadata_searcher_t(const metamap_t &_map): map(_map) { }
+    explicit metadata_searcher_t(metamap_t *_map): map(_map) { }
 
     template<class callable_t>
-    const_iterator find_next(const_iterator start, callable_t predicate) const {
-        const_iterator it;
+    iterator find_next(iterator start, callable_t predicate) {
+        iterator it;
         for (it = start; it != end(); ++it) {
             if (it->second.is_deleted()) continue;
             if (predicate(it->second.get())) break;
@@ -149,8 +149,8 @@ public:
         return it;
     }
     template<class callable_t>
-    const_iterator find_uniq(callable_t predicate, const char **out=0) const {
-        const_iterator it, retval;
+    iterator find_uniq(callable_t predicate, const char **out=0) {
+        iterator it, retval;
         if (out) *out = METADATA_SUCCESS;
         retval = it = find_next(begin(), predicate);
         if (it == end()) {
@@ -161,6 +161,9 @@ public:
         }
         return retval;
     }
+    iterator find_uniq(const std::string &name, const char **out=0) {
+        return find_uniq(name_predicate_t(name), out);
+    }
 
     struct name_predicate_t {
         bool operator()(T metadata) {
@@ -170,11 +173,8 @@ public:
     private:
         const std::string &name;
     };
-    const_iterator find_uniq_name(const std::string &name, const char **out=0) const {
-        return find_uniq(name_predicate_t(name), out);
-    }
 private:
-    const metamap_t &map;
+    metamap_t *map;
 };
 
 /* If a name uniquely identifies an entry then return it, otherwise

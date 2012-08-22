@@ -567,13 +567,11 @@ class ClientTest < Test::Unit::TestCase
     table_name = rand().to_s
     wdb=r.db('Welcome-db')
     orig_lst = wdb.list_tables.run
-    PP.pp orig_lst
     assert_equal(wdb.create_table(table_name).run, nil)
     assert_raise(RuntimeError){wdb.create_table(table_name).run}
     lst = wdb.list_tables.run
     assert_equal(orig_lst.length+1, lst.length)
-    obj = lst.find{|x| x['table_name'] == table_name}
-    assert_equal(obj['conflicted'], false)
+    assert_equal(lst.include?(table_name), true)
     rdb2.delete.run
 
     $data = []
