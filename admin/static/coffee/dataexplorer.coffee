@@ -22,8 +22,7 @@ generate_string = (n) ->
 
     return result
 
-
-
+#TODO Close connection
 #TODO destroy views
 #TODO maintain data
 module 'DataExplorerView', ->
@@ -49,6 +48,146 @@ module 'DataExplorerView', ->
             'click .change_size': 'toggle_size'
 
         displaying_full_view: false
+
+        suggestions:
+            stream: [
+                {
+                    suggestion: 'between'
+                    description: ''
+                }
+                ,
+                {
+                    suggestion: 'distinct'
+                    description: ''
+                }
+                ,
+                {
+                    suggestion: 'filter'
+                    description: ''
+                }
+                {
+                    suggestion: 'length'
+                    description: ''}
+                {
+                    suggestion: 'limit'
+                    description: ''
+                }
+                {
+                    suggestion: 'map'
+                    description: ''
+                }
+                {
+                    suggestion: 'orderby'
+                    description: ''
+                }
+                {
+                    suggestion: 'reduce'
+                    description: ''}
+                {
+                    suggestion: 'skip'
+                    description: ''
+                }
+                {
+                    suggestion: 'slice'
+                    description: ''}
+            ]
+            array: [
+            ]
+            view:[
+                {}
+            ]
+            database:[
+            ]
+            table:[
+                {
+                    suggestion: 'get'
+                    description: ''}
+                {
+                    suggestion: 'insert'
+                    description: ''}
+            ]
+            r:[
+                {
+                    suggestion: 'add'
+                    description: ''
+                }
+                {
+                    suggestion: 'and'
+                    description: ''
+                }
+                {
+                    suggestion: 'div'
+                    description: ''
+                }
+                {
+                    suggestion: 'eq'
+                    description: ''
+                }
+                {
+                    suggestion: 'ga'
+                    description: ''
+                }
+                {
+                    suggestion: 'ge'
+                    description: ''
+                }
+                {
+                    suggestion: 'gt'
+                    description: ''
+                }
+                {
+                    suggestion: 'le'
+                    description: ''
+                }
+                {
+                    suggestion: 'le'
+                    description: ''
+                }
+                {
+                    suggestion: 'lt'
+                    description: ''
+                }
+                {
+                    suggestion: 'mod'
+                    description: ''
+                }
+                {
+                    suggestion: 'mul'
+                    description: ''
+                }
+                {
+                    suggestion: 'na'
+                    description: ''
+                }
+                {
+                    suggestion: 'ne'
+                    description: ''
+                }
+                {
+                    suggestion: 'not'
+                    description: ''
+                }
+                {
+                    suggestion: 'nth'
+                    description: ''
+                }
+                {
+                    suggestion: 'oa'
+                    description: ''
+                }
+                {
+                    suggestion: 'or'
+                    description: ''
+                }
+                {
+                    suggestion: 'sub'
+                    description: ''
+                }
+            ]
+            nothing:[
+                suggestion: 'r'
+                description : ''
+            ]
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []
@@ -199,77 +338,29 @@ module 'DataExplorerView', ->
             #TODO retrieve real data when API is ready
             if /^(\s*)$/.test query
                 suggestions = []
-                suggestions.push
-                    suggestion: "r"
-                    description: "You have to choose a cursor"
-                    
-                suggestions.push
-                    suggestion:"c"
-                    description: "Whatever help you need"
+                suggestions = @suggestions['nothing']
                 query = ''
                 @append_suggestion(query, suggestions)
             else if /^(r\.)[^\.]*$/.test query
                 suggestions = []
-                suggestions.push
-                    suggestion: "database"
-                    description: "You have to choose a database"
-                suggestions.push
-                    suggestion: "donutman"
-                    description: "You have to choose a database"
-                suggestions.push
-                    suggestion: "omega3"
-                    description: "You have to choose a database"
-                suggestions.push
-                    suggestion: "dragonstrike"
-                    description: "You have to choose a database"
-                suggestions.push
-                    suggestion: "datalog"
-                    description: "You have to choose a database"
-                suggestions.push
-                    suggestion: "dartagnan"
-                    description: "You have to choose a database"
-                @append_suggestion(query, suggestions)
-            else if /^(c\.)[^\.]*$/.test query
-                suggestions.push
-                    suggestion: "database"
-                    description: "You have to choose a database"
-                suggestions.push
-                    suggestion: "donutman"
-                    description: "You have to choose a database"
-                suggestions.push
-                    suggestion: "omega3"
-                    description: "You have to choose a database"
-                suggestions.push
-                    suggestion: "dragonstrike"
-                    description: "You have to choose a database"
-                suggestions.push
-                    suggestion: "datalog"
-                    description: "You have to choose a database"
-                suggestions.push
-                    suggestion: "dartagnan"
-                    description: "You have to choose a database"
+                for suggestion in @suggestions['r']
+                    suggestions.push suggestion
+                for database in databases.models
+                    suggestions.unshift
+                        suggestion: 'db(\''+database.get('name')+'\')'
+                        description: 'Select database '+database.get('name')
                 @append_suggestion(query, suggestions)
             else if /^(r\.)[^\.]*\.[^\.]*$/.test query
                 suggestions = []
+                for surggestion in @suggestions['database']
+                    suggestions.push suggestion
                 for namespace in namespaces.models
-                    suggestions.push 
-                        suggestion: namespace.get "name"
-                        description: "You have to choose a namespace"
+                    suggestions.unshift
+                        suggestion: 'table(\''+namespace.get('name')+'\')'
+                        description: 'Select table '+namespace.get('name')
                 @append_suggestion(query, suggestions)
             else if /^(r\.)[^\.]*\.[^\.]*\..*$/.test query
-                suggestions = []
-                suggestions.push
-                    suggestion: "filter("
-                    description: "filter( {attribute: value}"
-                suggestions.push
-                    suggestion: "find("
-                    description: "find ( id )"
-                suggestions.push
-                    suggestion: "plot("
-                    description: "plot ( x: blabla, y: blabla)"
-                suggestions.push
-                    suggestion: "update("
-                    description: "update( where, attribute, value )"
+                suggestions = @suggestions['stream']
                 @append_suggestion(query, suggestions)
             else
                 @hide_suggestion()
@@ -305,19 +396,35 @@ module 'DataExplorerView', ->
             return
 
 
+        callback_render: (data) =>
+            @data_container.render(@query, data)
 
         execute_query: =>
-            console.log 'executing query'
-            callback = msg ->
-                console.log msg
+            window.result = {}
 
-            conn = new rethinkdb.net.HttpConnection 'http://newton:23000/', ''
-            q = rethinkdb.query
-            q(1).add(3).run(print)
+            @query = @.$('.input_query').val()
+            full_query = @query + '.run(this.callback_render)'
+            try
+                eval(full_query)
+            catch err
+                @data_container.render_error(err)
 
-            
 
             ###
+            welcome = q.table('Welcome-rdb')
+
+            for i in [0..20]
+                welcome.insert({id: i, num: 20-i}).run()
+
+            welcome.length().run(print)
+            welcome.filter({'id': 1}).run(print)
+            welcome.filter().run(print)
+
+
+            query = @.$('.input_query').val() + '.run(call)'
+            eval(query)
+            @data_container.render(query, result)
+
             query = @.$('.input_query').val()
             @data_container.add_query(query)
             window.router.sidebar.add_query(query)
@@ -384,7 +491,22 @@ module 'DataExplorerView', ->
             ###
 
         clear_query: =>
-            @.$('.input_query').val ''
+            #TODO remove when not testing
+            welcome = @r.table('Welcome-rdb')
+            welcome.insert({
+                id: generate_id(25)
+                name: generate_string(9)+' '+generate_string(9)
+                mail: generate_string(8)+'@'+generate_string(6)+'.com'
+                age: generate_number(100)
+                possess_car: false
+                driver_license: null
+                phone:
+                    home: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
+                    mobile: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
+                website: 'http://www.'+generate_string(12)+'.com'
+                }).run()
+
+            #@.$('.input_query').val ''
             @.$('.input_query').focus()
 
     
@@ -403,6 +525,12 @@ module 'DataExplorerView', ->
 
         initialize: =>
             log_initial '(initializing) dataexplorer view:'
+            window.conn = new rethinkdb.net.HttpConnection 'http://newton:35457/', ''
+            window.r = rethinkdb.query
+
+
+            # TODO Remove when not testing
+            @id = 0
 
             #TODO Make this little thing prettier
             @unsafe_to_safe_regexstr = []
@@ -506,6 +634,7 @@ module 'DataExplorerView', ->
 
     class @DataContainer extends Backbone.View
         className: 'data_container'
+        error_template: Handlebars.compile $('#dataexplorer-error-template').html()
 
         initialize: ->
             @default_view = new DataExplorerView.DefaultView
@@ -521,6 +650,11 @@ module 'DataExplorerView', ->
             else
                 @.$el.html @default_view.render().el
 
+            return @
+
+        render_error: (err) =>
+            @.$el.html @error_template 
+                error: err.toString()
             return @
 
         destroy: =>
@@ -609,7 +743,8 @@ module 'DataExplorerView', ->
                     if typeof value[key] is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(value[key]) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(value[key]))
                         sub_values[sub_values.length-1]['no_comma'] = true
 
-                sub_values[sub_values.length-1]['no_comma'] = true
+                if sub_values.length isnt 0
+                    sub_values[sub_values.length-1]['no_comma'] = true
 
                 data =
                     no_values: false
@@ -643,14 +778,20 @@ module 'DataExplorerView', ->
 
 
         json_to_table: (result) =>
+            if not (result.constructor? and result.constructor is Array)
+                result = [result]
+
             map = {}
             for element in result
-                for key of element
-                    if map[key]?
-                        map[key]++
-                    else
-                        map[key] = 1
-            
+                if jQuery.isPlainObject(element)
+                    for key of element
+                        if map[key]?
+                            map[key]++
+                        else
+                            map[key] = 1
+                else
+                    map['_anonymous object'] = Infinity
+
             keys_sorted = []
             for key of map
                 keys_sorted.push [key, map[key]]
@@ -689,7 +830,10 @@ module 'DataExplorerView', ->
                 new_document.cells = []
                 for key_container, col in keys_stored
                     key = key_container[0]
-                    value = element[key]
+                    if key is '_anonymous object'
+                        value = element
+                    else
+                        value = element[key]
 
                     new_document.cells.push @json_to_table_get_td_value value, col
 
@@ -888,10 +1032,13 @@ module 'DataExplorerView', ->
             @.$('.raw_view_textarea').html JSON.stringify @current_result
  
             if !type?
+                type = 'json'
+                ### No table view per default
                 if @current_result.length is 1
                     type = "json"
                 else
                     type = "table"
+                ###
 
 
             #TODO We should really remove bootstraps...
