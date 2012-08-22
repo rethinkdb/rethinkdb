@@ -631,17 +631,17 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
 void check_meta_query_type(const MetaQuery &t) {
     check_protobuf(MetaQuery::MetaQueryType_IsValid(t.type()));
     switch(t.type()) {
-    case MetaQuery::CREATE_DB: unreachable("unimplemented");
+    case MetaQuery::CREATE_DB:
         check_protobuf(t.has_db_name());
         check_protobuf(!t.has_create_table());
         check_protobuf(!t.has_drop_table());
         break;
-    case MetaQuery::DROP_DB: unreachable("unimplemented");
+    case MetaQuery::DROP_DB:
         check_protobuf(t.has_db_name());
         check_protobuf(!t.has_create_table());
         check_protobuf(!t.has_drop_table());
         break;
-    case MetaQuery::LIST_DBS: unreachable("unimplemented");
+    case MetaQuery::LIST_DBS:
         check_protobuf(!t.has_db_name());
         check_protobuf(!t.has_create_table());
         check_protobuf(!t.has_drop_table());

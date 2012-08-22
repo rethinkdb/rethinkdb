@@ -150,7 +150,7 @@ public:
     }
     iterator find_next(iterator start) {
         iterator it;
-        for (it = start; it != end(); ++it) if (it->second.is_deleted()) continue;
+        for (it = start; it != end(); ++it) if (!it->second.is_deleted()) break;
         return it;
     }
     template<class callable_t>

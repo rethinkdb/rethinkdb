@@ -424,5 +424,14 @@ module RethinkDB
     def ge(*args)
       JSON_Expression.new [:call, [:compare, :ge], args.map{|x| S.r x}]
     end
+
+    # Create a new database
+    def create_db(db_name); Meta_Query.new [:create_db, db_name]; end
+
+    # List all databases
+    def list_dbs(); Meta_Query.new [:list_dbs]; end
+
+    # Drop a database
+    def drop_db(db_name); Meta_Query.new [:drop_db, db_name]; end
   end
 end
