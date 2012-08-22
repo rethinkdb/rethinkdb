@@ -1,6 +1,7 @@
 #ifndef RDB_PROTOCOL_PROTOCOL_HPP_
 #define RDB_PROTOCOL_PROTOCOL_HPP_
 
+#include <algorithm>
 #include <list>
 #include <map>
 #include <string>

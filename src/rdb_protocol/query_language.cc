@@ -685,7 +685,7 @@ void check_query_type(const Query &q, type_checking_environment_t *env, bool *is
 
 std::string get_primary_key(const std::string &table_name, runtime_environment_t *env, const backtrace_t &backtrace) {
     const char *status;
-    boost::optional<std::pair<namespace_id_t, deletable_t<
+    boost::optional< std::pair<namespace_id_t, deletable_t<
         namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_info =
         metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces,
                              table_name, &status);

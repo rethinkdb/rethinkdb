@@ -77,4 +77,4 @@ private:
 
 }  // namespace query_language
 
-#endif
+#endif  // RDB_PROTOCOL_TRANSFORM_VISITORS_HPP_
