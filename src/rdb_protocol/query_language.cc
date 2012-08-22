@@ -809,6 +809,16 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
             db_metadata = db_searcher.find_uniq(db_name, &status);
         meta_check(status, METADATA_SUCCESS, "DROP_DB "+db_name, bt);
         rassert(!db_metadata->second.is_deleted());
+        uuid_t db_id = db_metadata->first;
+
+        // Delete all tables in database.
+        namespace_predicate_t pred(db_id);
+        for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+                 ::iterator it = ns_searcher.find_next(ns_searcher.begin(), pred);
+             it != ns_searcher.end(); it = ns_searcher.find_next(++it, pred)) {
+            rassert(!it->second.is_deleted());
+            it->second.mark_deleted();
+        }
 
         // Delete database.
         db_metadata->second.mark_deleted();
@@ -2209,18 +2219,22 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 }
 
 namespace_repo_t<rdb_protocol_t>::access_t eval(
-    TableRef *t, runtime_environment_t *env, const backtrace_t &backtrace)
+    TableRef *t, runtime_environment_t *env, const backtrace_t &bt)
     THROWS_ONLY(runtime_exc_t) {
-    boost::optional<std::pair<namespace_id_t, deletable_t<
-        namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
-        metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces,
-                             t->table_name());
-    if (namespace_info) {
-        return namespace_repo_t<rdb_protocol_t>::access_t(
-            env->ns_repo, namespace_info->first, env->interruptor);
-    } else {
-        throw runtime_exc_t(strprintf("Namespace %s either not found, ambiguous or namespace metadata in conflict.", t->table_name().c_str()), backtrace);
-    }
+    std::string table_name = t->table_name();
+    std::string db_name = t->db_name();
+
+    cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
+    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+        ns_searcher(&metadata.rdb_namespaces.namespaces);
+    metadata_searcher_t<database_semilattice_metadata_t>
+        db_searcher(&metadata.databases.databases);
+
+    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "EVAL_DB "+db_name, bt);
+    namespace_predicate_t pred(table_name, db_id);
+    uuid_t id = meta_get_uuid(ns_searcher, pred, "EVAL_TABLE "+table_name, bt);
+
+    return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo,id,env->interruptor);
 }
 
 view_t eval_view(Term::Call *c, UNUSED runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {

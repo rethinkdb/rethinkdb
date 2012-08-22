@@ -563,16 +563,40 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test___write #three underscores so it runs first
-    rdb2 = rdb
+    db_name = rand().to_s
     table_name = rand().to_s
-    wdb=r.db('Welcome-db')
-    orig_lst = wdb.list_tables.run
-    assert_equal(wdb.create_table(table_name).run, nil)
-    assert_raise(RuntimeError){wdb.create_table(table_name).run}
-    lst = wdb.list_tables.run
-    assert_equal(orig_lst.length+1, lst.length)
-    assert_equal(lst.include?(table_name), true)
-    rdb2.delete.run
+
+    orig_dbs = r.list_dbs.run
+    assert_equal(r.create_db(db_name).run, nil)
+    assert_raise(RuntimeError){r.create_db(db_name).run}
+    new_dbs = r.list_dbs.run
+    assert_equal(new_dbs.length, orig_dbs.length+1)
+
+    assert_equal(r.db(db_name).create_table(table_name).run, nil)
+    assert_raise(RuntimeError){r.db(db_name).create_table(table_name).run}
+    assert_equal(r.db(db_name).list_tables.run, [table_name])
+
+    assert_equal(r.db(db_name).table(table_name).insert({:id => 0}).run,
+                 {'inserted' => 1})
+    assert_equal(r.db(db_name).table(table_name).run, [{'id' => 0}])
+    assert_equal(r.db(db_name).create_table(table_name+table_name).run, nil)
+    assert_equal(r.db(db_name).list_tables.run.length, 2)
+
+    assert_raise(RuntimeError){r.db('').table('').run}
+    assert_raise(RuntimeError){r.db('Welcome-db').table(table_name).run}
+    assert_raise(RuntimeError){r.db(db_name).table('').run}
+
+    assert_equal(r.db(db_name).drop_table(table_name+table_name).run, nil)
+    assert_raise(RuntimeError){r.db(db_name).table(table_name+table_name).run}
+    assert_equal(r.drop_db(db_name).run, nil)
+    assert_equal(r.list_dbs.run.sort, orig_dbs.sort)
+    assert_raise(RuntimeError){r.db(db_name).table(table_name).run}
+
+    assert_equal(r.create_db(db_name).run, nil)
+    assert_raise(RuntimeError){r.db(db_name).table(table_name).run}
+    assert_equal(r.db(db_name).create_table(table_name).run, nil)
+    assert_equal(r.db(db_name).table(table_name).run, [])
+    rdb2 = r.db(db_name).table(table_name)
 
     $data = []
     len = 10
@@ -633,8 +657,5 @@ class ClientTest < Test::Unit::TestCase
     #POINTMUTATE -- unimplemented
 
     assert_equal(rdb2.run, $data)
-    assert_equal(wdb.drop_table(table_name).run, nil)
-    assert_raise(RuntimeError){wdb.drop_table(table_name).run}
-    assert_equal(wdb.list_tables.run, orig_lst)
   end
 end
