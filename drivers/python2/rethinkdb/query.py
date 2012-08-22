@@ -104,7 +104,10 @@ class JSONExpression(ReadQuery):
     """
 
     def to_stream(self):
-        """Convert a JSON array into a stream."""
+        """Convert a JSON array into a stream.
+
+        :returns: :class:`StreamExpression`
+        """
         return StreamExpression(internal.ToStream(self))
 
     def __lt__(self, other):
@@ -400,7 +403,9 @@ class StreamExpression(ReadQuery):
             return StreamExpression(inner)
 
     def to_array(self):
-        """Convert the stream into a JSON array."""
+        """Convert the stream into a JSON array.
+
+        :returns: :class:`JSONExpression`"""
         return JSONExpression(internal.ToArray(self))
 
     def range(self, lower_bound, upper_bound, attr_name = "id"):
