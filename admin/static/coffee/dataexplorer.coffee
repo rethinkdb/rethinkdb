@@ -492,6 +492,7 @@ module 'DataExplorerView', ->
 
         clear_query: =>
             #TODO remove when not testing
+            ###
             welcome = @r.table('Welcome-rdb')
             welcome.insert({
                 id: generate_id(25)
@@ -505,8 +506,9 @@ module 'DataExplorerView', ->
                     mobile: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
                 website: 'http://www.'+generate_string(12)+'.com'
                 }).run()
+            ###
 
-            #@.$('.input_query').val ''
+            @.$('.input_query').val ''
             @.$('.input_query').focus()
 
     
@@ -528,9 +530,6 @@ module 'DataExplorerView', ->
             window.conn = new rethinkdb.net.HttpConnection 'http://newton:35457/', ''
             window.r = rethinkdb.query
 
-
-            # TODO Remove when not testing
-            @id = 0
 
             #TODO Make this little thing prettier
             @unsafe_to_safe_regexstr = []
@@ -1083,8 +1082,8 @@ module 'DataExplorerView', ->
 
         #TODO Fix it for Firefox
         expand_raw_textarea: =>
-            setTimeout(@test, 0) #TODO remove this trick when we will remove bootstrap's tab 
-        test: =>
+            setTimeout(@bootstrap_hack, 0) #TODO remove this trick when we will remove bootstrap's tab 
+        bootstrap_hack: =>
             @expand_textarea 'raw_view_textarea'
             return @
 
