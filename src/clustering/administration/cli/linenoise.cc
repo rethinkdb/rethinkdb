@@ -515,7 +515,6 @@ static int linenoisePrompt(int fd, char *buf, size_t buflen, const char *prompt)
         case 14:    /* ctrl-n */
             seq[1] = 66;
             goto up_down_arrow;
-            break;
         case 27:    /* escape sequence */
             if (read(fd,seq,2) == -1) break;
             if (seq[0] == 91 && seq[1] == 68) {
@@ -615,7 +614,6 @@ up_down_arrow:
             refreshLine(fd,prompt,buf,len,pos,cols);
         }
     }
-    return len;
 }
 
 static int linenoiseRaw(char *buf, size_t buflen, const char *prompt) {
