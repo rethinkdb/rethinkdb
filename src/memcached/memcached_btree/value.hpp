@@ -10,12 +10,7 @@
 enum metadata_flags_enum_t {
     MEMCACHED_FLAGS   = 0x01,
     MEMCACHED_CAS     = 0x02,
-    MEMCACHED_EXPTIME = 0x04,
-
-    // The memcached delete queue feature (delayed deletion) is
-    // currently not implemented.
-    // DELETE_QUEUE   = 0x08,
-
+    MEMCACHED_EXPTIME = 0x04
 };
 
 typedef uint32_t mcflags_t;
