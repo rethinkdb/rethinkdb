@@ -8,7 +8,7 @@
 /* Class to get system statistics, such as disk space usage.
 Similar to proc_stats_collector_t, but not based on /proc. */
 
-class sys_stats_collector_t : public home_thread_mixin_t {
+class sys_stats_collector_t : public home_thread_mixin_debug_only_t {
 public:
     explicit sys_stats_collector_t(const std::string &path, perfmon_collection_t *stats);
 

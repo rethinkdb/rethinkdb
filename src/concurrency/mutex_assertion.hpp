@@ -137,7 +137,7 @@ private:
     DISABLE_COPYING(rwi_lock_assertion_t);
 };
 
-struct semaphore_assertion_t : public home_thread_mixin_t {
+struct semaphore_assertion_t : public home_thread_mixin_debug_only_t {
     struct acq_t {
         acq_t() : parent(NULL) { }
         explicit acq_t(semaphore_assertion_t *p) : parent(p) {
