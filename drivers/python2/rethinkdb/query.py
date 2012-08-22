@@ -667,8 +667,13 @@ class WriteQuery(BaseQuery):
         raise NotImplementedError()
 
 class MetaQuery(BaseQuery):
+    """Queries that create, destroy, or examine databases or tables rather than
+    working with actual data are instances of :class:`MetaQuery`."""
     def __init__(self, inner):
-        raise NotImplementedError()
+        self._inner = inner
+    def _finalize_query(self, root):
+        root.type = p.Query.TABLEOP
+        self._inner._write_tableop_query(root.tableop_query)
 
 def db_create(db_name, primary_datacenter=None):
     """Create a ReQL expression that creates a database within a
@@ -695,7 +700,7 @@ def db_create(db_name, primary_datacenter=None):
     >>> q = db_create('db_name')
     >>> q = db_create('db_name', primary_datacenter='us_west')
     """
-    raise NotImplementedError()
+    return MetaQuery(internal.DBCreate(db_name, primary_datacenter))
 
 def db_drop(db_name):
     """Create a ReQL expression that drops a database within a
@@ -714,7 +719,7 @@ def db_drop(db_name):
 
     >>> q = db_drop('db_name')
     """
-    raise NotImplementedError()
+    return MetaQuery(internal.DBDrop(db_name))
 
 def db_list():
     """Create a ReQL expression that lists all databases within a
@@ -732,7 +737,7 @@ def db_list():
 
     >>> q = db_list() # returns a list of names, e.g. ['db1', 'db2', 'db3']
     """
-    raise NotImplementedError()
+    return MetaQuery(internal.DBList())
 
 class Database(object):
     """A ReQL expression that encodes a RethinkDB database. Most
@@ -746,7 +751,7 @@ class Database(object):
         """
         self.db_name = db_name
 
-    def create(self, table_name, primary_key=None):
+    def create(self, table_name, primary_key="id"):
         """Create a ReQL expression that creates a table within this
         RethinkDB database. A RethinkDB table is an object that
         contains JSON documents.
@@ -770,7 +775,7 @@ class Database(object):
         >>> q = db('db_name').create('posts') # uses primary key 'id'
         >>> q = db('db_name').create('users', primary_key='user_id')
         """
-        raise NotImplementedError()
+        return MetaQuery(internal.TableCreate(table_name, self, primary_key))
 
     def drop(self, table_name):
         """Create a ReQL expression that drops a table within this
@@ -790,7 +795,7 @@ class Database(object):
 
         >>> q = db('db_name').drop('posts')
         """
-        raise NotImplementedError()
+        return MetaQuery(internal.TableDrop(table_name, self))
 
     def list(self):
         """Create a ReQL expression that lists all tables within this
@@ -808,7 +813,7 @@ class Database(object):
 
         >>> q = db('db_name').list() # returns a list of tables, e.g. ['table1', 'table2']
         """
-        raise NotImplementedError()
+        return MetaQuery(internal.TableList(self))
 
     def table(self, table_name):
         """Create a ReQL expression that encodes a table within this

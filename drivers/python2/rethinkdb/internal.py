@@ -2,38 +2,36 @@ import query
 
 import query_language_pb2 as p
 
-###########################
-# DATABASE ADMINISTRATION #
-###########################
+#####################################
+# DATABASE AND TABLE ADMINISTRATION #
+#####################################
 
 class MetaQueryInner(object):
     def _write_table_op_query(self, parent):
         raise NotImplementedError()
 
 class DBCreate(MetaQueryInner):
-    def __init__(self, db_name, primary_datacenter=None):
+    def __init__(self, db_name, primary_datacenter):
         raise NotImplementedError()
 
 class DBDrop(MetaQueryInner):
     def __init__(self, db_name):
-        raise NotImplementedError
+        raise NotImplementedError()
 
 class DBList(MetaQueryInner):
-    pass
+    def __init__(self):
+        raise NotImplementedError()
 
-########################
-# TABLE ADMINISTRATION #
-########################
 class TableCreate(MetaQueryInner):
-    def __init__(table_name, db_expr=None, primary_key='id'):
+    def __init__(table_name, db_expr, primary_key='id'):
         raise NotImplementedError()
 
 class TableDrop(MetaQueryInner):
-    def __init__(table_name, db_expr=None):
+    def __init__(table_name, db_expr):
         raise NotImplementedError()
 
 class TableList(MetaQueryInner):
-    def __init__(db_expr=None):
+    def __init__(db_expr):
         raise NotImplementedError()
 
 #################
