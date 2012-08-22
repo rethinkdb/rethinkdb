@@ -15,7 +15,7 @@ class traversal_progress_combiner_t;
 /* If you construct a `backfiller_t` for a given store, then it will advertise
 its existence in the metadata and serve backfills over the network. */
 template <class protocol_t>
-class backfiller_t : public home_thread_mixin_t {
+class backfiller_t : public home_thread_mixin_debug_only_t {
 public:
     backfiller_t(mailbox_manager_t *mm,
                  branch_history_manager_t<protocol_t> *bhm,

@@ -10,7 +10,7 @@
 #include "protocol_api.hpp"
 
 template <class protocol_t>
-class master_access_t : public home_thread_mixin_t {
+class master_access_t : public home_thread_mixin_debug_only_t {
 public:
     master_access_t(
             mailbox_manager_t *mm,

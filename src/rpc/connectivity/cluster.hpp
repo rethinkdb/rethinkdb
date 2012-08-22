@@ -47,7 +47,7 @@ private:
 class connectivity_cluster_t :
     public connectivity_service_t,
     public message_service_t,
-    public home_thread_mixin_t
+    public home_thread_mixin_debug_only_t
 {
 public:
     class run_t {
@@ -68,7 +68,7 @@ public:
     private:
         friend class connectivity_cluster_t;
 
-        class connection_entry_t : public home_thread_mixin_t {
+        class connection_entry_t : public home_thread_mixin_debug_only_t {
         public:
             /* The constructor registers us in every thread's `connection_map`;
             the destructor deregisters us. Both also notify all subscribers. */

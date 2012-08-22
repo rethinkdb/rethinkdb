@@ -16,7 +16,7 @@ in `adjustable_semaphore_t`. */
 
 template<class value_t, class queue_t = std::list<value_t> >
 struct limited_fifo_queue_t :
-    public home_thread_mixin_t,
+    public home_thread_mixin_debug_only_t,
     public passive_producer_t<value_t>
 {
     explicit limited_fifo_queue_t(int capacity, float trickle_fraction = 0.0, perfmon_counter_t *_counter = NULL)
