@@ -129,6 +129,10 @@ const char *const METADATA_ERR_NONE = "No entry with that name.";
 const char *const METADATA_ERR_MULTIPLE = "Multiple entries with that name.";
 const char *const METADATA_ERR_CONFLICT = "Entry with that name is in conflict.";
 
+/* A helper class to search through metadata in various ways.  Can be
+   constructed from a pointer to the internal map of the metadata,
+   e.g. `metadata.databases.databases`.  Look in rdb_protocol/query_language.cc
+   for examples on how to use. */
 template<class T>
 class metadata_searcher_t {
 public:
@@ -140,6 +144,7 @@ public:
     explicit metadata_searcher_t(metamap_t *_map): map(_map) { }
 
     template<class callable_t>
+    /* Find the next iterator >= [start] matching [predicate]. */
     iterator find_next(iterator start, callable_t predicate) {
         iterator it;
         for (it = start; it != end(); ++it) {
@@ -148,11 +153,15 @@ public:
         }
         return it;
     }
+    /* Find the next iterator >= [start] (as above, but predicate always true). */
     iterator find_next(iterator start) {
         iterator it;
         for (it = start; it != end(); ++it) if (!it->second.is_deleted()) break;
         return it;
     }
+
+    /* Find the unique entry matching [predicate].  If there is no unique entry,
+       return [end()] and set the optional status parameter appropriately. */
     template<class callable_t>
     iterator find_uniq(callable_t predicate, const char **out=0) {
         iterator it, retval;
@@ -166,6 +175,7 @@ public:
         }
         return retval;
     }
+    /* As above, but matches by name instead of a predicate. */
     iterator find_uniq(const std::string &name, const char **out=0) {
         return find_uniq(name_predicate_t(name), out);
     }
@@ -181,43 +191,4 @@ public:
 private:
     metamap_t *map;
 };
-
-/* If a name uniquely identifies an entry then return it, otherwise
- * return nothing.  Also optionally reports its success/failure mode
- * with the optional argument [out], which allows better error
- * reporting for the clients. */
-template<class T>
-boost::optional<std::pair<uuid_t, deletable_t<T> > > metadata_get_by_name(
-    std::map<uuid_t, deletable_t<T> > map,
-    const std::string &name,
-    const char **const out = 0) {
-    boost::optional<std::pair<uuid_t, deletable_t<T> > > res;
-    for (typename std::map<uuid_t, deletable_t<T> >::iterator
-             it = map.begin(); it != map.end(); ++it) {
-        if (it->second.is_deleted()) continue;
-        if (it->second.get().name.in_conflict()) {
-            if (out) *out = METADATA_ERR_CONFLICT;
-            return boost::optional<std::pair<uuid_t, deletable_t<T> > >();
-        } else if (it->second.get().name.get() == name) {
-            if (res) {
-                if (out) *out = METADATA_ERR_MULTIPLE;
-                return boost::optional<std::pair<uuid_t, deletable_t<T> > >();
-            }
-            res = *it;
-        }
-    }
-    if (out) *out = res ? METADATA_SUCCESS : METADATA_ERR_NONE;
-    return res;
-}
-template<class T>
-boost::optional<uuid_t> metadata_get_uuid_by_name(
-    std::map<uuid_t, deletable_t<T> > map,
-    const std::string &name,
-    const char **const out = 0) {
-    boost::optional<std::pair<uuid_t, deletable_t<T> > > m =
-        metadata_get_by_name(map, name, out);
-    boost::optional<uuid_t> u;
-    if (m) u = m->first;
-    return u;
-}
 #endif  // CLUSTERING_ADMINISTRATION_METADATA_HPP_

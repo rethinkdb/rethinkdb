@@ -701,27 +701,6 @@ void check_query_type(const Query &q, type_checking_environment_t *env, bool *is
     }
 }
 
-std::string get_primary_key(const std::string &table_name, runtime_environment_t *env, const backtrace_t &backtrace) {
-    const char *status;
-    boost::optional<std::pair<namespace_id_t, deletable_t<
-        namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_info =
-        metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces,
-                             table_name, &status);
-
-    if (!ns_info) {
-        rassert(status);
-        throw runtime_exc_t(strprintf("Namespace %s not found with error: %s",
-                                      table_name.c_str(), status), backtrace);
-    }
-
-    if (ns_info->second.get().primary_key.in_conflict()) {
-        throw runtime_exc_t(strprintf("Namespace %s has an in conflict primary key, this should really never happen.", ns_info->second.get().name.get().c_str()), backtrace);
-    }
-
-    return ns_info->second.get().primary_key.get();
-}
-
-
 boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     if (!js_runner->connected()) {
         pool->assert_thread();
@@ -924,6 +903,31 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
     }
 }
 
+std::string get_primary_key(TableRef *t, runtime_environment_t *env,
+                            const backtrace_t &bt) {
+    const char *status;
+    std::string db_name = t->db_name();
+    std::string table_name = t->table_name();
+    cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
+    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+        ns_searcher(&metadata.rdb_namespaces.namespaces);
+    metadata_searcher_t<database_semilattice_metadata_t>
+        db_searcher(&metadata.databases.databases);
+
+    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DB "+db_name, bt);
+    namespace_predicate_t pred(table_name, db_id);
+    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
+        ns_metadata = ns_searcher.find_uniq(pred, &status);
+    meta_check(status, METADATA_SUCCESS, "FIND_TABLE "+table_name, bt);
+    rassert(!ns_metadata->second.is_deleted());
+    if (ns_metadata->second.get().primary_key.in_conflict()) {
+        throw runtime_exc_t(strprintf(
+            "Table %s.%s has a primary key in conflict, which should never happen.",
+            db_name.c_str(), table_name.c_str()), bt);
+    }
+    return ns_metadata->second.get().primary_key.get();
+}
+
 void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     rassert(q->token() == res->token());
     switch(q->type()) {
@@ -1079,7 +1083,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             break;
         case WriteQuery::INSERT:
             {
-                std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref()->table_name(), env, backtrace);
+                std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref(), env, backtrace);
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_insert()->mutable_table_ref(), env, backtrace);
 
                 for (int i = 0; i < w->insert().terms_size(); ++i) {
@@ -1094,7 +1098,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             break;
         case WriteQuery::INSERTSTREAM:
             {
-                std::string pk = get_primary_key(w->mutable_insert_stream()->mutable_table_ref()->table_name(), env, backtrace);
+                std::string pk = get_primary_key(w->mutable_insert_stream()->mutable_table_ref(), env, backtrace);
                 boost::shared_ptr<json_stream_t> stream = eval_stream(w->mutable_insert_stream()->mutable_stream(), env, backtrace.with("stream"));
 
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_insert_stream()->mutable_table_ref(), env, backtrace);
@@ -1141,7 +1145,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
 
                 /* Get the primary key */
-                std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref()->table_name(), env, backtrace);
+                std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
 
                 /* Make sure that the primary key wasn't changed. */
                 if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
@@ -1291,7 +1295,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             break;
         case Term::GETBYKEY:
             {
-                std::string pk = get_primary_key(t->get_by_key().table_ref().table_name(), env, backtrace);
+                std::string pk = get_primary_key(t->mutable_get_by_key()->mutable_table_ref(), env, backtrace);
 
                 if (t->get_by_key().attrname() != pk) {
                     throw runtime_exc_t(strprintf("Attribute: %s is not the primary key (%s) and thus cannot be selected upon.", t->get_by_key().attrname().c_str(), pk.c_str()),
@@ -2382,7 +2386,7 @@ view_t eval_view(Term *t, runtime_environment_t *env, const backtrace_t &backtra
 
 view_t eval_view(Term::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(t->mutable_table_ref(), env, backtrace);
-    std::string pk = get_primary_key(t->mutable_table_ref()->table_name(), env, backtrace);
+    std::string pk = get_primary_key(t->mutable_table_ref(), env, backtrace);
     boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace));
     return view_t(ns_access, pk, stream);
 }
