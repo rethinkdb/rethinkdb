@@ -23,17 +23,17 @@ typedef int8_t patch_operation_code_t;
  * Instead patches should emit a patch_deserialization_error_t exception.
  */
 class patch_deserialization_error_t {
-    // TODO: This isn't a std::exception?
-
-    std::string message;
 public:
-    patch_deserialization_error_t(const char *file, int line, const char *msg);
-    const char *c_str() const { return message.c_str(); }
+    patch_deserialization_error_t(const std::string &message);
+    const char *c_str() const { return message_.c_str(); }
+private:
+    std::string message_;
 };
-#define guarantee_patch_format(cond, msg...) do {    \
-        if (!(cond)) {                  \
-            throw patch_deserialization_error_t(__FILE__, __LINE__, "" msg); \
-        }                               \
+std::string patch_deserialization_message(const char *file, int line, const char *msg);
+#define guarantee_patch_format(cond) do { \
+        if (!(cond)) {                                                  \
+            throw patch_deserialization_error_t(patch_deserialization_message(__FILE__, __LINE__, "buf patch deserialization error")); \
+        }                                                               \
     } while (0)
 
 

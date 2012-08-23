@@ -5,16 +5,6 @@
         <script src="rethinkdb.js"></script>
     </head>
     <body>
-        <script>
-            function print(msg) {
-                console.log(msg);
-            }
-    
-            var conn = new rethinkdb.net.HttpConnection('http://newton:12347/', '');
-
-            var q = rethinkdb.query;
-            q(1).add(3).run(print);
-
-        </script>
+        <script src="rethinkdb-test.js"></script>
     </body>
 </html>
