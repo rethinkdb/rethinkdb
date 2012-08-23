@@ -724,3 +724,43 @@ rethinkdb.query.Expression.prototype.reduce = function(base, reduction) {
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'reduce',
                     rethinkdb.query.Expression.prototype.reduce);
+
+/**
+ * @constructor
+ * @extends {rethinkdb.query.ReadExpression}
+ */
+rethinkdb.query.PluckExpression = function(leftExpr, attrs) {
+    if (!goog.isArray(attrs)) {
+        attrs = [attrs];
+    }
+
+    this.leftExpr_ = leftExpr;
+    this.attrs_ = attrs;
+};
+goog.inherits(rethinkdb.query.PluckExpression, rethinkdb.query.ReadExpression);
+
+rethinkdb.query.PluckExpression.prototype.compile = function() {
+    var builtin = new Builtin();
+    builtin.setType(Builtin.BuiltinType.IMPLICIT_PICKATTRS);
+
+    for (var key in this.attrs_) {
+        var attr = this.attrs_[key];
+        builtin.addAttrs(attr);
+    }
+
+    var call = new Term.Call();
+    call.setBuiltin(builtin);
+    call.addArgs(this.leftExpr_.compile());
+
+    var term = new Term();
+    term.setType(Term.TermType.CALL);
+    term.setCall(call);
+
+    return term;
+};
+
+rethinkdb.query.Expression.prototype.pluck = function(attrs) {
+    return new rethinkdb.query.PluckExpression(this, attrs);
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'pluck',
+                    rethinkdb.query.Expression.prototype.pluck);
