@@ -51,8 +51,8 @@ public:
     public:
         region_t get_region() const;
         read_t shard(region_t region) const;
-        void unshard(std::vector<read_response_t> resps, read_response_t *response, temporary_cache_t *cache) const;
-        void multistore_unshard(const std::vector<read_response_t>& resps, read_response_t *response, temporary_cache_t *cache) const;
+        void unshard(const read_response_t *resps, size_t count, read_response_t *response, temporary_cache_t *cache) const;
+        void multistore_unshard(const read_response_t *resps, size_t count, read_response_t *response, temporary_cache_t *cache) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
         region_t keys;
@@ -68,8 +68,8 @@ public:
     public:
         region_t get_region() const;
         write_t shard(region_t region) const;
-        void unshard(std::vector<write_response_t> resps, write_response_t *response, temporary_cache_t *cache) const;
-        void multistore_unshard(const std::vector<write_response_t>& resps, write_response_t *response, temporary_cache_t *cache) const;
+        void unshard(const write_response_t *resps, size_t count, write_response_t *response, temporary_cache_t *cache) const;
+        void multistore_unshard(const write_response_t *resps, size_t count, write_response_t *response, temporary_cache_t *cache) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(values);
         std::map<std::string, std::string> values;

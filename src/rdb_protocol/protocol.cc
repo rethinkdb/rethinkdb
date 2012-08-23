@@ -115,28 +115,27 @@ bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
     return lr->key_range < rr->key_range;
 }
 
-void read_t::unshard(std::vector<read_response_t> responses, read_response_t *response, temporary_cache_t *) const THROWS_NOTHING {
+void read_t::unshard(read_response_t *responses, size_t count, read_response_t *response, temporary_cache_t *) const THROWS_NOTHING {
     const point_read_t *pr = boost::get<point_read_t>(&read);
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (pr) {
-        rassert(responses.size() == 1);
+        rassert(count == 1);
         rassert(boost::get<point_read_response_t>(&responses[0].response));
         *response = responses[0];
     } else if (rg) {
-        std::sort(responses.begin(), responses.end(), read_response_cmp);
+        std::sort(responses, responses + count, read_response_cmp);
         response->response = rget_read_response_t();
         rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
-        typedef std::vector<read_response_t>::iterator rri_t;
 
         if (!rg->terminal) {
             //A vanilla range get
             rg_response.result = stream_t();
             stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
-            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+            for(size_t i = 0; i < count; ++i) {
                 // TODO: we're ignoring the limit when recombining.
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                 rassert(_rr);
 
                 const stream_t *stream = boost::get<stream_t>(&(_rr->result));
@@ -148,8 +147,8 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
             //GroupedMapreduce
             rg_response.result = groups_t();
             groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
-            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+            for(size_t i = 0; i < count; ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                 guarantee(_rr);
 
                 const groups_t *groups = boost::get<groups_t>(&(_rr->result));
@@ -178,8 +177,8 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
             Term base = r->base();
             *res_atom = eval(&base, env, backtrace);
 
-            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+            for(size_t i = 0; i < count; ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                 guarantee(_rr);
 
                 const atom_t *atom = boost::get<atom_t>(&(_rr->result));
@@ -195,8 +194,8 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
             length_t *res_length = boost::get<length_t>(&rg_response.result);
             res_length->length = 0;
 
-            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+            for(size_t i = 0; i < count; ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                 guarantee(_rr);
 
                 const length_t *length = boost::get<length_t>(&(_rr->result));
@@ -208,8 +207,8 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
             inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
             res_inserted->inserted = 0;
 
-            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+            for(size_t i = 0; i < count; ++i) {
+                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                 guarantee(_rr);
 
                 const inserted_t *inserted = boost::get<inserted_t>(&(_rr->result));
@@ -229,13 +228,13 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
     return a.first < b.first;
 }
 
-void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
-                              std::vector<read_response_t>::iterator end,
+void merge_slices_onto_result(const read_response_t *array,
+                              size_t count,
                               rget_read_response_t *response) {
     std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > merged;
 
-    for (std::vector<read_response_t>::iterator i = begin; i != end; ++i) {
-        const rget_read_response_t *delta = boost::get<rget_read_response_t>(&i->response);
+    for (size_t i = 0; i < count; ++i) {
+        const rget_read_response_t *delta = boost::get<rget_read_response_t>(&array[i].response);
         rassert(delta);
         const stream_t *stream = boost::get<stream_t>(&delta->result);
         guarantee(stream);
@@ -247,31 +246,30 @@ void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
     stream->insert(stream->end(), merged.begin(), merged.end());
 }
 
-void read_t::multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void read_t::multistore_unshard(read_response_t *responses, size_t count, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     const point_read_t *pr = boost::get<point_read_t>(&read);
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (pr) {
-        rassert(responses.size() == 1);
+        rassert(count == 1);
         rassert(boost::get<point_read_response_t>(&responses[0].response));
         *response = responses[0];
     } else if (rg) {
-        std::sort(responses.begin(), responses.end(), read_response_cmp);
+        std::sort(responses, responses + count, read_response_cmp);
         response->response = rget_read_response_t();
         rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
         rg_response.key_range = get_region().inner;
-        typedef std::vector<read_response_t>::iterator rri_t;
-        for(rri_t i = responses.begin(); i != responses.end();) {
+        for(size_t i = 0; i < count;) {
             // TODO: we're ignoring the limit when recombining.
-            const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+            const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
             rassert(_rr);
             rg_response.truncated = rg_response.truncated || _rr->truncated;
 
             // Collect all the responses from the same shard and merge their responses into the final response
-            rri_t shard_end = i;
+            size_t shard_end = i;
             ++shard_end;
-            while (shard_end != responses.end()) {
-                const rget_read_response_t *_rrr = boost::get<rget_read_response_t>(&shard_end->response);
+            while (shard_end != count) {
+                const rget_read_response_t *_rrr = boost::get<rget_read_response_t>(&responses[shard_end].response);
                 rassert(_rrr);
 
                 if (_rrr->key_range != _rr->key_range) {
@@ -282,7 +280,7 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
                 ++shard_end;
             }
 
-            merge_slices_onto_result(i, shard_end, &rg_response);
+            merge_slices_onto_result(&responses[i], shard_end - i, &rg_response);
             i = shard_end;
         }
 
@@ -336,13 +334,13 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(w_shard_visitor(region), write);
 }
 
-void write_t::unshard(std::vector<write_response_t> responses, write_response_t *response, temporary_cache_t *) const THROWS_NOTHING {
-    rassert(responses.size() == 1);
+void write_t::unshard(const write_response_t *responses, UNUSED size_t count, write_response_t *response, temporary_cache_t *) const THROWS_NOTHING {
+    rassert(count == 1);
     *response = responses[0];
 }
 
-void write_t::multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING {
-    return unshard(responses, response, cache);
+void write_t::multistore_unshard(const write_response_t *responses, size_t count, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING {
+    return unshard(responses, count, response, cache);
 }
 
 store_t::store_t(io_backender_t *io_backend,

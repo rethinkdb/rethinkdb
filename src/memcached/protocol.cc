@@ -176,16 +176,17 @@ public:
 
 // TODO: get rid of this extra response_t copy on the stack
 struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
-    const std::vector<read_response_t> &bits;
+    const read_response_t *bits;
+    const size_t count;
 
-    explicit read_unshard_visitor_t(const std::vector<read_response_t> &b) : bits(b) { }
+    explicit read_unshard_visitor_t(const read_response_t *b, size_t c) : bits(b), count(c) { }
     read_response_t operator()(UNUSED get_query_t get) {
-        rassert(bits.size() == 1);
+        rassert(count == 1);
         return read_response_t(boost::get<get_result_t>(bits[0].result));
     }
     read_response_t operator()(rget_query_t rget) {
         std::map<store_key_t, const rget_result_t *> sorted_bits;
-        for (size_t i = 0; i < bits.size(); ++i) {
+        for (size_t i = 0; i < count; ++i) {
             const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
             if (!bit->pairs.empty()) {
                 const store_key_t &key = bit->pairs.front().key;
@@ -222,17 +223,17 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
         return read_response_t(result);
     }
     read_response_t operator()(UNUSED distribution_get_query_t dget) {
-        rassert(bits.size() > 0);
+        rassert(count > 0);
         rassert(boost::get<distribution_result_t>(&bits[0].result));
-        rassert(bits.size() == 1 || boost::get<distribution_result_t>(&bits[1].result));
+        rassert(count == 1 || boost::get<distribution_result_t>(&bits[1].result));
 
         // Asserts that we don't look like a hash-sharded thing.
-        rassert(!(bits.size() > 1
+        rassert(!(count > 1
                   && boost::get<distribution_result_t>(&bits[0].result)->key_counts.begin()->first == boost::get<distribution_result_t>(&bits[1].result)->key_counts.begin()->first));
 
         distribution_result_t res;
 
-        for (int i = 0, e = bits.size(); i < e; i++) {
+        for (int i = 0, e = count; i < e; i++) {
             const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
             rassert(result, "Bad boost::get\n");
 
@@ -252,23 +253,24 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     }
 };
 
-void read_t::unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
-    read_unshard_visitor_t v(responses);
+void read_t::unshard(const read_response_t *responses, size_t count, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+    read_unshard_visitor_t v(responses, count);
     *response = boost::apply_visitor(v, query);
 }
 
 // TODO: get rid of this extra response_t copy on the stack
 struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_response_t> {
-    const std::vector<read_response_t> &bits;
+    const read_response_t *bits;
+    const size_t count;
 
-    explicit read_multistore_unshard_visitor_t(const std::vector<read_response_t> &b) : bits(b) { }
+    explicit read_multistore_unshard_visitor_t(const read_response_t *b, size_t c) : bits(b), count(c) { }
     read_response_t operator()(UNUSED get_query_t get) {
-        rassert(bits.size() == 1);
+        rassert(count == 1);
         return read_response_t(boost::get<get_result_t>(bits[0].result));
     }
     read_response_t operator()(rget_query_t rget) {
         std::vector<key_with_data_buffer_t> pairs;
-        for (size_t i = 0; i < bits.size(); ++i) {
+        for (size_t i = 0; i < count; ++i) {
             const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
             pairs.insert(pairs.end(), bit->pairs.begin(), bit->pairs.end());
         }
@@ -296,20 +298,20 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_res
         return read_response_t(result);
     }
     read_response_t operator()(UNUSED distribution_get_query_t dget) {
-        rassert(bits.size() > 0);
+        rassert(count > 0);
         rassert(boost::get<distribution_result_t>(&bits[0].result));
-        rassert(bits.size() == 1 || boost::get<distribution_result_t>(&bits[1].result));
+        rassert(count == 1 || boost::get<distribution_result_t>(&bits[1].result));
 
         // These test properties of distribution queries sharded by hash rather than key.
-        rassert(bits.size() > 1);
+        rassert(count > 1);
         rassert(boost::get<distribution_result_t>(&bits[0].result)->key_counts.begin()->first == boost::get<distribution_result_t>(&bits[1].result)->key_counts.begin()->first);
 
         distribution_result_t res;
         int64_t total_num_keys = 0;
-        rassert(bits.size() > 0);
+        rassert(count > 0);
 
         int64_t total_keys_in_res = 0;
-        for (int i = 0, e = bits.size(); i < e; ++i) {
+        for (int i = 0, e = count; i < e; ++i) {
             const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
             rassert(result, "Bad boost::get\n");
 
@@ -346,8 +348,8 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_res
     }
 };
 
-void read_t::multistore_unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
-    read_multistore_unshard_visitor_t v(responses);
+void read_t::multistore_unshard(const read_response_t *responses, size_t count, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+    read_multistore_unshard_visitor_t v(responses, count);
     *response = boost::apply_visitor(v, query);
 }
 
@@ -375,14 +377,14 @@ write_t write_t::shard(DEBUG_ONLY_VAR const region_t &region) const THROWS_NOTHI
 
 /* `write_response_t::unshard()` */
 
-void write_t::unshard(const std::vector<write_response_t>& responses, write_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void write_t::unshard(const write_response_t *responses, UNUSED size_t count, write_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     /* TODO: Make sure the request type matches the response type */
-    rassert(responses.size() == 1);
+    rassert(count == 1);
     *response = responses[0];
 }
 
-void write_t::multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING {
-    unshard(responses, response, cache);
+void write_t::multistore_unshard(const write_response_t *responses, size_t count, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING {
+    unshard(responses, count, response, cache);
 }
 
 
