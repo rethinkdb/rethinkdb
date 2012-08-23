@@ -304,6 +304,23 @@ void read_t::multistore_unshard(read_response_t *responses, size_t count, read_r
                     if (_rr->last_considered_key < rg_response.last_considered_key) {
                         rg_response.last_considered_key = _rr->last_considered_key;
                     }
+=======
+        for(size_t i = 0; i < count;) {
+            // TODO: we're ignoring the limit when recombining.
+            const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
+            rassert(_rr);
+            rg_response.truncated = rg_response.truncated || _rr->truncated;
+
+            // Collect all the responses from the same shard and merge their responses into the final response
+            size_t shard_end = i;
+            ++shard_end;
+            while (shard_end != count) {
+                const rget_read_response_t *_rrr = boost::get<rget_read_response_t>(&responses[shard_end].response);
+                rassert(_rrr);
+
+                if (_rrr->key_range != _rr->key_range) {
+                    break;
+>>>>>>> modified multistore_ptr_t to be more efficient on reads, could still use some cleanup
                 }
             }
 
