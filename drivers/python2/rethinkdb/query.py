@@ -41,6 +41,8 @@ Stream expressions
 .. autoclass:: StreamExpression
     :members:
 
+    .. automethod:: __getitem__
+
 .. autofunction:: expr
 .. autofunction:: if_then_else
 .. autofunction:: R
@@ -137,7 +139,7 @@ class JSONExpression(ReadQuery):
     Literal Python strings, booleans, numbers, arrays and dictionaries, as well
     as `None`, can also be implicitly cast to :class:`JSONExpression`:
 
-    >>> (expr(1) + 2).run()
+    >>> (expr(1) + 2).run()   # `2` is implicitly converted
     3
 
     :class:`JSONExpression` overloads Python operators wherever possible to
@@ -722,6 +724,20 @@ class StreamExpression(ReadQuery):
         return self._make_selector(internal.Filter(self, predicate))
 
     def __getitem__(self, index):
+        """Extract the `index`'th element of the stream, or extract some
+        sub-sequence of the stream.
+
+        >>> expr([1, 2, 3, 4]).to_stream()[2]
+        3
+        >>> expr([1, 2, 3, 4]).to_stream()[1:2].to_array()
+        [2]
+        >>> expr([1, 2, 3, 4]).to_stream()[1:].to_array()
+        [2, 3, 4]
+
+        :param index: the index or slice to fetch
+        :type index: :class:`JSONExpression`, or slice containing :class:`JSONExpression`
+        :returns: :class:`JSONExpression` (if single index) or :class:`StreamExpression` (if slice)
+        """
         if isinstance(index, slice):
             if index.step is not None:
                 raise ValueError("slice stepping is unsupported")
@@ -896,12 +912,16 @@ def expr(val):
     """Converts a python value to a ReQL :class:`JSONExpression`.
 
     :param val: Any Python value that can be converted to JSON.
-    :returns: :class:`JSON`
+    :returns: :class:`JSONExpression`
 
-    >>> expr(1)
-    >>> expr("foo")
-    >>> expr(["foo", 1])
-    >>> expr({ 'name': 'Joe', 'age': 30 })
+    >>> expr(1).run()
+    1
+    >>> expr("foo").run()
+    "foo"
+    >>> expr(["foo", 1]).run()
+    ["foo", 1]
+    >>> expr({ 'name': 'Joe', 'age': 30 }).run()
+    {'name': 'Joe', 'age': 30}
     """
     if isinstance(val, JSONExpression):
         return val
