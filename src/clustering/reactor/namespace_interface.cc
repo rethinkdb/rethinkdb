@@ -108,6 +108,7 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
         }
     }
 
+    // RSI: don't use vector
     std::vector<op_response_type> results(masters_to_contact.size());
     std::vector<std::string> failures(masters_to_contact.size());
     // RSI: don't use pmap
@@ -123,7 +124,7 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
         }
     }
 
-    op.unshard(results, response, &temporary_cache);
+    op.unshard(results.data(), results.size(), response, &temporary_cache);
 }
 
 template <class protocol_t>
@@ -215,7 +216,7 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
         }
     }
 
-    op.unshard(results, response, &temporary_cache);
+    op.unshard(results.data(), results.size(), response, &temporary_cache);
 }
 
 template <class protocol_t>
