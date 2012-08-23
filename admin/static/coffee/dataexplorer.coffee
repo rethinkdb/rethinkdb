@@ -527,7 +527,13 @@ module 'DataExplorerView', ->
 
         initialize: =>
             log_initial '(initializing) dataexplorer view:'
-            window.conn = new rethinkdb.net.HttpConnection 'http://newton:35457/', ''
+
+            host = window.location.hostname
+            if port is ''
+                port = 13457
+            else
+                port = parseInt(window.location.port)-1000+13457
+            window.conn = new rethinkdb.net.HttpConnection 'http://'+host+':'+port , ''
             window.r = rethinkdb.query
 
 
