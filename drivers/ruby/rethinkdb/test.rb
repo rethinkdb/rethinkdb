@@ -541,6 +541,13 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.mutate{|x| x}.run, {'modified' => docs.length, 'deleted' => 0})
     assert_equal(rdb.run, docs)
     assert_equal(rdb.update{nil}.run, {'updated' => 0, 'skipped' => 10, 'errors' => 0})
+
+    res = rdb.update{|row| r.if((row[:id]%2).eq(0), {:id => -1}, row)}.run;
+    assert_not_nil(res['first_error'])
+    filtered_res = res.reject {|k,v| k == 'first_error'}
+    assert_not_equal(filtered_res, res)
+    assert_equal(filtered_res, {'updated' => 5, 'skipped' => 0, 'errors' => 5})
+
     assert_equal(rdb.run, docs);
   end
 

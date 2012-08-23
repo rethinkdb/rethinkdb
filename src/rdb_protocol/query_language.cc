@@ -1019,29 +1019,47 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
         case WriteQuery::UPDATE:
             {
                 view_t view = eval_view(w->mutable_update()->mutable_view(), env, backtrace.with("view"));
+                std::string reported_error = "";
 
                 int updated = 0,
-                    error = 0,
+                    errors = 0,
                     skipped = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-                    variable_val_scope_t::new_scope_t scope_maker(&env->scope, w->update().mapping().arg(), json);
-                    boost::shared_ptr<scoped_cJSON_t> rhs = eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
-                    if (rhs->type() == cJSON_NULL) {
-                        skipped++;
-                    } else {
-                        boost::shared_ptr<scoped_cJSON_t> val(new scoped_cJSON_t(cJSON_merge(json->get(), rhs->get())));
-                        cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
-                        cJSON *val_key = val->GetObjectItem(view.primary_key.c_str());
-                        if (!cJSON_Equal(json_key, val_key)) {
-                            error++;
+                    try {
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scope, w->update().mapping().arg(), json);
+                        boost::shared_ptr<scoped_cJSON_t> rhs =
+                            eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
+                        if (rhs->type() == cJSON_NULL) {
+                            skipped++;
                         } else {
-                            insert(view.access, view.primary_key, val, env, backtrace);
-                            updated++;
+                            boost::shared_ptr<scoped_cJSON_t> val(new scoped_cJSON_t(cJSON_merge(json->get(), rhs->get())));
+                            cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
+                            cJSON *val_key = val->GetObjectItem(view.primary_key.c_str());
+                            if (!cJSON_Equal(json_key, val_key)) {
+                                ++errors;
+                                if (reported_error == "") {
+                                    reported_error = strprintf("Update cannot change priamary keys: %s -> %s\n",
+                                                               json->PrintUnformatted().c_str(), val->PrintUnformatted().c_str());
+                                }
+                            } else {
+                                insert(view.access, view.primary_key, val, env, backtrace);
+                                updated++;
+                            }
                         }
+                    } catch (const query_language::broken_client_exc_t &e) {
+                        ++errors;
+                        if (reported_error == "") reported_error = e.message;
+                    } catch (const query_language::runtime_exc_t &e) {
+                        ++errors;
+                        if (reported_error == "") reported_error = e.message + "\n" + e.backtrace.print();
                     }
                 }
-
-                res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}", updated, skipped, error));
+                std::string res_list = strprintf("\"updated\": %d, \"skipped\": %d, \"errors\": %d", updated, skipped, errors);
+                if (reported_error != "") {
+                    res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
+                                         scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
+                }
+                res->add_response("{"+res_list+"}");
             }
             break;
         case WriteQuery::DELETE:
@@ -1151,7 +1169,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     /* Make sure that the primary key wasn't changed. */
                     if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
                                      cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
-                        throw runtime_exc_t(strprintf("Point updates are not allowed to change the primary key (%s).", pk.c_str()), backtrace);
+                        throw runtime_exc_t(strprintf("Updates are not allowed to change the primary key (%s).", pk.c_str()), backtrace);
                     }
 
                     insert(ns_access, pk, new_val, env, backtrace);
