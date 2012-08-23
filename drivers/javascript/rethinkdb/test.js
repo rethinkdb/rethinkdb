@@ -1,92 +1,12 @@
 // Assumes that rethinkdb is loaded already in whichever environment we happen to be running in
 
-/* Testing utilies */
-
-var red = '\u001b[31m';
-var green = '\u001b[32m';
-var purple = '\u001b[35m';
-var reset = '\u001b[0m';
-
-function log(msg) {
-    console.log(msg);
-}
-
-function err(msg) {
-    console.log('   '+red+msg+reset);
-}
-
-function poslog(msg) {
-    console.log('   '+green+msg+reset);
-}
-
-function fail(msg) {
-    err('failed with message: '+msg);
-    console.trace();
-    exit();
-}
-
-function assertEquals(expected, val) {
-    if (expected !== val) {
-        fail("Value "+val+" expected to equal "+expected);
-    }
-}
-
-function aeq(eq) {
-    wait();
-    return function(val) {
-        assertEquals(eq, val);
-        done();
-    };
-}
-
-var currentTest = '';
-var waitCount = 0;
-function wait() {
-    waitCount++;
-}
-
-function done() {
-    waitCount--;
-}
-
-function runTests(tests) {
-    function runTest(testName) {
-        if (!testName) return;
-        currentTest = testName;
-
-        function cont() {
-            poslog("passed");
-            runTest(tests.shift());
-        }
-
-        log("Running test: "+testName);
-        try {
-            eval(testName)();
-            if (waitCount > 0) {
-                setTimeout(function() {
-                    if (waitCount > 0) {
-                        fail('timedout');
-                    } else {
-                        cont();
-                    }
-                }, 200);
-            } else {
-                cont();
-            }
-        } catch (e) {
-            fail('threw exception '+e);
-        }
-    }
-    runTest(tests.shift());
-}
-
-/* Actual tests */
 var q = rethinkdb.query;
+var tab = q.table('Welcome-rdb');
 
 var conn;
 function testConnect() {
     wait();
-    conn = rethinkdb.net.connect('localhost', function() {
+    conn = rethinkdb.net.connect('newton', function() {
         done();
     }, function() {
         fail("Could not connect");
@@ -132,15 +52,29 @@ function testBool() {
     q(true).and(false).eq(q(true).not().or(q(false).not()).not()).run(aeq(true));
 }
 
+function testInsert() {
+    for (var i = 0; i < 10; i++) {
+        tab.insert({id:i, num:20-i}).run(objeq({inserted:1}));
+    }
+}
+
+function testGet() {
+    for (var i = 0; i < 10; i++) {
+        tab.get(i).run(objeq({id:i,num:20-i}));
+    }
+}
+
 function testClose() {
     conn.close();
 }
 
 runTests([
-    'testConnect',
-    'testBasic',
-    'testCompare',
-    'testArith',
-    'testBool',
-    'testClose',
+    testConnect,
+    testBasic,
+    testCompare,
+    testArith,
+    testBool,
+    testInsert,
+    testGet,
+    testClose,
 ]);
