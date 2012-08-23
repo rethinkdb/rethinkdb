@@ -62,9 +62,9 @@ dummy_protocol_t::read_t dummy_protocol_t::read_t::shard(region_t region) const 
     return r;
 }
 
-void dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, dummy_protocol_t::read_response_t *response, UNUSED temporary_cache_t *cache) const {
+void dummy_protocol_t::read_t::unshard(const read_response_t *resps, size_t count, dummy_protocol_t::read_response_t *response, UNUSED temporary_cache_t *cache) const {
     rassert(cache != NULL);
-    for (size_t i = 0; i < resps.size(); ++i) {
+    for (size_t i = 0; i < count; ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].values.begin();
                 it != resps[i].values.end(); it++) {
             rassert(keys.keys.count((*it).first) != 0,
@@ -77,8 +77,8 @@ void dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, dummy
     }
 }
 
-void dummy_protocol_t::read_t::multistore_unshard(const std::vector<read_response_t>& resps, read_response_t *response, UNUSED temporary_cache_t *cache) const {
-    unshard(resps, response, cache);
+void dummy_protocol_t::read_t::multistore_unshard(const read_response_t *resps, size_t count, read_response_t *response, UNUSED temporary_cache_t *cache) const {
+    unshard(resps, count, response, cache);
 }
 
 dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
@@ -103,9 +103,9 @@ dummy_protocol_t::write_t dummy_protocol_t::write_t::shard(region_t region) cons
     return w;
 }
 
-void dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, write_response_t *response, UNUSED temporary_cache_t *cache) const {
+void dummy_protocol_t::write_t::unshard(const write_response_t* resps, size_t count, write_response_t *response, UNUSED temporary_cache_t *cache) const {
     rassert(cache != NULL);
-    for (size_t i = 0; i < resps.size(); ++i) {
+    for (size_t i = 0; i < count; ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].old_values.begin();
                 it != resps[i].old_values.end(); it++) {
             rassert(values.find((*it).first) != values.end(),
@@ -118,8 +118,8 @@ void dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, wri
     }
 }
 
-void dummy_protocol_t::write_t::multistore_unshard(const std::vector<write_response_t>& resps, write_response_t *response, UNUSED temporary_cache_t *cache) const {
-    return unshard(resps, response, cache);
+void dummy_protocol_t::write_t::multistore_unshard(const write_response_t *resps, size_t count, write_response_t *response, UNUSED temporary_cache_t *cache) const {
+    return unshard(resps, count, response, cache);
 }
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
