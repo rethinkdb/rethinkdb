@@ -15,12 +15,25 @@ JSON expressions
 .. autoclass:: JSONExpression
     :members:
 
+    .. automethod:: __getitem__
+
     .. automethod:: __eq__
     .. automethod:: __ne__
     .. automethod:: __lt__
     .. automethod:: __le__
     .. automethod:: __gt__
     .. automethod:: __ge__
+
+    .. automethod:: __add__
+    .. automethod:: __sub__
+    .. automethod:: __mul__
+    .. automethod:: __div__
+    .. automethod:: __mod__
+    .. automethod:: __neg__
+
+    .. automethod:: __or__
+    .. automethod:: __and__
+    .. automethod:: __invert__
 
 Stream expressions
 ==================
@@ -112,18 +125,61 @@ class JSONExpression(ReadQuery):
     """An expression that evaluates to a JSON value.
 
     Use :func:`expr` to create a :class:`JSONExpression` that encodes a literal
-    JSON value.
+    JSON value:
 
-    Python operators enable comparisons, logic, and algebra to be performed
-    on JSON expressions.
+    >>> expr("foo").run()
+    "foo"
+    >>> expr([1, 2, 3]).run()
+    [1, 2, 3]
+    >>> expr([expr(1) + expr(2), 2, 1]).run()
+    [3, 2, 1]
+
+    Literal Python strings, booleans, numbers, arrays and dictionaries, as well
+    as `None`, can also be implicitly cast to :class:`JSONExpression`:
+
+    >>> (expr(1) + 2).run()
+    3
+
+    :class:`JSONExpression` overloads Python operators wherever possible to
+    implement arithmetic, attribute access, and so on.
     """
 
-    def to_stream(self):
-        """Convert a JSON array into a stream.
+    def __getitem__(self, index):
+        """If `index` is a string, expects `self` to evaluate to an object and
+        fetches the key called `index` from the object:
 
-        :returns: :class:`StreamExpression`
+        >>> expr({"a": 1})["a"].run()
+        1
+
+        If the key is not present, or if `self` does not evaluate to an object,
+        fails when the query is evaluated.
+
+        If `index` is not a string, it is interpreted as an array index:
+
+        >>> expr([1, 2, 3, 4])[expr(8) - expr(6)].run()
+        4
+
+        Ranges work as well:
+
+        >>> expr([1, 2, 3, 4])[1:2].run()
+        [2]
+
+        If the index to fetch is out of range, or `self` does not evaluate to an
+        array, then it fails when the query is evaluated.
+
+        :param index: The key to fetch from an object, or index or slice to
+            fetch from an array.
+        :type index: string, :class:`JSONExpression`, or slice containing :class:`JSONExpression`
+        :returns: :class:`JSONExpression`
         """
-        return StreamExpression(internal.ToStream(self))
+        if isinstance(index, slice):
+            if index.step is not None:
+                raise ValueError("slice stepping is unsupported")
+            return JSONExpression(internal.Slice(self, index.start, index.stop))
+        elif isinstance(index, str):
+            return JSONExpression(internal.Attr(self, index))
+        else:
+            return JSONExpression(internal.Nth(self, index))
 
     def __eq__(self, other):
         """Evaluates to `true` if `self` evaluates to the same value as `other`.
@@ -193,14 +249,62 @@ class JSONExpression(ReadQuery):
         return JSONExpression(internal.CompareGE(self, other))
 
     def __add__(self, other):
+        """Sums two numbers, or concatenates two arrays.
+
+        If the types are different, fails when the query is run.
+
+        TODO: strings
+
+        :param other: The number to add or array to concatenate with `self`
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression`
+        """
         return JSONExpression(internal.Add(self, other))
+
     def __sub__(self, other):
+        """Subtracts two numbers.
+
+        If `self` or `other` is not a number, fails when the query is run.
+
+        :param other: The number to subtract from `self`
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression`
+        """
         return JSONExpression(internal.Sub(self, other))
+
     def __mul__(self, other):
+        """Multiplies two numbers.
+
+        If `self` or `other` is not a number, fails when the query is run.
+
+        :param other: The number to multiply `self` by
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression`
+        """
         return JSONExpression(internal.Mul(self, other))
+
     def __div__(self, other):
+        """Divides two numbers.
+
+        If `self` or `other` is not a number, fails when the query is run. If
+        `other` is zero, evaluates to `NaN`.
+
+        :param other: The number to divide `self` by
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression`
+        """
         return JSONExpression(internal.Div(self, other))
+
     def __mod__(self, other):
+        """Computes the modulus of two numbers.
+
+        If `self` or `other` is not a number, fails when the query is run. If
+        `other` is zero, evaluates to `NaN`.
+
+        :param other: The number to compute the modulus with
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression`
+        """
         return JSONExpression(internal.Mod(self, other))
 
     def __radd__(self, other):
@@ -215,13 +319,40 @@ class JSONExpression(ReadQuery):
         return JSONExpression(internal.Mod(other, self))
 
     def __neg__(self):
+        """Negates a number.
+
+        If `self` is not a number, fails when the query is run.
+
+        :returns: :class:`JSONExpression`
+        """
         return JSONExpression(internal.Sub(self))
-    def __pos__(self):
-        return self
 
     def __or__(self, other):
+        """Computes the boolean "or" of `self` and `other`.
+
+        If `self` or `other` is not a boolean, fails when the query is run.
+
+        :param other: The value to "or" with `self`
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression` evaluating to a boolean
+
+        >>> (expr(True) | (expr(3) < 2)).run()
+        True
+        """
         return JSONExpression(internal.Any(self, other))
+
     def __and__(self, other):
+        """Computes the boolean "and" of `self` and `other`.
+
+        If `self` or `other` is not a boolean, fails when the query is run.
+
+        :param other: The value to "and" with `self`
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression` evaluating to a boolean
+
+        >>> ((expr(4) < 3) & (expr(8) > 7)).run()
+        False
+        """
         return JSONExpression(internal.All(self, other))
 
     def __ror__(self, other):
@@ -230,20 +361,57 @@ class JSONExpression(ReadQuery):
         return JSONExpression(internal.All(other, self))
 
     def __invert__(self):
+        """Computes the boolean "not" of `self`.
+
+        If `self` is not a boolean, fails when the query is run.
+
+        :returns: :class:`JSONExpression` evaluating to a boolean
+
+        >>> (~expr(True)).run()
+        False
+        """
         return JSONExpression(internal.Not(self))
 
     def has_attr(self, name):
+        """Determines whether an object has a key called `name`.
+        Evaluates to `true` if the key is present, or `false` if not.
+
+        If `self` is not an object, fails when the query is run.
+
+        :param name: The key to check for
+        :type name: string
+        :returns: :class:`JSONExpression` evaluating to a boolean
+
+        >>> expr({}).has_attr("foo").run()
+        False
+        >>> expr({"a": 1}).has_attr("a").run()
+        True
+        """
         return JSONExpression(internal.Has(self, name))
+
     def extend(self, other):
+        """Combines two objects by taking all the key-value pairs from both. If
+        a given key is present in both objects, take the value from `other`.
+
+        If `self` or `other` is not an object, fails when the query is run.
+
+        :param other: The object to take additional key-value pairs from
+        :type other: :class:`JSONExpression`
+        :returns: :class:`JSONExpression` evaluating to an object
+
+        >>> expr({"a": 1, "b": 2}).extend({"b": 3, "c": 4}).run()
+        {"a": 1, "b": 3, "c": 4}
+        """
         return JSONExpression(internal.Extend(self, other))
+
     def append(self, other):
         return JSONExpression(internal.Append(self, other))
 
     # TODO: Implement `range()` for arrays as soon as the server supports it.
 
     def filter(self, predicate):
-        """Apply the given predicate to each element of an array, and return
-        an array with only those elements that match the predicate.
+        """Apply the given predicate to each element of an array, and evaluate
+        to an array with only those elements that match the predicate.
 
         This is like :meth:`StreamExpression.filter`, but with arrays instead of
         streams. See :meth:`StreamExpression.filter` for an explanation of the
@@ -264,16 +432,6 @@ class JSONExpression(ReadQuery):
             predicate = JSONFunction(predicate)
 
         return JSONExpression(internal.Filter(self, predicate))
-
-    def __getitem__(self, index):
-        if isinstance(index, slice):
-            if index.step is not None:
-                raise ValueError("slice stepping is unsupported")
-            return JSONExpression(internal.Slice(self, index.start, index.stop))
-        elif isinstance(index, str):
-            return JSONExpression(internal.Attr(self, index))
-        else:
-            return JSONExpression(internal.Nth(self, index))
 
     def skip(self, offset):
         """Skip the first `offset` elements of an array.
@@ -461,6 +619,16 @@ class JSONExpression(ReadQuery):
             "`expr.length()`. (We couldn't overload `len(expr)` because it's "
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
+
+    def to_stream(self):
+        """Converts a JSON array to a stream. This is the reverse of
+        :meth:`StreamExpression.to_array()`.
+
+        If the input is not an array, fails when the query is run.
+
+        :returns: :class:`StreamExpression`
+        """
+        return StreamExpression(internal.ToStream(self))
 
 class StreamExpression(ReadQuery):
     """A sequence of JSON values which can be read."""
