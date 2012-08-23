@@ -188,8 +188,8 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
     } catch (interrupted_exc_t) {
         /* Ignore. If we were interrupted by the backfillee, then it already
            knows the backfill is cancelled. If we were interrupted by the
-           backfiller shutting down, it will know when it sees we deconstructed
-           our `resource_advertisement_t`. */
+           backfiller shutting down, the backfillee will find out via the
+           directory. */
     }
 }
 
