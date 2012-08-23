@@ -105,7 +105,6 @@ public:
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 private:
-    class single_shard_reader_t;
     struct switch_read_token_t;
 
     // Used by send_multistore_backfill.
@@ -121,13 +120,11 @@ private:
                                        const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
                                        signal_t *interruptor) THROWS_NOTHING;
 
-    void single_shard_read(int i,
-                           DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
+    void single_shard_read(DEBUG_ONLY(const metainfo_checker_t<protocol_t> &metainfo_checker,)
                            const typename protocol_t::read_t *read,
                            order_token_t order_token,
-                           const switch_read_token_t *internal_tokens,
-                           typename protocol_t::read_response_t *responses,
-                           size_t response_index,
+                           const typename multistore_ptr_t<protocol_t>::switch_read_token_t *read_info,
+                           typename protocol_t::read_response_t *response,
                            size_t *reads_left,
                            cond_t *done,
                            signal_t *interruptor) THROWS_NOTHING;

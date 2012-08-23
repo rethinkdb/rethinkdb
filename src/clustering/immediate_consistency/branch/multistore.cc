@@ -11,6 +11,7 @@
 
 struct multistore_ptr_t<protocol_t>::switch_read_token_t {
     bool do_read;
+    int shard;
     typename protocol_t::region_t region;
     typename protocol_t::region_t intersection;
     fifo_enforcer_read_token_t token;
@@ -440,70 +441,38 @@ void multistore_ptr_t<protocol_t>::receive_backfill(const typename protocol_t::b
 }
 
 template <class protocol_t>
-class multistore_ptr_t<protocol_t>::single_shard_reader_t {
-public:
-    single_shard_reader_t(multistore_ptr_t<protocol_t> *_parent,
-                          DEBUG_ONLY(const metainfo_checker_t<protocol_t>& _metainfo_checker, )
-                          const typename protocol_t::read_t *_read,
-                          order_token_t _order_token,
-                          const typename multistore_ptr_t<protocol_t>::switch_read_token_t *_internal_tokens,
-                          typename protocol_t::read_response_t *_responses,
-                          size_t _shard,
-                          size_t _response_index,
-                          size_t *_reads_left,
-                          cond_t *_done,
-                          signal_t *_interruptor) :
-        parent(_parent),
-        DEBUG_ONLY(metainfo_checker(_metainfo_checker), )
-        read(_read),
-        order_token(_order_token),
-        internal_tokens(_internal_tokens),
-        responses(_responses),
-        shard(_shard),
-        response_index(_response_index),
-        reads_left(_reads_left),
-        done(_done),
-        interruptor(_interruptor) { }
+void multistore_ptr_t<protocol_t>::single_shard_read(DEBUG_ONLY(const metainfo_checker_t<protocol_t> &metainfo_checker,)
+                                                     const typename protocol_t::read_t *read,
+                                                     order_token_t order_token,
+                                                     const typename multistore_ptr_t<protocol_t>::switch_read_token_t *read_info,
+                                                     typename protocol_t::read_response_t *response,
+                                                     size_t *reads_left,
+                                                     cond_t *done,
+                                                     signal_t *interruptor) THROWS_NOTHING {
+    const int dest_thread = store_views_[read_info->shard]->home_thread();
+    cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
-    void operator ()() {
-        const int dest_thread = parent->store_views_[shard]->home_thread();
-        cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
+    try {
+        on_thread_t th(dest_thread);
 
-        try {
-            on_thread_t th(dest_thread);
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> store_token;
+        switch_inner_read_token(read_info->shard, read_info->token, &ct_interruptor, &store_token);
 
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> store_token;
-            parent->switch_inner_read_token(shard, internal_tokens[shard].token, &ct_interruptor, &store_token);
-
-            parent->store_views_[shard]->read(DEBUG_ONLY(metainfo_checker.mask(internal_tokens[shard].region), )
-                                              read->shard(internal_tokens[shard].intersection),
-                                              &responses[response_index],
-                                              order_token,
-                                              &store_token,
-                                              &ct_interruptor);
-        } catch (const interrupted_exc_t& exc) {
-            // do nothing
-        }
-
-        *reads_left = *reads_left - 1;
-        if (*reads_left == 0) {
-            done->pulse();
-        }
+        store_views_[read_info->shard]->read(DEBUG_ONLY(metainfo_checker.mask(read_info->region), )
+                                             read->shard(read_info->intersection),
+                                             response,
+                                             order_token,
+                                             &store_token,
+                                             &ct_interruptor);
+    } catch (const interrupted_exc_t& exc) {
+        // do nothing
     }
 
-private:
-    multistore_ptr_t<protocol_t> *parent;
-    DEBUG_ONLY(const metainfo_checker_t<protocol_t> &metainfo_checker;)
-    const typename protocol_t::read_t *read;
-    order_token_t order_token;
-    const typename multistore_ptr_t<protocol_t>::switch_read_token_t *internal_tokens;
-    typename protocol_t::read_response_t *responses;
-    size_t shard;
-    size_t response_index;
-    size_t *reads_left;
-    cond_t *done;
-    signal_t *interruptor;
-};
+    *reads_left = *reads_left - 1;
+    if (*reads_left == 0) {
+        done->pulse();
+    }
+}
 
 template <class protocol_t>
 void
@@ -516,15 +485,13 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_
     size_t num_reads = 0;
     switch_read_token_t token_info[num_stores()];
 
-    // RSI: avoid assignment operator here
     for (int i = 0; i < num_stores(); ++i) {
+        token_info[i].shard = i;
         token_info[i].region = get_region(i);
         token_info[i].intersection = region_intersection(token_info[i].region, read.get_region());
+        token_info[i].do_read = !region_is_empty(token_info[i].intersection);
 
-        if (region_is_empty(token_info[i].intersection)) {
-            token_info[i].do_read = false;
-        } else {
-            token_info[i].do_read = true;
+        if (token_info[i].do_read) {
             ++num_reads;
         }
     }
@@ -537,17 +504,15 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_
     cond_t done;
     for (int i = 0; i < num_stores(); ++i) {
         if (token_info[i].do_read) {
-            // RSI: do this without boost::bind
-            coro_t::spawn_now_dangerously(single_shard_reader_t(this, DEBUG_ONLY(boost::ref(metainfo_checker), )
-                                                                &read,
-                                                                order_token,
-                                                                &token_info[0],
-                                                                &responses[0],
-                                                                i,
-                                                                response_index,
-                                                                &reads_left,
-                                                                &done,
-                                                                interruptor));
+            coro_t::spawn_now_dangerously(boost::bind(&multistore_ptr_t<protocol_t>::single_shard_read,
+                                                      this, DEBUG_ONLY(boost::ref(metainfo_checker), )
+                                                      &read,
+                                                      order_token,
+                                                      &token_info[i],
+                                                      &responses[response_index],
+                                                      &reads_left,
+                                                      &done,
+                                                      interruptor));
             ++response_index;
         }
     }
