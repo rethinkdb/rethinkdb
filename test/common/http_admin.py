@@ -342,7 +342,7 @@ class ClusterAccess(object):
         return json.loads(self.do_query_specific_plaintext(host, http_port, method, route, payload, headers))
 
     def do_query_specific_plaintext(self, host, http_port, method, route, payload = None, headers = {}):
-        conn = HTTPConnection(host, http_port, timeout = 10)
+        conn = HTTPConnection(host, http_port, timeout = 120)
         conn.connect()
         if payload is not None:
             conn.request(method, route, payload, headers)
