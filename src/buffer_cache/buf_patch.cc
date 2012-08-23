@@ -7,10 +7,12 @@
 #include "utils.hpp"
 #include "logger.hpp"
 
-patch_deserialization_error_t::patch_deserialization_error_t(const char *file, int line, const char *msg) {
-    message = strprintf("Patch deserialization error%s%s (in %s:%d)",
-                            msg[0] ? ": " : "", msg, file, line);
+std::string patch_deserialization_message(const char *file, int line, const char *msg) {
+    return strprintf("Patch deserialization error%s%s (in %s:%d)",
+                     msg[0] ? ": " : "", msg, file, line);
 }
+
+patch_deserialization_error_t::patch_deserialization_error_t(const std::string &message) : message_(message) { }
 
 buf_patch_t *buf_patch_t::load_patch(const char *source) {
     try {
@@ -54,8 +56,7 @@ buf_patch_t *buf_patch_t::load_patch(const char *source) {
             result = new leaf_erase_presence_patch_t(block_id, patch_counter, source, remaining_length);
             break;
         default:
-            guarantee_patch_format(false);
-            return NULL;
+            throw patch_deserialization_error_t("Unsupported patch operation code");
         }
         result->set_block_sequence_id(applies_to_block_sequence_id);
         return result;

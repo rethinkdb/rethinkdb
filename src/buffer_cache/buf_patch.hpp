@@ -24,12 +24,15 @@ typedef int8_t patch_operation_code_t;
  */
 class patch_deserialization_error_t {
 public:
-    patch_deserialization_error_t(const char *file, int line);
-    const char *c_str() const { return "patch deserialization error"; }
+    patch_deserialization_error_t(const std::string &message);
+    const char *c_str() const { return message_.c_str(); }
+private:
+    std::string message_;
 };
-#define guarantee_patch_format(cond) do {                               \
+std::string patch_deserialization_message(const char *file, int line, const char *msg);
+#define guarantee_patch_format(cond) do { \
         if (!(cond)) {                                                  \
-            throw patch_deserialization_error_t(__FILE__, __LINE__, ""); \
+            throw patch_deserialization_error_t(patch_deserialization_message(__FILE__, __LINE__, "buf patch deserialization error")); \
         }                                                               \
     } while (0)
 
