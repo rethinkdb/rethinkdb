@@ -620,6 +620,15 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(mutate, {"modified"=>10, "deleted"=>0})
     assert_equal(rdb2.run, $data)
 
+    update = rdb2.get(0).update{{:num => 2}}.run
+    assert_equal(update, {'errors' => 0, 'updated' => 1, 'skipped' => 0})
+    assert_equal(rdb2.get(0).run['num'], 2);
+    update = rdb2.get(0).update{nil}.run
+    assert_equal(update, {'errors' => 0, 'updated' => 0, 'skipped' => 1})
+    #TODO: make pointmutate when working
+    assert_equal(rdb2.insert($data[0]).run, {'inserted' => 1})
+    assert_equal(rdb2.run, $data)
+
     #DELETE
     assert_equal(rdb2.filter{r[:id] < 5}.delete.run['deleted'], 5)
     assert_equal(rdb2.run, $data[5..-1])
@@ -651,11 +660,12 @@ class ClientTest < Test::Unit::TestCase
     rdb2.insert($data).run
     assert_equal(rdb2.run, $data)
     query = rdb2.get(0).update{{:id => 0, :broken => 5}}
-    assert_equal(query.run, {'updated'=>1,'errors'=>0})
-    query = rdb2.get(0).update{|row| r.if(row.attr?(:broken), $data[0], r.error('err'))}
-    assert_equal(query.run, {'updated'=>1,'errors'=>0})
+    assert_equal(query.run, {'updated'=>1,'errors'=>0,'skipped'=>0})
+    query = rdb2.insert($data[0])
+    assert_equal(query.run, {'inserted'=>1})
     assert_equal(rdb2.run, $data)
 
+    #POINTUPDATE
     #POINTMUTATE -- unimplemented
 
     assert_equal(rdb2.run, $data)
