@@ -1,6 +1,7 @@
 var isNode = (typeof module !== 'undefined' && module.exports);
 
 var exports;
+var log;
 var err;
 var poslog;
 if (isNode) {
@@ -13,6 +14,10 @@ if (isNode) {
     exports.exit = function() {
         process.exit();
     };
+
+    log = function(msg) {
+        console.log(msg);
+    }
 
     err = function(msg) {
         console.log('   '+red+msg+reset);
@@ -31,12 +36,29 @@ if (isNode) {
     };
 
     err = function(msg) {
-        console.error('   '+msg);
+        var div = document.createElement('div');
+        div.style['color'] = 'red';
+        div.innerHTML = '&nbsp&nbsp&nbsp'+msg;
+
+        var d2 = document.createElement('div');
+        var stack = (new Error()).stack;
+        d2.innerHTML = stack;
+        div.appendChild(d2);
+        document.body.appendChild(div);
     };
 
     poslog = function(msg) {
-        console.log('   '+msg);
-    }
+        var div = document.createElement('div');
+        div.style['color'] = 'green';
+        div.innerHTML = '&nbsp&nbsp&nbsp'+msg;
+        document.body.appendChild(div);
+    };
+
+    log = function(msg) {
+        var div = document.createElement('div');
+        div.innerText = msg;
+        document.body.appendChild(div);
+    };
 }
 
 function log(msg) {

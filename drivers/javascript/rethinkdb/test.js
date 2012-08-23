@@ -1,5 +1,9 @@
 // Assumes that rethinkdb is loaded already in whichever environment we happen to be running in
 
+function print(msg) {
+    console.log(msg);
+}
+
 var q = rethinkdb.query;
 var tab = q.table('Welcome-rdb');
 
@@ -64,6 +68,22 @@ function testGet() {
     }
 }
 
+function testSlices() {
+    tab.length().run(aeq(10));
+    tab.limit(5).length().run(aeq(5));
+    tab.skip(4).length().run(aeq(6));
+    tab.slice(1,4).length().run(aeq(3));
+    tab.nth(8).run(objeq({id:7,num:13}));
+}
+
+function testMap() {
+    tab.map(q.R('num')).nth(2).run(aeq(19));
+}
+
+function testReduce() {
+    tab.reduce(q(0), q.fn('a', 'b', q.R('$a').add(q.R('$b')))).run(aeq(155));
+}
+
 function testClose() {
     conn.close();
 }
@@ -76,5 +96,8 @@ runTests([
     testBool,
     testInsert,
     testGet,
+    testSlices,
+    testMap,
+    testReduce,
     testClose,
 ]);
