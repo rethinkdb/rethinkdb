@@ -468,7 +468,14 @@ bool tcp_http_msg_parser_t::header_line_parser_t::parse(const std::string &src) 
     }
 
     key = std::string(src.begin(), iter);
-    val = std::string(iter + 1, src.end());
+
+    /* Strip away spaces before parsing value */
+    ++iter;
+    while (iter != src.end() && *iter == ' ') {
+        ++iter;
+    }
+
+    val = std::string(iter, src.end());
 
     return true;
 }
