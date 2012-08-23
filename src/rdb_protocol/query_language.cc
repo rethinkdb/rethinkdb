@@ -1025,15 +1025,19 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     skipped = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     variable_val_scope_t::new_scope_t scope_maker(&env->scope, w->update().mapping().arg(), json);
-                    boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
-                    if (val->type() == cJSON_NULL) {
+                    boost::shared_ptr<scoped_cJSON_t> rhs = eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
+                    if (rhs->type() == cJSON_NULL) {
                         skipped++;
-                    } else if (!cJSON_Equal(json->GetObjectItem(view.primary_key.c_str()),
-                                            val->GetObjectItem(view.primary_key.c_str()))) {
-                        error++;
                     } else {
-                        insert(view.access, view.primary_key, val, env, backtrace);
-                        updated++;
+                        boost::shared_ptr<scoped_cJSON_t> val(new scoped_cJSON_t(cJSON_merge(json->get(), rhs->get())));
+                        cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
+                        cJSON *val_key = val->GetObjectItem(view.primary_key.c_str());
+                        if (!cJSON_Equal(json_key, val_key)) {
+                            error++;
+                        } else {
+                            insert(view.access, view.primary_key, val, env, backtrace);
+                            updated++;
+                        }
                     }
                 }
 

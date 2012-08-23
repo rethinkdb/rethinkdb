@@ -584,6 +584,7 @@ bool cJSON_Equal(cJSON *x, cJSON *y) {
             rassert(x->valueint == y->valueint);
             return true;
         }
+        return false;
         break;
     case cJSON_String:
         return strcmp(x->valuestring, y->valuestring) == 0;
@@ -591,7 +592,7 @@ bool cJSON_Equal(cJSON *x, cJSON *y) {
     case cJSON_Array:
         {
             cJSON *xhd = x->child, *yhd = y->child;
-            while (xhd) { 
+            while (xhd) {
                 if (!yhd) {
                     return false;
                 }

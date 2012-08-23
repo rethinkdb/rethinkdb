@@ -540,8 +540,8 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.insert(docs).run, {'inserted' => docs.length})
     assert_equal(rdb.mutate{|x| x}.run, {'modified' => docs.length, 'deleted' => 0})
     assert_equal(rdb.run, docs)
-    # TODO: when update works, uncomment line below
-    #assert_equal(rdb.update{nil}.run, {'updated' => 0, 'skipped' => 10, 'errors' => 0})
+    assert_equal(rdb.update{nil}.run, {'updated' => 0, 'skipped' => 10, 'errors' => 0})
+    assert_equal(rdb.run, docs);
   end
 
   def test_getitem #from python tests
@@ -612,10 +612,12 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb2.run[0]['broken'], true)
     assert_equal(rdb2.run[1]['broken'], true)
     #PP.pp rdb2.update{|x| r.if(x.attr?(:broken), $data[0], nil)}.run
-    update = rdb2.filter{r[:id].eq(0)}.update{$data[0]}.run
-    assert_equal(update, {'errors' => 0, 'updated' => 1, 'skipped' => 0})
+    mutate = rdb2.filter{r[:id].eq(0)}.mutate{$data[0]}.run
+    assert_equal(mutate, {"modified"=>1, "deleted"=>0})
     update = rdb2.update{|x| r.if(x.attr?(:broken), $data[1], x)}.run
     assert_equal(update, {'errors' => 0, 'updated' => len, 'skipped' => 0})
+    mutate = rdb2.mutate{|x| {:id => x[:id], :num => x[:num], :name => x[:name]}}.run
+    assert_equal(mutate, {"modified"=>10, "deleted"=>0})
     assert_equal(rdb2.run, $data)
 
     #DELETE
