@@ -161,6 +161,7 @@ private:
         THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t);
 
     void on_write(typename protocol_t::write_t write,
+            cpu_sharding_subspace_t cpu_sharding_subspace,
             transition_timestamp_t transition_timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
@@ -182,6 +183,7 @@ private:
     explanation of why `on_writeread()` and `on_read()` are here. */
 
     void on_writeread(typename protocol_t::write_t write,
+            cpu_sharding_subspace_t cpu_sharding_subspace,
             transition_timestamp_t transition_timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
@@ -197,6 +199,7 @@ private:
         THROWS_NOTHING;
 
     void on_read(typename protocol_t::read_t read,
+            cpu_sharding_subspace_t cpu_sharding_subspace,
             state_timestamp_t expected_timestamp,
             order_token_t order_token,
             fifo_enforcer_read_token_t fifo_token,

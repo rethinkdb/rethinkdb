@@ -72,13 +72,13 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
+        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5, _6),
         mailbox_callback_mode_inline),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5),
+        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6),
         mailbox_callback_mode_inline),
     read_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
+        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5, _6),
         mailbox_callback_mode_inline)
 {
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
@@ -218,13 +218,13 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
+        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5, _6),
         mailbox_callback_mode_inline),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5),
+        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6),
         mailbox_callback_mode_inline),
     read_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
+        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5, _6),
         mailbox_callback_mode_inline)
 {
 #ifndef NDEBUG
@@ -364,6 +364,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
 
 template <class protocol_t>
 void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
+        UNUSED cpu_sharding_subspace_t cpu_sharding_subspace,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
@@ -446,6 +447,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
 
 template <class protocol_t>
 void listener_t<protocol_t>::on_writeread(typename protocol_t::write_t write,
+        UNUSED cpu_sharding_subspace_t cpu_sharding_subspace,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
@@ -527,6 +529,7 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
 
 template <class protocol_t>
 void listener_t<protocol_t>::on_read(typename protocol_t::read_t read,
+        UNUSED cpu_sharding_subspace_t cpu_sharding_subspace,
         state_timestamp_t expected_timestamp,
         order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,

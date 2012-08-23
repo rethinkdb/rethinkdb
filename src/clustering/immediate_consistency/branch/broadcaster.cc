@@ -342,7 +342,7 @@ void listener_write(
         mailbox_callback_mode_inline);
 
     send(mailbox_manager, write_mailbox,
-         w, ts, order_token, token, ack_mailbox.get_address());
+         w, cpu_sharding_subspace_t::fake(), ts, order_token, token, ack_mailbox.get_address());
 
     wait_interruptible(&ack_cond, interruptor);
 }
@@ -369,7 +369,7 @@ void listener_writeread(
         mailbox_callback_mode_inline);
 
     send(mailbox_manager, writeread_mailbox,
-         w, ts, order_token, token, resp_mailbox.get_address());
+         w, cpu_sharding_subspace_t::fake(), ts, order_token, token, resp_mailbox.get_address());
 
     wait_interruptible(&resp_cond, interruptor);
 }
@@ -390,7 +390,7 @@ void listener_read(
         mailbox_callback_mode_inline);
 
     send(mailbox_manager, read_mailbox,
-         r, ts, order_token, token, resp_mailbox.get_address());
+         r, cpu_sharding_subspace_t::fake(), ts, order_token, token, resp_mailbox.get_address());
 
     wait_interruptible(&resp_cond, interruptor);
 }

@@ -116,6 +116,28 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(branches);
 };
 
+// TODO: Stop abusing the word "subspace".
+struct cpu_sharding_subspace_t {
+    // These numbers identify what hash shard the operation is
+    // restricted to (it's more efficient for the listener to receive
+    // it this way than to compute it as part of the operation's
+    // region.
+
+    cpu_sharding_subspace_t() : shard_number(-1), cpu_sharding_factor(0) { }
+
+    cpu_sharding_subspace_t(int32_t _shard_number, int32_t _cpu_sharding_factor)
+        : shard_number(_shard_number), cpu_sharding_factor(_cpu_sharding_factor) { }
+
+    static cpu_sharding_subspace_t fake() { return cpu_sharding_subspace_t(0, 1); }
+
+    // 0 <= shard_number < cpu_sharding_factor.
+    int32_t shard_number;
+    // 0 < cpu_sharding_factor.
+    int32_t cpu_sharding_factor;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(shard_number, cpu_sharding_factor);
+};
+
 /* Every `listener_t` constructs a `listener_business_card_t` and sends it to
 the `broadcaster_t`. */
 
@@ -127,18 +149,21 @@ public:
     the mirrors. */
 
     typedef mailbox_t<void(typename protocol_t::write_t,
-                            transition_timestamp_t,
-                            order_token_t,
-                            fifo_enforcer_write_token_t,
-                            mailbox_addr_t<void()>)> write_mailbox_t;
+                           cpu_sharding_subspace_t,
+                           transition_timestamp_t,
+                           order_token_t,
+                           fifo_enforcer_write_token_t,
+                           mailbox_addr_t<void()>)> write_mailbox_t;
 
     typedef mailbox_t<void(typename protocol_t::write_t,
+                           cpu_sharding_subspace_t,
                            transition_timestamp_t,
                            order_token_t,
                            fifo_enforcer_write_token_t,
                            mailbox_addr_t<void(typename protocol_t::write_response_t)>)> writeread_mailbox_t;
 
     typedef mailbox_t<void(typename protocol_t::read_t,
+                           cpu_sharding_subspace_t,
                            state_timestamp_t,
                            order_token_t,
                            fifo_enforcer_read_token_t,
