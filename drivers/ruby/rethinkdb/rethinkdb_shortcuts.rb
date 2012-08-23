@@ -3,7 +3,6 @@ load 'rethinkdb.rb'
 # happen.  TODO:
 # * UPDATE needs to be changed to do an implicit mapmerge on its righthand side
 #   (this will make its behavior line up with the Python documentation).
-# * UPDATE needs to work if you return NIL
 # * MUTATE needs to be renamed to REPLACE (Joe and Tim and I just talked about
 #   this) and maintain its current behavior rather than changing to match
 #   UPDATE.

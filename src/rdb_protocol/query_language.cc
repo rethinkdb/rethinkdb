@@ -1539,17 +1539,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                                                                          cJSON_Object, "Data must be an object"),
                                                   right = eval_and_check(c->mutable_args(1), env, backtrace.with("arg:1"),
                                                                          cJSON_Object, "Data must be an object");
-
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(left->DeepCopy()));
-
-                // Extend with the right side (and overwrite if necessary)
-                for(int i = 0; i < right->GetArraySize(); i++) {
-                    cJSON *item = right->GetArrayItem(i);
-                    res->DeleteItemFromObject(item->string);
-                    res->AddItemToObject(item->string, cJSON_DeepCopy(item));
-                }
-
-                return res;
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_merge(left->get(), right->get())));
             }
             break;
         case Builtin::ARRAYAPPEND:

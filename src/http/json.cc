@@ -19,6 +19,19 @@ http_res_t http_json_res(cJSON *json) {
     return http_res_t(HTTP_OK, "application/json", cJSON_default_print(json));
 }
 
+cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
+    rassert(lhs->type == cJSON_Object);
+    rassert(rhs->type == cJSON_Object);
+    cJSON *obj = cJSON_DeepCopy(lhs);
+
+    for (int i = 0; i < cJSON_GetArraySize(rhs); ++i) {
+        cJSON *item = cJSON_GetArrayItem(rhs, i);
+        cJSON_DeleteItemFromObject(obj, item->string);
+        cJSON_AddItemToObject(obj, item->string, cJSON_DeepCopy(item));
+    }
+    return obj;
+}
+
 scoped_cJSON_t::scoped_cJSON_t(cJSON *_val)
     : val(_val)
 { }
