@@ -10,7 +10,7 @@
     </div>
 
     <ul class="nav nav-tabs">
-        <li class="active"><a href="#datacenters/{{datacenter_id}}/stats" data-target="#datacenter-stats" id="datacenter-stats-link" class="tab-link" data-toggle="tab">Statistics</a></li>
+        <li class="active"><a href="#datacenters/{{datacenter_id}}/overview" data-target="#datacenter-overview" id="datacenter-overview-link" class="tab-link" data-toggle="tab">Statistics</a></li>
         <li><a href="#datacenters/{{datacenter_id}}/data" data-target="#datacenter-data" id="datacenter-data-link" class="tab-link" data-toggle="tab">Data</a></li>
         <li><a href="#datacenters/{{datacenter_id}}/operations" data-target="#datacenter-operations" id="datacenter-operations-link" class="tab-link" data-toggle="tab">Operations</a></li>
         <li><a href="#datacenters/{{datacenter_id}}/logs" data-target="#datacenter-logs" id="datacenter-logs-link" class="tab-link" data-toggle="tab">Recent log entries</a></li>
@@ -19,8 +19,8 @@
     <div id="user-alert-space"></div>
     
     <div class="tab-content">  
-        <div class="tab-pane active" id="datacenter-stats">
-            <div class="section datacenter-stats"></div>
+        <div class="tab-pane active" id="datacenter-overview">
+            <div class="section overview"></div>
         </div>
         <div class="tab-pane" id="datacenter-data">
             <div class="section data"></div>
@@ -61,6 +61,34 @@
         </ul>
     </div>
 </script>
+
+<script id="datacenter_overview-container-template" type="text/x-handlebars-template">
+    <div class="ram_repartition-container"></div>
+    <div class="disk_repartition-container"></div>
+</script>
+
+<script id="datacenter-ram_repartition-template" type="text/x-handlebars-template">
+    {{#if few_machines}}
+    <div class="two-panel-section">
+        <div class="ram_repartition-graph panel-left">
+            <svg class="ram_repartition-diagram" width="270" height="270">
+                <text x="100" y="135" class="loading_text-diagram">Loading...</text>
+            </svg>
+        </div>
+
+        <div class="ram_legend panel-right">
+            <ul class="legend">
+                <li class="title-legend"><h4>Legend</h4></li>
+                <li class="Used RAM">RAM used</li>
+                <li class="Free RAM">Free RAM</li>
+            </ul>
+        </div>
+    </div>
+    {{else}}
+machines
+    {{/if}}
+</script>
+
 
 <script id="datacenter_view_data-template" type="text/x-handlebars-template">
     <h3 class="title">Data in this datacenter</h3>

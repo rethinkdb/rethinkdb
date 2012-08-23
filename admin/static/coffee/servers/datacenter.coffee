@@ -26,7 +26,7 @@ module 'DatacenterView', ->
             @profile = new DatacenterView.Profile(model: @model)
             @data = new DatacenterView.Data(model: @model)
             @operations = new DatacenterView.Operations(model: @model)
-            @stats_panel = new Vis.StatsPanel(@model.get_stats_for_performance)
+            @overview = new DatacenterView.Overview(model: @model)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
 
             filter = {}
@@ -57,7 +57,7 @@ module 'DatacenterView', ->
             @.$('.performance-graph').html @performance_graph.render().$el
 
             # display the data on the datacenter
-            @.$('.datacenter-stats').html @stats_panel.render().$el
+            @.$('.overview').html @overview.render().$el
 
             # display the data on the datacenter
             @.$('.data').html @data.render().$el
@@ -79,8 +79,8 @@ module 'DatacenterView', ->
                 @.$('.active').removeClass('active')
                 switch tab
                     when 'stats'
-                        @.$('#datacenter-stats').addClass('active')
-                        @.$('#datacenter-stats-link').tab('show')
+                        @.$('#datacenter-overview').addClass('active')
+                        @.$('#datacenter-overview-link').tab('show')
                     when 'data'
                         @.$('#datacenter-data').addClass('active')
                         @.$('#datacenter-data-link').tab('show')
@@ -112,7 +112,7 @@ module 'DatacenterView', ->
             @title.destroy()
             @profile.destroy()
             @data.destroy()
-            @stats_panel.destroy()
+            @overview.destroy()
             @performance_graph.destroy()
             @logs.destroy()
 
@@ -236,6 +236,137 @@ module 'DatacenterView', ->
             @model.off 'all', @render
             machines.off 'all', @render
             directory.off 'all', @render
+
+
+
+    class @Overview extends Backbone.View
+        className: 'datacenter-overview'
+
+        container_template: Handlebars.compile $('#datacenter_overview-container-template').html()
+        ram_repartition_template: Handlebars.compile $('#datacenter-ram_repartition-template').html()
+
+        render: =>
+            @.$el.html @container_template {}
+            @render_ram_repartition()
+            return @
+
+        render_ram_repartition: =>
+            machines_in_datacenter = []
+            for machine in machines.models
+                if machine.get('datacenter_uuid') is @model.get('id')
+                    machines_in_datacenter.push machine
+
+            if machines_in_datacenter.length is 0
+                @.$('.ram_repartition-container').html @ram_repartition_template
+                    few_machines: true
+                @.$('.loading_text-diagram').html 'No machine in this datacenter'
+                return @
+
+            @.$('.ram_repartition-container').html @ram_repartition_template
+                few_machines: machines_in_datacenter.length < 7
+
+            max_ram = d3.max machines_in_datacenter, (d) ->
+                if d.get('stats')?.proc?.global_mem_total?
+                    return d.get('stats').proc.global_mem_total
+                else
+                    return 0
+            
+            #TODO Remove this hack and write clean code.
+            if $('.ram_repartition-diagram')
+                setTimeout(@render_ram_repartition, 1000)
+            else
+                @.$('.loading_text-diagram').css 'display', 'none'
+
+            if max_ram? and not _.isNaN max_ram
+                if machines_in_datacenter.length < 7
+                    svg_width = 350
+                    svg_height = 270
+                else
+                    svg_width = 700
+                    svg_height = 350
+
+                margin_width = 20
+                margin_height = 20
+
+                width = Math.floor((svg_width-margin_width*3)/machines_in_datacenter.length*0.8)
+                margin_bar = Math.floor((svg_width-margin_width*3)/machines_in_datacenter.length*0.2/2)
+                if machines_in_datacenter.length is 1 # Special hack when there is just one shard
+                    width = Math.floor width/2
+                    margin_bar = Math.floor margin_bar+width/2
+
+                x = d3.scale.linear().domain([0, machines_in_datacenter.length-1]).range([margin_width*1.5+margin_bar, svg_width-margin_width*1.5-margin_bar-width])
+                y = d3.scale.linear().domain([0, max_ram]).range([1, svg_height-margin_height*2.5])
+
+                svg = d3.select('.ram_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
+                svg.selectAll('.ram_free_bar').data(machines_in_datacenter)
+                    .enter()
+                    .append('rect')
+                    .attr('class', 'ram_free_bar')
+                    .attr('x', (d, i) -> return x(i))
+                    .attr('y', (d) -> 
+                        return svg_height-y(d.get('stats').proc.global_mem_total)-margin_height-1
+                    ) #-1 not to overlap with axe
+                    .attr('width', width)
+                    .attr( 'height', (d) -> 
+                        return y(d.get('stats').proc.global_mem_total - d.get('stats').proc.global_mem_used)
+                    )
+                    .attr( 'title', (d) -> return 'free ram')
+
+                svg.selectAll('.ram_used_bar').data(machines_in_datacenter)
+                    .enter()
+                    .append('rect')
+                    .attr('class', 'ram_used_bar')
+                    .attr('x', (d, i) -> return x(i))
+                    .attr('y', (d) -> 
+                        return svg_height-y(d.get('stats').proc.global_mem_total - d.get('stats').proc.global_mem_used)-margin_height-1
+                    ) #-1 not to overlap with axe
+                    .attr('width', width)
+                    .attr( 'height', (d) -> 
+                        return y(d.get('stats').proc.global_mem_used)
+                    )
+                    .attr( 'title', (d) -> return 'used ram')
+           
+
+                arrow_width = 4
+                arrow_length = 7
+                extra_data = []
+                extra_data.push
+                    x1: margin_width
+                    x2: margin_width
+                    y1: margin_height
+                    y2: svg_height-margin_height
+
+                extra_data.push
+                    x1: margin_width
+                    x2: svg_width-margin_width
+                    y1: svg_height-margin_height
+                    y2: svg_height-margin_height
+
+                svg = d3.select('.ram_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
+                svg.selectAll('line').data(extra_data).enter().append('line')
+                    .attr('x1', (d) -> return d.x1)
+                    .attr('x2', (d) -> return d.x2)
+                    .attr('y1', (d) -> return d.y1)
+                    .attr('y2', (d) -> return d.y2)
+                    .style('stroke', '#000')
+
+                axe_legend = []
+                axe_legend.push
+                    x: margin_width
+                    y: Math.floor(margin_height/2)
+                    anchor: 'middle'
+                axe_legend.push
+                    x: Math.floor(svg_width/2)
+                    y: svg_height
+                    anchor: 'middle'
+
+                svg.selectAll('.legend')
+                    .data(axe_legend).enter().append('text')
+                    .attr('x', (d) -> return d.x)
+                    .attr('y', (d) -> return d.y)
+                    .attr('text-anchor', (d) -> return d.anchor)
+                    .text((d) -> return d.string)
+
 
 
     class @Data extends Backbone.View
