@@ -150,7 +150,7 @@ public:
             }
         }
         typename protocol_t::context_t ctx;
-        read.unshard(responses, response, &ctx);
+        read.unshard(responses.data(), responses.size(), response, &ctx);
     }
 
     void read_outdated(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, signal_t *interruptor) {
@@ -167,7 +167,7 @@ public:
             }
         }
         typename protocol_t::context_t ctx;
-        read.unshard(responses, response, &ctx);
+        read.unshard(responses.data(), responses.size(), response, &ctx);
     }
 
     void write(const typename protocol_t::write_t &write, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) {
@@ -184,9 +184,8 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-
         typename protocol_t::context_t ctx;
-        write.unshard(responses, response, &ctx);
+        write.unshard(responses.data(), responses.size(), response, &ctx);
     }
 
 private:
