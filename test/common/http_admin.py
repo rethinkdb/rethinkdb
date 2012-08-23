@@ -481,7 +481,7 @@ class ClusterAccess(object):
         self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/ack_expectations" % (namespace.protocol, namespace.uuid), ae_dict)
         self.update_cluster_data(10)
 
-    def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }, primary_key = None, check = False):
+    def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }, ack_expectations = { }, primary_key = None, check = False):
         assert protocol in ["dummy", "memcached", "rdb"]
         if port is None:
             port = random.randint(10000, 20000)
@@ -494,11 +494,15 @@ class ClusterAccess(object):
         aff_dict = { }
         for datacenter, count in affinities.iteritems():
             aff_dict[self.find_datacenter(datacenter).uuid] = count
+        ack_dict = { }
+        for datacenter, count in ack_expectations.iteritems():
+            ack_dict[self.find_datacenter(datacenter).uuid] = count
         data_to_post = {
             "name": name,
             "port": port,
             "primary_uuid": primary,
-            "replica_affinities": aff_dict
+            "replica_affinities": aff_dict,
+            "ack_expectations": ack_dict
             }
         if protocol == "rdb":
             if primary_key is None:
