@@ -1,5 +1,5 @@
-#ifndef MEMCACHED_BTREE_NODE_HPP_
-#define MEMCACHED_BTREE_NODE_HPP_
+#ifndef MEMCACHED_MEMCACHED_BTREE_NODE_HPP_
+#define MEMCACHED_MEMCACHED_BTREE_NODE_HPP_
 
 #include <string>
 
@@ -61,4 +61,4 @@ inline void valuecpy(block_size_t bs, memcached_value_t *dest, const memcached_v
     memcpy(dest, src, src->inline_size(bs));
 }
 
-#endif /* MEMCACHED_BTREE_NODE_HPP_ */
+#endif /* MEMCACHED_MEMCACHED_BTREE_NODE_HPP_ */

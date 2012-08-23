@@ -1,16 +1,15 @@
 #include "containers/uuid.hpp"
 
+#include <sys/stat.h>
 #include <string.h>
+#include <fcntl.h>
+#include <openssl/sha.h>
 
 #include "errors.hpp"
 #define BOOST_UUID_NO_TYPE_TRAITS
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <openssl/sha.h>
 
 #include "containers/printf_buffer.hpp"
 
@@ -59,6 +58,7 @@ uuid_t get_and_increment_uuid() {
     return result;
 }
 
+// TODO(sam):  Make sure this isn't messed up somehow.
 void hash_uuid(uuid_t *uuid) {
     CT_ASSERT(SHA_DIGEST_LENGTH >= uuid_t::kStaticSize);
     uint8_t output_buffer[SHA_DIGEST_LENGTH];
@@ -76,7 +76,8 @@ void hash_uuid(uuid_t *uuid) {
 void initialize_dev_random_uuid() {
     int random_fd = open("/dev/urandom", O_RDONLY);
     guarantee(random_fd != -1);
-    guarantee(read(random_fd, next_uuid, uuid_t::static_size()) == (int)uuid_t::static_size());
+    ssize_t readres = read(random_fd, next_uuid, uuid_t::static_size());
+    guarantee(readres == static_cast<ssize_t>(uuid_t::static_size()));
     close(random_fd);
 }
 

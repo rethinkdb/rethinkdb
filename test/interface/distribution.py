@@ -2,7 +2,7 @@
 import sys, os, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, http_admin, scenario_common
-from workload_common import MemcacheConnection
+from memcached_workload_common import MemcacheConnection
 from vcoptparse import *
 
 op = OptParser()
@@ -25,17 +25,24 @@ with driver.Metacluster() as metacluster:
     for machine_id in http.machines:
         http.move_server_to_datacenter(machine_id, dc)
     ns = http.add_namespace(protocol = "memcached", primary = dc)
-    time.sleep(10)
-    host, port = driver.get_namespace_host(ns.port, processes)
+    http.wait_until_blueprint_satisfied(ns)
 
+    print "Getting distribution first time."
     distribution = http.get_distribution(ns)
 
+    print "Inserting a bunch."
+    host, port = driver.get_namespace_host(ns.port, processes)
     with MemcacheConnection(host, port) as mc:
         for i in range(10000):
+            if (i + 1) % 100 == 0:
+                print i + 1,
+                sys.stdout.flush()
             mc.set(str(i) * 10, str(i)*20)
+        print
 
     time.sleep(1)
 
+    print "Getting distribution second time."
     distribution = http.get_distribution(ns)
 
     cluster.check_and_stop()

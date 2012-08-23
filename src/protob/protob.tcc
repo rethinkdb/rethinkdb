@@ -1,13 +1,16 @@
 #include "protob/protob.hpp"
 
+#include <google/protobuf/stubs/common.h>
+
+#include <string>
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <google/protobuf/stubs/common.h>
 
 #include "arch/arch.hpp"
 
 template <class request_t, class response_t, class context_t>
-protob_server_t<request_t, response_t, context_t>::protob_server_t(int port, int http_port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *), protob_server_callback_mode_t _cb_mode)
+protob_server_t<request_t, response_t, context_t>::protob_server_t(int port, int http_port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *), protob_server_callback_mode_t _cb_mode)  // NOLINT(readability/casting)
     : f(_f), on_unparsable_query(_on_unparsable_query), cb_mode(_cb_mode) {
     tcp_listener.init(new tcp_listener_t(port, boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
     http_server.init(new http_server_t(http_port, this));
@@ -87,7 +90,7 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
 
     // Extract protobuf from http request body
     const char *data = req.body.data();
-    int32_t req_size = *((int32_t *)data);
+    int32_t req_size = *reinterpret_cast<const int32_t *>(data);
     data += sizeof(req_size);
 
     context_t ctx;
@@ -113,7 +116,7 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
 
     int32_t res_size = response.ByteSize();
     scoped_array_t<char> res_data(sizeof(res_size) + res_size);
-    *((int32_t *)res_data.data()) = res_size;
+    *reinterpret_cast<int32_t *>(res_data.data()) = res_size;
     response.SerializeToArray(res_data.data() + sizeof(res_size), res_size);
 
     http_res_t res(HTTP_OK);

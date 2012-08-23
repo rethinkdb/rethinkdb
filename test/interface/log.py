@@ -26,7 +26,7 @@ with driver.Metacluster() as metacluster:
         sys.stdout.flush()
         access.rename(datacenter, str(i))
     print
-    time.sleep(2)
+    time.sleep(10)
     print "Trying to access its log..."
     log = access.get_log(access.machines.keys()[0], max_length = num_entries + 100)
     print "Log is %d lines" % len(log)

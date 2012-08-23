@@ -1,5 +1,5 @@
-#ifndef RDB_PROTOCOL_JSON_HPP_
-#define RDB_PROTOCOL_JSON_HPP_
+#ifndef RDB_PROTOCOL_RDB_PROTOCOL_JSON_HPP_
+#define RDB_PROTOCOL_RDB_PROTOCOL_JSON_HPP_
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -36,4 +36,4 @@ private:
 
 } //namespace query_language
 
-#endif /* RDB_PROTOCOL_JSON_HPP_ */
+#endif /* RDB_PROTOCOL_RDB_PROTOCOL_JSON_HPP_ */

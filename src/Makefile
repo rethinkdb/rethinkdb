@@ -139,7 +139,7 @@ CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
 CXXFLAGS+=-Weverything -Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wno-long-long -Wno-global-constructors -Wno-padded -Wno-shorten-64-to-32 -Wno-sign-conversion -Wno-variadic-macros -Wno-weak-vtables -Wno-missing-prototypes -Wno-exit-time-destructors -Wno-unreachable-code -Wno-packed -Wno-conversion
-# CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wused-but-marked-unused -Wunused-macro -Wundef -Wvla -Wshadow -Wconditional-uninitialized
+# CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wused-but-marked-unused -Wunused-macro -Wundef -Wvla -Wshadow -Wconditional-uninitialized -Wmissing-noreturn
 else
 ifeq ($(LEGACY_GCC), 1)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default

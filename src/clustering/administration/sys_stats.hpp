@@ -1,9 +1,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_SYS_STATS_HPP_
 #define CLUSTERING_ADMINISTRATION_SYS_STATS_HPP_
 
-#include "perfmon/perfmon.hpp"
-
 #include <string>
+
+#include "perfmon/perfmon.hpp"
 
 /* Class to get system statistics, such as disk space usage.
 Similar to proc_stats_collector_t, but not based on /proc. */

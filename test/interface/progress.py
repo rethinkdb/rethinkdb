@@ -2,7 +2,7 @@
 import sys, os, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, http_admin, scenario_common
-from workload_common import MemcacheConnection
+from memcached_workload_common import MemcacheConnection
 from vcoptparse import *
 
 op = OptParser()
@@ -30,7 +30,11 @@ with driver.Metacluster() as metacluster:
 
     with MemcacheConnection(host, port) as mc:
         for i in range(10000):
+            if (i + 1) % 100 == 0:
+                print i + 1,
+                sys.stdout.flush()
             mc.set(str(i) * 10, str(i)*20)
+        print
 
     http.set_namespace_affinities(ns, {dc : 1})
 
