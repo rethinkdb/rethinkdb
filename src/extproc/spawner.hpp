@@ -1,9 +1,9 @@
 #ifndef EXTPROC_SPAWNER_HPP_
 #define EXTPROC_SPAWNER_HPP_
 
-#include <sys/types.h>                    // pid_t
+#include <sys/types.h>
 
-#include "arch/runtime/runtime_utils.hpp" // fd_t
+#include "arch/runtime/runtime_utils.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/archive/socket_stream.hpp"
 
@@ -44,8 +44,8 @@ class spawner_t :
     pid_t spawn_process(scoped_fd_t *socket);
 
   private:
-    static void exec_spawner(fd_t socket);
-    static void exec_worker(fd_t socket);
+    static void exec_spawner(fd_t socket) NORETURN;
+    static void exec_worker(fd_t socket) NORETURN;
 
   private:
     pid_t pid_;

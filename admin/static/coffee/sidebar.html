@@ -28,7 +28,7 @@
 <script id="sidebar-connectivity_status-template" type="text/x-handlebars-template">
   <h5 class="cluster">Cluster status</h5>
   <div class="connectivity-info">
-    <p class="metrics"><strong>{{machines_active}}</strong> of <strong>{{machines_total}}</strong> machines reachable.</p>
+    <p class="metrics"><strong>{{machines_active}}</strong> of <strong>{{machines_total}}</strong> servers reachable.</p>
     <p class="metrics"><strong>{{datacenters_active}}</strong> of <strong>{{datacenters_total}}</strong> data centers reachable.</p>
   </div>
 </script>
@@ -41,12 +41,12 @@
     <div class="critical-issues">
       <div class="priority"></div>
       <div class="message">
-        {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "machine" num}} {{pluralize_verb_to_be num}} down{{/if}}
+        {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "server" num}} {{pluralize_verb_to_be num}} down{{/if}}
         {{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}
         {{#if LOGFILE_WRITE_ERROR}}{{num}} {{pluralize_noun "log file" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
         {{#if VCLOCK_CONFLICT}}{{num}} {{pluralize_noun "vector conflict" num}}{{/if}}
         {{#if UNSATISFIABLE_GOALS}}{{num}} {{pluralize_noun "unsatisfiable goal" num}}{{/if}}
-        {{#if MACHINE_GHOST}}{{num}} {{pluralize_noun "ghost machine" num}}{{/if}}
+        {{#if MACHINE_GHOST}}{{num}} {{pluralize_noun "zombie server" num}}{{/if}}
       </div>
     </div>
     {{/each}}
@@ -58,12 +58,12 @@
   <div class="other-issues">
     <div class="priority"></div>
     <div class="message">
-        {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "machine" num}} {{pluralize_verb_to_be num}} down{{/if}}
+        {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "server" num}} {{pluralize_verb_to_be num}} down{{/if}}
         {{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}
         {{#if LOGFILE_WRITE_ERROR}}{{num}} {{pluralize_noun "log file" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
         {{#if VCLOCK_CONFLICT}}{{num}} {{pluralize_noun "vector conflict" num}}{{/if}}
         {{#if UNSATISFIABLE_GOALS}}{{num}} {{pluralize_noun "unsatisfiable goal" num}}{{/if}}
-        {{#if MACHINE_GHOST}}{{num}} {{pluralize_noun "ghost machine" num}}{{/if}}
+        {{#if MAserverHOST}}{{num}} {{pluralize_noun "zombie server" num}}{{/if}}
     </div>
   </div>
     {{/each}}

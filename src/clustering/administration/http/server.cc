@@ -53,6 +53,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/cluster-min.js");
     white_list.insert("/favicon.ico");
     white_list.insert("/js/backbone.js");
+    white_list.insert("/js/rethinkdb.js");
+    white_list.insert("/js/encoding.js");
     white_list.insert("/js/bootstrap/bootstrap-alert.js");
     white_list.insert("/js/bootstrap/bootstrap-modal.js");
     white_list.insert("/js/bootstrap/bootstrap-tab.js");

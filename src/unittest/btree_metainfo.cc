@@ -8,6 +8,9 @@
 namespace unittest {
 
 static const bool print_log_messages = false;
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunreachable-code"
+#endif
 
 std::string random_existing_key(const std::map<std::string, std::string> &map) {
     int i = random() % map.size();

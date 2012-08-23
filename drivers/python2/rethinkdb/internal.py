@@ -2,38 +2,36 @@ import query
 
 import query_language_pb2 as p
 
-###########################
-# DATABASE ADMINISTRATION #
-###########################
+#####################################
+# DATABASE AND TABLE ADMINISTRATION #
+#####################################
 
 class MetaQueryInner(object):
     def _write_table_op_query(self, parent):
         raise NotImplementedError()
 
 class DBCreate(MetaQueryInner):
-    def __init__(self, db_name, primary_datacenter=None):
+    def __init__(self, db_name, primary_datacenter):
         raise NotImplementedError()
 
 class DBDrop(MetaQueryInner):
     def __init__(self, db_name):
-        raise NotImplementedError
+        raise NotImplementedError()
 
 class DBList(MetaQueryInner):
-    pass
+    def __init__(self):
+        raise NotImplementedError()
 
-########################
-# TABLE ADMINISTRATION #
-########################
 class TableCreate(MetaQueryInner):
-    def __init__(table_name, db_expr=None, primary_key='id'):
+    def __init__(table_name, db_expr, primary_key='id'):
         raise NotImplementedError()
 
 class TableDrop(MetaQueryInner):
-    def __init__(table_name, db_expr=None):
+    def __init__(table_name, db_expr):
         raise NotImplementedError()
 
 class TableList(MetaQueryInner):
-    def __init__(db_expr=None):
+    def __init__(db_expr):
         raise NotImplementedError()
 
 #################
@@ -307,19 +305,18 @@ class OrderBy(ExpressionInner):
             elem.attr = key
             elem.ascending = bool(val)
 
-class Between(ExpressionInner):
-    def __init__(self, parent, start_key, end_key, start_inclusive, end_inclusive):
+class Range(ExpressionInner):
+    def __init__(self, parent, lowerbound, upperbound, attrname):
         self.parent = parent
-        self.start_key = query.expr(start_key)
-        self.end_key = query.expr(end_key)
-        self.start_inclusive = start_inclusive
-        self.end_inclusive = end_inclusive
+        self.lowerbound = query.expr(lowerbound)
+        self.upperbound = query.expr(upperbound)
+        self.attrname = attrname
 
     def _write_ast(self, parent):
         builtin = self._write_call(parent, p.Builtin.RANGE, self.parent)
-        builtin.range.attrname = 'id' # TODO: get rid of this ?
-        self.start_key._inner._write_ast(builtin.range.lowerbound)
-        self.end_key._inner._write_ast(builtin.range.upperbound)
+        builtin.range.attrname = self.attrname
+        self.lowerbound._inner._write_ast(builtin.range.lowerbound)
+        self.upperbound._inner._write_ast(builtin.range.upperbound)
 
 class Get(ExpressionInner):
     def __init__(self, table, value):

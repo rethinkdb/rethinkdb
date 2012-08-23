@@ -28,7 +28,7 @@ the class scope. */
 
 #define RDB_DECLARE_SERIALIZABLE(type_t) \
     write_message_t &operator<<(write_message_t &, const type_t &); \
-    archive_result_t deserialize(read_stream_t *s, type_t *thing);
+    archive_result_t deserialize(read_stream_t *s, type_t *thing)
 
 #define RDB_EXPAND_SERIALIZABLE_0(function_attr, type_t) \
     function_attr write_message_t &operator<<(UNUSED write_message_t &msg /* NOLINT */, UNUSED const type_t &thing) { \
@@ -38,7 +38,7 @@ the class scope. */
         archive_result_t res = ARCHIVE_SUCCESS; \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_0(...) RDB_EXPAND_SERIALIZABLE_0(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_0(...) RDB_EXPAND_SERIALIZABLE_0(, __VA_ARGS__)
 
@@ -64,7 +64,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_1(...) RDB_EXPAND_SERIALIZABLE_1(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_1(...) RDB_EXPAND_SERIALIZABLE_1(, __VA_ARGS__)
 
@@ -96,7 +96,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_2(...) RDB_EXPAND_SERIALIZABLE_2(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_2(...) RDB_EXPAND_SERIALIZABLE_2(, __VA_ARGS__)
 
@@ -134,7 +134,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_3(...) RDB_EXPAND_SERIALIZABLE_3(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_3(...) RDB_EXPAND_SERIALIZABLE_3(, __VA_ARGS__)
 
@@ -178,7 +178,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_4(...) RDB_EXPAND_SERIALIZABLE_4(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_4(...) RDB_EXPAND_SERIALIZABLE_4(, __VA_ARGS__)
 
@@ -228,7 +228,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_5(...) RDB_EXPAND_SERIALIZABLE_5(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_5(...) RDB_EXPAND_SERIALIZABLE_5(, __VA_ARGS__)
 
@@ -284,7 +284,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_6(...) RDB_EXPAND_SERIALIZABLE_6(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_6(...) RDB_EXPAND_SERIALIZABLE_6(, __VA_ARGS__)
 
@@ -346,7 +346,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_7(...) RDB_EXPAND_SERIALIZABLE_7(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_7(...) RDB_EXPAND_SERIALIZABLE_7(, __VA_ARGS__)
 
@@ -414,7 +414,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_8(...) RDB_EXPAND_SERIALIZABLE_8(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_8(...) RDB_EXPAND_SERIALIZABLE_8(, __VA_ARGS__)
 
@@ -488,7 +488,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_9(...) RDB_EXPAND_SERIALIZABLE_9(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_9(...) RDB_EXPAND_SERIALIZABLE_9(, __VA_ARGS__)
 
@@ -568,7 +568,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_10(...) RDB_EXPAND_SERIALIZABLE_10(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_10(...) RDB_EXPAND_SERIALIZABLE_10(, __VA_ARGS__)
 
@@ -654,7 +654,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_11(...) RDB_EXPAND_SERIALIZABLE_11(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_11(...) RDB_EXPAND_SERIALIZABLE_11(, __VA_ARGS__)
 
@@ -746,7 +746,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_12(...) RDB_EXPAND_SERIALIZABLE_12(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_12(...) RDB_EXPAND_SERIALIZABLE_12(, __VA_ARGS__)
 
@@ -844,7 +844,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_13(...) RDB_EXPAND_SERIALIZABLE_13(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_13(...) RDB_EXPAND_SERIALIZABLE_13(, __VA_ARGS__)
 
@@ -948,7 +948,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_14(...) RDB_EXPAND_SERIALIZABLE_14(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_14(...) RDB_EXPAND_SERIALIZABLE_14(, __VA_ARGS__)
 
@@ -1058,7 +1058,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_15(...) RDB_EXPAND_SERIALIZABLE_15(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_15(...) RDB_EXPAND_SERIALIZABLE_15(, __VA_ARGS__)
 
@@ -1174,7 +1174,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_16(...) RDB_EXPAND_SERIALIZABLE_16(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_16(...) RDB_EXPAND_SERIALIZABLE_16(, __VA_ARGS__)
 
@@ -1296,7 +1296,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_17(...) RDB_EXPAND_SERIALIZABLE_17(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_17(...) RDB_EXPAND_SERIALIZABLE_17(, __VA_ARGS__)
 
@@ -1424,7 +1424,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_18(...) RDB_EXPAND_SERIALIZABLE_18(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_18(...) RDB_EXPAND_SERIALIZABLE_18(, __VA_ARGS__)
 
@@ -1558,7 +1558,7 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_19(...) RDB_EXPAND_SERIALIZABLE_19(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_19(...) RDB_EXPAND_SERIALIZABLE_19(, __VA_ARGS__)
 

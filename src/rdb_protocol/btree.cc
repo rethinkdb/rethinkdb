@@ -303,7 +303,8 @@ public:
             }
 
             cumulative_size += estimate_rget_response_size(stream->back().second);
-            return int(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
+            // TODO: If we have to cast stream->size(), why is maximum an int?
+            return static_cast<int>(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
         } else {
             for (json_list_t::iterator jt  = data.begin();
                                        jt != data.end();

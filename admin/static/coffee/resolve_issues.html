@@ -16,8 +16,8 @@
 <script id="declare_machine_dead-modal-template" type="text/x-handlebars-template">
     <div class="alert alert-error">
         <h4 class="title_center">Warning</h4>
-        <p>If you declare this machine dead, you will not be able to reconnect it later, even if it does reconnect, it will consider itself dead and will stop working.</p>
-        <p>All the data on the machine will be lost.</p>
+        <p>If you declare this server dead, you will not be able to reconnect it later, even if it does reconnect, it will consider itself dead and will stop working.</p>
+        <p>All the data on the server will be lost.</p>
     </div>
     <div class="alert alert-error error_answer"></div>
     <p>Are you sure you want to declare <strong>{{machine_name}}</strong> dead?</p>
@@ -30,7 +30,7 @@
 <script id="declared_machine_dead-alert-template" type="text/x-handlebars-template">
   <div class="alert" data-alert="alert">
     <a class="close" href="#">&times;</a>
-    <p>You successfully declared machine <span class="name">{{machine_name}}</span> dead.</p>
+    <p>You successfully declared server <span class="name">{{machine_name}}</span> dead.</p>
   </div>
 </script>
 
@@ -73,39 +73,39 @@
 <script id="resolve_issues-machine_down-template" type="text/x-handlebars-template">
   <div class="issue {{#if critical }}critical{{/if}}">
     <div class="header">
-      <h3 class="title">Machine {{name}} is unreachable.</h3>
+      <h3 class="title">Server {{name}} is unreachable.</h3>
       {{#if datetime}}
       <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
       {{/if}}
     </div>
     <hr />
     {{#if no_responsibilities}}
-    <h4>This machine has no master or replica responsibilities.</h4>
+    <h4>This server has no master or replica responsibilities.</h4>
 
     {{else}}
 
     <!-- Masters -->
     {{#if masters}}
-    <h4>This machine is responsible for the following masters:</h4>
+    <h4>This server is responsible for the following masters:</h4>
     <ul>
       {{#each masters}}
       <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
       {{/each}}
     </ul>
     {{else}}
-    <h4>This machine has no master responsibilities.</h4>
+    <h4>This server has no master responsibilities.</h4>
     {{/if}}
 
     <!-- Replicas -->
     {{#if replicas}}
-    <h4>This machine is responsible for the following replicas:</h4>
+    <h4>This server is responsible for the following replicas:</h4>
     <ul>
       {{#each replicas}}
       <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
       {{/each}}
     </ul>
     {{else}}
-    <h4>This machine has no replica responsibilities.</h4>
+    <h4>This server has no replica responsibilities.</h4>
     {{/if}}
 
     {{/if}}
@@ -139,7 +139,7 @@
       {{/if}}
     </div>
     <hr />
-    <p>Log file is inaccessible on machine <a href="/#machines/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the machine, or declare it dead.<p>
+    <p>Log file is inaccessible on server <a href="/#servers/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the server, or declare it dead.<p>
     <p><a class="btn large danger">Declare Dead</a></p>
   </div>
 </script>
@@ -175,7 +175,7 @@
         {{#each datacenters_with_issues}}
         <p class="description">You require {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} for the datacenter <a href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> but you only have {{num_machines}} {{pluralize_noun "server" this.num_machines}} available.</p>
         {{/each}}
-        <p class="description">To solve this issue, you can lower the number of replicas or connect a new machine to the datacenter.</p>
+        <p class="description">To solve this issue, you can lower the number of replicas or connect a new server to the datacenter.</p>
 
         <p><a class="btn large danger solve_unsatisfiable_goals">Lower the number of replicas</a></p>
   </div>
@@ -186,14 +186,14 @@
 <script id="resolve_issues-machine_ghost-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}}">
         <div class="header">
-            <h3 class="title">Dead machine is connected</h3>
+            <h3 class="title">Dead server is connected</h3>
             {{#if datetime}}
             <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
         {{/if}}
         </div>
         <hr />
-        <h4>A machine was declared dead, but is connected to the cluster.</h4>
-        <p class="description">Machine's id: <a href="#machines/{{machine_id}}">{{machine_name}}</a><br/>
+        <h4>A server was declared dead, but is connected to the cluster.</h4>
+        <p class="description">Server's id: <a href="#servers/{{machine_id}}">{{machine_name}}</a><br/>
         Please manually remove it (by killing the rethinkDB instance for instance)</p>
   </div>
 </script>
@@ -207,8 +207,8 @@
             {{/if}}
         </div>
         <hr />
-        <h4>A necessary port is already in use on this machine</h4>
-        <p class="description">Machine <a href="#machines/{{machine_id}}">{{machine_name}}</a> {{description}}.<br/>
+        <h4>A necessary port is already in use on this server</h4>
+        <p class="description">Server <a href="#servers/{{machine_id}}">{{machine_name}}</a> {{description}}.<br/>
         Some other process is likely using this port. Kill it or instruct it to release the port in order to resolve this issue.</p>
     </div>
 </script>

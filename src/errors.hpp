@@ -43,6 +43,8 @@
 #define NON_NULL_ATTR(arg) __attribute__((nonnull(arg)))
 #endif
 
+#define NORETURN __attribute__((noreturn))
+
 /* Error handling
  *
  * There are several ways to report errors in RethinkDB:

@@ -1,5 +1,5 @@
-#ifndef MEMCACHED_BTREE_ERASE_RANGE_HPP_
-#define MEMCACHED_BTREE_ERASE_RANGE_HPP_
+#ifndef MEMCACHED_MEMCACHED_BTREE_ERASE_RANGE_HPP_
+#define MEMCACHED_MEMCACHED_BTREE_ERASE_RANGE_HPP_
 
 #include "btree/erase_range.hpp"
 
@@ -12,4 +12,4 @@ void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,
                                  const key_range_t &keys,
                                  transaction_t *txn, superblock_t *superblock);
 
-#endif /* MEMCACHED_BTREE_ERASE_RANGE_HPP_ */
+#endif /* MEMCACHED_MEMCACHED_BTREE_ERASE_RANGE_HPP_ */

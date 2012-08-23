@@ -61,6 +61,10 @@ public:
     {
         rassert(action_ == NULL);
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunreachable-code"
+#endif
         // Allocate the action inside this object, if possible, or the heap otherwise
         if (sizeof(callable_action_instance_t<Callable>) > CALLABLE_CUTOFF_SIZE) {
             action_ = new callable_action_instance_t<Callable>(action);
@@ -69,6 +73,9 @@ public:
             action_ = new (action_data) callable_action_instance_t<Callable>(action);
             action_on_heap = false;
         }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
     }
 
     void reset();

@@ -12,7 +12,7 @@
 namespace fsck {
 
 // TODO: Should this still be UNUSED?
-void usage(UNUSED const char *name) {
+NORETURN void usage(UNUSED const char *name) {
     help_pager_t *help = help_pager_t::instance();
     help->pagef("Usage:\n"
                 "        rethinkdb fsck [OPTIONS] -f <file_1> [-f <file_2> ...] [--metadata-file <file>]\n");
@@ -37,7 +37,7 @@ void usage(UNUSED const char *name) {
 }
 
 enum { ignore_diff_log = 256,  // Start these values above the ASCII range.
-       metadata_file,
+       metadata_file
 };
 
 void parse_cmd_args(int argc, char **argv, config_t *config) {

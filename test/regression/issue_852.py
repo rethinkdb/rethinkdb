@@ -33,8 +33,11 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     http.check_no_issues()
 
-    workload_ports = scenario_common.get_workload_ports(ns.port, [process1, process2])
-    workload_runner.run(opts["workload"], workload_ports, opts["timeout"])
+    workload_ports = workload_runner.MemcachedPorts(
+        "localhost",
+        process1.http_port,
+        ns.port + process1.port_offset)
+    workload_runner.run("memcached", opts["workload"], workload_ports, opts["timeout"])
 
     print "Changing the primary..."
     http.do_query("POST", "/ajax/semilattice/memcached_namespaces/%s/primary_pinnings" % ns.uuid,
