@@ -1,6 +1,7 @@
 #ifndef RDB_PROTOCOL_PROTOCOL_HPP_
 #define RDB_PROTOCOL_PROTOCOL_HPP_
 
+#include <algorithm>
 #include <list>
 #include <map>
 #include <string>
@@ -15,8 +16,11 @@
 #include "btree/btree_store.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
+#include "clustering/administration/namespace_interface_repository.hpp"
+#include "clustering/administration/namespace_metadata.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
+#include "extproc/pool.hpp"
 #include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
@@ -76,8 +80,9 @@ struct Length {
 typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_t;
 
 
-
 } // namespace rdb_protocol_details
+
+class cluster_semilattice_metadata_t;
 
 struct rdb_protocol_t {
     static const std::string protocol_name;
@@ -86,7 +91,24 @@ struct rdb_protocol_t {
     // Construct a region containing only the specified key
     static region_t monokey_region(const store_key_t &k);
 
-    struct temporary_cache_t { };
+    struct context_t { 
+        context_t() 
+            : pool_group(NULL), ns_repo(NULL)
+        { }
+        context_t(extproc::pool_group_t *_pool_group,
+                  namespace_repo_t<rdb_protocol_t> *_ns_repo, 
+                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+                  machine_id_t _machine_id)
+            : pool_group(_pool_group), ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata),
+              machine_id(_machine_id)
+        { }
+
+        extproc::pool_group_t *pool_group;
+        namespace_repo_t<rdb_protocol_t> *ns_repo;
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+        cond_t interruptor; //TODO figure out where we're going to want to interrupt this from and put this there instead
+        machine_id_t machine_id;
+    };
 
     struct point_read_response_t {
         boost::shared_ptr<scoped_cJSON_t> data;
@@ -119,13 +141,15 @@ struct rdb_protocol_t {
         result_t result;
         int errors;
         bool truncated;
+        store_key_t last_considered_key;
 
         rget_read_response_t() { }
-        rget_read_response_t(const key_range_t &_key_range, const result_t _result, int _errors, bool _truncated)
-            : key_range(_key_range), result(_result), errors(_errors), truncated(_truncated)
+        rget_read_response_t(const key_range_t &_key_range, const result_t _result, int _errors, bool _truncated, const store_key_t &_last_considered_key)
+            : key_range(_key_range), result(_result), errors(_errors), truncated(_truncated),
+              last_considered_key(_last_considered_key)
         { }
 
-        RDB_MAKE_ME_SERIALIZABLE_4(result, errors, key_range, truncated);
+        RDB_MAKE_ME_SERIALIZABLE_5(result, errors, key_range, truncated, last_considered_key);
     };
 
     struct read_response_t {
@@ -155,8 +179,22 @@ struct rdb_protocol_t {
         rget_read_t(const key_range_t &_key_range, int _maximum)
             : key_range(_key_range), maximum(_maximum) { }
 
+        rget_read_t(const key_range_t &_key_range, int _maximum, 
+                    const rdb_protocol_details::transform_t &_transform)
+            : key_range(_key_range), maximum(_maximum), transform(_transform) { }
+
+        rget_read_t(const key_range_t &_key_range, int _maximum, 
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
+            : key_range(_key_range), maximum(_maximum), terminal(_terminal) { }
+
+        rget_read_t(const key_range_t &_key_range, int _maximum, 
+                    const rdb_protocol_details::transform_t &_transform,
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
+            : key_range(_key_range), maximum(_maximum), 
+              transform(_transform), terminal(_terminal) { }
+
         key_range_t key_range;
-        int maximum;
+        size_t maximum;
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
@@ -169,8 +207,8 @@ struct rdb_protocol_t {
 
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(std::vector<read_response_t> responses, read_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
-        void multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
+        void unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : read(r.read) { }
@@ -242,8 +280,8 @@ struct rdb_protocol_t {
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(std::vector<write_response_t> responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
-        void multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING;
+        void unshard(std::vector<write_response_t> responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : write(w.write) { }
@@ -298,8 +336,7 @@ struct rdb_protocol_t {
 
         rdb_protocol_t::backfill_chunk_t shard(const rdb_protocol_t::region_t &region) const THROWS_NOTHING;
 
-        // TODO: This is bad.
-        RDB_MAKE_ME_SERIALIZABLE_0();
+        RDB_MAKE_ME_SERIALIZABLE_1(val);
     };
 
     typedef traversal_progress_combiner_t backfill_progress_t;
@@ -309,7 +346,8 @@ struct rdb_protocol_t {
         store_t(io_backender_t *io_backend,
                 const std::string& filename,
                 bool create,
-                perfmon_collection_t *parent_perfmon_collection);
+                perfmon_collection_t *parent_perfmon_collection,
+                context_t *ctx);
         ~store_t();
 
     private:
@@ -345,7 +383,9 @@ struct rdb_protocol_t {
                                  btree_slice_t *btree,
                                  transaction_t *txn,
                                  superblock_t *superblock);
+        context_t *ctx;
     };
+
 
     static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 };

@@ -40,6 +40,8 @@ public:
 
     std::map<std::string, std::string> inserter_state;
 
+    typename protocol_t::context_t ctx;
+
     explicit test_cluster_group_t(int n_machines);
     ~test_cluster_group_t();
 

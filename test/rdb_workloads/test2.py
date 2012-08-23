@@ -275,6 +275,12 @@ class RDBTest(unittest.TestCase):
             {"food": 41, "entertainment": 6}
             )
 
+    def test_reduce(self):
+        raise ValueError("Skip this test because it locks up for some reason")
+        expect(expr([1, 2, 3]).to_stream().reduce(0, fn("a", "b", R("$a") + R("$b"))), 6)
+        expect(expr([1, 2, 3]).reduce(0, fn("a", "b", R("$a") + R("$b"))), 6)
+        expect(expr([]).reduce(21, fn("a", "b", 0)), 21)
+
     def test_ordering(self):
         expect = self.expect
         fail = self.error_exec
@@ -311,11 +317,11 @@ class RDBTest(unittest.TestCase):
         for doc in docs:
             self.expect(self.table.get(doc['id']), doc)
 
-        self.expect(self.table.distinct('a'), [3, 9])
+        self.expect(self.table.map(R("a")).distinct(), [3, 9])
 
         self.expect(self.table.filter({"a": 3}), [docs[0]])
 
-        self.error_exec(self.table.filter({"a": self.table.count() + ""}), "numbers")
+        self.error_exec(self.table.filter({"a": self.table.length() + ""}), "numbers")
 
         self.error_exec(self.table.insert({"a": 3}), "id")
 
@@ -429,10 +435,10 @@ class RDBTest(unittest.TestCase):
     def test_range(self):
         self.clear_table()
 
-        docs = [{"id": n, "a": -n} for n in range(10)]
+        docs = [{"id": n, "a": "x" * n} for n in range(10)]
         self.do_insert(docs)
 
-        self.expect(self.table.between(2, 3), docs[2:4])
+        self.expect(self.table.range(2, 3), docs[2:4])
 
     def test_js(self):
         self.expect(js('2'), 2)

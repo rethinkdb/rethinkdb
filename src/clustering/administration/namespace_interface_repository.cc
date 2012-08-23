@@ -1,16 +1,19 @@
 #include "clustering/administration/namespace_interface_repository.hpp"
-#include "concurrency/cross_thread_signal.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+
+#include "concurrency/cross_thread_signal.hpp"
 
 #define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
 
 template <class protocol_t>
 namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
-                                               clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > _namespaces_directory_metadata)
+                                               clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > _namespaces_directory_metadata,
+                                               typename protocol_t::context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
-      namespaces_directory_metadata(_namespaces_directory_metadata)
+      namespaces_directory_metadata(_namespaces_directory_metadata),
+      ctx(_ctx)
 { }
 
 template <class protocol_t>
@@ -153,7 +156,9 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
 
     cluster_namespace_interface_t<protocol_t> namespace_interface(
         mailbox_manager,
-        cross_thread_watchable.get_watchable());
+        cross_thread_watchable.get_watchable(),
+        ctx
+        );
 
     try {
         wait_interruptible(namespace_interface.get_initial_ready_signal(),

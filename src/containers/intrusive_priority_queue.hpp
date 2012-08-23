@@ -1,6 +1,11 @@
 #ifndef CONTAINERS_INTRUSIVE_PRIORITY_QUEUE_HPP_
 #define CONTAINERS_INTRUSIVE_PRIORITY_QUEUE_HPP_
 
+#include <algorithm>
+#include <vector>
+
+#include "errors.hpp"
+
 template <class node_t>
 class intrusive_priority_queue_t;
 
@@ -59,7 +64,8 @@ public:
         rassert(x);
         rassert(get_mixin(x)->queue == this);
         DEBUG_ONLY_CODE(get_mixin(x)->queue = NULL);
-        if (get_mixin(x)->index == int(nodes.size()) - 1) {
+        // TODO: static_cast?  really?
+        if (get_mixin(x)->index == static_cast<int>(nodes.size()) - 1) {
             nodes.pop_back();
         } else {
             node_t *replacement = nodes[get_mixin(x)->index] = nodes.back();
@@ -152,11 +158,11 @@ private:
             int left_index = compute_left_child_index(get_mixin(node)->index);
             int right_index = compute_right_child_index(get_mixin(node)->index);
             int winner = get_mixin(node)->index;
-            if (left_index < int(nodes.size()) &&
+            if (left_index < static_cast<int>(nodes.size()) &&
                     get_mixin(nodes[left_index])->is_higher_priority_than(nodes[winner])) {
                 winner = left_index;
             }
-            if (right_index < int(nodes.size()) &&
+            if (right_index < static_cast<int>(nodes.size()) &&
                     get_mixin(nodes[right_index])->is_higher_priority_than(nodes[winner])) {
                 winner = right_index;
             }
@@ -168,9 +174,10 @@ private:
         }
     }
 
+    // TODO: Vectors are O(n).
     std::vector<node_t *> nodes;
 
     DISABLE_COPYING(intrusive_priority_queue_t);
 };
 
-#endif   /* CONTAINERS_INTRUSIVE_PRIORITY_QUEUE_HPP_ */
+#endif  // CONTAINERS_INTRUSIVE_PRIORITY_QUEUE_HPP_

@@ -2,78 +2,47 @@ import query
 
 import query_language_pb2 as p
 
-class PolymorphicOperation(object):
-    """This class performs a bit of magic so that
-    we can have polymorphic constructors -- when someone
-    chains an operation off a Stream, they should get a subclass of Stream,
-    and one off a JSONExpression should get a subclass of JSONExpression, etc.
+#####################################
+# DATABASE AND TABLE ADMINISTRATION #
+#####################################
 
-    To do this, it inspects the type of the 1st argument, and constructs a new
-    class with the appropriate base classes."""
-    def __new__(cls, parent, *args, **kwargs):
-        for base, output in cls.mapping:
-            if isinstance(parent, base):
-                return type(cls.__name__, (output,),
-                            dict(cls.__dict__))(parent, *args, **kwargs)
-        raise TypeError("cannot perform operation on incompatible type %r"
-                        % parent.__class__.__name__)
+class MetaQueryInner(object):
+    def _write_table_op_query(self, parent):
+        raise NotImplementedError()
 
-class Selector(PolymorphicOperation):
-    """The resulting class should be a MultiRowSelection
-    if the parent is, or a Stream if the parent is, or a
-    JSONExpression if the parent is."""
-    mapping = [(query.MultiRowSelection, query.MultiRowSelection),
-               (query.Stream, query.Stream),
-               (query.JSONExpression, query.JSONExpression)]
+class DBCreate(MetaQueryInner):
+    def __init__(self, db_name, primary_datacenter):
+        raise NotImplementedError()
 
-class Transformer(PolymorphicOperation):
-    """The resulting class should be a Stream if the parent is,
-    or a JSONExpression if the parent is."""
-    mapping = [(query.Stream, query.Stream),
-               (query.JSONExpression, query.JSONExpression)]
+class DBDrop(MetaQueryInner):
+    def __init__(self, db_name):
+        raise NotImplementedError()
 
-class Picker(PolymorphicOperation):
-    """The resulting class should be a RowSelection if the parent
-    is a MultiRowSelection, or a JSONExpression if the parent is
-    a Stream or JSONExpression."""
-    mapping = [(query.MultiRowSelection, query.RowSelection),
-               (query.Stream, query.JSONExpression),
-               (query.JSONExpression, query.JSONExpression)]
+class DBList(MetaQueryInner):
+    def __init__(self):
+        raise NotImplementedError()
 
-###########################
-# DATABASE ADMINISTRATION #
-###########################
-class DBCreate(query.BaseExpression):
-    def __init__(db_name, primary_datacenter=None):
-        pass
+class TableCreate(MetaQueryInner):
+    def __init__(table_name, db_expr, primary_key='id'):
+        raise NotImplementedError()
 
-class DBDrop(query.BaseExpression):
-    def __init__(db_name):
-        pass
+class TableDrop(MetaQueryInner):
+    def __init__(table_name, db_expr):
+        raise NotImplementedError()
 
-class DBList(query.BaseExpression):
-    pass
-
-########################
-# TABLE ADMINISTRATION #
-########################
-class TableCreate(query.BaseExpression):
-    def __init__(table_name, db_expr=None, primary_key='id'):
-        pass
-
-class TableDrop(query.BaseExpression):
-    def __init__(table_name, db_expr=None):
-        pass
-
-class TableList(query.BaseExpression):
-    def __init__(db_expr=None):
-        pass
+class TableList(MetaQueryInner):
+    def __init__(db_expr):
+        raise NotImplementedError()
 
 #################
 # WRITE QUERIES #
 #################
 
-class Insert(query.WriteQuery):
+class WriteQueryInner(object):
+    def _write_write_query(self, parent):
+        raise NotImplementedError()
+
+class Insert(WriteQueryInner):
     def __init__(self, table, entries):
         self.table = table
         self.entries = [query.expr(e) for e in entries]
@@ -82,37 +51,37 @@ class Insert(query.WriteQuery):
         parent.type = p.WriteQuery.INSERT
         self.table._write_ref_ast(parent.insert.table_ref)
         for entry in self.entries:
-            entry._write_ast(parent.insert.terms.add())
+            entry._inner._write_ast(parent.insert.terms.add())
 
-class Delete(query.WriteQuery):
+class Delete(WriteQueryInner):
     def __init__(self, parent_view):
         self.parent_view = parent_view
 
     def _write_write_query(self, parent):
         parent.type = p.WriteQuery.DELETE
-        self.parent_view._write_ast(parent.delete.view)
+        self.parent_view._inner._write_ast(parent.delete.view)
 
-class Update(query.WriteQuery):
+class Update(WriteQueryInner):
     def __init__(self, parent_view, mapping):
         self.parent_view = parent_view
         self.mapping = mapping
 
     def _write_write_query(self, parent):
         parent.type = p.WriteQuery.UPDATE
-        self.parent_view._write_ast(parent.update.view)
+        self.parent_view._inner._write_ast(parent.update.view)
         self.mapping.write_mapping(parent.update.mapping)
 
-class Mutate(query.WriteQuery):
+class Mutate(WriteQueryInner):
     def __init__(self, parent_view, mapping):
         self.parent_view = parent_view
         self.mapping = mapping
 
     def _write_write_query(self, parent):
         parent.type = p.WriteQuery.MUTATE
-        self.parent_view._write_ast(parent.mutate.view)
+        self.parent_view._inner._write_ast(parent.mutate.view)
         self.mapping.write_mapping(parent.mutate.mapping)
 
-class InsertStream(query.WriteQuery):
+class InsertStream(WriteQueryInner):
     def __init__(self, table, stream):
         self.table = table
         self.stream = stream
@@ -120,13 +89,60 @@ class InsertStream(query.WriteQuery):
     def _write_write_query(self, parent):
         parent.type = p.WriteQuery.INSERTSTREAM
         self.table._write_ref_ast(parent.insert_stream.table_ref)
-        self.stream._write_ast(parent.insert_stream.stream)
+        self.stream._inner._write_ast(parent.insert_stream.stream)
 
 ##############
 # OPERATIONS #
 ##############
 
-class Javascript(query.JSONExpression):
+class ExpressionInner(object):
+    def _write_ast(self, parent):
+        raise NotImplementedError()
+    def _write_call(self, parent, builtin, *args):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = builtin
+        for arg in args:
+            arg._inner._write_ast(parent.call.args.add())
+        return parent.call.builtin
+
+class JSONLiteral(ExpressionInner):
+    """A literal JSON value."""
+
+    def __init__(self, value):
+        self.value = value
+        if isinstance(value, bool):
+            self.type = p.Term.BOOL
+            self.valueattr = 'valuebool'
+        elif isinstance(value, (int, float)):
+            self.type = p.Term.NUMBER
+            self.valueattr = 'number'
+        elif isinstance(value, (str, unicode)):
+            self.type = p.Term.STRING
+            self.valueattr = 'valuestring'
+        elif isinstance(value, dict):
+            self.type = p.Term.OBJECT
+        elif isinstance(value, list):
+            self.type = p.Term.ARRAY
+        elif value is None:
+            self.type = p.Term.JSON_NULL
+        else:
+            raise TypeError("argument must be a JSON-compatible type (bool/int/float/str/unicode/dict/list),"
+                            " not %r" % value.__class__.__name__)
+
+    def _write_ast(self, parent):
+        parent.type = self.type
+        if self.type == p.Term.ARRAY:
+            for value in self.value:
+                query.expr(value)._inner._write_ast(parent.array.add())
+        elif self.type == p.Term.OBJECT:
+            for key, value in self.value.iteritems():
+                pair = parent.object.add()
+                pair.var = key
+                query.expr(value)._inner._write_ast(pair.term)
+        elif self.value is not None:
+            setattr(parent, self.valueattr, self.value)
+
+class Javascript(ExpressionInner):
     def __init__(self, body):
         self.body = body
 
@@ -134,19 +150,19 @@ class Javascript(query.JSONExpression):
         parent.type = p.Term.JAVASCRIPT
         parent.javascript = self.body
 
-class ToArray(query.JSONExpression):
+class ToArray(ExpressionInner):
     def __init__(self, stream):
         self.stream = stream
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.STREAMTOARRAY, self.stream)
 
-class Count(query.JSONExpression):
+class Count(ExpressionInner):
     def __init__(self, stream):
         self.stream = stream
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.LENGTH, self.stream)
 
-class JSONBuiltin(query.JSONExpression):
+class JSONBuiltin(ExpressionInner):
     def __init__(self, *args):
         self.args = [query.expr(arg) for arg in args]
     def _write_ast(self, parent):
@@ -205,7 +221,7 @@ class CompareGT(Comparison):
 class CompareGE(Comparison):
     comparison = p.Builtin.GE
 
-class Has(query.JSONExpression):
+class Has(ExpressionInner):
     def __init__(self, parent, key):
         self.parent = query.expr(parent)
         self.key = key
@@ -213,7 +229,7 @@ class Has(query.JSONExpression):
         self._write_call(parent, p.Builtin.HASATTR, self.parent)
         parent.call.builtin.attr = self.key
 
-class Length(query.JSONExpression):
+class Length(ExpressionInner):
     def __init__(self, seq):
         self.seq = seq
     def _write_ast(self, parent):
@@ -224,34 +240,34 @@ class Attr(Has):
         self._write_call(parent, p.Builtin.GETATTR, self.parent)
         parent.call.builtin.attr = self.key
 
-class ImplicitAttr(query.JSONExpression):
+class ImplicitAttr(ExpressionInner):
     def __init__(self, attr):
         self.attr = attr
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.IMPLICIT_GETATTR)
         parent.call.builtin.attr = self.attr
 
-class StreamBuiltin(query.Stream):
+class StreamBuiltin(ExpressionInner):
     def __init__(self, stream, *args):
         self.stream = stream
         self.args = [query.expr(arg) for arg in args]
     def _write_ast(self, parent):
         self._write_call(parent, self.builtin, stream, *self.args)
 
-class ToStream(query.Stream):
+class ToStream(ExpressionInner):
     def __init__(self, array):
         self.array = query.expr(array)
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.ARRAYTOSTREAM, self.array)
 
-class Nth(Picker):
+class Nth(ExpressionInner):
     def __init__(self, stream, index):
         self.stream = stream
         self.index = query.expr(index)
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.NTH, self.stream, self.index)
 
-class Slice(Selector):
+class Slice(ExpressionInner):
     def __init__(self, parent, start, stop):
         self.parent = parent
         self.start = query.expr(start)
@@ -260,7 +276,7 @@ class Slice(Selector):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.SLICE, self.parent, self.start, self.stop)
 
-class Skip(Selector):
+class Skip(ExpressionInner):
     def __init__(self, parent, offset):
         self.parent = parent
         self.offset = query.expr(offset)
@@ -268,7 +284,7 @@ class Skip(Selector):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.SKIP, self.parent, self.offset)
 
-class Filter(Selector):
+class Filter(ExpressionInner):
     def __init__(self, parent, selector):
         self.parent = parent
         self.selector = selector
@@ -277,7 +293,7 @@ class Filter(Selector):
         builtin = self._write_call(parent, p.Builtin.FILTER, self.parent)
         self.selector.write_mapping(builtin.filter.predicate)
 
-class OrderBy(Selector):
+class OrderBy(ExpressionInner):
     def __init__(self, parent, ordering):
         self.parent = parent
         self.ordering = ordering
@@ -289,21 +305,20 @@ class OrderBy(Selector):
             elem.attr = key
             elem.ascending = bool(val)
 
-class Between(Selector):
-    def __init__(self, parent, start_key, end_key, start_inclusive, end_inclusive):
+class Range(ExpressionInner):
+    def __init__(self, parent, lowerbound, upperbound, attrname):
         self.parent = parent
-        self.start_key = query.expr(start_key)
-        self.end_key = query.expr(end_key)
-        self.start_inclusive = start_inclusive
-        self.end_inclusive = end_inclusive
+        self.lowerbound = query.expr(lowerbound)
+        self.upperbound = query.expr(upperbound)
+        self.attrname = attrname
 
     def _write_ast(self, parent):
         builtin = self._write_call(parent, p.Builtin.RANGE, self.parent)
-        builtin.range.attrname = 'id' # TODO: get rid of this ?
-        self.start_key._write_ast(builtin.range.lowerbound)
-        self.end_key._write_ast(builtin.range.upperbound)
+        builtin.range.attrname = self.attrname
+        self.lowerbound._inner._write_ast(builtin.range.lowerbound)
+        self.upperbound._inner._write_ast(builtin.range.upperbound)
 
-class Get(query.RowSelection):
+class Get(ExpressionInner):
     def __init__(self, table, value):
         self.table = table
         self.key = "id"
@@ -313,9 +328,9 @@ class Get(query.RowSelection):
         parent.type = p.Term.GETBYKEY
         self.table._write_ref_ast(parent.get_by_key.table_ref)
         parent.get_by_key.attrname = self.key
-        self.value._write_ast(parent.get_by_key.key)
+        self.value._inner._write_ast(parent.get_by_key.key)
 
-class If(query.JSONExpression):
+class If(ExpressionInner):
     def __init__(self, test, true_branch, false_branch):
         # TODO: Actually support things other than `JSONExpression`
         self.test = query.expr(test)
@@ -324,11 +339,11 @@ class If(query.JSONExpression):
 
     def _write_ast(self, parent):
         parent.type = p.Term.IF
-        self.test._write_ast(parent.if_.test)
-        self.true_branch._write_ast(parent.if_.true_branch)
-        self.false_branch._write_ast(parent.if_.false_branch)
+        self.test._inner._write_ast(parent.if_.test)
+        self.true_branch._inner._write_ast(parent.if_.true_branch)
+        self.false_branch._inner._write_ast(parent.if_.false_branch)
 
-class Map(Transformer):
+class Map(ExpressionInner):
     def __init__(self, parent, mapping):
         self.parent = parent
         self.mapping = mapping
@@ -337,7 +352,7 @@ class Map(Transformer):
         builtin = self._write_call(parent, p.Builtin.MAP, self.parent)
         self.mapping.write_mapping(builtin.map.mapping)
 
-class ConcatMap(Transformer):
+class ConcatMap(ExpressionInner):
     def __init__(self, parent, mapping):
         self.parent = parent
         self.mapping = mapping
@@ -346,7 +361,7 @@ class ConcatMap(Transformer):
         builtin = self._write_call(parent, p.Builtin.CONCATMAP, self.parent)
         self.mapping.write_mapping(builtin.concat_map.mapping)
 
-class GroupedMapReduce(query.JSONExpression):
+class GroupedMapReduce(ExpressionInner):
     def __init__(self, input, group_mapping, value_mapping, reduction_base, reduction_func):
         self.input = input
         self.group_mapping = group_mapping
@@ -358,19 +373,27 @@ class GroupedMapReduce(query.JSONExpression):
         builtin = self._write_call(parent, p.Builtin.GROUPEDMAPREDUCE, self.input)
         self.group_mapping.write_mapping(builtin.grouped_map_reduce.group_mapping)
         self.value_mapping.write_mapping(builtin.grouped_map_reduce.value_mapping)
-        self.reduction_base._write_ast(builtin.grouped_map_reduce.reduction.base)
-        builtin.grouped_map_reduce.reduction.var1 = self.reduction_func.args[0]
-        builtin.grouped_map_reduce.reduction.var2 = self.reduction_func.args[1]
-        self.reduction_func.body._write_ast(builtin.grouped_map_reduce.reduction.body)
+        self.reduction_func.write_reduction(builtin.grouped_map_reduce.reduction, self.reduction_base)
 
-class Distinct(Transformer):
+class Distinct(ExpressionInner):
     def __init__(self, parent):
         self.parent = parent
 
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.DISTINCT, self.parent)
 
-class Let(Selector):
+class Reduce(ExpressionInner):
+    def __init__(self, parent, base, reduction):
+        self.parent = parent
+        self.base = query.expr(base)
+        self.reduction = reduction
+
+    def _write_ast(self, parent):
+        builtin = self._write_call(parent, p.Builtin.REDUCE, self.parent)
+        self.base._inner._write_ast(builtin.reduce.base)
+        self.reduction.write_reduction(builtin.reduce, self.base)
+
+class Let(ExpressionInner):
     def __init__(self, expr, bindings):
         self.expr = expr
         self.bindings = []
@@ -382,13 +405,22 @@ class Let(Selector):
         for var, value in self.bindings:
             binding = parent.let.binds.add()
             binding.var = var
-            value._write_ast(binding.term)
-        self.expr._write_ast(parent.let.expr)
+            value._inner._write_ast(binding.term)
+        self.expr._inner._write_ast(parent.let.expr)
 
-class Var(query.JSONExpression):
+class Var(ExpressionInner):
     def __init__(self, name):
         self.name = name
 
     def _write_ast(self, parent):
         parent.type = p.Term.VAR
         parent.var = self.name
+
+class Table(ExpressionInner):
+    def __init__(self, table):
+        assert isinstance(table, query.Table)
+        self.table = table
+
+    def _write_ast(self, parent):
+        parent.type = p.Term.TABLE
+        self.table._write_ref_ast(parent.table.table_ref)

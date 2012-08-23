@@ -18,7 +18,8 @@ enum protob_server_callback_mode_t {
 template <class request_t, class response_t, class context_t>
 class protob_server_t : http_app_t {
 public:
-    protob_server_t(int port, int http_port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *), protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
+    // TODO: Function pointers?  Really?
+    protob_server_t(int port, int http_port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *), protob_server_callback_mode_t _cb_mode = CORO_ORDERED);  // NOLINT(readability/casting)
     ~protob_server_t();
 private:
 

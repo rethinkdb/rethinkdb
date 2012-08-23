@@ -152,8 +152,8 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        typename protocol_t::temporary_cache_t cache;
-        read.unshard(responses, response, &cache);
+        typename protocol_t::context_t ctx;
+        read.unshard(responses, response, &ctx);
     }
 
     void read_outdated(typename protocol_t::read_t read, typename protocol_t::read_response_t *response, signal_t *interruptor) {
@@ -169,8 +169,8 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        typename protocol_t::temporary_cache_t cache;
-        read.unshard(responses, response, &cache);
+        typename protocol_t::context_t ctx;
+        read.unshard(responses, response, &ctx);
     }
 
     void write(typename protocol_t::write_t write, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) {
@@ -187,8 +187,9 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        typename protocol_t::temporary_cache_t cache;
-        write.unshard(responses, response, &cache);
+
+        typename protocol_t::context_t ctx;
+        write.unshard(responses, response, &ctx);
     }
 
 private:

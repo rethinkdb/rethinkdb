@@ -3,9 +3,11 @@
 template <class protocol_t>
 cluster_namespace_interface_t<protocol_t>::cluster_namespace_interface_t(
         mailbox_manager_t *mm,
-        clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > dv)
+        clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > dv,
+        typename protocol_t::context_t *_ctx)
     : mailbox_manager(mm),
       directory_view(dv),
+      ctx(_ctx),
       start_count(0),
       watcher_subscription(boost::bind(&cluster_namespace_interface_t::update_registrants, this, false)) {
     {
@@ -122,7 +124,7 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
         }
     }
 
-    op.unshard(results, response, &temporary_cache);
+    op.unshard(results, response, ctx);
 }
 
 template <class protocol_t>
@@ -214,7 +216,7 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
         }
     }
 
-    op.unshard(results, response, &temporary_cache);
+    op.unshard(results, response, ctx);
 }
 
 template <class protocol_t>
@@ -265,19 +267,22 @@ void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start
 
     for (typename std::map<peer_id_t, reactor_business_card_t<protocol_t> >::const_iterator it = existings.begin(); it != existings.end(); ++it) {
         for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator amit = it->second.activities.begin(); amit != it->second.activities.end(); ++amit) {
-            bool has_anything_useful, is_primary;
+            bool has_anything_useful;
+            bool is_primary;
             if (const reactor_business_card_details::primary_t<protocol_t> *primary = boost::get<reactor_business_card_details::primary_t<protocol_t> >(&amit->second.second)) {
                 if (primary->master) {
                     has_anything_useful = true;
                     is_primary = true;
                 } else {
                     has_anything_useful = false;
+                    is_primary = false;  // Appease -Wconditional-uninitialized
                 }
             } else if (boost::get<reactor_business_card_details::secondary_up_to_date_t<protocol_t> >(&amit->second.second)) {
                 has_anything_useful = true;
                 is_primary = false;
             } else {
                 has_anything_useful = false;
+                is_primary = false;  // Appease -Wconditional-uninitialized
             }
             if (has_anything_useful) {
                 reactor_activity_id_t id = amit->first;
@@ -290,11 +295,9 @@ void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start
                     }
 
                     /* Now handle it. */
-                    coro_t::spawn_sometime(boost::bind(
-                                                       &cluster_namespace_interface_t::relationship_coroutine, this,
+                    coro_t::spawn_sometime(boost::bind(&cluster_namespace_interface_t::relationship_coroutine, this,
                                                        it->first, id, is_start, is_primary, amit->second.first,
-                                                       auto_drainer_t::lock_t(&relationship_coroutine_auto_drainer)
-                                                       ));
+                                                       auto_drainer_t::lock_t(&relationship_coroutine_auto_drainer)));
                 }
             }
         }

@@ -52,7 +52,8 @@ class cluster_namespace_interface_t :
 public:
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > dv);
+            clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > dv,
+            typename protocol_t::context_t *);
 
 
     /* Returns a signal that will be pulsed when we have either successfully
@@ -154,8 +155,7 @@ private:
 
     mailbox_manager_t *mailbox_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > directory_view;
-
-    typename protocol_t::temporary_cache_t temporary_cache;
+    typename protocol_t::context_t *ctx;
 
     rng_t distributor_rng;
 

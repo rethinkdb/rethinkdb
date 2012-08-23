@@ -1,5 +1,5 @@
-#ifndef MEMCACHED_BTREE_MODIFY_OPER_HPP_
-#define MEMCACHED_BTREE_MODIFY_OPER_HPP_
+#ifndef MEMCACHED_MEMCACHED_BTREE_MODIFY_OPER_HPP_
+#define MEMCACHED_MEMCACHED_BTREE_MODIFY_OPER_HPP_
 
 #include "containers/scoped.hpp"
 #include "memcached/memcached_btree/node.hpp"
@@ -34,4 +34,4 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
     transaction_t *txn, superblock_t *superblock);
 
 
-#endif // MEMCACHED_BTREE_MODIFY_OPER_HPP_
+#endif // MEMCACHED_MEMCACHED_BTREE_MODIFY_OPER_HPP_

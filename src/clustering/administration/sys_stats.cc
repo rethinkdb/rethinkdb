@@ -1,7 +1,8 @@
 #include "clustering/administration/sys_stats.hpp"
-#include "errors.hpp"
 
 #include <sys/statvfs.h>
+
+#include "errors.hpp"
 
 struct disk_stat_t {
     uint64_t disk_space_free;

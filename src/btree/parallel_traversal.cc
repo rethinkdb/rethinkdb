@@ -88,8 +88,10 @@ public:
 
     ~traversal_state_t() {
         if (!interrupted) {
-            for (size_t i = 0; i < acquisition_waiter_stacks.size(); i++) {
-                rassert(acquisition_waiter_stacks[i].empty());
+            for (size_t i = 0; i < acquisition_waiter_stacks.size(); ++i) {
+                for (size_t j = 0; j < acquisition_waiter_stacks[i].size(); ++j) {
+                    acquisition_waiter_stacks[i][j]->cancel();
+                }
             }
         }
     }
@@ -187,8 +189,8 @@ public:
     void interrupt() {
         rassert(interrupted == false);
         interrupted = true;
-        for (int i = 0; i < int(acquisition_waiter_stacks.size()); i++) {
-            for (int j = 0; j < int(acquisition_waiter_stacks[i].size()); j++) {
+        for (size_t i = 0; i < acquisition_waiter_stacks.size(); ++i) {
+            for (size_t j = 0; j < acquisition_waiter_stacks[i].size(); ++j) {
                 acquisition_waiter_stacks[i][j]->cancel();
             }
         }
@@ -196,7 +198,7 @@ public:
 
     int64_t total_level_count() {
         int64_t sum = 0;
-        for (int i = 0, n = level_counts.size(); i < n; ++i) {
+        for (size_t i = 0; i < level_counts.size(); ++i) {
             sum += level_counts[i];
         }
         return sum;

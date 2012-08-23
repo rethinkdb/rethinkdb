@@ -31,6 +31,12 @@ typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
+namespace query_language {
+    class runtime_environment_t;
+} //namespace query_language 
+
+class parallel_traversal_progress_t;
+
 static const size_t rget_max_chunk_size = MEGABYTE;
 
 bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value);
@@ -102,6 +108,8 @@ struct rget_response_t {
 };
 
 rget_read_response_t rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-                               int maximum, transaction_t *txn, superblock_t *superblock);
+                               int maximum, transaction_t *txn, superblock_t *superblock,
+                               query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
+                               boost::optional<rdb_protocol_details::terminal_t> terminal);
 
 #endif /* RDB_PROTOCOL_BTREE_HPP_ */
