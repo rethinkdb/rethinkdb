@@ -15,8 +15,8 @@ class BackboneCluster extends Backbone.Router
         'servers': 'index_servers'
         'datacenters/:id': 'datacenter'
         'datacenters/:id/:tab': 'datacenter'
-        'machines/:id': 'machine'
-        'machines/:id/:tab': 'machine'
+        'servers/:id': 'server'
+        'servers/:id/:tab': 'server'
         'dashboard': 'dashboard'
         'resolve_issues': 'resolve_issues'
         'logs': 'logs'
@@ -143,8 +143,8 @@ class BackboneCluster extends Backbone.Router
 
         @sidebar.set_type_view()
 
-    machine: (id, tab) ->
-        log_router '/machines/' + id
+    server: (id, tab) ->
+        log_router '/servers/' + id
         clear_modals()
         machine = machines.get(id)
 

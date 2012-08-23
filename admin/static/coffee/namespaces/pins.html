@@ -79,7 +79,7 @@
     <div class="action">
     {{#unless is_master}}
         {{#unless no_available_machines}} 
-            <input type="button" class="btn change-machine" value="Assign another machine" />
+            <input type="button" class="btn change-machine" value="Assign another server" />
         {{/unless}}
         {{#unless cannot_be_master}}
             <input type="button" class="btn make-master" value="make master" />
@@ -87,11 +87,11 @@
     {{/unless}}
     </div>
     {{#if is_master}}
-        <span class="master label label-info">Master machine</span>
+        <span class="master label label-info">Master server</span>
     {{else}}
-        <span class="secondary label label-info">Secondary machine</span>
+        <span class="secondary label label-info">Secondary server</span>
     {{/if}}
-    <a class="machine name" href="#machines/{{id}}">{{name}}</a>
+    <a class="machine name" href="#servers/{{id}}">{{name}}</a>
     <p class="status">
         {{humanize_machine_reachability status}}{{#if status.reachable}}{{! > backfill_progress_summary}}{{/if}}
         {{#if status.reachable}}
@@ -104,7 +104,7 @@
 <script id="shard-set_machine-template" type="text/x-handlebars-template">
     <div class="alert alert-error error_answer"></div>
     <div class="namespace-shard-assign-machine">
-        <p>Select a machine you want to assign to this shard: {{shard_name}}.</p>
+        <p>Select a server you want to assign to this shard: {{shard_name}}.</p>
 
         <form>
             <input type="hidden" name="shard_name" value="{{shard_name}}" />
@@ -122,6 +122,6 @@
     <div class="alert alert-error error_answer"></div>
     <div class="alert" data-alert="alert">
         <a class="close" href="#">&times;</a>
-        <p>Set datacenter for {{pluralize_noun "machine" machine_count}} {{machines_first.name}}{{#each machines_rest}}, {{name}}{{/each}} to {{datacenter_name}}.</p>
+        <p>Set datacenter for {{pluralize_noun "server" machine_count}} {{machines_first.name}}{{#each machines_rest}}, {{name}}{{/each}} to {{datacenter_name}}.</p>
     </div>
 </script>

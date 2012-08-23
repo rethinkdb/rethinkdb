@@ -1,6 +1,8 @@
 #ifndef RDB_PROTOCOL_ENVIRONMENT_HPP_
 #define RDB_PROTOCOL_ENVIRONMENT_HPP_
 
+#include <map>
+
 #include "rdb_protocol/scope.hpp"
 #include "rdb_protocol/stream.hpp"
 #include "rdb_protocol/protocol.hpp"
