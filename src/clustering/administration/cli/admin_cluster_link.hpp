@@ -199,8 +199,8 @@ private:
                        const shard_input_t& shard_in,
                        const cluster_semilattice_metadata_t& cluster_metadata);
 
-    template <class bp_type>
-    void list_pinnings_internal(const bp_type& bp,
+    template <class protocol_t>
+    void list_pinnings_internal(const persistable_blueprint_t<protocol_t>& bp,
                                 const key_range_t& shard,
                                 const cluster_semilattice_metadata_t& cluster_metadata);
 
@@ -213,8 +213,8 @@ private:
         size_t namespaces;
     };
 
-    template <class bp_type>
-    void add_machine_info_from_blueprint(const bp_type& bp, std::map<machine_id_t, machine_info_t> *results);
+    template <class protocol_t>
+    void add_machine_info_from_blueprint(const persistable_blueprint_t<protocol_t>& bp, std::map<machine_id_t, machine_info_t> *results);
 
     template <class map_type>
     void build_machine_info_internal(const map_type& ns_map, std::map<machine_id_t, machine_info_t> *results);
@@ -233,8 +233,8 @@ private:
     template <class ns_type>
     namespace_info_t get_namespace_info(const ns_type& ns);
 
-    template <class bp_type>
-    size_t get_replica_count_from_blueprint(const bp_type& bp);
+    template <class protocol_t>
+    size_t get_replica_count_from_blueprint(const persistable_blueprint_t<protocol_t>& bp);
 
     struct datacenter_info_t {
         datacenter_info_t() : machines(0), primaries(0), secondaries(0), namespaces(0) { }

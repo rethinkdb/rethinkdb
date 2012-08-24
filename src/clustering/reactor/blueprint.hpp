@@ -14,7 +14,7 @@
 enum blueprint_role_t { blueprint_role_primary, blueprint_role_secondary, blueprint_role_nothing };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(blueprint_role_t, int8_t, blueprint_role_primary, blueprint_role_nothing);
 
-// TODO: Explain what the fuck a blueprint_t is here please.
+// Explain what a blueprint_t is here please.
 
 template<class protocol_t>
 class blueprint_t {
@@ -24,14 +24,14 @@ public:
     //though.
 
     typedef std::map<typename protocol_t::region_t, blueprint_role_t> region_to_role_map_t;
-    typedef std::map<peer_id_t, region_to_role_map_t> role_map_t;
+    typedef std::map<peer_id_t, std::map<typename protocol_t::region_t, blueprint_role_t> > role_map_t;
 
     void assert_valid() const THROWS_NOTHING {
         if (peers_roles.empty()) {
             return; //any empty blueprint is valid
         }
 
-        region_to_role_map_t ref_role_map = peers_roles.begin()->second;
+        std::map<typename protocol_t::region_t, blueprint_role_t> ref_role_map = peers_roles.begin()->second;
         std::set<typename protocol_t::region_t> ref_regions = keys(ref_role_map);
 
         typename protocol_t::region_t join;
@@ -46,7 +46,7 @@ public:
 
     void add_peer(const peer_id_t &id) {
         rassert(peers_roles.find(id) == peers_roles.end());
-        peers_roles[id] = region_to_role_map_t();
+        peers_roles[id] = std::map<typename protocol_t::region_t, blueprint_role_t>();
     }
 
     void add_role(const peer_id_t &id, const typename protocol_t::region_t &region, blueprint_role_t role) {

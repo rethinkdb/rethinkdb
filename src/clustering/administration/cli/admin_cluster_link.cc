@@ -1054,8 +1054,8 @@ void admin_cluster_link_t::list_pinnings(const namespace_semilattice_metadata_t<
     list_pinnings_internal(ns.blueprint.get(), shard.inner, cluster_metadata);
 }
 
-template <class bp_type>
-void admin_cluster_link_t::list_pinnings_internal(const bp_type& bp,
+template <class protocol_t>
+void admin_cluster_link_t::list_pinnings_internal(const persistable_blueprint_t<protocol_t>& bp,
                                                   const key_range_t& shard,
                                                   const cluster_semilattice_metadata_t& cluster_metadata) {
     std::vector<std::vector<std::string> > table;
@@ -1070,8 +1070,8 @@ void admin_cluster_link_t::list_pinnings_internal(const bp_type& bp,
         table.push_back(delta);
     }
 
-    for (typename bp_type::role_map_t::const_iterator i = bp.machines_roles.begin(); i != bp.machines_roles.end(); ++i) {
-        typename bp_type::region_to_role_map_t::const_iterator j = i->second.find(hash_region_t<key_range_t>(shard));
+    for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator i = bp.machines_roles.begin(); i != bp.machines_roles.end(); ++i) {
+        typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::const_iterator j = i->second.find(hash_region_t<key_range_t>(shard));
         if (j != i->second.end() && j->second != blueprint_role_nothing) {
             std::vector<std::string> delta;
 
@@ -1487,13 +1487,13 @@ admin_cluster_link_t::namespace_info_t admin_cluster_link_t::get_namespace_info(
     return result;
 }
 
-template <class bp_type>
-size_t admin_cluster_link_t::get_replica_count_from_blueprint(const bp_type& bp) {
+template <class protocol_t>
+size_t admin_cluster_link_t::get_replica_count_from_blueprint(const persistable_blueprint_t<protocol_t>& bp) {
     size_t count = 0;
 
-    for (typename bp_type::role_map_t::const_iterator j = bp.machines_roles.begin();
+    for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator j = bp.machines_roles.begin();
          j != bp.machines_roles.end(); ++j) {
-        for (typename bp_type::region_to_role_map_t::const_iterator k = j->second.begin();
+        for (typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::const_iterator k = j->second.begin();
              k != j->second.end(); ++k) {
             if (k->second == blueprint_role_primary) {
                 ++count;
@@ -1631,15 +1631,15 @@ void admin_cluster_link_t::build_machine_info_internal(const map_type& ns_map, s
     }
 }
 
-template <class bp_type>
-void admin_cluster_link_t::add_machine_info_from_blueprint(const bp_type& bp, std::map<machine_id_t, machine_info_t> *results) {
-    for (typename bp_type::role_map_t::const_iterator j = bp.machines_roles.begin();
+template <class protocol_t>
+void admin_cluster_link_t::add_machine_info_from_blueprint(const persistable_blueprint_t<protocol_t>& bp, std::map<machine_id_t, machine_info_t> *results) {
+    for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator j = bp.machines_roles.begin();
          j != bp.machines_roles.end(); ++j) {
         std::map<machine_id_t, machine_info_t>::iterator it = results->find(j->first);
         if (it != results->end()) {
             bool machine_used = false;
 
-            for (typename bp_type::region_to_role_map_t::const_iterator k = j->second.begin();
+            for (typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::const_iterator k = j->second.begin();
                  k != j->second.end(); ++k) {
                 if (k->second == blueprint_role_primary) {
                     ++it->second.primaries;
