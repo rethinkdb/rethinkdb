@@ -17,7 +17,7 @@ PROTO_FILE=$(PROTO_FILE_DIR)query_language.proto
 
 OUTPUTMODE=compiled
 
-# Compile the 
+# Compile the rethinkdb library
 lib: query_language.pb.js
 	rm -rf rethinkdb.js
 	rm -rf rethinkdb.map.js

@@ -43,7 +43,7 @@ rethinkdb.net.Connection.prototype.run = function(expr, callback) {
     var finalArray = new Uint8Array(length + 4);
     (new DataView(finalArray.buffer)).setInt32(0, length, true);
     finalArray.set(data, 4);
-    
+
     this.send_(finalArray.buffer);
 };
 goog.exportProperty(rethinkdb.net.Connection.prototype, 'run',

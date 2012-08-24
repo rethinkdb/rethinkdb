@@ -653,8 +653,7 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
     // Start the accept loop
     accept_loop_drainer.init(new auto_drainer_t);
     coro_t::spawn_sometime(boost::bind(
-        &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())
-        ));
+        &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())));
 
     return true;
 }

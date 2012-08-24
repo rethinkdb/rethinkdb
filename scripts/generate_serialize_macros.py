@@ -31,7 +31,7 @@ def generate_make_serializable_macro(nfields):
     print "        return res; \\"
     print "    } \\"
     # See the note in the comment below.
-    print "    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;"
+    print "    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body"
     print "#define RDB_MAKE_SERIALIZABLE_%d(...) RDB_EXPAND_SERIALIZABLE_%d(inline, __VA_ARGS__)" % (nfields, nfields)
     print "#define RDB_IMPL_SERIALIZABLE_%d(...) RDB_EXPAND_SERIALIZABLE_%d(, __VA_ARGS__)" % (nfields, nfields)
 
@@ -90,7 +90,7 @@ the class scope. */
     print
     print "#define RDB_DECLARE_SERIALIZABLE(type_t) \\"
     print "    write_message_t &operator<<(write_message_t &, const type_t &); \\"
-    print "    archive_result_t deserialize(read_stream_t *s, type_t *thing);"
+    print "    archive_result_t deserialize(read_stream_t *s, type_t *thing)"
     print
 
     for nfields in xrange(20):

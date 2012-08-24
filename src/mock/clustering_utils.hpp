@@ -32,8 +32,7 @@ public:
         store.new_write_token(&token);
         region_map_t<protocol_t, binary_blob_t> new_metainfo(
                 store.get_region(),
-                binary_blob_t(version_range_t(version_t::zero()))
-            );
+                binary_blob_t(version_range_t(version_t::zero())));
         store.set_metainfo(new_metainfo, order_source->check_in("test_store_t"), &token, &non_interruptor);
     }
 

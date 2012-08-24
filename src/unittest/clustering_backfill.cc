@@ -43,8 +43,7 @@ void run_backfill_test() {
         dummy_branch.region = region;
         dummy_branch.initial_timestamp = state_timestamp_t::zero();
         dummy_branch.origin = region_map_t<dummy_protocol_t, version_range_t>(
-            region, version_range_t(version_t(nil_uuid(), state_timestamp_t::zero()))
-            );
+            region, version_range_t(version_t(nil_uuid(), state_timestamp_t::zero())));
         cond_t non_interruptor;
         branch_history_manager.create_branch(dummy_branch_id, dummy_branch, &non_interruptor);
     }
@@ -95,8 +94,7 @@ void run_backfill_test() {
                 w, &response, ts,
                 order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
                 &token,
-                &non_interruptor
-            );
+                &non_interruptor);
         }
     }
 
@@ -154,8 +152,7 @@ void run_backfill_test() {
     region_map_t<dummy_protocol_t, version_range_t> backfillee_metadata =
         region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
             untransformed_backfillee_metadata,
-            &binary_blob_t::get<version_range_t>
-        );
+            &binary_blob_t::get<version_range_t>);
 
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> token2;
     backfiller_store.new_read_token(&token2);
@@ -165,10 +162,7 @@ void run_backfill_test() {
                                      &token2, &interruptor, &untransformed_backfiller_metadata);
 
     region_map_t<dummy_protocol_t, version_range_t> backfiller_metadata =
-        region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
-            untransformed_backfiller_metadata,
-            &binary_blob_t::get<version_range_t>
-        );
+        region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(untransformed_backfiller_metadata, &binary_blob_t::get<version_range_t>);
 
     EXPECT_TRUE(backfillee_metadata == backfiller_metadata);
 

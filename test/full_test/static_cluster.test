@@ -26,7 +26,9 @@ workloads = {
     "$RETHINKDB/test/memcached_workloads/pipeline.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/rget.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/rget_huge.py $HOST:$PORT",
-    "$RETHINKDB/test/memcached_workloads/rget_no_blocking.py $HOST:$PORT",
+    # This workload fails because rgets are no longer required not to block
+    # other types of queries.
+    # "$RETHINKDB/test/memcached_workloads/rget_no_blocking.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/unappend_unprepend.py $HOST:$PORT"
     ],

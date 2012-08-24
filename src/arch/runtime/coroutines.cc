@@ -212,13 +212,11 @@ void coro_t::wait() {   /* class method */
     rassert(self(), "Not in a coroutine context");
     rassert(cglobals->assert_finite_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
-        cglobals->finite_waiting_call_sites.top().first.c_str(), cglobals->finite_waiting_call_sites.top().second
-        );
+        cglobals->finite_waiting_call_sites.top().first.c_str(), cglobals->finite_waiting_call_sites.top().second);
 
     rassert(cglobals->assert_no_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
-        cglobals->no_waiting_call_sites.top().first.c_str(), cglobals->no_waiting_call_sites.top().second
-        );
+        cglobals->no_waiting_call_sites.top().first.c_str(), cglobals->no_waiting_call_sites.top().second);
 
     rassert(!self()->waiting_);
     self()->waiting_ = true;

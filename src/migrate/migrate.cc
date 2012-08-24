@@ -12,7 +12,7 @@
 
 namespace migrate {
 
-void usage(UNUSED const char *name) {
+NORETURN void usage(UNUSED const char *name) {
     help_pager_t *help = help_pager_t::instance();
     help->pagef("Usage:\n"
                 "        rethinkdb migrate --in -f <file_1> [-f <file_2> ...] --out -f <file_1> [-f <file_2>] [--intermediate file]\n");

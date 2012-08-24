@@ -33,7 +33,6 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
         const std::set<typename protocol_t::region_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<protocol_t, machine_id_t> &primary_pinnings,
-        const region_map_t<protocol_t, std::set<machine_id_t> > &secondary_pinnings
-        );
+        const region_map_t<protocol_t, std::set<machine_id_t> > &secondary_pinnings);
 
 #endif /* CLUSTERING_SUGGESTER_SUGGESTER_HPP_ */

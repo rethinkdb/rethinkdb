@@ -15,7 +15,7 @@
     <tr>
       <td>{{name}}</td>
       <td>Primary</td>
-      <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "machine" total_machines}})</td>
+      <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "server" total_machines}})</td>
       <td>{{acks}}</td>
       <td>
         {{#with status}}
@@ -34,7 +34,7 @@
     <tr>
       <td>{{name}}</td>
       <td>Secondary</td>
-      <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "machine" total_machines}})</td>
+      <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "server" total_machines}})</td>
       <td>{{acks}}</td>
       <td>
         {{#with status}}

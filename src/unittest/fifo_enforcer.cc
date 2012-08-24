@@ -21,16 +21,14 @@ public:
             &test_shared_variable_t::attempt_read, this,
             expected_value,
             source.enter_read(),
-            auto_drainer_t::lock_t(&auto_drainer)
-            ));
+            auto_drainer_t::lock_t(&auto_drainer)));
     }
     void spawn_write(int expected_value, int new_value) {
         coro_t::spawn_sometime(boost::bind(
             &test_shared_variable_t::attempt_write, this,
             expected_value, new_value,
             source.enter_write(),
-            auto_drainer_t::lock_t(&auto_drainer)
-            ));
+            auto_drainer_t::lock_t(&auto_drainer)));
     }
 private:
     void attempt_read(int expected_value, fifo_enforcer_read_token_t token, auto_drainer_t::lock_t) {

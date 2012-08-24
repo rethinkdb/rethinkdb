@@ -213,8 +213,7 @@ void backfillee(
             end_point_mailbox.get_address(),
             chunk_mailbox.get_address(),
             done_mailbox.get_address(),
-            alloc_registration_mbox.get_address()
-            );
+            alloc_registration_mbox.get_address());
 
         /* If something goes wrong, we'd like to inform the backfiller that it
         it has gone wrong, so it doesn't just keep blindly sending us chunks.
@@ -284,8 +283,7 @@ void backfillee(
                         "but it somehow failed to notice.");
                     span_parts.push_back(std::make_pair(
                         ixn,
-                        version_range_t(it->second.earliest, jt->second.latest)
-                        ));
+                        version_range_t(it->second.earliest, jt->second.latest)));
                 }
             }
         }
@@ -301,8 +299,7 @@ void backfillee(
                 ),
             order_source.check_in("backfillee(B)"),
             &write_token,
-            interruptor
-            );
+            interruptor);
 
         chunk_callback_t<protocol_t> chunk_callback(svs, &chunk_queue, mailbox_manager, allocation_mailbox);
 
@@ -335,8 +332,7 @@ void backfillee(
             ),
         order_source.check_in("backfillee(C)"),
         &write_token,
-        interruptor
-    );
+        interruptor);
 }
 
 

@@ -83,8 +83,7 @@ try {
             stat_manager.get_address(),
             metadata_change_handler.get_request_mailbox_address(),
             log_server.get_business_card(),
-            i_am_a_server ? SERVER_PEER : PROXY_PEER
-        ));
+            i_am_a_server ? SERVER_PEER : PROXY_PEER));
 
     message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
     directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(&directory_manager_client, our_root_directory_variable.get_watchable());
@@ -94,8 +93,7 @@ try {
     network_logger_t network_logger(
         connectivity_cluster.get_me(),
         directory_read_manager.get_root_view(),
-        metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view())
-        );
+        metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
 
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
     connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, ports.port, &message_multiplexer_run, ports.client_port);
@@ -113,14 +111,12 @@ try {
         &connectivity_cluster_run,
         directory_read_manager.get_root_view()->subview(
             field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-        metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view())
-        );
+        metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
 
     field_copier_t<std::list<local_issue_t>, cluster_directory_metadata_t> copy_local_issues_to_cluster(
         &cluster_directory_metadata_t::local_issues,
         local_issue_tracker.get_issues_watchable(),
-        &our_root_directory_variable
-        );
+        &our_root_directory_variable);
 
     admin_tracker_t admin_tracker(
         semilattice_manager_cluster.get_root_view(), directory_read_manager.get_root_view());
@@ -153,23 +149,20 @@ try {
     namespace_repo_t<mock::dummy_protocol_t> dummy_namespace_repo(&mailbox_manager,
         directory_read_manager.get_root_view()->subview(
             field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
-        &dummy_ctx
-        );
+        &dummy_ctx);
 
     memcached_protocol_t::context_t mc_ctx;
     namespace_repo_t<memcached_protocol_t> memcached_namespace_repo(&mailbox_manager,
         directory_read_manager.get_root_view()->subview(
             field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
-        &mc_ctx
-        );
+        &mc_ctx);
 
     rdb_protocol_t::context_t rdb_ctx(&extproc_pool_group, NULL, semilattice_manager_cluster.get_root_view(), machine_id);
 
     namespace_repo_t<rdb_protocol_t> rdb_namespace_repo(&mailbox_manager,
         directory_read_manager.get_root_view()->subview(
             field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
-        &rdb_ctx
-        );
+        &rdb_ctx);
 
     //This is an annoying chicken and egg problem here
     rdb_ctx.ns_repo = &rdb_namespace_repo;
