@@ -11,9 +11,24 @@
 #include "arch/arch.hpp"
 
 template <class request_t, class response_t, class context_t>
-protob_server_t<request_t, response_t, context_t>::protob_server_t(int port, int http_port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *), protob_server_callback_mode_t _cb_mode)  // NOLINT(readability/casting)
-    : next_http_conn_id(0), f(_f), on_unparsable_query(_on_unparsable_query), cb_mode(_cb_mode) {
-    tcp_listener.init(new tcp_listener_t(port, boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
+protob_server_t<request_t, response_t, context_t>::protob_server_t(int port,
+                                                                   int http_port,
+                                                                   boost::function<response_t(request_t *, context_t *)> _f,
+                                                                   response_t (*_on_unparsable_query)(request_t *),
+                                                                   protob_server_callback_mode_t _cb_mode)  // NOLINT(readability/casting)
+    : f(_f),
+      on_unparsable_query(_on_unparsable_query),
+      cb_mode(_cb_mode),
+      next_http_conn_id(0),
+      http_timeout_timer(http_context_t::TIMEOUT_MS, this)
+{
+    tcp_listener.init(new tcp_listener_t(port,
+                                         boost::bind(&protob_server_t<request_t,
+                                         response_t,
+                                         context_t>::handle_conn,
+                                         this,
+                                         _1,
+                                         auto_drainer_t::lock_t(&auto_drainer))));
     http_server.init(new http_server_t(http_port, this));
 }
 
@@ -104,7 +119,7 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
     } else if (req.method == GET && req.resource.as_string() == "/open-new-connection") {
 
         int32_t conn_id = ++next_http_conn_id;
-        http_conns.insert(std::pair<int32_t,context_t>(++conn_id,context_t()));
+        http_conns.insert(std::pair<int32_t,http_context_t>(++conn_id, http_context_t()));
 
         http_res_t res(HTTP_OK);
         res.version = "HTTP/1.1";
@@ -128,7 +143,7 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         request_t request;
         bool parseSucceeded = request.ParseFromArray(data, req_size);
 
-        typename std::map<int32_t, context_t>::iterator it;
+        typename std::map<int32_t, http_context_t>::iterator it;
         response_t response;
         switch(cb_mode) {
         case INLINE:
@@ -136,8 +151,10 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
             if (!parseSucceeded || it == http_conns.end()) {
                 response = on_unparsable_query(&request);
             } else {
-                context_t *ctx = &(it->second);
-                response = f(&request, ctx);
+                http_context_t *ctx = &(it->second);
+                ctx->grab();
+                response = f(&request, ctx->getContext());
+                ctx->release();
             }
             break;
         case CORO_ORDERED:
@@ -163,4 +180,54 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
 
         return res;
     }
+}
+
+template <class request_t, class response_t, class context_t>
+void protob_server_t<request_t, response_t, context_t>::on_ring() {
+    for (typename std::map<int32_t, http_context_t>::iterator iter = http_conns.begin(); iter != http_conns.end();) {
+        if (iter->second.isFree() && iter->second.isExpired()) {
+            typename std::map<int32_t, http_context_t>::iterator tmp = iter;
+            ++iter;
+            http_conns.erase(tmp);
+        } else {
+            ++iter;
+        }
+    }
+}
+
+template <class request_t, class response_t, class context_t>
+protob_server_t<request_t, response_t, context_t>::http_context_t::http_context_t() {
+    users_count = 0;
+    touch();
+}
+
+template <class request_t, class response_t, class context_t>
+context_t *protob_server_t<request_t, response_t, context_t>::http_context_t::getContext() {
+    return &ctx;
+}
+
+template <class request_t, class response_t, class context_t>
+void protob_server_t<request_t, response_t, context_t>::http_context_t::touch() {
+    last_accessed = time(NULL);
+}
+
+template <class request_t, class response_t, class context_t>
+bool protob_server_t<request_t, response_t, context_t>::http_context_t::isExpired() {
+    return (difftime(time(NULL), last_accessed) > TIMEOUT_SEC);
+}
+
+template <class request_t, class response_t, class context_t>
+void protob_server_t<request_t, response_t, context_t>::http_context_t::grab() {
+    users_count++;
+}
+
+template <class request_t, class response_t, class context_t>
+void protob_server_t<request_t, response_t, context_t>::http_context_t::release() {
+    users_count--;
+    touch();
+}
+
+template <class request_t, class response_t, class context_t>
+bool protob_server_t<request_t, response_t, context_t>::http_context_t::isFree() {
+    return users_count == 0;
 }
