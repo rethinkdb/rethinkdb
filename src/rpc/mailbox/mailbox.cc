@@ -33,13 +33,13 @@ std::string raw_mailbox_t::address_t::human_readable() const {
     return strprintf("%s:%d:%ld", uuid_to_str(peer.get_uuid()).c_str(), thread, mailbox_id);
 }
 
-raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, mailbox_thread_mode_t tm, const boost::function<void(read_stream_t *)> &fun) :
+raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, mailbox_thread_mode_t tm, mailbox_read_callback_t *_callback) :
     manager(m),
     thread_mode(tm),
     mailbox_id(thread_mode == mailbox_any_thread ?
                    manager->register_mailbox_all_threads(this) :
                    manager->register_mailbox_one_thread(this)),
-    callback(fun) { }
+    callback(_callback) { }
 
 raw_mailbox_t::~raw_mailbox_t() {
     assert_thread();
@@ -59,7 +59,7 @@ raw_mailbox_t::address_t raw_mailbox_t::get_address() const {
     return a;
 }
 
-void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, boost::function<void(write_stream_t *)> writer) {
+void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, mailbox_write_callback_t *callback) {
     rassert(src);
     rassert(!dest.is_nil());
 
@@ -69,7 +69,8 @@ void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, boost::function
             _1,
             dest.thread,
             dest.mailbox_id,
-            writer));
+            callback
+            ));
 }
 
 mailbox_manager_t::mailbox_manager_t(message_service_t *ms) :
@@ -102,7 +103,7 @@ raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::i
     }
 }
 
-void mailbox_manager_t::write_mailbox_message(write_stream_t *stream, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, boost::function<void(write_stream_t *)> writer) {
+void mailbox_manager_t::write_mailbox_message(write_stream_t *stream, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, mailbox_write_callback_t *callback) {
     write_message_t msg;
     int32_t dest_thread_32_bit = dest_thread;
     msg << dest_thread_32_bit;
@@ -113,7 +114,7 @@ void mailbox_manager_t::write_mailbox_message(write_stream_t *stream, int dest_t
 
     if (res) { throw fake_archive_exc_t(); }
 
-    writer(stream);
+    callback->write(stream);
 }
 
 void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *stream) {
@@ -138,7 +139,7 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *
     raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
     if (mbox) {
         auto_drainer_t::lock_t lock(&mbox->drainer);
-        mbox->callback(stream);
+        mbox->callback->read(stream);
     } else {
         /* Ignore it, because it's impossible to write code in such a way that
         messages will never be received for dead mailboxes. */

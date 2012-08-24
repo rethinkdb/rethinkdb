@@ -78,6 +78,7 @@ bool region_is_empty(const region_t &r) {
 // person).
 template<class region_t>
 bool region_overlaps(const region_t &r1, const region_t &r2) {
+    // RSI: see TODO above
     return !region_is_empty(region_intersection(r1, r2));
 }
 
