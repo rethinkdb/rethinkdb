@@ -314,7 +314,7 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
      * need to wait for acks. */
 
     bool all_succeeded = true;
-    for (typename boost::ptr_vector<promise_t<bool> >::iterator it =  promises.begin();
+    for (typename boost::ptr_vector<promise_t<bool> >::iterator it = promises.begin();
          it != promises.end();
          ++it) {
         //DO NOT switch the order of it->wait() and all_succeeded
