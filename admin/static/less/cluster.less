@@ -491,6 +491,10 @@
         }
     }
 }
+#cluster_performance_panel_placeholder{
+    margin: 30px 0px 0px 0px;
+}
+
 
 
 .dashboard-view table.status {
@@ -2120,6 +2124,10 @@ Database view
 }
 
 .performance_panel {
+    overflow: auto;
+    .title{
+        margin: 10px 0px 10px 0px;
+    }
     .panel-left {
         float: left;
         width: 50%;
@@ -2127,10 +2135,22 @@ Database view
     .panel-right {
         float: left;
     }
-    .two-panel-clear {
-        clear: both;
+}
+
+.more_stats{
+    margin: 0px 0px 0px 50px;
+    p{
+        margin: 2px 0px;
+    }
+    ul{
+        margin: 0px 0px 0px 30px;
+        padding: 0px;
+        li {
+            list-style: square;
+        }
     }
 }
+
 
 .stats_panel {
     margin-left: 1em;
