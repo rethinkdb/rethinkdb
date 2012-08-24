@@ -318,15 +318,9 @@ template <class protocol_t>
 class intro_receiver_t : public signal_t {
 public:
     listener_intro_t<protocol_t> intro;
-    void fill(state_timestamp_t its,
-              int cpu_sharding_factor,
-              typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t um,
-              typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
+    void fill(listener_intro_t<protocol_t> _intro) {
         guarantee(!is_pulsed());
-        intro.broadcaster_begin_timestamp = its;
-        intro.cpu_sharding_factor = cpu_sharding_factor;
-        intro.upgrade_mailbox = um;
-        intro.downgrade_mailbox = dm;
+        intro = _intro;
         pulse();
     }
 };
@@ -340,7 +334,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
     intro_receiver_t<protocol_t> intro_receiver;
     typename listener_business_card_t<protocol_t>::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
-                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1, _2, _3, _4));
+                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1));
 
     try {
         registrant_.init(new registrant_t<listener_business_card_t<protocol_t> >(

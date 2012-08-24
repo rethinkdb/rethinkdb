@@ -138,6 +138,8 @@ struct cpu_sharding_subspace_t {
     RDB_MAKE_ME_SERIALIZABLE_2(shard_number, cpu_sharding_factor);
 };
 
+template <class> class listener_intro_t;
+
 /* Every `listener_t` constructs a `listener_business_card_t` and sends it to
 the `broadcaster_t`. */
 
@@ -179,10 +181,7 @@ public:
 
     typedef mailbox_t<void(mailbox_addr_t<void()>)> downgrade_mailbox_t;
 
-    typedef mailbox_t<void(state_timestamp_t starting_timestamp,
-                           int32_t cpu_sharding_factor,
-                           typename upgrade_mailbox_t::address_t,
-                           typename downgrade_mailbox_t::address_t)> intro_mailbox_t;
+    typedef mailbox_t<void(listener_intro_t<protocol_t>)> intro_mailbox_t;
 
     listener_business_card_t() { }
     listener_business_card_t(const typename intro_mailbox_t::address_t &im,
@@ -194,6 +193,29 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_2(intro_mailbox, write_mailbox);
 };
+
+
+template <class protocol_t>
+class listener_intro_t {
+public:
+    int32_t cpu_sharding_factor;
+    state_timestamp_t broadcaster_begin_timestamp;
+    typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
+    typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
+
+    listener_intro_t() { }
+    listener_intro_t(int32_t _cpu_sharding_factor, state_timestamp_t _broadcaster_begin_timestamp,
+                     typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t _upgrade_mailbox,
+                     typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t _downgrade_mailbox)
+        : cpu_sharding_factor(_cpu_sharding_factor), broadcaster_begin_timestamp(_broadcaster_begin_timestamp),
+          upgrade_mailbox(_upgrade_mailbox), downgrade_mailbox(_downgrade_mailbox) { }
+
+
+
+    RDB_MAKE_ME_SERIALIZABLE_4(cpu_sharding_factor, broadcaster_begin_timestamp,
+                               upgrade_mailbox, downgrade_mailbox);
+};
+
 
 /* `backfiller_business_card_t` represents a thing that is willing to serve
 backfills over the network. It appears in the directory. */

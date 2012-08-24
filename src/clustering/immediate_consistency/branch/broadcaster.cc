@@ -253,11 +253,11 @@ private:
             THROWS_NOTHING {
         keepalive.assert_is_holding(&drainer);
         const int32_t cpu_sharding_factor = 1;
+
         send(controller->mailbox_manager, to_send_intro_to.intro_mailbox,
-             intro_timestamp,
-             cpu_sharding_factor,
-             upgrade_mailbox.get_address(),
-             downgrade_mailbox.get_address());
+             listener_intro_t<protocol_t>(cpu_sharding_factor, intro_timestamp,
+                                          upgrade_mailbox.get_address(),
+                                          downgrade_mailbox.get_address()));
     }
 
     /* `upgrade()` and `downgrade()` are mailbox callbacks. */
