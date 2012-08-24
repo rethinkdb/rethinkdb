@@ -224,6 +224,8 @@ private:
 
     branch_id_t branch_id_;
 
+    typename protocol_t::region_t our_branch_region_;
+
     /* `upgrade_mailbox` and `broadcaster_begin_timestamp` are valid only if we
     successfully registered with the broadcaster at some point. As a sanity
     check, we put them in a `promise_t`, `registration_done_cond`, that only

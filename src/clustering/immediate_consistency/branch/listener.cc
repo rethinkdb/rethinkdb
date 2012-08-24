@@ -51,7 +51,7 @@ template <class protocol_t>
 listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-                                   branch_history_manager_t<protocol_t> *bhm,
+                                   branch_history_manager_t<protocol_t> *branch_history_manager,
                                    multistore_ptr_t<protocol_t> *svs,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
                                    backfill_session_id_t backfill_session_id,
@@ -61,7 +61,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
     mailbox_manager_(mm),
-    branch_history_manager_(bhm),
+    branch_history_manager_(branch_history_manager),
     svs_(svs),
     uuid_(generate_uuid()),
     perfmon_collection_(),
@@ -88,7 +88,9 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     }
 
     branch_id_ = business_card.get().get().branch_id;
-    branch_history_manager_->import_branch_history(business_card.get().get().branch_id_associated_branch_history, interruptor);
+    branch_history_manager->import_branch_history(business_card.get().get().branch_id_associated_branch_history, interruptor);
+    // TODO: Is there a simpler way to get the region?  A business card maybe?
+    our_branch_region_ = branch_history_manager->get_branch(branch_id_).region;
 
 #ifndef NDEBUG
     /* Sanity-check to make sure we're on the same timeline as the thing
@@ -96,7 +98,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
        but if there's an error it would be nice to catch it where the action
        was initiated. */
 
-    branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager_->get_branch(branch_id_);
+    branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager->get_branch(branch_id_);
     guarantee(region_is_superset(this_branch_history.region, svs_->get_multistore_joined_region()));
 
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
@@ -110,7 +112,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
         version_t version = it->second.latest;
         rassert(version.branch == branch_id_ ||
-                version_is_ancestor(branch_history_manager_,
+                version_is_ancestor(branch_history_manager,
                                     version,
                                     version_t(branch_id_, this_branch_history.initial_timestamp),
                                     it->first));
@@ -145,7 +147,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
         /* Backfill */
         backfillee<protocol_t>(mailbox_manager_,
-                               branch_history_manager_,
+                               branch_history_manager,
                                svs_,
                                svs_->get_multistore_joined_region(),
                                replier->subview(&listener_t<protocol_t>::get_backfiller_from_replier_bcard),
@@ -200,15 +202,16 @@ template <class protocol_t>
 listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-                                   branch_history_manager_t<protocol_t> *bhm,
+                                   branch_history_manager_t<protocol_t> *branch_history_manager,
                                    broadcaster_t<protocol_t> *broadcaster,
                                    perfmon_collection_t *backfill_stats_parent,
                                    signal_t *interruptor,
                                    DEBUG_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager_(mm),
-    branch_history_manager_(bhm),
+    branch_history_manager_(branch_history_manager),
     svs_(broadcaster->release_bootstrap_svs_for_listener()),
     branch_id_(broadcaster->get_branch_id()),
+    our_branch_region_(branch_history_manager->get_branch(branch_id_).region),
     uuid_(generate_uuid()),
     perfmon_collection_(),
     perfmon_collection_membership_(backfill_stats_parent, &perfmon_collection_, "backfill-serialization-" + uuid_to_str(uuid_)),
@@ -238,7 +241,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     that we're using the same `branch_history_manager_t` as the broadcaster, so
     an entry should already be present for the branch we're trying to join, and
     we skip calling `import_branch_history()`. */
-    branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager_->get_branch(branch_id_);
+    branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager->get_branch(branch_id_);
     rassert(svs_->get_multistore_joined_region() == this_branch_history.region);
 
     /* Snapshot the metainfo before we start receiving writes */
@@ -369,7 +372,7 @@ void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
-    guarantee(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, write.get_region()));
+    guarantee(region_is_superset(our_branch_region_, write.get_region()));
     guarantee(!region_is_empty(write.get_region()));
     order_token.assert_write_mode();
 
@@ -454,7 +457,7 @@ void listener_t<protocol_t>::on_writeread(typename protocol_t::write_t write,
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
         THROWS_NOTHING
 {
-    rassert(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, write.get_region()));
+    rassert(region_is_superset(our_branch_region_, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
     rassert(region_is_superset(svs_->get_multistore_joined_region(), write.get_region()));
     order_token.assert_write_mode();
@@ -536,7 +539,7 @@ void listener_t<protocol_t>::on_read(typename protocol_t::read_t read,
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
         THROWS_NOTHING
 {
-    rassert(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, read.get_region()));
+    rassert(region_is_superset(our_branch_region_, read.get_region()));
     rassert(!region_is_empty(read.get_region()));
     rassert(region_is_superset(svs_->get_multistore_joined_region(), read.get_region()));
     order_token.assert_read_mode();
