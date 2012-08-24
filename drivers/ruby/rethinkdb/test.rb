@@ -10,23 +10,13 @@
 #   * CREATE, DROP, LIST, etc. for table/namespace creation
 
 # TODO:
-# Confirm these are going away:
-#   * MAPMERGE
-#   * ARRAYAPPEND
-#   * ARRAYCONCAT
-#   * ARRAYSLICE
-#   * ARRAYNTH
-#   * ARRAYLENGTH
+# Union vs. +
 # Figure out how to use:
-#   * JAVASCRIPT
 #   * GROUPEDMAPREDUCE
 # Add tests once completed/fixed:
 #   * REDUCE
-#   * MUTATE
 #   * FOREACH
-#   * POINTUPDATE
 #   * POINTMUTATE
-#   * SOME MERGE
 
 ################################################################################
 #                                 CONNECTION                                   #
@@ -694,7 +684,15 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(query.run, {'inserted'=>1})
     assert_equal(rdb2.run, $data)
 
-    #POINTUPDATE
+    assert_equal(rdb2.get(0).mutate{nil}.run,
+                 {'modified' => 0, 'deleted' => 1, 'errors' => 0})
+    assert_equal(rdb2.run, $data[1..-1])
+    assert_raise(RuntimeError){rdb2.get(1).mutate{{:id => -1}}.run}
+    assert_raise(RuntimeError){rdb2.get(1).mutate{|row| {:name => row[:name]*2}}.run}
+    assert_equal(rdb2.get(1).mutate{|row| row.mapmerge({:num => 2})}.run,
+                 {'modified' => 1, 'deleted' => 0, 'errors' => 0})
+    assert_equal(rdb2.get(1).run['num'], 2);
+    assert_equal(rdb2.insert($data[0...2]).run, {'inserted' => 2})
     #POINTMUTATE -- unimplemented
 
     assert_equal(rdb2.run, $data)

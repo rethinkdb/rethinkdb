@@ -1208,9 +1208,38 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 res->add_response(strprintf("{\"deleted\": %d}", 1));
             }
             break;
-        case WriteQuery::POINTMUTATE:
-            throw runtime_exc_t("Unimplemented: POINTMUTATE", backtrace);
-            break;
+        case WriteQuery::POINTMUTATE: {
+            int deleted = 0;
+            //First we need to grab the value the easiest way to do this is to just construct a term and evaluate it.
+            Term get;
+            get.set_type(Term::GETBYKEY);
+            Term::GetByKey get_by_key;
+            *get_by_key.mutable_table_ref() = w->point_mutate().table_ref();
+            get_by_key.set_attrname(w->point_mutate().attrname());
+            *get_by_key.mutable_key() = w->point_mutate().key();
+            *get.mutable_get_by_key() = get_by_key;
+
+            boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
+            new_val_scope_t scope_maker(&env->scope, w->point_mutate().mapping().arg(), original_val);
+            boost::shared_ptr<scoped_cJSON_t> new_val = eval(w->mutable_point_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
+
+            namespace_repo_t<rdb_protocol_t>::access_t ns_access =
+                eval(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
+            /* Get the primary key */
+            std::string pk = get_primary_key(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
+            if (new_val->type() == cJSON_NULL) {
+                deleted = 1;
+                point_delete(ns_access, cJSON_GetObjectItem(original_val->get(), pk.c_str()), env, backtrace);
+            } else {
+                /* Make sure that the primary key wasn't changed. */
+                if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
+                                 cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
+                    throw runtime_exc_t(strprintf("Mutates musn't change the primary key (%s).", pk.c_str()), backtrace);
+                }
+                insert(ns_access, pk, new_val, env, backtrace);
+            }
+            res->add_response(strprintf("{\"modified\": %d, \"deleted\": %d, \"errors\": %d}", 1-deleted, deleted, 0));
+        } break;
         default:
             unreachable();
     }
