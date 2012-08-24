@@ -38,21 +38,25 @@
           </td>
           {{/if}}
 
-          {{#if has_cpu_problems}}
-          <td class="problems-detected cpu_distro">
-              <h3>CPU distribution</h3>
+          {{#if has_persistence_problems}}
+          <td class="problems-detected persistence">
+              <h3>Persistence</h3>
+              <p class="message">Disk problems detected</p>
+
               <p class="details">
-                {{num_machines_with_cpu_problems}} of {{num_machines}} 
-                <a href="#" class="json" rel="dashboard_details" data-content="The following {{pluralize_noun "server" num_machines_with_disk_problems}} {{pluralize_verb_to_have num_machines_with_disk_problems}} use too much cpu: {{links_to_machines machines_with_cpu_problems}}" data-title="CPU problems">
+                {{num_machines_with_disk_problems}} of {{num_machines}} 
+                <a href="#" class="json" rel="dashboard_details" data-content="The following {{pluralize_noun "server" num_machines_with_disk_problems}} can't write logs: {{links_to_machines machines_with_disk_problems false}}" data-title="Log file write problems">
                   {{pluralize_noun "server" num_machines}}
                 </a>
-                use more than {{threshold_cpu}}% of CPU power
+                have disk problems
               </p> 
+
+              <p class="details"><a href="#resolve_issues">Resolve issues</a></p>
           {{else}}
-          <td class="no-problems-detected cpu_distro">
-              <h3>CPU distribution</h3>
-              <p class="message">No CPU problems detected</p>
-              <p class="details">{{num_machines}} of {{num_machines}} servers use less than {{threshold_cpu}}% of their CPU</p>
+          <td class="no-problems-detected persistence">
+              <h3>Persistence</h3>
+              <p class="message">No disk problems detected</p>
+              <p class="details">{{num_machines}} of {{num_machines}} {{pluralize_noun "server" num_machines}} {{pluralize_verb_to_have num_machines}} working disks</p>
           </td>
           {{/if}}
 
@@ -88,14 +92,31 @@
                 <p class="message">No redundancy issues detected</p>
                 <p class="details">{{num_replicas}} of {{num_replicas}} {{pluralize_noun "replica" num_replicas}} are online</p>
             </td>
-          {{/if}}
+        {{/if}}
 
+        {{#if has_disk_problems}}
+        <td class="problems-detected disk_distro">
+            <h3>Disk usage</h3>
+            <p class="details">
+                {{num_machines_with_disk_full_problems}} of {{num_machines}} 
+                <a href="#" class="json" rel="dashboard_details" data-content="The following {{pluralize_noun "server" num_machines_with_disk_problems}} {{pluralize_verb_to_have num_machines_with_disk_problems}} use too much disk: {{links_to_machines machines_with_disk_full_problems false}}" data-title="Disk problems">
+                  {{pluralize_noun "server" num_machines}}
+                </a>
+                {{pluralize_verb "use"  num_machines_with_disk_problems}} more than {{threshold_disk}}% of {{pluralize_its num_machines_width_disk_problems}} disk.
+              </p> 
+          {{else}}
+          <td class="no-problems-detected disk_distro">
+              <h3>Disk distribution</h3>
+              <p class="message">No Disk problems detected</p>
+              <p class="details">{{num_machines}} of {{num_machines}} servers {{pluralize_verb "use" num_machines}} less full than {{threshold_disk}}% of {{pluralize_its}} disk</p>
+          </td>
+          {{/if}}
           {{#if has_ram_problems}}
           <td class="problems-detected ram">
               <h3>RAM</h3>
               <p class="details">
                 {{num_machines_with_ram_problems}} of {{num_machines}} 
-                <a href="#" class="json" rel="dashboard_details" data-content="The following {{pluralize_noun "server" num_machines_with_disk_problems}} {{pluralize_verb_to_have num_machines_with_disk_problems}} use too much memory: {{links_to_machines machines_with_ram_problems}}" data-title="RAM problems">
+                <a href="#" class="json" rel="dashboard_details" data-content="The following {{pluralize_noun "server" num_machines_with_disk_problems}} {{pluralize_verb_to_have num_machines_with_disk_problems}} use too much memory: {{links_to_machines machines_with_ram_problems false}}" data-title="RAM problems">
                   {{pluralize_noun "server" num_machines}}
                 </a>
                 use more than {{threshold_ram}}% of their memory
@@ -109,27 +130,7 @@
           {{/if}}
 
 
-          {{#if has_persistence_problems}}
-          <td class="problems-detected persistence">
-              <h3>Persistence</h3>
-              <p class="message">Disk problems detected</p>
 
-              <p class="details">
-                {{num_machines_with_disk_problems}} of {{num_machines}} 
-                <a href="#" class="json" rel="dashboard_details" data-content="The following {{pluralize_noun "server" num_machines_with_disk_problems}} can't write logs: {{links_to_machines machines_with_disk_problems}}" data-title="Log file write problems">
-                  {{pluralize_noun "server" num_machines}}
-                </a>
-                have disk problems
-              </p> 
-
-              <p class="details"><a href="#resolve_issues">Resolve issues</a></p>
-          {{else}}
-          <td class="no-problems-detected persistence">
-              <h3>Persistence</h3>
-              <p class="message">No disk problems detected</p>
-              <p class="details">{{num_machines}} of {{num_machines}} {{pluralize_noun "server" num_machines}} {{pluralize_verb_to_have num_machines}} working disks</p>
-          </td>
-          {{/if}}
       </tr>
   </table>
 </script>
