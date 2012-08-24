@@ -13,8 +13,7 @@ class stat_http_app_t : public http_app_t {
 public:
     stat_http_app_t(mailbox_manager_t *_mbox_manager,
                     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >& _directory,
-                    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >& _semilattice
-                   );
+                    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >& _semilattice);
     http_res_t handle(const http_req_t &req);
 
 private:

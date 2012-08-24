@@ -68,8 +68,7 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
             namespaces_being_handled.insert(tmp, new ns_record_t(port));
             coro_t::spawn_sometime(boost::bind(
                 &parser_maker_t::serve_queries, this,
-                ns_name, it->first, port, auto_drainer_t::lock_t(&drainer)
-                ));
+                ns_name, it->first, port, auto_drainer_t::lock_t(&drainer)));
         }
     }
 }

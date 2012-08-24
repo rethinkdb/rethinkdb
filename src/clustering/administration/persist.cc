@@ -202,19 +202,15 @@ void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backen
     standard_serializer_t::dynamic_config_t serializer_dynamic_config;
 
     if (create) {
-        standard_serializer_t::create(
-            io_backender,
-            standard_serializer_t::private_dynamic_config_t(filename),
-            standard_serializer_t::static_config_t()
-        );
+        standard_serializer_t::create(io_backender,
+                                      standard_serializer_t::private_dynamic_config_t(filename),
+                                      standard_serializer_t::static_config_t());
     }
 
-    serializer.init(new standard_serializer_t(
-        standard_serializer_t::dynamic_config_t(),
-        io_backender,
-        standard_serializer_t::private_dynamic_config_t(filename),
-        perfmon_parent
-    ));
+    serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                              io_backender,
+                                              standard_serializer_t::private_dynamic_config_t(filename),
+                                              perfmon_parent));
 
     if (create) {
         mirrored_cache_static_config_t cache_static_config;

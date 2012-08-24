@@ -37,9 +37,7 @@ template<class value_type>
 template<class callable_type>
 clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_type)>::type> > watchable_t<value_type>::subview(const callable_type &lens) {
     return clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_type)>::type> >(
-        new subview_watchable_t<value_type, callable_type>(
-            lens, this
-            ));
+        new subview_watchable_t<value_type, callable_type>(lens, this));
 }
 
 template<class value_type>

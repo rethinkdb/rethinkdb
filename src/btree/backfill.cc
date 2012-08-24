@@ -24,8 +24,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             left_exclusive_or_null ? key_range_t::open : key_range_t::none,
             left_exclusive_or_null ? store_key_t(left_exclusive_or_null) : store_key_t(),
             right_inclusive_or_null ? key_range_t::closed : key_range_t::none,
-            right_inclusive_or_null ? store_key_t(right_inclusive_or_null) : store_key_t()
-            );
+            right_inclusive_or_null ? store_key_t(right_inclusive_or_null) : store_key_t());
         clipped_range = clipped_range.intersection(key_range_);
 
         struct : public leaf::entry_reception_callback_t {

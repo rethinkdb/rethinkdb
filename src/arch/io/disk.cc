@@ -244,8 +244,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
                     "\n- the database block device cannot be opened with O_DIRECT flag" :
                     "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. in case when the filesystem is working in journaled mode)"
                 ) : "",
-            !is_block ? "\n- user which was used to start the database is not an owner of the file" : ""
-        );
+            !is_block ? "\n- user which was used to start the database is not an owner of the file" : "");
     }
 
     file_exists = true;

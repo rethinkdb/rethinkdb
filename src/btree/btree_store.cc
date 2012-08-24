@@ -20,16 +20,14 @@ btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
         standard_serializer_t::create(
             io_backender,
             standard_serializer_t::private_dynamic_config_t(filename),
-            standard_serializer_t::static_config_t()
-            );
+            standard_serializer_t::static_config_t());
     }
 
     serializer.init(new standard_serializer_t(
         standard_serializer_t::dynamic_config_t(),
         io_backender,
         standard_serializer_t::private_dynamic_config_t(filename),
-        &perfmon_collection
-        ));
+        &perfmon_collection));
 
     if (create) {
         mirrored_cache_static_config_t cache_static_config;
@@ -264,10 +262,7 @@ void btree_store_t<protocol_t>::get_metainfo_internal(transaction_t *txn, buf_lo
             rassert(!res, "res = %d", res);
         }
 
-        result.push_back(std::make_pair(
-            region,
-            binary_blob_t(value.begin(), value.end())
-        ));
+        result.push_back(std::make_pair(region, binary_blob_t(value.begin(), value.end())));
     }
     region_map_t<protocol_t, binary_blob_t> res(result.begin(), result.end());
     rassert(res.get_domain() == protocol_t::region_t::universe());

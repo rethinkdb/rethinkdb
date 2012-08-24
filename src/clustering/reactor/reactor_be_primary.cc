@@ -378,8 +378,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
                 broadcaster.get_business_card(),
                 replier.get_business_card(),
                 master.get_business_card(),
-                direct_reader.get_business_card()
-            ));
+                direct_reader.get_business_card()));
 
         interruptor->wait_lazily_unordered();
 

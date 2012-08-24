@@ -67,13 +67,11 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
                 if (kt != jt->second.reactor_bcards.end()) {
                     reactor_directory.insert(std::make_pair(
                         jt->first,
-                        boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(kt->second)
-                        ));
+                        boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(kt->second)));
                 } else {
                     reactor_directory.insert(std::make_pair(
                         jt->first,
-                        boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >()
-                        ));
+                        boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >()));
                 }
             }
             try {
@@ -83,8 +81,7 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
                             it->second.get(),
                             reactor_directory,
                             machine_id_translation_table,
-                            machine_data_centers
-                            )));
+                            machine_data_centers)));
             } catch (const cannot_satisfy_goals_exc_t &e) {
                 logERR("Namespace %s has unsatisfiable goals", uuid_to_str(it->first).c_str());
             } catch (const in_conflict_exc_t &e) {

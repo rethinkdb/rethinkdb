@@ -114,8 +114,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     last_seen_app.init(new last_seen_http_app_t(&_admin_tracker->last_seen_tracker));
     log_app.init(new log_http_app_t(mbox_manager,
         _directory_metadata->subview(&get_log_mailbox),
-        _directory_metadata->subview(&get_machine_id)
-        ));
+        _directory_metadata->subview(&get_machine_id)));
     progress_app.init(new progress_app_t(_directory_metadata, mbox_manager));
     distribution_app.init(new distribution_app_t(metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, _semilattice_metadata), _namespace_repo));
 

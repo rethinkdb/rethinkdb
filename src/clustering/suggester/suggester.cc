@@ -280,8 +280,7 @@ persistable_blueprint_t<mock::dummy_protocol_t> suggest_blueprint<mock::dummy_pr
         const std::set<mock::dummy_protocol_t::region_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<mock::dummy_protocol_t, machine_id_t> &primary_pinnings,
-        const region_map_t<mock::dummy_protocol_t, std::set<machine_id_t> > &secondary_pinnings
-        );
+        const region_map_t<mock::dummy_protocol_t, std::set<machine_id_t> > &secondary_pinnings);
 
 
 #include "memcached/protocol.hpp"
@@ -294,8 +293,7 @@ persistable_blueprint_t<memcached_protocol_t> suggest_blueprint<memcached_protoc
         const std::set<memcached_protocol_t::region_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<memcached_protocol_t, machine_id_t> &primary_pinnings,
-        const region_map_t<memcached_protocol_t, std::set<machine_id_t> > &secondary_pinnings
-        );
+        const region_map_t<memcached_protocol_t, std::set<machine_id_t> > &secondary_pinnings);
 
 
 #include "rdb_protocol/protocol.hpp"
@@ -308,5 +306,4 @@ persistable_blueprint_t<rdb_protocol_t> suggest_blueprint<rdb_protocol_t>(
         const std::set<rdb_protocol_t::region_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<rdb_protocol_t, machine_id_t> &primary_pinnings,
-        const region_map_t<rdb_protocol_t, std::set<machine_id_t> > &secondary_pinnings
-        );
+        const region_map_t<rdb_protocol_t, std::set<machine_id_t> > &secondary_pinnings);
