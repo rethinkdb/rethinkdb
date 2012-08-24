@@ -176,39 +176,36 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_stream #from python tests
-    # TODO: fix
-    # arr = (0...10).collect{|x| x}
-    # assert_equal(r[arr].to_stream.to_array.run, arr)
-    # assert_equal(r[arr].to_stream.nth(0).run, 0)
-    # assert_equal(r[arr].to_stream.nth(5).run, 5)
-    # assert_raise(RuntimeError){r[arr].to_stream.nth([]).run}
-    # assert_raise(RuntimeError){r[arr].to_stream.nth(0.4).run}
-    # assert_raise(RuntimeError){r[arr].to_stream.nth(-5).run}
-    # assert_raise(RuntimeError){r[[0]].to_stream.nth(1).run}
+    arr = (0...10).collect{|x| x}
+    assert_equal(r[arr].to_stream.to_array.run, arr)
+    assert_equal(r[arr].to_stream.nth(0).run, 0)
+    assert_equal(r[arr].to_stream.nth(5).run, 5)
+    assert_raise(RuntimeError){r[arr].to_stream.nth([]).run}
+    assert_raise(RuntimeError){r[arr].to_stream.nth(0.4).run}
+    assert_raise(RuntimeError){r[arr].to_stream.nth(-5).run}
+    assert_raise(RuntimeError){r[[0]].to_stream.nth(1).run}
   end
 
   def test_stream_fancy #from python tests
-    # TODO: fix
-    # def limit(a,c); r[a].to_stream.limit(c).to_array.run; end
-    # def skip(a,c); r[a].to_stream.skip(c).to_array.run; end
+    def limit(a,c); r[a].to_stream.limit(c).to_array.run; end
+    def skip(a,c); r[a].to_stream.skip(c).to_array.run; end
 
-    # assert_equal(limit([], 0), [])
-    # assert_equal(limit([1, 2], 0), [])
-    # assert_equal(limit([1, 2], 1), [1])
-    # assert_equal(limit([1, 2], 5), [1, 2])
-    # assert_raise(RuntimeError){limit([], -1)}
+    assert_equal(limit([], 0), [])
+    assert_equal(limit([1, 2], 0), [])
+    assert_equal(limit([1, 2], 1), [1])
+    assert_equal(limit([1, 2], 5), [1, 2])
+    assert_raise(RuntimeError){limit([], -1)}
 
-    # assert_equal(skip([], 0), [])
-    # assert_equal(skip([1, 2], 5), [])
-    # assert_equal(skip([1, 2], 0), [1, 2])
-    # assert_equal(skip([1, 2], 1), [2])
+    assert_equal(skip([], 0), [])
+    assert_equal(skip([1, 2], 5), [])
+    assert_equal(skip([1, 2], 0), [1, 2])
+    assert_equal(skip([1, 2], 1), [2])
 
-    # def distinct(a); r[a].to_stream.distinct.to_array.run; end
-    # assert_equal(distinct([]), [])
-    # assert_equal(distinct([1,2,3]*10), [1,2,3])
-    # assert_equal(distinct([1, 2, 3, 2]), [1, 2, 3])
-    # # TODO: doesn't work
-    # #assert_equal(distinct([true, 2, false, 2]), [true, 2, false])
+    def distinct(a); r[a].to_stream.distinct.to_array.run; end
+    assert_equal(distinct([]), [])
+    assert_equal(distinct([1,2,3]*10), [1,2,3])
+    assert_equal(distinct([1, 2, 3, 2]), [1, 2, 3])
+    assert_equal(distinct([true, 2, false, 2]), [true, 2, false])
   end
 
   def test_ordering
@@ -340,12 +337,11 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_array #BOOL, JSON_NULL, ARRAY, ARRAYTOSTREAM
-    # TODO: fix
-    # assert_equal(r.expr([true, false, nil]).run, [true, false, nil])
-    # assert_equal(r.arraytostream(r.expr([true, false, nil])).run, [true, false, nil])
-    # assert_equal(r.to_stream(r.expr([true, false, nil])).run, [true, false, nil])
-    # assert_equal(r.expr([true, false, nil]).arraytostream.run, [true, false, nil])
-    # assert_equal(r.expr([true, false, nil]).to_stream.run, [true, false, nil])
+    assert_equal(r.expr([true, false, nil]).run, [true, false, nil])
+    assert_equal(r.arraytostream(r.expr([true, false, nil])).run, [true, false, nil])
+    assert_equal(r.to_stream(r.expr([true, false, nil])).run, [true, false, nil])
+    assert_equal(r.expr([true, false, nil]).arraytostream.run, [true, false, nil])
+    assert_equal(r.expr([true, false, nil]).to_stream.run, [true, false, nil])
   end
 
   def test_getbykey #OBJECT, GETBYKEY
@@ -358,7 +354,7 @@ class ClientTest < Test::Unit::TestCase
   def test_map #MAP, FILTER, GETATTR, IMPLICIT_GETATTR, STREAMTOARRAY
     assert_equal(rdb.filter({'num' => 1}).run, [$data[1]])
     assert_equal(id_sort(rdb.filter({'num' => :num}).run), $data)
-    #TODO: fix
+    #TODO: Issue #920 (serializing scopes)
     # query = rdb.map { |outer_row|
     #   r.streamtoarray(rdb.filter{r[:id] < outer_row[:id]})
     # }
@@ -398,13 +394,18 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_slice_streams #SLICE
-    #TODO: should work for arrays as well
-    #TODO: fix
-    # arr=[0,1,2,3,4,5]
-    # assert_equal(r[arr].to_stream[1].run, 1)
-    # assert_equal(r[arr].to_stream[2...6].run, r[arr].to_stream[2..-1].run)
-    # assert_equal(r[arr].to_stream[2...5].run, r[arr].to_stream[2..4].run)
-    # assert_raise(RuntimeError){r[arr].to_stream[2...-1].run}
+    arr=[0,1,2,3,4,5]
+    assert_equal(r[arr][1].run, 1)
+    assert_equal(r[arr].to_stream[1].run, 1)
+
+    assert_equal(r[arr][2...6].run, r[arr][2..-1].run)
+    assert_equal(r[arr].to_stream[2...6].run, r[arr].to_stream[2..-1].run)
+
+    assert_equal(r[arr][2...5].run, r[arr][2..4].run)
+    assert_equal(r[arr].to_stream[2...5].run, r[arr].to_stream[2..4].run)
+
+    assert_raise(RuntimeError){r[arr][2...0].run}
+    assert_raise(RuntimeError){r[arr].to_stream[2...-1].run}
   end
 
   def test_mapmerge
@@ -444,8 +445,7 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_nth #NTH
-    # TODO: fix
-    #assert_equal(rdb.orderb(:id).nth(2).run, $data[2])
+    assert_equal(rdb.orderby(:id).nth(2).run, $data[2])
   end
 
   def test_javascript #JAVASCRIPT
@@ -465,9 +465,9 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_javascript_vars #JAVASCRIPT
-    # TODO: fix
-    # assert_equal(r.let([['x', 2]], r.js('x')).run, 2)
-    # assert_equal(r.let([['x', 2], ['y', 3]], r.js('x+y')).run, 5)
+    # TODO: Issue #921
+    assert_equal(r.let([['x', 2]], r.js('x')).run, 2)
+    assert_equal(r.let([['x', 2], ['y', 3]], r.js('x+y')).run, 5)
     # assert_equal(rdb.map{|x| r.js("#{x}")}.run, rdb.run)
     # assert_equal(rdb.map{    r.js("this")}.run, rdb.run)
     # assert_equal(rdb.map{|x| r.js("#{x}.num")}.run, rdb.map{r[:num]}.run)
