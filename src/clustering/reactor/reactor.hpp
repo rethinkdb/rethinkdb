@@ -145,6 +145,8 @@ private:
 
     void wait_for_directory_acks(directory_echo_version_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
+    bool attempt_backfill_from_peers(directory_entry_t *directory_entry, order_source_t *order_source, const typename protocol_t::region_t &region, multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+
     template <class activity_t>
     clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > get_directory_entry_view(peer_id_t id, const reactor_activity_id_t&);
 

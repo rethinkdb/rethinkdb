@@ -250,6 +250,91 @@ bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<bro
     return maybe_a_business_card.get();
 }
 
+template <class protocol_t>
+bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *directory_entry, order_source_t *order_source, const typename protocol_t::region_t &region, multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    directory_echo_version_t version_to_wait_on = directory_entry->set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t());
+
+    /* block until all peers have acked `directory_entry` */
+    wait_for_directory_acks(version_to_wait_on, interruptor);
+
+    /* Figure out what version of the data is already present in our
+     * store so we don't backfill anything prior to it. */
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    svs->new_read_token(&read_token);
+    region_map_t<protocol_t, version_range_t> metainfo = svs->get_all_metainfos(order_source->check_in("reactor_t::be_primary").with_read_mode(), &read_token, interruptor);
+    region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);
+
+    /* This waits until every other peer is ready to accept us as the
+     * primary and there is a unique coherent latest verstion of the
+     * data available. Note best_backfillers is passed as an
+     * input/output parameter, after this call returns best_backfillers
+     * will describe how to fill the store with the most up-to-date
+     * data. */
+    run_until_satisfied_2(
+                          reactor_directory,
+                          blueprint,
+                          boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, _2, region, &best_backfillers),
+                          interruptor);
+
+    /* We may be backfilling from several sources, each requires a
+     * promise be passed in which gets pulsed with a value indicating
+     * whether or not the backfill succeeded. */
+    boost::ptr_vector<promise_t<bool> > promises;
+
+    std::vector<reactor_business_card_details::backfill_location_t> backfills;
+
+    for (typename best_backfiller_map_t::iterator it =  best_backfillers.begin();
+         it != best_backfillers.end();
+         it++) {
+        if (it->second.present_in_our_store) {
+            continue;
+        } else {
+            backfill_session_id_t backfill_session_id = generate_uuid();
+            promise_t<bool> *p = new promise_t<bool>;
+            promises.push_back(p);
+            coro_t::spawn_sometime(boost::bind(&do_backfill<protocol_t>,
+                                               mailbox_manager,
+                                               branch_history_manager,
+                                               svs,
+                                               it->first,
+                                               it->second.places_to_get_this_version[0].backfiller,
+                                               backfill_session_id,
+                                               p,
+                                               interruptor));
+            reactor_business_card_details::backfill_location_t backfill_location(backfill_session_id,
+                                                                                 it->second.places_to_get_this_version[0].peer_id,
+                                                                                 it->second.places_to_get_this_version[0].activity_id);
+
+            backfills.push_back(backfill_location);
+        }
+    }
+
+    /* Tell the other peers which backfills we're waiting on. */
+    directory_entry->set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t(backfills));
+
+    /* Since these don't actually modify peers behavior, just allow
+     * them to query the backfiller for progress reports there's no
+     * need to wait for acks. */
+
+    bool all_succeeded = true;
+    for (typename boost::ptr_vector<promise_t<bool> >::iterator it =  promises.begin();
+         it != promises.end();
+         it++) {
+        //DO NOT switch the order of it->wait() and all_succeeded
+        all_succeeded = it->wait() && all_succeeded;
+    }
+
+    /* If the interruptor was pulsed the interrupted_exc_t would have
+     * been caugh in the do_backfill coro, we need to check if that's
+     * how we got here and rethrow the exception. */
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+
+    // Return whether we have the most up to date version of the data in our store.
+    return all_succeeded;
+}
+
 template<class protocol_t>
 void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
@@ -261,95 +346,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
         /* In this loop we repeatedly attempt to find peers to backfill from
          * and then perform the backfill. We exit the loop either when we get
          * interrupted or we have backfilled the most up to date data. */
-        while (true) {
-            directory_echo_version_t version_to_wait_on = directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t());
-
-            /* block until all peers have acked `directory_entry` */
-            wait_for_directory_acks(version_to_wait_on, interruptor);
-
-            /* Figure out what version of the data is already present in our
-             * store so we don't backfill anything prior to it. */
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
-            svs->new_read_token(&read_token);
-            region_map_t<protocol_t, version_range_t> metainfo = svs->get_all_metainfos(order_source.check_in("reactor_t::be_primary").with_read_mode(), &read_token, interruptor);
-            region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);
-
-            /* This waits until every other peer is ready to accept us as the
-             * primary and there is a unique coherent latest verstion of the
-             * data available. Note best_backfillers is passed as an
-             * input/output parameter, after this call returns best_backfillers
-             * will describe how to fill the store with the most up-to-date
-             * data. */
-            run_until_satisfied_2(
-                reactor_directory,
-                blueprint,
-                boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, _2, region, &best_backfillers),
-                interruptor);
-
-            /* We may be backfilling from several sources, each requires a
-             * promise be passed in which gets pulsed with a value indicating
-             * whether or not the backfill succeeded. */
-            boost::ptr_vector<promise_t<bool> > promises;
-
-            std::vector<reactor_business_card_details::backfill_location_t> backfills;
-
-            for (typename best_backfiller_map_t::iterator it =  best_backfillers.begin();
-                                                          it != best_backfillers.end();
-                                                          it++) {
-                if (it->second.present_in_our_store) {
-                    continue;
-                } else {
-                    backfill_session_id_t backfill_session_id = generate_uuid();
-                    promise_t<bool> *p = new promise_t<bool>;
-                    promises.push_back(p);
-                    coro_t::spawn_sometime(boost::bind(&do_backfill<protocol_t>,
-                                                       mailbox_manager,
-                                                       branch_history_manager,
-                                                       svs,
-                                                       it->first,
-                                                       it->second.places_to_get_this_version[0].backfiller,
-                                                       backfill_session_id,
-                                                       p,
-                                                       interruptor));
-                    reactor_business_card_details::backfill_location_t backfill_location(backfill_session_id,
-                                                                                         it->second.places_to_get_this_version[0].peer_id,
-                                                                                         it->second.places_to_get_this_version[0].activity_id);
-
-                    backfills.push_back(backfill_location);
-                }
-            }
-
-            /* Tell the other peers which backfills we're waiting on. */
-            directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t(backfills));
-
-            /* Since these don't actually modify peers behavior, just allow
-             * them to query the backfiller for progress reports there's no
-             * need to wait for acks. */
-
-            bool all_succeeded = true;
-            for (typename boost::ptr_vector<promise_t<bool> >::iterator it =  promises.begin();
-                                                                        it != promises.end();
-                                                                        it++) {
-                //DO NOT switch the order of it->wait() and all_succeeded
-                all_succeeded = it->wait() && all_succeeded;
-            }
-
-            /* If the interruptor was pulsed the interrupted_exc_t would have
-             * been caugh in the do_backfill coro, we need to check if that's
-             * how we got here and rethrow the exception. */
-            if (interruptor->is_pulsed()) {
-                throw interrupted_exc_t();
-            }
-
-            if (all_succeeded) {
-                /* We have the most up to date version of the data in our
-                 * store. */
-                break;
-            } else {
-                /* one or more backfills failed so we start the whole process
-                 * over again..... */
-            }
-        }
+        while (!attempt_backfill_from_peers(&directory_entry, &order_source, region, svs, blueprint, interruptor)) { }
 
         std::string region_name = render_region_as_string(&region);
         perfmon_collection_t region_perfmon_collection;
