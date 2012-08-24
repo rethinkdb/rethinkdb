@@ -65,6 +65,8 @@ region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
     return region_t(h, h + 1, key_range_t(key_range_t::closed, k, key_range_t::closed, k));
 }
 
+namespace {
+
 /* read_t::get_region implementation */
 struct r_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_read_t &pr) const {
@@ -77,11 +79,15 @@ struct r_get_region_visitor : public boost::static_visitor<region_t> {
     }
 };
 
+}   /* anonymous namespace */
+
 region_t read_t::get_region() const THROWS_NOTHING {
     return boost::apply_visitor(r_get_region_visitor(), read);
 }
 
 /* read_t::shard implementation */
+
+namespace {
 
 struct r_shard_visitor : public boost::static_visitor<read_t> {
     explicit r_shard_visitor(const region_t &_region)
@@ -102,6 +108,8 @@ struct r_shard_visitor : public boost::static_visitor<read_t> {
     }
     const region_t &region;
 };
+
+}   /* anonymous namespace */
 
 read_t read_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(r_shard_visitor(region), read);
@@ -401,6 +409,8 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
 
 /* write_t::get_region() implementation */
 
+namespace {
+
 struct w_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_write_t &pw) const {
         return rdb_protocol_t::monokey_region(pw.key);
@@ -411,11 +421,15 @@ struct w_get_region_visitor : public boost::static_visitor<region_t> {
     }
 };
 
+}   /* anonymous namespace */
+
 region_t write_t::get_region() const THROWS_NOTHING {
     return boost::apply_visitor(w_get_region_visitor(), write);
 }
 
 /* write_t::shard implementation */
+
+namespace {
 
 struct w_shard_visitor : public boost::static_visitor<write_t> {
     explicit w_shard_visitor(const region_t &_region)
@@ -432,6 +446,8 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     }
     const region_t &region;
 };
+
+}   /* anonymous namespace */
 
 write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(w_shard_visitor(region), write);
@@ -459,6 +475,8 @@ store_t::~store_t() {
     assert_thread();
 }
 
+namespace {
+
 // TODO: get rid of this extra response_t copy on the stack
 struct read_visitor_t : public boost::static_visitor<read_response_t> {
     read_response_t operator()(const point_read_t& get) {
@@ -481,6 +499,8 @@ private:
     query_language::runtime_environment_t env;
 };
 
+}   /* anonymous namespace */
+
 void store_t::protocol_read(const read_t &read,
                             read_response_t *response,
                             btree_slice_t *btree,
@@ -489,6 +509,8 @@ void store_t::protocol_read(const read_t &read,
     read_visitor_t v(btree, txn, superblock, ctx);
     *response = boost::apply_visitor(v, read.read);
 }
+
+namespace {
 
 // TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<write_response_t> {
@@ -512,6 +534,8 @@ private:
     repli_timestamp_t timestamp;
 };
 
+}   /* anonymous namespace */
+
 void store_t::protocol_write(const write_t &write,
                              write_response_t *response,
                              transition_timestamp_t timestamp,
@@ -521,6 +545,8 @@ void store_t::protocol_write(const write_t &write,
     write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp());
     *response = boost::apply_visitor(v, write.write);
 }
+
+namespace {
 
 struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<region_t> {
     region_t operator()(const backfill_chunk_t::delete_key_t &del) {
@@ -536,10 +562,14 @@ struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<region
     }
 };
 
+}   /* anonymous namespace */
+
 region_t backfill_chunk_t::get_region() const {
     backfill_chunk_get_region_visitor_t v;
     return boost::apply_visitor(v, val);
 }
+
+namespace {
 
 struct backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
     repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) {
@@ -554,6 +584,8 @@ struct backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static
         return kv.backfill_atom.recency;
     }
 };
+
+}   /* anonymous namespace */
 
 repli_timestamp_t backfill_chunk_t::get_btree_repli_timestamp() const THROWS_NOTHING {
     backfill_chunk_get_btree_repli_timestamp_visitor_t v;
@@ -627,13 +659,14 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
     }
 }
 
+namespace {
+
 struct receive_backfill_visitor_t : public boost::static_visitor<> {
     receive_backfill_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, signal_t *interruptor_) :
       btree(btree_), txn(txn_), superblock(superblock_), interruptor(interruptor_) { }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
-        // FIXME: we ignored delete_key.recency here. Should we use it in place of repli_timestamp_t::invalid?
-        rdb_delete(delete_key.key, btree, repli_timestamp_t::invalid, txn, superblock);
+        rdb_delete(delete_key.key, btree, delete_key.recency, txn, superblock);
     }
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
@@ -644,7 +677,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
         const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
         rdb_set(bf_atom.key, bf_atom.value,
-                btree, repli_timestamp_t::invalid,
+                btree, bf_atom.recency,
                 txn, superblock);
     }
 
@@ -668,6 +701,8 @@ private:
     superblock_t *superblock;
     signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.
 };
+
+}   /* anonymous namespace */
 
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
                                         transaction_t *txn,
@@ -698,6 +733,7 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu
     return region_t(beg, end, key_range_t::universe());
 }
 
+namespace {
 
 struct backfill_chunk_shard_visitor_t : public boost::static_visitor<rdb_protocol_t::backfill_chunk_t> {
 public:
@@ -722,6 +758,8 @@ private:
 
     DISABLE_COPYING(backfill_chunk_shard_visitor_t);
 };
+
+}   /* anonymous namespace */
 
 rdb_protocol_t::backfill_chunk_t rdb_protocol_t::backfill_chunk_t::shard(const rdb_protocol_t::region_t &region) const THROWS_NOTHING {
     backfill_chunk_shard_visitor_t v(region);
