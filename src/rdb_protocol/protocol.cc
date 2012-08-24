@@ -62,7 +62,8 @@ RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
 
 rdb_protocol_t::context_t::context_t()
     : pool_group(NULL), ns_repo(NULL),
-    cross_thread_sl_watchables(get_num_threads())
+    cross_thread_sl_watchables(get_num_threads()),
+    signals(get_num_threads())
 { }
 
 rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
@@ -71,13 +72,17 @@ rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
           machine_id_t _machine_id)
     : pool_group(_pool_group), ns_repo(_ns_repo),
       cross_thread_sl_watchables(get_num_threads()),
-      semilattice_metadata(_semilattice_metadata), machine_id(_machine_id)
+      semilattice_metadata(_semilattice_metadata), 
+      signals(get_num_threads()),
+      machine_id(_machine_id)
 {
     for (int thread = 0; thread < get_num_threads(); ++thread) {
         cross_thread_sl_watchables[thread].init(new cross_thread_watchable_variable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(
                                                     clone_ptr_t<semilattice_watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >
                                                         (new semilattice_watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(
-                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _semilattice_metadata))), get_thread_id()));
+                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _semilattice_metadata))), thread));
+
+        signals[thread].init(new cross_thread_signal_t(&interruptor, thread));
     }
 }
 
