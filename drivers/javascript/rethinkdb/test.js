@@ -69,11 +69,13 @@ function testGet() {
 }
 
 function testSlices() {
-    tab.length().run(aeq(10));
-    tab.limit(5).length().run(aeq(5));
-    tab.skip(4).length().run(aeq(6));
-    tab.slice(1,4).length().run(aeq(3));
-    tab.nth(8).run(objeq({id:7,num:13}));
+    var arr = q([1,2,3,4,5,6]);
+
+    arr.length().run(aeq(6));
+    arr.limit(5).length().run(aeq(5));
+    arr.skip(4).length().run(aeq(2));
+    arr.slice(1,4).length().run(aeq(3));
+    arr.nth(2).run(aeq(3));
 }
 
 function testMap() {
