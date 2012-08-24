@@ -105,7 +105,7 @@ single mirror. */
 
 void run_read_write_test(UNUSED io_backender_t *io_backender,
                          UNUSED mock::simple_mailbox_cluster_t *cluster,
-                         UNUSED branch_history_manager_t<dummy_protocol_t> *,
+                         branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
                          UNUSED clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
                          scoped_ptr_t<broadcaster_t<dummy_protocol_t> > *broadcaster,
                          UNUSED mock::test_store_t<dummy_protocol_t> *store,
@@ -113,7 +113,7 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
                          order_source_t *order_source) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t<dummy_protocol_t> replier(initial_listener->get());
+    replier_t<dummy_protocol_t> replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
 
     /* Give time for the broadcaster to see the replier */
     mock::let_stuff_happen();
@@ -193,7 +193,7 @@ void run_backfill_test(io_backender_t *io_backender,
                        order_source_t *order_source) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t<dummy_protocol_t> replier(initial_listener->get());
+    replier_t<dummy_protocol_t> replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
 
     watchable_variable_t<boost::optional<replier_business_card_t<dummy_protocol_t> > > replier_directory_controller(
         boost::optional<replier_business_card_t<dummy_protocol_t> >(replier.get_business_card()));
@@ -260,7 +260,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
                                order_source_t *order_source) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t<dummy_protocol_t> replier(initial_listener->get());
+    replier_t<dummy_protocol_t> replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
 
     watchable_variable_t<boost::optional<replier_business_card_t<dummy_protocol_t> > > replier_directory_controller(
         boost::optional<replier_business_card_t<dummy_protocol_t> >(replier.get_business_card()));

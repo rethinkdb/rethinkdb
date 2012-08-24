@@ -4,8 +4,8 @@
 #include "rpc/semilattice/view.hpp"
 
 template <class protocol_t>
-replier_t<protocol_t>::replier_t(listener_t<protocol_t> *l) :
-    listener(l),
+replier_t<protocol_t>::replier_t(listener_t<protocol_t> *li, mailbox_manager_t *mm, branch_history_manager_t<protocol_t> *branch_history_manager) :
+    listener(li),
 
     synchronize_mailbox(listener->mailbox_manager(),
                         boost::bind(&replier_t<protocol_t>::on_synchronize,
@@ -15,11 +15,11 @@ replier_t<protocol_t>::replier_t(listener_t<protocol_t> *l) :
                                     auto_drainer_t::lock_t(&drainer))),
 
     /* Start serving backfills */
-    backfiller(listener->mailbox_manager(),
-               listener->branch_history_manager(),
+    backfiller(mm,
+               branch_history_manager,
                listener->svs()) {
     rassert(listener->svs()->get_multistore_joined_region() ==
-            listener->branch_history_manager()->get_branch(listener->branch_id()).region,
+            branch_history_manager->get_branch(listener->branch_id()).region,
             "Even though you can have a listener that only watches some subset "
             "of a branch, you can't have a replier for some subset of a "
             "branch.");

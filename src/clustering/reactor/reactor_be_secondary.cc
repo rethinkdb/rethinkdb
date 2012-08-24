@@ -219,7 +219,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use
                  * us for backfills. */
-                replier_t<protocol_t> replier(&listener);
+                replier_t<protocol_t> replier(&listener, mailbox_manager, branch_history_manager);
 
                 direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
 

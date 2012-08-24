@@ -124,7 +124,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
                                order_source_t *order_source) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t<memcached_protocol_t> replier(initial_listener->get());
+    replier_t<memcached_protocol_t> replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
 
     watchable_variable_t<boost::optional<boost::optional<replier_business_card_t<memcached_protocol_t> > > >
         replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t<memcached_protocol_t> > >(boost::optional<replier_business_card_t<memcached_protocol_t> >(replier.get_business_card())));

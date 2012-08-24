@@ -103,7 +103,6 @@ public:
     // Getters used by the replier :(
     // TODO: Some of these can and should be passed directly to the replier?
     mailbox_manager_t *mailbox_manager() const { return mailbox_manager_; }
-    branch_history_manager_t<protocol_t> *branch_history_manager() const { return branch_history_manager_; }
     multistore_ptr_t<protocol_t> *svs() const {
         rassert(svs_ != NULL);
         return svs_;
@@ -217,8 +216,6 @@ private:
     void advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp);
 
     mailbox_manager_t *const mailbox_manager_;
-
-    branch_history_manager_t<protocol_t> *const branch_history_manager_;
 
     multistore_ptr_t<protocol_t> *const svs_;
 

@@ -61,7 +61,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
     mailbox_manager_(mm),
-    branch_history_manager_(branch_history_manager),
     svs_(svs),
     uuid_(generate_uuid()),
     perfmon_collection_(),
@@ -208,7 +207,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    signal_t *interruptor,
                                    DEBUG_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager_(mm),
-    branch_history_manager_(branch_history_manager),
     svs_(broadcaster->release_bootstrap_svs_for_listener()),
     branch_id_(broadcaster->get_branch_id()),
     our_branch_region_(branch_history_manager->get_branch(branch_id_).region),

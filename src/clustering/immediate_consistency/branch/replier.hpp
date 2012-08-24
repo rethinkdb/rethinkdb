@@ -21,7 +21,7 @@ template <class protocol_t>
 class replier_t {
 
 public:
-    explicit replier_t(listener_t<protocol_t> *l);
+    explicit replier_t(listener_t<protocol_t> *l, mailbox_manager_t *mm, branch_history_manager_t<protocol_t> *bhm);
 
     /* The destructor immediately stops responding to queries. If there was an
     outstanding write or read that the broadcaster was expecting us to respond

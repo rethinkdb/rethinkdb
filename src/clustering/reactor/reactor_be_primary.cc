@@ -369,7 +369,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
         broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
 
         listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster_business_card, branch_history_manager, &broadcaster, &region_perfmon_collection, interruptor, &order_source);
-        replier_t<protocol_t> replier(&listener);
+        replier_t<protocol_t> replier(&listener, mailbox_manager, branch_history_manager);
         master_t<protocol_t> master(mailbox_manager, ack_checker, region, &broadcaster);
         direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
 

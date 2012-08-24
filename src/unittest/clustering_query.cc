@@ -64,7 +64,7 @@ static void run_read_write_test() {
         &interruptor,
         &order_source);
 
-    replier_t<dummy_protocol_t> initial_replier(&initial_listener);
+    replier_t<dummy_protocol_t> initial_replier(&initial_listener, cluster.get_mailbox_manager(), &branch_history_manager);
 
     /* Set up a master */
     class : public master_t<dummy_protocol_t>::ack_checker_t {
@@ -156,7 +156,7 @@ static void run_broadcaster_problem_test() {
         &interruptor,
         &order_source);
 
-    replier_t<dummy_protocol_t> initial_replier(&initial_listener);
+    replier_t<dummy_protocol_t> initial_replier(&initial_listener, cluster.get_mailbox_manager(), &branch_history_manager);
 
     /* Set up a master. The ack checker is impossible to satisfy, so every
     write will return an error. */
