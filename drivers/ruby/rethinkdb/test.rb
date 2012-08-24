@@ -693,7 +693,6 @@ class ClientTest < Test::Unit::TestCase
                  {'modified' => 1, 'deleted' => 0, 'errors' => 0})
     assert_equal(rdb2.get(1).run['num'], 2);
     assert_equal(rdb2.insert($data[0...2]).run, {'inserted' => 2})
-    #POINTMUTATE -- unimplemented
 
     assert_equal(rdb2.run, $data)
   end
