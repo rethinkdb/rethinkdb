@@ -1532,12 +1532,91 @@ Database view
 */
 
 .datacenter-view {
-    .ram_used_bar{
-        fill: #f00;
+    .ram_legend{
+        overflow: auto;
+        .legend{
+            margin: 40px 0px 0px 0px;
+            li{
+                list-style: none;
+            }
+            .title-legend{
+                margin: 0px 0px 10px 0px;
+            }
+            .used_ram-legend{
+                border-left: 40px solid #f00;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .free_ram-legend{
+                border-left: 40px solid #1f77b4;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .used_ram-legend-inline{
+                float: left;
+                margin: 0px 0px 40px 10px;
+            }
+            .free_ram-legend-inline{
+                float: left;
+                margin: 0px 0px 40px 50px;
+            }
+        }
+        .legend-inline{
+            margin: 0px 0px 30px 0px;
+        }
+     }
+     .ram_repartition-graph{
+        .ram_used_bar{
+            fill: #f00;
+        }
+        .ram_free_bar{
+            fill: #1f77b4;
+        }
+    }   
+
+    .disk_legend{
+        .legend{
+            margin: 40px 0px 0px 0px;
+            li{
+                list-style: none;
+            }
+            .title-legend{
+                margin: 0px 0px 10px 0px;
+            }
+            .used_disk-legend{
+                border-left: 40px solid #f00;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .free_disk-legend{
+                border-left: 40px solid #1f77b4;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .used_disk-legend-inline{
+                float: left;
+                margin: 0px 0px 40px 10px;
+            }
+            .free_disk-legend-inline{
+                float: left;
+                margin: 0px 0px 40px 50px;
+            }
+        }
+        .legend-inline{
+            margin: 0px 0px 30px 0px;
+        }
     }
-    .ram_free_bar{
-        fill: #1f77b4;
+    .disk_repartition-graph{
+        .disk_used_bar{
+            fill: #f00;
+        }
+        .disk_free_bar{
+            fill: #1f77b4;
+        }
     }
+
+
+
     .profile-expandable{
         height: 285px;
         .more_machines{

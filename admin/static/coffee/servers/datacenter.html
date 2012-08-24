@@ -72,23 +72,77 @@
     <div class="two-panel-section">
         <div class="ram_repartition-graph panel-left">
             <svg class="ram_repartition-diagram" width="270" height="270">
+                {{#if no_machine}}
+                <text x="100" y="135" class="loading_text-diagram">No machine in this datacenter</text>
+                {{else}}
                 <text x="100" y="135" class="loading_text-diagram">Loading...</text>
+                {{/if}}
             </svg>
         </div>
 
         <div class="ram_legend panel-right">
             <ul class="legend">
                 <li class="title-legend"><h4>Legend</h4></li>
-                <li class="Used RAM">RAM used</li>
-                <li class="Free RAM">Free RAM</li>
+                <li class="used_ram-legend">RAM used</li>
+                <li class="free_ram-legend">Free RAM</li>
             </ul>
         </div>
     </div>
     {{else}}
-machines
+        <div class="ram_repartition-graph">
+            <svg class="ram_repartition-diagram" width="700" height="350">
+                <text x="300" y="150" class="loading_text-diagram">Loading data...</text>
+            </svg>
+        </div>
+
+        <div class="ram_legend">
+            <ul class="legend legend-inline">
+                <li class="title-legend"><h4>Legend</h4></li>
+                <li class="used_ram-legend used_ram-legend-inline">RAM used</li>
+                <li class="free_ram-legend free_ram-legend-inline">Free RAM</li>
+            </ul>
+        </div>
     {{/if}}
+    <hr />
 </script>
 
+<script id="datacenter-disk_repartition-template" type="text/x-handlebars-template">
+    {{#if few_machines}}
+    <div class="two-panel-section">
+        <div class="disk_repartition-graph panel-left">
+            <svg class="disk_repartition-diagram" width="270" height="270">
+                {{#if no_machine}}
+                <text x="100" y="135" class="loading_text-diagram">No machine in this datacenter</text>
+                {{else}}
+                <text x="100" y="135" class="loading_text-diagram">Loading...</text>
+                {{/if}}
+            </svg>
+        </div>
+
+        <div class="disk_legend panel-right">
+            <ul class="legend">
+                <li class="title-legend"><h4>Legend</h4></li>
+                <li class="used_disk-legend">Disk used</li>
+                <li class="free_disk-legend">Free Disk</li>
+            </ul>
+        </div>
+    </div>
+    {{else}}
+        <div class="disk_repartition-graph">
+            <svg class="disk_repartition-diagram" width="700" height="350">
+                <text x="300" y="150" class="loading_text-diagram">Loading data...</text>
+            </svg>
+        </div>
+
+        <div class="disk_legend">
+            <ul class="legend legend-inline">
+                <li class="title-legend"><h4>Legend</h4></li>
+                <li class="used_disk-legend used_disk-legend-inline">Disk used</li>
+                <li class="free_disk-legend free_disk-legend-inline">Free Disk</li>
+            </ul>
+        </div>
+    {{/if}}
+</script>
 
 <script id="datacenter_view_data-template" type="text/x-handlebars-template">
     <h3 class="title">Data in this datacenter</h3>
