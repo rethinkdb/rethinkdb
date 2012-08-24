@@ -112,8 +112,7 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
             ser,
             num_on_this_serializer,
             k / underlying.size(),
-            CONFIG_BLOCK_ID   /* Reserve block ID 0 */
-            );
+            CONFIG_BLOCK_ID   /* Reserve block ID 0 */);
     }
 
     ser->free(c);

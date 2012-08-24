@@ -491,9 +491,9 @@ module 'DataExplorerView', ->
             ###
 
         clear_query: =>
-            #TODO remove when not testing
             ###
-            welcome = @r.table('Welcome-rdb')
+            #TODO remove when not testing
+            welcome = r.table('Welcome-rdb')
             welcome.insert({
                 id: generate_id(25)
                 name: generate_string(9)+' '+generate_string(9)

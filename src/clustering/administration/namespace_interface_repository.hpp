@@ -6,7 +6,6 @@
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 
-#include "concurrency/cross_thread_watchable.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 
@@ -16,6 +15,9 @@ for a given protocol. Caching `cluster_namespace_interface_t` objects is
 important because every time a new `cluster_namespace_interface_t` is created,
 it must perform a handshake with every `master_t`, which means several network
 round-trips. */
+
+template <class> class watchable_t;
+
 
 template <class protocol_t>
 class namespace_repo_t : public home_thread_mixin_t {

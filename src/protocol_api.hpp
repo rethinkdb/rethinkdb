@@ -224,8 +224,7 @@ region_map_t<protocol_t, new_t> region_map_transform(const region_map_t<protocol
                                                                   it++) {
         new_pairs.push_back(std::pair<typename protocol_t::region_t, new_t>(
                 it->first,
-                callable(it->second)
-                ));
+                callable(it->second)));
     }
     return region_map_t<protocol_t, new_t>(new_pairs.begin(), new_pairs.end());
 }

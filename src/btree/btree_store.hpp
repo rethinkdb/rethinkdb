@@ -149,6 +149,7 @@ private:
 
     void acquire_superblock_for_write(
             access_t access,
+            repli_timestamp_t timestamp,
             int expected_change_count,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             scoped_ptr_t<transaction_t> *txn_out,

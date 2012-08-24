@@ -29,8 +29,7 @@ public:
 
     multi_throttling_business_card_t<request_type, inner_client_business_card_type> get_business_card() {
         return multi_throttling_business_card_t<request_type, inner_client_business_card_type>(
-            registrar.get_business_card()
-            );
+            registrar.get_business_card());
     }
 
 private:
@@ -65,11 +64,8 @@ private:
                 mailbox_callback_mode_inline))
         {
             send(parent->mailbox_manager, client_bc.intro_addr,
-                server_business_card_t(
-                    request_mailbox->get_address(),
-                    relinquish_tickets_mailbox->get_address()
-                    )
-                );
+                 server_business_card_t(request_mailbox->get_address(),
+                                        relinquish_tickets_mailbox->get_address()));
             parent->clients.push_back(this);
             parent->recompute_allocations();
         }
@@ -90,8 +86,7 @@ private:
             coro_t::spawn_sometime(boost::bind(
                 &client_t::give_tickets_blocking, this,
                 tickets,
-                auto_drainer_t::lock_t(drainer.get())
-                ));
+                auto_drainer_t::lock_t(drainer.get())));
         }
 
         void set_target_tickets(int new_target) {
@@ -99,8 +94,7 @@ private:
                 coro_t::spawn_sometime(boost::bind(
                     &client_t::reclaim_tickets_blocking, this,
                     target_tickets - new_target,
-                    auto_drainer_t::lock_t(drainer.get())
-                    ));
+                    auto_drainer_t::lock_t(drainer.get())));
             }
             target_tickets = new_target;
         }
@@ -127,8 +121,7 @@ private:
             coro_t::spawn_sometime(boost::bind(
                 &client_t::perform_request, this,
                 request,
-                auto_drainer_t::lock_t(drainer.get())
-                ));
+                auto_drainer_t::lock_t(drainer.get())));
         }
 
         void perform_request(const request_type &request, auto_drainer_t::lock_t keepalive) {
@@ -208,10 +201,8 @@ private:
         for (client_t *c = clients.head(); c; c = clients.next(c)) {
             /* This math isn't exact, but it's OK if the target tickets of all
             the clients don't add up to `total_tickets`. */
-            c->set_target_tickets(
-                fair_tickets / clients.size() +
-                qps_tickets * c->estimate_qps() / total_qps
-                );
+            c->set_target_tickets(fair_tickets / clients.size() +
+                                  qps_tickets * c->estimate_qps() / total_qps);
         }
         redistribute_tickets();
     }

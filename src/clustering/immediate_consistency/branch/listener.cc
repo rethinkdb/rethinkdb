@@ -148,8 +148,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                svs_->get_multistore_joined_region(),
                                replier->subview(&listener_t<protocol_t>::get_backfiller_from_replier_bcard),
                                backfill_session_id,
-                               interruptor
-                               );
+                               interruptor);
     } catch (resource_lost_exc_t) {
         throw backfiller_lost_exc_t();
     }
@@ -178,12 +177,10 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     current_timestamp_ = backfill_end_timestamp;
     write_queue_coro_pool_callback_.init(
         new typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t(
-            boost::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, backfill_end_timestamp, _2)
-        ));
+            boost::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, backfill_end_timestamp, _2)));
     write_queue_coro_pool_.init(
         new coro_pool_t<write_queue_entry_t>(
-            WRITE_QUEUE_CORO_POOL_SIZE, &write_queue_, write_queue_coro_pool_callback_.get()
-        ));
+            WRITE_QUEUE_CORO_POOL_SIZE, &write_queue_, write_queue_coro_pool_callback_.get()));
     write_queue_semaphore_.set_capacity(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY);
 
     if (write_queue_.size() <= WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY) {
@@ -262,12 +259,10 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     current_timestamp_ = registration_done_cond_.get_value().broadcaster_begin_timestamp;
     write_queue_coro_pool_callback_.init(
         new typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t(
-            boost::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, current_timestamp_, _2)
-        ));
+            boost::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, current_timestamp_, _2)));
     write_queue_coro_pool_.init(
         new coro_pool_t<write_queue_entry_t>(
-            WRITE_QUEUE_CORO_POOL_SIZE, &write_queue_, write_queue_coro_pool_callback_.get()
-        ));
+            WRITE_QUEUE_CORO_POOL_SIZE, &write_queue_, write_queue_coro_pool_callback_.get()));
 }
 
 template <class protocol_t>
@@ -339,8 +334,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
         registrant_.init(new registrant_t<listener_business_card_t<protocol_t> >(
             mailbox_manager_,
             broadcaster->subview(&listener_t<protocol_t>::get_registrar_from_broadcaster_bcard),
-            listener_business_card_t<protocol_t>(intro_mailbox.get_address(), write_mailbox_.get_address())
-            ));
+            listener_business_card_t<protocol_t>(intro_mailbox.get_address(), write_mailbox_.get_address())));
     } catch (resource_lost_exc_t) {
         throw broadcaster_lost_exc_t();
     }
