@@ -125,9 +125,9 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
 
     /* Iterator through the peers the blueprint claims we should be able to
      * see. */
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator p_it =  blueprint.peers_roles.begin();
-                                                                      p_it != blueprint.peers_roles.end();
-                                                                      p_it++) {
+    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator p_it = blueprint.peers_roles.begin();
+         p_it != blueprint.peers_roles.end();
+         ++p_it) {
         //The peer we are currently checking
         peer_id_t peer = p_it->first;
 
@@ -141,9 +141,9 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
         }
 
         std::vector<typename protocol_t::region_t> regions;
-        for (typename rb_t::activity_map_t::const_iterator it =  (*bcard_it->second).internal.activities.begin();
-                                                           it != (*bcard_it->second).internal.activities.end();
-                                                           it++) {
+        for (typename rb_t::activity_map_t::const_iterator it = bcard_it->second->internal.activities.begin();
+             it != bcard_it->second->internal.activities.end();
+             ++it) {
             typename protocol_t::region_t intersection = region_intersection(it->second.first, region);
             if (!region_is_empty(intersection)) {
                 regions.push_back(intersection);
@@ -200,9 +200,7 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
      * then we don't backfill it automatically. The admin must explicit "bless"
      * the incoherent data making it coherent or get rid of all incoherent data
      * until the most up to date data for a region is coherent. */
-    for (typename best_backfiller_map_t::iterator it =  res.begin();
-                                                  it != res.end();
-                                                  it++) {
+    for (typename best_backfiller_map_t::iterator it = res.begin(); it != res.end(); ++it) {
         if (!it->second.version_range.is_coherent()) {
             return false;
         }
@@ -270,8 +268,7 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
      * input/output parameter, after this call returns best_backfillers
      * will describe how to fill the store with the most up-to-date
      * data. */
-    run_until_satisfied_2(
-                          reactor_directory,
+    run_until_satisfied_2(reactor_directory,
                           blueprint,
                           boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, _2, region, &best_backfillers),
                           interruptor);
@@ -285,7 +282,7 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
 
     for (typename best_backfiller_map_t::iterator it =  best_backfillers.begin();
          it != best_backfillers.end();
-         it++) {
+         ++it) {
         if (it->second.present_in_our_store) {
             continue;
         } else {
@@ -319,7 +316,7 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
     bool all_succeeded = true;
     for (typename boost::ptr_vector<promise_t<bool> >::iterator it =  promises.begin();
          it != promises.end();
-         it++) {
+         ++it) {
         //DO NOT switch the order of it->wait() and all_succeeded
         all_succeeded = it->wait() && all_succeeded;
     }
