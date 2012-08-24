@@ -687,7 +687,7 @@ std::string get_primary_key(const std::string &table_name, runtime_environment_t
     const char *status;
     boost::optional<std::pair<namespace_id_t, deletable_t<
         namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_info =
-        metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces,
+        metadata_get_by_name(env->namespaces_semilattice_metadata->get().namespaces,
                              table_name, &status);
 
     if (!ns_info) {
@@ -2182,7 +2182,7 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(
     THROWS_ONLY(runtime_exc_t) {
     boost::optional<std::pair<namespace_id_t, deletable_t<
         namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
-        metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces,
+        metadata_get_by_name(env->namespaces_semilattice_metadata->get().namespaces,
                              t->table_name());
     if (namespace_info) {
         return namespace_repo_t<rdb_protocol_t>::access_t(

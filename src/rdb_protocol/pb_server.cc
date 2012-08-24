@@ -4,6 +4,8 @@
 #include <boost/make_shared.hpp>
 
 #include "rdb_protocol/stream_cache.hpp"
+#include "rpc/semilattice/view/field.hpp"
+#include "concurrency/watchable.hpp"
 
 query_server_t::query_server_t(
     int port,
@@ -71,7 +73,11 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
     {
         query_language::runtime_environment_t runtime_environment(
-            pool_group, ns_repo, semilattice_metadata,
+            pool_group, ns_repo, 
+            clone_ptr_t<watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
+                new semilattice_watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(
+                    metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_metadata))),
+            semilattice_metadata,
             directory_metadata, js_runner, &interruptor, this_machine);
         try {
             //[execute] will set the status code unless it throws

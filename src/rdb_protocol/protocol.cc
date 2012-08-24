@@ -14,6 +14,7 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.hpp"
+#include "rpc/semilattice/view/field.hpp"
 #include "serializer/config.hpp"
 
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
@@ -58,6 +59,27 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_ConcatMap);
 RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
 RDB_IMPL_PROTOB_SERIALIZABLE(Reduction);
 RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
+
+rdb_protocol_t::context_t::context_t()
+    : pool_group(NULL), ns_repo(NULL),
+    cross_thread_sl_watchables(get_num_threads())
+{ }
+
+rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
+          namespace_repo_t<rdb_protocol_t> *_ns_repo,
+          boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+          machine_id_t _machine_id)
+    : pool_group(_pool_group), ns_repo(_ns_repo),
+      cross_thread_sl_watchables(get_num_threads()),
+      semilattice_metadata(_semilattice_metadata), machine_id(_machine_id)
+{
+    for (int thread = 0; thread < get_num_threads(); ++thread) {
+        cross_thread_sl_watchables[thread].init(new cross_thread_watchable_variable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(
+                                                    clone_ptr_t<semilattice_watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >
+                                                        (new semilattice_watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(
+                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _semilattice_metadata))), get_thread_id()));
+    }
+}
 
 // Construct a region containing only the specified key
 region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
@@ -118,7 +140,7 @@ bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
 
 void read_t::unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
-    query_language::runtime_environment_t env(ctx->pool_group, ctx->ns_repo, ctx->semilattice_metadata, js_runner, &ctx->interruptor, ctx->machine_id);
+    query_language::runtime_environment_t env(ctx->pool_group, ctx->ns_repo, ctx->cross_thread_sl_watchables[get_thread_id()].get()->get_watchable(), ctx->semilattice_metadata, js_runner, &ctx->interruptor, ctx->machine_id);
 
     const point_read_t *pr = boost::get<point_read_t>(&read);
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
@@ -236,7 +258,7 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
 
 void read_t::multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
-    query_language::runtime_environment_t env(ctx->pool_group, ctx->ns_repo, ctx->semilattice_metadata, js_runner, &ctx->interruptor, ctx->machine_id);
+    query_language::runtime_environment_t env(ctx->pool_group, ctx->ns_repo, ctx->cross_thread_sl_watchables[get_thread_id()].get()->get_watchable(), ctx->semilattice_metadata, js_runner, &ctx->interruptor, ctx->machine_id);
 
     const point_read_t *pr = boost::get<point_read_t>(&read);
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
@@ -470,8 +492,8 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
     }
 
     read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, rdb_protocol_t::context_t *ctx) :
-        btree(btree_), txn(txn_), superblock(superblock_), 
-        env(ctx->pool_group, ctx->ns_repo, ctx->semilattice_metadata, boost::make_shared<js::runner_t>(), &ctx->interruptor, ctx->machine_id)
+        btree(btree_), txn(txn_), superblock(superblock_),
+        env(ctx->pool_group, ctx->ns_repo, ctx->cross_thread_sl_watchables[get_thread_id()].get()->get_watchable(), ctx->semilattice_metadata, boost::make_shared<js::runner_t>(), &ctx->interruptor, ctx->machine_id)
     { }
 
 private:
