@@ -7,7 +7,7 @@
 #include "arch/arch.hpp"
 
 template <class request_t, class response_t, class context_t>
-protob_server_t<request_t, response_t, context_t>::protob_server_t(int port, int http_port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *), protob_server_callback_mode_t _cb_mode)
+protob_server_t<request_t, response_t, context_t>::protob_server_t(int port, int http_port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *, std::string), protob_server_callback_mode_t _cb_mode)
     : f(_f), on_unparsable_query(_on_unparsable_query), cb_mode(_cb_mode) {
     tcp_listener.init(new tcp_listener_t(port, boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
     http_server.init(new http_server_t(http_port, this));
@@ -22,22 +22,42 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
     scoped_ptr_t<tcp_conn_t> conn;
     nconn->ennervate(&conn);
 
+    try {
+        int32_t client_magic_number;
+        conn->read(&client_magic_number, sizeof(int32_t), keepalive.get_drain_signal());
+        if (client_magic_number != magic_number) {
+            const char *msg = "ERROR: This is the rdb protocol port! (bad magic number)\n";
+            conn->write(msg, strlen(msg), keepalive.get_drain_signal());
+            conn->shutdown_write();
+            return;
+        }
+    } catch (tcp_conn_read_closed_exc_t &) {
+        return;
+    }
+
     //TODO figure out how to do this with less copying
     for (;;) {
         request_t request;
         bool force_response = false;
         response_t forced_response;
+        std::string err;
         try {
             int32_t size;
             conn->read(&size, sizeof(int32_t), keepalive.get_drain_signal());
-
-            scoped_array_t<char> data(size);
-            conn->read(data.data(), size, keepalive.get_drain_signal());
-
-            bool res = request.ParseFromArray(data.data(), size);
-            if (!res) {
-                forced_response = (*on_unparsable_query)(&request);
+            if (size < 0) {
+                err = strprintf("Negative protobuf size (%d).", size);
+                forced_response = on_unparsable_query(0, err);
                 force_response = true;
+            } else {
+                scoped_array_t<char> data(size);
+                conn->read(data.data(), size, keepalive.get_drain_signal());
+
+                bool res = request.ParseFromArray(data.data(), size);
+                if (!res) {
+                    err = "Client is buggy (failed to deserialize protobuf).";
+                    forced_response = on_unparsable_query(&request, err);
+                    force_response = true;
+                }
             }
         } catch (tcp_conn_read_closed_exc_t &) {
             //TODO need to figure out what blocks us up here in non inline cb
@@ -100,7 +120,8 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         if (!parseFailed) {
             response = f(&request, &ctx);
         } else {
-            response = on_unparsable_query(&request);
+            std::string err = "Client is buggy (failed to deserialize protobuf).";
+            response = on_unparsable_query(&request, err);
         }
         break;
     case CORO_ORDERED:
