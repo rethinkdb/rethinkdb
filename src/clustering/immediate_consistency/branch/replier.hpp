@@ -37,15 +37,15 @@ public:
 private:
     void on_synchronize(state_timestamp_t timestamp, mailbox_addr_t<void()> ack_mbox, auto_drainer_t::lock_t keepalive);
 
-    mailbox_manager_t *mailbox_manager;
+    mailbox_manager_t *mailbox_manager_;
 
-    listener_t<protocol_t> *listener;
+    listener_t<protocol_t> *listener_;
 
-    auto_drainer_t drainer;
+    auto_drainer_t drainer_;
 
-    typename replier_business_card_t<protocol_t>::synchronize_mailbox_t synchronize_mailbox;
+    typename replier_business_card_t<protocol_t>::synchronize_mailbox_t synchronize_mailbox_;
 
-    backfiller_t<protocol_t> backfiller;
+    backfiller_t<protocol_t> backfiller_;
 
     DISABLE_COPYING(replier_t);
 };
