@@ -53,8 +53,7 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
         bool skip = length >= 16 && (
                     memcmp(buf, bd_sample, 16) == 0 ||
                     memcmp(buf, zero_sample, 16) == 0 ||
-                    memcmp(buf, ff_sample, 16) == 0
-                    );
+                    memcmp(buf, ff_sample, 16) == 0);
         if (skip) {
             if (!skipped_last) fprintf(stderr, "*\n");
         } else {

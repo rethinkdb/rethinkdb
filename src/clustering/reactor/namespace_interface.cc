@@ -371,18 +371,12 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
         scoped_ptr_t<master_access_t<protocol_t> > master_access;
         scoped_ptr_t<resource_access_t<direct_reader_business_card_t<protocol_t> > > direct_reader_access;
         if (is_primary) {
-            master_access.init(new master_access_t<protocol_t>(
-                                                               mailbox_manager,
+            master_access.init(new master_access_t<protocol_t>(mailbox_manager,
                                                                directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_master_business_card, _1, peer_id, activity_id)),
-                                                               lock.get_drain_signal()
-                                                               ));
-            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(
-                                                                                                        directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary, _1, peer_id, activity_id))
-                                                                                                        ));
+                                                               lock.get_drain_signal()));
+            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary, _1, peer_id, activity_id))));
         } else {
-            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(
-                                                                                                        directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary_up_to_date, _1, peer_id, activity_id))
-                                                                                                        ));
+            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary_up_to_date, _1, peer_id, activity_id))));
         }
 
         relationship_t relationship_record;
@@ -391,8 +385,7 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
         relationship_record.master_access = master_access.has() ? master_access.get() : NULL;
         relationship_record.direct_reader_access = direct_reader_access.has() ? direct_reader_access.get() : NULL;
 
-        region_map_set_membership_t<protocol_t, relationship_t *> relationship_map_insertion(
-                                                                                             &relationships,
+        region_map_set_membership_t<protocol_t, relationship_t *> relationship_map_insertion(&relationships,
                                                                                              region,
                                                                                              &relationship_record);
 

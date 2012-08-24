@@ -167,8 +167,7 @@ private:
             reactor_directory_subscription.init(
                 new typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t(
                     boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
-                    reactor->get_reactor_directory(), &reactor_directory_freeze
-                ));
+                    reactor->get_reactor_directory(), &reactor_directory_freeze));
             mutex_assertion_t::acq_t acq(&parent->watchable_variable_lock);
             namespaces_directory_metadata_t<protocol_t> directory = parent->watchable_variable.get_watchable()->get();
             rassert(directory.reactor_bcards.count(namespace_id) == 0);
@@ -263,8 +262,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                 auto_drainer_t::lock_t(&drainer),
                 new typename
                     reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))),
-                it->first
-            ));
+                it->first));
         } else {
             persistable_blueprint_t<protocol_t> pbp;
 

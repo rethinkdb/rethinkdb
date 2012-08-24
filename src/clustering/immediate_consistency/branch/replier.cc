@@ -40,8 +40,7 @@ replier_t<protocol_t>::~replier_t() {
         send(mailbox_manager_,
              listener_->registration_done_cond_value().downgrade_mailbox,
              /* We don't want a confirmation */
-             mailbox_addr_t<void()>()
-             );
+             mailbox_addr_t<void()>());
     }
 }
 

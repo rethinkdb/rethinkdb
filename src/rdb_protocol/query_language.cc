@@ -106,8 +106,7 @@ term_info_t get_term_type(const Term &t, type_checking_environment_t *env, const
                     get_term_type(
                         t.let().binds(i).term(),
                         env,
-                        backtrace.with(strprintf("bind:%s", t.let().binds(i).var().c_str()))
-                    ));
+                        backtrace.with(strprintf("bind:%s", t.let().binds(i).var().c_str()))));
             }
             term_info_t res = get_term_type(t.let().expr(), env, backtrace.with("expr"));
             return res;

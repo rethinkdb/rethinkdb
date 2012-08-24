@@ -135,8 +135,9 @@ public:
         region_t get_region() const THROWS_NOTHING;
         backfill_chunk_t shard(const region_t &r) const THROWS_NOTHING;
 
-
-
+        /* This is called by `btree_store_t`; it's not part of the ICL protocol
+        API. */
+        repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
 
         boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val;
 

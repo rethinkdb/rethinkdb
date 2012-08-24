@@ -69,8 +69,7 @@ void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, boost::function
             _1,
             dest.thread,
             dest.mailbox_id,
-            writer
-            ));
+            writer));
 }
 
 mailbox_manager_t::mailbox_manager_t(message_service_t *ms) :

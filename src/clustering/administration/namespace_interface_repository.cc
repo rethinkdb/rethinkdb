@@ -59,8 +59,7 @@ namespace_repo_t<protocol_t>::access_t::access_t(namespace_repo_t *parent, names
             coro_t::spawn_sometime(boost::bind(
                 &namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface, parent,
                 cache, namespace_id,
-                auto_drainer_t::lock_t(&cache->drainer)
-                ));
+                auto_drainer_t::lock_t(&cache->drainer)));
         } else {
             cache_entry = &cache->entries[namespace_id];
             ref_handler.init(cache_entry);
@@ -158,8 +157,7 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
     cluster_namespace_interface_t<protocol_t> namespace_interface(
         mailbox_manager,
         cross_thread_watchable.get_watchable(),
-        ctx
-        );
+        ctx);
 
     try {
         wait_interruptible(namespace_interface.get_initial_ready_signal(),

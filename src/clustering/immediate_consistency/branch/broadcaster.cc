@@ -477,8 +477,7 @@ void broadcaster_t<protocol_t>::spawn_write(typename protocol_t::write_t write, 
         to every dispatchee. */
         fifo_enforcer_write_token_t fifo_enforcer_token = it->first->fifo_source.enter_write();
         it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
-            it->first, it->second, write_ref, order_token, fifo_enforcer_token
-            ));
+            it->first, it->second, write_ref, order_token, fifo_enforcer_token));
     }
 }
 

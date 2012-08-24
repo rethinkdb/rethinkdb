@@ -24,8 +24,7 @@ void directory_write_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NO
         &directory_write_manager_t::send_initialization, this,
         peer,
         value_watchable->get(), metadata_fifo_source.get_state(),
-        auto_drainer_t::lock_t(&drainer)
-        ));
+        auto_drainer_t::lock_t(&drainer)));
 }
 
 template<class metadata_t>
@@ -42,23 +41,20 @@ void directory_write_manager_t<metadata_t>::on_change() THROWS_NOTHING {
             &directory_write_manager_t::send_update, this,
             *it,
             value_watchable->get(), metadata_fifo_token,
-            auto_drainer_t::lock_t(&drainer)
-            ));
+            auto_drainer_t::lock_t(&drainer)));
     }
 }
 
 template<class metadata_t>
 void directory_write_manager_t<metadata_t>::send_initialization(peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t) THROWS_NOTHING {
     message_service->send_message(peer,
-        boost::bind(&directory_write_manager_t::write_initialization, _1, initial_value, metadata_fifo_state)
-        );
+        boost::bind(&directory_write_manager_t::write_initialization, _1, initial_value, metadata_fifo_state));
 }
 
 template<class metadata_t>
 void directory_write_manager_t<metadata_t>::send_update(peer_id_t peer, const metadata_t &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t) THROWS_NOTHING {
     message_service->send_message(peer,
-        boost::bind(&directory_write_manager_t::write_update, _1, new_value, metadata_fifo_token)
-        );
+        boost::bind(&directory_write_manager_t::write_update, _1, new_value, metadata_fifo_token));
 }
 
 template<class metadata_t>

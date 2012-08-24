@@ -85,11 +85,9 @@ public:
 a coroutine; it does not block. If the mailbox does not exist or the peer is
 inaccessible, `send()` will silently fail. */
 
-void send(
-    mailbox_manager_t *src,
-    raw_mailbox_t::address_t dest,
-    boost::function<void(write_stream_t *)> message
-    );
+void send(mailbox_manager_t *src,
+          raw_mailbox_t::address_t dest,
+          boost::function<void(write_stream_t *)> message);
 
 /* `mailbox_manager_t` uses a `message_service_t` to provide mailbox capability.
 Usually you will split a `message_service_t` into several sub-services using
