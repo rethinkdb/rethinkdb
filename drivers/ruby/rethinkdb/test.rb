@@ -31,6 +31,13 @@ class ClientTest < Test::Unit::TestCase
   @@c = RethinkDB::Connection.new('localhost', $port_base + 12346)
   def c; @@c; end
 
+  def test_numops
+    assert_raise(RuntimeError){r.div(1,0).run}
+    assert_raise(RuntimeError){r.div(0,0).run}
+    assert_raise(RuntimeError){r.mul(1e200,1e300).run}
+    assert_equal(r.mul(1e100,1e100).run, 1e200)
+  end
+
   def test_cmp #from python tests
     assert_equal(r.eq(3, 3).run, true)
     assert_equal(r.eq(3, 4).run, false)

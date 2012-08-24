@@ -129,10 +129,10 @@ static char *print_number(cJSON *item)
 	}
 	else
 	{
-		str=(char*)cJSON_malloc(64);	/* This is a nice tradeoff. */
+		str=(char*)cJSON_malloc(512);	/* This is a correct tradeoff. */
 		if (str)
 		{
-			if (fabs(floor(d)-d)<=DBL_EPSILON)			sprintf(str,"%.0f",d); // NOLINT(runtime/printf)
+                    if (fabs(floor(d)-d)<=DBL_EPSILON) sprintf(str,"%.0f",d); // NOLINT(runtime/printf)
 			else if (fabs(d)<1.0e-6 || fabs(d)>1.0e9)	sprintf(str,"%e",d);   // NOLINT(runtime/printf)
 			else										sprintf(str,"%f",d);   // NOLINT(runtime/printf)
 		}
