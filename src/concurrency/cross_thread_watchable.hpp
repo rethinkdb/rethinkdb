@@ -87,4 +87,4 @@ private:
 
 #include "concurrency/cross_thread_watchable.tcc"
 
-#endif 
+#endif  // CONCURRENCY_CROSS_THREAD_WATCHABLE_HPP_

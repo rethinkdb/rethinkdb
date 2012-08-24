@@ -63,8 +63,7 @@ void master_access_t<protocol_t>::read(
         read,
         otok,
         token_for_master,
-        result_or_failure_mailbox.get_address()
-        );
+        result_or_failure_mailbox.get_address());
 
     multi_throttling_client.spawn_request(read_request, &ticket, interruptor);
 
@@ -118,8 +117,7 @@ void master_access_t<protocol_t>::write(
         write,
         otok,
         token_for_master,
-        result_or_failure_mailbox.get_address()
-        );
+        result_or_failure_mailbox.get_address());
 
     multi_throttling_client.spawn_request(write_request, &ticket, interruptor);
 

@@ -433,6 +433,24 @@ backfill_chunk_t backfill_chunk_t::shard(const region_t &region) const THROWS_NO
     return boost::apply_visitor(v, val);
 }
 
+struct backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
+public:
+    repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) {
+        return del.recency;
+    }
+    repli_timestamp_t operator()(const backfill_chunk_t::delete_range_t &) {
+        return repli_timestamp_t::invalid;
+    }
+    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
+        return kv.backfill_atom.recency;
+    }
+};
+
+repli_timestamp_t backfill_chunk_t::get_btree_repli_timestamp() const THROWS_NOTHING {
+    backfill_chunk_get_btree_repli_timestamp_visitor_t v;
+    return boost::apply_visitor(v, val);
+}
+
 region_t memcached_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
     rassert(subregion_number >= 0);
     rassert(subregion_number < num_cpu_shards);

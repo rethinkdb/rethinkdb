@@ -563,6 +563,25 @@ region_t backfill_chunk_t::get_region() const {
     return boost::apply_visitor(v, val);
 }
 
+struct backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
+    repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) {
+        return del.recency;
+    }
+
+    repli_timestamp_t operator()(const backfill_chunk_t::delete_range_t &) {
+        return repli_timestamp_t::invalid;
+    }
+
+    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
+        return kv.backfill_atom.recency;
+    }
+};
+
+repli_timestamp_t backfill_chunk_t::get_btree_repli_timestamp() const THROWS_NOTHING {
+    backfill_chunk_get_btree_repli_timestamp_visitor_t v;
+    return boost::apply_visitor(v, val);
+}
+
 struct rdb_backfill_callback_impl_t : public rdb_backfill_callback_t {
 public:
     typedef backfill_chunk_t chunk_t;

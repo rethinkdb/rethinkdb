@@ -1,5 +1,5 @@
-#ifndef CLUSTERING_ADMINISTRATION_MAIN_PORTS
-#define CLUSTERING_ADMINISTRATION_MAIN_PORTS
+#ifndef CLUSTERING_ADMINISTRATION_MAIN_PORTS_HPP_
+#define CLUSTERING_ADMINISTRATION_MAIN_PORTS_HPP_
 
 /* We currently spin up clusters with port offsets differing by 1, so
    these ports should be reasonably far apart. */
@@ -24,4 +24,4 @@ namespace port_offsets {
 const int http = 1000;
 }
 
-#endif //CLUSTERING_ADMINISTRATION_MAIN_PORTS
+#endif  // CLUSTERING_ADMINISTRATION_MAIN_PORTS_HPP_

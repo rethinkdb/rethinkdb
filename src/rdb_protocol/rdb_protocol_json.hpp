@@ -1,5 +1,5 @@
-#ifndef RDB_PROTOCOL_JSON_HPP_
-#define RDB_PROTOCOL_JSON_HPP_
+#ifndef RDB_PROTOCOL_RDB_PROTOCOL_JSON_HPP_
+#define RDB_PROTOCOL_RDB_PROTOCOL_JSON_HPP_
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -38,4 +38,4 @@ void require_type(const cJSON *, int type, const backtrace_t &);
 
 } //namespace query_language
 
-#endif /* RDB_PROTOCOL_JSON_HPP_ */
+#endif /* RDB_PROTOCOL_RDB_PROTOCOL_JSON_HPP_ */

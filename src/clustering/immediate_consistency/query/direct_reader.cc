@@ -23,8 +23,7 @@ void direct_reader_t<protocol_t>::on_read(
     coro_t::spawn_sometime(boost::bind(
         &direct_reader_t<protocol_t>::perform_read, this,
         read, cont,
-        auto_drainer_t::lock_t(&drainer)
-        ));
+        auto_drainer_t::lock_t(&drainer)));
 }
 
 template <class protocol_t>

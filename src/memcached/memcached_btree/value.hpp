@@ -1,5 +1,5 @@
-#ifndef MEMCACHED_BTREE_VALUE_HPP_
-#define MEMCACHED_BTREE_VALUE_HPP_
+#ifndef MEMCACHED_MEMCACHED_BTREE_VALUE_HPP_
+#define MEMCACHED_MEMCACHED_BTREE_VALUE_HPP_
 
 #include "errors.hpp"
 #include "buffer_cache/blob.hpp"
@@ -10,12 +10,7 @@
 enum metadata_flags_enum_t {
     MEMCACHED_FLAGS   = 0x01,
     MEMCACHED_CAS     = 0x02,
-    MEMCACHED_EXPTIME = 0x04,
-
-    // The memcached delete queue feature (delayed deletion) is
-    // currently not implemented.
-    // DELETE_QUEUE   = 0x08,
-
+    MEMCACHED_EXPTIME = 0x04
 };
 
 typedef uint32_t mcflags_t;
@@ -103,4 +98,4 @@ public:
 
 bool btree_value_fits(block_size_t bs, int data_length, const memcached_value_t *value);
 
-#endif  // MEMCACHED_BTREE_VALUE_HPP_
+#endif  // MEMCACHED_MEMCACHED_BTREE_VALUE_HPP_

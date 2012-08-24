@@ -73,10 +73,7 @@ public:
         return store->write(
             DEBUG_ONLY(metainfo_checker, )
             region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
-            write, response, transition_timestamp,
-            order_token,
-            &write_token, &non_interruptor
-            );
+            write, response, transition_timestamp, order_token, &write_token, &non_interruptor);
     }
 
     order_source_t bs_outdated_read_source;

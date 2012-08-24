@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <utility>
 
 // TODO: Probably some of these headers could be moved to the .cc.
 #include "clustering/administration/datacenter_metadata.hpp"
