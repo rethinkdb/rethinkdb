@@ -64,9 +64,9 @@ private:
 
     class current_role_t {
     public:
-        current_role_t(blueprint_details::role_t r, const blueprint_t<protocol_t> &b) :
+        current_role_t(blueprint_role_t r, const blueprint_t<protocol_t> &b) :
             role(r), blueprint(b) { }
-        blueprint_details::role_t role;
+        blueprint_role_t role;
         watchable_variable_t<blueprint_t<protocol_t> > blueprint;
         cond_t abort;
     };

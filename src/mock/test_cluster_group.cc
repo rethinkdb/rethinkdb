@@ -62,16 +62,16 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
                                                                                               kt != bcard.activities.end();
                                                                                               kt++) {
                 if (jt->first == kt->second.first) {
-                    if (jt->second == blueprint_details::role_primary &&
+                    if (jt->second == blueprint_role_primary &&
                             boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(&kt->second.second) &&
                             boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(kt->second.second).replier.is_initialized()) {
                         found = true;
                         break;
-                    } else if (jt->second == blueprint_details::role_secondary &&
+                    } else if (jt->second == blueprint_role_secondary &&
                             boost::get<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t>(&kt->second.second)) {
                         found = true;
                         break;
-                    } else if (jt->second == blueprint_details::role_nothing &&
+                    } else if (jt->second == blueprint_role_nothing &&
                             boost::get<typename reactor_business_card_t<protocol_t>::nothing_t>(&kt->second.second)) {
                         found = true;
                         break;
@@ -259,13 +259,13 @@ blueprint_t<protocol_t> test_cluster_group_t<protocol_t>::compile_blueprint(cons
 
             switch (it->at(i)) {
             case 'p':
-                blueprint.add_role(get_peer_id(peer), region, blueprint_details::role_primary);
+                blueprint.add_role(get_peer_id(peer), region, blueprint_role_primary);
                 break;
             case 's':
-                blueprint.add_role(get_peer_id(peer), region, blueprint_details::role_secondary);
+                blueprint.add_role(get_peer_id(peer), region, blueprint_role_secondary);
                 break;
             case 'n':
-                blueprint.add_role(get_peer_id(peer), region, blueprint_details::role_nothing);
+                blueprint.add_role(get_peer_id(peer), region, blueprint_role_nothing);
                 break;
             default:
                 crash("Bad blueprint string\n");

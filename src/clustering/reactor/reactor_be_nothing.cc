@@ -34,11 +34,11 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_
                                                            it != (*bcard_it->second).internal.activities.end();
                                                            it++) {
             if (it->second.first == region) {
-                if (r_it->second == blueprint_details::role_primary) {
+                if (r_it->second == blueprint_role_primary) {
                     if (!boost::get<typename rb_t::primary_t>(&it->second.second)) {
                         return false;
                     }
-                } else if (r_it->second == blueprint_details::role_secondary) {
+                } else if (r_it->second == blueprint_role_secondary) {
                     if (!boost::get<typename rb_t::secondary_up_to_date_t>(&it->second.second)) {
                         return false;
                     }

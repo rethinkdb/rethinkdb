@@ -11,16 +11,10 @@
 #include "stl_utils.hpp"
 #include "http/json/json_adapter.hpp"
 
-namespace blueprint_details {
-enum role_t {
-    role_primary,
-    role_secondary,
-    role_nothing
-};
+enum blueprint_role_t { blueprint_role_primary, blueprint_role_secondary, blueprint_role_nothing };
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(blueprint_role_t, int8_t, blueprint_role_primary, blueprint_role_nothing);
 
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(role_t, int8_t, role_primary, role_nothing);
-
-} //namespace blueprint_details
+// TODO: Explain what the fuck a blueprint_t is here please.
 
 template<class protocol_t>
 class blueprint_t {
@@ -29,7 +23,7 @@ public:
     //can get better data structure integrity. It might get a bit tricky
     //though.
 
-    typedef std::map<typename protocol_t::region_t, blueprint_details::role_t> region_to_role_map_t;
+    typedef std::map<typename protocol_t::region_t, blueprint_role_t> region_to_role_map_t;
     typedef std::map<peer_id_t, region_to_role_map_t> role_map_t;
 
     void assert_valid() const THROWS_NOTHING {
@@ -55,7 +49,7 @@ public:
         peers_roles[id] = region_to_role_map_t();
     }
 
-    void add_role(const peer_id_t &id, const typename protocol_t::region_t &region, blueprint_details::role_t role) {
+    void add_role(const peer_id_t &id, const typename protocol_t::region_t &region, blueprint_role_t role) {
         rassert(peers_roles.find(id) != peers_roles.end());
 
         peers_roles[id].insert(std::make_pair(region, role));

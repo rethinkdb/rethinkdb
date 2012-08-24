@@ -90,11 +90,11 @@ void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
     blueprint.assert_valid();
     rassert(std_contains(blueprint.peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
 
-    std::map<typename protocol_t::region_t, typename blueprint_details::role_t> blueprint_roles =
+    std::map<typename protocol_t::region_t, blueprint_role_t> blueprint_roles =
         blueprint.peers_roles.find(get_me())->second;
     for (typename std::map<typename protocol_t::region_t, current_role_t *>::iterator it = current_roles.begin();
             it != current_roles.end(); it++) {
-        typename std::map<typename protocol_t::region_t, blueprint_details::role_t>::iterator it2 =
+        typename std::map<typename protocol_t::region_t, blueprint_role_t>::iterator it2 =
             blueprint_roles.find((*it).first);
         if (it2 == blueprint_roles.end()) {
             /* The shard boundaries have changed, and the shard that the running
@@ -118,9 +118,9 @@ void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
     blueprint_t<protocol_t> blueprint = blueprint_watchable->get();
     rassert(std_contains(blueprint.peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
 
-    std::map<typename protocol_t::region_t, typename blueprint_details::role_t> blueprint_roles =
+    std::map<typename protocol_t::region_t, blueprint_role_t> blueprint_roles =
         (*blueprint.peers_roles.find(get_me())).second;
-    typename std::map<typename protocol_t::region_t, blueprint_details::role_t>::iterator it;
+    typename std::map<typename protocol_t::region_t, blueprint_role_t>::iterator it;
     for (it = blueprint_roles.begin(); it != blueprint_roles.end(); it++) {
         bool none_overlap = true;
         for (typename std::map<typename protocol_t::region_t, current_role_t *>::iterator it2 = current_roles.begin();
@@ -156,13 +156,13 @@ void reactor_t<protocol_t>::run_role(
         wait_any_t wait_any(&role->abort, keepalive.get_drain_signal());
 
         switch (role->role) {
-            case blueprint_details::role_primary:
+            case blueprint_role_primary:
                 be_primary(region, &svs_subview, role->blueprint.get_watchable(), &wait_any);
                 break;
-            case blueprint_details::role_secondary:
+            case blueprint_role_secondary:
                 be_secondary(region, &svs_subview, role->blueprint.get_watchable(), &wait_any);
                 break;
-            case blueprint_details::role_nothing:
+            case blueprint_role_nothing:
                 be_nothing(region, &svs_subview, role->blueprint.get_watchable(), &wait_any);
                 break;
             default:
@@ -211,7 +211,7 @@ void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t ver
             bp = blueprint_watchable->get();
             subscription.reset(blueprint_watchable, &freeze);
         }
-        typename std::map<peer_id_t, std::map<typename protocol_t::region_t, typename blueprint_details::role_t> >::iterator it = bp.peers_roles.begin();
+        typename std::map<peer_id_t, std::map<typename protocol_t::region_t, blueprint_role_t> >::iterator it = bp.peers_roles.begin();
         for (it = bp.peers_roles.begin(); it != bp.peers_roles.end(); it++) {
             typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::ack_waiter_t ack_waiter(&directory_echo_writer, it->first, version_to_wait_on);
             wait_any_t waiter(&ack_waiter, &blueprint_changed);

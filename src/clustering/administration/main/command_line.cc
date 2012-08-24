@@ -201,8 +201,8 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
                 persistable_blueprint_t<memcached_protocol_t> blueprint;
                 {
-                    std::map<hash_region_t<key_range_t>, blueprint_details::role_t> roles;
-                    roles.insert(std::make_pair(hash_region_t<key_range_t>::universe(), blueprint_details::role_primary));
+                    std::map<hash_region_t<key_range_t>, blueprint_role_t> roles;
+                    roles.insert(std::make_pair(hash_region_t<key_range_t>::universe(), blueprint_role_primary));
                     blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
                 }
                 namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<memcached_protocol_t> >(blueprint, our_machine_id);
@@ -240,8 +240,8 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                     new_namespace<rdb_protocol_t>(our_machine_id, database_id, datacenter_id, "Welcome-rdb", "id", port_constants::namespace_port);
 
                 persistable_blueprint_t<rdb_protocol_t> blueprint;
-                std::map<rdb_protocol_t::region_t, blueprint_details::role_t> roles;
-                roles.insert(std::make_pair(rdb_protocol_t::region_t::universe(), blueprint_details::role_primary));
+                std::map<rdb_protocol_t::region_t, blueprint_role_t> roles;
+                roles.insert(std::make_pair(rdb_protocol_t::region_t::universe(), blueprint_role_primary));
                 blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
                 namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<rdb_protocol_t> >(blueprint, our_machine_id);
 

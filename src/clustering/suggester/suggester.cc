@@ -140,7 +140,7 @@ std::vector<machine_id_t> pick_n_best(priority_queue_t<priority_t> *candidates, 
 }
 
 template<class protocol_t>
-std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for_shard(
+std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         const std::map<machine_id_t, reactor_business_card_t<protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
@@ -151,7 +151,7 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
         std::map<machine_id_t, int> *primary_usage,
         std::map<machine_id_t, int> *secondary_usage) {
 
-    std::map<machine_id_t, typename blueprint_details::role_t> sub_blueprint;
+    std::map<machine_id_t, blueprint_role_t> sub_blueprint;
 
     priority_queue_t<priority_t> primary_candidates;
     for (std::map<machine_id_t, datacenter_id_t>::const_iterator it = machine_data_centers.begin();
@@ -174,7 +174,7 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
         }
     }
     machine_id_t primary = pick_n_best(&primary_candidates, 1, primary_datacenter).front();
-    sub_blueprint[primary] = blueprint_details::role_primary;
+    sub_blueprint[primary] = blueprint_role_primary;
 
     //Update primary_usage
     get_with_default(*primary_usage, primary, 0)++;
@@ -204,7 +204,7 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
         for (std::vector<machine_id_t>::iterator jt = secondaries.begin(); jt != secondaries.end(); jt++) {
             //Update secondary usage
             get_with_default(*secondary_usage, *jt, 0)++;
-            sub_blueprint[*jt] = blueprint_details::role_secondary;
+            sub_blueprint[*jt] = blueprint_role_secondary;
         }
     }
 
@@ -212,7 +212,7 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
             it != machine_data_centers.end(); it++) {
         /* This will set the value to `role_nothing` iff the peer is not already
         in the blueprint. */
-        sub_blueprint.insert(std::make_pair(it->first, blueprint_details::role_nothing));
+        sub_blueprint.insert(std::make_pair(it->first, blueprint_role_nothing));
     }
 
     return sub_blueprint;
@@ -255,12 +255,12 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
             machines_shard_secondary_is_pinned_to.insert(pit->second.begin(), pit->second.end());
         }
 
-        std::map<machine_id_t, typename blueprint_details::role_t> shard_blueprint =
+        std::map<machine_id_t, blueprint_role_t> shard_blueprint =
             suggest_blueprint_for_shard(directory, primary_datacenter, datacenter_affinities, *it,
                                         machine_data_centers, machines_shard_primary_is_pinned_to,
                                         machines_shard_secondary_is_pinned_to, &primary_usage,
                                         &secondary_usage);
-        for (typename std::map<machine_id_t, typename blueprint_details::role_t>::iterator jt = shard_blueprint.begin();
+        for (typename std::map<machine_id_t, blueprint_role_t>::iterator jt = shard_blueprint.begin();
                 jt != shard_blueprint.end(); jt++) {
             blueprint.machines_roles[jt->first][*it] = jt->second;
         }
