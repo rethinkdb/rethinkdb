@@ -22,7 +22,6 @@ boost::shared_ptr<scoped_cJSON_t> shared_scoped_json(cJSON *json) {
 
 void check_protobuf(bool cond) {
     if (!cond) {
-        BREAKPOINT;
         throw broken_client_exc_t("bad protocol buffer; client is buggy");
     }
 }
