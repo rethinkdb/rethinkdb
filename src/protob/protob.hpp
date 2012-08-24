@@ -32,6 +32,8 @@ private:
     auto_drainer_t auto_drainer;
     scoped_ptr_t<tcp_listener_t> tcp_listener;
     scoped_ptr_t<http_server_t> http_server;
+    std::map<int32_t, context_t> http_conns;
+    int32_t next_http_conn_id;
     boost::function<response_t(request_t *, context_t *)> f;
     response_t (*on_unparsable_query)(request_t *);
     protob_server_callback_mode_t cb_mode;
