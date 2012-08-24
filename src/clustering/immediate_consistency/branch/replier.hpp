@@ -37,6 +37,8 @@ public:
 private:
     void on_synchronize(state_timestamp_t timestamp, mailbox_addr_t<void()> ack_mbox, auto_drainer_t::lock_t keepalive);
 
+    mailbox_manager_t *mailbox_manager;
+
     listener_t<protocol_t> *listener;
 
     auto_drainer_t drainer;

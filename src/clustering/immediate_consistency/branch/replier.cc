@@ -4,10 +4,13 @@
 #include "rpc/semilattice/view.hpp"
 
 template <class protocol_t>
-replier_t<protocol_t>::replier_t(listener_t<protocol_t> *li, mailbox_manager_t *mm, branch_history_manager_t<protocol_t> *branch_history_manager) :
+replier_t<protocol_t>::replier_t(listener_t<protocol_t> *li,
+                                 mailbox_manager_t *_mailbox_manager,
+                                 branch_history_manager_t<protocol_t> *branch_history_manager) :
+    mailbox_manager(_mailbox_manager),
     listener(li),
 
-    synchronize_mailbox(listener->mailbox_manager(),
+    synchronize_mailbox(mailbox_manager,
                         boost::bind(&replier_t<protocol_t>::on_synchronize,
                                     this,
                                     _1,
@@ -15,7 +18,7 @@ replier_t<protocol_t>::replier_t(listener_t<protocol_t> *li, mailbox_manager_t *
                                     auto_drainer_t::lock_t(&drainer))),
 
     /* Start serving backfills */
-    backfiller(mm,
+    backfiller(mailbox_manager,
                branch_history_manager,
                listener->svs()) {
     rassert(listener->svs()->get_multistore_joined_region() ==
@@ -25,7 +28,7 @@ replier_t<protocol_t>::replier_t(listener_t<protocol_t> *li, mailbox_manager_t *
             "branch.");
 
     /* Notify the broadcaster that we can reply to queries */
-    send(listener->mailbox_manager(),
+    send(mailbox_manager,
          listener->registration_done_cond_value().upgrade_mailbox,
          listener->writeread_address(),
          listener->read_address());
@@ -34,7 +37,7 @@ replier_t<protocol_t>::replier_t(listener_t<protocol_t> *li, mailbox_manager_t *
 template <class protocol_t>
 replier_t<protocol_t>::~replier_t() {
     if (listener->get_broadcaster_lost_signal()->is_pulsed()) {
-        send(listener->mailbox_manager(),
+        send(mailbox_manager,
              listener->registration_done_cond_value().downgrade_mailbox,
              /* We don't want a confirmation */
              mailbox_addr_t<void()>()
@@ -51,7 +54,7 @@ template <class protocol_t>
 void replier_t<protocol_t>::on_synchronize(state_timestamp_t timestamp, mailbox_addr_t<void()> ack_mbox, auto_drainer_t::lock_t keepalive) {
     try {
         listener->wait_for_version(timestamp, keepalive.get_drain_signal());
-        send(listener->mailbox_manager(), ack_mbox);
+        send(mailbox_manager, ack_mbox);
     } catch (interrupted_exc_t) {
     }
 }
