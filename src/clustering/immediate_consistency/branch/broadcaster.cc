@@ -261,8 +261,7 @@ private:
     }
 
     /* `upgrade()` and `downgrade()` are mailbox callbacks. */
-    void upgrade(
-                 typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t wrm,
+    void upgrade(typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t wrm,
                  typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t rm,
                  auto_drainer_t::lock_t)
             THROWS_NOTHING {
