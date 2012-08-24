@@ -252,10 +252,9 @@ private:
                     auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING {
         keepalive.assert_is_holding(&drainer);
-        const int32_t cpu_sharding_factor = 1;
 
         send(controller->mailbox_manager, to_send_intro_to.intro_mailbox,
-             listener_intro_t<protocol_t>(cpu_sharding_factor, intro_timestamp,
+             listener_intro_t<protocol_t>(intro_timestamp,
                                           upgrade_mailbox.get_address(),
                                           downgrade_mailbox.get_address()));
     }
@@ -341,7 +340,7 @@ void listener_write(
         mailbox_callback_mode_inline);
 
     send(mailbox_manager, write_mailbox,
-         w, cpu_sharding_subspace_t::fake(), ts, order_token, token, ack_mailbox.get_address());
+         w, ts, order_token, token, ack_mailbox.get_address());
 
     wait_interruptible(&ack_cond, interruptor);
 }
@@ -368,7 +367,7 @@ void listener_writeread(
         mailbox_callback_mode_inline);
 
     send(mailbox_manager, writeread_mailbox,
-         w, cpu_sharding_subspace_t::fake(), ts, order_token, token, resp_mailbox.get_address());
+         w, ts, order_token, token, resp_mailbox.get_address());
 
     wait_interruptible(&resp_cond, interruptor);
 }
@@ -389,7 +388,7 @@ void listener_read(
         mailbox_callback_mode_inline);
 
     send(mailbox_manager, read_mailbox,
-         r, cpu_sharding_subspace_t::fake(), ts, order_token, token, resp_mailbox.get_address());
+         r, ts, order_token, token, resp_mailbox.get_address());
 
     wait_interruptible(&resp_cond, interruptor);
 }

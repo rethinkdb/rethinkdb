@@ -71,13 +71,13 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5, _6),
+        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6),
+        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline),
     read_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5, _6),
+        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline)
 {
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
@@ -121,8 +121,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     /* Attempt to register for reads and writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
     guarantee(registration_done_cond_.get_ready_signal()->is_pulsed());
-
-    guarantee(registration_done_cond_.get_value().cpu_sharding_factor == 1);
 
     state_timestamp_t streaming_begin_point =
         registration_done_cond_.get_value().broadcaster_begin_timestamp;
@@ -216,13 +214,13 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5, _6),
+        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6),
+        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline),
     read_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5, _6),
+        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline)
 {
 #ifndef NDEBUG
@@ -249,8 +247,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     /* Attempt to register for writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
     guarantee(registration_done_cond_.get_ready_signal()->is_pulsed());
-
-    guarantee(registration_done_cond_.get_value().cpu_sharding_factor == 1);
 
 #ifndef NDEBUG
     region_map_t<protocol_t, version_range_t> expected_initial_metainfo(svs_->get_multistore_joined_region(),
@@ -353,7 +349,6 @@ void listener_t<protocol_t>::try_start_receiving_writes(
 
 template <class protocol_t>
 void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
-        UNUSED cpu_sharding_subspace_t cpu_sharding_subspace,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
@@ -436,7 +431,6 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
 
 template <class protocol_t>
 void listener_t<protocol_t>::on_writeread(typename protocol_t::write_t write,
-        UNUSED cpu_sharding_subspace_t cpu_sharding_subspace,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
@@ -518,7 +512,6 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
 
 template <class protocol_t>
 void listener_t<protocol_t>::on_read(typename protocol_t::read_t read,
-        UNUSED cpu_sharding_subspace_t cpu_sharding_subspace,
         state_timestamp_t expected_timestamp,
         order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,
@@ -606,13 +599,6 @@ void listener_t<protocol_t>::advance_current_timestamp_and_pulse_waiters(transit
             it->second->pulse();
         }
     }
-}
-
-template <class protocol_t>
-int32_t listener_t<protocol_t>::broadcaster_cpu_sharding_factor() const {
-    guarantee(registration_done_cond_.get_ready_signal()->is_pulsed());
-
-    return registration_done_cond_.get_value().cpu_sharding_factor;
 }
 
 

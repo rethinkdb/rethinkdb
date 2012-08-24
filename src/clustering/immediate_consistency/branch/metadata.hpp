@@ -116,28 +116,6 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(branches);
 };
 
-// TODO: Stop abusing the word "subspace".
-struct cpu_sharding_subspace_t {
-    // These numbers identify what hash shard the operation is
-    // restricted to (it's more efficient for the listener to receive
-    // it this way than to compute it as part of the operation's
-    // region.
-
-    cpu_sharding_subspace_t() : shard_number(-1), cpu_sharding_factor(0) { }
-
-    cpu_sharding_subspace_t(int32_t _shard_number, int32_t _cpu_sharding_factor)
-        : shard_number(_shard_number), cpu_sharding_factor(_cpu_sharding_factor) { }
-
-    static cpu_sharding_subspace_t fake() { return cpu_sharding_subspace_t(0, 1); }
-
-    // 0 <= shard_number < cpu_sharding_factor.
-    int32_t shard_number;
-    // 0 < cpu_sharding_factor.
-    int32_t cpu_sharding_factor;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(shard_number, cpu_sharding_factor);
-};
-
 template <class> class listener_intro_t;
 
 /* Every `listener_t` constructs a `listener_business_card_t` and sends it to
@@ -151,21 +129,18 @@ public:
     the mirrors. */
 
     typedef mailbox_t<void(typename protocol_t::write_t,
-                           cpu_sharding_subspace_t,
                            transition_timestamp_t,
                            order_token_t,
                            fifo_enforcer_write_token_t,
                            mailbox_addr_t<void()>)> write_mailbox_t;
 
     typedef mailbox_t<void(typename protocol_t::write_t,
-                           cpu_sharding_subspace_t,
                            transition_timestamp_t,
                            order_token_t,
                            fifo_enforcer_write_token_t,
                            mailbox_addr_t<void(typename protocol_t::write_response_t)>)> writeread_mailbox_t;
 
     typedef mailbox_t<void(typename protocol_t::read_t,
-                           cpu_sharding_subspace_t,
                            state_timestamp_t,
                            order_token_t,
                            fifo_enforcer_read_token_t,
@@ -198,21 +173,20 @@ public:
 template <class protocol_t>
 class listener_intro_t {
 public:
-    int32_t cpu_sharding_factor;
     state_timestamp_t broadcaster_begin_timestamp;
     typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
     typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
 
     listener_intro_t() { }
-    listener_intro_t(int32_t _cpu_sharding_factor, state_timestamp_t _broadcaster_begin_timestamp,
+    listener_intro_t(state_timestamp_t _broadcaster_begin_timestamp,
                      typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t _upgrade_mailbox,
                      typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t _downgrade_mailbox)
-        : cpu_sharding_factor(_cpu_sharding_factor), broadcaster_begin_timestamp(_broadcaster_begin_timestamp),
+        : broadcaster_begin_timestamp(_broadcaster_begin_timestamp),
           upgrade_mailbox(_upgrade_mailbox), downgrade_mailbox(_downgrade_mailbox) { }
 
 
 
-    RDB_MAKE_ME_SERIALIZABLE_4(cpu_sharding_factor, broadcaster_begin_timestamp,
+    RDB_MAKE_ME_SERIALIZABLE_3(broadcaster_begin_timestamp,
                                upgrade_mailbox, downgrade_mailbox);
 };
 
