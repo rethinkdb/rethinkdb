@@ -244,14 +244,13 @@ module 'MachineView', ->
                         for key of @model.get('stats')[namespace.get('id')].serializers
                             if @model.get('stats')[namespace.get('id')].serializers[key].cache?.blocks_in_memory?
                                 ram_rdb += parseInt(@model.get('stats')[namespace.get('id')].serializers[key].cache.blocks_in_memory) * parseInt(@model.get('stats')[namespace.get('id')].serializers[key].cache.block_size)
-
                 data =
-                    ram_used: human_readable_units @model.get('stats').proc.global_mem_used, units_space
-                    ram_free: human_readable_units @model.get('stats').proc.global_mem_total-@model.get('stats').proc.global_mem_used, units_space
-                    ram_total: human_readable_units @model.get('stats').proc.global_mem_total, units_space
+                    ram_used: human_readable_units @model.get('stats').proc.global_mem_used*1024, units_space
+                    ram_free: human_readable_units (@model.get('stats').proc.global_mem_total-@model.get('stats').proc.global_mem_used)*1024, units_space
+                    ram_total: human_readable_units @model.get('stats').proc.global_mem_total*1024, units_space
                     ram_used_percent: Math.ceil(100*@model.get('stats').proc.global_mem_used/@model.get('stats').proc.global_mem_total)+'%'
                     ram_rdb: human_readable_units ram_rdb, units_space
-                    ram_rdb_used_percent: Math.ceil(100*ram_rdb/@model.get('stats').proc.global_mem_used)+'%'
+                    ram_rdb_used_percent: Math.ceil(100*ram_rdb/(@model.get('stats').proc.global_mem_used*1024))+'%'
 
                 need_update = false
                 for key of data
