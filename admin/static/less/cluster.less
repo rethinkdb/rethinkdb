@@ -1532,6 +1532,14 @@ Database view
 */
 
 .datacenter-view {
+    .ram_repartition-graph, .disk_repartition-graph{
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .expandable_graph{
+        float: left;
+    }
     .ram_legend{
         overflow: auto;
         .legend{
@@ -1571,6 +1579,9 @@ Database view
         }
         .ram_free_bar{
             fill: #1f77b4;
+        }
+        rect{
+            cursor: pointer;
         }
     }   
 
@@ -1612,6 +1623,9 @@ Database view
         }
         .disk_free_bar{
             fill: #1f77b4;
+        }
+        rect{
+            cursor: pointer;
         }
     }
 

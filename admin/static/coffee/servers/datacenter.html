@@ -63,7 +63,10 @@
 </script>
 
 <script id="datacenter_overview-container-template" type="text/x-handlebars-template">
+    <h3>RAM repartition</h3>
     <div class="ram_repartition-container"></div>
+
+    <h3>Disk repartition</h3>
     <div class="disk_repartition-container"></div>
 </script>
 
@@ -73,9 +76,9 @@
         <div class="ram_repartition-graph panel-left">
             <svg class="ram_repartition-diagram" width="270" height="270">
                 {{#if no_machine}}
-                <text x="100" y="135" class="loading_text-diagram">No machine in this datacenter</text>
+                <text x="50" y="135" class="loading_text-ram-diagram">No machine in this datacenter</text>
                 {{else}}
-                <text x="100" y="135" class="loading_text-diagram">Loading...</text>
+                <text x="100" y="135" class="loading_text-ram-diagram">Loading...</text>
                 {{/if}}
             </svg>
         </div>
@@ -91,7 +94,7 @@
     {{else}}
         <div class="ram_repartition-graph">
             <svg class="ram_repartition-diagram" width="700" height="350">
-                <text x="300" y="150" class="loading_text-diagram">Loading data...</text>
+                <text x="300" y="150" class="loading_text-ram-diagram">Loading data...</text>
             </svg>
         </div>
 
@@ -109,12 +112,12 @@
 <script id="datacenter-disk_repartition-template" type="text/x-handlebars-template">
     {{#if few_machines}}
     <div class="two-panel-section">
-        <div class="disk_repartition-graph panel-left">
+        <div class="panel-left disk_repartition-graph">
             <svg class="disk_repartition-diagram" width="270" height="270">
                 {{#if no_machine}}
-                <text x="100" y="135" class="loading_text-diagram">No machine in this datacenter</text>
+                <text x="50" y="135" class="loading_text-disk-diagram">No machine in this datacenter</text>
                 {{else}}
-                <text x="100" y="135" class="loading_text-diagram">Loading...</text>
+                <text x="100" y="135" class="loading_text-disk-diagram">Loading...</text>
                 {{/if}}
             </svg>
         </div>
@@ -130,7 +133,7 @@
     {{else}}
         <div class="disk_repartition-graph">
             <svg class="disk_repartition-diagram" width="700" height="350">
-                <text x="300" y="150" class="loading_text-diagram">Loading data...</text>
+                <text x="300" y="150" class="loading_text-disk-diagram">Loading data...</text>
             </svg>
         </div>
 

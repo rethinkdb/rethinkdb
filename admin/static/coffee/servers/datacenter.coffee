@@ -247,134 +247,54 @@ module 'DatacenterView', ->
         disk_repartition_template: Handlebars.compile $('#datacenter-disk_repartition-template').html()
 
         initialize: =>
-            machines.on 'all', @render
+            @listener_set = false
+
+
+        events:
+            'click rect': 'redirect_to_server'
+            'mouseenter rect': 'show_tooltip'
+            'mouseleave rect': 'hide_tooltip'
+
+
+        redirect_to_server: (event) ->
+            $('.tooltip').remove()
+            window.app.navigate '#servers/'+event.target.dataset.id, {trigger: true}
+            $('body').scrollTop 0
+
+        show_tooltip: (event) ->
+            $('.tooltip').remove()
+            @.$('#'+event.target.dataset.target).tooltip 'show'
+
+        hide_tooltip: ->
+            @.$('#'+event.target.dataset.target).tooltip 'hide'
+            $('.tooltip').remove()
+            
+
+            
 
         render: =>
-            console.log 'render'
             @.$el.html @container_template {}
             @render_ram_repartition()
             @render_disk_repartition()
             return @
-
+        
         render_ram_repartition: =>
             machines_in_datacenter = []
             for machine in machines.models
                 if machine.get('datacenter_uuid') is @model.get('id')
                     machines_in_datacenter.push machine
 
-            if machines_in_datacenter.length is 0
-                @.$('.ram_repartition-container').html @ram_repartition_template
-                    few_machines: true
-                    no_machine: true
-                @.$('.loading_text-diagram').html 'No machine in this datacenter'
-                return @
+            test_data = (d) ->
+                return d.get('stats')?.proc?.global_mem_total? and d.get('stats')?.proc?.global_mem_used?
 
-            @.$('.ram_repartition-container').html @ram_repartition_template
-                few_machines: machines_in_datacenter.length < 8
+            get_total = (d) ->
+                return d.get('stats').proc.global_mem_total
 
-            max_ram = d3.max machines_in_datacenter, (d) ->
-                if d.get('stats')?.proc?.global_mem_total?
-                    return d.get('stats').proc.global_mem_total
-                else
-                    return NaN
-            
-            #TODO Remove this hack and write clean code.
-            if $('.ram_repartition-diagram').length is 0
-                setTimeout(@render_ram_repartition, 1000)
-            else
-                @.$('.loading_text-diagram').css 'display', 'none'
+            get_used = (d) ->
+                return d.get('stats').proc.global_mem_used
 
-            if max_ram? and not _.isNaN max_ram
-                if machines_in_datacenter.length < 8
-                    svg_width = 350
-                    svg_height = 270
-                else
-                    svg_width = 700
-                    svg_height = 350
+            @render_stacked_bars(machines_in_datacenter, test_data, get_total, get_used, '.ram_repartition-container', '.ram_repartition-diagram', '.ram_repartition-graph', 'ram_free_bar', 'ram_used_bar', '.loading_text-ram-diagram', @ram_repartition_template, @render_ram_repartition, 'Servers', 'RAM')
 
-                margin_width = 20
-                margin_height = 20
-
-                width = Math.floor((svg_width-margin_width*3)/machines_in_datacenter.length*0.9)
-                margin_bar = Math.floor((svg_width-margin_width*3)/machines_in_datacenter.length*0.1/2)
-                if machines_in_datacenter.length is 1 # Special hack when there is just one shard
-                    width = Math.floor width/2
-                    margin_bar = Math.floor margin_bar+width/2
-
-                x = d3.scale.linear().domain([0, machines_in_datacenter.length-1]).range([margin_width*1.5+margin_bar, svg_width-margin_width*1.5-margin_bar-width])
-                y = d3.scale.linear().domain([0, max_ram]).range([1, svg_height-margin_height*2.5])
-
-                svg = d3.select('.ram_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
-                svg.selectAll('.ram_free_bar').data(machines_in_datacenter)
-                    .enter()
-                    .append('rect')
-                    .attr('class', 'ram_free_bar')
-                    .attr('x', (d, i) -> return x(i))
-                    .attr('y', (d) -> 
-                        return svg_height-y(d.get('stats').proc.global_mem_total)-margin_height-1
-                    ) #-1 not to overlap with axe
-                    .attr('width', width)
-                    .attr( 'height', (d) -> 
-                        return y(d.get('stats').proc.global_mem_total - d.get('stats').proc.global_mem_used)
-                    )
-                    .attr( 'title', (d) -> return 'free ram')
-
-                svg.selectAll('.ram_used_bar').data(machines_in_datacenter)
-                    .enter()
-                    .append('rect')
-                    .attr('class', 'ram_used_bar')
-                    .attr('x', (d, i) -> return x(i))
-                    .attr('y', (d) -> 
-                        return svg_height-y(d.get('stats').proc.global_mem_used)-margin_height-1
-                    ) #-1 not to overlap with axe
-                    .attr('width', width)
-                    .attr( 'height', (d) -> 
-                        return y(d.get('stats').proc.global_mem_used)
-                    )
-                    .attr( 'title', (d) -> return 'used ram')
-           
-
-                arrow_width = 4
-                arrow_length = 7
-                extra_data = []
-                extra_data.push
-                    x1: margin_width
-                    x2: margin_width
-                    y1: margin_height
-                    y2: svg_height-margin_height
-
-                extra_data.push
-                    x1: margin_width
-                    x2: svg_width-margin_width
-                    y1: svg_height-margin_height
-                    y2: svg_height-margin_height
-
-                svg = d3.select('.ram_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
-                svg.selectAll('line').data(extra_data).enter().append('line')
-                    .attr('x1', (d) -> return d.x1)
-                    .attr('x2', (d) -> return d.x2)
-                    .attr('y1', (d) -> return d.y1)
-                    .attr('y2', (d) -> return d.y2)
-                    .style('stroke', '#000')
-
-                axe_legend = []
-                axe_legend.push
-                    x: margin_width
-                    y: Math.floor(margin_height/2)
-                    anchor: 'middle'
-                    string: 'RAM'
-                axe_legend.push
-                    x: Math.floor(svg_width/2)
-                    y: svg_height
-                    anchor: 'middle'
-                    string: 'Servers'
-
-                svg.selectAll('.legend')
-                    .data(axe_legend).enter().append('text')
-                    .attr('x', (d) -> return d.x)
-                    .attr('y', (d) -> return d.y)
-                    .attr('text-anchor', (d) -> return d.anchor)
-                    .text((d) -> return d.string)
 
         render_disk_repartition: =>
             machines_in_datacenter = []
@@ -382,76 +302,114 @@ module 'DatacenterView', ->
                 if machine.get('datacenter_uuid') is @model.get('id')
                     machines_in_datacenter.push machine
 
+
+            test_data = (d) ->
+                return d.get('stats')?.sys?.global_disk_space_total?
+
+
+            get_total = (d) ->
+                return d.get('stats').sys.global_disk_space_total
+
+            get_used = (d) ->
+                return d.get('stats').sys.global_disk_space_used
+
+            @render_stacked_bars(machines_in_datacenter, test_data, get_total, get_used, '.disk_repartition-container', '.disk_repartition-diagram', '.disk_repartition-graph', 'disk_free_bar', 'disk_used_bar', '.loading_text-disk-diagram', @disk_repartition_template, @render_disk_repartition, 'Servers', 'Disk')
+
+        render_stacked_bars: (machines_in_datacenter, test_data, get_total, get_used, class_container, class_diagram, class_graph, class_free_bar, class_used_bar, loading_text_class, template_container, this_callback, x_title, y_title) =>
             if machines_in_datacenter.length is 0
-                @.$('.disk_repartition-container').html @disk_repartition_template
+                @.$(class_container).html template_container
                     few_machines: true
                     no_machine: true
-                @.$('.loading_text-diagram').html 'No machine in this datacenter'
                 return @
 
-            @.$('.disk_repartition-container').html @disk_repartition_template
-                few_machines: machines_in_datacenter.length < 8
-
-            max_disk = d3.max machines_in_datacenter, (d) ->
-                if d.get('stats')?.sys?.global_disk_space_total?
-                    return d.get('stats').sys.global_disk_space_total
-                else
-                    return NaN
+            @.$(class_container).html template_container
+                few_machines: machines_in_datacenter.length < 17
             
-            #TODO Remove this hack and write clean code.
-            if $('.disk_repartition-diagram').length is 0
-                setTimeout(@render_disk_repartition, 1000)
+            #TODO Cheap hack. Should be removed later.
+            if $(class_diagram).length is 0
+                setTimeout(this_callback, 1000)
+                return
             else
-                @.$('.loading_text-diagram').css 'display', 'none'
+                @.$(loading_text_class).css 'display', 'none'
+                if @set_listener is false
+                    @set_listener = true
+                    machines.on 'all', @render_ram_repartition
+                    machines.on 'all', @render_disk_repartition
 
-            if max_disk? and not _.isNaN max_disk
-                if machines_in_datacenter.length < 8
-                    svg_width = 350
-                    svg_height = 270
-                else
-                    svg_width = 700
-                    svg_height = 350
+            data_is_defined = true
+            for machine in machines_in_datacenter
+                if not test_data(machine)
+                    data_is_defined = false
+                    break
 
+            if data_is_defined
+                max_value = d3.max machines_in_datacenter, get_total
                 margin_width = 20
                 margin_height = 20
 
-                width = Math.floor((svg_width-margin_width*3)/machines_in_datacenter.length*0.9)
-                margin_bar = Math.floor((svg_width-margin_width*3)/machines_in_datacenter.length*0.1/2)
-                if machines_in_datacenter.length is 1 # Special hack when there is just one shard
-                    width = Math.floor width/2
-                    margin_bar = Math.floor margin_bar+width/2
+                margin_width_inner = 20
+                width = 28
+                margin_bar = 2
 
-                x = d3.scale.linear().domain([0, machines_in_datacenter.length-1]).range([margin_width*1.5+margin_bar, svg_width-margin_width*1.5-margin_bar-width])
-                y = d3.scale.linear().domain([0, max_disk]).range([1, svg_height-margin_height*2.5])
+                # Compute the width of the graph
+                if machines_in_datacenter.length < 17
+                    svg_width = margin_width+margin_width_inner+(width+margin_bar)*machines_in_datacenter.length+margin_width_inner+margin_width
+                    svg_height = 270
+                    container_width = Math.max svg_width, 350
+                else
+                    if margin_width+margin_width_inner+(width+margin_bar)*machines_in_datacenter.length+margin_width_inner+margin_width > 700
+                        svg_width = 700
+                        width_and_margin = (700-margin_width*2-margin_width_inner*2)/machines_in_datacenter.length
+                        width = width_and_margin/30*28
+                        margin_bar = width_and_margin/30*2
+                    else
+                        svg_width = margin_width+margin_width_inner+(width+margin_bar)*machines_in_datacenter.length+margin_width_inner+margin_width
+                    svg_height = 350
+                    container_width = svg_width
 
-                svg = d3.select('.disk_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
-                svg.selectAll('.disk_free_bar').data(machines_in_datacenter)
+                # Set graph's container width
+                @.$(class_graph).css('width', container_width+'px')
+
+                y = d3.scale.linear().domain([0, max_value]).range([1, svg_height-margin_height*2.5])
+
+                svg = d3.select(class_diagram).attr('width', svg_width).attr('height', svg_height).append('svg:g')
+                svg.selectAll(class_free_bar).data(machines_in_datacenter)
                     .enter()
                     .append('rect')
-                    .attr('class', 'disk_free_bar')
-                    .attr('x', (d, i) -> return x(i))
-                    .attr('y', (d) -> 
-                        return svg_height-y(d.get('stats').sys.global_disk_space_total)-margin_height-1
+                    .attr('class', class_free_bar)
+                    .attr('x', (d, i) ->
+                        return margin_width+margin_width_inner+(width+margin_bar)*i
+                    )
+                    .attr('y', (d) ->
+                        return svg_height-y(get_total(d))-margin_height-1
                     ) #-1 not to overlap with axe
                     .attr('width', width)
-                    .attr( 'height', (d) -> 
-                        return y(d.get('stats').sys.global_disk_space_total - d.get('stats').sys.global_disk_space_used)
+                    .attr( 'height', (d) ->
+                        return y(get_total(d) - get_used(d))
                     )
-                    .attr( 'title', (d) -> return 'free disk')
+                    .attr('data-id', (d) -> return d.get('id'))
+                    .attr('id', (d) -> return y_title+'-'+d.get('id'))
+                    .attr('data-target', (d) -> return y_title+'-'+d.get('id'))
+                    .attr('title', (d) -> 
+                        return machines.get(d.get('id')).get('name') + '<br/>' + human_readable_units(get_used(d), units_space) + '/' + human_readable_units(get_total(d), units_space)
+                    )
 
-                svg.selectAll('.disk_used_bar').data(machines_in_datacenter)
+                svg.selectAll(class_used_bar).data(machines_in_datacenter)
                     .enter()
                     .append('rect')
-                    .attr('class', 'disk_used_bar')
-                    .attr('x', (d, i) -> return x(i))
-                    .attr('y', (d) -> 
-                        return svg_height-y(d.get('stats').sys.global_disk_space_used)-margin_height-1
+                    .attr('class', class_used_bar)
+                    .attr('x', (d, i) ->
+                        return margin_width+margin_width_inner+(width+margin_bar)*i
+                    )
+                    .attr('y', (d) ->
+                        return svg_height-y(get_used(d))-margin_height-1
                     ) #-1 not to overlap with axe
                     .attr('width', width)
-                    .attr( 'height', (d) -> 
-                        return y(d.get('stats').sys.global_disk_space_used)
+                    .attr( 'height', (d) ->
+                        return y(get_used(d))
                     )
-                    .attr( 'title', (d) -> return 'used disk')
+                    .attr('data-id', (d) -> return d.get('id'))
+                    .attr('data-target', (d) -> return y_title+'-'+d.get('id'))
            
 
                 arrow_width = 4
@@ -465,11 +423,11 @@ module 'DatacenterView', ->
 
                 extra_data.push
                     x1: margin_width
-                    x2: svg_width-margin_width
+                    x2: margin_width+margin_width_inner+(width+margin_bar)*machines_in_datacenter.length+margin_width_inner
                     y1: svg_height-margin_height
                     y2: svg_height-margin_height
 
-                svg = d3.select('.disk_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
+                svg = d3.select(class_diagram).attr('width', svg_width).attr('height', svg_height).append('svg:g')
                 svg.selectAll('line').data(extra_data).enter().append('line')
                     .attr('x1', (d) -> return d.x1)
                     .attr('x2', (d) -> return d.x2)
@@ -482,21 +440,28 @@ module 'DatacenterView', ->
                     x: margin_width
                     y: Math.floor(margin_height/2)
                     anchor: 'middle'
-                    string: 'Disk'
+                    string: y_title
                 axe_legend.push
                     x: Math.floor(svg_width/2)
                     y: svg_height
                     anchor: 'middle'
-                    string: 'Servers'
+                    string: x_title
 
                 svg.selectAll('.legend')
                     .data(axe_legend).enter().append('text')
+                    .attr('class', 'legend')
                     .attr('x', (d) -> return d.x)
                     .attr('y', (d) -> return d.y)
                     .attr('text-anchor', (d) -> return d.anchor)
                     .text((d) -> return d.string)
 
+                @.$('rect').tooltip
+                    trigger: 'manual'
 
+        destroy: =>
+            if @set_listener
+                machines.off 'all', @render_ram_repartition
+                machines.off 'all', @render_disk_repartition
 
     class @Data extends Backbone.View
         className: 'datacenter-data-view'
