@@ -685,8 +685,7 @@ namespace {
 struct receive_backfill_visitor_t : public boost::static_visitor<> {
     receive_backfill_visitor_t(btree_slice_t *_btree, transaction_t *_txn, superblock_t *_superblock, signal_t *_interruptor) : btree(_btree), txn(_txn), superblock(_superblock), interruptor(_interruptor) { }
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
-        // FIXME: we ignored delete_key.recency here. Should we use it in place of repli_timestamp_t::invalid?
-        memcached_delete(delete_key.key, true, btree, 0, repli_timestamp_t::invalid, txn, superblock);
+        memcached_delete(delete_key.key, true, btree, 0, delete_key.recency, txn, superblock);
     }
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         hash_range_key_tester_t tester(delete_range.range);
@@ -697,8 +696,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
         memcached_set(bf_atom.key, btree,
             bf_atom.value, bf_atom.flags, bf_atom.exptime,
             add_policy_yes, replace_policy_yes, INVALID_CAS,
-            // TODO: Should we pass bf_atom.recency in place of repli_timestamp_t::invalid here? Ask Sam.
-            bf_atom.cas_or_zero, 0, repli_timestamp_t::invalid,
+            bf_atom.cas_or_zero, 0, bf_atom.recency,
             txn, superblock);
     }
 private:
