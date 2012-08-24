@@ -204,6 +204,8 @@ private:
 
     void advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp);
 
+    int32_t broadcaster_cpu_sharding_factor() const;
+
     mailbox_manager_t *const mailbox_manager_;
 
     multistore_ptr_t<protocol_t> *const svs_;

@@ -608,6 +608,13 @@ void listener_t<protocol_t>::advance_current_timestamp_and_pulse_waiters(transit
     }
 }
 
+template <class protocol_t>
+int32_t listener_t<protocol_t>::broadcaster_cpu_sharding_factor() const {
+    guarantee(registration_done_cond_.get_ready_signal()->is_pulsed());
+
+    return registration_done_cond_.get_value().cpu_sharding_factor;
+}
+
 
 #include "mock/dummy_protocol.hpp"
 #include "memcached/protocol.hpp"
