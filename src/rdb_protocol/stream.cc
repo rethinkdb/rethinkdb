@@ -45,6 +45,7 @@ boost::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
                 accumulator.clear();
                 accumulator.splice(accumulator.begin(), tmp);
             }
+            data.splice(data.begin(), accumulator);
         }
     }
 

@@ -212,13 +212,12 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_ordering
-    # TODO: fix
-    # def order(query, *args); query.orderby(*args).run; end
-    # docs = (0...10).map{|n| {'id' => 100+n, 'a' => n, 'b' => n%3}}
-    # assert_equal(order(r[docs].to_stream, 'a'), docs.sort_by{|x| x['a']})
-    # assert_equal(order(r[docs].to_stream,['a', false]), docs.sort_by{|x| x['a']}.reverse)
-    # assert_equal(order(r[docs].to_stream.filter({'b' => 0}), :a),
-    #              docs.select{|x| x['b'] == 0}.sort_by{|x| x['a']})
+    def order(query, *args); query.orderby(*args).run; end
+    docs = (0...10).map{|n| {'id' => 100+n, 'a' => n, 'b' => n%3}}
+    assert_equal(order(r[docs].to_stream, 'a'), docs.sort_by{|x| x['a']})
+    assert_equal(order(r[docs].to_stream,['a', false]), docs.sort_by{|x| x['a']}.reverse)
+    assert_equal(order(r[docs].to_stream.filter({'b' => 0}), :a),
+                 docs.select{|x| x['b'] == 0}.sort_by{|x| x['a']})
   end
 
   def test_ops #+,-,%,*,/,<,>,<=,>=,eq,ne,any,all
@@ -414,16 +413,15 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_orderby #ORDERBY, MAP
-    # TODO: fix
-    # assert_equal(rdb.orderby(:id).run, $data)
-    # assert_equal(rdb.orderby('id').run, $data)
-    # assert_equal(rdb.orderby(:id).run, $data)
-    # assert_equal(rdb.orderby([:id, false]).run, $data.reverse)
-    # query = rdb.map{r[{:id => r[:id],:num => r[:id].mod(2)}]}.orderby(:num,[:id, false])
-    # query_alt=r.map(rdb){r[{:id =>r[:id],:num => r[:id] %2}]}.orderby(:num,[:id, false])
-    # assert_equal(query.run, query_alt.run)
-    # want = $data.map{|o| o['id']}.sort_by{|n| (n%2)*$data.length - n}
-    # assert_equal(query.run.map{|o| o['id']}, want)
+    assert_equal(rdb.orderby(:id).run, $data)
+    assert_equal(rdb.orderby('id').run, $data)
+    assert_equal(rdb.orderby(:id).run, $data)
+    assert_equal(rdb.orderby([:id, false]).run, $data.reverse)
+    query = rdb.map{r[{:id => r[:id],:num => r[:id].mod(2)}]}.orderby(:num,[:id, false])
+    query_alt=r.map(rdb){r[{:id =>r[:id],:num => r[:id] %2}]}.orderby(:num,[:id, false])
+    assert_equal(query.run, query_alt.run)
+    want = $data.map{|o| o['id']}.sort_by{|n| (n%2)*$data.length - n}
+    assert_equal(query.run.map{|o| o['id']}, want)
   end
 
   def test_concatmap #CONCATMAP, DISTINCT
