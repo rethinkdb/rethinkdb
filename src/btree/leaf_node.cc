@@ -1149,29 +1149,97 @@ bool lookup(value_sizer_t<void> *sizer, const leaf_node_t *node, const btree_key
     return false;
 }
 
-/* Call when you want to add an entry to the node of size `new_entry_size`, with
-timestamp `tstamp`.
+/* `insert()` and `remove()` call this to insert a new entry into the leaf node.
 
-Sets `*offset_out` to the offset of the newly created entry, and sets
-`*space_out` to a pointer to the location. Takes care of updating
-`node->frontmost` and `node->tstamp_cutpoint`. Also takes care of moving existing
-entries as necessary to make more room, and writing the timestamp if
-appropriate. Caller is responsible for updating `node->pair_offsets`. Caller is
-responsible for updating `node->live_size` if appropriate.
+First it removes any existing entry for `key`; then it makes room in the leaf
+node for a new entry and fills `*space_out` with a pointer to the beginning of
+where the new entry should go. `prepare_space_for_new_entry()` takes care of
+updating `pair_offsets` and `num_pairs`, moving around other entries as needed
+to maintain timestamp ordering, putting a timestamp on the new entry if
+appropriate, and maintaining `frontmost` and `tstamp_cutpoint`. The caller is
+responsible for writing the actual entry itself (including the key) and for
+updating `live_size` if the newly created entry is live.
 
-If `allow_after_tstamp_cutpoint` is `false` and the new entry would be after
-`tstamp_cutpoint`, then return `false` and don't modify the node. Otherwise,
-return `true`.
+`new_entry_size` is the total size of the new entry, including key, value,
+and/or code byte, but not including repli timestamp.
 
-The reason why `prepare_space_for_new_entry` computes `*space_out` instead of
-letting the caller compute it from `*offset_out` is because
-`prepare_space_for_new_entry()` knows whether or not a timestamp was assigned to
-the new node. */
-MUST_USE bool prepare_space_for_new_entry(value_sizer_t<void> *sizer, leaf_node_t *node, int new_entry_size, repli_timestamp_t tstamp, bool allow_after_tstamp_cutpoint, uint16_t *offset_out, char **space_out) {
-    uint16_t end_of_where_new_entry_should_go;
-    bool new_entry_should_have_timestamp;
+It is an error to put a deletion entry after `tstamp_cutpoint`. If the caller
+intends to insert a deletion entry, it should pass `false` for
+`allow_after_tstamp_cutpoint`. If the entry would go after `tstamp_cutpoint`
+and `allow_after_tstamp_cutpoint` is false, then instead of making room for the
+entry, `prepare_space_for_new_entry()` will return false. It will still remove
+any preexisting entry that was in the leaf node. If the entry would go before
+`tstamp_cutpoint` or `allow_after_tstamp_cutpoint` is true, then the return
+value will be true. */
+MUST_USE bool prepare_space_for_new_entry(value_sizer_t<void> *sizer, leaf_node_t *node,
+        const btree_key_t *key, int new_entry_size, repli_timestamp_t tstamp,
+        bool allow_after_tstamp_cutpoint,
+        char **space_out) {
+
+    /* Figure out where in `pair_offsets` to put the offset of the new entry,
+    and simultaneously check for an existing entry for this key. If the entry
+    already exists, clean it. */
+
+    int index;
+    bool found = find_key(node, key, &index);
+
+    if (found) {
+        int offset = node->pair_offsets[index];
+        entry_t *ent = get_entry(node, offset);
+
+        int sz = entry_size(sizer, ent);
+
+        if (entry_is_live(ent)) {
+            node->live_size -= sizeof(uint16_t) + sz;
+        }
+
+        clean_entry(ent, sz);
+
+        /* We'll re-use the now open slot in `pair_offsets`. If it turns out
+        that we aren't actually creating a new entry, like if we're deleting a
+        key which has no timestamp, then we'll close up this space in
+        `pair_offsets` later. */
+
+    } else {
+        /* Later, once we've confirmed that we actually want to create an entry
+        in the leaf node, we'll open up some space in `pair_offsets`. */
+    }
+
+    /* Garbage collect if appropriate. We do it after cleaning up any existing
+    entry so that deletion always works no matter how full the node is. */
+
+    if (offsetof(leaf_node_t, pair_offsets) +
+            sizeof(uint16_t) * (node->num_pairs + (found ? 0 : 1)) +
+            sizeof(repli_timestamp_t) +
+            new_entry_size >
+            node->frontmost) {
+
+        if (found) {
+            /* We can't re-use an existing index if we're garbage collecting. */
+            found = false;
+            memmove(
+                node->pair_offsets + index,
+                node->pair_offsets + index + 1,
+                sizeof(uint16_t) * (node->num_pairs - index - 1));
+            --node->num_pairs;
+        }
+
+        /* Passing `&index` as the last parameter to `garbage_collect()`
+        guarantees that it will remain valid even as `pair_offsets` entries are
+        moved around. */
+        garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1, &index);
+
+        /* Make sure that `index` still refers to where the new key should be
+        inserted. */
+        DEBUG_VAR int index2;
+        rassert(!find_key(node, key, &index2));
+        rassert(index == index2, "garbage_collect() failed to preserve index");
+    }
 
     /* Compute where in the node to put the new entry */
+
+    uint16_t end_of_where_new_entry_should_go;
+    bool new_entry_should_have_timestamp;
 
     if (node->num_pairs == 0 || (node->frontmost < node->tstamp_cutpoint && get_timestamp(node, node->frontmost) <= tstamp)) {
         /* In the most common case, the new value will go right at
@@ -1222,20 +1290,40 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t<void> *sizer, leaf_node_
     /* If a deletion would go after `tstamp_cutpoint`, instead we want to just
     discard it entirely. */
 
-    if (!allow_after_tstamp_cutpoint && !new_entry_should_have_timestamp) {
+    bool actually_create_entry = new_entry_should_have_timestamp || allow_after_tstamp_cutpoint;
+
+    if (!actually_create_entry) {
+        if (found) {
+            /* We're deleting the previous entry for this key, but not inserting
+            a new one; close the gap in `pair_offsets`. `index` is the location
+            of the open slot. */
+            memmove(
+                node->pair_offsets + index,
+                node->pair_offsets + index + 1,
+                sizeof(uint16_t) * (node->num_pairs - index - 1));
+            --node->num_pairs;
+        }
+
         return false;
+    }
+
+    /* There was no previous entry for this key, but we're creating a new entry;
+    make some room in `pair_offsets`. `index` is where the open slot should go.
+    We didn't do this before because we weren't sure if we were actually gonna
+    create a new entry or not. */
+
+    if (!found) {
+        memmove(
+            node->pair_offsets + index + 1,
+            node->pair_offsets + index,
+            sizeof(uint16_t) * (node->num_pairs - index));
+        ++node->num_pairs;
     }
 
     /* Now that we know where in the leaf node to write our entry, make space if
     necessary. */
 
     int total_space_for_new_entry = new_entry_size + (new_entry_should_have_timestamp ? sizeof(repli_timestamp_t) : 0);
-
-    debugf("end_of_where_new_entry_should_go = %d\n", int(end_of_where_new_entry_should_go));
-    debugf("node->frontmost = %d\n", int(node->frontmost));
-    debugf("total_space_for_new_entry = %d\n", int(total_space_for_new_entry));
-    debugf("new_entry_should_have_timestamp = %s\n", new_entry_should_have_timestamp ? "yes" : "no");
-    debugf("node->tstamp_cutpoint = %d\n", int(node->tstamp_cutpoint));
 
     if (end_of_where_new_entry_should_go == node->frontmost) {
         /* This is the common case. Just like before, we check for this case
@@ -1248,14 +1336,13 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t<void> *sizer, leaf_node_
             get_at_offset(node, node->frontmost - total_space_for_new_entry),
             get_at_offset(node, node->frontmost),
             end_of_where_new_entry_should_go - node->frontmost);
-        /* Update the `pair_offsets` table */
-        debugf("Updating pair_offsets table. e.o.w.n.e.s.g. = %d\n", int(end_of_where_new_entry_should_go));
+        /* Update the `pair_offsets` table so it points to the new locations of
+        the entries */
         for (int i = 0; i < node->num_pairs; ++i) {
-            debugf("i=%d node->pair_offsets[i]=%d\n", i, int(node->pair_offsets[i]));
+            if (i == index) continue;
             if (node->pair_offsets[i] < end_of_where_new_entry_should_go) {
                 node->pair_offsets[i] -= total_space_for_new_entry;
             }
-            debugf("now it's %d\n", int(node->pair_offsets[i]));
         }
     }
 
@@ -1272,9 +1359,12 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t<void> *sizer, leaf_node_
         node->tstamp_cutpoint = start_of_where_new_entry_should_go;
     }
 
-    /* Fill output variables */
+    /* Record the offset in `pair_offsets` */
 
-    *offset_out = start_of_where_new_entry_should_go;
+    node->pair_offsets[index] = start_of_where_new_entry_should_go;
+
+    /* Fill output variable */
+
     if (new_entry_should_have_timestamp) {
         *space_out = get_at_offset(node, start_of_where_new_entry_should_go + sizeof(repli_timestamp_t));
     } else {
@@ -1287,41 +1377,16 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t<void> *sizer, leaf_node_
 // Inserts a key/value pair into the node.  Hopefully you've already
 // cleaned up the old value, if there is one.
 void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, DEBUG_VAR key_modification_proof_t km_proof) {
-    debugf("============================== begin insert() ==============================\n");
     rassert(!is_full(sizer, node, key, value));
     rassert(!km_proof.is_fake());
-
-    if (offsetof(leaf_node_t, pair_offsets) + sizeof(uint16_t) * (node->num_pairs + 1) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value) > node->frontmost) {
-        garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1);
-    }
-
-    /* Make space in the `pair_offsets` array */
-
-    int index;
-    bool found = find_key(node, key, &index);
-
-    if (found) {
-        int offset = node->pair_offsets[index];
-        entry_t *ent = get_entry(node, offset);
-
-        int sz = entry_size(sizer, ent);
-
-        if (entry_is_live(ent)) {
-            node->live_size -= sizeof(uint16_t) + sz;
-        }
-
-        clean_entry(ent, sz);
-    } else {
-        memmove(node->pair_offsets + index + 1, node->pair_offsets + index, sizeof(uint16_t) * (node->num_pairs - index));
-        node->num_pairs += 1;
-    }
 
     /* Make space for the entry itself */
 
     char *location_to_write_data;
     DEBUG_VAR bool should_write = prepare_space_for_new_entry(sizer, node,
-        key->full_size() + sizer->size(value), tstamp, true,
-        &node->pair_offsets[index], &location_to_write_data);
+        key, key->full_size() + sizer->size(value), tstamp,
+        true,
+        &location_to_write_data);
     rassert(should_write);
 
     /* Now copy the data into the node itself */
@@ -1332,8 +1397,6 @@ void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *ke
 
     node->live_size += sizeof(uint16_t) + key->full_size() + sizer->size(value);;
 
-    print(stderr, sizer, node);
-
     validate(sizer, node);
 }
 
@@ -1341,55 +1404,29 @@ void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *ke
 // already sure the key is in the node, which means we're doing an
 // unnecessary binary search.
 void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, DEBUG_VAR key_modification_proof_t km_proof) {
-    debugf("============================== begin remove() ==============================\n");
     rassert(!km_proof.is_fake());
 
-    int index;
-    bool found = find_key(node, key, &index);
+    /* Confirm that the key is already in the node */
+    DEBUG_VAR int index;
+    rassert(find_key(node, key, &index), "remove() called on key that's not in node");
+    rassert(entry_is_live(get_entry(node, node->pair_offsets[index])), "remove() called on key with dead entry");
 
-    rassert(found);
-    if (found) {
-        int offset = node->pair_offsets[index];
-        entry_t *ent = get_entry(node, offset);
+    /* If the deletion entry would fall after `tstamp_cutpoint`, then it
+    shouldn't be written at all. If that's the case, then
+    `prepare_space_for_new_entry()` will return false because we pass false for
+    `allow_after_tstamp_cutpoint`. */
 
-        rassert(entry_is_live(ent));
-        if (entry_is_live(ent)) {
-
-            int sz = entry_size(sizer, ent);
-            node->live_size -= sizeof(uint16_t) + sz;
-
-            clean_entry(ent, sz);
-
-            if (offsetof(leaf_node_t, pair_offsets) + sizeof(uint16_t) * node->num_pairs + sizeof(repli_timestamp_t) + 1 + key->full_size() > node->frontmost) {
-                memmove(node->pair_offsets + index, node->pair_offsets + index + 1, (node->num_pairs - (index + 1)) * sizeof(uint16_t));
-                node->num_pairs -= 1;
-
-                garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1, &index);
-
-                memmove(node->pair_offsets + index + 1, node->pair_offsets + index, (node->num_pairs - index) * sizeof(uint16_t));
-
-                node->num_pairs += 1;
-            }
-
-            char *location_to_write_data;
-            bool would_have_a_timestamp = prepare_space_for_new_entry(sizer, node,
-                1 + key->full_size(), tstamp, false,
-                &node->pair_offsets[index], &location_to_write_data);
-
-            if (would_have_a_timestamp) {
-                *location_to_write_data = DELETE_ENTRY_CODE;
-                ++location_to_write_data;
-                memcpy(location_to_write_data, key, key->full_size());
-            } else {
-                /* If a deletion would be written after `tstamp_cutpoint`, then
-                instead don't write it at all. */
-                memmove(node->pair_offsets + index, node->pair_offsets + index + 1, (node->num_pairs - index) * sizeof(uint16_t));
-                node->num_pairs -= 1;
-            }
-        }
+    char *location_to_write_data;
+    if (prepare_space_for_new_entry(sizer, node,
+            key,
+            1 + key->full_size(),   /* 1 for `DELETE_ENTRY_CODE` */
+            tstamp,
+            false,
+            &location_to_write_data)) {
+        *location_to_write_data = DELETE_ENTRY_CODE;
+        ++location_to_write_data;
+        memcpy(location_to_write_data, key, key->full_size());
     }
-
-    print(stderr, sizer, node);
 
     validate(sizer, node);
 }
