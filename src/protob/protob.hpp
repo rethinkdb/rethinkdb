@@ -16,7 +16,7 @@ enum protob_server_callback_mode_t {
 };
 
 template <class request_t, class response_t, class context_t>
-class protob_server_t : http_app_t {
+class protob_server_t : http_app_t, repeating_timer_callback_t {
 public:
     // TODO: Function pointers?  Really?
     protob_server_t(int port, int http_port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *), protob_server_callback_mode_t _cb_mode = CORO_ORDERED);  // NOLINT(readability/casting)
@@ -28,13 +28,41 @@ private:
 
     // For HTTP server
     http_res_t handle(const http_req_t &);
+    void on_ring();
 
     auto_drainer_t auto_drainer;
     scoped_ptr_t<tcp_listener_t> tcp_listener;
-    scoped_ptr_t<http_server_t> http_server;
     boost::function<response_t(request_t *, context_t *)> f;
     response_t (*on_unparsable_query)(request_t *);
     protob_server_callback_mode_t cb_mode;
+
+    // For HTTP server
+    class http_context_t {
+    public:
+        //TODO make this configurable?
+        static const int TIMEOUT_SEC = 5*60;
+        static const int TIMEOUT_MS = TIMEOUT_SEC*1000;
+
+        http_context_t();
+        context_t *getContext();
+        bool isExpired();
+        void grab();
+        void release();
+        bool isFree();
+
+    private:
+        context_t ctx;
+        time_t last_accessed;
+        int users_count;
+
+        // Update last_accessed to current time
+        void touch();
+    };
+
+    scoped_ptr_t<http_server_t> http_server;
+    std::map<int32_t, http_context_t> http_conns;
+    int32_t next_http_conn_id;
+    repeating_timer_t http_timeout_timer;
 };
 
 //TODO figure out how to do 0 copy serialization with this.

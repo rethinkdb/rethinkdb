@@ -52,7 +52,7 @@ public:
     template <class Ordering>
     void sort(const Ordering &o) {
         guarantee(!started);
-        data.sort(o);
+        raw_data.sort(o);
     }
 
 

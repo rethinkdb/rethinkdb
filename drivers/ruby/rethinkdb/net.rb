@@ -35,6 +35,8 @@ module RethinkDB
       #   File.open("sexp.txt", "a") {|f| f.write(msg.sexp.inspect+"\n")}
       # end
       if msg.class != Query then return dispatch msg.query end
+      # $stdout.sync = true
+      # PP.pp msg
       payload = msg.serialize_to_string
       packet = [payload.length].pack('L<') + payload
       @socket.send(packet, 0)

@@ -44,12 +44,14 @@ rethinkdb.net.HttpConnection = function(host_or_list, onConnect, onFailure) {
             var url = 'http://'+host+':'+port;
 
             var xhr = new XMLHttpRequest();
-            xhr.open("GET", url, true);
+            xhr.responseType = "arraybuffer";
+            xhr.open("GET", url + '/open-new-connection', true);
 
             xhr.onreadystatechange = function(e) {
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200) {
                         self.url_ = url;
+                        self.conn_id_ = (new DataView(xhr.response)).getInt32(0, true);
                         if (onConnect) onConnect(self);
                     } else {
                         tryNext();
@@ -78,13 +80,13 @@ rethinkdb.net.HttpConnection.prototype.send_ = function(data) {
 
     var xhr = new XMLHttpRequest();
     xhr.responseType = "arraybuffer";
-    xhr.open("POST", this.url_, true);
+    xhr.open("POST", this.url_+'/?conn_id='+this.conn_id_, true);
 
     var self = this;
     xhr.onreadystatechange = function(e) {
         if (xhr.readyState === 4 &&
             xhr.status === 200) {
-                self.recv_(new Uint8Array(xhr.response)); 
+                self.recv_(new Uint8Array(xhr.response));
         }
     };
 
@@ -98,6 +100,11 @@ rethinkdb.net.HttpConnection.prototype.close = function() {
     if (!this.url_)
         throw "Connection not open";
 
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", this.url_+'/close-connection?conn_id='+this.conn_id_, true);
+    xhr.send();
+
+    this.conn_id_ = null;
     this.url_ = null;
 };
 goog.exportProperty(rethinkdb.net.HttpConnection.prototype, 'close',
