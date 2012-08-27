@@ -11,8 +11,16 @@
 #include "arch/arch.hpp"
 
 template <class request_t, class response_t, class context_t>
-protob_server_t<request_t, response_t, context_t>::protob_server_t(int port, int http_port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *, std::string), protob_server_callback_mode_t _cb_mode)
-    : f(_f), on_unparsable_query(_on_unparsable_query), cb_mode(_cb_mode) {
+protob_server_t<request_t, response_t, context_t>::protob_server_t(
+    int port, int http_port,
+    boost::function<response_t(request_t *, context_t *)> _f,
+    response_t (*_on_unparsable_query)(request_t *, std::string),
+    protob_server_callback_mode_t _cb_mode)
+    : f(_f),
+      on_unparsable_query(_on_unparsable_query),
+      cb_mode(_cb_mode),
+      next_http_conn_id(0),
+      http_timeout_timer(http_context_t::TIMEOUT_MS, this) {
     tcp_listener.init(new tcp_listener_t(port, boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
     http_server.init(new http_server_t(http_port, this));
 }
@@ -154,7 +162,8 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         case INLINE:
             it = http_conns.find(conn_id);
             if (!parseSucceeded || it == http_conns.end()) {
-                response = on_unparsable_query(&request);
+            std::string err = "Client is buggy (failed to deserialize protobuf).";
+            response = on_unparsable_query(&request, err);
             } else {
                 http_context_t *ctx = &(it->second);
                 ctx->grab();

@@ -703,26 +703,6 @@ void check_query_type(const Query &q, type_checking_environment_t *env, bool *is
     }
 }
 
-std::string get_primary_key(const std::string &table_name, runtime_environment_t *env, const backtrace_t &backtrace) {
-    const char *status;
-    boost::optional<std::pair<namespace_id_t, deletable_t<
-        namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_info =
-        metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces,
-                             table_name, &status);
-
-    if (!ns_info) {
-        rassert(status);
-        throw runtime_exc_t(strprintf("Namespace %s not found with error: %s",
-                                      table_name.c_str(), status), backtrace);
-    }
-
-    if (ns_info->second.get().primary_key.in_conflict()) {
-        throw runtime_exc_t(strprintf("Namespace %s has an in conflict primary key, this should really never happen.", ns_info->second.get().name.get().c_str()), backtrace);
-    }
-
-    return ns_info->second.get().primary_key.get();
-}
-
 boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     pool->assert_thread();
     if (!js_runner->connected()) {
