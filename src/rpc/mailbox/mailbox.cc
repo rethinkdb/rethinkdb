@@ -5,7 +5,6 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/function.hpp>
 
 #include "concurrency/pmap.hpp"
 #include "logger.hpp"
