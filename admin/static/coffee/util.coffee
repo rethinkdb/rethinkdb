@@ -34,17 +34,19 @@ Handlebars.registerHelper 'html_list', (context) ->
     return new Handlebars.SafeString(out)
 
 # Returns a list to links to machine
-Handlebars.registerHelper 'links_to_machines', (machines) ->
+Handlebars.registerHelper 'links_to_machines', (machines, safety) ->
     out = ""
     for i in [0...machines.length]
-        out += '<a href="#machines/'+machines[i].id+'" class="links_to_other_view">'+machines[i].name+'</a>'
+        out += '<a href="#servers/'+machines[i].id+'" class="links_to_other_view">'+machines[i].name+'</a>'
         out += ", " if i isnt machines.length-1
+    if safety? and safety is false
+        return out
     return new Handlebars.SafeString(out)
 
 Handlebars.registerHelper 'links_to_machines_inline', (machines) ->
     out = ""
     for i in [0...machines.length]
-        out += '<a href="#machines/'+machines[i].uid+'" class="links_to_other_view">'+machines[i].name+'</a>'
+        out += '<a href="#servers/'+machines[i].uid+'" class="links_to_other_view">'+machines[i].name+'</a>'
         out += ", " if i isnt machines.length-1
     return new Handlebars.SafeString(out)
 
@@ -78,7 +80,7 @@ Handlebars.registerHelper 'links_to_datacenters_inline', (datacenters) ->
 Handlebars.registerHelper 'links_to_masters_and_namespaces', (machines) ->
     out = ""
     for i in [0...machines.length]
-        out += '<p><a href="#namespaces/'+machines[i].namespace_id+'" class="links_to_other_view">'+machines[i].namespace_name+'</a> (<a href="#machines/'+machines[i].machine_id+'" class="links_to_other_view">'+machines[i].machine_name+'</a>)</p>'
+        out += '<p><a href="#namespaces/'+machines[i].namespace_id+'" class="links_to_other_view">'+machines[i].namespace_name+'</a> (<a href="#servers/'+machines[i].machine_id+'" class="links_to_other_view">'+machines[i].machine_name+'</a>)</p>'
     return out
 
 
@@ -87,7 +89,7 @@ Handlebars.registerHelper 'links_to_masters_and_namespaces', (machines) ->
 Handlebars.registerHelper 'links_to_replicas_and_namespaces', (machines) ->
     out = ""
     for i in [0...machines.length]
-        out += '<p><a href="#namespaces/'+machines[i].get('namespace_uuid')+'" class="links_to_other_view">'+machines[i].get('namespace_name')+'</a> (<a href="#machines/'+machines[i].get('machine_id')+'" class="links_to_other_view">'+machines[i].get('machine_name')+'</a>)</p>'
+        out += '<p><a href="#namespaces/'+machines[i].get('namespace_uuid')+'" class="links_to_other_view">'+machines[i].get('namespace_name')+'</a> (<a href="#servers/'+machines[i].get('machine_id')+'" class="links_to_other_view">'+machines[i].get('machine_name')+'</a>)</p>'
         out += '<ul><li>Shard: '+machines[i].get('shard')+'</li>'
         out += '<li>Blueprint: '+machines[i].get('blueprint')+'</li>'
         out += '<li>Directory: '+machines[i].get('directory')+'</li></ul>'
@@ -117,7 +119,8 @@ Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
 
 Handlebars.registerHelper 'pluralize_verb_to_be', (num) -> if num is 1 then 'is' else 'are'
 Handlebars.registerHelper 'pluralize_verb_to_have', (num) -> if num is 1 then 'has' else 'have'
-
+Handlebars.registerHelper 'pluralize_verb', (verb, num) -> if num is 1 then verb+'s' else verb
+Handlebars.registerHelper 'pluralize_its', (num) -> if num is 1 then 'its' else 'their'
 # Helpers for capitalization
 Handlebars.registerHelper 'capitalize', (str) -> str.charAt(0).toUpperCase() + str.slice(1)
 
@@ -206,7 +209,7 @@ Handlebars.registerHelper 'display_truncated_machines', (data) ->
     num_displayed_machine = 0
     more_link_should_be_displayed = data.more_link_should_be_displayed
     for machine in machines
-        out += '<li><a href="#machines/'+machine.id+'">'+machine.name+'</a>'+Handlebars.helpers.humanize_machine_reachability(machine.status)+'</li>'
+        out += '<li><a href="#servers/'+machine.id+'">'+machine.name+'</a>'+Handlebars.helpers.humanize_machine_reachability(machine.status)+'</li>'
         num_displayed_machine++
         if machine.status.reachable isnt true
             num_displayed_machine++

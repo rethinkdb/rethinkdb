@@ -6,7 +6,6 @@
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 
-#include "concurrency/cross_thread_watchable.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 
@@ -17,6 +16,9 @@ important because every time a new `cluster_namespace_interface_t` is created,
 it must perform a handshake with every `master_t`, which means several network
 round-trips. */
 
+template <class> class watchable_t;
+
+
 template <class protocol_t>
 class namespace_repo_t : public home_thread_mixin_t {
 private:
@@ -25,7 +27,8 @@ private:
 
 public:
     namespace_repo_t(mailbox_manager_t *,
-                     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > >);
+                     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > >,
+                     typename protocol_t::context_t *);
 
     class access_t {
     public:
@@ -74,6 +77,7 @@ private:
 
     mailbox_manager_t *mailbox_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > namespaces_directory_metadata;
+    typename protocol_t::context_t *ctx;
 
     one_per_thread_t<namespace_cache_t> namespace_caches;
 

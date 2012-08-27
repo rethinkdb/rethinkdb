@@ -172,8 +172,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
             datacenter_metadata.name = vclock_t<std::string>("Welcome-dc", our_machine_id);
             semilattice_metadata.datacenters.datacenters.insert(std::make_pair(
                 datacenter_id,
-                deletable_t<datacenter_semilattice_metadata_t>(datacenter_metadata)
-                ));
+                deletable_t<datacenter_semilattice_metadata_t>(datacenter_metadata)));
 
             /* Add ourselves as a member of the "Welcome" datacenter. */
             machine_semilattice_metadata_t our_machine_metadata;
@@ -182,8 +181,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
             semilattice_metadata.machines.machines.insert(std::make_pair(
                 our_machine_id,
-                deletable_t<machine_semilattice_metadata_t>(our_machine_metadata)
-                ));
+                deletable_t<machine_semilattice_metadata_t>(our_machine_metadata)));
 
 
             /* Create a welcome database. */
@@ -192,8 +190,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
             database_metadata.name = vclock_t<std::string>("Welcome-db", our_machine_id);
             semilattice_metadata.databases.databases.insert(std::make_pair(
                 database_id,
-                deletable_t<database_semilattice_metadata_t>(database_metadata)
-                ));
+                deletable_t<database_semilattice_metadata_t>(database_metadata)));
             {
                 /* add an mc namespace */
                 namespace_id_t namespace_id = generate_uuid();
@@ -636,8 +633,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     // Attempt to create the directory early so that the log file can use it.
     if (!check_existence(filepath)) {
         new_directory = true;
-        int res = mkdir(filepath.c_str(), 0755);
-        if (res != 0) {
+        int mkdir_res = mkdir(filepath.c_str(), 0755);
+        if (mkdir_res != 0) {
             fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
             return 1;
         }

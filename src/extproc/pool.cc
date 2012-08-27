@@ -153,7 +153,7 @@ void pool_t::spawn_workers(int num) {
     guarantee(num_workers() <= config()->max_workers);
 
     // Spawn off `num` processes.
-    pid_t pids[num];
+    scoped_array_t<pid_t> pids(num);
     scoped_array_t<scoped_fd_t> fds(num);
     {
         on_thread_t switcher(spawner()->home_thread());
@@ -199,7 +199,7 @@ pool_t::worker_t::worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd)
 
 pool_t::worker_t::~worker_t() {}
 
-void pool_t::worker_t::on_event(UNUSED int events) {
+void pool_t::worker_t::on_event(int events) {
     // NB. We are not in coroutine context when this method is called.
     if (attached_) {
         on_error();

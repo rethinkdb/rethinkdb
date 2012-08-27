@@ -63,6 +63,10 @@ protected:
 /* Some `protocol_t::region_t` functions can be implemented in terms of other
 functions. Here are default implementations for those functions. */
 
+/* Forward declaration to make this work. */
+template <class region_t>
+bool region_is_superset(const region_t &, const region_t &);
+
 template<class region_t>
 bool region_is_empty(const region_t &r) {
     return region_is_superset(region_t::empty(), r);
@@ -108,7 +112,7 @@ public:
             regions.push_back(it->first);
         }
         typename protocol_t::region_t join;
-        DEBUG_ONLY_VAR region_join_result_t join_result = region_join(regions, &join);
+        region_join_result_t join_result = region_join(regions, &join);
         guarantee(join_result == REGION_JOIN_OK);
         return join;
     }
@@ -220,8 +224,7 @@ region_map_t<protocol_t, new_t> region_map_transform(const region_map_t<protocol
                                                                   it++) {
         new_pairs.push_back(std::pair<typename protocol_t::region_t, new_t>(
                 it->first,
-                callable(it->second)
-                ));
+                callable(it->second)));
     }
     return region_map_t<protocol_t, new_t>(new_pairs.begin(), new_pairs.end());
 }

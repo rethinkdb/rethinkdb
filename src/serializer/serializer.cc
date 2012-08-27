@@ -86,7 +86,7 @@ void perform_write(const serializer_write_t *write, serializer_t *ser, file_acco
     } break;
     case serializer_write_t::TOUCH: {
         op->recency = write->action.touch.recency;
-    }
+    } break;
     default:
         unreachable();
     }

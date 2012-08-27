@@ -21,7 +21,7 @@ do_test(
         "--workload-during '$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' "
         "--workload-during '$RETHINKDB/test/memcached_workloads/simulate_web_ui.py $HOST:$HTTP_PORT'",
     repeat = 3,
-    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]
+    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress", "build/debug/web"]
     )
 
 do_test(
@@ -29,5 +29,5 @@ do_test(
         "--workload-during '$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' "
         "--workload-during '$RETHINKDB/test/memcached_workloads/simulate_web_ui.py $HOST:$HTTP_PORT'",
     repeat = 3,
-    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]
+    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress", "build/debug/web"]
     )

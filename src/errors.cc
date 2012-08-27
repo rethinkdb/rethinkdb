@@ -68,7 +68,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 
 /* Handlers for various signals and for unexpected exceptions or calls to std::terminate() */
 
-void generic_crash_handler(int signum) {
+NORETURN void generic_crash_handler(int signum) {
     if (signum == SIGSEGV) {
         crash("Segmentation fault.");
     } else {
@@ -78,7 +78,7 @@ void generic_crash_handler(int signum) {
 
 void ignore_crash_handler(UNUSED int signum) { }
 
-void terminate_handler() {
+NORETURN void terminate_handler() {
     std::type_info *t = abi::__cxa_current_exception_type();
     if (t) {
         std::string name;

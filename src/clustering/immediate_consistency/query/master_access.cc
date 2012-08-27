@@ -6,7 +6,8 @@
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
 
-#define THROTTLE_THRESHOLD 200
+// TODO: Was this macro supposed to be used?
+// #define THROTTLE_THRESHOLD 200
 
 template <class protocol_t>
 master_access_t<protocol_t>::master_access_t(
@@ -62,8 +63,7 @@ void master_access_t<protocol_t>::read(
         read,
         otok,
         token_for_master,
-        result_or_failure_mailbox.get_address()
-        );
+        result_or_failure_mailbox.get_address());
 
     multi_throttling_client.spawn_request(read_request, &ticket, interruptor);
 
@@ -117,8 +117,7 @@ void master_access_t<protocol_t>::write(
         write,
         otok,
         token_for_master,
-        result_or_failure_mailbox.get_address()
-        );
+        result_or_failure_mailbox.get_address());
 
     multi_throttling_client.spawn_request(write_request, &ticket, interruptor);
 

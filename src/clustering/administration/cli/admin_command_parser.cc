@@ -349,9 +349,9 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
             help->pagef("%s\n", make_bold("DESCRIPTION").c_str());
             description_header_printed = true;
         }
-        std::string header = prefix + helps[i].command + " " + helps[i].usage;
+        std::string some_other_header = prefix + helps[i].command + " " + helps[i].usage;
         std::string desc = helps[i].description;
-        help->pagef("%s\n%s\n\n", indent_and_underline(header, 4, 6, width).c_str(),
+        help->pagef("%s\n%s\n\n", indent_and_underline(some_other_header, 4, 6, width).c_str(),
                                   indent_and_underline(desc, 8, 8, width).c_str());
     }
 
@@ -707,18 +707,18 @@ void admin_command_parser_t::completion_generator_hook(const char *raw, linenois
     }
 }
 
-std::map<std::string, admin_command_parser_t::command_info_t *>::const_iterator admin_command_parser_t::find_command_with_completion(const std::map<std::string, command_info_t *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches) {
-    std::map<std::string, command_info_t *>::const_iterator i = commands.find(str);
+std::map<std::string, admin_command_parser_t::command_info_t *>::const_iterator admin_command_parser_t::find_command_with_completion(const std::map<std::string, command_info_t *>& _commands, const std::string& str, linenoiseCompletions *completions, bool add_matches) {
+    std::map<std::string, command_info_t *>::const_iterator i = _commands.find(str);
     if (add_matches) {
-        if (i == commands.end()) {
-            for (i = commands.lower_bound(str); i != commands.end() && i->first.find(str) == 0; ++i) {
+        if (i == _commands.end()) {
+            for (i = _commands.lower_bound(str); i != _commands.end() && i->first.find(str) == 0; ++i) {
                 linenoiseAddCompletion(completions, i->first.c_str());
             }
         } else {
             linenoiseAddCompletion(completions, i->first.c_str());
         }
 
-        return commands.end();
+        return _commands.end();
     }
     return i;
 }

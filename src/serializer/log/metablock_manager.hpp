@@ -166,7 +166,7 @@ private:
         state_reading,
         state_ready,
         state_writing,
-        state_shut_down,
+        state_shut_down
     } state;
 
     direct_file_t *dbfile;

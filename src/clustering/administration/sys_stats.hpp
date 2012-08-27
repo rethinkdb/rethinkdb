@@ -1,22 +1,22 @@
 #ifndef CLUSTERING_ADMINISTRATION_SYS_STATS_HPP_
 #define CLUSTERING_ADMINISTRATION_SYS_STATS_HPP_
 
-#include "perfmon/perfmon.hpp"
-
 #include <string>
+
+#include "perfmon/perfmon.hpp"
 
 /* Class to get system statistics, such as disk space usage.
 Similar to proc_stats_collector_t, but not based on /proc. */
 
 class sys_stats_collector_t : public home_thread_mixin_t {
 public:
-    explicit sys_stats_collector_t(const std::string &path, perfmon_collection_t *stats);
+    sys_stats_collector_t(const std::string &path, perfmon_collection_t *stats);
 
 private:
     // similar to proc_stats_collector_t::instantaneous_stats_collector_t
     class instantaneous_stats_collector_t : public perfmon_t {
     public:
-        instantaneous_stats_collector_t(const std::string &path);
+        explicit instantaneous_stats_collector_t(const std::string &path);
         void *begin_stats();
         void visit_stats(void *);
         perfmon_result_t *end_stats(void *);

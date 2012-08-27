@@ -7,7 +7,9 @@ module 'Vis', ->
         initialize: (_stats_fn) =>
             log_initial '(initializing) performance panel'
             @ops_plot = new Vis.OpsPlot(_stats_fn)
-            @stats_panel = new Vis.StatsPanel(_stats_fn)
+
+            #@stats_panel = new Vis.StatsPanel(_stats_fn)
+            @more_stats = new Vis.MoreStats()
 
         render: ->
             log_render '(rendering) performance panel'
@@ -15,12 +17,15 @@ module 'Vis', ->
             @.$el.html (@template {})
             # Render our elements
             @.$('.ops_plot_placeholder').html(@ops_plot.render().$el)
-            @.$('.stats_placeholder').html(@stats_panel.render().$el)
+
+            @.$('.stats_placeholder').html(@more_stats.render().$el)
+            #@.$('.stats_placeholder').html(@stats_panel.render().$el)
             return @
 
         destroy: =>
             @ops_plot.destroy()
-            @stats_panel.destroy()
+            #@stats_panel.destroy()
+            @more_stats.destroy()
 
     @num_formatter = (i) ->
         if isNaN(i)
@@ -240,6 +245,28 @@ module 'Vis', ->
         get_latest: ->
             return @values[@values.length - 1]
 
+    class @MoreStats extends Backbone.View
+        className: 'more_stats'
+        template: Handlebars.compile $('#more_stats-template').html()
+        initialize: =>
+            machines.on 'add', @render
+            machines.on 'remove', @render
+            datacenters.on 'add', @render
+            datacenters.on 'remove', @render
+            databases.on 'add', @render
+            databases.on 'remove', @render
+            namespaces.on 'add', @render
+            namespaces.on 'remove', @render
+
+        render: =>
+            @.$el.html @template
+                num_datacenters: datacenters.length
+                num_servers: machines.length
+                num_databases: databases.length
+                num_namespaces: namespaces.length
+            return @
+
+    #TODO Clean Stats Panel + HTML + CSS if we agree on removing the sparklines
     class @StatsPanel extends Backbone.View
         className: 'stats_panel'
         template: Handlebars.compile $('#stats_panel-template').html()

@@ -15,13 +15,13 @@
         </li>
         {{/each}}
       </ul>
-      <p>* Replicas cannot be assigned to <a href="/#machines/{{primary_uuid}}">{{primary_name}}</a> because it's a master for this shard.</p>
+      <p>* Replicas cannot be assigned to <a href="/#servers/{{primary_uuid}}">{{primary_name}}</a> because it's a master for this shard.</p>
       <a id="btn_change_hints_cancel" href="#">Cancel</a>
       {{else}}
       <h4>Current replica assignments:</h4>
       <ul>
         {{#each machines}}
-        <li><a href="/#machines/{{uuid}}">{{name}}</a> {{humanize_machine_reachability status}}</li>
+        <li><a href="/#servers/{{uuid}}">{{name}}</a> {{humanize_machine_reachability status}}</li>
         {{/each}}
       </ul>
       <a id="btn_change_hints" href="#">Change assignments</a>
@@ -47,7 +47,7 @@
       <a id="btn_change_hints_cancel" href="#">Cancel</a>
       {{else}}
       <h4>Current master assignment:</h4>
-      <li><a href="/#machines/{{master_uuid}}">{{master_name}}</a> {{humanize_machine_reachability master_status}}</li>
+      <li><a href="/#servers/{{master_uuid}}">{{master_name}}</a> {{humanize_machine_reachability master_status}}</li>
       <a id="btn_change_hints" href="#">Change assignment</a>
       {{/if}}
     </div>
@@ -57,6 +57,6 @@
 <script id="edit_machines-alert-template" type="text/x-handlebars-template">
   <div class="alert" data-alert="alert">
     <a class="close" href="#">&times;</a>
-    <p>You successfully changed machine assignments.</p>
+    <p>You successfully changed server assignments.</p>
   </div>
 </script>

@@ -132,6 +132,7 @@ public:
     field_copier_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >, test_cluster_directory_t<protocol_t> > reactor_directory_copier;
 
 private:
+    typename protocol_t::context_t ctx;
     static boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > wrap_in_optional(const directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > &input);
 
     static std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > extract_reactor_directory(const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &bcards);
@@ -173,7 +174,7 @@ test_reactor_t<protocol_t>::test_reactor_t(io_backender_t *io_backender, reactor
     blueprint_watchable(initial_blueprint),
     reactor(io_backender, &r->mailbox_manager, this,
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
-            &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection()),
+            &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), &ctx),
     reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable) {
     rassert(svs->get_multistore_joined_region() == a_thru_z_region());
 }
@@ -208,9 +209,9 @@ test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines) {
 
     for (int i = 0; i < n_machines; i++) {
         files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
-        stores.push_back(new typename protocol_t::store_t(io_backender.get(), files[i].name(), true, NULL));
+        stores.push_back(new typename protocol_t::store_t(io_backender.get(), files[i].name(), true, NULL, &ctx));
         store_view_t<protocol_t> *store_ptr = &stores[i];
-        svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
+        svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1, &ctx));
         stores.back().metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
 
         test_clusters.push_back(new reactor_test_cluster_t<protocol_t>(port + i));
@@ -302,8 +303,8 @@ void test_cluster_group_t<protocol_t>::make_namespace_interface(int i, scoped_pt
     out->init(new cluster_namespace_interface_t<protocol_t>(
                                                             &test_clusters[i].mailbox_manager,
                                                             (&test_clusters[i])->directory_read_manager.get_root_view()
-                                                            ->subview(&test_cluster_group_t::extract_reactor_business_cards_no_optional)
-                                                            ));
+                                                            ->subview(&test_cluster_group_t::extract_reactor_business_cards_no_optional),
+                                                            &ctx));
     (*out)->get_initial_ready_signal()->wait_lazily_unordered();
 }
 

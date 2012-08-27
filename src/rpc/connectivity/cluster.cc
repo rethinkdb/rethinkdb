@@ -72,8 +72,7 @@ void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING 
         address,
         /* We don't know what `peer_id_t` the peer has until we connect to it */
         boost::none,
-        auto_drainer_t::lock_t(&drainer)
-        ));
+        auto_drainer_t::lock_t(&drainer)));
 }
 
 connectivity_cluster_t::run_t::connection_entry_t::connection_entry_t(run_t *p, peer_id_t id, tcp_conn_stream_t *c, peer_address_t a) THROWS_NOTHING :
@@ -348,8 +347,7 @@ void connectivity_cluster_t::run_t::handle(
             comes next will see us */
             routing_table_entry_sentry.init(
                 new map_insertion_sentry_t<peer_id_t, peer_address_t>(
-                    &routing_table, other_id, other_address
-                    ));
+                    &routing_table, other_id, other_address));
         }
 
         /* We're good to go! Transmit the routing table to the follower, so it
@@ -393,8 +391,7 @@ void connectivity_cluster_t::run_t::handle(
             comes next will see us */
             routing_table_entry_sentry.init(
                 new map_insertion_sentry_t<peer_id_t, peer_address_t>(
-                    &routing_table, other_id, other_address
-                    ));
+                    &routing_table, other_id, other_address));
         }
 
         /* Send our routing table to the leader */

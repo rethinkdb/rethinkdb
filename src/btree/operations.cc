@@ -208,16 +208,16 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
         union {
             char x[sizeof(uint32_t)];
             uint32_t y;
-        } data;
+        } u;
         rassert(key.size() < UINT32_MAX);
         rassert(value.size() < UINT32_MAX);
 
-        data.y = key.size();
-        metainfo.insert(metainfo.end(), data.x, data.x + sizeof(uint32_t));
+        u.y = key.size();
+        metainfo.insert(metainfo.end(), u.x, u.x + sizeof(uint32_t));
         metainfo.insert(metainfo.end(), key.begin(), key.end());
 
-        data.y = value.size();
-        metainfo.insert(metainfo.end(), data.x, data.x + sizeof(uint32_t));
+        u.y = value.size();
+        metainfo.insert(metainfo.end(), u.x, u.x + sizeof(uint32_t));
         metainfo.insert(metainfo.end(), value.begin(), value.end());
     }
 
@@ -379,7 +379,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
         insert_root(last_buf->get_block_id(), sb);
     }
 
-    bool success UNUSED = internal_node::insert(sizer->block_size(), last_buf, median, buf->get_block_id(), rbuf.get_block_id());
+    DEBUG_VAR bool success = internal_node::insert(sizer->block_size(), last_buf, median, buf->get_block_id(), rbuf.get_block_id());
     rassert(success, "could not insert internal btree node");
 
     // We've split the node; now figure out where the key goes and release the other buf (since we're done with it).

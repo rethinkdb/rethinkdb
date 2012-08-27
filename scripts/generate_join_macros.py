@@ -18,7 +18,9 @@ def generate_make_semilattice_joinable_macro(nfields):
     print "    inline void semilattice_join(%stype_t *_a_, %sconst type_t &_b_) { \\" % (unused, unused)
     for i in xrange(nfields):
         print "        semilattice_join(&_a_->field%d, _b_.field%d); \\" % (i + 1, i + 1)
-    print "    }"
+    print "    } \\"
+    # Putting this here makes us require a semicolon after macro invocation.
+    print "    extern int semilattice_joinable_force_semicolon_declaration"
 
 def generate_make_equality_comparable_macro(nfields):
     print "#define RDB_MAKE_EQUALITY_COMPARABLE_%d(type_t%s) \\" % \
@@ -29,7 +31,9 @@ def generate_make_equality_comparable_macro(nfields):
         print "        return true; \\"
     else:
         print "        return " + " && ".join("_a_.field%d == _b_.field%d" % (i + 1, i + 1) for i in xrange(nfields)) + "; \\"
-    print "    }"
+    print "    } \\"
+    # Putting this here makes us require a semicolon after macro invocation.
+    print "    extern int semilattice_joinable_force_semicolon_declaration"
 
 if __name__ == "__main__":
 

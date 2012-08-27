@@ -31,7 +31,7 @@
 
 <script id="log-header-machine-template" type="text/x-handlebars-template">
     {{#if from_date}}
-        <h3 class="title">Log from this machine <small>from {{from_date}} to {{to_date}}</small></h3>
+        <h3 class="title">Log from this server <small>from {{from_date}} to {{to_date}}</small></h3>
     {{else}}
         <h3>No log found</h3>
     {{/if}}
@@ -72,7 +72,7 @@
         {{#if raw_data}}
             <span class="more-details"><a href="#" class="more-details-link">More details</a></span>
         {{/if}}
-        <p><strong>Log</strong> reported from <a href="#machines/{{machine_uuid}}">{{machine_name}}</a> on {{datetime}}</p>
+        <p><strong>Log</strong> reported from <a href="#servers/{{machine_uuid}}">{{machine_name}}</a> on {{datetime}}</p>
     </div>
     <div class="message">
         {{print_safe msg}}
@@ -84,7 +84,7 @@
 </script>
 
 <script id="log-single_value-template" type="text/x-handlebars-template">
-    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to 
+    Set table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to 
     {{#if value}}
     {{value}}
     {{/if}}
@@ -97,16 +97,16 @@
 </script>
 
 <script id="log-machines_values-template" type="text/x-handlebars-template">
-    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
+    Set table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
     <ul class="pretty_logs_ul">
         {{#each machines}}
-        <li class="pretty_logs_li">Machine <a href="#machines/{{machine_id}}">{{machine_name}}: {{value}}</li>
+        <li class="pretty_logs_li">Server <a href="#servers/{{machine_id}}">{{machine_name}}: {{value}}</li>
         {{/each}}
     </ul>
 </script>
 
 <script id="log-datacenters_values-template" type="text/x-handlebars-template">
-    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
+    Set table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
     <ul class="pretty_logs_ul">
         {{#each datacenters}}
         <li class="pretty_logs_li">Datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>: {{value}}</li>
@@ -116,20 +116,20 @@
 
 
 <script id="log-shards_values-template" type="text/x-handlebars-template">
-    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
+    Set table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
     <ul class="pretty_logs_ul">
         {{#each shards}}
         {{#if is_null}}
         <li class="pretty_logs_li">{{shard}}: <span class="fake-link">null</span></li>
         {{else}}
-        <li class="pretty_logs_li">{{shard}}: <a href="#machines/{{machine_id}}">{{machine_name}}</a></li>
+        <li class="pretty_logs_li">{{shard}}: <a href="#servers/{{machine_id}}">{{machine_name}}</a></li>
         {{/if}}
         {{/each}}
     </ul>
 </script>
 
 <script id="log-shards_list_values-template" type="text/x-handlebars-template">
-    Set namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
+    Set table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
     <ul class="pretty_logs_ul">
         {{#each shards}}
         <li class="pretty_logs_li">{{shard}}: [ {{links_to_machines machines}} ]</li>
@@ -138,7 +138,7 @@
 </script>
 
 <script id="log-new_namespace-template" type="text/x-handlebars-template">
-    Create a new namespace {{namespace_name}} with primary datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a> on port {{port}}}<br/>
+    Create a new table {{namespace_name}} with primary datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a> on port {{port}}}<br/>
 </script>
 <script id="log-new_datacenter-template" type="text/x-handlebars-template">
     Create a new datacenter {{datacenter_name}}<br/>
@@ -151,11 +151,11 @@
 </script>
 
 <script id="log-server-new_name-template" type="text/x-handlebars-template">
-    Set machine <a href="#machines/{{machine_id}}">{{machine_id_trunked}}</a>'s name to {{name}}<br/>
+    Set server <a href="#servers/{{machine_id}}">{{machine_id_trunked}}</a>'s name to {{name}}<br/>
 </script>
 
 <script id="log-server-set_datacenter-template" type="text/x-handlebars-template">
-    Set machine <a href="#machines/{{machine_id}}">{{machine_name}}</a>'s datacenter to <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a><br/>
+    Set server <a href="#servers/{{machine_id}}">{{machine_name}}</a>'s datacenter to <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a><br/>
 </script>
 
 <script id="log-datacenter-new_name-template" type="text/x-handlebars-template">
@@ -171,12 +171,12 @@
     <div class="message">
         {{print_safe msg}}
     </div>
-    <p class="from-machine">From <a href="#machines/{{machine_uuid}}">{{machine_name}}</a></p>
+    <p class="from-machine">From <a href="#servers/{{machine_uuid}}">{{machine_name}}</a></p>
     <p class="datetime">{{timeago_timestamp}}</p>
 </script>
 
 <script id="log-namespace_value-small_template" type="text/x-handlebars-template">
-    Change namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}}<br/>
+    Change table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}}<br/>
 </script>
 
 <script id="log-new_something-small_template" type="text/x-handlebars-template">
@@ -185,7 +185,7 @@
 
 
 <script id="log-machine_value-small_template" type="text/x-handlebars-template">
-    Change machine <a href="#machines/{{machine_id}}">{{machine_name}}</a>'s {{attribute}}<br/>
+    Change server <a href="#servers/{{machine_id}}">{{machine_name}}</a>'s {{attribute}}<br/>
 </script>
 
 <script id="log-datacenter_value-small_template" type="text/x-handlebars-template">

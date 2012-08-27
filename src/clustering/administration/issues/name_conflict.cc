@@ -57,8 +57,7 @@ public:
                 by_name.begin(); it != by_name.end(); it++) {
             if (it->second.size() > 1) {
                 out->push_back(clone_ptr_t<global_issue_t>(
-                    new name_conflict_issue_t(type, it->first, it->second)
-                    ));
+                    new name_conflict_issue_t(type, it->first, it->second)));
             }
         }
     }

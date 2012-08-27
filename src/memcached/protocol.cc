@@ -109,6 +109,10 @@ region_t monokey_region(const store_key_t &k) {
 
 /* `read_t::get_region()` */
 
+/* Wrap all our local types in anonymous namespaces so the linker doesn't
+confuse them with other local types with the same name */
+namespace {
+
 struct read_get_region_visitor_t : public boost::static_visitor<region_t> {
     region_t operator()(get_query_t get) {
         return monokey_region(get.key);
@@ -123,12 +127,16 @@ struct read_get_region_visitor_t : public boost::static_visitor<region_t> {
     }
 };
 
+}   /* anonymous namespace */
+
 region_t read_t::get_region() const THROWS_NOTHING {
     read_get_region_visitor_t v;
     return boost::apply_visitor(v, query);
 }
 
 /* `read_t::shard()` */
+
+namespace {
 
 struct read_shard_visitor_t : public boost::static_visitor<read_t> {
     read_shard_visitor_t(const region_t &r, exptime_t et) :
@@ -156,12 +164,16 @@ struct read_shard_visitor_t : public boost::static_visitor<read_t> {
     }
 };
 
+}   /* anonymous namespace */
+
 read_t read_t::shard(const region_t &r) const THROWS_NOTHING {
     read_shard_visitor_t v(r, effective_time);
     return boost::apply_visitor(v, query);
 }
 
 /* `read_t::unshard()` */
+
+namespace {
 
 class key_with_data_buffer_less_t {
 public:
@@ -252,10 +264,14 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     }
 };
 
-void read_t::unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+}   /* anonymous namespace */
+
+void read_t::unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
     read_unshard_visitor_t v(responses);
     *response = boost::apply_visitor(v, query);
 }
+
+namespace {
 
 // TODO: get rid of this extra response_t copy on the stack
 struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_response_t> {
@@ -346,12 +362,16 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_res
     }
 };
 
-void read_t::multistore_unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+}   /* anonymous namespace */
+
+void read_t::multistore_unshard(const std::vector<read_response_t>& responses, read_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
     read_multistore_unshard_visitor_t v(responses);
     *response = boost::apply_visitor(v, query);
 }
 
 /* `write_t::get_region()` */
+
+namespace {
 
 struct write_get_region_visitor_t : public boost::static_visitor<region_t> {
     /* All the types of mutation have a member called `key` */
@@ -361,6 +381,8 @@ struct write_get_region_visitor_t : public boost::static_visitor<region_t> {
     }
 };
 
+}   /* anonymous namespace */
+
 region_t write_t::get_region() const THROWS_NOTHING {
     write_get_region_visitor_t v;
     return boost::apply_visitor(v, mutation);
@@ -368,23 +390,24 @@ region_t write_t::get_region() const THROWS_NOTHING {
 
 /* `write_t::shard()` */
 
-write_t write_t::shard(DEBUG_ONLY_VAR const region_t &region) const THROWS_NOTHING {
+write_t write_t::shard(DEBUG_VAR const region_t &region) const THROWS_NOTHING {
     rassert(region == get_region());
     return *this;
 }
 
 /* `write_response_t::unshard()` */
 
-void write_t::unshard(const std::vector<write_response_t>& responses, write_response_t *response, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+void write_t::unshard(const std::vector<write_response_t>& responses, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
     /* TODO: Make sure the request type matches the response type */
     rassert(responses.size() == 1);
     *response = responses[0];
 }
 
-void write_t::multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, temporary_cache_t *cache) const THROWS_NOTHING {
-    unshard(responses, response, cache);
+void write_t::multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING {
+    unshard(responses, response, ctx);
 }
 
+namespace {
 
 struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<region_t> {
     region_t operator()(const backfill_chunk_t::delete_key_t &del) {
@@ -400,11 +423,14 @@ struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<region
     }
 };
 
+}   /* anonymous namespace */
 
 region_t backfill_chunk_t::get_region() const THROWS_NOTHING {
     backfill_chunk_get_region_visitor_t v;
     return boost::apply_visitor(v, val);
 }
+
+namespace {
 
 struct backfill_chunk_shard_visitor_t : public boost::static_visitor<backfill_chunk_t> {
 public:
@@ -428,8 +454,32 @@ private:
     const region_t &region;
 };
 
+}   /* anonymous namespace */
+
 backfill_chunk_t backfill_chunk_t::shard(const region_t &region) const THROWS_NOTHING {
     backfill_chunk_shard_visitor_t v(region);
+    return boost::apply_visitor(v, val);
+}
+
+namespace {
+
+struct backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
+public:
+    repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) {
+        return del.recency;
+    }
+    repli_timestamp_t operator()(const backfill_chunk_t::delete_range_t &) {
+        return repli_timestamp_t::invalid;
+    }
+    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
+        return kv.backfill_atom.recency;
+    }
+};
+
+}   /* anonymous namespace */
+
+repli_timestamp_t backfill_chunk_t::get_btree_repli_timestamp() const THROWS_NOTHING {
+    backfill_chunk_get_btree_repli_timestamp_visitor_t v;
     return boost::apply_visitor(v, val);
 }
 
@@ -449,12 +499,15 @@ region_t memcached_protocol_t::cpu_sharding_subspace(int subregion_number, int n
 store_t::store_t(io_backender_t *io_backend,
                  const std::string& filename,
                  bool create,
-                 perfmon_collection_t *parent_perfmon_collection) :
-    btree_store_t<memcached_protocol_t>(io_backend, filename, create, parent_perfmon_collection) { }
+                 perfmon_collection_t *parent_perfmon_collection,
+                 context_t *ctx) :
+    btree_store_t<memcached_protocol_t>(io_backend, filename, create, parent_perfmon_collection, ctx) { }
 
 store_t::~store_t() {
     assert_thread();
 }
+
+namespace {
 
 struct read_visitor_t : public boost::static_visitor<read_response_t> {
     read_response_t operator()(const get_query_t& get) {
@@ -492,6 +545,8 @@ private:
     exptime_t effective_time;
 };
 
+}   /* anonymous namespace */
+
 void store_t::protocol_read(const read_t &read,
                             read_response_t *response,
                             btree_slice_t *btree,
@@ -500,6 +555,8 @@ void store_t::protocol_read(const read_t &read,
     read_visitor_t v(btree, txn, superblock, read.effective_time);
     *response = boost::apply_visitor(v, read.query);
 }
+
+namespace {
 
 // TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<write_response_t> {
@@ -536,6 +593,8 @@ private:
     repli_timestamp_t timestamp;
 };
 
+}   /* anonymous namespace */
+
 void store_t::protocol_write(const write_t &write,
                              write_response_t *response,
                              transition_timestamp_t timestamp,
@@ -557,7 +616,7 @@ public:
         chunk_fun_cb_->send_chunk(chunk_t::delete_range(region_t(range)));
     }
 
-    void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
+    void on_deletion(const btree_key_t *key, repli_timestamp_t recency) {
         chunk_fun_cb_->send_chunk(chunk_t::delete_key(to_store_key(key), recency));
     }
 
@@ -621,11 +680,12 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
     }
 }
 
+namespace {
+
 struct receive_backfill_visitor_t : public boost::static_visitor<> {
     receive_backfill_visitor_t(btree_slice_t *_btree, transaction_t *_txn, superblock_t *_superblock, signal_t *_interruptor) : btree(_btree), txn(_txn), superblock(_superblock), interruptor(_interruptor) { }
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
-        // FIXME: we ignored delete_key.recency here. Should we use it in place of repli_timestamp_t::invalid?
-        memcached_delete(delete_key.key, true, btree, 0, repli_timestamp_t::invalid, txn, superblock);
+        memcached_delete(delete_key.key, true, btree, 0, delete_key.recency, txn, superblock);
     }
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         hash_range_key_tester_t tester(delete_range.range);
@@ -636,8 +696,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
         memcached_set(bf_atom.key, btree,
             bf_atom.value, bf_atom.flags, bf_atom.exptime,
             add_policy_yes, replace_policy_yes, INVALID_CAS,
-            // TODO: Should we pass bf_atom.recency in place of repli_timestamp_t::invalid here? Ask Sam.
-            bf_atom.cas_or_zero, 0, repli_timestamp_t::invalid,
+            bf_atom.cas_or_zero, 0, bf_atom.recency,
             txn, superblock);
     }
 private:
@@ -660,6 +719,8 @@ private:
     signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.
 };
 
+}   /* anonymous namespace */
+
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
                                         transaction_t *txn,
                                         superblock_t *superblock,
@@ -667,6 +728,8 @@ void store_t::protocol_receive_backfill(btree_slice_t *btree,
                                         const backfill_chunk_t &chunk) {
     boost::apply_visitor(receive_backfill_visitor_t(btree, txn, superblock, interruptor), chunk.val);
 }
+
+namespace {
 
 // TODO: Maybe hash_range_key_tester_t is redundant with this, since
 // the key range test is redundant.
@@ -683,6 +746,8 @@ private:
 
     DISABLE_COPYING(hash_key_tester_t);
 };
+
+}   /* anonymous namespace */
 
 void store_t::protocol_reset_data(const region_t& subregion,
                                   btree_slice_t *btree,

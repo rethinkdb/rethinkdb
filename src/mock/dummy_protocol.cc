@@ -62,8 +62,8 @@ dummy_protocol_t::read_t dummy_protocol_t::read_t::shard(region_t region) const 
     return r;
 }
 
-void dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, dummy_protocol_t::read_response_t *response, UNUSED temporary_cache_t *cache) const {
-    rassert(cache != NULL);
+void dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, dummy_protocol_t::read_response_t *response, DEBUG_VAR context_t *ctx) const {
+    rassert(ctx != NULL);
     for (size_t i = 0; i < resps.size(); ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].values.begin();
                 it != resps[i].values.end(); it++) {
@@ -77,8 +77,8 @@ void dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, dummy
     }
 }
 
-void dummy_protocol_t::read_t::multistore_unshard(const std::vector<read_response_t>& resps, read_response_t *response, UNUSED temporary_cache_t *cache) const {
-    unshard(resps, response, cache);
+void dummy_protocol_t::read_t::multistore_unshard(const std::vector<read_response_t>& resps, read_response_t *response, context_t *ctx) const {
+    unshard(resps, response, ctx);
 }
 
 dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
@@ -103,8 +103,8 @@ dummy_protocol_t::write_t dummy_protocol_t::write_t::shard(region_t region) cons
     return w;
 }
 
-void dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, write_response_t *response, UNUSED temporary_cache_t *cache) const {
-    rassert(cache != NULL);
+void dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, write_response_t *response, DEBUG_VAR context_t *ctx) const {
+    rassert(ctx != NULL);
     for (size_t i = 0; i < resps.size(); ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].old_values.begin();
                 it != resps[i].old_values.end(); it++) {
@@ -118,8 +118,8 @@ void dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, wri
     }
 }
 
-void dummy_protocol_t::write_t::multistore_unshard(const std::vector<write_response_t>& resps, write_response_t *response, UNUSED temporary_cache_t *cache) const {
-    return unshard(resps, response, cache);
+void dummy_protocol_t::write_t::multistore_unshard(const std::vector<write_response_t>& resps, write_response_t *response, context_t *ctx) const {
+    return unshard(resps, response, ctx);
 }
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
@@ -177,7 +177,7 @@ bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
     return !(a == b);
 }
 
-dummy_protocol_t::region_t dummy_protocol_t::cpu_sharding_subspace(int subregion_number, DEBUG_ONLY_VAR int num_cpu_shards) {
+dummy_protocol_t::region_t dummy_protocol_t::cpu_sharding_subspace(int subregion_number, DEBUG_VAR int num_cpu_shards) {
     rassert(subregion_number >= 0);
     rassert(subregion_number < num_cpu_shards);
 
@@ -194,12 +194,12 @@ dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_prot
     initialize_empty();
 }
 
-dummy_protocol_t::store_t::store_t(UNUSED io_backender_t *io_backend, const std::string& fn, bool create, perfmon_collection_t *) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
+dummy_protocol_t::store_t::store_t(UNUSED io_backender_t *io_backend, const std::string& fn, bool create, perfmon_collection_t *, UNUSED context_t *) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
     if (create) {
         initialize_empty();
     } else {
         blocking_read_file_stream_t stream;
-        DEBUG_ONLY_VAR bool success = stream.init(filename.c_str());
+        DEBUG_VAR bool success = stream.init(filename.c_str());
         rassert(success);
         archive_result_t res = deserialize(&stream, &metainfo);
         if (res) { throw fake_archive_exc_t(); }
@@ -213,7 +213,7 @@ dummy_protocol_t::store_t::store_t(UNUSED io_backender_t *io_backend, const std:
 dummy_protocol_t::store_t::~store_t() {
     if (filename != "") {
         blocking_write_file_stream_t stream;
-        DEBUG_ONLY_VAR bool success = stream.init(filename.c_str());
+        DEBUG_VAR bool success = stream.init(filename.c_str());
         rassert(success);
         write_message_t msg;
         msg << metainfo;
@@ -330,7 +330,7 @@ void print_metainfo(append_only_printf_buffer_t *buf, const region_map_t<dummy_p
     buf->appendf(")");
 }
 
-void debugf_metainfo(DEBUG_ONLY_VAR const char *msg, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
+void debugf_metainfo(DEBUG_VAR const char *msg, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
     printf_buffer_t<2048> buf;
     print_metainfo(&buf, m);
     debugf("%s: %s\n", msg, buf.c_str());

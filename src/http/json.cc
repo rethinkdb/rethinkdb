@@ -157,10 +157,8 @@ void project(cJSON *json, std::set<std::string> keys) {
         }
     }
 
-    for (std::vector<std::string>::iterator it  = keys_to_delete.begin();
-                                            it != keys_to_delete.end();
-                                            ++it) {
-        cJSON_DeleteItemFromObject(json, it->c_str());
+    for (std::vector<std::string>::iterator jt = keys_to_delete.begin(); jt != keys_to_delete.end(); ++jt) {
+        cJSON_DeleteItemFromObject(json, jt->c_str());
     }
 }
 

@@ -53,7 +53,8 @@ public:
         return cJSON_AddItemToArray(val, item);
     }
     void AddItemToObject(const char *string, cJSON *item) {
-        rassert(string); rassert(item);
+        rassert(string);
+        rassert(item);
         return cJSON_AddItemToObject(val, string, item);
     }
 
@@ -77,11 +78,13 @@ public:
 
     /* Update array items. */
     void ReplaceItemInArray(int which, cJSON *newitem) {
-        rassert(which >= 0); rassert(newitem);
+        rassert(which >= 0);
+        rassert(newitem);
         return cJSON_ReplaceItemInArray(val, which, newitem);
     }
     void ReplaceItemInObject(const char *string, cJSON *newitem) {
-        rassert(string); rassert(newitem);
+        rassert(string);
+        rassert(newitem);
         return cJSON_ReplaceItemInObject(val, string, newitem);
     }
 
@@ -135,7 +138,8 @@ public:
         return cJSON_AddItemToArray(val, item);
     }
     void AddItemToObject(const char *string, cJSON *item) {
-        rassert(string); rassert(item);
+        rassert(string);
+        rassert(item);
         return cJSON_AddItemToObject(val, string, item);
     }
 
@@ -159,11 +163,13 @@ public:
 
     /* Update array items. */
     void ReplaceItemInArray(int which, cJSON *newitem) {
-        rassert(which >= 0); rassert(newitem);
+        rassert(which >= 0);
+        rassert(newitem);
         return cJSON_ReplaceItemInArray(val, which, newitem);
     }
     void ReplaceItemInObject(const char *string, cJSON *newitem) {
-        rassert(string); rassert(newitem);
+        rassert(string);
+        rassert(newitem);
         return cJSON_ReplaceItemInObject(val, string, newitem);
     }
 };

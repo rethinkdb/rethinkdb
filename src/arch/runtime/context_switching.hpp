@@ -71,7 +71,6 @@ were in when we called `context_switch()`. `destination_context_in` must be
 non-nil; it will be set to nil, and we will switch to it. */
 void context_switch(
     context_ref_t *current_context_out,
-    context_ref_t *dest_context_in
-    );
+    context_ref_t *dest_context_in);
 
 #endif /* ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_ */

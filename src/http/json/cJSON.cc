@@ -33,6 +33,10 @@
 #include "http/json/cJSON.hpp"
 #include "errors.hpp"
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunreachable-code"
+#endif
+
 static const char *ep;
 
 const char *cJSON_GetErrorPtr() {return ep;}
@@ -584,6 +588,8 @@ bool cJSON_Equal(cJSON *x, cJSON *y) {
         if (x->valuedouble == y->valuedouble) {
             rassert(x->valueint == y->valueint);
             return true;
+        } else {
+            return false;
         }
         return false;
         break;
@@ -606,7 +612,7 @@ bool cJSON_Equal(cJSON *x, cJSON *y) {
                 yhd = yhd->next;
             }
 
-            if (yhd != NULL) {
+            if (!yhd) {
                 return false;
             }
         }

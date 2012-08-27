@@ -56,8 +56,7 @@ private:
         if (bcard) {
             if (bcard.get()) {
                 return boost::optional<boost::optional<mt_business_card_t> >(boost::optional<mt_business_card_t>(
-                    bcard.get().get().multi_throttling
-                    ));
+                    bcard.get().get().multi_throttling));
             } else {
                 return boost::optional<boost::optional<mt_business_card_t> >(boost::optional<mt_business_card_t>());
             }

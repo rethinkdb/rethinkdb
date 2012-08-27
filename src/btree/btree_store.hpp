@@ -29,7 +29,8 @@ public:
     btree_store_t(io_backender_t *io_backender,
                   const std::string& filename,
                   bool create,
-                  perfmon_collection_t *parent_perfmon_collection);
+                  perfmon_collection_t *parent_perfmon_collection,
+                  typename protocol_t::context_t *);
     virtual ~btree_store_t();
 
     /* store_view_t interface */
@@ -148,6 +149,7 @@ private:
 
     void acquire_superblock_for_write(
             access_t access,
+            repli_timestamp_t timestamp,
             int expected_change_count,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             scoped_ptr_t<transaction_t> *txn_out,

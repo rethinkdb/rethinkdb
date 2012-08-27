@@ -1,8 +1,12 @@
 #include "protob/protob.hpp"
 
+#include <google/protobuf/stubs/common.h>
+
+#include <string>
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <google/protobuf/stubs/common.h>
+#include <boost/lexical_cast.hpp>
 
 #include "arch/arch.hpp"
 
@@ -104,46 +108,131 @@ void protob_server_t<request_t, response_t, context_t>::send(const response_t &r
 
 template <class request_t, class response_t, class context_t>
 http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_req_t &req) {
+    if (req.method == POST &&
+        req.resource.as_string().find("close-connection") != std::string::npos) {
 
-    // Extract protobuf from http request body
-    const char *data = req.body.data();
-    int32_t req_size = *((int32_t *)data);
-    data += sizeof(req_size);
+        boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
+        std::string string_conn_id = *optional_conn_id;
+        int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
+        http_conns.erase(conn_id);
 
-    context_t ctx;
-    request_t request;
-    bool parseFailed = request.ParseFromArray(data, req_size);
+        http_res_t res(HTTP_OK);
+        res.version = "HTTP/1.1";
+        res.add_header_line("Access-Control-Allow-Origin", "*");
 
-    response_t response;
-    switch(cb_mode) {
-    case INLINE:
-        if (!parseFailed) {
-            response = f(&request, &ctx);
-        } else {
-            std::string err = "Client is buggy (failed to deserialize protobuf).";
-            response = on_unparsable_query(&request, err);
+        return res;
+    } else if (req.method == GET && req.resource.as_string() == "/open-new-connection") {
+
+        int32_t conn_id = ++next_http_conn_id;
+        http_conns.insert(std::pair<int32_t,http_context_t>(++conn_id, http_context_t()));
+
+        http_res_t res(HTTP_OK);
+        res.version = "HTTP/1.1";
+        res.add_header_line("Access-Control-Allow-Origin", "*");
+        std::string body_data;
+        body_data.assign(((char *)&conn_id), sizeof(conn_id));
+        res.set_body("application/octet-stream", body_data);
+
+        return res;
+    } else {
+
+        boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
+        std::string string_conn_id = *optional_conn_id;
+        int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
+
+        // Extract protobuf from http request body
+        const char *data = req.body.data();
+        int32_t req_size = *reinterpret_cast<const int32_t *>(data);
+        data += sizeof(req_size);
+
+        request_t request;
+        bool parseSucceeded = request.ParseFromArray(data, req_size);
+
+        typename std::map<int32_t, http_context_t>::iterator it;
+        response_t response;
+        switch(cb_mode) {
+        case INLINE:
+            it = http_conns.find(conn_id);
+            if (!parseSucceeded || it == http_conns.end()) {
+                response = on_unparsable_query(&request);
+            } else {
+                http_context_t *ctx = &(it->second);
+                ctx->grab();
+                response = f(&request, ctx->getContext());
+                ctx->release();
+            }
+            break;
+        case CORO_ORDERED:
+        case CORO_UNORDERED:
+            crash("unimplemented");
+        default:
+            crash("unreachable");
+            break;
         }
-        break;
-    case CORO_ORDERED:
-    case CORO_UNORDERED:
-        crash("unimplemented");
-    default:
-        crash("unreachable");
-        break;
+
+        int32_t res_size = response.ByteSize();
+        scoped_array_t<char> res_data(sizeof(res_size) + res_size);
+        *reinterpret_cast<int32_t *>(res_data.data()) = res_size;
+        response.SerializeToArray(res_data.data() + sizeof(res_size), res_size);
+
+        http_res_t res(HTTP_OK);
+        res.version = "HTTP/1.1";
+        res.add_header_line("Access-Control-Allow-Origin", "*");
+
+        std::string body_data;
+        body_data.assign(res_data.data(), res_size + sizeof(res_size));
+        res.set_body("application/octet-stream", body_data);
+
+        return res;
     }
+}
 
-    int32_t res_size = response.ByteSize();
-    scoped_array_t<char> res_data(sizeof(res_size) + res_size);
-    *((int32_t *)res_data.data()) = res_size;
-    response.SerializeToArray(res_data.data() + sizeof(res_size), res_size);
+template <class request_t, class response_t, class context_t>
+void protob_server_t<request_t, response_t, context_t>::on_ring() {
+    for (typename std::map<int32_t, http_context_t>::iterator iter = http_conns.begin(); iter != http_conns.end();) {
+        if (iter->second.isFree() && iter->second.isExpired()) {
+            typename std::map<int32_t, http_context_t>::iterator tmp = iter;
+            ++iter;
+            http_conns.erase(tmp);
+        } else {
+            ++iter;
+        }
+    }
+}
 
-    http_res_t res(HTTP_OK);
-    res.version = "HTTP/1.1";
-    res.add_header_line("Access-Control-Allow-Origin", "*");
+template <class request_t, class response_t, class context_t>
+protob_server_t<request_t, response_t, context_t>::http_context_t::http_context_t() {
+    users_count = 0;
+    touch();
+}
 
-    std::string body_data;
-    body_data.assign(res_data.data(), res_size + sizeof(res_size));
-    res.set_body("application/octet-stream", body_data);
+template <class request_t, class response_t, class context_t>
+context_t *protob_server_t<request_t, response_t, context_t>::http_context_t::getContext() {
+    return &ctx;
+}
 
-    return res;
+template <class request_t, class response_t, class context_t>
+void protob_server_t<request_t, response_t, context_t>::http_context_t::touch() {
+    last_accessed = time(NULL);
+}
+
+template <class request_t, class response_t, class context_t>
+bool protob_server_t<request_t, response_t, context_t>::http_context_t::isExpired() {
+    return (difftime(time(NULL), last_accessed) > TIMEOUT_SEC);
+}
+
+template <class request_t, class response_t, class context_t>
+void protob_server_t<request_t, response_t, context_t>::http_context_t::grab() {
+    users_count++;
+}
+
+template <class request_t, class response_t, class context_t>
+void protob_server_t<request_t, response_t, context_t>::http_context_t::release() {
+    users_count--;
+    touch();
+}
+
+template <class request_t, class response_t, class context_t>
+bool protob_server_t<request_t, response_t, context_t>::http_context_t::isFree() {
+    return users_count == 0;
 }

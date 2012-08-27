@@ -31,18 +31,16 @@ template <class protocol_t>
 backfiller_business_card_t<protocol_t> backfiller_t<protocol_t>::get_business_card() {
     return backfiller_business_card_t<protocol_t>(backfill_mailbox.get_address(),
                                                   cancel_backfill_mailbox.get_address(),
-                                                  request_progress_mailbox.get_address()
-                                                  );
+                                                  request_progress_mailbox.get_address());
 }
 
 template <class protocol_t>
-bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, UNUSED region_map_t<protocol_t, version_range_t> start_point,
+bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, DEBUG_VAR region_map_t<protocol_t, version_range_t> start_point,
                                                          mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_cont) {
     rassert(metainfo.get_domain() == start_point.get_domain());
     region_map_t<protocol_t, version_range_t> end_point =
         region_map_transform<protocol_t, binary_blob_t, version_range_t>(metainfo,
-                                                                         &binary_blob_t::get<version_range_t>
-                                                                         );
+                                                                         &binary_blob_t::get<version_range_t>);
 
 #ifndef NDEBUG
     // TODO: Should the rassert calls in this block of code be return
@@ -179,8 +177,7 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
                      &send_backfill_cb,
                      local_backfill_progress[session_id],
                      &send_backfill_token,
-                     &interrupted
-                     );
+                     &interrupted);
 
         /* Send a confirmation */
         send(mailbox_manager, done_cont, fifo_src.enter_write());
@@ -188,8 +185,8 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
     } catch (interrupted_exc_t) {
         /* Ignore. If we were interrupted by the backfillee, then it already
            knows the backfill is cancelled. If we were interrupted by the
-           backfiller shutting down, it will know when it sees we deconstructed
-           our `resource_advertisement_t`. */
+           backfiller shutting down, the backfillee will find out via the
+           directory. */
     }
 }
 

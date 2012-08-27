@@ -10,7 +10,7 @@
     </div>
 
     <ul class="nav nav-tabs">
-        <li class="active"><a href="#datacenters/{{datacenter_id}}/stats" data-target="#datacenter-stats" id="datacenter-stats-link" class="tab-link" data-toggle="tab">Statistics</a></li>
+        <li class="active"><a href="#datacenters/{{datacenter_id}}/overview" data-target="#datacenter-overview" id="datacenter-overview-link" class="tab-link" data-toggle="tab">Statistics</a></li>
         <li><a href="#datacenters/{{datacenter_id}}/data" data-target="#datacenter-data" id="datacenter-data-link" class="tab-link" data-toggle="tab">Data</a></li>
         <li><a href="#datacenters/{{datacenter_id}}/operations" data-target="#datacenter-operations" id="datacenter-operations-link" class="tab-link" data-toggle="tab">Operations</a></li>
         <li><a href="#datacenters/{{datacenter_id}}/logs" data-target="#datacenter-logs" id="datacenter-logs-link" class="tab-link" data-toggle="tab">Recent log entries</a></li>
@@ -19,8 +19,8 @@
     <div id="user-alert-space"></div>
     
     <div class="tab-content">  
-        <div class="tab-pane active" id="datacenter-stats">
-            <div class="section datacenter-stats"></div>
+        <div class="tab-pane active" id="datacenter-overview">
+            <div class="section overview"></div>
         </div>
         <div class="tab-pane" id="datacenter-data">
             <div class="section data"></div>
@@ -41,25 +41,110 @@
 </script>
 
 <script id="datacenter_view_title-template" type="text/x-handlebars-template">
-    <h1>Datacenter overview for {{name}}</h1> (<a href="#" class="rename-datacenter">rename</a>)
+    <h1>Datacenter overview for {{name}}</h1>
 </script>
 
 <script id="datacenter_view_profile-template" type="text/x-handlebars-template">
     <h3 class="title">Datacenter profile</h3>
     <div class="section summary">
         <p class="status">Status: {{humanize_datacenter_reachability status}}</p>
-        <p class="status">Machines: {{status.reachable}} of {{status.total}} reachable</p>
+        <p class="status">Servers: {{status.reachable}} of {{status.total}} reachable</p>
         {{#unless stats_up_to_date}}
         <p>The stats displayed might not be up to date<br />
         (One server might be overload with queries).</p>
         {{/unless}}
     </div>
-    <h3 class="title">Machines</h3>
+    <h3 class="title">Servers</h3>
     <div class="section dc-machine-list">
         <ul>
         {{display_truncated_machines list_machines}}
         </ul>
     </div>
+</script>
+
+<script id="datacenter_overview-container-template" type="text/x-handlebars-template">
+    <h3>RAM repartition</h3>
+    <div class="ram_repartition-container"></div>
+
+    <h3>Disk repartition</h3>
+    <div class="disk_repartition-container"></div>
+</script>
+
+<script id="datacenter-ram_repartition-template" type="text/x-handlebars-template">
+    {{#if few_machines}}
+    <div class="two-panel-section">
+        <div class="ram_repartition-graph panel-left">
+            <svg class="ram_repartition-diagram" width="270" height="270">
+                {{#if no_machine}}
+                <text x="50" y="135" class="loading_text-ram-diagram">No machine in this datacenter</text>
+                {{else}}
+                <text x="100" y="135" class="loading_text-ram-diagram">Loading...</text>
+                {{/if}}
+            </svg>
+        </div>
+
+        <div class="ram_legend panel-right">
+            <ul class="legend">
+                <li class="title-legend"><h4>Legend</h4></li>
+                <li class="used_ram-legend">RAM used</li>
+                <li class="free_ram-legend">Free RAM</li>
+            </ul>
+        </div>
+    </div>
+    {{else}}
+        <div class="ram_repartition-graph">
+            <svg class="ram_repartition-diagram" width="700" height="350">
+                <text x="300" y="150" class="loading_text-ram-diagram">Loading data...</text>
+            </svg>
+        </div>
+
+        <div class="ram_legend">
+            <ul class="legend legend-inline">
+                <li class="title-legend"><h4>Legend</h4></li>
+                <li class="used_ram-legend used_ram-legend-inline">RAM used</li>
+                <li class="free_ram-legend free_ram-legend-inline">Free RAM</li>
+            </ul>
+        </div>
+    {{/if}}
+    <hr />
+</script>
+
+<script id="datacenter-disk_repartition-template" type="text/x-handlebars-template">
+    {{#if few_machines}}
+    <div class="two-panel-section">
+        <div class="panel-left disk_repartition-graph">
+            <svg class="disk_repartition-diagram" width="270" height="270">
+                {{#if no_machine}}
+                <text x="50" y="135" class="loading_text-disk-diagram">No machine in this datacenter</text>
+                {{else}}
+                <text x="100" y="135" class="loading_text-disk-diagram">Loading...</text>
+                {{/if}}
+            </svg>
+        </div>
+
+        <div class="disk_legend panel-right">
+            <ul class="legend">
+                <li class="title-legend"><h4>Legend</h4></li>
+                <li class="used_disk-legend">Disk used</li>
+                <li class="free_disk-legend">Free Disk</li>
+            </ul>
+        </div>
+    </div>
+    {{else}}
+        <div class="disk_repartition-graph">
+            <svg class="disk_repartition-diagram" width="700" height="350">
+                <text x="300" y="150" class="loading_text-disk-diagram">Loading data...</text>
+            </svg>
+        </div>
+
+        <div class="disk_legend">
+            <ul class="legend legend-inline">
+                <li class="title-legend"><h4>Legend</h4></li>
+                <li class="used_disk-legend used_disk-legend-inline">Disk used</li>
+                <li class="free_disk-legend free_disk-legend-inline">Free Disk</li>
+            </ul>
+        </div>
+    {{/if}}
 </script>
 
 <script id="datacenter_view_data-template" type="text/x-handlebars-template">
@@ -69,7 +154,7 @@
     {{/unless}}
     {{#each data.namespaces}}
     <div class="namespace">
-      <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
+      <h4>Shards for table <a href="/#tables/{{uuid}}">{{name}}</a>:</h4>
       <ul class="shard_ul">
         {{#each shards}}
         <li class="shard_li">
@@ -84,7 +169,7 @@
 
 <script id="datacenter_view-recent_log_entry-template" type="text/x-handlebars-template">
     <div class="entry-metadata">
-        <p class="from-machine">Reported from <a href="#machines/{{machine_uuid}}">{{machine_name}}</a></p>
+        <p class="from-machine">Reported from <a href="#servers/{{machine_uuid}}">{{machine_name}}</a></p>
         <p class="datetime"><abbr class="timeago" title="{{timeago_timestamp}}">{{timeago_timestamp}}</abbr></p>
     </div>
     <p class="level">{{level}}</p>
@@ -99,9 +184,9 @@
 
 <script id="datacenter_view-operations-template" type="text/x-handlebars-template">
     <h3 class="title">Operations on this datacenter</h3>
-    <div class="other_section rename_server">
+    <div class="other_section rename_datacenter">
         <input type="button" class="btn other_button rename_datacenter-button" value="Rename"/>
-        <p>Rename the server</p>
+        <p>Rename this datacenter</p>
     </div>
     <div class="other_section unassign_datacenter">
         <input type="button" class="btn other_button delete_datacenter-button" {{#unless can_delete}}disabled="disabled"{{/unless}} value="Delete this datacenter"/>
@@ -113,13 +198,13 @@
 </script>
 
 <script id="reason-cannot_delete-goals-template" type="text/x-handlebars-template">
-    This datacenter is a primary one for the following namespaces {{links_to_namespaces_inline namespaces_where_primary "replication"}} and therefore cannot be deleted.
+    This datacenter is a primary one for the following tables {{links_to_namespaces_inline namespaces_where_primary "replication"}} and therefore cannot be deleted.
 </script>
 
 <script id="remove_datacenter-modal-template" type="text/x-handlebars-template">
-  <div class="alert alert-error">Removing the datacenter will remove all the responsabilities of the machines in it.</div>
+  <div class="alert alert-error">Removing the datacenter will remove all the responsabilities of the servers in it.</div>
   <div class="alert alert-error error_answer"></div>
-  <p>Are you sure you want to remove this datacenter <a href="#datacenters/{{id}}">{{name}}</a></p>
+  <p>Are you sure you want to remove this datacenter <a href="#datacenters/{{id}}">{{name}}</a>?</p>
 </script>
 
 <script id="removed_namespace-alert-template" type="text/x-handlebars-template">

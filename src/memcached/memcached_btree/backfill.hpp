@@ -1,5 +1,5 @@
-#ifndef MEMCACHED_BTREE_BACKFILL_HPP_
-#define MEMCACHED_BTREE_BACKFILL_HPP_
+#ifndef MEMCACHED_MEMCACHED_BTREE_BACKFILL_HPP_
+#define MEMCACHED_MEMCACHED_BTREE_BACKFILL_HPP_
 
 #include "btree/backfill.hpp"
 #include "btree/keys.hpp"
@@ -42,4 +42,4 @@ void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range,
         parallel_traversal_progress_t *p,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-#endif /* MEMCACHED_BTREE_BACKFILL_HPP_ */
+#endif /* MEMCACHED_MEMCACHED_BTREE_BACKFILL_HPP_ */
