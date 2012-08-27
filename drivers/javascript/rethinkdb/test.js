@@ -6,6 +6,7 @@ function print(msg) {
 
 var q = rethinkdb.query;
 var tab = q.table('Welcome-rdb');
+var arr = q([1,2,3,4,5,6]);
 
 var conn;
 function testConnect() {
@@ -57,6 +58,9 @@ function testBool() {
 }
 
 function testInsert() {
+    tab.insert().run(print);
+    return
+
     for (var i = 0; i < 10; i++) {
         tab.insert({id:i, num:20-i}).run(objeq({inserted:1}));
     }
@@ -69,8 +73,6 @@ function testGet() {
 }
 
 function testSlices() {
-    var arr = q([1,2,3,4,5,6]);
-
     arr.length().run(aeq(6));
     arr.limit(5).length().run(aeq(5));
     arr.skip(4).length().run(aeq(2));
@@ -79,7 +81,7 @@ function testSlices() {
 }
 
 function testMap() {
-    tab.map(q.R('num')).nth(2).run(aeq(19));
+    arr.map(q.fn('a', q.R('$a').add(1))).nth(2).run(print);
 }
 
 function testReduce() {
@@ -100,6 +102,6 @@ runTests([
     testGet,
     testSlices,
     testMap,
-    testReduce,
+    //testReduce,
     testClose,
 ]);

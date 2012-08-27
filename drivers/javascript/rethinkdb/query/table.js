@@ -3,13 +3,13 @@ goog.provide('rethinkdb.query.Table');
 
 /**
  * @constructor
- * @extends {rethinkdb.query.ReadExpression}
+ * @extends {rethinkdb.query.Expression}
  */
 rethinkdb.query.Table = function(tableName, opt_dbName) {
     this.db_ = opt_dbName || null;
     this.name_ = tableName;
 };
-goog.inherits(rethinkdb.query.Table, rethinkdb.query.ReadExpression);
+goog.inherits(rethinkdb.query.Table, rethinkdb.query.Expression);
 
 rethinkdb.query.Table.prototype.compile = function() {
     var term = new Term();
@@ -27,13 +27,13 @@ rethinkdb.query.Table.prototype.compile = function() {
 
 /**
  * @constructor
- * @extends {rethinkdb.query.ReadExpression}
+ * @extends {rethinkdb.query.Expression}
  */
 rethinkdb.query.GetExpression = function(table, key) {
     this.table_ = table;
     this.key_ = new rethinkdb.query.JSONExpression(key);
 };
-goog.inherits(rethinkdb.query.GetExpression, rethinkdb.query.ReadExpression);
+goog.inherits(rethinkdb.query.GetExpression, rethinkdb.query.Expression);
 
 rethinkdb.query.GetExpression.prototype.compile = function() {
     var tableTerm = this.table_.compile();
@@ -61,9 +61,9 @@ goog.exportProperty(rethinkdb.query.Table.prototype, 'get',
  * @param {rethinkdb.query.Table} table
  * @param {*} docs
  * @constructor
- * @extends {rethinkdb.query.WriteExpression}
+ * @extends {rethinkdb.query.BaseQuery}
  */
-rethinkdb.query.InsertExpression = function(table, docs) {
+rethinkdb.query.InsertQuery = function(table, docs) {
     this.table_ = table;
 
     if (!goog.isArray(docs))
@@ -71,10 +71,10 @@ rethinkdb.query.InsertExpression = function(table, docs) {
 
     this.docs_ = docs;
 };
-goog.inherits(rethinkdb.query.InsertExpression, rethinkdb.query.WriteExpression);
+goog.inherits(rethinkdb.query.InsertQuery, rethinkdb.query.BaseQuery);
 
 /** @override */
-rethinkdb.query.InsertExpression.prototype.buildQuery = function() {
+rethinkdb.query.InsertQuery.prototype.buildQuery = function() {
     var tableTerm = this.table_.compile();
     var tableRef = tableTerm.getTable().getTableRefOrDefault();
 
@@ -89,7 +89,7 @@ rethinkdb.query.InsertExpression.prototype.buildQuery = function() {
     var writeQuery = new WriteQuery();
     writeQuery.setType(WriteQuery.WriteQueryType.INSERT);
     writeQuery.setInsert(insert);
-    
+
     var query = new Query();
     query.setType(Query.QueryType.WRITE);
     query.setWriteQuery(writeQuery);
@@ -98,7 +98,7 @@ rethinkdb.query.InsertExpression.prototype.buildQuery = function() {
 };
 
 rethinkdb.query.Table.prototype.insert = function(docs) {
-    return new rethinkdb.query.InsertExpression(this, docs);
+    return new rethinkdb.query.InsertQuery(this, docs);
 };
 goog.exportProperty(rethinkdb.query.Table.prototype, 'insert',
                     rethinkdb.query.Table.prototype.insert);
