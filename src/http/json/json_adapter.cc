@@ -44,7 +44,7 @@ json_array_iterator_t get_array_it(cJSON *json) {
     if (json->type == cJSON_Array) {
         return json_array_iterator_t(json);
     } else {
-        BREAKPOINT;
+        //BREAKPOINT;
         throw schema_mismatch_exc_t(strprintf("Expected array instead got: %s\n", cJSON_print_std_string(json).c_str()).c_str());
     }
 }

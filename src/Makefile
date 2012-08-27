@@ -99,7 +99,6 @@ RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 
-
 ifeq ($(COMPILER),CLANG)
 CXX:=clang
 else
@@ -160,6 +159,8 @@ endif
 
 STRIP_ON_INSTALL?=1
 
+NO_OMIT_FRAME_POINTER?=0
+
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
 SYMBOLS:=1
@@ -170,6 +171,11 @@ else
 CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
 # TODO: remove this once memcached is added back in the release (disables memcached from showing up in the admin CLI help or tab-completion)
 CXXFLAGS+=-DNO_MEMCACHE
+ifeq ($(NO_OMIT_FRAME_POINTER),1)
+CXXFLAGS+=-fno-omit-frame-pointer
+else
+CXXFLAGS+=-fomit-frame-pointer
+endif
 endif
 
 ifeq ($(DISABLE_BREAKPOINTS),1)
@@ -615,11 +621,14 @@ sense:
 	$(error Make does not make sense)
 
 # Profiling
-OPROF_TARGETS=oprof-start oprof-dump oprof-stop oprof-report
+OPROF_TARGETS=oprof-start oprof-dump oprof-stop oprof-report oprof-build
 .PHONY: $(OPROF_TARGETS)
 
+oprof-build:
+	$(MAKE) DEBUG=0 SYMBOLS=1 NO_OMIT_FRAME_POINTER=1
+
 oprof-start: OPROF_NO_KERNEL:=0
-oprof-start: OPROF_SESSION:=../oprofile.$(shell date +%F-%T)
+oprof-start: OPROF_SESSION:=../oprofile.$(RETHINKDB_VERSION).$(shell date +%F-%T)
 oprof-start:
 	@echo no kernel: $(OPROF_NO_KERNEL)
 ifeq ($(OPROF_NO_KERNEL),1)
@@ -631,7 +640,7 @@ else
 endif
 	@echo "    OPROFILE[start] -> $(abspath $(OPROF_SESSION))"
 	@echo "      (if you want to use a different location, set OPROF_SESSION make variable to a directory path"
-	$(QUIET) opcontrol --start --buffer-size=1048576 --buffer-watershed=524288 "--session-dir=$(abspath $(OPROF_SESSION))"
+	$(QUIET) opcontrol --start --callgraph=2 --event=CPU_CLK_UNHALTED:90000:0:1:1 --buffer-size=10485760 --buffer-watershed=524288 "--session-dir=$(abspath $(OPROF_SESSION))"
 
 oprof-dump:
 	@echo "    OPROFILE[dump]"
