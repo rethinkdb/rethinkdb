@@ -34,11 +34,13 @@ Handlebars.registerHelper 'html_list', (context) ->
     return new Handlebars.SafeString(out)
 
 # Returns a list to links to machine
-Handlebars.registerHelper 'links_to_machines', (machines) ->
+Handlebars.registerHelper 'links_to_machines', (machines, safety) ->
     out = ""
     for i in [0...machines.length]
         out += '<a href="#servers/'+machines[i].id+'" class="links_to_other_view">'+machines[i].name+'</a>'
         out += ", " if i isnt machines.length-1
+    if safety? and safety is false
+        return out
     return new Handlebars.SafeString(out)
 
 Handlebars.registerHelper 'links_to_machines_inline', (machines) ->
@@ -117,7 +119,8 @@ Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
 
 Handlebars.registerHelper 'pluralize_verb_to_be', (num) -> if num is 1 then 'is' else 'are'
 Handlebars.registerHelper 'pluralize_verb_to_have', (num) -> if num is 1 then 'has' else 'have'
-
+Handlebars.registerHelper 'pluralize_verb', (verb, num) -> if num is 1 then verb+'s' else verb
+Handlebars.registerHelper 'pluralize_its', (num) -> if num is 1 then 'its' else 'their'
 # Helpers for capitalization
 Handlebars.registerHelper 'capitalize', (str) -> str.charAt(0).toUpperCase() + str.slice(1)
 
