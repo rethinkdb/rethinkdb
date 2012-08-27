@@ -216,11 +216,14 @@ private:
     void redistribute_tickets() {
         static const int chunk_size = 100;
         static const int min_reasonable_tickets = 10;
+        client_t *neediest;
+        int gift_size;
+
+        /* First, look for a client with a critically low number of tickets.
+           They get priority in tickets. This prevents starvation. */
         while (free_tickets > 0) {
-            client_t *neediest = NULL;
-            int gift_size = -1;
-            /* First, look for a client with a critically low number of tickets.
-            They get priority in tickets. This prevents starvation. */
+            gift_size = -1;
+            neediest = NULL;
             for (client_t *c = clients.head(); c; c = clients.next(c)) {
                 if (c->get_current_tickets() < min_reasonable_tickets && c->get_current_tickets() < c->get_target_tickets()) {
                     if (!neediest || c->get_current_tickets() < neediest->get_current_tickets()) {
@@ -229,20 +232,30 @@ private:
                     }
                 }
             }
-            if (!neediest && free_tickets > chunk_size) {
-                /* No clients are starving, so look for clients with a large
-                difference between their target number of tickets and their
-                current number of tickets. But if the difference is less than
-                `chunk_size`, don't send any tickets at all to avoid flooding
-                the network with many small ticket updates. */
-                for (client_t *c = clients.head(); c; c = clients.next(c)) {
-                    int need_size = c->get_target_tickets() - c->get_current_tickets();
-                    if (need_size > chunk_size && (!neediest || need_size > neediest->get_target_tickets() - neediest->get_current_tickets())) {
-                        neediest = c;
-                        gift_size = chunk_size;
-                    }
+
+            if (!neediest) {
+                break;
+            }
+            rassert(gift_size >= 0);
+            free_tickets -= gift_size;
+            neediest->give_tickets(gift_size);
+        }
+
+        /* Next, look for clients with a large difference between their target
+           number of tickets and their current number of tickets. But if the 
+           difference is less than `chunk_size`, don't send any tickets at all
+           to avoid flooding the network with many small ticket updates. */
+        while (free_tickets > chunk_size) {
+            gift_size = -1;
+            neediest = NULL;
+            for (client_t *c = clients.head(); c; c = clients.next(c)) {
+                int need_size = c->get_target_tickets() - c->get_current_tickets();
+                if (need_size > chunk_size && (!neediest || need_size > neediest->get_target_tickets() - neediest->get_current_tickets())) {
+                    neediest = c;
+                    gift_size = chunk_size;
                 }
             }
+
             if (!neediest) {
                 break;
             }
