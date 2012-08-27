@@ -1,5 +1,5 @@
 message TableRef {
-    optional string db_name = 1;
+    required string db_name    = 1;
     required string table_name = 2;
 };
 
@@ -292,31 +292,36 @@ message WriteQuery {
     optional PointMutate point_mutate = 10;
 };
 
-message TableopQuery {
-    enum TableopQueryType {
-        CREATE = 1;
-        DROP = 2;
-        LIST = 3;
-    };
-    required TableopQueryType type = 1;
+message MetaQuery {
+    enum MetaQueryType {
+        CREATE_DB     = 1; //db_name
+        DROP_DB       = 2; //db_name
+        LIST_DBS      = 3;
 
-    message Create {
+        CREATE_TABLE  = 4;
+        DROP_TABLE    = 5;
+        LIST_TABLES   = 6; //db_name
+    };
+    required MetaQueryType type = 1;
+    optional string db_name = 2;
+
+    message CreateTable {
         required string datacenter  = 1;
-        required TableRef table_ref = 2;
-        optional string primary_key = 3;
-    };
-    optional Create create = 2;
+        required TableRef table_ref = 3;
+        optional string primary_key = 4 [default = "id"];
+    }
+    optional CreateTable create_table = 3;
 
-    optional TableRef drop = 3;
+    optional TableRef drop_table = 4;
 };
 
 message Query {
     enum QueryType {
-        READ     = 1; //Begin reading from a stream (and possibly finish if it's short)
-        WRITE    = 2; //Write to a table (currently does not create a stream)
-        CONTINUE = 3; //Continue reading from a stream
-        STOP     = 4; //Stop reading from a stream and release its resources
-        TABLEOP  = 5; //Meta operations that create, drop, or list tables
+        READ       = 1; //Begin reading from a stream (and possibly finish if it's short)
+        WRITE      = 2; //Write to a table (currently does not create a stream)
+        CONTINUE   = 3; //Continue reading from a stream
+        STOP       = 4; //Stop reading from a stream and release its resources
+        META       = 5; //Meta operations that create, drop, or list databases/tables
     }
 
     required QueryType type = 1;
@@ -325,7 +330,7 @@ message Query {
 
     optional ReadQuery read_query = 3;
     optional WriteQuery write_query = 4;
-    optional TableopQuery tableop_query = 5;
+    optional MetaQuery meta_query = 5;
 }
 
 message Response {

@@ -63,7 +63,8 @@ RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
 
 rdb_protocol_t::context_t::context_t()
     : pool_group(NULL), ns_repo(NULL),
-    cross_thread_sl_watchables(get_num_threads()),
+    cross_thread_namespace_watchables(get_num_threads()),
+    cross_thread_database_watchables(get_num_threads()),
     signals(get_num_threads())
 { }
 
@@ -72,16 +73,22 @@ rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
           boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
           machine_id_t _machine_id)
     : pool_group(_pool_group), ns_repo(_ns_repo),
-      cross_thread_sl_watchables(get_num_threads()),
-      semilattice_metadata(_semilattice_metadata), 
+      cross_thread_namespace_watchables(get_num_threads()),
+      cross_thread_database_watchables(get_num_threads()),
+      semilattice_metadata(_semilattice_metadata),
       signals(get_num_threads()),
       machine_id(_machine_id)
 {
     for (int thread = 0; thread < get_num_threads(); ++thread) {
-        cross_thread_sl_watchables[thread].init(new cross_thread_watchable_variable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(
+        cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(
                                                     clone_ptr_t<semilattice_watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >
                                                         (new semilattice_watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(
                                                             metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _semilattice_metadata))), thread));
+
+        cross_thread_database_watchables[thread].init(new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
+                                                    clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> >
+                                                        (new semilattice_watchable_t<databases_semilattice_metadata_t>(
+                                                            metadata_field(&cluster_semilattice_metadata_t::databases, _semilattice_metadata))), thread));
 
         signals[thread].init(new cross_thread_signal_t(&interruptor, thread));
     }
@@ -156,7 +163,8 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
     query_language::runtime_environment_t env(ctx->pool_group,
                                               ctx->ns_repo,
-                                              ctx->cross_thread_sl_watchables[get_thread_id()].get()->get_watchable(), 
+                                              ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
+                                              ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
                                               ctx->semilattice_metadata,
                                               js_runner,
                                               ctx->signals[get_thread_id()].get(),
@@ -282,7 +290,8 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
     query_language::runtime_environment_t env(ctx->pool_group,
                                               ctx->ns_repo,
-                                              ctx->cross_thread_sl_watchables[get_thread_id()].get()->get_watchable(), 
+                                              ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
+                                              ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
                                               ctx->semilattice_metadata,
                                               js_runner,
                                               ctx->signals[get_thread_id()].get(),
@@ -535,7 +544,8 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
         btree(btree_), txn(txn_), superblock(superblock_),
         env(ctx->pool_group,
             ctx->ns_repo,
-            ctx->cross_thread_sl_watchables[get_thread_id()].get()->get_watchable(),
+            ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
+            ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
             ctx->signals[get_thread_id()].get(),

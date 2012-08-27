@@ -10,6 +10,7 @@
 class http_res_t;
 
 http_res_t http_json_res(cJSON *json);
+cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs);
 
 class scoped_cJSON_t {
 private:

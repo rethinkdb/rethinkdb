@@ -20,6 +20,12 @@ public:
         return frames;
     }
 
+    std::string print() const {
+        std::string result = "";
+        for (size_t i = 0; i < frames.size(); ++i) result += frames[i]+"\n";
+        return result;
+    }
+
 private:
     std::vector<std::string> frames;
 

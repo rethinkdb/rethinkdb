@@ -34,16 +34,11 @@ static void put_backtrace(const query_language::backtrace_t &bt, Response *res_o
     }
 }
 
-Response on_unparsable_query(Query *q) {
+Response on_unparsable_query(Query *q, std::string msg) {
     Response res;
-    if (q->has_token()) {
-        res.set_token(q->token());
-    } else {
-        res.set_token(-1);
-    }
-
     res.set_status_code(Response::BROKEN_CLIENT);
-    res.set_error_message("bad protocol buffer (failed to deserialize); client is buggy");
+    res.set_token( (q && q->has_token()) ? q->token() : -1);
+    res.set_error_message(msg);
     return res;
 }
 
@@ -73,10 +68,13 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
     {
         query_language::runtime_environment_t runtime_environment(
-            pool_group, ns_repo, 
+            pool_group, ns_repo,
             clone_ptr_t<watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
                 new semilattice_watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(
                     metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_metadata))),
+            clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(
+                new semilattice_watchable_t<databases_semilattice_metadata_t>(
+                    metadata_field(&cluster_semilattice_metadata_t::databases, semilattice_metadata))),
             semilattice_metadata,
             directory_metadata, js_runner, &interruptor, this_machine);
         try {
