@@ -19,6 +19,19 @@ http_res_t http_json_res(cJSON *json) {
     return http_res_t(HTTP_OK, "application/json", cJSON_default_print(json));
 }
 
+cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
+    rassert(lhs->type == cJSON_Object);
+    rassert(rhs->type == cJSON_Object);
+    cJSON *obj = cJSON_DeepCopy(lhs);
+
+    for (int i = 0; i < cJSON_GetArraySize(rhs); ++i) {
+        cJSON *item = cJSON_GetArrayItem(rhs, i);
+        cJSON_DeleteItemFromObject(obj, item->string);
+        cJSON_AddItemToObject(obj, item->string, cJSON_DeepCopy(item));
+    }
+    return obj;
+}
+
 scoped_cJSON_t::scoped_cJSON_t(cJSON *_val)
     : val(_val)
 { }
@@ -182,6 +195,19 @@ cJSON *merge(cJSON *x, cJSON *y) {
     }
 
     return res;
+}
+
+std::string cJSON_type_to_string(int type) {
+    switch (type) {
+    case cJSON_False: return "bool"; break;
+    case cJSON_True: return "bool"; break;
+    case cJSON_NULL: return "null"; break;
+    case cJSON_Number: return "number"; break;
+    case cJSON_String: return "string"; break;
+    case cJSON_Array: return "array"; break;
+    case cJSON_Object: return "object"; break;
+    default: unreachable(); break;
+    }
 }
 
 write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
