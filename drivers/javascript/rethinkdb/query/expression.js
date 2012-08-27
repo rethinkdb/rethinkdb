@@ -837,3 +837,41 @@ rethinkdb.query.R = function(varString) {
 
     return curExpr;
 };
+
+/**
+ * @constructor
+ * @extends {rethinkdb.query.Expression}
+ */
+rethinkdb.query.ExtendExpression = function(leftExpr, other) {
+    this.leftExpr_ = leftExpr;
+
+    if (other instanceof rethinkdb.query.Expression) {
+        this.other_ = other;
+    } else {
+        this.other_ = rethinkdb.query.expr(other);
+    }
+};
+goog.inherits(rethinkdb.query.ExtendExpression, rethinkdb.query.Expression);
+
+/** @override */
+rethinkdb.query.ExtendExpression.prototype.compile = function() {
+    var builtin = new Builtin();
+    builtin.setType(Builtin.BuiltinType.MAPMERGE);
+
+    var call = new Term.Call();
+    call.setBuiltin(builtin);
+    call.addArgs(this.leftExpr_.compile());
+    call.addArgs(this.other_.compile());
+
+    var term = new Term();
+    term.setType(Term.TermType.CALL);
+    term.setCall(call);
+
+    return term;
+};
+
+rethinkdb.query.Expression.prototype.extend = function(other) {
+    return new rethinkdb.query.ExtendExpression(this, other);
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'extend',
+                    rethinkdb.query.Expression.prototype.extend);

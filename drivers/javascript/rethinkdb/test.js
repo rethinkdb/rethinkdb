@@ -58,8 +58,6 @@ function testBool() {
 }
 
 function testInsert() {
-    tab.insert().run(print);
-    return
 
     for (var i = 0; i < 10; i++) {
         tab.insert({id:i, num:20-i}).run(objeq({inserted:1}));
@@ -88,6 +86,14 @@ function testReduce() {
     tab.reduce(q(0), q.fn('a', 'b', q.R('$a').add(q.R('$b')))).run(aeq(155));
 }
 
+function testPluck() {
+    tab.nth(1).pluck('num').run(print);
+}
+
+function testExtend() {
+    q({a:1}).extend({b:2}).run(objeq({a:1,b:2}));
+}
+
 function testClose() {
     conn.close();
 }
@@ -101,7 +107,9 @@ runTests([
     testInsert,
     testGet,
     testSlices,
-    testMap,
+    //testMap,
     //testReduce,
+    //testPluck,
+    testExtend,
     testClose,
 ]);
