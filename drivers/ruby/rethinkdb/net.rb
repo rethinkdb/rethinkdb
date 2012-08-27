@@ -4,10 +4,12 @@ require 'json'
 
 module RethinkDB
   class Connection
+    @@magic_number = 0xaf61ba35
     def self.last; @@last; end
     def debug_socket; @socket; end
 
     def start_listener
+      @socket.send([@@magic_number].pack('L<'), 0)
       @listener = Thread.new do
         loop do
           response_length = @socket.recv(4).unpack('L<')[0]

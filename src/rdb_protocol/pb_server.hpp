@@ -42,6 +42,6 @@ private:
     uuid_t this_machine;
 };
 
-Response on_unparsable_query(Query *q);
+Response on_unparsable_query(Query *q, std::string msg);
 
 #endif /* RDB_PROTOCOL_PB_SERVER_HPP_ */

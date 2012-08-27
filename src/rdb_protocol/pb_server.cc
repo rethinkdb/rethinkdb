@@ -32,16 +32,11 @@ static void put_backtrace(const query_language::backtrace_t &bt, Response *res_o
     }
 }
 
-Response on_unparsable_query(Query *q) {
+Response on_unparsable_query(Query *q, std::string msg) {
     Response res;
-    if (q->has_token()) {
-        res.set_token(q->token());
-    } else {
-        res.set_token(-1);
-    }
-
     res.set_status_code(Response::BROKEN_CLIENT);
-    res.set_error_message("bad protocol buffer (failed to deserialize); client is buggy");
+    res.set_token( (q && q->has_token()) ? q->token() : -1);
+    res.set_error_message(msg);
     return res;
 }
 
