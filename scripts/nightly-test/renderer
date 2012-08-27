@@ -758,11 +758,16 @@ def raw_test_round_result(name, round):
 
 @app.route("/raw/test/<name>/round/<round>/output")
 def raw_test_round_output(name, round):
-    if os.path.exists("tests/%s/%s/output.txt" % (name, round)):
-        with open("tests/%s/%s/output.txt" % (name, round)) as output_file:
-            return json.dumps(output_file.read())
+    file_path = "tests/%s/%s/output.txt" % (name, round)
+    if os.path.exists(file_path):
+        stats = os.stat(file_path)
+        if stats.st_size < 500 * 1024:
+            with open(file_path) as output_file:
+                return json.dumps(output_file.read())
+        else:
+            return json.dumps("(output omitted because it's %d bytes)" % stats.st_size)
     else:
-        return "undefined"
+        return json.dumps("(output file missing)")
 
 @app.route("/raw/test/<name>/round/<round>/files/")
 def raw_test_round_files(name, round):

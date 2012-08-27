@@ -49,9 +49,10 @@
       {{#if assigned_to_datacenter}}
       <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
       {{else}}
-      Unassigned 
+      Unassigned
       {{/if}}
     </p>
+
     <p>Status: {{humanize_machine_reachability status}}</p>
     <p>IP {{pluralize_noun "address" nips}}: {{#if ips}} {{html_list ips}} {{else}} N/A {{/if}}</p>
     <p class="uptime">Uptime: {{uptime}}</p>
@@ -67,6 +68,11 @@
 </script>
 
 <script id="machine_overview-container-template" type="text/x-handlebars-template">
+    {{#unless is_assigned}}
+    <h3>Information</h3>
+    <p>This server is not assigned to any datacenter, and therefore its ressources are not used.<br/>
+    You can assign a datacenter <a href="#servers/{{machine_id}}/operations">here</a>.</p>
+    {{/unless}}
     <h3 class="title">Disk usage</h3>
     <div class="pie_disk-container"></div>
 

@@ -185,8 +185,19 @@ module 'DataExplorerView', ->
                 }
             ]
             nothing:[
-                suggestion: 'r'
-                description : ''
+                {
+                    suggestion: 'r'
+                    description : 'The main ReQL namespace'
+                }
+                {
+                    suggestion: 'r('
+                    description : 'Variable'
+                }
+
+                {
+                    suggestion: 'R('
+                    description : 'Attribute Selector'
+                }
             ]
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
@@ -491,7 +502,6 @@ module 'DataExplorerView', ->
             ###
 
         clear_query: =>
-            ###
             #TODO remove when not testing
             welcome = r.table('Welcome-rdb')
             welcome.insert({
@@ -506,7 +516,6 @@ module 'DataExplorerView', ->
                     mobile: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
                 website: 'http://www.'+generate_string(12)+'.com'
                 }).run()
-            ###
 
             @.$('.input_query').val ''
             @.$('.input_query').focus()
@@ -535,6 +544,7 @@ module 'DataExplorerView', ->
                 port = parseInt(window.location.port)-1000+13457
             window.conn = new rethinkdb.net.HttpConnection 'http://'+host+':'+port , ''
             window.r = rethinkdb.query
+            window.R = r.R
 
 
             #TODO Make this little thing prettier

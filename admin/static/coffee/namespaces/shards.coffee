@@ -113,10 +113,12 @@ module 'NamespaceView', ->
             @render()
 
         reset_button_enable: ->
-            @.$('.btn-reset').button('reset')
+            @.$('.btn-reset').button 'reset'
+            @.$('.btn-primary-commit').removeAttr 'disabled'
 
         reset_button_disable: ->
             @.$('.btn-reset').button('loading')
+            @.$('.btn-primary-commit').attr 'disabled', 'disabled'
 
         suggest_shards: (e) =>
             e.preventDefault()
