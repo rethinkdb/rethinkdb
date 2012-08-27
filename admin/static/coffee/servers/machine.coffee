@@ -173,7 +173,8 @@ module 'MachineView', ->
             @ram_data = {}
 
         render: =>
-            @.$el.html @container_template {}
+            @.$el.html @container_template
+                is_assigned: @model.get('datacenter_uuid')?
             @render_pie_disk()
             @render_pie_ram()
 
