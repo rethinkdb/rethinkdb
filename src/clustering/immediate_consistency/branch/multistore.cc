@@ -9,6 +9,7 @@
 #include "protocol_api.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 
+template <class protocol_t>
 struct multistore_ptr_t<protocol_t>::switch_read_token_t {
     bool do_read;
     int shard;

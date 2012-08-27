@@ -203,7 +203,7 @@ private:
         THROWS_NOTHING;
 
     void perform_read(const typename protocol_t::read_t &read,
-            DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
+            DEBUG_VAR state_timestamp_t expected_timestamp,
             order_token_t order_token,
             fifo_enforcer_read_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,

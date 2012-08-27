@@ -406,7 +406,7 @@ void write_t::unshard(const write_response_t *responses, DEBUG_VAR size_t count,
 }
 
 void write_t::multistore_unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    unshard(responses, count, response, cache);
+    unshard(responses, count, response, ctx);
 }
 
 namespace {

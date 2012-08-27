@@ -119,7 +119,7 @@ void dummy_protocol_t::write_t::unshard(const write_response_t* resps, size_t co
 }
 
 void dummy_protocol_t::write_t::multistore_unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *ctx) const {
-    return unshard(resps, count, response, cache);
+    return unshard(resps, count, response, ctx);
 }
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {

@@ -451,7 +451,7 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(w_shard_visitor(region), write);
 }
 
-void write_t::unshard(const write_response_t *responses, DEBUG_VAR size_t count, write_response_t *response, context_t *ctx) const THROWS_NOTHING {
+void write_t::unshard(const write_response_t *responses, DEBUG_VAR size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
     rassert(count == 1);
     *response = responses[0];
 }
