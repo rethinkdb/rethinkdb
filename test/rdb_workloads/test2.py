@@ -26,7 +26,7 @@ class RDBTest(unittest.TestCase):
             os.environ.get('HOST', 'localhost'),
             int(os.environ.get('PORT', 12346+2010))
             )
-        cls.table = table(os.environ.get('DB_NAME', '') + "." + os.environ.get('TABLE_NAME', 'Welcome-rdb'))
+        cls.table = table(os.environ.get('DB_NAME', 'Welcome-db') + "." + os.environ.get('TABLE_NAME', 'Welcome-rdb'))
 
     def expect(self, query, expected):
         try:
