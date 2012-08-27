@@ -93,6 +93,10 @@ function testExtend() {
     q({a:1}).extend({b:2}).run(objeq({a:1,b:2}));
 }
 
+function testDistinct() {
+    q([1,1,2,3,4,4,4,5]).distinct().run(print);
+}
+
 function testClose() {
     conn.close();
 }
@@ -105,6 +109,7 @@ runTests([
     testBool,
     testSlices,
     testExtend,
+    //testDistinct,
     //testMap,
     //testReduce,
     //testPluck,
