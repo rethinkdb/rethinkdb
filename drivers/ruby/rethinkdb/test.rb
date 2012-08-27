@@ -163,12 +163,11 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r[arr][-2..-1].run, arr[-2..-1])
     assert_equal(r[arr][0..-1].run, arr[0..-1])
 
-    # TODO: When NTH is polymorphic, uncomment
-    #assert_equal(r[arr][3].run, 3)
-    #assert_equal(r[arr][-1].run, 9)
-    # fail(I.Element(0, 0), "array")
-    # fail(I.Element(arr, .1), "integer")
-    # fail(I.Element([0], 1), "bounds")
+    assert_equal(r[arr][3].run, 3)
+    assert_equal(r[arr][-1].run, 9)
+    assert_raise(RuntimeError){r[0][0].run}
+    assert_raise(SyntaxError){r[arr][0.1].run}
+    assert_raise(RuntimeError){r[[0]][1].run}
 
     assert_equal(r[[]].length.run, 0)
     assert_equal(r[arr].length.run, arr.length)
@@ -499,7 +498,7 @@ class ClientTest < Test::Unit::TestCase
     docs.each {|doc| assert_equal(rdb.get(doc['id']).run, doc)}
     assert_equal(rdb.distinct(:a).run.sort, [3,9].sort)
     assert_equal(rdb.filter({'a' => 3}).run, [docs[0]])
-    #TODO: fix
+    #TODO: Issue #922
     #assert_raise(RuntimeError){rdb.filter({'a' => rdb.length + ""}).run}
     assert_raise(RuntimeError){rdb.insert({'a' => 3}).run}
 
@@ -561,14 +560,12 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.insert(docs).run, {'inserted' => docs.length})
     assert_equal(rdb.mutate{|x| x}.run, {'modified' => docs.length, 'deleted' => 0})
     assert_equal(id_sort(rdb.run), docs)
-    # TODO: when update works, uncomment line below
-    #assert_equal(rdb.update{nil}.run, {'updated' => 0, 'skipped' => 10, 'errors' => 0})
+    assert_equal(rdb.update{nil}.run, {'updated' => 0, 'skipped' => 10, 'errors' => 0})
   end
 
   def test_getitem #from python tests
     arr = (0...10).map{|x| x}
-    # TODO: when NTH is polymorphic, add 3 and -1
-    [0..-1, 2..-1, 0...2, -1..-1, 0...-1, 3...5].each {|rng|
+    [0..-1, 2..-1, 0...2, -1..-1, 0...-1, 3...5, 3, -1].each {|rng|
       assert_equal(r[arr][rng].run, arr[rng])}
     obj = {:a => 3, :b => 4}
     [:a, :b].each {|attr|
@@ -577,24 +574,15 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_stream_getitem #from python tests
-    # TODO: fix
-    # arr = (0...10).map{|x| x}
-    # [0..-1, 3..-1, 0...3, 4...6, 3].each {|rng|
-    #   assert_equal(r[arr].to_stream[rng].run, arr[rng])}
-    # assert_raise(ArgumentError){r[arr].to_stream[4...'a'].run}
+    arr = (0...10).map{|x| x}
+    [0..-1, 3..-1, 0...3, 4...6, 3].each {|rng|
+      assert_equal(r[arr].to_stream[rng].run, arr[rng])}
+    assert_raise(ArgumentError){r[arr].to_stream[4...'a'].run}
   end
 
   def test___write #three underscores so it runs first
     table_name = rand().to_s
     rdb2 = r.db('Welcome-db','Welcome-rdb')
-    # orig_lst = r.list.run
-    # assert_equal(rdb2.create.run, nil)
-    # assert_raise(RuntimeError) {rdb2.create.run}
-    # lst = r.list.run
-    # assert_equal(orig_lst.length+1, lst.length)
-    # obj = lst.find{|x| x['table_name'] == table_name}
-    # assert_equal(obj['db_name'], 'Welcome-db')
-    # assert_equal(obj['conflicted'], false)
 
     rdb2.delete.run
     $data = []
@@ -624,12 +612,11 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb2.run, [])
 
     #INSERTSTREAM
-    # TODO: fix
-    #assert_equal(rdb2.insertstream(r.arraytostream r[$data]).run['inserted'], len)
+    assert_equal(rdb2.insertstream(r.arraytostream r[$data]).run['inserted'], len)
     rdb2.insert($data).run
     assert_equal(id_sort(rdb2.run), $data)
 
-    #MUTATE -- need fix
+    #MUTATE
     assert_equal(rdb2.mutate{|row| row}.run, {'modified' => len, 'deleted' => 0})
     assert_equal(id_sort(rdb2.run), $data)
     assert_equal(rdb2.mutate{|row| r.if(row[:id] < 5, nil, row)}.run,
@@ -658,8 +645,5 @@ class ClientTest < Test::Unit::TestCase
     #POINTMUTATE -- unimplemented
 
     assert_equal(id_sort(rdb2.run), $data)
-    #assert_equal(rdb2.drop.run, nil)
-    #assert_raise(RuntimeError){rdb2.drop.run}
-    #assert_equal(r.list.run, orig_lst)
   end
 end
