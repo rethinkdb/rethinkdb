@@ -72,7 +72,8 @@ class batched_rget_stream_t : public json_stream_t {
 public:
     batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, 
                           signal_t *_interruptor, key_range_t _range, 
-                          int _batch_size, backtrace_t _backtrace);
+                          int _batch_size, backtrace_t _backtrace,
+                          const scopes_t &_scopes);
 
     boost::shared_ptr<scoped_cJSON_t> next();
 
@@ -93,6 +94,8 @@ private:
     bool finished, started;
 
     backtrace_t backtrace;
+
+    scopes_t scopes;
 };
 
 class union_stream_t : public json_stream_t {

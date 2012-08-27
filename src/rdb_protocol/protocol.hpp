@@ -31,6 +31,7 @@
 #include "rdb_protocol/query_language.pb.h"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rpc/semilattice/watchable.hpp"
+#include "rdb_protocol/serializable_environment.hpp"
 
 enum point_write_result_t {
     STORED,
@@ -95,10 +96,10 @@ struct rdb_protocol_t {
     // Construct a region containing only the specified key
     static region_t monokey_region(const store_key_t &k);
 
-    struct context_t { 
+    struct context_t {
         context_t();
         context_t(extproc::pool_group_t *_pool_group,
-                  namespace_repo_t<rdb_protocol_t> *_ns_repo, 
+                  namespace_repo_t<rdb_protocol_t> *_ns_repo,
                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
                   machine_id_t _machine_id);
 
@@ -183,27 +184,37 @@ struct rdb_protocol_t {
         rget_read_t(const key_range_t &_key_range, int _maximum)
             : key_range(_key_range), maximum(_maximum) { }
 
-        rget_read_t(const key_range_t &_key_range, int _maximum, 
-                    const rdb_protocol_details::transform_t &_transform)
-            : key_range(_key_range), maximum(_maximum), transform(_transform) { }
-
-        rget_read_t(const key_range_t &_key_range, int _maximum, 
-                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
-            : key_range(_key_range), maximum(_maximum), terminal(_terminal) { }
-
-        rget_read_t(const key_range_t &_key_range, int _maximum, 
+        rget_read_t(const key_range_t &_key_range, int _maximum,
                     const rdb_protocol_details::transform_t &_transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
-            : key_range(_key_range), maximum(_maximum), 
-              transform(_transform), terminal(_terminal) { }
+                    const query_language::scopes_t &_scopes)
+            : key_range(_key_range), maximum(_maximum),
+              transform(_transform), scopes(_scopes)
+        { }
+
+        rget_read_t(const key_range_t &_key_range, int _maximum,
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
+                    const query_language::scopes_t &_scopes)
+            : key_range(_key_range), maximum(_maximum),
+              terminal(_terminal), scopes(_scopes)
+        { }
+
+        rget_read_t(const key_range_t &_key_range, int _maximum,
+                    const rdb_protocol_details::transform_t &_transform,
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
+                    const query_language::scopes_t &_scopes)
+            : key_range(_key_range), maximum(_maximum),
+              transform(_transform), terminal(_terminal),
+              scopes(_scopes)
+        { }
 
         key_range_t key_range;
         size_t maximum;
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
+        query_language::scopes_t scopes;
 
-        RDB_MAKE_ME_SERIALIZABLE_4(key_range, maximum, transform, terminal);
+        RDB_MAKE_ME_SERIALIZABLE_5(key_range, maximum, transform, terminal, scopes);
     };
 
     struct read_t {

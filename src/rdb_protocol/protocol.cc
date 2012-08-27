@@ -162,6 +162,7 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
                                               ctx->signals[get_thread_id()].get(),
                                               ctx->machine_id);
 
+
     const point_read_t *pr = boost::get<point_read_t>(&read);
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
     if (pr) {
@@ -169,6 +170,7 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
         rassert(boost::get<point_read_response_t>(&responses[0].response));
         *response = responses[0];
     } else if (rg) {
+        env.scopes = rg->scopes;
         response->response = rget_read_response_t();
         rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
@@ -293,6 +295,7 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
         rassert(boost::get<point_read_response_t>(&responses[0].response));
         *response = responses[0];
     } else if (rg) {
+        env.scopes = rg->scopes;
         response->response = rget_read_response_t();
         rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
         rg_response.truncated = false;
@@ -524,6 +527,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
     }
 
     read_response_t operator()(const rget_read_t& rget) {
+        env.scopes = rget.scopes;
         return read_response_t(rdb_rget_slice(btree, rget.key_range, 1000, txn, superblock, &env, rget.transform, rget.terminal));
     }
 

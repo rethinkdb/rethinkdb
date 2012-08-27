@@ -2333,7 +2333,7 @@ view_t eval_view(Term *t, runtime_environment_t *env, const backtrace_t &backtra
 view_t eval_view(Term::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(t->mutable_table_ref(), env, backtrace);
     std::string pk = get_primary_key(t->mutable_table_ref()->table_name(), env, backtrace);
-    boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace));
+    boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace, env->scopes));
     return view_t(ns_access, pk, stream);
 }
 
