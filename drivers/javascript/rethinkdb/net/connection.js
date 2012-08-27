@@ -10,7 +10,7 @@ goog.require('goog.proto2.WireFormatSerializer');
  * @constructor
  */
 rethinkdb.net.Connection = function(db_name) {
-	this.defaultDbName_ = db_name || '';
+	this.defaultDbName_ = db_name || 'Welcome-rdb';
     this.outstandingQueries_ = {};
     this.nextToken_ = 1;
 

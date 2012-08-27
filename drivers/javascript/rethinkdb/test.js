@@ -58,7 +58,6 @@ function testBool() {
 }
 
 function testInsert() {
-
     for (var i = 0; i < 10; i++) {
         tab.insert({id:i, num:20-i}).run(objeq({inserted:1}));
     }
@@ -104,12 +103,12 @@ runTests([
     testCompare,
     testArith,
     testBool,
-    testInsert,
-    testGet,
     testSlices,
+    testExtend,
     //testMap,
     //testReduce,
     //testPluck,
-    testExtend,
+    //testInsert,
+    //testGet,
     testClose,
 ]);
