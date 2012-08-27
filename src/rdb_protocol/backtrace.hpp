@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "rpc/serialize_macros.hpp"
+
 namespace query_language {
 
 class backtrace_t {
@@ -20,6 +22,9 @@ public:
 
 private:
     std::vector<std::string> frames;
+
+public:
+    RDB_MAKE_ME_SERIALIZABLE_1(frames);
 };
 
 }   /* namespace query_language */

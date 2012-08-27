@@ -49,6 +49,7 @@ typedef rdb_protocol_t::rget_read_response_t::groups_t groups_t;
 typedef rdb_protocol_t::rget_read_response_t::atom_t atom_t;
 typedef rdb_protocol_t::rget_read_response_t::length_t length_t;
 typedef rdb_protocol_t::rget_read_response_t::inserted_t inserted_t;
+typedef rdb_protocol_t::rget_read_response_t::runtime_exc_t runtime_exc_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
 
@@ -153,7 +154,13 @@ bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
 
 void read_t::unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
-    query_language::runtime_environment_t env(ctx->pool_group, ctx->ns_repo, ctx->cross_thread_sl_watchables[get_thread_id()].get()->get_watchable(), ctx->semilattice_metadata, js_runner, &ctx->interruptor, ctx->machine_id);
+    query_language::runtime_environment_t env(ctx->pool_group,
+                                              ctx->ns_repo,
+                                              ctx->cross_thread_sl_watchables[get_thread_id()].get()->get_watchable(), 
+                                              ctx->semilattice_metadata,
+                                              js_runner,
+                                              ctx->signals[get_thread_id()].get(),
+                                              ctx->machine_id);
 
     const point_read_t *pr = boost::get<point_read_t>(&read);
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
@@ -198,12 +205,12 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
                 query_language::backtrace_t backtrace;
 
                 for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
-                    query_language::new_val_scope_t scope(&env.scope);
+                    query_language::new_val_scope_t scope(&env.scopes.scope);
                     Term base = gmr->reduction().base(),
                          body = gmr->reduction().body();
 
-                    env.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
-                    env.scope.put_in_scope(gmr->reduction().var2(), j->second);
+                    env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
+                    env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
 
                     (*res_groups)[j->first] = eval(&body, &env, backtrace);
                 }
@@ -224,9 +231,9 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
 
                 const atom_t *atom = boost::get<atom_t>(&(_rr->result));
 
-                query_language::new_val_scope_t scope(&env.scope);
-                env.scope.put_in_scope(r->var1(), *res_atom);
-                env.scope.put_in_scope(r->var2(), *atom);
+                query_language::new_val_scope_t scope(&env.scopes.scope);
+                env.scopes.scope.put_in_scope(r->var1(), *res_atom);
+                env.scopes.scope.put_in_scope(r->var2(), *atom);
                 Term body = r->body();
                 *res_atom = eval(&body, &env, backtrace);
             }
@@ -271,7 +278,13 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
 
 void read_t::multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
-    query_language::runtime_environment_t env(ctx->pool_group, ctx->ns_repo, ctx->cross_thread_sl_watchables[get_thread_id()].get()->get_watchable(), ctx->semilattice_metadata, js_runner, &ctx->interruptor, ctx->machine_id);
+    query_language::runtime_environment_t env(ctx->pool_group,
+                                              ctx->ns_repo,
+                                              ctx->cross_thread_sl_watchables[get_thread_id()].get()->get_watchable(), 
+                                              ctx->semilattice_metadata,
+                                              js_runner,
+                                              ctx->signals[get_thread_id()].get(),
+                                              ctx->machine_id);
 
     const point_read_t *pr = boost::get<point_read_t>(&read);
     const rget_read_t *rg = boost::get<rget_read_t>(&read);
@@ -367,12 +380,12 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
                 query_language::backtrace_t backtrace;
 
                 for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
-                    query_language::new_val_scope_t scope(&env.scope);
+                    query_language::new_val_scope_t scope(&env.scopes.scope);
                     Term base = gmr->reduction().base(),
                          body = gmr->reduction().body();
 
-                    env.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
-                    env.scope.put_in_scope(gmr->reduction().var2(), j->second);
+                    env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
+                    env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
 
                     (*res_groups)[j->first] = eval(&body, &env, backtrace);
                 }
@@ -393,9 +406,9 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
 
                 const atom_t *atom = boost::get<atom_t>(&(_rr->result));
 
-                query_language::new_val_scope_t scope(&env.scope);
-                env.scope.put_in_scope(r->var1(), *res_atom);
-                env.scope.put_in_scope(r->var2(), *atom);
+                query_language::new_val_scope_t scope(&env.scopes.scope);
+                env.scopes.scope.put_in_scope(r->var1(), *res_atom);
+                env.scopes.scope.put_in_scope(r->var2(), *atom);
                 Term body = r->body();
                 *res_atom = eval(&body, &env, backtrace);
             }
@@ -516,7 +529,13 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
 
     read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, rdb_protocol_t::context_t *ctx) :
         btree(btree_), txn(txn_), superblock(superblock_),
-        env(ctx->pool_group, ctx->ns_repo, ctx->cross_thread_sl_watchables[get_thread_id()].get()->get_watchable(), ctx->semilattice_metadata, boost::make_shared<js::runner_t>(), &ctx->interruptor, ctx->machine_id)
+        env(ctx->pool_group,
+            ctx->ns_repo,
+            ctx->cross_thread_sl_watchables[get_thread_id()].get()->get_watchable(),
+            ctx->semilattice_metadata,
+            boost::make_shared<js::runner_t>(),
+            ctx->signals[get_thread_id()].get(),
+            ctx->machine_id)
     { }
 
 private:

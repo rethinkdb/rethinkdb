@@ -27,6 +27,7 @@
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/query_language.pb.h"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rpc/semilattice/watchable.hpp"
@@ -136,7 +137,9 @@ struct rdb_protocol_t {
             RDB_MAKE_ME_SERIALIZABLE_1(inserted);
         };
 
-        typedef boost::variant<stream_t, groups_t, atom_t, length_t, inserted_t> result_t;
+        typedef query_language::runtime_exc_t runtime_exc_t;
+
+        typedef boost::variant<stream_t, groups_t, atom_t, length_t, inserted_t, runtime_exc_t> result_t;
 
         key_range_t key_range;
         result_t result;

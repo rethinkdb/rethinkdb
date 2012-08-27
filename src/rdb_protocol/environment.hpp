@@ -22,6 +22,8 @@ enum term_type_t {
     TERM_TYPE_ARBITRARY
 };
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(term_type_t, int8_t, TERM_TYPE_JSON, TERM_TYPE_ARBITRARY);
+
 class term_info_t {
 public:
     term_info_t() { }
@@ -31,6 +33,8 @@ public:
 
     term_type_t type;
     bool deterministic;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(type, deterministic);
 };
 
 typedef variable_scope_t<term_info_t> variable_type_scope_t;
@@ -42,6 +46,8 @@ typedef implicit_value_t<term_info_t> implicit_type_t;
 struct type_checking_environment_t {
     variable_type_scope_t scope;
     implicit_type_t implicit_type;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(scope, implicit_type);
 };
 
 //Scopes for single pieces of json
@@ -96,10 +102,17 @@ public:
           this_machine(_this_machine)
     { }
 
-    variable_val_scope_t scope;
-    type_checking_environment_t type_env;
+    /* This is put in a seperate structure so that it can be made serializable. */
+    struct scopes_t {
+        variable_val_scope_t scope;
+        type_checking_environment_t type_env;
 
-    implicit_value_t<boost::shared_ptr<scoped_cJSON_t> > implicit_attribute_value;
+        implicit_value_t<boost::shared_ptr<scoped_cJSON_t> > implicit_attribute_value;
+
+        RDB_MAKE_ME_SERIALIZABLE_3(scope, type_env, implicit_attribute_value);
+    };
+
+    scopes_t scopes;
 
     extproc::pool_t *pool;      // for running external JS jobs
     namespace_repo_t<rdb_protocol_t> *ns_repo;
