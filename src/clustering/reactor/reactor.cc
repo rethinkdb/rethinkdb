@@ -119,13 +119,13 @@ void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
     rassert(std_contains(blueprint.peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
 
     std::map<typename protocol_t::region_t, blueprint_role_t> blueprint_roles =
-        (*blueprint.peers_roles.find(get_me())).second;
-    typename std::map<typename protocol_t::region_t, blueprint_role_t>::iterator it;
-    for (it = blueprint_roles.begin(); it != blueprint_roles.end(); it++) {
+        blueprint.peers_roles.find(get_me())->second;
+    for (typename std::map<typename protocol_t::region_t, blueprint_role_t>::iterator it = blueprint_roles.begin();
+         it != blueprint_roles.end(); ++it) {
         bool none_overlap = true;
         for (typename std::map<typename protocol_t::region_t, current_role_t *>::iterator it2 = current_roles.begin();
-                it2 != current_roles.end(); it2++) {
-            if (region_overlaps((*it).first, (*it2).first)) {
+             it2 != current_roles.end(); ++it2) {
+            if (region_overlaps(it->first, it2->first)) {
                 none_overlap = false;
                 break;
             }
