@@ -13,6 +13,10 @@
 
 namespace query_language {
 
+cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
+    if (!isfinite(d)) throw runtime_exc_t(strprintf("Illegal numeric value %e.", d), backtrace);
+    return cJSON_CreateNumber(d);
+}
 
 /* Convenience function for making the horrible easy. */
 boost::shared_ptr<scoped_cJSON_t> shared_scoped_json(cJSON *json) {
@@ -626,22 +630,40 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
     }
 }
 
-void check_tableop_query_type(const TableopQuery &t) {
-    check_protobuf(TableopQuery::TableopQueryType_IsValid(t.type()));
+void check_meta_query_type(const MetaQuery &t) {
+    check_protobuf(MetaQuery::MetaQueryType_IsValid(t.type()));
     switch(t.type()) {
-    case TableopQuery::CREATE:
-        check_protobuf(t.has_create());
-        check_protobuf(!t.has_drop());
+    case MetaQuery::CREATE_DB:
+        check_protobuf(t.has_db_name());
+        check_protobuf(!t.has_create_table());
+        check_protobuf(!t.has_drop_table());
         break;
-    case TableopQuery::DROP:
-        check_protobuf(!t.has_create());
-        check_protobuf(t.has_drop());
+    case MetaQuery::DROP_DB:
+        check_protobuf(t.has_db_name());
+        check_protobuf(!t.has_create_table());
+        check_protobuf(!t.has_drop_table());
         break;
-    case TableopQuery::LIST:
-        check_protobuf(!t.has_create());
-        check_protobuf(!t.has_drop());
+    case MetaQuery::LIST_DBS:
+        check_protobuf(!t.has_db_name());
+        check_protobuf(!t.has_create_table());
+        check_protobuf(!t.has_drop_table());
         break;
-    default: unreachable("Unhandled TableopQuery.");
+    case MetaQuery::CREATE_TABLE:
+        check_protobuf(!t.has_db_name());
+        check_protobuf(t.has_create_table());
+        check_protobuf(!t.has_drop_table());
+        break;
+    case MetaQuery::DROP_TABLE:
+        check_protobuf(!t.has_db_name());
+        check_protobuf(!t.has_create_table());
+        check_protobuf(t.has_drop_table());
+        break;
+    case MetaQuery::LIST_TABLES:
+        check_protobuf(t.has_db_name());
+        check_protobuf(!t.has_create_table());
+        check_protobuf(!t.has_drop_table());
+        break;
+    default: unreachable("Unhandled MetaQuery.");
     }
 }
 
@@ -651,55 +673,35 @@ void check_query_type(const Query &q, type_checking_environment_t *env, bool *is
     case Query::READ:
         check_protobuf(q.has_read_query());
         check_protobuf(!q.has_write_query());
-        check_protobuf(!q.has_tableop_query());
+        check_protobuf(!q.has_meta_query());
         check_read_query_type(q.read_query(), env, is_det_out, backtrace);
         break;
     case Query::WRITE:
         check_protobuf(q.has_write_query());
         check_protobuf(!q.has_read_query());
-        check_protobuf(!q.has_tableop_query());
+        check_protobuf(!q.has_meta_query());
         check_write_query_type(q.write_query(), env, is_det_out, backtrace);
         break;
     case Query::CONTINUE:
         check_protobuf(!q.has_read_query());
         check_protobuf(!q.has_write_query());
-        check_protobuf(!q.has_tableop_query());
+        check_protobuf(!q.has_meta_query());
         break;
     case Query::STOP:
         check_protobuf(!q.has_read_query());
         check_protobuf(!q.has_write_query());
-        check_protobuf(!q.has_tableop_query());
+        check_protobuf(!q.has_meta_query());
         break;
-    case Query::TABLEOP:
-        check_protobuf(q.has_tableop_query());
+    case Query::META:
+        check_protobuf(q.has_meta_query());
         check_protobuf(!q.has_read_query());
         check_protobuf(!q.has_write_query());
-        check_tableop_query_type(q.tableop_query());
+        check_meta_query_type(q.meta_query());
         break;
     default:
         unreachable("unhandled Query");
     }
 }
-
-std::string get_primary_key(const std::string &table_name, runtime_environment_t *env, const backtrace_t &backtrace) {
-    const char *status;
-    boost::optional< std::pair<namespace_id_t, deletable_t< namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_info =
-        metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces,
-                             table_name, &status);
-
-    if (!ns_info) {
-        rassert(status);
-        throw runtime_exc_t(strprintf("Namespace %s not found with error: %s",
-                                      table_name.c_str(), status), backtrace);
-    }
-
-    if (ns_info->second.get().primary_key.in_conflict()) {
-        throw runtime_exc_t(strprintf("Namespace %s has an in conflict primary key, this should really never happen.", ns_info->second.get().name.get().c_str()), backtrace);
-    }
-
-    return ns_info->second.get().primary_key.get();
-}
-
 
 boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     pool->assert_thread();
@@ -709,70 +711,124 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     return js_runner;
 }
 
-void parse_tableop_create(const TableopQuery::Create &c, std::string *datacenter,
-                          std::string *db_name, std::string *table_name,
-                          std::string *primary_key) {
-    *datacenter = c.datacenter();
-    if (c.table_ref().has_db_name()) {
-        *db_name = c.table_ref().db_name();
-    } else {
-        *db_name = "Welcome-db";
+class namespace_predicate_t {
+public:
+    bool operator()(namespace_semilattice_metadata_t<rdb_protocol_t> ns) {
+        if (name && (ns.name.in_conflict() || ns.name.get() != *name)) {
+            return false;
+        } else if (db_id && (ns.database.in_conflict() || ns.database.get() != *db_id)) {
+            return false;
+        }
+        return true;
     }
-    *table_name = c.table_ref().table_name();
-    if (c.has_primary_key()) {
-        *primary_key = c.primary_key();
-    } else {
-        *primary_key = "id";
+    explicit namespace_predicate_t(std::string &_name): name(&_name), db_id(0) { }
+    explicit namespace_predicate_t(uuid_t &_db_id): name(0), db_id(&_db_id) { }
+    namespace_predicate_t(std::string &_name, uuid_t &_db_id):
+        name(&_name), db_id(&_db_id) { }
+private:
+    const std::string *name;
+    const uuid_t *db_id;
+};
+
+static void meta_check(const char *status, const char *want,
+                       const std::string &operation, const backtrace_t &backtrace) {
+    if (status != want) {
+        if (status == METADATA_SUCCESS) status = "Entry already exists.";
+        throw runtime_exc_t(strprintf("Error during operation `%s`: %s",
+                                      operation.c_str(), status), backtrace);
     }
 }
 
-void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
+template<class T, class U>
+static uuid_t meta_get_uuid(T searcher, U predicate,
+                     const std::string &operation, const backtrace_t &backtrace) {
+    const char *status;
+    typename T::iterator entry = searcher.find_uniq(predicate, &status);
+    meta_check(status, METADATA_SUCCESS, operation, backtrace);
+    return entry->first;
+}
+
+void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const backtrace_t &bt) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
-    switch(t->type()) {
-    case TableopQuery::CREATE: {
-        const char *status;
-        std::string dc_name, db_name, table_name, primary_key;
-        parse_tableop_create(t->create(), &dc_name, &db_name, &table_name, &primary_key);
+    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+        ns_searcher(&metadata.rdb_namespaces.namespaces);
+    metadata_searcher_t<database_semilattice_metadata_t>
+        db_searcher(&metadata.databases.databases);
+    metadata_searcher_t<datacenter_semilattice_metadata_t>
+        dc_searcher(&metadata.datacenters.datacenters);
 
-        //Make sure namespace doesn't exist before we go any further.
-        metadata_get_by_name(metadata.rdb_namespaces.namespaces, table_name, &status);
-        if (status != METADATA_ERR_NONE) {
-            if (status == METADATA_SUCCESS) {
-                throw runtime_exc_t(strprintf("Table %s already exists!",
-                                              table_name.c_str()), backtrace);
-            } else {
-                throw runtime_exc_t(strprintf("Table %s creation failed with error: %s",
-                                              table_name.c_str(), status), backtrace);
-            }
+    const char *status;
+    switch(m->type()) {
+    case MetaQuery::CREATE_DB: {
+        std::string db_name = m->db_name();
+
+        /* Ensure database doesn't already exist. */
+        db_searcher.find_uniq(db_name, &status);
+        meta_check(status, METADATA_ERR_NONE, "CREATE_DB "+db_name, bt);
+
+        /* Create namespace, insert into metadata, then join into real metadata. */
+        database_semilattice_metadata_t db;
+        db.name = vclock_t<std::string>(db_name, env->this_machine);
+        metadata.databases.databases.insert(std::make_pair(generate_uuid(), db));
+        env->semilattice_metadata->join(metadata);
+        res->set_status_code(Response::SUCCESS_EMPTY); //return immediately.
+    } break;
+    case MetaQuery::DROP_DB: {
+        std::string db_name = m->db_name();
+
+        // Get database metadata.
+        metadata_searcher_t<database_semilattice_metadata_t>::iterator
+            db_metadata = db_searcher.find_uniq(db_name, &status);
+        meta_check(status, METADATA_SUCCESS, "DROP_DB "+db_name, bt);
+        rassert(!db_metadata->second.is_deleted());
+        uuid_t db_id = db_metadata->first;
+
+        // Delete all tables in database.
+        namespace_predicate_t pred(db_id);
+        for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+                 ::iterator it = ns_searcher.find_next(ns_searcher.begin(), pred);
+             it != ns_searcher.end(); it = ns_searcher.find_next(++it, pred)) {
+            rassert(!it->second.is_deleted());
+            it->second.mark_deleted();
         }
 
-        // Get datacenter ID.
-        boost::optional<uuid_t> opt_datacenter_id = metadata_get_uuid_by_name(
-            metadata.datacenters.datacenters, dc_name, &status);
-        if (!opt_datacenter_id) {
-            rassert(status);
-            throw runtime_exc_t(strprintf("No datacenter %s found with error: %s",
-                                          dc_name.c_str(), status), backtrace);
-        }
-        uuid_t dc_id = *opt_datacenter_id;
+        // Delete database.
+        db_metadata->second.mark_deleted();
+        env->semilattice_metadata->join(metadata);
+        res->set_status_code(Response::SUCCESS_EMPTY);
+    } break;
+    case MetaQuery::LIST_DBS: {
+        for (metadata_searcher_t<database_semilattice_metadata_t>::iterator
+                 it = db_searcher.find_next(db_searcher.begin());
+             it != db_searcher.end(); it = db_searcher.find_next(++it)) {
 
-        // Get database ID.
-        boost::optional<uuid_t> opt_database_id = metadata_get_uuid_by_name(
-            metadata.databases.databases, db_name, &status);
-        if (!opt_database_id) {
-            rassert(status);
-            throw runtime_exc_t(strprintf("No database %s found with error: %s",
-                                          db_name.c_str(), status), backtrace);
+            // For each undeleted and unconflicted entry in the metadata, add a response.
+            rassert(!it->second.is_deleted());
+            if (it->second.get().name.in_conflict()) continue;
+            scoped_cJSON_t json(cJSON_CreateString(it->second.get().name.get().c_str()));
+            res->add_response(json.PrintUnformatted());
         }
-        uuid_t db_id = *opt_database_id;
+        res->set_status_code(Response::SUCCESS_STREAM);
+    } break;
+    case MetaQuery::CREATE_TABLE: {
+        std::string dc_name = m->create_table().datacenter();
+        std::string db_name = m->create_table().table_ref().db_name();
+        std::string table_name = m->create_table().table_ref().table_name();
+        std::string primary_key = m->create_table().primary_key();
 
-        // Create namespace, insert into metadata, then join into real metadata.
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE "+db_name, bt);
+        uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name,"FIND_DATACENTER "+dc_name,bt);
+
+        /* Ensure table doesn't already exist. */
+        ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
+        meta_check(status, METADATA_ERR_NONE, "CREATE_TABLE "+table_name, bt);
+
+        /* Create namespace, insert into metadata, then join into real metadata. */
         uuid_t namespace_id = generate_uuid();
-        //TODO(mlucy): port number?
+        //TODO(mlucy): What is the port for?  Why is it always the same?
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
-            new_namespace<rdb_protocol_t>(
-                env->this_machine, db_id, dc_id, table_name, primary_key,
-                port_constants::namespace_port);
+            new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, table_name,
+                                          primary_key, port_constants::namespace_port);
         metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, ns));
         fill_in_blueprints(&metadata, env->directory_metadata->get(), env->this_machine);
         env->semilattice_metadata->join(metadata);
@@ -798,84 +854,74 @@ void execute_tableop(TableopQuery *t, runtime_environment_t *env, Response *res,
                 } catch (cannot_perform_query_exc_t e) { } //continue loop
             }
         } catch (interrupted_exc_t e) {
-            throw runtime_exc_t("Query interrupted, probably by user.", backtrace);
+            throw runtime_exc_t("Query interrupted, probably by user.", bt);
         }
         res->set_status_code(Response::SUCCESS_EMPTY);
     } break;
-    case TableopQuery::DROP: {
-        const char *status;
-        std::string table_name = t->drop().table_name();
+    case MetaQuery::DROP_TABLE: {
+        std::string db_name = m->drop_table().db_name();
+        std::string table_name = m->drop_table().table_name();
 
-        // Get namespace ID.
-        boost::optional<std::pair<uuid_t, deletable_t< namespace_semilattice_metadata_t<rdb_protocol_t> > > > ns_metadata =
-            metadata_get_by_name(metadata.rdb_namespaces.namespaces, table_name, &status);
-        if (!ns_metadata) {
-            rassert(status);
-            throw runtime_exc_t(strprintf("No table %s found with error: %s",
-                                          table_name.c_str(), status), backtrace);
-        }
+        // Get namespace metadata.
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE "+db_name, bt);
+        metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
+            ns_metadata =
+            ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
+        std::string op=strprintf("FIND_TABLE %s.%s",db_name.c_str(),table_name.c_str());
+        meta_check(status, METADATA_SUCCESS, op, bt);
         rassert(!ns_metadata->second.is_deleted());
 
         // Delete namespace
-        //TODO: make metadata_get_by_name return an iterator instead to skip this step?
-        metadata.rdb_namespaces.namespaces.find(ns_metadata->first)
-            ->second.mark_deleted();
+        ns_metadata->second.mark_deleted();
         env->semilattice_metadata->join(metadata);
         res->set_status_code(Response::SUCCESS_EMPTY); //return immediately
     } break;
-    case TableopQuery::LIST: {
-        for (namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::
-                 iterator it = metadata.rdb_namespaces.namespaces.begin();
-             it != metadata.rdb_namespaces.namespaces.end();
-             ++it) {
-            if (it->second.is_deleted()) continue;
-            namespace_semilattice_metadata_t<rdb_protocol_t> ns_metadata =
-                it->second.get();
-            scoped_cJSON_t this_namespace(cJSON_CreateObject());
-            bool conflicted = false;
+    case MetaQuery::LIST_TABLES: {
+        std::string db_name = m->db_name();
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE "+db_name, bt);
+        namespace_predicate_t pred(db_id);
+        for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+                 ::iterator it = ns_searcher.find_next(ns_searcher.begin(), pred);
+             it != ns_searcher.end(); it = ns_searcher.find_next(++it, pred)) {
 
-            this_namespace.AddItemToObject(
-                "uuid", cJSON_CreateString(uuid_to_str(it->first).c_str()));
-
-            if (ns_metadata.name.in_conflict()) {
-                this_namespace.AddItemToObject("table_name", cJSON_CreateNull());
-                conflicted = true;
-            } else {
-                this_namespace.AddItemToObject(
-                    "table_name", cJSON_CreateString(ns_metadata.name.get().c_str()));
-            }
-
-            if (ns_metadata.database.in_conflict()) {
-                this_namespace.AddItemToObject("db_name", cJSON_CreateNull());
-                conflicted = true;
-            } else {
-                uuid_t table_id = ns_metadata.database.get();
-                databases_semilattice_metadata_t::database_map_t::iterator
-                    db_metadata_it = metadata.databases.databases.find(table_id);
-                if (db_metadata_it == metadata.databases.databases.end()
-                    || db_metadata_it->second.is_deleted()) {
-                    logERR("Namespace metadata contains invalid database ID!");
-                    throw runtime_exc_t("Namespace metadata is corrupted!", backtrace);
-                }
-                database_semilattice_metadata_t db_metadata =
-                    db_metadata_it->second.get();
-                if (db_metadata.name.in_conflict()) {
-                    this_namespace.AddItemToObject("db_name", cJSON_CreateNull());
-                    conflicted = true;
-                } else {
-                    this_namespace.AddItemToObject(
-                        "db_name", cJSON_CreateString(db_metadata.name.get().c_str()));
-
-                }
-            }
-
-            this_namespace.AddItemToObject("conflicted", cJSON_CreateBool(conflicted));
-            res->add_response(this_namespace.PrintUnformatted());
+            // For each undeleted and unconflicted entry in the metadata, add a response.
+            rassert(!it->second.is_deleted());
+            if (it->second.get().name.in_conflict()) continue;
+            scoped_cJSON_t json(cJSON_CreateString(it->second.get().name.get().c_str()));
+            res->add_response(json.PrintUnformatted());
         }
         res->set_status_code(Response::SUCCESS_STREAM);
     } break;
     default: crash("unreachable");
     }
+}
+
+std::string get_primary_key(TableRef *t, runtime_environment_t *env,
+                            const backtrace_t &bt) {
+    const char *status;
+    std::string db_name = t->db_name();
+    std::string table_name = t->table_name();
+    cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
+    namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata = env->namespaces_semilattice_metadata->get();
+    databases_semilattice_metadata_t db_metadata = env->databases_semilattice_metadata->get();
+
+    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+        ns_searcher(&ns_metadata.namespaces);
+    metadata_searcher_t<database_semilattice_metadata_t>
+        db_searcher(&db_metadata.databases);
+
+    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DB "+db_name, bt);
+    namespace_predicate_t pred(table_name, db_id);
+    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
+        ns_metadata_it = ns_searcher.find_uniq(pred, &status);
+    meta_check(status, METADATA_SUCCESS, "FIND_TABLE "+table_name, bt);
+    rassert(!ns_metadata_it->second.is_deleted());
+    if (ns_metadata_it->second.get().primary_key.in_conflict()) {
+        throw runtime_exc_t(strprintf(
+            "Table %s.%s has a primary key in conflict, which should never happen.",
+            db_name.c_str(), table_name.c_str()), bt);
+    }
+    return ns_metadata_it->second.get().primary_key.get();
 }
 
 void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
@@ -900,8 +946,8 @@ void execute(Query *q, runtime_environment_t *env, Response *res, const backtrac
             stream_cache->erase(q->token());
         }
         break;
-    case Query::TABLEOP:
-        execute_tableop(q->mutable_tableop_query(), env, res, backtrace);
+    case Query::META:
+        execute_meta(q->mutable_meta_query(), env, res, backtrace);
         break;
     default:
         crash("unreachable");
@@ -976,25 +1022,45 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
         case WriteQuery::UPDATE:
             {
                 view_t view = eval_view(w->mutable_update()->mutable_view(), env, backtrace.with("view"));
+                std::string reported_error = "";
 
-                int updated = 0,
-                    error = 0,
-                    skipped = 0;
+                int updated = 0, errors = 0, skipped = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-                    variable_val_scope_t::new_scope_t scope_maker(&env->scope, w->update().mapping().arg(), json);
-                    boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
-                    if (val->type() == cJSON_NULL) {
-                        skipped++;
-                    } else if (!cJSON_Equal(json->GetObjectItem(view.primary_key.c_str()),
-                                            val->GetObjectItem(view.primary_key.c_str()))) {
-                        error++;
-                    } else {
-                        insert(view.access, view.primary_key, val, env, backtrace);
-                        updated++;
+                    try {
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->update().mapping().arg(), json);
+                        boost::shared_ptr<scoped_cJSON_t> rhs =
+                            eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
+                        if (rhs->type() == cJSON_NULL) {
+                            ++skipped;
+                        } else {
+                            boost::shared_ptr<scoped_cJSON_t> val(new scoped_cJSON_t(cJSON_merge(json->get(), rhs->get())));
+                            cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
+                            cJSON *val_key = val->GetObjectItem(view.primary_key.c_str());
+                            if (!cJSON_Equal(json_key, val_key)) {
+                                ++errors;
+                                if (reported_error == "") {
+                                    reported_error = strprintf("Update cannot change priamary keys: %s -> %s\n",
+                                                               json->PrintUnformatted().c_str(), val->PrintUnformatted().c_str());
+                                }
+                            } else {
+                                insert(view.access, view.primary_key, val, env, backtrace);
+                                updated++;
+                            }
+                        }
+                    } catch (const query_language::broken_client_exc_t &e) {
+                        ++errors;
+                        if (reported_error == "") reported_error = e.message;
+                    } catch (const query_language::runtime_exc_t &e) {
+                        ++errors;
+                        if (reported_error == "") reported_error = e.message + "\n" + e.backtrace.print();
                     }
                 }
-
-                res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}", updated, skipped, error));
+                std::string res_list = strprintf("\"updated\": %d, \"skipped\": %d, \"errors\": %d", updated, skipped, errors);
+                if (reported_error != "") {
+                    res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
+                                         scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
+                }
+                res->add_response("{"+res_list+"}");
             }
             break;
         case WriteQuery::DELETE:
@@ -1014,26 +1080,49 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             {
                 view_t view = eval_view(w->mutable_mutate()->mutable_view(), env, backtrace.with("view"));
 
-                int modified = 0, deleted = 0;
+                int modified = 0, deleted = 0, errors = 0;
+                std::string reported_error = "";
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-                    variable_val_scope_t::new_scope_t scope_maker(&env->scope, w->mutate().mapping().arg(), json);
-                    boost::shared_ptr<scoped_cJSON_t> val = eval(w->mutable_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
-
-                    if (val->type() == cJSON_NULL) {
-                        point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
-                        ++deleted;
-                    } else {
-                        insert(view.access, view.primary_key, val, env, backtrace);
-                        ++modified;
+                    try {
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->mutate().mapping().arg(), json);
+                        boost::shared_ptr<scoped_cJSON_t> val =
+                            eval(w->mutable_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
+                        if (val->type() == cJSON_NULL) {
+                            point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
+                            ++deleted;
+                        } else {
+                            cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
+                            cJSON *val_key = val->GetObjectItem(view.primary_key.c_str());
+                            if (!cJSON_Equal(json_key, val_key)) {
+                                ++errors;
+                                if (reported_error == "") {
+                                    reported_error = strprintf("Update cannot change priamary keys: %s -> %s\n",
+                                                               json->PrintUnformatted().c_str(), val->PrintUnformatted().c_str());
+                                }
+                            } else {
+                                insert(view.access, view.primary_key, val, env, backtrace);
+                                ++modified;
+                            }
+                        }
+                    } catch (const query_language::broken_client_exc_t &e) {
+                        ++errors;
+                        if (reported_error == "") reported_error = e.message;
+                    } catch (const query_language::runtime_exc_t &e) {
+                        ++errors;
+                        if (reported_error == "") reported_error = e.message + "\n" + e.backtrace.print();
                     }
                 }
-
-                res->add_response(strprintf("{\"modified\": %d, \"deleted\": %d}", modified, deleted));
+                std::string res_list = strprintf("\"modified\": %d, \"deleted\": %d, \"errors\": %d", modified, deleted, errors);
+                if (reported_error != "") {
+                    res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
+                                         scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
+                }
+                res->add_response("{"+res_list+"}");
             }
             break;
         case WriteQuery::INSERT:
             {
-                std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref()->table_name(), env, backtrace);
+                std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref(), env, backtrace);
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_insert()->mutable_table_ref(), env, backtrace);
 
                 for (int i = 0; i < w->insert().terms_size(); ++i) {
@@ -1048,7 +1137,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             break;
         case WriteQuery::INSERTSTREAM:
             {
-                std::string pk = get_primary_key(w->mutable_insert_stream()->mutable_table_ref()->table_name(), env, backtrace);
+                std::string pk = get_primary_key(w->mutable_insert_stream()->mutable_table_ref(), env, backtrace);
                 boost::shared_ptr<json_stream_t> stream = eval_stream(w->mutable_insert_stream()->mutable_stream(), env, backtrace.with("stream"));
 
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_insert_stream()->mutable_table_ref(), env, backtrace);
@@ -1067,7 +1156,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 boost::shared_ptr<json_stream_t> stream = eval_stream(w->mutable_for_each()->mutable_stream(), env, backtrace.with("stream"));
 
                 while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    variable_val_scope_t::new_scope_t scope_maker(&env->scope, w->for_each().var(), json);
+                    variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->for_each().var(), json);
 
                     for (int i = 0; i < w->for_each().queries_size(); ++i) {
                         execute(w->mutable_for_each()->mutable_queries(i), env, res, backtrace.with(strprintf("query:%d", i)));
@@ -1077,6 +1166,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             break;
         case WriteQuery::POINTUPDATE:
             {
+                int skipped = 0;
                 //First we need to grab the value the easiest way to do this is to just construct a term and evaluate it.
                 Term get;
                 get.set_type(Term::GETBYKEY);
@@ -1087,26 +1177,29 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 *get.mutable_get_by_key() = get_by_key;
 
                 boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
-                new_val_scope_t scope_maker(&env->scope, w->point_update().mapping().arg(), original_val);
+                new_val_scope_t scope_maker(&env->scopes.scope, w->point_update().mapping().arg(), original_val);
 
-                boost::shared_ptr<scoped_cJSON_t> new_val = eval(w->mutable_point_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
+                boost::shared_ptr<scoped_cJSON_t> rhs = eval(w->mutable_point_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
+                if (rhs->type() == cJSON_NULL) {
+                    skipped = 1;
+                } else {
+                    boost::shared_ptr<scoped_cJSON_t> new_val(new scoped_cJSON_t(cJSON_merge(original_val->get(), rhs->get())));
+                    /* Now we insert the new value. */
+                    namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
 
-                /* Now we insert the new value. */
-                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
+                    /* Get the primary key */
+                    std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
 
-                /* Get the primary key */
-                std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref()->table_name(), env, backtrace);
+                    /* Make sure that the primary key wasn't changed. */
+                    if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
+                                     cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
+                        throw runtime_exc_t(strprintf("Updates are not allowed to change the primary key (%s).", pk.c_str()), backtrace);
+                    }
 
-                /* Make sure that the primary key wasn't changed. */
-                if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
-                                 cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
-                    throw runtime_exc_t(strprintf("Point updates are not allowed to change the primary key (%s).", pk.c_str()), backtrace);
+                    insert(ns_access, pk, new_val, env, backtrace);
                 }
 
-
-                insert(ns_access, pk, new_val, env, backtrace);
-
-                res->add_response(strprintf("{\"updated\": %d, \"errors\": %d}", 1, 0));
+                res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}", 1-skipped, skipped, 0));
             }
             break;
         case WriteQuery::POINTDELETE:
@@ -1118,9 +1211,38 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 res->add_response(strprintf("{\"deleted\": %d}", 1));
             }
             break;
-        case WriteQuery::POINTMUTATE:
-            throw runtime_exc_t("Unimplemented: POINTMUTATE", backtrace);
-            break;
+        case WriteQuery::POINTMUTATE: {
+            int deleted = 0;
+            //First we need to grab the value the easiest way to do this is to just construct a term and evaluate it.
+            Term get;
+            get.set_type(Term::GETBYKEY);
+            Term::GetByKey get_by_key;
+            *get_by_key.mutable_table_ref() = w->point_mutate().table_ref();
+            get_by_key.set_attrname(w->point_mutate().attrname());
+            *get_by_key.mutable_key() = w->point_mutate().key();
+            *get.mutable_get_by_key() = get_by_key;
+
+            boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
+            new_val_scope_t scope_maker(&env->scopes.scope, w->point_mutate().mapping().arg(), original_val);
+            boost::shared_ptr<scoped_cJSON_t> new_val = eval(w->mutable_point_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
+
+            namespace_repo_t<rdb_protocol_t>::access_t ns_access =
+                eval(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
+            /* Get the primary key */
+            std::string pk = get_primary_key(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
+            if (new_val->type() == cJSON_NULL) {
+                deleted = 1;
+                point_delete(ns_access, cJSON_GetObjectItem(original_val->get(), pk.c_str()), env, backtrace);
+            } else {
+                /* Make sure that the primary key wasn't changed. */
+                if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
+                                 cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
+                    throw runtime_exc_t(strprintf("Mutates musn't change the primary key (%s).", pk.c_str()), backtrace);
+                }
+                insert(ns_access, pk, new_val, env, backtrace);
+            }
+            res->add_response(strprintf("{\"modified\": %d, \"deleted\": %d, \"errors\": %d}", 1-deleted, deleted, 0));
+        } break;
         default:
             unreachable();
     }
@@ -1131,10 +1253,10 @@ void eval_let_binds(Term::Let *let, runtime_environment_t *env, const backtrace_
     // Go through the bindings in a let and add them one by one
     for (int i = 0; i < let->binds_size(); ++i) {
         backtrace_t backtrace_bind = backtrace.with(strprintf("bind:%s", let->binds(i).var().c_str()));
-        term_info_t type = get_term_type(let->binds(i).term(), &env->type_env, backtrace_bind);
+        term_info_t type = get_term_type(let->binds(i).term(), &env->scopes.type_env, backtrace_bind);
 
         if (type.type == TERM_TYPE_JSON) {
-            env->scope.put_in_scope(let->binds(i).var(),
+            env->scopes.scope.put_in_scope(let->binds(i).var(),
                     eval(let->mutable_binds(i)->mutable_term(), env, backtrace_bind));
         } else if (type.type == TERM_TYPE_STREAM || type.type == TERM_TYPE_VIEW) {
             throw runtime_exc_t("Cannot bind streams/views to variable names", backtrace);
@@ -1144,7 +1266,7 @@ void eval_let_binds(Term::Let *let, runtime_environment_t *env, const backtrace_
                 "evaluating it must throw  `runtime_exc_t`.");
         }
 
-        env->type_env.scope.put_in_scope(let->binds(i).var(),
+        env->scopes.type_env.scope.put_in_scope(let->binds(i).var(),
                                      type);
     }
 }
@@ -1169,13 +1291,13 @@ boost::shared_ptr<scoped_cJSON_t> eval_and_check_either(Term *t, runtime_environ
 boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     switch (t->type()) {
         case Term::VAR:
-            return env->scope.get(t->var());
+            return env->scopes.scope.get(t->var());
             break;
         case Term::LET:
             {
                 // Push the scope
-                variable_val_scope_t::new_scope_t new_scope(&env->scope);
-                variable_type_scope_t::new_scope_t new_type_scope(&env->type_env.scope);
+                variable_val_scope_t::new_scope_t new_scope(&env->scopes.scope);
+                variable_type_scope_t::new_scope_t new_type_scope(&env->scopes.type_env.scope);
 
                 eval_let_binds(t->mutable_let(), env, backtrace);
 
@@ -1203,7 +1325,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             break;
         case Term::NUMBER:
             {
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(t->number())));
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(safe_cJSON_CreateNumber(t->number(), backtrace)));
             }
             break;
         case Term::STRING:
@@ -1211,9 +1333,14 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
                 return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateString(t->valuestring().c_str())));
             }
             break;
-        case Term::JSON:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_Parse(t->jsonstring().c_str())));
-            break;
+        case Term::JSON: {
+            const char *str = t->jsonstring().c_str();
+            boost::shared_ptr<scoped_cJSON_t> json(new scoped_cJSON_t(cJSON_Parse(str)));
+            if (!json->get()) {
+                throw runtime_exc_t(strprintf("Malformed JSON: %s", str), backtrace);
+            }
+            return json;
+        } break;
         case Term::BOOL:
             {
                 return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(t->valuebool())));
@@ -1245,7 +1372,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             break;
         case Term::GETBYKEY:
             {
-                std::string pk = get_primary_key(t->get_by_key().table_ref().table_name(), env, backtrace);
+                std::string pk = get_primary_key(t->mutable_get_by_key()->mutable_table_ref(), env, backtrace);
 
                 if (t->get_by_key().attrname() != pk) {
                     throw runtime_exc_t(strprintf("Attribute: %s is not the primary key (%s) and thus cannot be selected upon.", t->get_by_key().attrname().c_str(), pk.c_str()),
@@ -1297,7 +1424,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             // TODO(rntz): this is wasteful double-copying.
             std::vector<std::string> argnames; // only used if (!compiled)
             std::vector<boost::shared_ptr<scoped_cJSON_t> > argvals;
-            env->scope.dump(compiled ? NULL : &argnames, &argvals);
+            env->scopes.scope.dump(compiled ? NULL : &argnames, &argvals);
 
             js::id_t id;
             if (compiled) {
@@ -1313,8 +1440,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
 
             // Figure out whether to bind "this" to the implicit object.
             boost::shared_ptr<scoped_cJSON_t> object;
-            if (env->implicit_attribute_value.has_value()) {
-                object = env->implicit_attribute_value.get_value();
+            if (env->scopes.implicit_attribute_value.has_value()) {
+                object = env->scopes.implicit_attribute_value.get_value();
                 if (object->type() != cJSON_Object) {
                     // If it's not a JSON object, we have to ignore it ("this"
                     // can't be bound to a non-object).
@@ -1346,8 +1473,8 @@ boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env
         case Term::LET:
             {
                 // Push the scope
-                variable_val_scope_t::new_scope_t new_scope(&env->scope);
-                variable_type_scope_t::new_scope_t new_type_scope(&env->type_env.scope);
+                variable_val_scope_t::new_scope_t new_scope(&env->scopes.scope);
+                variable_type_scope_t::new_scope_t new_type_scope(&env->scopes.type_env.scope);
 
                 eval_let_binds(t->mutable_let(), env, backtrace);
 
@@ -1416,8 +1543,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 if (c->builtin().type() == Builtin::GETATTR) {
                     data = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
                 } else {
-                    rassert(env->implicit_attribute_value.has_value());
-                    data = env->implicit_attribute_value.get_value();
+                    rassert(env->scopes.implicit_attribute_value.has_value());
+                    data = env->scopes.implicit_attribute_value.get_value();
                 }
 
                 if (!data->type() == cJSON_Object) {
@@ -1440,8 +1567,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 if (c->builtin().type() == Builtin::HASATTR) {
                     data = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
                 } else {
-                    rassert(env->implicit_attribute_value.has_value());
-                    data = env->implicit_attribute_value.get_value();
+                    rassert(env->scopes.implicit_attribute_value.has_value());
+                    data = env->scopes.implicit_attribute_value.get_value();
                 }
 
                 if (!data->type() == cJSON_Object) {
@@ -1464,8 +1591,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 if (c->builtin().type() == Builtin::PICKATTRS) {
                     data = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
                 } else {
-                    rassert(env->implicit_attribute_value.has_value());
-                    data = env->implicit_attribute_value.get_value();
+                    rassert(env->scopes.implicit_attribute_value.has_value());
+                    data = env->scopes.implicit_attribute_value.get_value();
                 }
 
                 if (!data->type() == cJSON_Object) {
@@ -1491,17 +1618,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                                                                          cJSON_Object, "Data must be an object"),
                                                   right = eval_and_check(c->mutable_args(1), env, backtrace.with("arg:1"),
                                                                          cJSON_Object, "Data must be an object");
-
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(left->DeepCopy()));
-
-                // Extend with the right side (and overwrite if necessary)
-                for(int i = 0; i < right->GetArraySize(); i++) {
-                    cJSON *item = right->GetArrayItem(i);
-                    res->DeleteItemFromObject(item->string);
-                    res->AddItemToObject(item->string, cJSON_DeepCopy(item));
-                }
-
-                return res;
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_merge(left->get(), right->get())));
             }
             break;
         case Builtin::ARRAYAPPEND:
@@ -1586,7 +1703,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
             {
                 std::vector<std::string> argnames;
                 std::vector<boost::shared_ptr<scoped_cJSON_t> > values;
-                env->scope.dump(&argnames, &values);
+                env->scopes.scope.dump(&argnames, &values);
 
                 if (c->args_size() == 0) {
                     return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNull()));
@@ -1602,7 +1719,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                         result += arg->get()->valuedouble;
                     }
 
-                    return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(result)));
+                    return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(safe_cJSON_CreateNumber(result, backtrace)));
                 } else if (arg->type() == cJSON_Array) {
                     boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(arg->DeepCopy()));
                     for (int i = 1; i < c->args_size(); ++i) {
@@ -1635,7 +1752,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     }
                 }
 
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(result)));
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(safe_cJSON_CreateNumber(result, backtrace)));
                 return res;
             }
             break;
@@ -1648,7 +1765,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     result *= arg->get()->valuedouble;
                 }
 
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(result)));
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(safe_cJSON_CreateNumber(result, backtrace)));
                 return res;
             }
             break;
@@ -1670,7 +1787,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     }
                 }
 
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(result)));
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(safe_cJSON_CreateNumber(result, backtrace)));
                 return res;
             }
             break;
@@ -1679,7 +1796,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 boost::shared_ptr<scoped_cJSON_t> lhs = eval_and_check(c->mutable_args(0), env, backtrace.with("arg:0"), cJSON_Number, "First operand of MOD must be a number."),
                                                   rhs = eval_and_check(c->mutable_args(1), env, backtrace.with("arg:1"), cJSON_Number, "Second operand of MOD must be a number.");
 
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(fmod(lhs->get()->valuedouble, rhs->get()->valuedouble))));
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(safe_cJSON_CreateNumber(fmod(lhs->get()->valuedouble, rhs->get()->valuedouble), backtrace)));
                 return res;
             }
             break;
@@ -1754,7 +1871,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                     }
                 }
 
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(length)));
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(safe_cJSON_CreateNumber(length, backtrace)));
             }
             break;
         case Builtin::NTH:
@@ -1889,8 +2006,8 @@ predicate_t::predicate_t(const Predicate &_pred, runtime_environment_t _env, con
 { }
 
 bool predicate_t::operator()(boost::shared_ptr<scoped_cJSON_t> json) {
-    variable_val_scope_t::new_scope_t scope_maker(&env.scope, pred.arg(), json);
-    implicit_value_setter_t impliciter(&env.implicit_attribute_value, json);
+    variable_val_scope_t::new_scope_t scope_maker(&env.scopes.scope, pred.arg(), json);
+    implicit_value_setter_t impliciter(&env.scopes.implicit_attribute_value, json);
     boost::shared_ptr<scoped_cJSON_t> a_bool = eval(pred.mutable_body(), &env, backtrace.with("predicate"));
 
     if (a_bool->type() == cJSON_True) {
@@ -1935,14 +2052,14 @@ private:
 };
 
 boost::shared_ptr<scoped_cJSON_t> map(std::string arg, Term *term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {
-    variable_val_scope_t::new_scope_t scope_maker(&env.scope, arg, val);
-    implicit_value_setter_t impliciter(&env.implicit_attribute_value, val);
+    variable_val_scope_t::new_scope_t scope_maker(&env.scopes.scope, arg, val);
+    implicit_value_setter_t impliciter(&env.scopes.implicit_attribute_value, val);
     return eval(term, &env, backtrace);
 }
 
 boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {
-    variable_val_scope_t::new_scope_t scope_maker(&env.scope, arg, val);
-    implicit_value_setter_t impliciter(&env.implicit_attribute_value, val);
+    variable_val_scope_t::new_scope_t scope_maker(&env.scopes.scope, arg, val);
+    implicit_value_setter_t impliciter(&env.scopes.implicit_attribute_value, val);
     return eval_stream(term, &env, backtrace);
 }
 
@@ -1984,31 +2101,31 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 
                     // Figure out which group we belong to
                     {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scope, g->group_mapping().arg(), json);
-                        implicit_value_setter_t impliciter(&env->implicit_attribute_value, json);
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, g->group_mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
                         group_mapped_row = eval(g->mutable_group_mapping()->mutable_body(), env, backtrace.with("group_mapping"));
                     }
 
                     // Map the value for comfy reduction goodness
                     {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scope, g->value_mapping().arg(), json);
-                        implicit_value_setter_t impliciter(&env->implicit_attribute_value, json);
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, g->value_mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
                         value_mapped_row = eval(g->mutable_value_mapping()->mutable_body(), env, backtrace.with("value_mapping"));
                     }
 
                     // Do the reduction
                     {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope);
                         std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator
                             elem = groups.find(group_mapped_row);
                         if(elem != groups.end()) {
-                            env->scope.put_in_scope(g->reduction().var1(),
+                            env->scopes.scope.put_in_scope(g->reduction().var1(),
                                                     (*elem).second);
                         } else {
-                            env->scope.put_in_scope(g->reduction().var1(),
+                            env->scopes.scope.put_in_scope(g->reduction().var1(),
                                                     eval(g->mutable_reduction()->mutable_base(), env, backtrace.with("reduction").with("base")));
                         }
-                        env->scope.put_in_scope(g->reduction().var2(), value_mapped_row);
+                        env->scopes.scope.put_in_scope(g->reduction().var2(), value_mapped_row);
 
                         reduced_row = eval(g->mutable_reduction()->mutable_body(), env, backtrace.with("reduction").with("body"));
                     }
@@ -2126,6 +2243,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
         case Builtin::ARRAYTOSTREAM:
             {
                 boost::shared_ptr<scoped_cJSON_t> array = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
+                require_type(array->get(), cJSON_Array, backtrace);
                 json_array_iterator_t it(array->get());
 
                 return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it, env));
@@ -2173,16 +2291,25 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 }
 
 namespace_repo_t<rdb_protocol_t>::access_t eval(
-    TableRef *t, runtime_environment_t *env, const backtrace_t &backtrace)
+    TableRef *t, runtime_environment_t *env, const backtrace_t &bt)
     THROWS_ONLY(runtime_exc_t) {
-    boost::optional<std::pair<namespace_id_t, deletable_t< namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
-        metadata_get_by_name(env->semilattice_metadata->get().rdb_namespaces.namespaces, t->table_name());
-    if (namespace_info) {
-        return namespace_repo_t<rdb_protocol_t>::access_t(
-            env->ns_repo, namespace_info->first, env->interruptor);
-    } else {
-        throw runtime_exc_t(strprintf("Namespace %s either not found, ambiguous or namespace metadata in conflict.", t->table_name().c_str()), backtrace);
-    }
+    std::string table_name = t->table_name();
+    std::string db_name = t->db_name();
+
+    cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
+    namespaces_semilattice_metadata_t<rdb_protocol_t> namespaces_metadata = env->namespaces_semilattice_metadata->get();
+    databases_semilattice_metadata_t databases_metadata = env->databases_semilattice_metadata->get();
+
+    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+        ns_searcher(&namespaces_metadata.namespaces);
+    metadata_searcher_t<database_semilattice_metadata_t>
+        db_searcher(&databases_metadata.databases);
+
+    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "EVAL_DB "+db_name, bt);
+    namespace_predicate_t pred(table_name, db_id);
+    uuid_t id = meta_get_uuid(ns_searcher, pred, "EVAL_TABLE "+table_name, bt);
+
+    return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo,id,env->interruptor);
 }
 
 view_t eval_view(Term::Call *c, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
@@ -2330,8 +2457,8 @@ view_t eval_view(Term *t, runtime_environment_t *env, const backtrace_t &backtra
 
 view_t eval_view(Term::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(t->mutable_table_ref(), env, backtrace);
-    std::string pk = get_primary_key(t->mutable_table_ref()->table_name(), env, backtrace);
-    boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace));
+    std::string pk = get_primary_key(t->mutable_table_ref(), env, backtrace);
+    boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace, env->scopes));
     return view_t(ns_access, pk, stream);
 }
 

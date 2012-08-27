@@ -113,8 +113,8 @@ module RethinkDB
       raise TypeError, "Cannot build query from #{sexp.inspect}" if sexp.class != Array
       if enum_type(WriteQuery::WriteQueryType, sexp[0])
       then q = comp(Query, [:write, *sexp])
-      elsif enum_type(TableopQuery::TableopQueryType, sexp[0])
-      then q = comp(Query, [:tableop, *sexp])
+      elsif enum_type(MetaQuery::MetaQueryType, sexp[0])
+      then q = comp(Query, [:meta, *sexp])
       else q = comp(Query, [:read, sexp])
       end
       q.token = (@@token += 1)

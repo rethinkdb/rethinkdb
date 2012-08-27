@@ -19,8 +19,9 @@ template <class request_t, class response_t, class context_t>
 class protob_server_t : http_app_t, repeating_timer_callback_t {
 public:
     // TODO: Function pointers?  Really?
-    protob_server_t(int port, int http_port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *), protob_server_callback_mode_t _cb_mode = CORO_ORDERED);  // NOLINT(readability/casting)
+    protob_server_t(int port, int http_port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *, std::string), protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
     ~protob_server_t();
+    static const int32_t magic_number;
 private:
 
     void handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t);
@@ -33,7 +34,7 @@ private:
     auto_drainer_t auto_drainer;
     scoped_ptr_t<tcp_listener_t> tcp_listener;
     boost::function<response_t(request_t *, context_t *)> f;
-    response_t (*on_unparsable_query)(request_t *);
+    response_t (*on_unparsable_query)(request_t *, std::string);
     protob_server_callback_mode_t cb_mode;
 
     // For HTTP server
@@ -64,6 +65,10 @@ private:
     int32_t next_http_conn_id;
     repeating_timer_t http_timeout_timer;
 };
+
+template<class request_t, class response_t, class context_t>
+const int32_t protob_server_t<request_t, response_t, context_t>::magic_number
+    = 0xaf61ba35;
 
 //TODO figure out how to do 0 copy serialization with this.
 

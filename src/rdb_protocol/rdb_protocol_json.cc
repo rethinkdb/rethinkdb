@@ -1,7 +1,8 @@
 #include <string.h>
 
-#include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/exceptions.hpp"
+#include "rdb_protocol/rdb_protocol_json.hpp"
+#include "utils.hpp"
 
 write_message_t &operator<<(write_message_t &msg, const boost::shared_ptr<scoped_cJSON_t> &cjson) {
     rassert(NULL != cjson.get() && NULL != cjson->get());
@@ -84,6 +85,13 @@ int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace) {
     unreachable();
 }
 
-
+void require_type(const cJSON *json, int type, const backtrace_t &b) {
+    if (json->type != type) {
+        throw runtime_exc_t(strprintf("Required type: %s but found %s.",
+                                      cJSON_type_to_string(type).c_str(),
+                                      cJSON_type_to_string(json->type).c_str()),
+                            b);
+    }
+}
 
 } // namespace query_language

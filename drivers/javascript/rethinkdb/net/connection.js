@@ -10,7 +10,7 @@ goog.require('goog.proto2.WireFormatSerializer');
  * @constructor
  */
 rethinkdb.net.Connection = function(db_name) {
-	this.defaultDbName_ = db_name || '';
+	this.defaultDbName_ = db_name || 'Welcome-rdb';
     this.outstandingQueries_ = {};
     this.nextToken_ = 1;
 
@@ -24,7 +24,7 @@ rethinkdb.net.Connection.prototype.close = goog.nullFunction;
 /**
  * Evaluates the given ReQL expression on the server and invokes
  * callback with the result.
- * @param {rethinkdb.query.Expression} expr The expression to run.
+ * @param {rethinkdb.query.BaseQuery} expr The expression to run.
  * @param {function(ArrayBuffer)} callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.run = function(expr, callback) {
