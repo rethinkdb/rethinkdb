@@ -7,7 +7,6 @@
 # BIG TODO:
 #   * Make Connection work with clusters, minimize network hops,
 #     etc. etc. like python client does.
-#   * CREATE, DROP, LIST, etc. for table/namespace creation
 
 # TODO:
 # Union vs. +
@@ -16,7 +15,6 @@
 # Add tests once completed/fixed:
 #   * REDUCE
 #   * FOREACH
-#   * POINTMUTATE
 
 ################################################################################
 #                                 CONNECTION                                   #
@@ -117,7 +115,7 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_attr #from python tests
-    #TODO: Mimic object notation
+    #TODO: Mimic object notation?
         # self.expect(I.Has({"foo": 3}, "foo"), True)
         # self.expect(I.Has({"foo": 3}, "bar"), False)
 
@@ -348,24 +346,19 @@ class ClientTest < Test::Unit::TestCase
   def test_map #MAP, FILTER, GETATTR, IMPLICIT_GETATTR, STREAMTOARRAY
     assert_equal(rdb.filter({'num' => 1}).run, [$data[1]])
     assert_equal(id_sort(rdb.filter({'num' => :num}).run), $data)
-    #TODO: Issue #920 (serializing scopes)
-    # query = rdb.map { |outer_row|
-    #   r.streamtoarray(rdb.filter{r[:id] < outer_row[:id]})
-    # }
-    # query2 = rdb.map { |outer_row|
-    #   r.to_array(rdb.filter{r.lt(r[:id],outer_row[:id])})
-    # }
-    # query3 = rdb.map { |outer_row|
-    #   rdb.filter{r.attr('id').lt(outer_row.getattr(:id))}.to_array
-    # }
-    # assert_equal(query.run[2], $data[0..1])
-    # assert_equal(query2.run[2], $data[0..1])
-    # assert_equal(query3.run[2], $data[0..1])
+    query = rdb.orderby(:id).map { |outer_row|
+      rdb.filter{r[:id] < outer_row[:id]}.to_array
+    }
+    assert_equal(query.run[2], $data[0..1])
   end
 
   def test_reduce #REDUCE, HASATTR, IMPLICIT_HASATTR
-    #REDUCE NOT IMPLEMENTED
-    #query = rdb.map{r.hasattr(:id)}.reduce(true){|a,b| r.all a,b}
+    #TODO: Error checking for reduce
+    query = rdb.map{r.hasattr(:id)}.reduce(true){|a,b| r.all a,b}
+    assert_equal(query.run, true)
+    assert_equal(  rdb.map{|row| row['id']}.reduce(0){|a,b| a+b}.run,
+                 $data.map{|row| row['id']}.reduce(0){|a,b| a+b})
+
     assert_equal(rdb.map{r.hasattr(:id)}.run, $data.map{true})
     assert_equal(rdb.map{|row| r.not row.hasattr('id')}.run, $data.map{false})
     assert_equal(rdb.map{|row| r.not row.has('id')}.run, $data.map{false})
@@ -416,10 +409,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_concatmap #CONCATMAP, DISTINCT
-    #TODO: wait for Joe to fix
+    # TODO: Using concatmap as a join crashes
     # query = rdb.concatmap{|row| rdb.map{r[:id] * row[:id]}}.distinct
-    # query_alt = r.concatmap(rdb){|row| rdb.map{r[:id] * row[:id]}}.distinct
-    # assert_equal(query.run, query_alt.run)
     # nums = $data.map{|o| o['id']}
     # want = nums.map{|n| nums.map{|m| n*m}}.flatten(1).uniq
     # assert_equal(query.run.sort, want.sort)
@@ -453,7 +444,7 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_javascript_vars #JAVASCRIPT
-    # TODO: Issue #921
+    # TODO: Issue #921 (javascript threading)
     assert_equal(r.let([['x', 2]], r.js('x')).run, 2)
     assert_equal(r.let([['x', 2], ['y', 3]], r.js('x+y')).run, 5)
     # assert_equal(rdb.map{|x| r.js("#{x}")}.run, rdb.run)
@@ -465,7 +456,6 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_pickattrs #PICKATTRS, #UNION, #LENGTH
-    #TODO: when union does implicit mapmerge, change
     q1=r.union(rdb.map{r.pickattrs(:id,:name)}, rdb.map{|row| row.attrs(:id,:num)})
     q2=r.union(rdb.map{r.attrs(:id,:name)}, rdb.map{|row| row.pick(:id,:num)})
     q1v = q1.run.sort_by{|x| x['name'].to_s + ',' + x['id'].to_s}
@@ -487,7 +477,7 @@ class ClientTest < Test::Unit::TestCase
     docs.each {|doc| assert_equal(rdb.get(doc['id']).run, doc)}
     assert_equal(rdb.distinct(:a).run.sort, [3,9].sort)
     assert_equal(rdb.filter({'a' => 3}).run, [docs[0]])
-    #TODO: Issue #922
+    #TODO: Issue #922 (exception propagation)
     #assert_raise(RuntimeError){rdb.filter({'a' => rdb.length + ""}).run}
     assert_raise(RuntimeError){rdb.insert({'a' => 3}).run}
 
@@ -662,8 +652,8 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb2.get(0).run['num'], 2);
     update = rdb2.get(0).update{nil}.run
     assert_equal(update, {'errors' => 0, 'updated' => 0, 'skipped' => 1})
-    #TODO: make pointmutate when working
-    assert_equal(rdb2.insert($data[0]).run, {'inserted' => 1})
+    assert_equal(rdb2.get(0).mutate{$data[0]}.run,
+                 {"errors"=>0, "deleted"=>0, "modified"=>1})
     assert_equal(id_sort(rdb2.run), $data)
 
     #DELETE
@@ -685,13 +675,11 @@ class ClientTest < Test::Unit::TestCase
                  {'modified' => 5, 'deleted' => len-5, 'errors' => 0})
     assert_equal(id_sort(rdb2.run), $data[5..-1])
     assert_equal(rdb2.insert($data[0...5]).run, {'inserted' => 5})
-    #PP.pp rdb2.run
 
     #FOREACH, POINTDELETE
-    #TODO: foreach when fixed
-    #PP.pp rdb2.foreach{rdb2.pointdelete(:id, r[:id])}.run
-    #PP.pp rdb2.foreach{|x| rdb2.foreach{|y| rdb2.insert({:id => x[:id]*y[:id]})}}.run
-    # RETURN VALUE SHOULD CHANGE
+    #TODO: foreach loops forever here (Issue #876)
+    #rdb2.foreach{|x| rdb2.foreach{|y| rdb2.insert({:id => x[:id]*y[:id]})}}.run
+    #TODO: Return value of foreach should change (Issue #874)
     rdb2.foreach{|row| [rdb2.get(row[:id]).delete, rdb2.insert(row)]}.run
     assert_equal(id_sort(rdb2.run), $data)
     rdb2.foreach{|row| rdb2.get(row[:id]).delete}.run

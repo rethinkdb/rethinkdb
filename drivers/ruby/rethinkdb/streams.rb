@@ -115,10 +115,10 @@ module RethinkDB
     # TODO: actual tests (reduce unimplemented right now)
     def reduce(base)
       S.with_var { |aname,a|
-        S.with_var { |bname,b| JSON_Expression.new
-          [:call,
-           [:reduce, S.r(base), aname, bname, S.r(yield(a,b))],
-           [@body]]}}
+        S.with_var { |bname,b|
+          JSON_Expression.new [:call,
+                               [:reduce, S.r(base), aname, bname, S.r(yield(a,b))],
+                               [@body]]}}
     end
 
     # Convert from a stream to an array.  Also has the synonym <b>+to_array+</b>.
