@@ -409,7 +409,6 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_concatmap # CONCATMAP, DISTINCT
-    # TODO_SERV: Using concatmap as a join crashes
     query = rdb.concatmap{|row| rdb.map{r[:id] * row[:id]}}.distinct
     nums = $data.map{|o| o['id']}
     want = nums.map{|n| nums.map{|m| n*m}}.flatten(1).uniq
@@ -494,8 +493,7 @@ class ClientTest < Test::Unit::TestCase
     docs.each {|doc| assert_equal(rdb.get(doc['id']).run, doc)}
     assert_equal(rdb.distinct(:a).run.sort, [3,9].sort)
     assert_equal(rdb.filter({'a' => 3}).run, [docs[0]])
-    # TODO_SERV: Issue #922 (exception propagation)
-    # assert_raise(RuntimeError){rdb.filter({'a' => rdb.length + ""}).run}
+    assert_raise(RuntimeError){rdb.filter({'a' => rdb.length + ""}).run}
     assert_raise(RuntimeError){rdb.insert({'a' => 3}).run}
 
     assert_equal(rdb.get(0).run, nil)
@@ -584,6 +582,42 @@ class ClientTest < Test::Unit::TestCase
     [0..-1, 3..-1, 0...3, 4...6, 3].each {|rng|
       assert_equal(r[arr].to_stream[rng].run, arr[rng])}
     assert_raise(ArgumentError){r[arr].to_stream[4...'a'].run}
+  end
+
+  def test_fancy_foreach #FOREACH
+    db_name = rand().to_s
+    table_name = rand().to_s
+    assert_equal(r.create_db(db_name).run, nil)
+    assert_equal(r.db(db_name).create_table(table_name).run, nil)
+    rdb = r.db(db_name).table(table_name)
+
+    assert_equal(rdb.insert($data).run, {'inserted' => 10})
+    rdb.insert({:id => 11, :broken => true}).run
+    rdb.insert({:id => 12, :broken => true}).run
+    rdb.insert({:id => 13, :broken => true}).run
+    query = rdb.foreach { |row|
+      [rdb.update { |row2|
+         r.if(row[:id].eq(row2[:id]),
+              {:num => row2[:num]*2},
+              nil)
+       },
+       rdb.filter{r[:id].eq(row[:id])}.mutate{ |row|
+         r.if((row[:id]%2).eq(1), nil, row)
+       },
+       rdb.filter{r[:id].eq(0)}.delete,
+       rdb.filter{r[:id].eq(12)}.delete]
+    }
+    res = query.run
+    assert_equal(res['errors'], 2)
+    assert_not_nil(res['first_error'])
+    assert_equal(res['deleted'], 9)
+    assert_equal(res['updated'], 10)
+    assert_equal(res['modified'], 5)
+    assert_equal(rdb.orderby(:id).run,
+                 [{"num"=>4,  "id"=>2, "name"=>"2"},
+                  {"num"=>8,  "id"=>4, "name"=>"4"},
+                  {"num"=>12, "id"=>6, "name"=>"6"},
+                  {"num"=>16, "id"=>8, "name"=>"8"}])
   end
 
   def test___write #three underscores so it runs first
@@ -694,7 +728,8 @@ class ClientTest < Test::Unit::TestCase
 
     # FOREACH, POINTDELETE
     # TODO_SERV: Return value of foreach should change (Issue #874)
-    rdb2.foreach{|row| [rdb2.get(row[:id]).delete, rdb2.insert(row)]}.run
+    query = rdb2.foreach{|row| [rdb2.get(row[:id]).delete, rdb2.insert(row)]}
+    assert_equal(query.run, {'deleted' => 10, 'inserted' => 10})
     assert_equal(id_sort(rdb2.run), $data)
     rdb2.foreach{|row| rdb2.get(row[:id]).delete}.run
     assert_equal(id_sort(rdb2.run), [])
