@@ -7,7 +7,7 @@ workloads = {
     "$RETHINKDB/test/memcached_workloads/deletion.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/expiration.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/flags.py $HOST:$PORT",
-    "$RETHINKDB/test/memcached_workloads/fuzz.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/fuzz.py $HOST:$PORT --duration 300",
     "$RETHINKDB/test/memcached_workloads/incr_decr.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/many_keys.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT bogus-commands.t",
