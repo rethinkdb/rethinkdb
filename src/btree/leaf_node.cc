@@ -55,7 +55,8 @@ const int SKIP_ENTRY_RESERVED = 251;
 //                                                          \___________________________/        ^                                                           ^                                         ^
 //                                                                  N = num_pairs            frontmost                                                tstamp_cutpoint                            (block size)
 //
-// [tstamp] in [tstamp][entry] pairs are non-increasing (when you look at them from frontmost to tstamp_cutpoint).
+// [tstamp] in [tstamp][entry] pairs are non-increasing (when you look at them
+// from frontmost to tstamp_cutpoint). This is true even of skip entries.
 //
 // Here's what an "[entry]" may look like:
 //
@@ -1251,7 +1252,8 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t<void> *sizer, leaf_node_
     uint16_t end_of_where_new_entry_should_go;
     bool new_entry_should_have_timestamp;
 
-    if (node->num_pairs == 0 || (node->frontmost < node->tstamp_cutpoint && get_timestamp(node, node->frontmost) <= tstamp)) {
+    if (node->frontmost == sizer->block_size().value() ||
+            (node->frontmost < node->tstamp_cutpoint && get_timestamp(node, node->frontmost) <= tstamp)) {
         /* In the most common case, the new value will go right at
         `node->frontmost` and will get a timestamp. For performance reasons, we
         check for this case specially and short-circuit. If a cosmic ray were to

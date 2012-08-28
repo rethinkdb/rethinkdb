@@ -108,17 +108,20 @@ public:
         return Insert(key, value, NextTimestamp());
     }
 
-    void Remove(const store_key_t& key) {
+    void Remove(const store_key_t& key, repli_timestamp_t tstamp) {
         ASSERT_TRUE(ShouldHave(key));
 
         kv_.erase(key);
 
-        repli_timestamp_t tstamp = NextTimestamp();
         leaf::remove(&sizer_, node(), key.btree_key(), tstamp, key_modification_proof_t::real_proof());
 
         Verify();
 
         Print();
+    }
+
+    void Remove(const store_key_t &key) {
+        Remove(key, NextTimestamp());
     }
 
     void Merge(LeafNodeTracker *lnode) {
@@ -383,6 +386,47 @@ TEST(LeafNodeTest, InsertRemove) {
             } else {
                 if (tracker.ShouldHave(store_key_t(ks[j]))) {
                     tracker.Remove(store_key_t(ks[j]));
+                }
+            }
+        }
+    }
+}
+
+TEST(LeafNodeTest, RandomOutOfOrder) {
+    for (int try_num = 0; try_num < 10; ++try_num) {
+        LeafNodeTracker tracker;
+
+        rng_t rng;
+
+        const int num_keys = 10;
+        store_key_t key_pool[num_keys];
+        for (int i = 0; i < num_keys; ++i) {
+            key_pool[i].set_size(rng.randint(160));
+            char letter = 'a' + rng.randint(26);
+            for (int j = 0; j < key_pool[i].size(); ++j) {
+                key_pool[i].contents()[j] = letter;
+            }
+        }
+
+        const int num_ops = 10000;
+        for (int i = 0; i < num_ops; ++i) {
+            const store_key_t &key = key_pool[rng.randint(num_keys)];
+            repli_timestamp_t tstamp;
+            tstamp.longtime = rng.randint(num_ops);
+
+            if (rng.randint(2) == 1) {
+                std::string value;
+                int length = rng.randint(160);
+                char letter = 'a' + rng.randint(26);
+                for (int j = 0; j < length; ++j) {
+                    value.push_back(letter);
+                }
+                /* If the key doesn't fit, that's OK; it will just not insert it
+                and return `false`, which we ignore. */
+                tracker.Insert(key, value, tstamp);
+            } else {
+                if (tracker.ShouldHave(key)) {
+                    tracker.Remove(key);
                 }
             }
         }
