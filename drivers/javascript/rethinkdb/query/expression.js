@@ -518,3 +518,37 @@ rethinkdb.query.Expression.prototype.concatMap = function(mapping) {
             builtin.setConcatMap(concatmap);
         });
 };
+
+/**
+ * @constructor
+ * @extends {rethinkdb.query.Expression}
+ */
+rethinkdb.query.IfExpression = function(test, trueBranch, falseBranch) {
+    this.test_ = test;
+    this.trueBranch_ = trueBranch;
+    this.falseBranch_ = falseBranch;
+};
+goog.inherits(rethinkdb.query.IfExpression, rethinkdb.query.Expression);
+
+/** @override */
+rethinkdb.query.IfExpression.prototype.compile = function() {
+    var if_ = new Term.If();
+
+    if_.setTest(this.test_.compile());
+    if_.setTrueBranch(this.trueBranch_.compile());
+    if_.setFalseBranch(this.falseBranch_.compile());
+
+    var term = new Term();
+    term.setType(Term.TermType.IF);
+    term.setIf(if_);
+
+    return term;
+};
+
+/**
+ * If then else
+ * @export
+ */
+rethinkdb.query.ifThenElse = function(test, trueBranch, falseBranch) {
+    return new rethinkdb.query.IfExpression(test, trueBranch, falseBranch);
+};
