@@ -9,7 +9,6 @@
 
 query_server_t::query_server_t(
     int port,
-    int http_port,
     extproc::pool_group_t *_pool_group,
     const boost::shared_ptr
         <semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
@@ -19,13 +18,17 @@ query_server_t::query_server_t(
     namespace_repo_t<rdb_protocol_t> *_ns_repo,
     uuid_t _this_machine)
     : pool_group(_pool_group),
-      server(port, http_port, boost::bind(&query_server_t::handle, this, _1, _2),
+      server(port, boost::bind(&query_server_t::handle, this, _1, _2),
              &on_unparsable_query, INLINE),
       semilattice_metadata(_semilattice_metadata),
       directory_metadata(_directory_metadata),
       ns_repo(_ns_repo),
       this_machine(_this_machine)
 { }
+
+http_app_t *query_server_t::get_http_app() {
+    return &server;
+}
 
 static void put_backtrace(const query_language::backtrace_t &bt, Response *res_out) {
     std::vector<std::string> frames = bt.get_frames();
