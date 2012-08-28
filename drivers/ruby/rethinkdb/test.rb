@@ -410,10 +410,10 @@ class ClientTest < Test::Unit::TestCase
 
   def test_concatmap # CONCATMAP, DISTINCT
     # TODO_SERV: Using concatmap as a join crashes
-    # query = rdb.concatmap{|row| rdb.map{r[:id] * row[:id]}}.distinct
-    # nums = $data.map{|o| o['id']}
-    # want = nums.map{|n| nums.map{|m| n*m}}.flatten(1).uniq
-    # assert_equal(query.run.sort, want.sort)
+    query = rdb.concatmap{|row| rdb.map{r[:id] * row[:id]}}.distinct
+    nums = $data.map{|o| o['id']}
+    want = nums.map{|n| nums.map{|m| n*m}}.flatten(1).uniq
+    assert_equal(query.run.sort, want.sort)
   end
 
   def test_range # RANGE
