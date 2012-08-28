@@ -40,6 +40,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         namespace_repo_t<memcached_protocol_t> *_namespace_repo,
         admin_tracker_t *_admin_tracker,
         local_issue_tracker_t *_local_issue_tracker,
+        http_app_t *reql_app,
         uuid_t _us,
         std::string path) :
             bound_issue("PORT_CONFLICT",
@@ -131,6 +132,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     ajax_routes["progress"] = progress_app.get();
     ajax_routes["distribution"] = distribution_app.get();
     ajax_routes["semilattice"] = semilattice_app.get();
+    ajax_routes["reql"] = reql_app;
     DEBUG_ONLY_CODE(ajax_routes["cyanide"] = cyanide_app.get());
 
     std::map<std::string, http_json_app_t *> default_views;

@@ -16,10 +16,10 @@ enum protob_server_callback_mode_t {
 };
 
 template <class request_t, class response_t, class context_t>
-class protob_server_t : http_app_t, repeating_timer_callback_t {
+class protob_server_t : public http_app_t, public repeating_timer_callback_t {
 public:
     // TODO: Function pointers?  Really?
-    protob_server_t(int port, int http_port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *, std::string), protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
+    protob_server_t(int port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *, std::string), protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
     ~protob_server_t();
     static const int32_t magic_number;
 private:
@@ -60,7 +60,6 @@ private:
         void touch();
     };
 
-    scoped_ptr_t<http_server_t> http_server;
     std::map<int32_t, http_context_t> http_conns;
     int32_t next_http_conn_id;
     repeating_timer_t http_timeout_timer;
