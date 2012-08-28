@@ -61,6 +61,12 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     /* Set up the instruction pointer; this will be popped off the stack by ret
     in swapcontext once all the other registers have been "restored". */
     sp--;
+
+    /* This seems to prevent Valgrind from complaining about uninitialized value
+    errors when throwing an uncaught exception. My assembly-fu isn't strong
+    enough to explain why, though. */
+    *sp = 0;
+
     sp--;
 
     // Subtracted 2*sizeof(int64_t), so sp is still 16-byte aligned.
