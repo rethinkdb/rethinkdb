@@ -1339,6 +1339,7 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t<void> *sizer, leaf_node_
     }
 
     node->frontmost -= total_space_for_new_entry;
+    rassert(offsetof(leaf_node_t, pair_offsets) + sizeof(uint16_t) * node->num_pairs <= node->frontmost);
 
     /* Write the timestamp if we need one, and update `node->tstamp_cutpoint` if
     we don't. */

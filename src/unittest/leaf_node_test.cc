@@ -84,7 +84,7 @@ public:
 
     leaf_node_t *node() { return node_.get(); }
 
-    bool Insert(const store_key_t& key, const std::string& value) {
+    bool Insert(const store_key_t& key, const std::string& value, repli_timestamp_t tstamp) {
         short_value_buffer_t v(value);
 
         if (leaf::is_full(&sizer_, node(), key.btree_key(), v.data())) {
@@ -94,7 +94,6 @@ public:
             return false;
         }
 
-        repli_timestamp_t tstamp = NextTimestamp();
         leaf::insert(&sizer_, node(), key.btree_key(), v.data(), tstamp, key_modification_proof_t::real_proof());
 
         kv_[key] = value;
@@ -103,6 +102,10 @@ public:
 
         Verify();
         return true;
+    }
+
+    bool Insert(const store_key_t &key, const std::string &value) {
+        return Insert(key, value, NextTimestamp());
     }
 
     void Remove(const store_key_t& key) {
