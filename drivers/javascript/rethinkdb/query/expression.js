@@ -35,20 +35,47 @@ rethinkdb.query.JSONExpression.prototype.compile = function() {
 };
 
 /**
+ * @constructor
+ * @param {number=} number
+ * @extends {rethinkdb.query.Expression}
+ */
+rethinkdb.query.NumberExpression = function(number) {
+    this.value_ = number || null;
+};
+goog.inherits(rethinkdb.query.NumberExpression, rethinkdb.query.Expression);
+
+rethinkdb.query.NumberExpression.prototype.compile = function() {
+    var term = new Term();
+    if (this.value_) {
+        term.setType(Term.TermType.NUMBER);
+        term.setNumber(this.value_);
+    } else {
+        term.setType(Term.TermType.JSON_NULL);
+    }
+
+    return term;
+};
+
+/**
  * @param {!Builtin.BuiltinType} builtinType
  * @param {!Array} args
+ * @param {function(Builtin)=} opt_additional
  * @constructor
  * @extends {rethinkdb.query.Expression}
  */
-rethinkdb.query.BuiltinExpression = function(builtinType, args) {
+rethinkdb.query.BuiltinExpression = function(builtinType, args, opt_additional) {
     this.builtinType_ = builtinType;
     this.args_ = args;
+    this.additional_ = opt_additional || null;
 };
 goog.inherits(rethinkdb.query.BuiltinExpression, rethinkdb.query.Expression);
 
 rethinkdb.query.BuiltinExpression.prototype.compile = function() {
     var builtin = new Builtin();
     builtin.setType(this.builtinType_);
+    if (this.additional_) {
+        this.additional_(builtin);
+    }
 
     var call = new Term.Call();
     call.setBuiltin(builtin);
@@ -60,35 +87,6 @@ rethinkdb.query.BuiltinExpression.prototype.compile = function() {
     term.setType(Term.TermType.CALL);
     term.setCall(call);
 
-    return term;
-};
-
-/**
- * @param {!Builtin.Comparison} comparison
- * @param {!Array} args
- * @constructor
- * @extends {rethinkdb.query.Expression}
- */
-rethinkdb.query.CompareExpression = function(comparison, args) {
-    this.comparison_ = comparison;
-    this.args_ = args;
-};
-goog.inherits(rethinkdb.query.CompareExpression, rethinkdb.query.Expression);
-
-rethinkdb.query.CompareExpression.prototype.compile = function() {
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.COMPARE);
-    builtin.setComparison(this.comparison_);
-
-    var call = new Term.Call();
-    call.setBuiltin(builtin);
-    for (var key in this.args_) {
-        call.addArgs(this.args_[key].compile());
-    }
-
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
-    term.setCall(call);
     return term;
 };
 
@@ -114,7 +112,10 @@ function makeComparison(comparison, chainName) {
         if (!(other instanceof rethinkdb.query.Expression)) {
             other = rethinkdb.query.expr(other);
         }
-        return new rethinkdb.query.CompareExpression(comparison, [this, other]);
+        return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.COMPARE,
+                [this, other], function(builtin) {
+            builtin.setComparison(comparison);
+        });
     };
 }
 
@@ -131,18 +132,27 @@ makeComparison(Builtin.Comparison.LE, 'le');
 makeComparison(Builtin.Comparison.GT, 'gt');
 makeComparison(Builtin.Comparison.GE, 'ge');
 
+/**
+ * Boolean inverse
+ */
 rethinkdb.query.Expression.prototype.not = function() {
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.NOT, [this]);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'not',
                     rethinkdb.query.Expression.prototype.not);
 
+/**
+ * Length of array or stream
+ */
 rethinkdb.query.Expression.prototype.length = function() {
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.LENGTH, [this]);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'length',
                     rethinkdb.query.Expression.prototype.length);
 
+/**
+ * Boolean and
+ */
 rethinkdb.query.Expression.prototype.and = function(predicate) {
     if (predicate instanceof rethinkdb.query.Expression)
         return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ALL, [this, predicate]);
@@ -153,6 +163,9 @@ rethinkdb.query.Expression.prototype.and = function(predicate) {
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'and',
                     rethinkdb.query.Expression.prototype.and);
 
+/**
+ * Boolean or
+ */
 rethinkdb.query.Expression.prototype.or = function(predicate) {
     if (predicate instanceof rethinkdb.query.Expression)
         return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ANY,
@@ -165,46 +178,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'or',
                     rethinkdb.query.Expression.prototype.or);
 
 /**
- * @constructor
- * @extends {rethinkdb.query.Expression}
- */
-rethinkdb.query.RangeExpression = function(leftExpr,
-                                           start_key,
-                                           end_key,
-                                           start_inclusive,
-                                           end_inclusive) {
-    this.leftExpr_ = leftExpr;
-    this.startKey_ = start_key;
-    this.endKey_ = end_key;
-    this.startInclusive_ = (typeof start_inclusive === 'undefined') ?
-                                false : start_inclusive;
-    this.endInclusive_ = (typeof end_inclusive === 'undefined') ?
-                                false : end_inclusive;
-};
-goog.inherits(rethinkdb.query.RangeExpression, rethinkdb.query.Expression);
-
-rethinkdb.query.RangeExpression.prototype.compile = function() {
-    var range = new Builtin.Range();
-    range.setAttrname('id');
-    range.setLowerbound(this.startKey_.compile());
-    range.setUpperbound(this.endKey_.compile());
-
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.RANGE);
-    builtin.setRange(range);
-
-    var call = new Term.Call();
-    call.setBuiltin(builtin);
-    call.addArgs(this.leftExpr_.compile());
-
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
-    term.setCall(call);
-
-    return term;
-};
-
-/**
+ * Grabs values between two keys
  * @return {rethinkdb.query.Expression}
  * @param {*} start_key
  * @param {*} end_key
@@ -213,60 +187,36 @@ rethinkdb.query.RangeExpression.prototype.compile = function() {
  */
 rethinkdb.query.Expression.prototype.between =
         function(start_key, end_key, start_inclusive, end_inclusive) {
-    return new rethinkdb.query.RangeExpression(this,
-                                               start_key,
-                                               end_key,
-                                               start_inclusive,
-                                               end_inclusive);
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.RANGE, [this],
+                    function(builtin) {
+                        var range = new Builtin.Range();
+                        range.setAttrname('id');
+                        range.setLowerbound(start_key.compile());
+                        range.setUpperbound(end_key.compile());
+                        builtin.setRange(range);
+                    });
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'between',
                     rethinkdb.query.Expression.prototype.between);
 
 /**
  * @constructor
- * @extends {rethinkdb.query.Expression}
+ * @extends {rethinkdb.query.BuiltinExpression}
  * @param {rethinkdb.query.Expression} leftExpr
  * @param {number} leftExtent
  * @param {number=} opt_rightExtent
  */
 rethinkdb.query.SliceExpression = function(leftExpr, leftExtent, opt_rightExtent) {
-    this.leftExpr_ = leftExpr;
-    this.leftExtent_ = leftExtent;
-    this.rightExtent_ = opt_rightExtent || null;
+    goog.base(this, Builtin.BuiltinType.SLICE, [
+        leftExpr,
+        new rethinkdb.query.NumberExpression(leftExtent),
+        new rethinkdb.query.NumberExpression(opt_rightExtent)
+    ]);
 };
-goog.inherits(rethinkdb.query.SliceExpression, rethinkdb.query.Expression);
-
-rethinkdb.query.SliceExpression.prototype.compile = function() {
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
-
-    var call = new Term.Call();
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.SLICE);
-    call.setBuiltin(builtin);
-
-    call.addArgs(this.leftExpr_.compile());
-
-    var leftExtent = new Term();
-    leftExtent.setType(Term.TermType.NUMBER);
-    leftExtent.setNumber(this.leftExtent_);
-    call.addArgs(leftExtent);
-
-    var rightExtent = new Term();
-    if (this.rightExtent_ !== null) {
-        rightExtent.setType(Term.TermType.NUMBER);
-        rightExtent.setNumber(/**@type {number}*/this.rightExtent_);
-    } else {
-        rightExtent.setType(Term.TermType.JSON_NULL);
-    }
-    call.addArgs(rightExtent);
-
-    term.setCall(call);
-
-    return term;
-};
+goog.inherits(rethinkdb.query.SliceExpression, rethinkdb.query.BuiltinExpression);
 
 /**
+ * Double ended slice
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.slice = function(startIndex, opt_endIndex) {
@@ -276,6 +226,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'slice',
     rethinkdb.query.Expression.prototype.slice);
 
 /**
+ * Right ended slice
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.limit = function(index) {
@@ -285,6 +236,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'limit',
     rethinkdb.query.Expression.prototype.limit);
 
 /**
+ * Left ended slice
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.skip = function(index) {
@@ -294,203 +246,110 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'skip',
     rethinkdb.query.Expression.prototype.skip);
 
 /**
- * @constructor
- * @extends {rethinkdb.query.Expression}
- * @param {rethinkdb.query.Expression} leftExpr
- * @param {number} index
- */
-rethinkdb.query.NthExpression = function(leftExpr, index) {
-    this.leftExpr_ = leftExpr;
-    this.index_ = index;
-};
-goog.inherits(rethinkdb.query.NthExpression, rethinkdb.query.Expression);
-
-rethinkdb.query.NthExpression.prototype.compile = function() {
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
-
-    var call = new Term.Call();
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.NTH);
-    call.setBuiltin(builtin);
-
-    call.addArgs(this.leftExpr_.compile());
-
-    var index = new Term();
-    index.setType(Term.TermType.NUMBER);
-    index.setNumber(this.index_);
-    call.addArgs(index);
-
-    term.setCall(call);
-
-    return term;
-};
-
-/**
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.nth = function(index) {
-    return new rethinkdb.query.NthExpression(this, index);
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.NTH,
+            [this, new rethinkdb.query.NumberExpression(index)]);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'nth',
     rethinkdb.query.Expression.prototype.nth);
 
 /**
- * @constructor
- * @extends {rethinkdb.query.Expression}
- */
-rethinkdb.query.FilterExpression = function(leftExpr, predicate) {
-    this.leftExpr_ = leftExpr;
-
-    if (predicate instanceof rethinkdb.query.FunctionExpression) {
-        this.predicateFunction_ = predicate;
-    } else if (predicate instanceof rethinkdb.query.Expression) {
-        this.predicateFunction_ = new rethinkdb.query.FunctionExpression([''], predicate);
-    } else {
-        var ands = [];
-        var q = rethinkdb.query;
-        for (var key in predicate) {
-            if (predicate.hasOwnProperty(key)) {
-                ands.push(q.R(key)['eq'](q.expr(predicate[key])));
-            }
-        }
-        this.predicateFunction_ = new rethinkdb.query.FunctionExpression([''],
-            new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ALL, ands));
-    }
-};
-goog.inherits(rethinkdb.query.FilterExpression, rethinkdb.query.Expression);
-
-rethinkdb.query.FilterExpression.prototype.compile = function() {
-    var predicate = new Predicate();
-    predicate.setArg(this.predicateFunction_.args[0]);
-    predicate.setBody(this.predicateFunction_.body.compile());
-
-    var filter = new Builtin.Filter();
-    filter.setPredicate(predicate);
-
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.FILTER);
-    builtin.setFilter(filter);
-
-    var call = new Term.Call();
-    call.setBuiltin(builtin);
-    call.addArgs(this.leftExpr_.compile());
-
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
-    term.setCall(call);
-
-    return term;
-};
-
-/**
+ * Filter a list or stream accoring to the selector
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.filter = function(selector) {
-    return new rethinkdb.query.FilterExpression(this, selector);
+    var predicateFunction;
+    if (selector instanceof rethinkdb.query.FunctionExpression) {
+        predicateFunction = selector;
+    } else if (selector instanceof rethinkdb.query.Expression) {
+        predicateFunction = new rethinkdb.query.FunctionExpression([''], selector);
+    } else {
+        var ands = [];
+        var q = rethinkdb.query;
+        for (var key in selector) {
+            if (selector.hasOwnProperty(key)) {
+                ands.push(q.R(key)['eq'](q.expr(selector[key])));
+            }
+        }
+        predicateFunction = new rethinkdb.query.FunctionExpression([''],
+            new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ALL, ands));
+    }
+
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.FILTER, [this],
+        function(builtin) {
+            var predicate = new Predicate();
+            predicate.setArg(predicateFunction.args[0]);
+            predicate.setBody(predicateFunction.body.compile());
+
+            var filter = new Builtin.Filter();
+            filter.setPredicate(predicate);
+            builtin.setFilter(filter);
+        });
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'filter',
                     rethinkdb.query.Expression.prototype.filter);
 
 /**
- * @param {rethinkdb.query.Expression} leftExpr
- * @param {rethinkdb.query.FunctionExpression|rethinkdb.query.Expression} mapping
- * @constructor
- * @extends {rethinkdb.query.Expression}
+ * Map a function over a list or a stream
  */
-rethinkdb.query.MapExpression = function(leftExpr, mapping) {
-    this.leftExpr_ = leftExpr;
-
-    if (mapping instanceof rethinkdb.query.FunctionExpression) {
-        this.mappingFunction_ = mapping;
-    } else if (mapping instanceof rethinkdb.query.Expression) {
-        this.mappingFunction_ = rethinkdb.query.fn('', mapping);
-    }
-};
-goog.inherits(rethinkdb.query.MapExpression, rethinkdb.query.Expression);
-
-rethinkdb.query.MapExpression.prototype.compile = function() {
-    var mapping = new Mapping();
-    mapping.setArg(this.mappingFunction_.args[0]);
-    mapping.setBody(this.mappingFunction_.body.compile());
-
-    var map = new Builtin.Map();
-    map.setMapping(mapping);
-
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.MAP);
-    builtin.setMap(map);
-
-    var call = new Term.Call();
-    call.setBuiltin(builtin);
-    call.addArgs(this.leftExpr_.compile());
-
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
-    term.setCall(call);
-
-    return term;
-};
-
 rethinkdb.query.Expression.prototype.map = function(mapping) {
-    return new rethinkdb.query.MapExpression(this, mapping);
+    var mappingFunction;
+    if (mapping instanceof rethinkdb.query.FunctionExpression) {
+        mappingFunction = mapping;
+    } else if (mapping instanceof rethinkdb.query.Expression) {
+        mappingFunction = rethinkdb.query.fn('', mapping);
+    } else {
+        // invalid mapping
+    }
+
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.MAP, [this],
+        function(builtin) {
+            var mapping = new Mapping();
+            mapping.setArg(mappingFunction.args[0]);
+            mapping.setBody(mappingFunction.body.compile());
+
+            var map = new Builtin.Map();
+            map.setMapping(mapping);
+
+            builtin.setMap(map);
+        });
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'map',
                     rethinkdb.query.Expression.prototype.map);
 
 /**
- * @constructor
- * @extends {rethinkdb.query.Expression}
- */
-rethinkdb.query.OrderByExpression = function(leftExpr, orderings) {
-    this.leftExpr_ = leftExpr;
-    this.orderings_ = orderings;
-};
-goog.inherits(rethinkdb.query.OrderByExpression, rethinkdb.query.Expression);
-
-/** @override */
-rethinkdb.query.OrderByExpression.prototype.compile = function() {
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.ORDERBY);
-
-    for (var i = 0; i < this.orderings_.length; i++) {
-        var ascending = true;
-        var attr = this.orderings_[i];
-
-        if (attr[0] === '-') {
-            ascending = false;
-            attr = attr.slice(1);
-        }
-
-        var orderby = new Builtin.OrderBy();
-        orderby.setAttr(attr);
-        orderby.setAscending(ascending);
-
-        builtin.addOrderBy(orderby);
-    }
-
-    var call = new Term.Call();
-    call.setBuiltin(builtin);
-    call.addArgs(this.leftExpr_.compile());
-
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
-    term.setCall(call);
-
-    return term;
-};
-
-/**
+ * Order the stream by the value of the key
  * @param {...string} var_args
  */
 rethinkdb.query.Expression.prototype.orderby = function(var_args) {
     var orderings = Array.prototype.slice.call(arguments, 0);
-    return new rethinkdb.query.OrderByExpression(this, orderings);
+
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ORDERBY, [this],
+        function(builtin) {
+            for (var i = 0; i < orderings.length; i++) {
+                var ascending = true;
+                var attr = orderings[i];
+
+                if (attr[0] === '-') {
+                    ascending = false;
+                    attr = attr.slice(1);
+                }
+
+                var orderby = new Builtin.OrderBy();
+                orderby.setAttr(attr);
+                orderby.setAscending(ascending);
+
+                builtin.addOrderBy(orderby);
+            }
+        });
 }
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'orderby',
                     rethinkdb.query.Expression.prototype.orderby);
 
 /**
+ * Remove duplicates
  * @param {string=} opt_attr
  */
 rethinkdb.query.Expression.prototype.distinct = function(opt_attr) {
@@ -501,81 +360,33 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'distinct',
                     rethinkdb.query.Expression.prototype.distinct);
 
 /**
- * @constructor
- * @extends {rethinkdb.query.Expression}
+ * A reduction
+ * @param {rethinkdb.query.Expression} base
+ * @param {rethinkdb.query.FunctionExpression} reduce
  */
-rethinkdb.query.ReduceExpression = function(leftExpr, base, reduction) {
-    this.leftExpr_ = leftExpr;
-    this.base_ = base;
-    this.reduction_ = reduction;
-};
-goog.inherits(rethinkdb.query.ReduceExpression, rethinkdb.query.Expression);
+rethinkdb.query.Expression.prototype.reduce = function(base, reduce) {
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.REDUCE, [this],
+        function(builtin) {
+            var reduction = new Reduction();
+            reduction.setBase(base.compile());
+            reduction.setVar1(reduce.args[0]);
+            reduction.setVar2(reduce.args[1]);
+            reduction.setBody(reduce.body.compile());
 
-/** @override */
-rethinkdb.query.ReduceExpression.prototype.compile = function() {
-    var reduction = new Reduction();
-    reduction.setBase(this.base_.compile());
-    reduction.setVar1(this.reduction_.args[0]);
-    reduction.setVar2(this.reduction_.args[1]);
-    reduction.setBody(this.reduction_.body.compile());
-
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.REDUCE);
-    builtin.setReduce(reduction);
-
-    var call = new Term.Call();
-    call.setBuiltin(builtin);
-    call.addArgs(this.leftExpr_.compile());
-
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
-    term.setCall(call);
-
-    return term;
-};
-
-rethinkdb.query.Expression.prototype.reduce = function(base, reduction) {
-    return new rethinkdb.query.ReduceExpression(this, base, reduction);
+            builtin.setReduce(reduction);
+        });
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'reduce',
                     rethinkdb.query.Expression.prototype.reduce);
 
-/**
- * @constructor
- * @extends {rethinkdb.query.Expression}
- */
-rethinkdb.query.PluckExpression = function(leftExpr, attrs) {
-    if (!goog.isArray(attrs)) {
-        attrs = [attrs];
-    }
-
-    this.leftExpr_ = leftExpr;
-    this.attrs_ = attrs;
-};
-goog.inherits(rethinkdb.query.PluckExpression, rethinkdb.query.Expression);
-
-rethinkdb.query.PluckExpression.prototype.compile = function() {
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.IMPLICIT_PICKATTRS);
-
-    for (var key in this.attrs_) {
-        var attr = this.attrs_[key];
-        builtin.addAttrs(attr);
-    }
-
-    var call = new Term.Call();
-    call.setBuiltin(builtin);
-    call.addArgs(this.leftExpr_.compile());
-
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
-    term.setCall(call);
-
-    return term;
-};
-
 rethinkdb.query.Expression.prototype.pluck = function(attrs) {
-    return new rethinkdb.query.PluckExpression(this, attrs);
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.IMPLICIT_PICKATTRS, [this],
+        function(builtin) {
+            for (var key in attrs) {
+                var attr = attrs[key];
+                builtin.addAttrs(attr);
+            }
+        });
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'pluck',
                     rethinkdb.query.Expression.prototype.pluck);
@@ -586,6 +397,9 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'pluck',
  * @constructor
  */
 rethinkdb.query.FunctionExpression = function(args, body) {
+    /**
+     * @type {Array.<string>}
+     */
     this.args = args;
     this.body = body;
 };
@@ -624,56 +438,26 @@ rethinkdb.query.VarExpression.prototype.compile = function() {
  * @param {rethinkdb.query.Expression} leftExpr
  * @param {string} attrName
  * @constructor
- * @extends {rethinkdb.query.Expression}
+ * @extends {rethinkdb.query.BuiltinExpression}
  */
 rethinkdb.query.AttrExpression = function(leftExpr, attrName) {
-    this.leftExpr_ = leftExpr;
-    this.attrName_ = attrName;
+    goog.base(this, Builtin.BuiltinType.GETATTR, [leftExpr], function(builtin) {
+        builtin.setAttr(attrName);
+    });
 };
-goog.inherits(rethinkdb.query.AttrExpression, rethinkdb.query.Expression);
-
-/** @override */
-rethinkdb.query.AttrExpression.prototype.compile = function() {
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.GETATTR);
-    builtin.setAttr(this.attrName_);
-
-    var call = new Term.Call();
-    call.setBuiltin(builtin);
-    call.addArgs(this.leftExpr_.compile());
-
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
-    term.setCall(call);
-
-    return term;
-};
+goog.inherits(rethinkdb.query.AttrExpression, rethinkdb.query.BuiltinExpression);
 
 /**
  * @param {string} attrName
  * @constructor
- * @extends {rethinkdb.query.Expression}
+ * @extends {rethinkdb.query.BuiltinExpression}
  */
 rethinkdb.query.ImplicitAttrExpression = function(attrName) {
-    this.attrName_ = attrName;
+    goog.base(this, Builtin.BuiltinType.IMPLICIT_GETATTR, [], function(builtin) {
+        builtin.setAttr(attrName);
+    });
 };
-goog.inherits(rethinkdb.query.ImplicitAttrExpression, rethinkdb.query.Expression);
-
-/** @override */
-rethinkdb.query.ImplicitAttrExpression.prototype.compile = function() {
-    var builtin = new Builtin();
-    builtin.setType(Builtin.BuiltinType.IMPLICIT_GETATTR);
-    builtin.setAttr(this.attrName_);
-
-    var call = new Term.Call();
-    call.setBuiltin(builtin);
-
-    var term = new Term();
-    term.setType(Term.TermType.CALL);
-    term.setCall(call);
-
-    return term;
-};
+goog.inherits(rethinkdb.query.ImplicitAttrExpression, rethinkdb.query.BuiltinExpression);
 
 /**
  * @return {rethinkdb.query.Expression}
@@ -697,6 +481,9 @@ rethinkdb.query.R = function(varString) {
     return curExpr;
 };
 
+/**
+ * Extend this object with properties from another
+ */
 rethinkdb.query.Expression.prototype.extend = function(other) {
     if (!(other instanceof rethinkdb.query.Expression)) {
         other = rethinkdb.query.expr(other);
@@ -706,12 +493,3 @@ rethinkdb.query.Expression.prototype.extend = function(other) {
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'extend',
                     rethinkdb.query.Expression.prototype.extend);
 
-/**
- * @constructor
- * @extends {rethinkdb.query.Expression}
- */
-rethinkdb.query.ConcatMapExpression = function(leftExpr, mapping) {
-    this.leftExpr_ = leftExpr;
-    this.mapping_ = mapping;
-};
-goog.inherits(rethinkdb.query.ConcatMapExpression, rethinkdb.query.Expression);
