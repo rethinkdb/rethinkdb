@@ -4,6 +4,7 @@
   <div class="actions-bar">
     <a href="#" class="btn add-datacenter">Add datacenter</a>
     <a href="#" class="btn for-multiple-elements disabled set-datacenter">Set datacenter</a>
+    <div id="user-alert-space-set_datacenter"></div>
   </div>
   <div class="server-list list">
     <div class="datacenters collapsible-list"></div>
@@ -23,6 +24,17 @@
     <td class="element-detail-container">
         <div class="machine summary"></div>
     </td>
+</script>
+
+<script id="cannot_change_datacenter-alert-template" type="text/x-handlebars-template">
+  <div id="reason_cannot_change_datacenter" class="alert" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+    <p>You cannot change the datacenter of the selected machines because:
+        <ul>
+            {{display_reasons_cannot_move reasons}}
+        </ul>
+    </p>
+  </div>
 </script>
 
 <script id="machine_list_element-summary-template" type="text/x-handlebars-template">
