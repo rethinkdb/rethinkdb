@@ -4,7 +4,7 @@
 # Environment variables:
 # HOST: location of server (default = "localhost")
 # PORT: port that server listens for RDB protocol traffic on (default = 14356)
-# DB_NAME: database to look for test table in (default = "")
+# DB_NAME: database to look for test table in (default = "Welcome-db")
 # TABLE_NAME: table to run tests against (default = "Welcome-rdb")
 
 import json
@@ -383,7 +383,6 @@ class RDBTest(unittest.TestCase):
         expect = self.expect
 
         expect(-expr(3), -3)
-        expect(+expr(3), 3)
 
         expect(expr(3) + 4, 7)
         expect(expr(3) - 4, -1)
