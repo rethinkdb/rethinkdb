@@ -493,3 +493,28 @@ rethinkdb.query.Expression.prototype.extend = function(other) {
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'extend',
                     rethinkdb.query.Expression.prototype.extend);
 
+/**
+ * Apply mapping and then concat to an array.
+ */
+rethinkdb.query.Expression.prototype.concatMap = function(mapping) {
+    var mappingFunction;
+    if (mapping instanceof rethinkdb.query.FunctionExpression) {
+        mappingFunction = mapping;
+    } else if (mapping instanceof rethinkdb.query.Expression) {
+        mappingFunction = rethinkdb.query.fn('', mapping);
+    } else {
+        // invalid mapping
+    }
+
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.CONCATMAP, [this],
+        function(builtin) {
+            var mapping = new Mapping();
+            mapping.setArg(mappingFunction.args[0]);
+            mapping.setBody(mappingFunction.body.compile());
+
+            var concatmap = new Builtin.ConcatMap();
+            concatmap.setMapping(mapping);
+
+            builtin.setConcatMap(concatmap);
+        });
+};
