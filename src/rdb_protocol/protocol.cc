@@ -186,95 +186,110 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
         rg_response.last_considered_key = get_region().inner.left;
         typedef std::vector<read_response_t>::iterator rri_t;
 
-        if (!rg->terminal) {
-            //A vanilla range get
-            rg_response.result = stream_t();
-            stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
+        try {
+            /* First check to see if any of the responses we're unsharding threw. */
             for(rri_t i = responses.begin(); i != responses.end(); ++i) {
                 // TODO: we're ignoring the limit when recombining.
                 const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
                 rassert(_rr);
 
-                const stream_t *stream = boost::get<stream_t>(&(_rr->result));
-
-                res_stream->insert(res_stream->end(), stream->begin(), stream->end());
-                rg_response.truncated = rg_response.truncated || _rr->truncated;
-                if (rg_response.last_considered_key < _rr->last_considered_key) {
-                    rg_response.last_considered_key = _rr->last_considered_key;
+                if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&(_rr->result))) {
+                    throw *e;
                 }
             }
-        } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg->terminal)) {
-            //GroupedMapreduce
-            rg_response.result = groups_t();
-            groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
-            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
-                guarantee(_rr);
 
-                const groups_t *groups = boost::get<groups_t>(&(_rr->result));
+            if (!rg->terminal) {
+                //A vanilla range get
+                rg_response.result = stream_t();
+                stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
+                for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                    // TODO: we're ignoring the limit when recombining.
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                    rassert(_rr);
+
+                    const stream_t *stream = boost::get<stream_t>(&(_rr->result));
+
+                    res_stream->insert(res_stream->end(), stream->begin(), stream->end());
+                    rg_response.truncated = rg_response.truncated || _rr->truncated;
+                    if (rg_response.last_considered_key < _rr->last_considered_key) {
+                        rg_response.last_considered_key = _rr->last_considered_key;
+                    }
+                }
+            } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg->terminal)) {
+                //GroupedMapreduce
+                rg_response.result = groups_t();
+                groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
+                for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                    guarantee(_rr);
+
+                    const groups_t *groups = boost::get<groups_t>(&(_rr->result));
+                    query_language::backtrace_t backtrace;
+
+                    for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
+                        query_language::new_val_scope_t scope(&env.scopes.scope);
+                        Term base = gmr->reduction().base(),
+                             body = gmr->reduction().body();
+
+                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
+                        env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
+
+                        (*res_groups)[j->first] = eval(&body, &env, backtrace);
+                    }
+                }
+            } else if (const Reduction *r = boost::get<Reduction>(&*rg->terminal)) {
+                //Normal Mapreduce
+                rg_response.result = atom_t();
+                atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
+
                 query_language::backtrace_t backtrace;
 
-                for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
+                Term base = r->base();
+                *res_atom = eval(&base, &env, backtrace);
+
+                for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                    guarantee(_rr);
+
+                    const atom_t *atom = boost::get<atom_t>(&(_rr->result));
+
                     query_language::new_val_scope_t scope(&env.scopes.scope);
-                    Term base = gmr->reduction().base(),
-                         body = gmr->reduction().body();
-
-                    env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
-                    env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
-
-                    (*res_groups)[j->first] = eval(&body, &env, backtrace);
+                    env.scopes.scope.put_in_scope(r->var1(), *res_atom);
+                    env.scopes.scope.put_in_scope(r->var2(), *atom);
+                    Term body = r->body();
+                    *res_atom = eval(&body, &env, backtrace);
                 }
+            } else if (boost::get<rdb_protocol_details::Length>(&*rg->terminal)) {
+                rg_response.result = atom_t();
+                length_t *res_length = boost::get<length_t>(&rg_response.result);
+                res_length->length = 0;
+
+                for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                    guarantee(_rr);
+
+                    const length_t *length = boost::get<length_t>(&(_rr->result));
+
+                    res_length->length += length->length;
+                }
+            } else if (boost::get<WriteQuery_ForEach>(&*rg->terminal)) {
+                rg_response.result = atom_t();
+                inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
+                res_inserted->inserted = 0;
+
+                for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                    guarantee(_rr);
+
+                    const inserted_t *inserted = boost::get<inserted_t>(&(_rr->result));
+
+                    res_inserted->inserted += inserted->inserted;
+                }
+            } else {
+                unreachable();
             }
-        } else if (const Reduction *r = boost::get<Reduction>(&*rg->terminal)) {
-            //Normal Mapreduce
-            rg_response.result = atom_t();
-            atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
-
-            query_language::backtrace_t backtrace;
-
-            Term base = r->base();
-            *res_atom = eval(&base, &env, backtrace);
-
-            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
-                guarantee(_rr);
-
-                const atom_t *atom = boost::get<atom_t>(&(_rr->result));
-
-                query_language::new_val_scope_t scope(&env.scopes.scope);
-                env.scopes.scope.put_in_scope(r->var1(), *res_atom);
-                env.scopes.scope.put_in_scope(r->var2(), *atom);
-                Term body = r->body();
-                *res_atom = eval(&body, &env, backtrace);
-            }
-        } else if (boost::get<rdb_protocol_details::Length>(&*rg->terminal)) {
-            rg_response.result = atom_t();
-            length_t *res_length = boost::get<length_t>(&rg_response.result);
-            res_length->length = 0;
-
-            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
-                guarantee(_rr);
-
-                const length_t *length = boost::get<length_t>(&(_rr->result));
-
-                res_length->length += length->length;
-            }
-        } else if (boost::get<WriteQuery_ForEach>(&*rg->terminal)) {
-            rg_response.result = atom_t();
-            inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
-            res_inserted->inserted = 0;
-
-            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
-                guarantee(_rr);
-
-                const inserted_t *inserted = boost::get<inserted_t>(&(_rr->result));
-
-                res_inserted->inserted += inserted->inserted;
-            }
-        } else {
-            unreachable();
+        } catch (const runtime_exc_t &e) {
+            rg_response.result = e;
         }
     } else {
         unreachable("Unknown read response.");
@@ -312,146 +327,161 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
         rg_response.last_considered_key = get_region().inner.left;
         typedef std::vector<read_response_t>::iterator rri_t;
 
-        if (!rg->terminal) {
-            //A vanilla range get (or filter or map)
-            rg_response.result = stream_t(); //Set the response to have the correct result type
-            stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
-
-            /* An annoyance occurs. We have results from several different hash
-             * shards. We must figure out what the last considered key is,
-             * however that value must be the last considered key for all of
-             * the hash shards, thus we have to take the minimum of all the
-             * shards last considered keys. Observe the picture:
-             *
-             *              A - - - - - - - - - - - - - - - Z
-             * hash shard 1     | -        - -  -  -  |
-             * hash shard 2     |  --       -    -   -|
-             * hash shard 3     |     --- -   -       |
-             * hash shard 4     |-   -         -  - - |
-             *
-             * Here each shard has returned 5 keys. (Each - is a key). Now the
-             * question is what is the last considered key?
-             *
-             *              A - - - - - - - - - - - - - - - Z
-             * hash shard 1     | -        - -  -  -  |
-             * hash shard 2     |  --       -    -   a|
-             * hash shard 3     |     --- -   b       |
-             * hash shard 4     |-   -         -  - - |
-             *
-             * Is it "a" or "b"? The answer is "b"? If we picked "a" then the
-             * next request we got would have "a" as the left side of the
-             * range. And we could miss keys in hash shard 3.
-             */
-
-            /* Figure out what the last considered key actually is. */
-            rg_response.last_considered_key = get_region().inner.last_key_in_range();
-
-            for (rri_t i = responses.begin(); i != responses.end(); ++i) {
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
-                guarantee(_rr);
-
-                const stream_t *stream = boost::get<stream_t>(&(_rr->result));
-                guarantee(stream);
-
-
-                if (stream->size() == rg->maximum) {
-                    if (_rr->last_considered_key < rg_response.last_considered_key) {
-                        rg_response.last_considered_key = _rr->last_considered_key;
-                    }
-                }
-            }
-
-            for (rri_t i = responses.begin(); i != responses.end(); ++i) {
+        try {
+            /* First check to see if any of the responses we're unsharding threw. */
+            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
                 // TODO: we're ignoring the limit when recombining.
                 const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
                 rassert(_rr);
 
-                const stream_t *stream = boost::get<stream_t>(&(_rr->result));
+                if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&(_rr->result))) {
+                    throw *e;
+                }
+            }
 
-                for (stream_t::const_iterator jt  = stream->begin();
-                                              jt != stream->end();
-                                              ++jt) {
-                    //Filter out the results that went past our last considered key
-                    if (jt->first <= rg_response.last_considered_key) {
-                        res_stream->push_back(*jt);
+            if (!rg->terminal) {
+                //A vanilla range get (or filter or map)
+                rg_response.result = stream_t(); //Set the response to have the correct result type
+                stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
+
+                /* An annoyance occurs. We have results from several different hash
+                 * shards. We must figure out what the last considered key is,
+                 * however that value must be the last considered key for all of
+                 * the hash shards, thus we have to take the minimum of all the
+                 * shards last considered keys. Observe the picture:
+                 *
+                 *              A - - - - - - - - - - - - - - - Z
+                 * hash shard 1     | -        - -  -  -  |
+                 * hash shard 2     |  --       -    -   -|
+                 * hash shard 3     |     --- -   -       |
+                 * hash shard 4     |-   -         -  - - |
+                 *
+                 * Here each shard has returned 5 keys. (Each - is a key). Now the
+                 * question is what is the last considered key?
+                 *
+                 *              A - - - - - - - - - - - - - - - Z
+                 * hash shard 1     | -        - -  -  -  |
+                 * hash shard 2     |  --       -    -   a|
+                 * hash shard 3     |     --- -   b       |
+                 * hash shard 4     |-   -         -  - - |
+                 *
+                 * Is it "a" or "b"? The answer is "b"? If we picked "a" then the
+                 * next request we got would have "a" as the left side of the
+                 * range. And we could miss keys in hash shard 3.
+                 */
+
+                /* Figure out what the last considered key actually is. */
+                rg_response.last_considered_key = get_region().inner.last_key_in_range();
+
+                for (rri_t i = responses.begin(); i != responses.end(); ++i) {
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                    guarantee(_rr);
+
+                    const stream_t *stream = boost::get<stream_t>(&(_rr->result));
+                    guarantee(stream);
+
+
+                    if (stream->size() == rg->maximum) {
+                        if (_rr->last_considered_key < rg_response.last_considered_key) {
+                            rg_response.last_considered_key = _rr->last_considered_key;
+                        }
                     }
                 }
 
-                //res_stream->insert(res_stream->end(), stream->begin(), stream->end());
-                rg_response.truncated = rg_response.truncated || _rr->truncated;
-            }
-        } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg->terminal)) {
-            //GroupedMapreduce
-            rg_response.result = groups_t();
-            groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
-            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
-                guarantee(_rr);
+                for (rri_t i = responses.begin(); i != responses.end(); ++i) {
+                    // TODO: we're ignoring the limit when recombining.
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                    rassert(_rr);
 
-                const groups_t *groups = boost::get<groups_t>(&(_rr->result));
+                    const stream_t *stream = boost::get<stream_t>(&(_rr->result));
+
+                    for (stream_t::const_iterator jt  = stream->begin();
+                                                  jt != stream->end();
+                                                  ++jt) {
+                        //Filter out the results that went past our last considered key
+                        if (jt->first <= rg_response.last_considered_key) {
+                            res_stream->push_back(*jt);
+                        }
+                    }
+
+                    //res_stream->insert(res_stream->end(), stream->begin(), stream->end());
+                    rg_response.truncated = rg_response.truncated || _rr->truncated;
+                }
+            } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg->terminal)) {
+                //GroupedMapreduce
+                rg_response.result = groups_t();
+                groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
+                for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                    guarantee(_rr);
+
+                    const groups_t *groups = boost::get<groups_t>(&(_rr->result));
+                    query_language::backtrace_t backtrace;
+
+                    for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
+                        query_language::new_val_scope_t scope(&env.scopes.scope);
+                        Term base = gmr->reduction().base(),
+                             body = gmr->reduction().body();
+
+                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
+                        env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
+
+                        (*res_groups)[j->first] = eval(&body, &env, backtrace);
+                    }
+                }
+            } else if (const Reduction *r = boost::get<Reduction>(&*rg->terminal)) {
+                //Normal Mapreduce
+                rg_response.result = atom_t();
+                atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
+
                 query_language::backtrace_t backtrace;
 
-                for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
+                Term base = r->base();
+                *res_atom = eval(&base, &env, backtrace);
+
+                for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                    guarantee(_rr);
+
+                    const atom_t *atom = boost::get<atom_t>(&(_rr->result));
+
                     query_language::new_val_scope_t scope(&env.scopes.scope);
-                    Term base = gmr->reduction().base(),
-                         body = gmr->reduction().body();
-
-                    env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
-                    env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
-
-                    (*res_groups)[j->first] = eval(&body, &env, backtrace);
+                    env.scopes.scope.put_in_scope(r->var1(), *res_atom);
+                    env.scopes.scope.put_in_scope(r->var2(), *atom);
+                    Term body = r->body();
+                    *res_atom = eval(&body, &env, backtrace);
                 }
+            } else if (boost::get<rdb_protocol_details::Length>(&*rg->terminal)) {
+                rg_response.result = atom_t();
+                length_t *res_length = boost::get<length_t>(&rg_response.result);
+                res_length->length = 0;
+
+                for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                    guarantee(_rr);
+
+                    const length_t *length = boost::get<length_t>(&(_rr->result));
+
+                    res_length->length += length->length;
+                }
+            } else if (boost::get<WriteQuery_ForEach>(&*rg->terminal)) {
+                rg_response.result = atom_t();
+                inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
+                res_inserted->inserted = 0;
+
+                for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+                    guarantee(_rr);
+
+                    const inserted_t *inserted = boost::get<inserted_t>(&(_rr->result));
+
+                    res_inserted->inserted += inserted->inserted;
+                }
+            } else {
+                unreachable();
             }
-        } else if (const Reduction *r = boost::get<Reduction>(&*rg->terminal)) {
-            //Normal Mapreduce
-            rg_response.result = atom_t();
-            atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
-
-            query_language::backtrace_t backtrace;
-
-            Term base = r->base();
-            *res_atom = eval(&base, &env, backtrace);
-
-            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
-                guarantee(_rr);
-
-                const atom_t *atom = boost::get<atom_t>(&(_rr->result));
-
-                query_language::new_val_scope_t scope(&env.scopes.scope);
-                env.scopes.scope.put_in_scope(r->var1(), *res_atom);
-                env.scopes.scope.put_in_scope(r->var2(), *atom);
-                Term body = r->body();
-                *res_atom = eval(&body, &env, backtrace);
-            }
-        } else if (boost::get<rdb_protocol_details::Length>(&*rg->terminal)) {
-            rg_response.result = atom_t();
-            length_t *res_length = boost::get<length_t>(&rg_response.result);
-            res_length->length = 0;
-
-            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
-                guarantee(_rr);
-
-                const length_t *length = boost::get<length_t>(&(_rr->result));
-
-                res_length->length += length->length;
-            }
-        } else if (boost::get<WriteQuery_ForEach>(&*rg->terminal)) {
-            rg_response.result = atom_t();
-            inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
-            res_inserted->inserted = 0;
-
-            for(rri_t i = responses.begin(); i != responses.end(); ++i) {
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
-                guarantee(_rr);
-
-                const inserted_t *inserted = boost::get<inserted_t>(&(_rr->result));
-
-                res_inserted->inserted += inserted->inserted;
-            }
-        } else {
-            unreachable();
+        } catch (const runtime_exc_t &e) {
+            rg_response.result = e;
         }
     } else {
         unreachable("Unknown read response.");
