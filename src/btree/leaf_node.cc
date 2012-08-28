@@ -338,6 +338,7 @@ bool fsck(value_sizer_t<void> *sizer, const btree_key_t *left_exclusive_or_null,
 
     int i = 0;
     bool seen_tstamp_cutpoint = false;
+    repli_timestamp_t earliest_so_far = repli_timestamp_t::invalid;
     while (!iter.done(sizer)) {
         int offset = iter.offset;
 
@@ -352,6 +353,15 @@ bool fsck(value_sizer_t<void> *sizer, const btree_key_t *left_exclusive_or_null,
         if (failed(offset + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0) < sizer->block_size().value(),
                    "offset would be past block size after accounting for the timestamp")) {
             return false;
+        }
+
+        if (offset < node->tstamp_cutpoint) {
+            repli_timestamp_t tstamp = get_timestamp(node, offset);
+            if (tstamp > earliest_so_far) {
+                *msg_out = strprintf("timestamps out of order (%d after %d)\n", int(tstamp.longtime), int(earliest_so_far.longtime));
+                return false;
+            }
+            earliest_so_far = tstamp;
         }
 
         const entry_t *ent = get_entry(node, offset);
@@ -1251,29 +1261,11 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t<void> *sizer, leaf_node_
         new_entry_should_have_timestamp = true;
 
     } else {
-        /* `offset_to_go_after` is the offset of the last timestamped entry
-        whose timestamp is greater than `tstamp`. */
-        int offset_to_go_after = 0;
-        for (int i = 0; i < node->num_pairs; i++) {
-            if (node->pair_offsets[i] < node->tstamp_cutpoint && get_timestamp(node, node->pair_offsets[i]) > tstamp) {
-                /* This entry's timestamp is newer than the one we want to
-                insert, so make sure we end up behind it. */
-                if (node->pair_offsets[i] > offset_to_go_after) {
-                    offset_to_go_after = node->pair_offsets[i];
-                }
-            }
+        entry_iter_t iter = entry_iter_t::make(node);
+        while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint && get_timestamp(node, iter.offset) > tstamp) {
+            iter.step(sizer, node);
         }
-
-        if (offset_to_go_after == 0) {
-            /* We're newer than any timestamped entry, so we go at the front of
-            the node. */
-            end_of_where_new_entry_should_go = node->frontmost;
-        } else {
-            end_of_where_new_entry_should_go =
-                offset_to_go_after +
-                sizeof(repli_timestamp_t) +
-                entry_size(sizer, get_entry(node, offset_to_go_after));
-        }
+        end_of_where_new_entry_should_go = iter.offset;
 
         if (end_of_where_new_entry_should_go == node->tstamp_cutpoint &&
                 node->tstamp_cutpoint != sizer->block_size().value()) {

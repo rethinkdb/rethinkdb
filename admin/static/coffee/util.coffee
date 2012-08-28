@@ -95,6 +95,39 @@ Handlebars.registerHelper 'links_to_replicas_and_namespaces', (machines) ->
         out += '<li>Directory: '+machines[i].get('directory')+'</li></ul>'
     return out
 
+Handlebars.registerHelper 'display_reasons_cannot_move', (reasons) ->
+    out = ""
+    for machine_id of reasons
+        if reasons[machine_id]['master']?.length > 0
+            out += '<li>The server <a href="#servers/'+machine_id+'">'+machines.get(machine_id).get('name')+'</a> is master for some shards of the tables '
+            is_first = true
+            for reason in reasons[machine_id]['master']
+                namespace_id = reason.namespace_id
+                namespace_name = namespaces.get(namespace_id).get('name')
+                if is_first
+                    out += '<a href="#tables/'+namespace_id+'">'+namespace_name+'</a>'
+                    is_first = false
+                else
+                    out += ', <a href="#tables/'+namespace_id+'">'+namespace_name+'</a>'
+            out += '</li>'
+        if reasons[machine_id]['goals']?.length > 0
+            out += '<li>Moving the table <a href="#servers/'+machine_id+'">'+machines.get(machine_id).get('name')+'</a> will result in unsatisfiable goals for the tables '
+            is_first = true
+            for reason in reasons[machine_id]['goals']
+                namespace_id = reason.namespace_id
+                namespace_name = namespaces.get(namespace_id).get('name')
+                if is_first
+                    out += '<a href="#tables/'+namespace_id+'">'+namespace_name+'</a>'
+                    is_first = false
+                else
+                    out += ', <a href="#tables/'+namespace_id+'">'+namespace_name+'</a>'
+            out += '.</li>'
+
+
+                
+            
+    return new Handlebars.SafeString(out)
+
 # If the two arguments are equal, show the inner block; else block is available
 Handlebars.registerHelper 'ifequal', (val_a, val_b, if_block, else_block) ->
     if val_a is val_b
