@@ -1410,7 +1410,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             // ("this") object on javascript side.
 
             boost::shared_ptr<js::runner_t> js = env->get_js_runner();
-            debugf("A js runner %p\n", js.get());
             std::string errmsg;
             boost::shared_ptr<scoped_cJSON_t> result;
 
