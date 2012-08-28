@@ -62,12 +62,15 @@ result_t in_memory_stream_t::apply_terminal(const rdb_protocol_details::terminal
     crash("unimplemented");
 }
 
-batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, 
-                      signal_t *_interruptor, key_range_t _range, 
-                      int _batch_size, backtrace_t _backtrace)
-    : ns_access(_ns_access), interruptor(_interruptor), 
-      range(_range), batch_size(_batch_size), index(0), 
-      finished(false), started(false), backtrace(_backtrace) { }
+batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+                      signal_t *_interruptor, key_range_t _range,
+                      int _batch_size, backtrace_t _backtrace,
+                      const scopes_t &_scopes)
+    : ns_access(_ns_access), interruptor(_interruptor),
+      range(_range), batch_size(_batch_size), index(0),
+      finished(false), started(false), backtrace(_backtrace),
+      scopes(_scopes)
+{ }
 
 boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
     started = true;
@@ -87,7 +90,7 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
     return ret;
 }
 
-void batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_atom_t &t) { 
+void batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_atom_t &t) {
     guarantee(!started);
     transform.push_back(t);
 }
@@ -103,6 +106,11 @@ result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::termi
         rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         rassert(p_res);
 
+        /* Re throw an exception if we got one. */
+        if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
+            throw *e;
+        }
+
         return p_res->result;
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform read: " + std::string(e.what()), backtrace);
@@ -110,14 +118,19 @@ result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::termi
 }
 
 void batched_rget_stream_t::read_more() {
-    rdb_protocol_t::rget_read_t rget_read(range, batch_size, transform);
+    rdb_protocol_t::rget_read_t rget_read(range, batch_size, transform, scopes);
     rdb_protocol_t::read_t read(rget_read);
     try {
         guarantee(ns_access.get_namespace_if());
         rdb_protocol_t::read_response_t res;
         ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
         rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
-        rassert(p_res);
+        guarantee(p_res);
+
+        /* Re throw an exception if we got one. */
+        if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
+            throw *e;
+        }
 
         // todo: just do a straight copy?
         typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;

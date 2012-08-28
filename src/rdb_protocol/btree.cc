@@ -265,53 +265,60 @@ public:
             boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result), *terminal);
         }
     }
+
     bool handle_pair(const btree_key_t* key, const void *value) {
-        store_key_t store_key(key);
-        if (response.last_considered_key < store_key) {
-            response.last_considered_key = store_key;
-        }
-
-        const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
-
-        json_list_t data;
-        data.push_back(get_data(rdb_value, transaction));
-
-        //Apply transforms to the data
-        typedef rdb_protocol_details::transform_t::iterator tit_t;
-        for (tit_t it  = transform.begin();
-                   it != transform.end();
-                   ++it) {
-            json_list_t tmp;
-
-            for (json_list_t::iterator jt  = data.begin();
-                                       jt != data.end();
-                                       ++jt) {
-                boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env), *it);
-            }
-            data.clear();
-            data.splice(data.begin(), tmp);
-        }
-
-        if (!terminal) {
-            typedef rget_read_response_t::stream_t stream_t;
-            stream_t *stream = boost::get<stream_t>(&response.result);
-            guarantee(stream);
-            for (json_list_t::iterator it =  data.begin();
-                                       it != data.end();
-                                       ++it) {
-                stream->push_back(std::make_pair(key, *it));
+        try {
+            store_key_t store_key(key);
+            if (response.last_considered_key < store_key) {
+                response.last_considered_key = store_key;
             }
 
-            cumulative_size += estimate_rget_response_size(stream->back().second);
-            // TODO: If we have to cast stream->size(), why is maximum an int?
-            return static_cast<int>(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
-        } else {
-            for (json_list_t::iterator jt  = data.begin();
-                                       jt != data.end();
-                                       ++jt) {
-                boost::apply_visitor(query_language::terminal_visitor_t(*jt, env, &response.result), *terminal);
+            const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
+
+            json_list_t data;
+            data.push_back(get_data(rdb_value, transaction));
+
+            //Apply transforms to the data
+            typedef rdb_protocol_details::transform_t::iterator tit_t;
+            for (tit_t it  = transform.begin();
+                       it != transform.end();
+                       ++it) {
+                json_list_t tmp;
+
+                for (json_list_t::iterator jt  = data.begin();
+                                           jt != data.end();
+                                           ++jt) {
+                    boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env), *it);
+                }
+                data.clear();
+                data.splice(data.begin(), tmp);
             }
-            return true;
+
+            if (!terminal) {
+                typedef rget_read_response_t::stream_t stream_t;
+                stream_t *stream = boost::get<stream_t>(&response.result);
+                guarantee(stream);
+                for (json_list_t::iterator it =  data.begin();
+                                           it != data.end();
+                                           ++it) {
+                    stream->push_back(std::make_pair(key, *it));
+                }
+
+                cumulative_size += estimate_rget_response_size(stream->back().second);
+                // TODO: If we have to cast stream->size(), why is maximum an int?
+                return static_cast<int>(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
+            } else {
+                for (json_list_t::iterator jt  = data.begin();
+                                           jt != data.end();
+                                           ++jt) {
+                    boost::apply_visitor(query_language::terminal_visitor_t(*jt, env, &response.result), *terminal);
+                }
+                return true;
+            }
+        } catch(const query_language::runtime_exc_t &e) {
+            /* Evaluation threw so we're not going to be accepting any more requests. */
+            response.result = e;
+            return false;
         }
     }
     transaction_t *transaction;

@@ -12,8 +12,7 @@
 
 template <class request_t, class response_t, class context_t>
 protob_server_t<request_t, response_t, context_t>::protob_server_t(
-    int port, int http_port,
-    boost::function<response_t(request_t *, context_t *)> _f,
+    int port, boost::function<response_t(request_t *, context_t *)> _f,
     response_t (*_on_unparsable_query)(request_t *, std::string),
     protob_server_callback_mode_t _cb_mode)
     : f(_f),
@@ -22,7 +21,6 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
       next_http_conn_id(0),
       http_timeout_timer(http_context_t::TIMEOUT_MS, this) {
     tcp_listener.init(new tcp_listener_t(port, boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
-    http_server.init(new http_server_t(http_port, this));
 }
 
 template <class request_t, class response_t, class context_t>
@@ -120,6 +118,11 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         req.resource.as_string().find("close-connection") != std::string::npos) {
 
         boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
+
+        if (!optional_conn_id) {
+            return http_res_t(HTTP_BAD_REQUEST, "application/text", "Required parameter \"conn_id\" missing\n");
+        }
+
         std::string string_conn_id = *optional_conn_id;
         int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
         http_conns.erase(conn_id);
@@ -130,7 +133,6 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
 
         return res;
     } else if (req.method == GET && req.resource.as_string() == "/open-new-connection") {
-
         int32_t conn_id = ++next_http_conn_id;
         http_conns.insert(std::pair<int32_t,http_context_t>(++conn_id, http_context_t()));
 
@@ -145,6 +147,11 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
     } else {
 
         boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
+
+        if (!optional_conn_id) {
+            return http_res_t(HTTP_BAD_REQUEST, "application/text", "Required parameter \"conn_id\" missing\n");
+        }
+
         std::string string_conn_id = *optional_conn_id;
         int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
 
@@ -162,8 +169,8 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         case INLINE:
             it = http_conns.find(conn_id);
             if (!parseSucceeded || it == http_conns.end()) {
-            std::string err = "Client is buggy (failed to deserialize protobuf).";
-            response = on_unparsable_query(&request, err);
+                std::string err = "Client is buggy (failed to deserialize protobuf).";
+                response = on_unparsable_query(&request, err);
             } else {
                 http_context_t *ctx = &(it->second);
                 ctx->grab();

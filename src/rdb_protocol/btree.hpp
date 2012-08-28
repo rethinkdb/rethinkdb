@@ -33,7 +33,7 @@ typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
 namespace query_language {
     class runtime_environment_t;
-} //namespace query_language 
+} //namespace query_language
 
 class parallel_traversal_progress_t;
 
