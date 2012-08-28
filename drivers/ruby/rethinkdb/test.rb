@@ -430,6 +430,7 @@ class ClientTest < Test::Unit::TestCase
   def test_javascript # JAVASCRIPT
     assert_equal(r.javascript('1').run, 1)
     assert_equal(r.js('1').run, 1)
+    assert_equal(r.js('1').add(r.js('2')).run, 3)
     assert_equal(r.js('2+2').run, 4)
     assert_equal(r.js('"cows"').run, "cows")
     assert_equal(r.js('[1,2,3]').run, [1,2,3])
@@ -444,15 +445,16 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_javascript_vars # JAVASCRIPT
-    # TODO_SERV: Issue # 921 (javascript threading)
     assert_equal(r.let([['x', 2]], r.js('x')).run, 2)
     assert_equal(r.let([['x', 2], ['y', 3]], r.js('x+y')).run, 5)
-    # assert_equal(rdb.map{|x| r.js("#{x}")}.run, rdb.run)
-    # assert_equal(rdb.map{    r.js("this")}.run, rdb.run)
-    # assert_equal(rdb.map{|x| r.js("#{x}.num")}.run, rdb.map{r[:num]}.run)
-    # assert_equal(rdb.map{    r.js("this.num")}.run, rdb.map{r[:num]}.run)
-    # assert_equal(rdb.filter{|x| r.js("#{x}.id < 5")}.run, rdb.filter{r[:id] < 5}.run)
-    # assert_equal(rdb.filter{    r.js("this.id < 5")}.run, rdb.filter{r[:id] < 5}.run)
+    assert_equal(id_sort(rdb.map{|x| r.js("#{x}")}.run), id_sort(rdb.run))
+    assert_equal(id_sort(rdb.map{ r.js("this")}.run), id_sort(rdb.run))
+    assert_equal(rdb.map{|x| r.js("#{x}.num")}.run.sort, rdb.map{r[:num]}.run.sort)
+    assert_equal(rdb.map{ r.js("this.num")}.run.sort, rdb.map{r[:num]}.run.sort)
+    assert_equal(id_sort(rdb.filter{|x| r.js("#{x}.id < 5")}.run),
+                 id_sort(rdb.filter{r[:id] < 5}.run))
+    assert_equal(id_sort(rdb.filter{ r.js("this.id < 5")}.run),
+                 id_sort(rdb.filter{r[:id] < 5}.run))
   end
 
   def test_pickattrs # PICKATTRS, # UNION, # LENGTH
