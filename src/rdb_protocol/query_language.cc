@@ -901,7 +901,6 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
     const char *status;
     std::string db_name = t->db_name();
     std::string table_name = t->table_name();
-    cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
     namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata = env->namespaces_semilattice_metadata->get();
     databases_semilattice_metadata_t db_metadata = env->databases_semilattice_metadata->get();
 
@@ -1411,6 +1410,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             // ("this") object on javascript side.
 
             boost::shared_ptr<js::runner_t> js = env->get_js_runner();
+            debugf("A js runner %p\n", js.get());
             std::string errmsg;
             boost::shared_ptr<scoped_cJSON_t> result;
 
@@ -2278,7 +2278,6 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(
     std::string table_name = t->table_name();
     std::string db_name = t->db_name();
 
-    cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
     namespaces_semilattice_metadata_t<rdb_protocol_t> namespaces_metadata = env->namespaces_semilattice_metadata->get();
     databases_semilattice_metadata_t databases_metadata = env->databases_semilattice_metadata->get();
 
