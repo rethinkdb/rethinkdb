@@ -383,7 +383,6 @@ class RDBTest(unittest.TestCase):
         expect = self.expect
 
         expect(-expr(3), -3)
-        expect(+expr(3), 3)
 
         expect(expr(3) + 4, 7)
         expect(expr(3) - 4, -1)
