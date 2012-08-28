@@ -901,7 +901,6 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
     const char *status;
     std::string db_name = t->db_name();
     std::string table_name = t->table_name();
-    cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
     namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata = env->namespaces_semilattice_metadata->get();
     databases_semilattice_metadata_t db_metadata = env->databases_semilattice_metadata->get();
 
@@ -1850,7 +1849,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
         case Builtin::ORDERBY:
         case Builtin::DISTINCT:
         case Builtin::ARRAYTOSTREAM:
-        case Builtin::GROUPEDMAPREDUCE:
         case Builtin::UNION:
         case Builtin::RANGE:
             unreachable("eval called on a function that returns a stream (use eval_stream instead).");
@@ -1942,22 +1940,63 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 } catch (const boost::bad_get &) {
                     crash("Expected a json atom... something is implemented wrong in the clustering code\n");
                 }
-                // Start off accumulator with the base
-                //boost::shared_ptr<scoped_cJSON_t> acc = eval(c->mutable_builtin()->mutable_reduce()->mutable_base(), env);
-
-                //for (json_stream_t::iterator it  = stream.begin();
-                //                             it != stream.end();
-                //                             ++it)
-                //{
-                //    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                //    env->scope.put_in_scope(c->builtin().reduce().var1(), acc);
-                //    env->scope.put_in_scope(c->builtin().reduce().var2(), *it);
-
-                //    acc = eval(c->mutable_builtin()->mutable_reduce()->mutable_body(), env);
-                //}
-                //return acc;
             }
             break;
+        case Builtin::GROUPEDMAPREDUCE: {
+                Builtin::GroupedMapReduce *g = c->mutable_builtin()->mutable_grouped_map_reduce();
+                shared_scoped_less_t comparator(backtrace);
+                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups(comparator);
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
+
+                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+                    boost::shared_ptr<scoped_cJSON_t> group_mapped_row, value_mapped_row, reduced_row;
+
+                    // Figure out which group we belong to
+                    {
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, g->group_mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
+                        group_mapped_row = eval(g->mutable_group_mapping()->mutable_body(), env, backtrace.with("group_mapping"));
+                    }
+
+                    // Map the value for comfy reduction goodness
+                    {
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, g->value_mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
+                        value_mapped_row = eval(g->mutable_value_mapping()->mutable_body(), env, backtrace.with("value_mapping"));
+                    }
+
+                    // Do the reduction
+                    {
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope);
+                        std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator
+                            elem = groups.find(group_mapped_row);
+                        if(elem != groups.end()) {
+                            env->scopes.scope.put_in_scope(g->reduction().var1(),
+                                                    (*elem).second);
+                        } else {
+                            env->scopes.scope.put_in_scope(g->reduction().var1(),
+                                                    eval(g->mutable_reduction()->mutable_base(), env, backtrace.with("reduction").with("base")));
+                        }
+                        env->scopes.scope.put_in_scope(g->reduction().var2(), value_mapped_row);
+
+                        reduced_row = eval(g->mutable_reduction()->mutable_body(), env, backtrace.with("reduction").with("body"));
+                    }
+
+                    // Phew, update the relevant group
+                    groups[group_mapped_row] = reduced_row;
+
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
+                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator it;
+                for (it = groups.begin(); it != groups.end(); ++it) {
+                    scoped_cJSON_t obj(cJSON_CreateObject());
+                    obj.AddItemToObject("group", it->first->release());
+                    obj.AddItemToObject("reduction", it->second->release());
+                    res->AddItemToArray(obj.release());
+                }
+                return res;
+        } break;
         case Builtin::ALL:
             {
                 bool result = true;
@@ -2086,67 +2125,9 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
         case Builtin::STREAMTOARRAY:
         case Builtin::REDUCE:
         case Builtin::ALL:
+        case Builtin::GROUPEDMAPREDUCE:
         case Builtin::ANY:
             unreachable("eval_stream called on a function that does not return a stream (use eval instead).");
-            break;
-        case Builtin::GROUPEDMAPREDUCE:
-            {
-                Builtin::GroupedMapReduce *g = c->mutable_builtin()->mutable_grouped_map_reduce();
-                shared_scoped_less_t comparator(backtrace);
-                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups(comparator);
-                boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
-
-                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    boost::shared_ptr<scoped_cJSON_t> group_mapped_row, value_mapped_row, reduced_row;
-
-                    // Figure out which group we belong to
-                    {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, g->group_mapping().arg(), json);
-                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
-                        group_mapped_row = eval(g->mutable_group_mapping()->mutable_body(), env, backtrace.with("group_mapping"));
-                    }
-
-                    // Map the value for comfy reduction goodness
-                    {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, g->value_mapping().arg(), json);
-                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
-                        value_mapped_row = eval(g->mutable_value_mapping()->mutable_body(), env, backtrace.with("value_mapping"));
-                    }
-
-                    // Do the reduction
-                    {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope);
-                        std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator
-                            elem = groups.find(group_mapped_row);
-                        if(elem != groups.end()) {
-                            env->scopes.scope.put_in_scope(g->reduction().var1(),
-                                                    (*elem).second);
-                        } else {
-                            env->scopes.scope.put_in_scope(g->reduction().var1(),
-                                                    eval(g->mutable_reduction()->mutable_base(), env, backtrace.with("reduction").with("base")));
-                        }
-                        env->scopes.scope.put_in_scope(g->reduction().var2(), value_mapped_row);
-
-                        reduced_row = eval(g->mutable_reduction()->mutable_body(), env, backtrace.with("reduction").with("body"));
-                    }
-
-                    // Phew, update the relevant group
-                    groups[group_mapped_row] = reduced_row;
-
-                }
-
-                // Phew, convert the whole shebang to a stream
-                // TODO this is an extra copy we just need a gracefull way to
-                // deal with this
-                std::list<boost::shared_ptr<scoped_cJSON_t> > res;
-
-                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator it;
-                for(it = groups.begin(); it != groups.end(); ++it) {
-                    res.push_back((*it).second);
-                }
-
-                return boost::shared_ptr<in_memory_stream_t>(new in_memory_stream_t(res.begin(), res.end(), env));
-            }
             break;
         case Builtin::FILTER:
             {
@@ -2296,7 +2277,6 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(
     std::string table_name = t->table_name();
     std::string db_name = t->db_name();
 
-    cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
     namespaces_semilattice_metadata_t<rdb_protocol_t> namespaces_metadata = env->namespaces_semilattice_metadata->get();
     databases_semilattice_metadata_t databases_metadata = env->databases_semilattice_metadata->get();
 

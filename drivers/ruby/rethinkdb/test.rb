@@ -410,10 +410,10 @@ class ClientTest < Test::Unit::TestCase
 
   def test_concatmap # CONCATMAP, DISTINCT
     # TODO_SERV: Using concatmap as a join crashes
-    # query = rdb.concatmap{|row| rdb.map{r[:id] * row[:id]}}.distinct
-    # nums = $data.map{|o| o['id']}
-    # want = nums.map{|n| nums.map{|m| n*m}}.flatten(1).uniq
-    # assert_equal(query.run.sort, want.sort)
+    query = rdb.concatmap{|row| rdb.map{r[:id] * row[:id]}}.distinct
+    nums = $data.map{|o| o['id']}
+    want = nums.map{|n| nums.map{|m| n*m}}.flatten(1).uniq
+    assert_equal(query.run.sort, want.sort)
   end
 
   def test_range # RANGE
@@ -421,6 +421,21 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb.between(2,nil).run), $data[2..-1])
     assert_equal(id_sort(rdb.between(1, 3).run), $data[1..3])
     assert_equal(id_sort(rdb.between(nil, 4).run),$data[0..4])
+  end
+
+  def test_groupedmapreduce # GROUPEDMAPREDUCE
+    #TODO: Add tests once issue #922 is resolved.
+    assert_equal(rdb.orderby(:id).run, $data)
+    gmr = rdb.groupedmapreduce(lambda {|row| row[:id] % 4}, lambda {|row| row[:id]},
+                               0, lambda {|a,b| a+b});
+    gmr2 = rdb.groupedmapreduce(lambda {r[:id] % 4}, lambda {r[:id]},
+                                0, lambda {|a,b| a+b});
+    assert_equal(gmr.run, gmr2.run)
+    gmr.run.each {|obj|
+      want = $data.map{|x| x['id']}.select{|x| x%4 == obj['group']}.reduce(0, :+)
+      assert_equal(obj['reduction'], want)
+    }
+    assert_equal(rdb.orderby(:id).run, $data)
   end
 
   def test_nth # NTH

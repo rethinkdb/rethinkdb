@@ -88,14 +88,14 @@ TEST(ContextSwitchingTest, SwitchBetweenContexts) {
     original_context = NULL;
 }
 
-static void throw_an_exception() {
+__attribute__((noreturn)) static void throw_an_exception() {
     throw std::runtime_error("This is a test exception");
 }
 
-static void throw_exception_from_coroutine() {
+__attribute__((noreturn)) static void throw_exception_from_coroutine() {
     artificial_stack_t artificial_stack(&throw_an_exception, 1024*1024);
-    context_ref_t original_context;
-    context_switch(&original_context, &artificial_stack.context);
+    context_ref_t _original_context;
+    context_switch(&_original_context, &artificial_stack.context);
     unreachable();
 }
 
