@@ -423,6 +423,21 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb.between(nil, 4).run),$data[0..4])
   end
 
+  def test_groupedmapreduce # GROUPEDMAPREDUCE
+    #TODO: Add tests once issue #922 is resolved.
+    assert_equal(rdb.orderby(:id).run, $data)
+    gmr = rdb.groupedmapreduce(lambda {|row| row[:id] % 4}, lambda {|row| row[:id]},
+                               0, lambda {|a,b| a+b});
+    gmr2 = rdb.groupedmapreduce(lambda {r[:id] % 4}, lambda {r[:id]},
+                                0, lambda {|a,b| a+b});
+    assert_equal(gmr.run, gmr2.run)
+    gmr.run.each {|obj|
+      want = $data.map{|x| x['id']}.select{|x| x%4 == obj['group']}.reduce(0, :+)
+      assert_equal(obj['reduction'], want)
+    }
+    assert_equal(rdb.orderby(:id).run, $data)
+  end
+
   def test_nth # NTH
     assert_equal(rdb.orderby(:id).nth(2).run, $data[2])
   end
