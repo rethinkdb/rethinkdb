@@ -31,6 +31,9 @@ typedef rdb_protocol_t::point_read_response_t point_read_response_t;
 typedef rdb_protocol_t::rget_read_t rget_read_t;
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
 
+typedef rdb_protocol_t::distribution_read_t distribution_read_t;
+typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_t;
+
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
 
@@ -112,6 +115,10 @@ struct r_get_region_visitor : public boost::static_visitor<region_t> {
         // TODO: Sam bets this causes problems
         return region_t(rg.key_range);
     }
+
+    region_t operator()(const distribution_read_t &dg) const {
+        return region_t(dg.range);
+    }
 };
 
 }   /* anonymous namespace */
@@ -141,6 +148,16 @@ struct r_shard_visitor : public boost::static_visitor<read_t> {
         _rg.key_range = region.inner;
         return read_t(_rg);
     }
+
+    read_t operator()(const distribution_read_t &dg) const {
+        rassert(region_is_superset(region_t(dg.range), region));
+
+        // TODO: Reevaluate this code.  Should distribution_get_query_t really have a key_range_t range?
+        distribution_read_t _dg(dg);
+        _dg.range = region.inner;
+        return read_t(_dg);
+    }
+
     const region_t &region;
 };
 
@@ -561,13 +578,28 @@ namespace {
 
 // TODO: get rid of this extra response_t copy on the stack
 struct read_visitor_t : public boost::static_visitor<read_response_t> {
-    read_response_t operator()(const point_read_t& get) {
+    read_response_t operator()(const point_read_t &get) {
         return read_response_t(rdb_get(get.key, btree, txn, superblock));
     }
 
-    read_response_t operator()(const rget_read_t& rget) {
+    read_response_t operator()(const rget_read_t &rget) {
         env.scopes = rget.scopes;
         return read_response_t(rdb_rget_slice(btree, rget.key_range, 1000, txn, superblock, &env, rget.transform, rget.terminal));
+    }
+
+    read_response_t operator()(const distribution_read_t &dg) {
+        distribution_read_response_t dstr = rdb_distribution_get(btree, dg.max_depth, dg.range.left, txn, superblock);
+        for (std::map<store_key_t, int>::iterator it  = dstr.key_counts.begin();
+                                                  it != dstr.key_counts.end();
+                                                  /* increments done in loop */) {
+            if (!dg.range.contains_key(store_key_t(it->first))) {
+                dstr.key_counts.erase(it++);
+            } else {
+                ++it;
+            }
+        }
+
+        return read_response_t(dstr);
     }
 
     read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, rdb_protocol_t::context_t *ctx) :
