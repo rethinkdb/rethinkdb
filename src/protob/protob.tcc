@@ -203,6 +203,9 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
     }
 }
 
+/**
+ * Called every five minutes to clean out any long idle http connections
+ */
 template <class request_t, class response_t, class context_t>
 void protob_server_t<request_t, response_t, context_t>::on_ring() {
     for (typename std::map<int32_t, http_context_t>::iterator iter = http_conns.begin(); iter != http_conns.end();) {

@@ -160,9 +160,11 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                 scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
                 svs->new_read_token(&read_token);
 
+                region_map_t<protocol_t, binary_blob_t> metainfo_blob;
+                svs->do_get_metainfo(order_source.check_in("reactor_t::be_secondary").with_read_mode(), &read_token, interruptor, &metainfo_blob);
+
                 typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
-                    activity(svs->get_all_metainfos(order_source.check_in("reactor_t::be_secondary").with_read_mode(), &read_token, interruptor),
-                             backfiller.get_business_card());
+                    activity(to_version_range_map(metainfo_blob), backfiller.get_business_card());
 
                 directory_entry.set(activity);
 

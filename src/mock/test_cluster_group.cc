@@ -176,7 +176,7 @@ test_reactor_t<protocol_t>::test_reactor_t(io_backender_t *io_backender, reactor
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
             &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), &ctx),
     reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable) {
-    rassert(svs->get_multistore_joined_region() == a_thru_z_region());
+    rassert(svs->get_region() == a_thru_z_region());
 }
 
 template <class protocol_t>

@@ -3,30 +3,6 @@ goog.provide('rethinkdb.query2');
 goog.require('rethinkdb.query');
 goog.require('goog.asserts');
 
-/**
- * @return {rethinkdb.query.Database}
- * @export
- */
-rethinkdb.query.db = function(db_name) {
-     return new rethinkdb.query.Database(db_name);
-};
-
-/** @export */
-rethinkdb.query.db_create = function(db_name, primary_datacenter) {
-    //TODO how to get cluster level default?
-    primary_datacenter = primary_datacenter || 'cluster-level-default?';
-};
-
-/** @export */
-rethinkdb.query.db_drop = function(db_name) {
-
-};
-
-/** @export */
-rethinkdb.query.db_list = function() {
-
-};
-
 /** @export */
 rethinkdb.query.expr = function(value) {
     return new rethinkdb.query.JSONExpression(value);
