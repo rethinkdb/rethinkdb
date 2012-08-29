@@ -132,9 +132,9 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         res.add_header_line("Access-Control-Allow-Origin", "*");
 
         return res;
-    } else if (req.method == GET && req.resource.as_string() == "/open-new-connection") {
+    } else if (req.method == GET && req.resource.as_string().find("open-new-connection")) {
         int32_t conn_id = ++next_http_conn_id;
-        http_conns.insert(std::pair<int32_t,http_context_t>(++conn_id, http_context_t()));
+        http_conns.insert(std::pair<int32_t,http_context_t>(conn_id, http_context_t()));
 
         http_res_t res(HTTP_OK);
         res.version = "HTTP/1.1";
@@ -145,7 +145,6 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
 
         return res;
     } else {
-
         boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
 
         if (!optional_conn_id) {
