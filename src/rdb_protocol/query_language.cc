@@ -1119,7 +1119,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                         if (reported_error == "") reported_error = e.message + "\n" + e.backtrace.print();
                     }
                 }
-                std::string res_list = strprintf("\"modified\": %d, \"deleted\": %d, \"errors\": %d", modified, deleted, errors);
+                std::string res_list = strprintf("\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d", modified, 0, deleted, errors);
                 if (reported_error != "") {
                     res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
                                          scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
@@ -1246,6 +1246,8 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             break;
         case WriteQuery::POINTMUTATE: {
             int deleted = 0;
+            int inserted = 0;
+            int modified = 0;
             //First we need to grab the value the easiest way to do this is to just construct a term and evaluate it.
             Term get;
             get.set_type(Term::GETBYKEY);
@@ -1256,6 +1258,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             *get.mutable_get_by_key() = get_by_key;
 
             boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
+
             new_val_scope_t scope_maker(&env->scopes.scope, w->point_mutate().mapping().arg(), original_val);
             boost::shared_ptr<scoped_cJSON_t> new_val = eval(w->mutable_point_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
 
@@ -1264,17 +1267,24 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             /* Get the primary key */
             std::string pk = get_primary_key(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
             if (new_val->type() == cJSON_NULL) {
-                deleted = 1;
-                point_delete(ns_access, cJSON_GetObjectItem(original_val->get(), pk.c_str()), env, backtrace);
+                if (original_val->type() != cJSON_NULL) {
+                    deleted = 1;
+                    point_delete(ns_access, cJSON_GetObjectItem(original_val->get(), pk.c_str()), env, backtrace);
+                }
             } else {
-                /* Make sure that the primary key wasn't changed. */
-                if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
-                                 cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
-                    throw runtime_exc_t(strprintf("Mutates musn't change the primary key (%s).", pk.c_str()), backtrace);
+                if (original_val->type() == cJSON_NULL) {
+                    inserted = 1;
+                } else {
+                    /* Make sure that the primary key wasn't changed. */
+                    if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
+                                     cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
+                        throw runtime_exc_t(strprintf("Mutates musn't change the primary key (%s).", pk.c_str()), backtrace);
+                    }
+                    modified = 1;
                 }
                 insert(ns_access, pk, new_val, env, backtrace);
             }
-            res->add_response(strprintf("{\"modified\": %d, \"deleted\": %d, \"errors\": %d}", 1-deleted, deleted, 0));
+            res->add_response(strprintf("{\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d}", modified, inserted, deleted, 0));
         } break;
         default:
             unreachable();
@@ -1842,7 +1852,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 for (int i = 1; i < c->args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> rhs = eval(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)));
 
-                    int res = cJSON_cmp(lhs->get(), rhs->get(), backtrace.with(strprintf("arg:%d", i)));
+                    int res = lhs->type() == cJSON_NULL && rhs->type() == cJSON_NULL ? 0:
+                        cJSON_cmp(lhs->get(), rhs->get(), backtrace.with(strprintf("arg:%d", i)));
 
                     switch (c->builtin().comparison()) {
                     case Builtin_Comparison_EQ:

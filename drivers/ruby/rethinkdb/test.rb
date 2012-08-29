@@ -563,7 +563,8 @@ class ClientTest < Test::Unit::TestCase
     docs = (0...10).map{|n| {"id" => 100 + n, "a" => n, "b" => n % 3}}
     assert_equal(rdb.insert(docs).run, {'inserted' => docs.length})
     assert_equal(rdb.mutate{|x| x}.run,
-                 {'modified' => docs.length, 'deleted' => 0, 'errors' => 0})
+                 {'modified' => docs.length, 'inserted' => 0,
+                   'deleted' => 0, 'errors' => 0})
     assert_equal(id_sort(rdb.run), docs)
     assert_equal(rdb.update{nil}.run, {'updated' => 0, 'skipped' => 10, 'errors' => 0})
 
@@ -683,6 +684,25 @@ class ClientTest < Test::Unit::TestCase
                   {"num"=>16, "id"=>8, "name"=>"8"}])
   end
 
+  def test_mutate_edge_cases #POINTMUTATE
+    assert_equal(rdb.orderby(:id).run, $data)
+    assert_equal(rdb.get(0).mutate{nil}.run,
+                 {'deleted' => 1, 'inserted' => 0, 'modified' => 0, 'errors' => 0})
+    assert_equal(rdb.orderby(:id).run, $data[1..-1])
+    assert_equal(rdb.get(0).mutate{nil}.run,
+                 {'deleted' => 0, 'inserted' => 0, 'modified' => 0, 'errors' => 0})
+    assert_equal(rdb.orderby(:id).run, $data[1..-1])
+    #assert_equal(rdb.get(0).mutate{|row| r.if(row.eq(nil), $data[0], $data[1])}.run,
+    assert_equal(rdb.get(0).mutate{$data[0]}.run,
+                 {'deleted' => 0, 'inserted' => 1, 'modified' => 0, 'errors' => 0})
+    assert_equal(rdb.orderby(:id).run, $data)
+    assert_raise(RuntimeError) {
+      rdb.get(0).mutate{|row| r.if(row.eq(nil), $data[0], $data[1])}.run
+    }
+    assert_equal(rdb.get(0).mutate{|row| r.if(row.eq(nil), $data[1], $data[0])}.run,
+                 {'deleted' => 0, 'inserted' => 0, 'modified' => 1, 'errors' => 0})
+    assert_equal(rdb.orderby(:id).run, $data)
+  end
   def test___write #three underscores so it runs first
     db_name = rand().to_s
     table_name = rand().to_s
@@ -734,30 +754,32 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb2.run)[1]['broken'], true)
 
     mutate = rdb2.filter{r[:id].eq(0)}.mutate{$data[0]}.run
-    assert_equal(mutate, {"modified"=>1, "deleted"=>0, 'errors' => 0})
+    assert_equal(mutate, {"modified"=>1, 'inserted' => 0, "deleted"=>0, 'errors' => 0})
     update = rdb2.update{|x| r.if(x.attr?(:broken), $data[1], x)}.run
     assert_equal(update, {'errors' => 0, 'updated' => len, 'skipped' => 0})
     mutate = rdb2.mutate{|x| {:id => x[:id], :num => x[:num], :name => x[:name]}}.run
-    assert_equal(mutate, {"modified"=>10, "deleted"=>0, 'errors' => 0})
+    assert_equal(mutate, {"modified"=>10, 'inserted' => 0, "deleted"=>0, 'errors' => 0})
     assert_equal(id_sort(rdb2.run), $data)
 
     mutate = rdb2.mutate{|row| r.if(row[:id].eq(4) | row[:id].eq(5),
                                     {:id => -1}, row)}.run
     assert_not_nil(mutate['first_error'])
     filtered_mutate = mutate.reject {|k,v| k == 'first_error'}
-    assert_equal(filtered_mutate, {'modified' => 8, 'deleted' => 0, 'errors' => 2})
+    assert_equal(filtered_mutate,
+                 {'modified' => 8, 'inserted' => 0, 'deleted' => 0, 'errors' => 2})
     assert_equal(rdb2.get(5).update{{:num => "5"}}.run,
                  {'updated' => 1, 'skipped' => 0, 'errors' => 0})
     mutate = rdb2.mutate{|row| r.mapmerge(row, {:num => row[:num]*2})}.run
     assert_not_nil(mutate['first_error'])
     filtered_mutate = mutate.reject {|k,v| k == 'first_error'}
-    assert_equal(filtered_mutate, {'modified' => 9, 'deleted' => 0, 'errors' => 1})
+    assert_equal(filtered_mutate,
+                 {'modified' => 9, 'inserted' => 0, 'deleted' => 0, 'errors' => 1})
     assert_equal(rdb2.get(5).run['num'], '5')
     assert_equal(rdb2.mutate{|row|
                    r.if(row[:id].eq(5),
                         $data[5],
                         row.mapmerge({:num => row[:num]/2}))}.run,
-                 {'modified' => 10, 'deleted' => 0, 'errors' => 0})
+                 {'modified' => 10, 'inserted' => 0, 'deleted' => 0, 'errors' => 0})
     assert_equal(id_sort(rdb2.run), $data);
 
     update = rdb2.get(0).update{{:num => 2}}.run
@@ -766,7 +788,7 @@ class ClientTest < Test::Unit::TestCase
     update = rdb2.get(0).update{nil}.run
     assert_equal(update, {'errors' => 0, 'updated' => 0, 'skipped' => 1})
     assert_equal(rdb2.get(0).mutate{$data[0]}.run,
-                 {"errors"=>0, "deleted"=>0, "modified"=>1})
+                 {"errors"=>0, 'inserted' => 0, "deleted"=>0, "modified"=>1})
     assert_equal(id_sort(rdb2.run), $data)
 
     # DELETE
@@ -782,10 +804,10 @@ class ClientTest < Test::Unit::TestCase
 
     # MUTATE
     assert_equal(rdb2.mutate{|row| row}.run,
-                 {'modified' => len, 'deleted' => 0, 'errors' => 0})
+                 {'modified' => len, 'inserted' => 0, 'deleted' => 0, 'errors' => 0})
     assert_equal(id_sort(rdb2.run), $data)
     assert_equal(rdb2.mutate{|row| r.if(row[:id] < 5, nil, row)}.run,
-                 {'modified' => 5, 'deleted' => len-5, 'errors' => 0})
+                 {'modified' => 5, 'inserted' => 0, 'deleted' => len-5, 'errors' => 0})
     assert_equal(id_sort(rdb2.run), $data[5..-1])
     assert_equal(rdb2.insert($data[0...5]).run, {'inserted' => 5})
 
@@ -806,12 +828,12 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb2.run), $data)
 
     assert_equal(rdb2.get(0).mutate{nil}.run,
-                 {'modified' => 0, 'deleted' => 1, 'errors' => 0})
+                 {'modified' => 0, 'inserted' => 0, 'deleted' => 1, 'errors' => 0})
     assert_equal(id_sort(rdb2.run), $data[1..-1])
     assert_raise(RuntimeError){rdb2.get(1).mutate{{:id => -1}}.run}
     assert_raise(RuntimeError){rdb2.get(1).mutate{|row| {:name => row[:name]*2}}.run}
     assert_equal(rdb2.get(1).mutate{|row| row.mapmerge({:num => 2})}.run,
-                 {'modified' => 1, 'deleted' => 0, 'errors' => 0})
+                 {'modified' => 1, 'inserted' => 0, 'deleted' => 0, 'errors' => 0})
     assert_equal(rdb2.get(1).run['num'], 2);
     assert_equal(rdb2.insert($data[0...2]).run, {'inserted' => 2})
 
