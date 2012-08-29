@@ -13,7 +13,7 @@ do_test(
         "--workload-after '$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT --load x' "
         "--workload-during '$RETHINKDB/test/memcached_workloads/simulate_web_ui.py $HOST:$HTTP_PORT'",
     repeat = 3,
-    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads"]
+    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "build/debug/web"]
     )
 
 do_test(
