@@ -5,7 +5,8 @@
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
-#include "protocol_api.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
+
 
 /* `WRITE_QUEUE_CORO_POOL_SIZE` is the number of coroutines that will be used
 when draining the write queue after completing a backfill. */
@@ -52,7 +53,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
                                    branch_history_manager_t<protocol_t> *branch_history_manager,
-                                   multistore_ptr_t<protocol_t> *svs,
+                                   store_view_t<protocol_t> *svs,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
                                    backfill_session_id_t backfill_session_id,
                                    perfmon_collection_t *backfill_stats_parent,

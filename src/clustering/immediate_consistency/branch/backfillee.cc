@@ -44,7 +44,7 @@ template <class protocol_t>
 class chunk_callback_t : public coro_pool_t<backfill_queue_entry_t<protocol_t> >::callback_t,
                          public home_thread_mixin_t {
 public:
-    chunk_callback_t(multistore_ptr_t<protocol_t> *_svs,
+    chunk_callback_t(store_view_t<protocol_t> *_svs,
                      fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > *_chunk_queue, mailbox_manager_t *_mbox_manager,
                      mailbox_addr_t<void(int)> _allocation_mailbox) :
         svs(_svs), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
@@ -121,7 +121,7 @@ public:
     cond_t done_cond;
 
 private:
-    multistore_ptr_t<protocol_t> *svs;
+    store_view_t<protocol_t> *svs;
     fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > *chunk_queue;
     mailbox_manager_t *mbox_manager;
     mailbox_addr_t<void(int)> allocation_mailbox;
@@ -143,7 +143,7 @@ template<class protocol_t>
 void backfillee(
         mailbox_manager_t *mailbox_manager,
         branch_history_manager_t<protocol_t> *branch_history_manager,
-        multistore_ptr_t<protocol_t> *svs,
+        store_view_t<protocol_t> *svs,
         typename protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
@@ -340,7 +340,7 @@ void backfillee(
 template void backfillee<mock::dummy_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         branch_history_manager_t<mock::dummy_protocol_t> *branch_history_manager,
-        multistore_ptr_t<mock::dummy_protocol_t> *svs,
+        store_view_t<mock::dummy_protocol_t> *svs,
         mock::dummy_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<mock::dummy_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
@@ -350,7 +350,7 @@ template void backfillee<mock::dummy_protocol_t>(
 template void backfillee<memcached_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         branch_history_manager_t<memcached_protocol_t> *branch_history_manager,
-        multistore_ptr_t<memcached_protocol_t> *svs,
+        store_view_t<memcached_protocol_t> *svs,
         memcached_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<memcached_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
@@ -360,7 +360,7 @@ template void backfillee<memcached_protocol_t>(
 template void backfillee<rdb_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
-        multistore_ptr_t<rdb_protocol_t> *svs,
+        store_view_t<rdb_protocol_t> *svs,
         rdb_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,

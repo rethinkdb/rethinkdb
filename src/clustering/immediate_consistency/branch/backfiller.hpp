@@ -9,7 +9,6 @@
 
 template <class> class backfiller_send_backfill_callback_t;
 template <class> class semilattice_read_view_t;
-template <class> class multistore_ptr_t;
 class traversal_progress_combiner_t;
 
 /* If you construct a `backfiller_t` for a given store, then it will advertise
@@ -19,7 +18,7 @@ class backfiller_t : public home_thread_mixin_t {
 public:
     backfiller_t(mailbox_manager_t *mm,
                  branch_history_manager_t<protocol_t> *bhm,
-                 multistore_ptr_t<protocol_t> *svs);
+                 store_view_t<protocol_t> *svs);
 
     backfiller_business_card_t<protocol_t> get_business_card();
 
@@ -47,10 +46,10 @@ private:
                                    mailbox_addr_t<void(std::pair<int, int>)> response_mbox,
                                    auto_drainer_t::lock_t);
 
-    mailbox_manager_t *mailbox_manager;
-    branch_history_manager_t<protocol_t> *branch_history_manager;
+    mailbox_manager_t *const mailbox_manager;
+    branch_history_manager_t<protocol_t> *const branch_history_manager;
 
-    multistore_ptr_t<protocol_t> *svs;
+    store_view_t<protocol_t> *const svs;
 
     std::map<backfill_session_id_t, cond_t *> local_interruptors;
     std::map<backfill_session_id_t, traversal_progress_combiner_t *> local_backfill_progress;

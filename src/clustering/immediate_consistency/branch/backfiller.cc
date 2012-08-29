@@ -17,7 +17,7 @@ inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_r
 template <class protocol_t>
 backfiller_t<protocol_t>::backfiller_t(mailbox_manager_t *mm,
                                        branch_history_manager_t<protocol_t> *bhm,
-                                       multistore_ptr_t<protocol_t> *_svs)
+                                       store_view_t<protocol_t> *_svs)
     : mailbox_manager(mm), branch_history_manager(bhm),
       svs(_svs),
       backfill_mailbox(mailbox_manager,
