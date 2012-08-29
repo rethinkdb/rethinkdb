@@ -142,7 +142,7 @@ void multistore_ptr_t<protocol_t>::do_get_metainfo(order_token_t order_token,
     typename protocol_t::region_t region = this->get_region();
 
     {
-        binary_blob_t blob;
+        binary_blob_t blob((version_range_t(version_t::zero())));
         region_map_t<protocol_t, binary_blob_t> ret(region, blob);
         *out = ret;
     }
@@ -259,12 +259,13 @@ public:
         return helper_->should_backfill(metainfo);
     }
 
-    void send_chunk(const typename protocol_t::backfill_chunk_t &chunk) {
+    void send_chunk(const typename protocol_t::backfill_chunk_t &chunk, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        cross_thread_signal_t ct_interruptor(interruptor, home_thread());
         // TODO: Is chunkfun supposed to block like this?  (No, that's slow.)
         on_thread_t th(home_thread());
 
         // TODO: This is a borderline hack for memcached delete_range_t chunks.
-        inner_chunk_fun_cb_->send_chunk(chunk.shard(region_));
+        inner_chunk_fun_cb_->send_chunk(chunk.shard(region_), &ct_interruptor);
     }
 
 private:

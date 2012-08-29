@@ -715,6 +715,15 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.orderby(:id).run, $data)
   end
 
+  def test_foreach_error #FOREACH
+    assert_equal(rdb.orderby(:id).run, $data)
+    query = rdb.foreach{|row| rdb.get(row[:id]).update{{:id => 0}}}
+    res = query.run
+    assert_equal(res['errors'], 9)
+    assert_not_nil(res['first_error'])
+    assert_equal(rdb.orderby(:id).run, $data)
+  end
+
   def test___write #three underscores so it runs first
     db_name = rand().to_s
     table_name = rand().to_s

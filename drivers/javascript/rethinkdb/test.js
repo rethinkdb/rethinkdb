@@ -5,8 +5,6 @@ function print(msg) {
 }
 
 var q = rethinkdb.query;
-var tab = q.table('Welcome-rdb');
-var arr = q([1,2,3,4,5,6]);
 
 var conn;
 function testConnect() {
@@ -32,6 +30,7 @@ function testArith() {
     q(1).sub(2).run(aeq(-1));
     q(5).mul(8).run(aeq(40));
     q(8).div(2).run(aeq(4));
+    q(7).mod(2).run(aeq(1));
 
     q(12).div(3).add(2).mul(3).run(aeq(18));
 }
@@ -57,24 +56,32 @@ function testBool() {
     q(true).and(false).eq(q(true).not().or(q(false).not()).not()).run(aeq(true));
 }
 
-function testInsert() {
-    for (var i = 0; i < 10; i++) {
-        tab.insert({id:i, num:20-i}).run(objeq({inserted:1}));
-    }
-}
-
-function testGet() {
-    for (var i = 0; i < 10; i++) {
-        tab.get(i).run(objeq({id:i,num:20-i}));
-    }
-}
-
+var arr = q([1,2,3,4,5,6]);
 function testSlices() {
     arr.length().run(aeq(6));
     arr.limit(5).length().run(aeq(5));
     arr.skip(4).length().run(aeq(2));
+    arr.skip(4).nth(0).run(aeq(5));
     arr.slice(1,4).length().run(aeq(3));
     arr.nth(2).run(aeq(3));
+}
+
+function testExtend() {
+    q({a:1}).extend({b:2}).run(objeq({a:1,b:2}));
+}
+
+function testIf() {
+    q.ifThenElse(q(true), q(1), q(2)).run(aeq(1));
+    q.ifThenElse(q(false), q(1), q(2)).run(aeq(2));
+    q.ifThenElse(q(2).mul(8).ge(q(30).div(2)), q(8).div(2), q(9).div(3)).run(aeq(4));
+}
+
+function testLet() {
+    q.let(['a', q(1)], q.R('$a')).run(aeq(1));
+}
+
+function testDistinct() {
+    q([1,1,2,3,4,4,4,5]).distinct().run(print);
 }
 
 function testMap() {
@@ -89,21 +96,17 @@ function testPluck() {
     tab.nth(1).pluck('num').run(print);
 }
 
-function testExtend() {
-    q({a:1}).extend({b:2}).run(objeq({a:1,b:2}));
+var tab = q.table('Welcome-rdb');
+function testInsert() {
+    for (var i = 0; i < 10; i++) {
+        tab.insert({id:i, num:20-i}).run(objeq({inserted:1}));
+    }
 }
 
-function testIf() {
-    q.ifThenElse(q(true), q(1), q(2)).run(aeq(1));
-    q.ifThenElse(q(false), q(1), q(2)).run(aeq(2));
-}
-
-function testLet() {
-    q.let(['a', q(1)], q.R('$a')).run(aeq(1));
-}
-
-function testDistinct() {
-    q([1,1,2,3,4,4,4,5]).distinct().run(print);
+function testGet() {
+    for (var i = 0; i < 10; i++) {
+        tab.get(i).run(objeq({id:i,num:20-i}));
+    }
 }
 
 function testClose() {
@@ -120,11 +123,11 @@ runTests([
     testExtend,
     testIf,
     testLet,
-    //testDistinct,
-    //testMap,
-    //testReduce,
-    //testPluck,
-    //testInsert,
-    //testGet,
+    testDistinct,
+    testMap,
+    testReduce,
+    testPluck,
+    testInsert,
+    testGet,
     testClose,
 ]);
