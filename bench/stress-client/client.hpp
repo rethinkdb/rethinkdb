@@ -12,8 +12,13 @@ using namespace std;
 /* Structure that represents a running client */
 struct client_t {
 
-    client_t(int _pipeline_limit = 0, int _ignore_protocol_errors = 0)
-        : keep_running(false), total_freq(0), pipeline_limit(_pipeline_limit), ignore_protocol_errors(_ignore_protocol_errors) { }
+    client_t(int _pipeline_limit = 0, int _ignore_protocol_errors = 0) :
+        keep_running(false),
+        total_freq(0),
+        pipeline_limit(_pipeline_limit),
+        ignore_protocol_errors(_ignore_protocol_errors),
+        print_further_protocol_errors(true)
+        { }
 
     void add_op(int freq, op_generator_t *op_gen) {
         ops.push_back(op_gen);
@@ -67,6 +72,8 @@ private:
     // Main thread sets this to false in order to stop the client
     bool keep_running;
 
+    bool print_further_protocol_errors;
+
     static void* run_client(void* data) {
         static_cast<client_t*>(data)->run();
     }
@@ -105,12 +112,15 @@ private:
                 }
 
             } catch (protocol_error_t &e) {
-                fprintf(stderr, "Protocol error: %s\n", e.c_str());
-                if(!ignore_protocol_errors) {
+                if (!ignore_protocol_errors) {
+                    fprintf(stderr, "Protocol error: %s\n", e.c_str());
                     throw e;
-                }
-                else {
-                    fprintf(stderr, "ignoring...\n");
+                } else {
+                    if (print_further_protocol_errors) {
+                        fprintf(stderr, "Protocol error: %s\n", e.c_str());
+                        fprintf(stderr, "Ignored. Further errors on this connection will not be printed.\n");
+                        print_further_protocol_errors = false;
+                    }
                 }
             }
 
