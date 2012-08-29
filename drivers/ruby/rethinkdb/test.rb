@@ -482,6 +482,15 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(q1v.map{|o| o['name']}[0..len-1], Array.new(len,nil))
   end
 
+  def test_pointdelete
+    assert_equal(rdb.orderby(:id).run, $data)
+    assert_equal(rdb.get(0).delete.run, {'deleted' => 1})
+    assert_equal(rdb.get(0).delete.run, {'deleted' => 0})
+    assert_equal(rdb.orderby(:id).run, $data[1..-1])
+    assert_equal(rdb.insert($data[0]).run, {'inserted' => 1})
+    assert_equal(rdb.orderby(:id).run, $data)
+  end
+
   def test__setup; rdb.delete.run;  rdb.insert($data).run; end
 
   def test___write_python # from python tests
@@ -658,8 +667,8 @@ class ClientTest < Test::Unit::TestCase
        rdb.filter{r[:id].eq(row[:id])}.mutate{ |row|
          r.if((row[:id]%2).eq(1), nil, row)
        },
-       rdb.filter{r[:id].eq(0)}.delete,
-       rdb.filter{r[:id].eq(12)}.delete]
+       rdb.get(0).delete,
+       rdb.get(12).delete]
     }
     res = query.run
     assert_equal(res['errors'], 2)

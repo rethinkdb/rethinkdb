@@ -4,6 +4,7 @@
 
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
+#include <boost/variant.hpp>
 
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/suggester.hpp"
@@ -1000,18 +1001,25 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
     }
 }
 
-void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace) {
+void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace, int *out_num_deletes=0) {
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_std_string(id))));
         rdb_protocol_t::write_response_t response;
         ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+        if (out_num_deletes) {
+            if (boost::get<rdb_protocol_t::point_delete_response_t>(response.response).result == DELETED) {
+                *out_num_deletes = 1;
+            } else {
+                *out_num_deletes = 0;
+            }
+        }
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
 }
 
-void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> id, runtime_environment_t *env, const backtrace_t &backtrace) {
-    point_delete(ns_access, id->get(), env, backtrace);
+void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> id, runtime_environment_t *env, const backtrace_t &backtrace, int *out_num_deletes=0) {
+    point_delete(ns_access, id->get(), env, backtrace, out_num_deletes);
 }
 
 void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
@@ -1227,11 +1235,13 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             break;
         case WriteQuery::POINTDELETE:
             {
+                int deleted = -1;
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_point_delete()->mutable_table_ref(), env, backtrace);
                 boost::shared_ptr<scoped_cJSON_t> id = eval(w->mutable_point_delete()->mutable_key(), env, backtrace.with("key"));
-                point_delete(ns_access, id, env, backtrace);
+                point_delete(ns_access, id, env, backtrace, &deleted);
+                rassert(deleted == 0 || deleted == 1);
 
-                res->add_response(strprintf("{\"deleted\": %d}", 1));
+                res->add_response(strprintf("{\"deleted\": %d}", deleted));
             }
             break;
         case WriteQuery::POINTMUTATE: {
