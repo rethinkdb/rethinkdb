@@ -1154,32 +1154,37 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 boost::shared_ptr<json_stream_t> stream =
                     eval_stream(w->mutable_for_each()->mutable_stream(), env, backtrace.with("stream"));
 
+                // The cJSON object we'll eventually return (named `lhs` because it's merged with `rhs` below).
+                scoped_cJSON_t lhs(cJSON_CreateObject());
+
                 while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
                     variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->for_each().var(), json);
 
                     for (int i = 0; i < w->for_each().queries_size(); ++i) {
+                        // Run the write query and retrieve the result.
+                        rassert(res->response_size() == 0);
                         execute(w->mutable_for_each()->mutable_queries(i), env, res, backtrace.with(strprintf("query:%d", i)));
-                        if (res->response_size() > 1) {
-                            rassert(res->response_size() == 2);
-                            scoped_cJSON_t lhs(cJSON_Parse(res->response(0).c_str()));
-                            scoped_cJSON_t rhs(cJSON_Parse(res->response(1).c_str()));
-                            scoped_cJSON_t merged(cJSON_merge(lhs.get(), rhs.get()));
-                            for (int f = 0; f < merged.GetArraySize(); ++f) {
-                                cJSON *el = merged.GetArrayItem(f);
-                                rassert(el);
-                                cJSON *lhs_el = lhs.GetObjectItem(el->string);
-                                cJSON *rhs_el = rhs.GetObjectItem(el->string);
-                                if (lhs_el && lhs_el->type == cJSON_Number &&
-                                    rhs_el && rhs_el->type == cJSON_Number) {
-                                    el->valueint = lhs_el->valueint + rhs_el->valueint;
-                                    el->valuedouble = lhs_el->valuedouble + rhs_el->valuedouble;
-                                }
+                        rassert(res->response_size() == 1);
+                        scoped_cJSON_t rhs(cJSON_Parse(res->response(0).c_str()));
+                        res->clear_response();
+
+                        // Merge the result of the write query into `lhs`
+                        scoped_cJSON_t merged(cJSON_merge(lhs.get(), rhs.get()));
+                        for (int f = 0; f < merged.GetArraySize(); ++f) {
+                            cJSON *el = merged.GetArrayItem(f);
+                            rassert(el);
+                            cJSON *lhs_el = lhs.GetObjectItem(el->string);
+                            cJSON *rhs_el = rhs.GetObjectItem(el->string);
+                            if (lhs_el && lhs_el->type == cJSON_Number &&
+                                rhs_el && rhs_el->type == cJSON_Number) {
+                                el->valueint = lhs_el->valueint + rhs_el->valueint;
+                                el->valuedouble = lhs_el->valuedouble + rhs_el->valuedouble;
                             }
-                            res->clear_response();
-                            res->add_response(merged.Print());
                         }
+                        lhs.reset(merged.release());
                     }
                 }
+                res->add_response(lhs.Print());
             }
             break;
         case WriteQuery::POINTUPDATE:
