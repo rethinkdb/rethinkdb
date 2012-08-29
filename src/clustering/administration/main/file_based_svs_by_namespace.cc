@@ -77,6 +77,8 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         while (0 == access(file_name_for(namespace_id, num_stores).c_str(), R_OK | W_OK)) {
             ++num_stores;
         }
+        // TODO: Don't be so fragile against file structure problems.
+        guarantee(num_stores == CLUSTER_CPU_SHARDING_FACTOR);
 
         // The files already exist, thus we don't create them.
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
@@ -94,7 +96,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores, ctx));
     } else {
-        const int num_stores = 4 + randint(4);
+        const int num_stores = CLUSTER_CPU_SHARDING_FACTOR;
         stores_out->stores()->init(num_stores);
 
         // TODO: How do we specify what the stores' regions are?
