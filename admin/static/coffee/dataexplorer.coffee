@@ -39,7 +39,7 @@ module 'DataExplorerView', ->
             'click .input_query': 'make_suggestion' # Click and not focus for webkit browsers
             ###
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
-            'mouseup .suggestion_name_li': 'position_cursor_after_click'
+            #'mouseup .suggestion_name_li': 'position_cursor_after_click' # Not call because we remove the suggestion
             'mouseover .suggestion_name_li' : 'mouseover_suggestion'
             'mouseout .suggestion_name_li' : 'mouseout_suggestion'
             'click .clear_query': 'clear_query'
@@ -53,55 +53,127 @@ module 'DataExplorerView', ->
 
         map_state:
             '': ''
-            'r': 'db'
-            'db': 'table'
-            'table': 'stream'
+            'r': 'r'
+            'db': 'db'
+            'table': 'table'
             'get': 'view'
             'filter': 'stream'
-            'range': 'stream'
             'length': 'value'
             'map': 'array'
+            'slice': 'stream'
+            'orderby': 'stream'
+            'distinct': 'array'
+            'reduce': 'stream'
+            'pluck': 'stream'
+            'extend': 'array'
+
+
+            'range': 'stream'
 
         suggestions:
             stream: [
                 {
-                    suggestion: 'filter'
-                    description: ''
+                    suggestion: 'get('
+                    description: 'get( id )'
                 }
                 {
-                    suggestion: 'length'
-                    description: ''
+                    suggestion: 'filter('
+                    description: 'filter( predicate )'
                 }
                 {
-                    suggestion: 'map'
-                    description: ''
+                    suggestion: 'length()'
+                    description: 'length()'
+                }
+                {
+                    suggestion: 'map('
+                    description: 'map( attribute )'
+                }
+                {
+                    suggestion: 'slice'
+                    description: 'slice( start, end )'
+                }
+                {
+                    suggestion: 'orderby('
+                    description: 'orderby( expression )'
+                }
+                {
+                    suggestion: 'distinct'
+                    description: 'distinct( expression )'
+                }
+                {
+                    suggestion: 'reduce('
+                    description: 'reduce( expression )'
+                }
+                {
+                    suggestion: 'pluck('
+                    description: 'pluck( expression )'
+                }
+                {
+                    suggestion: 'extend('
+                    description: 'extend( expression )'
                 }
             ]
             view:[
                 {
-                    suggestion: 'view'
-                    description: 'testing view'
+                    suggestion: 'pluck('
+                    description: 'pluck( expression )'
                 }
             ]
             db:[
+                {
+                    suggestion: 'table('
+                    description: 'table( table_name )'
+                }
+                {
+                    suggestion: 'list()'
+                    description: 'list()'
+                }
+                {
+                    suggestion: 'create'
+                    description: 'create( database_name, primary_datacenter_id )'
+                }
+                {
+                    suggestion: 'drop()'
+                    description: 'drop()'
+                }
             ]
             table:[
                 {
-                    suggestion: 'get'
-                    description: ''}
-                {
-                    suggestion: 'insert'
-                    description: ''}
+                    suggestion: 'insert('
+                    description: 'insert( document )'
+                }
+                
             ]
             r:[
                 {
-                    suggestion: 'add'
-                    description: ''
+                    suggestion: 'dbCreate('
+                    description: 'dbCreate( database_name, primary_datacenter )'
                 }
                 {
-                    suggestion: 'and'
-                    description: ''
+                    suggestion: 'dbDrop('
+                    description: 'dbDrop( database_name )'
                 }
+                {
+                    suggestion: 'dbList()'
+                    description: 'dbList()'
+                }
+                {
+                    suggestion: 'expr('
+                    description:'expr( expression )'
+                }
+                {
+                    suggestion: 'fn('
+                    description: 'fn( argument..., body )'
+                }
+                {
+                    suggestion: 'ifThenElse('
+                    description: 'ifThenElse( expression, callback_true, callback_false)'
+                }
+                {
+                    suggestion: 'let('
+                    description: 'let( arguments..., body)'
+                }
+
             ]
             "" :[
                 {
@@ -117,6 +189,65 @@ module 'DataExplorerView', ->
                     suggestion: 'R('
                     description : 'Attribute Selector'
                 }
+            ]
+            expr: [
+                {
+                    suggestion: 'add('
+                    description: 'add( expression )'
+                }
+                {
+                    suggestion: 'sub('
+                    description: 'sub( expression )'
+                }
+                {
+                    suggestion: 'mul('
+                    description: 'mul( expression )'
+                }
+                {
+                    suggestion: 'div('
+                    description: 'div( expression )'
+                }
+                {
+                    suggestion: 'mod('
+                    description: 'mod( expression )'
+                }
+                {
+                    suggestion: 'eq('
+                    description: 'eq( expression )'
+                }
+                {
+                    suggestion: 'ne('
+                    description: 'ne( expression )'
+                }
+                {
+                    suggestion: 'lt('
+                    description: 'lt( expression )'
+                }
+                {
+                    suggestion: 'le('
+                    description: 'le( expression )'
+                }
+                {
+                    suggestion: 'gt('
+                    description: 'gt( expression )'
+                }
+                {
+                    suggestion: 'ge('
+                    description: 'ge( expression )'
+                }
+                {
+                    suggestion: 'not('
+                    description: 'not( expression )'
+                }
+                {
+                    suggestion: 'and('
+                    description: 'and( expression )'
+                }
+                {
+                    suggestion: 'or('
+                    description: 'or( expression )'
+                }
+
             ]
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
@@ -158,21 +289,18 @@ module 'DataExplorerView', ->
             else
                 start_line_index += 1
 
-            @codemirror.focus()
             @cursor =
                 line: saved_cursor.line
                 ch: (@query_first_part + @current_completed_query + suggestion_to_write).length - start_line_index
 
+            setTimeout @position_cursor_after_click, 1 # Ugliest hack ever.
+
         position_cursor_after_click: =>
+            @codemirror.focus()
             @position_cursor @cursor
 
 
         hide_suggestion: =>
-            ###
-            if @refocus_position isnt ''
-                @position_cursor @refocus_position
-                @refocus_position = ''
-            ###
             @.$('.suggestion_name_list').css 'display', 'none'
             @hide_suggestion_description()
 
@@ -221,6 +349,9 @@ module 'DataExplorerView', ->
                             ch: position
 
 
+                    if @current_suggestions.length is 0
+                        return false
+
                     return true
                 if event.which is 13 and (event.shiftKey or event.ctrlKey)
                     event.preventDefault()
@@ -228,10 +359,9 @@ module 'DataExplorerView', ->
                         return true
                     @.$('suggestion_name_list').css 'display', 'none'
                     @execute_query()
-                    #@codemirror.blur()
-            if event?.type? and event.type isnt 'keyup' # and event.which isnt 37 and event.which isnt 38 and event.which isnt 39 and event.which isnt 40 and event.which isnt 8
+            
+            if event?.type? and event.type isnt 'keyup'
                 return false
-
             @current_highlighted_suggestion = -1
             @.$('.suggestion_name_list').html ''
 
@@ -274,7 +404,6 @@ module 'DataExplorerView', ->
                     @query_last_part = '\n' + @query_last_part
             
             last_function = @extract_last_function(query)
-            console.log last_function
             if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
                 suggestions = []
                 for suggestion in @suggestions[@map_state[last_function]]
@@ -291,7 +420,7 @@ module 'DataExplorerView', ->
                             description: 'Select table '+namespace.get('name')
 
                 if suggestions.length is 0
-                    @hide_suggestion
+                    @hide_suggestion()
                 else
                     @append_suggestion(query, suggestions)
 
@@ -332,7 +461,7 @@ module 'DataExplorerView', ->
 
             end = Math.min dot_position, parenthesis_position
 
-            return query.slice start, end
+            return query.slice(start, end).replace(/\s/g, '')
 
 
 
@@ -350,7 +479,10 @@ module 'DataExplorerView', ->
                         if query[i] is '('
                             count_opening_parenthesis++
                             if count_opening_parenthesis > 0
-                                return i+1
+                                k = 0
+                                while query[i+1+k]? and /\s/.test(query[i+1+k])
+                                    k++
+                                return i+1+k
                         else if query[i] is ')'
                             count_opening_parenthesis--
             return 0
@@ -366,7 +498,7 @@ module 'DataExplorerView', ->
 
             for char in @unsafe_to_safe_regexstr
                 element_currently_written = element_currently_written.replace char.pattern, char.replacement
-
+            #element_currently_written = element_currently_written.replace /\s/g, ''
             found_suggestion = false
             pattern = new RegExp('^('+element_currently_written+')', 'i')
             @current_suggestions = []
@@ -377,6 +509,7 @@ module 'DataExplorerView', ->
                     @.$('.suggestion_name_list').append @template_suggestion_name 
                         id: i
                         suggestion: suggestion.suggestion
+
             if found_suggestion
                 @show_suggestion()
             else
@@ -390,94 +523,12 @@ module 'DataExplorerView', ->
         execute_query: =>
             window.result = {}
 
-            #@query = @.$('.input_query').val()
             @query = @codemirror.getValue()
             full_query = @query + '.run(this.callback_render)'
             try
                 eval(full_query)
             catch err
                 @data_container.render_error(err)
-
-
-            ###
-            welcome = q.table('Welcome-rdb')
-
-            for i in [0..20]
-                welcome.insert({id: i, num: 20-i}).run()
-
-            welcome.length().run(print)
-            welcome.filter({'id': 1}).run(print)
-            welcome.filter().run(print)
-
-
-            query = @.$('.input_query').val() + '.run(call)'
-            eval(query)
-            @data_container.render(query, result)
-
-            query = @.$('.input_query').val()
-            @data_container.add_query(query)
-            window.router.sidebar.add_query(query)
-            #TODO ajax callsuggestion loading
-            if query is '0'
-                result = []
-            else if query is '1'
-                result =  [
-                    _id: '97a54c09-112e-4e32-86f8-24522e6e1df4'
-                    login: 'michel'
-                    first_name: 'Michel'
-                    last_name: 'Tu'
-                    email: 'michel@rethinkdb.com'
-                    messages: 52.54
-                    inscription_date: '04/26/1998'
-                    citizen_id: null
-                    member: true
-                    website: "http://www.neumino.com"
-                    groups: [
-                            id: 'a53e4190-dfcc-4810-aded-a3d4f422e9b9'
-                            name: 'front end developers'
-                        ,
-                            id: 'ebcdb08d-302c-4403-a392-eadad3f5bea5'
-                            name: 'rethinkDB'
-                    ]
-                    skills:
-                        development:
-                            'javascript': 9
-                            'css': 9
-                            'c++': 2
-                        music:
-                            'violin': 0
-                            'piano': 1
-                            'guitare': 2
-                    last_score: [ 54, 43, 11, 95, 78]
-                ]
-            else
-                result = []
-                for i in [0..20]
-                    element = {}
-                    element['_id'] = generate_id(25)
-                    element['name'] = generate_string(9)+' '+generate_string(9)
-                    element['mail'] = generate_string(8)+'@'+generate_string(6)+'.com'
-                    element['age'] = generate_number(100)
-                    element['possess_car'] = false
-                    element['driver_license'] = null
-                    element['last_scores'] = []
-                    limit = generate_number(20)
-                    for p in [0..limit]
-                        element['last_scores'].push generate_number(100)
-                    element['phone'] =
-                        home: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
-                        mobile: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
-                    element['website'] = 'http://www.'+generate_string(12)+'.com'
-                    if query is '100'
-                        element[generate_string(10)] = generate_string(10)
-                    
-
-                    result.push element
-
-                delete result[result.length-1]['phone']['mobile']
-                delete result[result.length-1]['website']
-            @data_container.render(query, result)
-            ###
 
         clear_query: =>
             #TODO remove when not testing
@@ -512,20 +563,18 @@ module 'DataExplorerView', ->
             @.$('.input_query').val event.target.dataset.query
 
         initialize: =>
-            log_initial '(initializing) dataexplorer view:'
+            log_initial '(initializing) dataexplorer view'
+            for suggestion in @suggestions.stream
+                @suggestions.table.push suggestion
             
             host = window.location.hostname
-            ###
             port = window.location.port
             if port is ''
                 port = 13457
-            else
-                port = parseInt(port)-1000+13457
+
             window.conn = new rethinkdb.net.HttpConnection 
                 host: host
                 port: port
-            ###
-            window.conn = new rethinkdb.net.HttpConnection 'http://'+host+':'+window.location.port+'/ajax/reql'
             window.r = rethinkdb.query
             window.R = r.R
 
@@ -700,8 +749,10 @@ module 'DataExplorerView', ->
             'click .link_to_raw_view': 'expand_raw_textarea'
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
+            ### No editing for now
             'keypress .jt_editable': 'handle_keypress'
             'blur .jt_editable': 'send_update'
+            ###
             # For Table view
             'mousedown td': 'handle_mousedown'
             'click .jta_arrow_v': 'expand_tree_in_table'
