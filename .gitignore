@@ -31,6 +31,4 @@ src/spin_up_clusters.py
 src/.clang_complete
 src/find_replace.sh
 src/make_filter.sh
-drivers/*/*/rdb_protocol
-drivers/*/*/query_language.pb.rb
 scripts/netrecord/netrecord

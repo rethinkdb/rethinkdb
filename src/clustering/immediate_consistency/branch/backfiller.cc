@@ -137,7 +137,7 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
                                            auto_drainer_t::lock_t keepalive) {
 
     assert_thread();
-    rassert(region_is_superset(svs->get_multistore_joined_region(), start_point.get_domain()));
+    rassert(region_is_superset(svs->get_region(), start_point.get_domain()));
 
     /* Set up a local interruptor cond and put it in the map so that this
        session can be interrupted if the backfillee decides to abort */
@@ -170,7 +170,7 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
             send_backfill_cb(&start_point, end_point_cont, mailbox_manager, chunk_cont, &fifo_src, &chunk_semaphore, this);
 
         /* Actually perform the backfill */
-        svs->send_multistore_backfill(
+        svs->send_backfill(
                      region_map_transform<protocol_t, version_range_t, state_timestamp_t>(
                                                       start_point,
                                                       &get_earliest_timestamp_of_version_range
