@@ -1171,9 +1171,18 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     for (int i = 0; i < w->for_each().queries_size(); ++i) {
                         // Run the write query and retrieve the result.
                         rassert(res->response_size() == 0);
-                        execute(w->mutable_for_each()->mutable_queries(i), env, res, backtrace.with(strprintf("query:%d", i)));
-                        rassert(res->response_size() == 1);
-                        scoped_cJSON_t rhs(cJSON_Parse(res->response(0).c_str()));
+                        scoped_cJSON_t rhs(0);
+                        try {
+                            execute(w->mutable_for_each()->mutable_queries(i), env, res, backtrace.with(strprintf("query:%d", i)));
+                            rassert(res->response_size() == 1);
+                            rhs.reset(cJSON_Parse(res->response(0).c_str()));
+                        } catch (runtime_exc_t &e) {
+                            rhs.reset(cJSON_CreateObject());
+                            rhs.AddItemToObject("errors", cJSON_CreateNumber(1.0));
+                            std::string err = strprintf("Term %d of the foreach threw an error: %s\n", i,
+                                                        (e.message + "\n" + e.backtrace.print()).c_str());
+                            rhs.AddItemToObject("first_error", cJSON_CreateString(err.c_str()));
+                        }
                         res->clear_response();
 
                         // Merge the result of the write query into `lhs`
