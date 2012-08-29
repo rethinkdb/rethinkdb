@@ -39,7 +39,7 @@ module 'DataExplorerView', ->
             'click .input_query': 'make_suggestion' # Click and not focus for webkit browsers
             ###
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
-            #'mouseup .suggestion_name_li': 'position_cursor_after_click'
+            'mouseup .suggestion_name_li': 'position_cursor_after_click'
             'mouseover .suggestion_name_li' : 'mouseover_suggestion'
             'mouseout .suggestion_name_li' : 'mouseout_suggestion'
             'click .clear_query': 'clear_query'
@@ -159,9 +159,13 @@ module 'DataExplorerView', ->
                 start_line_index += 1
 
             @codemirror.focus()
-            @position_cursor
+            @cursor =
                 line: saved_cursor.line
                 ch: (@query_first_part + @current_completed_query + suggestion_to_write).length - start_line_index
+
+        position_cursor_after_click: =>
+            @position_cursor @cursor
+
 
         hide_suggestion: =>
             ###
@@ -225,8 +229,8 @@ module 'DataExplorerView', ->
                     @.$('suggestion_name_list').css 'display', 'none'
                     @execute_query()
                     #@codemirror.blur()
-
-
+            if event?.type? and event.type isnt 'keyup' # and event.which isnt 37 and event.which isnt 38 and event.which isnt 39 and event.which isnt 40 and event.which isnt 8
+                return false
 
             @current_highlighted_suggestion = -1
             @.$('.suggestion_name_list').html ''
@@ -270,6 +274,7 @@ module 'DataExplorerView', ->
                     @query_last_part = '\n' + @query_last_part
             
             last_function = @extract_last_function(query)
+            console.log last_function
             if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
                 suggestions = []
                 for suggestion in @suggestions[@map_state[last_function]]
@@ -309,8 +314,13 @@ module 'DataExplorerView', ->
         extract_last_function: (query) =>
             start = 0
             count_dot = 0
+            num_not_open_parenthesis = 0
             for i in [query.length-1..0] by -1
-                if query[i] is '.'
+                if query[i] is ')'
+                    num_not_open_parenthesis++
+                else if query[i] is '('
+                    num_not_open_parenthesis--
+                else if query[i] is '.' and num_not_open_parenthesis <= 0
                     count_dot++
                     if count_dot is 2
                         start = i+1
@@ -378,7 +388,6 @@ module 'DataExplorerView', ->
             @data_container.render(@query, data)
 
         execute_query: =>
-            console.log 'execute'
             window.result = {}
 
             #@query = @.$('.input_query').val()
@@ -581,6 +590,7 @@ module 'DataExplorerView', ->
                 onBlur: @hide_suggestion
                 lineNumbers: true
                 lineWrapping: true
+                matchBrackets: true
 
             @codemirror.setSize 700, 100
 
