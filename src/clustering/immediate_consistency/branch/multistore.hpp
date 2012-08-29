@@ -28,6 +28,9 @@ class version_range_t;
 template <class> struct new_and_metainfo_checker_t;
 
 template <class protocol_t>
+region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_t<protocol_t, binary_blob_t> &blob_map);
+
+template <class protocol_t>
 class multistore_ptr_t {
 public:
     // We don't get ownership of the store_view_t pointers themselves.
@@ -53,7 +56,7 @@ public:
 
     // TODO: I'm pretty sure every time we call this function we are
     // doing something stupid.
-    region_map_t<protocol_t, version_range_t>
+    region_map_t<protocol_t, binary_blob_t>
     get_all_metainfos(order_token_t order_token,
                       scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
 		      signal_t *interruptor);
@@ -147,7 +150,7 @@ private:
                            order_token_t order_token,
                            const scoped_array_t<fifo_enforcer_read_token_t> &internal_tokens,
                            signal_t *interruptor,
-                           region_map_t<protocol_t, version_range_t> *updatee,
+                           region_map_t<protocol_t, binary_blob_t> *updatee,
                            mutex_t *updatee_mutex) THROWS_NOTHING;
 
     void do_set_a_metainfo(int i,

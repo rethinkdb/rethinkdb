@@ -10,6 +10,12 @@
 #include "rpc/semilattice/joins/vclock.hpp"
 
 template <class protocol_t>
+region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_t<protocol_t, binary_blob_t> &blob_map) {
+    return region_map_transform<protocol_t, binary_blob_t, version_range_t>(blob_map,
+                                                                            &binary_blob_t::get<version_range_t>);
+}
+
+template <class protocol_t>
 multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **store_views, int num_store_views,
                                                typename protocol_t::context_t *_ctx,
                                                const typename protocol_t::region_t &region)
@@ -98,9 +104,9 @@ void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
                                                      order_token_t order_token,
                                                      const scoped_array_t<fifo_enforcer_read_token_t> &internal_tokens,
                                                      signal_t *interruptor,
-                                                     region_map_t<protocol_t, version_range_t> *updatee,
+                                                     region_map_t<protocol_t, binary_blob_t> *updatee,
                                                      mutex_t *updatee_mutex) THROWS_NOTHING {
-    region_map_t<protocol_t, version_range_t> transformed;
+    region_map_t<protocol_t, binary_blob_t> metainfo;
 
     try {
         {
@@ -112,26 +118,19 @@ void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> store_token;
             switch_inner_read_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
-            region_map_t<protocol_t, binary_blob_t> metainfo;
             store_views_[i]->do_get_metainfo(order_token, &store_token, &ct_interruptor, &metainfo);
-            region_map_t<protocol_t, binary_blob_t> masked_metainfo
-                = metainfo.mask(get_region(i));
-
-            transformed
-                = region_map_transform<protocol_t, binary_blob_t, version_range_t>(masked_metainfo,
-                                                                                   &binary_blob_t::get<version_range_t>);
         }
 
         // updatee->update doesn't block so the mutex is redundant, who cares.
         mutex_t::acq_t acq(updatee_mutex, true);
-        updatee->update(transformed);
+        updatee->update(metainfo.mask(get_region(i)));
     } catch (const interrupted_exc_t& exc) {
         // do nothing, we're in pmap.
     }
 }
 
 template <class protocol_t>
-region_map_t<protocol_t, version_range_t>  multistore_ptr_t<protocol_t>::
+region_map_t<protocol_t, binary_blob_t>  multistore_ptr_t<protocol_t>::
 get_all_metainfos(order_token_t order_token,
                   scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
 		  signal_t *interruptor) {
@@ -144,8 +143,8 @@ get_all_metainfos(order_token_t order_token,
     typename protocol_t::region_t region = get_multistore_joined_region();
     // v is initialized here in order to avoid the compiler warning (-Wuninitialized).
     // pmap should change its value later.
-    version_range_t v(version_t::zero());
-    region_map_t<protocol_t, version_range_t> ret(region, v);
+    binary_blob_t blob;
+    region_map_t<protocol_t, binary_blob_t> ret(region, blob);
 
     // TODO: For getting, we possibly want to cache things on the home
     // thread, but wait until we want a multithreaded listener.
@@ -688,8 +687,6 @@ void multistore_ptr_t<protocol_t>::switch_inner_write_token(int i, fifo_enforcer
 
 
 
-
-
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -697,3 +694,7 @@ void multistore_ptr_t<protocol_t>::switch_inner_write_token(int i, fifo_enforcer
 template class multistore_ptr_t<mock::dummy_protocol_t>;
 template class multistore_ptr_t<memcached_protocol_t>;
 template class multistore_ptr_t<rdb_protocol_t>;
+
+template region_map_t<mock::dummy_protocol_t, version_range_t> to_version_range_map<mock::dummy_protocol_t>(const region_map_t<mock::dummy_protocol_t, binary_blob_t> &blob_map);
+template region_map_t<memcached_protocol_t, version_range_t> to_version_range_map<memcached_protocol_t>(const region_map_t<memcached_protocol_t, binary_blob_t> &blob_map);
+template region_map_t<rdb_protocol_t, version_range_t> to_version_range_map<rdb_protocol_t>(const region_map_t<rdb_protocol_t, binary_blob_t> &blob_map);

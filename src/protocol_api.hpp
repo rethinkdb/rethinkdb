@@ -424,7 +424,9 @@ protected:
     explicit store_view_t(typename protocol_t::region_t r) : region(r) { }
 
 private:
-    typename protocol_t::region_t region;
+    const typename protocol_t::region_t region;
+
+    DISABLE_COPYING(store_view_t);
 };
 
 /* The query-routing logic provides the following ordering guarantees:

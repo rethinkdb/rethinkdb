@@ -102,7 +102,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs_->new_read_token(&read_token);
     region_map_t<protocol_t, version_range_t> start_point
-        = svs_->get_all_metainfos(order_source->check_in("listener_t(A)").with_read_mode(), &read_token, interruptor);
+        = to_version_range_map(svs_->get_all_metainfos(order_source->check_in("listener_t(A)").with_read_mode(), &read_token, interruptor));
 
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
          it != start_point.end();
@@ -157,7 +157,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     svs_->new_read_token(&read_token2);
 
     region_map_t<protocol_t, version_range_t> backfill_end_point
-        = svs_->get_all_metainfos(order_source->check_in("listener_t(B)").with_read_mode(), &read_token2, interruptor);
+        = to_version_range_map(svs_->get_all_metainfos(order_source->check_in("listener_t(B)").with_read_mode(), &read_token2, interruptor));
 
     /* Sanity checking. */
 
@@ -240,7 +240,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs_->new_read_token(&read_token);
     region_map_t<protocol_t, version_range_t> initial_metainfo
-        = svs_->get_all_metainfos(order_source->check_in("listener_t(C)").with_read_mode(), &read_token, interruptor);
+        = to_version_range_map(svs_->get_all_metainfos(order_source->check_in("listener_t(C)").with_read_mode(), &read_token, interruptor));
 #endif
 
     /* Attempt to register for writes */

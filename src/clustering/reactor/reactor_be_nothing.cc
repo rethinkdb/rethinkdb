@@ -75,8 +75,8 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
             svs->new_read_token(&read_token);
             typename reactor_business_card_t<protocol_t>::nothing_when_safe_t
-                activity(svs->get_all_metainfos(order_source.check_in("be_nothing").with_read_mode(),
-                                                &read_token, interruptor),
+                activity(to_version_range_map(svs->get_all_metainfos(order_source.check_in("be_nothing").with_read_mode(),
+                                                                     &read_token, interruptor)),
                          backfiller.get_business_card());
             directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
 

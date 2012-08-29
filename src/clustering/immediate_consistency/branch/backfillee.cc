@@ -161,8 +161,8 @@ void backfillee(
     order_source_t order_source;
 
     region_map_t<protocol_t, version_range_t> start_point
-        = svs->get_all_metainfos(order_source.check_in("backfillee(A)").with_read_mode(),
-                                 &read_token, interruptor);
+        = to_version_range_map(svs->get_all_metainfos(order_source.check_in("backfillee(A)").with_read_mode(),
+                                                      &read_token, interruptor));
 
     start_point = start_point.mask(region);
 
