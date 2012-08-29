@@ -829,16 +829,16 @@ public:
         : chunk_fun_cb(_chunk_fun_cb) { }
     ~rdb_backfill_callback_impl_t() { }
 
-    void on_delete_range(const key_range_t &range) {
-        chunk_fun_cb->send_chunk(chunk_t::delete_range(region_t(range)));
+    void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        chunk_fun_cb->send_chunk(chunk_t::delete_range(region_t(range)), interruptor);
     }
 
-    void on_deletion(const btree_key_t *key, repli_timestamp_t recency) {
-        chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency));
+    void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency), interruptor);
     }
 
-    void on_keyvalue(const rdb_backfill_atom_t& atom) {
-        chunk_fun_cb->send_chunk(chunk_t::set_key(atom));
+    void on_keyvalue(const rdb_backfill_atom_t& atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        chunk_fun_cb->send_chunk(chunk_t::set_key(atom), interruptor);
     }
 
 protected:

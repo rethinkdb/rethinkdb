@@ -49,7 +49,10 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     initial_svs->new_read_token(&read_token);
 
-    region_map_t<protocol_t, version_range_t> origins = initial_svs->get_all_metainfos(order_source->check_in("broadcaster_t(read)").with_read_mode(), &read_token, interruptor);
+    region_map_t<protocol_t, binary_blob_t> origins_blob;
+    initial_svs->do_get_metainfo(order_source->check_in("broadcaster_t(read)").with_read_mode(), &read_token, interruptor, &origins_blob);
+
+    region_map_t<protocol_t, version_range_t> origins = to_version_range_map(origins_blob);
 
     /* Determine what the first timestamp of the new branch will be */
     state_timestamp_t initial_timestamp = state_timestamp_t::zero();
@@ -70,7 +73,7 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
        semilattice */
     {
         branch_birth_certificate_t<protocol_t> birth_certificate;
-        birth_certificate.region = initial_svs->get_multistore_joined_region();
+        birth_certificate.region = initial_svs->get_region();
         birth_certificate.initial_timestamp = initial_timestamp;
         birth_certificate.origin = origins;
 
@@ -83,11 +86,11 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
        information exists. */
     scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
     initial_svs->new_write_token(&write_token);
-    initial_svs->set_all_metainfos(region_map_t<protocol_t, binary_blob_t>(initial_svs->get_multistore_joined_region(),
-                                                                           binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
-                                   order_source->check_in("broadcaster_t(write)"),
-                                   &write_token,
-                                   interruptor);
+    initial_svs->set_metainfo(region_map_t<protocol_t, binary_blob_t>(initial_svs->get_region(),
+                                                                      binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
+                              order_source->check_in("broadcaster_t(write)"),
+                              &write_token,
+                              interruptor);
 
     /* Perform an initial sanity check. */
     sanity_check();

@@ -378,9 +378,14 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
 
 bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
                                               send_backfill_callback_t<dummy_protocol_t> *send_backfill_cb,
-                                              backfill_progress_t *,
+                                              traversal_progress_combiner_t *progress,
                                               scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    {
+        scoped_ptr_t<traversal_progress_t> progress_owner(new dummy_protocol_t::backfill_progress_t(get_thread_id()));
+        progress->add_constituent(&progress_owner);
+    }
+
     rassert(region_is_superset(get_region(), start_point.get_domain()));
 
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
@@ -408,7 +413,7 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
                     chunk.key = *it;
                     chunk.value = values_snapshot[*it];
                     chunk.timestamp = timestamps_snapshot[*it];
-                    send_backfill_cb->send_chunk(chunk);
+                    send_backfill_cb->send_chunk(chunk, interruptor);
                 }
                 if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
             }
