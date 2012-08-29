@@ -328,21 +328,21 @@ public:
                   && boost::get<distribution_read_response_t>(&responses[0].response)->key_counts.begin()->first == boost::get<distribution_read_response_t>(&responses[1].response)->key_counts.begin()->first));
 
         response_out->response = distribution_read_response_t();
-        distribution_read_response_t *result = boost::get<distribution_read_response_t>(&response_out->response);
+        distribution_read_response_t *response = boost::get<distribution_read_response_t>(&response_out->response);
 
         for (int i = 0, e = responses.size(); i < e; i++) {
-            const distribution_read_response_t *result_piece = boost::get<distribution_read_response_t>(&responses[i].response);
-            rassert(result_piece, "Bad boost::get\n");
+            const distribution_read_response_t *response_piece = boost::get<distribution_read_response_t>(&responses[i].response);
+            rassert(response_piece, "Bad boost::get\n");
 
 #ifndef NDEBUG
-            for (std::map<store_key_t, int>::const_iterator it = result_piece->key_counts.begin();
-                 it != result_piece->key_counts.end();
+            for (std::map<store_key_t, int>::const_iterator it = response_piece->key_counts.begin();
+                 it != response_piece->key_counts.end();
                  ++it) {
-                rassert(!std_contains(result->key_counts, it->first), "repeated key '%*.*s'",
+                rassert(!std_contains(response->key_counts, it->first), "repeated key '%*.*s'",
                         static_cast<int>(it->first.size()), static_cast<int>(it->first.size()), it->first.contents());
             }
 #endif
-            result->key_counts.insert(result_piece->key_counts.begin(), result_piece->key_counts.end());
+            response->key_counts.insert(response_piece->key_counts.begin(), response_piece->key_counts.end());
 
         }
     }
@@ -568,20 +568,20 @@ public:
 
         int64_t total_keys_in_res = 0;
         for (int i = 0, e = responses.size(); i < e; ++i) {
-            const distribution_read_response_t *result_piece = boost::get<distribution_read_response_t>(&responses[i].response);
-            rassert(result_piece, "Bad boost::get\n");
+            const distribution_read_response_t *response_piece = boost::get<distribution_read_response_t>(&responses[i].response);
+            rassert(response_piece, "Bad boost::get\n");
 
             int64_t tmp_total_keys = 0;
-            for (std::map<store_key_t, int>::const_iterator it = result_piece->key_counts.begin();
-                 it != result_piece->key_counts.end();
+            for (std::map<store_key_t, int>::const_iterator it = response_piece->key_counts.begin();
+                 it != response_piece->key_counts.end();
                  ++it) {
                 tmp_total_keys += it->second;
             }
 
             total_num_keys += tmp_total_keys;
 
-            if (response->key_counts.size() < result_piece->key_counts.size()) {
-                *response = *result_piece;
+            if (response->key_counts.size() < response_piece->key_counts.size()) {
+                *response = *response_piece;
                 total_keys_in_res = tmp_total_keys;
             }
         }
