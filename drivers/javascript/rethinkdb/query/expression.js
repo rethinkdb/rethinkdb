@@ -552,3 +552,43 @@ rethinkdb.query.IfExpression.prototype.compile = function() {
 rethinkdb.query.ifThenElse = function(test, trueBranch, falseBranch) {
     return new rethinkdb.query.IfExpression(test, trueBranch, falseBranch);
 };
+
+/**
+ * @constructor
+ * @extends {rethinkdb.query.Expression}
+ */
+rethinkdb.query.LetExpression = function(bindings, body) {
+    this.bindings_ = bindings;
+    this.body_ = body;
+};
+goog.inherits(rethinkdb.query.LetExpression, rethinkdb.query.Expression);
+
+rethinkdb.query.LetExpression.prototype.compile = function() {
+    var let_ = new Term.Let();
+    for (var key in this.bindings_) {
+        var binding = this.bindings_[key];
+
+        var tuple = new VarTermTuple();
+        tuple.setVar(binding[0]);
+        tuple.setTerm(binding[1].compile());
+
+        let_.addBinds(tuple);
+    }
+    let_.setExpr(this.body_.compile());
+
+    var term = new Term();
+    term.setType(Term.TermType.LET);
+    term.setLet(let_);
+
+    return term;
+};
+
+/**
+ * Bind values to variables in body
+ * @export
+ */
+rethinkdb.query.let = function(var_args) {
+    var bindings = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
+    var body = arguments[arguments.length - 1];
+    return new rethinkdb.query.LetExpression(bindings, body);
+};

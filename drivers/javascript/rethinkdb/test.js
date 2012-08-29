@@ -98,6 +98,10 @@ function testIf() {
     q.ifThenElse(q(false), q(1), q(2)).run(aeq(2));
 }
 
+function testLet() {
+    q.let(['a', q(1)], q.R('$a')).run(aeq(1));
+}
+
 function testDistinct() {
     q([1,1,2,3,4,4,4,5]).distinct().run(print);
 }
@@ -115,6 +119,7 @@ runTests([
     testSlices,
     testExtend,
     testIf,
+    testLet,
     //testDistinct,
     //testMap,
     //testReduce,
