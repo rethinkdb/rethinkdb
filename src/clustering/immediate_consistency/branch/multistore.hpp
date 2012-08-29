@@ -47,8 +47,6 @@ public:
     // deletes the store_subview_t objects.
     ~multistore_ptr_t();
 
-    int num_stores() const { return store_views_.size(); }
-
     void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token_out);
     void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token_out);
 
@@ -99,6 +97,8 @@ public:
                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 private:
+    int num_stores() const { return store_views_.size(); }
+
     typename protocol_t::region_t get_a_region(int i) const;
 
     // Used by send_multistore_backfill.
