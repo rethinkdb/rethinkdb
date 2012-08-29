@@ -1,1 +1,1 @@
-../../../../build/drivers/python/query_language_pb2.py
+../../../../build/drivers/python/rdb_protocol/query_language_pb2.py
