@@ -78,9 +78,9 @@ point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_
 
 class rdb_backfill_callback_t {
 public:
-    virtual void on_delete_range(const key_range_t &range) = 0;
-    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency) = 0;
-    virtual void on_keyvalue(const rdb_protocol_details::backfill_atom_t& atom) = 0;
+    virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_keyvalue(const rdb_protocol_details::backfill_atom_t& atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 protected:
     virtual ~rdb_backfill_callback_t() { }
 };

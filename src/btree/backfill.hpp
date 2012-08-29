@@ -16,9 +16,9 @@ class signal_t;
 
 class agnostic_backfill_callback_t {
 public:
-    virtual void on_delete_range(const key_range_t &range) = 0;
-    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency) = 0;
-    virtual void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *value) = 0;
+    virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *value, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual ~agnostic_backfill_callback_t() { }
 };
 

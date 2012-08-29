@@ -291,7 +291,7 @@ opaque binary blob (`binary_blob_t`).
 template <class protocol_t>
 class chunk_fun_callback_t {
 public:
-    virtual void send_chunk(const typename protocol_t::backfill_chunk_t &) = 0;
+    virtual void send_chunk(const typename protocol_t::backfill_chunk_t &, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
 protected:
     chunk_fun_callback_t() { }

@@ -133,6 +133,10 @@ void erase_presence(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_k
 
 class entry_reception_callback_t {
 public:
+    /* Note: If any of these callbacks throw exceptions, then
+    `dump_entries_since_time()` must pass the exception up and not leak memory
+    or anything. */
+
     // Says that the timestamp was too early, and we can't send accurate deletion history.
     virtual void lost_deletions() = 0;
 
