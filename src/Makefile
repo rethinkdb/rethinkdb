@@ -326,7 +326,7 @@ PROTO_HEADERS:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(PROTO_SOUR
 PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(PROTO_SOURCES))
 PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(PROTO_CODE))
 PROTO_OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(PROTO_NAMES))
-PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)
+PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)/rdb_protocol
 
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
@@ -665,25 +665,29 @@ oprof-report:
 	@echo "    OPREPORT[$(OPROF_BINARY)] -> $(OPROF_RESULT)"
 	$(QUIET) opreport --merge=lib,unitmask -a --symbols --callgraph --threshold 1 --sort sample "--session-dir=$(realpath $(OPROF_SESSION))" -l "$(realpath $(OPROF_BINARY))" > $(OPROF_RESULT)
 
-
-PYTHON_PBDIR:=../drivers/python/rethinkdb
-PYTHON_PBFILE:=rdb_protocol/query_language_pb2.py
-RUBY_PBDIR:=../drivers/ruby/rethinkdb
+PYTHON_PBDIR:=../build/drivers/python
+PYTHON_PBFILE:=query_language_pb2.py
+RUBY_PBDIR:=../build/drivers/ruby
 RUBY_PBFILE:=query_language.pb.rb
 ifeq ($(BUILD_DRIVERS), 1)
-drivers: $(PYTHON_PBDIR)/$(PYTHON_PBFILE) $(RUBY_PBDIR)/$(RUBY_PBFILE)
-PROTOFILE:=rdb_protocol/query_language.proto
-$(PYTHON_PBDIR)/$(PYTHON_PBFILE): $(PROTOFILE)
-ifeq ($(VERBOSE),0)
-	@echo "    PROTOC[PY] $^"
-endif
-	$(QUIET) protoc $(PROTOCFLAGS) --python_out $(PYTHON_PBDIR) $^
+$(PYTHON_PBDIR):
+	$(QUITE) mkdir -p $(PYTHON_PBDIR)
+$(RUBY_PBDIR):
+	$(QUITE) mkdir -p $(RUBY_PBDIR)
 
-$(RUBY_PBDIR)/$(RUBY_PBFILE): $(PROTOFILE)
+drivers: $(PYTHON_PBDIR)/$(PYTHON_PBFILE) $(RUBY_PBDIR)/$(RUBY_PBFILE)
+PROTOFILE:=$(SOURCE_DIR)/rdb_protocol/query_language.proto
+$(PYTHON_PBDIR)/$(PYTHON_PBFILE): $(PYTHON_PBDIR) $(PROTOFILE)
 ifeq ($(VERBOSE),0)
-	@echo "    PROTOC[RB] $^"
+	@echo "    PROTOC[PY] $(PROTOFILE)"
 endif
-	$(QUIET) rprotoc $(PROTOCFLAGS) --out $(RUBY_PBDIR) $^ | \
+	$(QUIET) protoc $(PROTOCFLAGS) --python_out $(PYTHON_PBDIR) $(PROTOFILE)
+
+$(RUBY_PBDIR)/$(RUBY_PBFILE): $(RUBY_PBDIR) $(PROTOFILE)
+ifeq ($(VERBOSE),0)
+	@echo "    PROTOC[RB] $(PROTOFILE)"
+endif
+	$(QUIET) rprotoc $(PROTOCFLAGS) --out $(RUBY_PBDIR) $(PROTOFILE) | \
 		(grep -v 'writing...' || true)
 else
 drivers:
