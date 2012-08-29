@@ -413,7 +413,7 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
                     chunk.key = *it;
                     chunk.value = values_snapshot[*it];
                     chunk.timestamp = timestamps_snapshot[*it];
-                    send_backfill_cb->send_chunk(chunk);
+                    send_backfill_cb->send_chunk(chunk, interruptor);
                 }
                 if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
             }

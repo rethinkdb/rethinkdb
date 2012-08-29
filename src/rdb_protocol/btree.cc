@@ -157,17 +157,17 @@ class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
     agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
 
-    void on_delete_range(const key_range_t &range) {
+    void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.is_superset(range));
-        cb_->on_delete_range(range);
+        cb_->on_delete_range(range, interruptor);
     }
 
-    void on_deletion(const btree_key_t *key, repli_timestamp_t recency) {
+    void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.contains_key(key->contents, key->size));
-        cb_->on_deletion(key, recency);
+        cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *val) {
+    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *val, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.contains_key(key->contents, key->size));
         const rdb_value_t *value = static_cast<const rdb_value_t *>(val);
 
@@ -175,7 +175,7 @@ public:
         atom.key.assign(key->size, key->contents);
         atom.value = get_data(value, txn);
         atom.recency = recency;
-        cb_->on_keyvalue(atom);
+        cb_->on_keyvalue(atom, interruptor);
     }
 
     rdb_backfill_callback_t *cb_;
