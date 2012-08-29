@@ -572,7 +572,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
     }
 
     if (conn_structure->conn == NULL) {
-        /* We're sending a message to ourself */
+        // We're sending a message to ourself
+        // RSI: avoid serialization/deserialization, just make a copy
         rassert(dest == me);
         // We could be on any thread here! Oh no!
         vector_read_stream_t buffer2(&buffer.vector());
