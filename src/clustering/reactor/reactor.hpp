@@ -78,12 +78,6 @@ private:
 
     void on_blueprint_changed() THROWS_NOTHING;
     void try_spawn_roles() THROWS_NOTHING;
-    void run_cpu_sharded_role(
-            int cpu_shard_number,
-            current_role_t *role,
-            const typename protocol_t::region_t& region,
-            multistore_ptr_t<protocol_t> *svs_subview,
-            signal_t *interruptor) THROWS_NOTHING;
     void run_role(
             typename protocol_t::region_t region,
             current_role_t *role,
