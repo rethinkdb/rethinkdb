@@ -19,6 +19,8 @@
 
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 
+typedef rdb_protocol_t::context_t context_t;
+
 typedef rdb_protocol_t::store_t store_t;
 typedef rdb_protocol_t::region_t region_t;
 
@@ -176,32 +178,37 @@ bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
     return lr->key_range < rr->key_range;
 }
 
-void read_t::unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
-    query_language::runtime_environment_t env(ctx->pool_group,
-                                              ctx->ns_repo,
-                                              ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
-                                              ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
-                                              ctx->semilattice_metadata,
-                                              js_runner,
-                                              ctx->signals[get_thread_id()].get(),
-                                              ctx->machine_id);
+/* A visitor to handle this unsharding process for us. */
 
+class unshard_visitor_t : public boost::static_visitor<void> {
+public:
+    unshard_visitor_t(const std::vector<read_response_t> &_responses, 
+                      read_response_t *_response_out, context_t *ctx) 
+        : responses(_responses), response_out(_response_out),
+          env(ctx->pool_group,
+              ctx->ns_repo,
+              ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
+              ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
+              ctx->semilattice_metadata,
+              boost::shared_ptr<js::runner_t>(),
+              ctx->signals[get_thread_id()].get(),
+              ctx->machine_id)
+    { }
 
-    const point_read_t *pr = boost::get<point_read_t>(&read);
-    const rget_read_t *rg = boost::get<rget_read_t>(&read);
-    if (pr) {
+    void operator()(const point_read_t &) {
         rassert(responses.size() == 1);
         rassert(boost::get<point_read_response_t>(&responses[0].response));
-        *response = responses[0];
-    } else if (rg) {
-        env.scopes = rg->scopes;
-        response->response = rget_read_response_t();
-        rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
+        *response_out = responses[0];
+    }
+
+    void operator()(const rget_read_t &rg) {
+        env.scopes = rg.scopes;
+        response_out->response = rget_read_response_t();
+        rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response_out->response);
         rg_response.truncated = false;
-        rg_response.key_range = get_region().inner;
-        rg_response.last_considered_key = get_region().inner.left;
-        typedef std::vector<read_response_t>::iterator rri_t;
+        rg_response.key_range = read_t(rg).get_region().inner;
+        rg_response.last_considered_key = read_t(rg).get_region().inner.left;
+        typedef std::vector<read_response_t>::const_iterator rri_t;
 
         try {
             /* First check to see if any of the responses we're unsharding threw. */
@@ -215,7 +222,7 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
                 }
             }
 
-            if (!rg->terminal) {
+            if (!rg.terminal) {
                 //A vanilla range get
                 rg_response.result = stream_t();
                 stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
@@ -232,7 +239,7 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
                         rg_response.last_considered_key = _rr->last_considered_key;
                     }
                 }
-            } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg->terminal)) {
+            } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg.terminal)) {
                 //GroupedMapreduce
                 rg_response.result = groups_t();
                 groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
@@ -254,7 +261,7 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
                         (*res_groups)[j->first] = eval(&body, &env, backtrace);
                     }
                 }
-            } else if (const Reduction *r = boost::get<Reduction>(&*rg->terminal)) {
+            } else if (const Reduction *r = boost::get<Reduction>(&*rg.terminal)) {
                 //Normal Mapreduce
                 rg_response.result = atom_t();
                 atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
@@ -276,7 +283,7 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
                     Term body = r->body();
                     *res_atom = eval(&body, &env, backtrace);
                 }
-            } else if (boost::get<rdb_protocol_details::Length>(&*rg->terminal)) {
+            } else if (boost::get<rdb_protocol_details::Length>(&*rg.terminal)) {
                 rg_response.result = atom_t();
                 length_t *res_length = boost::get<length_t>(&rg_response.result);
                 res_length->length = 0;
@@ -289,7 +296,7 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
 
                     res_length->length += length->length;
                 }
-            } else if (boost::get<WriteQuery_ForEach>(&*rg->terminal)) {
+            } else if (boost::get<WriteQuery_ForEach>(&*rg.terminal)) {
                 rg_response.result = atom_t();
                 inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
                 res_inserted->inserted = 0;
@@ -308,9 +315,47 @@ void read_t::unshard(std::vector<read_response_t> responses, read_response_t *re
         } catch (const runtime_exc_t &e) {
             rg_response.result = e;
         }
-    } else {
-        unreachable("Unknown read response.");
+
     }
+
+    void operator()(const distribution_read_t &) {
+        rassert(responses.size() > 0);
+        rassert(boost::get<distribution_read_response_t>(&responses[0].response));
+        rassert(responses.size() == 1 || boost::get<distribution_read_response_t>(&responses[1].response));
+
+        // Asserts that we don't look like a hash-sharded thing.
+        rassert(!(responses.size() > 1
+                  && boost::get<distribution_read_response_t>(&responses[0].response)->key_counts.begin()->first == boost::get<distribution_read_response_t>(&responses[1].response)->key_counts.begin()->first));
+
+        response_out->response = distribution_read_response_t();
+        distribution_read_response_t *result = boost::get<distribution_read_response_t>(&response_out->response);
+
+        for (int i = 0, e = responses.size(); i < e; i++) {
+            const distribution_read_response_t *result_piece = boost::get<distribution_read_response_t>(&responses[i].response);
+            rassert(result_piece, "Bad boost::get\n");
+
+#ifndef NDEBUG
+            for (std::map<store_key_t, int>::const_iterator it = result_piece->key_counts.begin();
+                 it != result_piece->key_counts.end();
+                 ++it) {
+                rassert(!std_contains(result->key_counts, it->first), "repeated key '%*.*s'",
+                        static_cast<int>(it->first.size()), static_cast<int>(it->first.size()), it->first.contents());
+            }
+#endif
+            result->key_counts.insert(result_piece->key_counts.begin(), result_piece->key_counts.end());
+
+        }
+    }
+
+private:
+    const std::vector<read_response_t> &responses;
+    read_response_t *response_out;
+    query_language::runtime_environment_t env;
+};
+
+void read_t::unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
+    unshard_visitor_t v(responses, response, ctx);
+    boost::apply_visitor(v, read);
 }
 
 bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> >& a,
@@ -318,31 +363,35 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
     return a.first < b.first;
 }
 
-void read_t::multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
-    query_language::runtime_environment_t env(ctx->pool_group,
-                                              ctx->ns_repo,
-                                              ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
-                                              ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
-                                              ctx->semilattice_metadata,
-                                              js_runner,
-                                              ctx->signals[get_thread_id()].get(),
-                                              ctx->machine_id);
+class multistore_unshard_visitor_t : public boost::static_visitor<void> {
+public:
+    multistore_unshard_visitor_t(const std::vector<read_response_t> &_responses, 
+                                 read_response_t *_response_out, context_t *ctx) 
+        : responses(_responses), response_out(_response_out),
+          env(ctx->pool_group,
+              ctx->ns_repo,
+              ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
+              ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
+              ctx->semilattice_metadata,
+              boost::shared_ptr<js::runner_t>(),
+              ctx->signals[get_thread_id()].get(),
+              ctx->machine_id)
+    { }
 
-    const point_read_t *pr = boost::get<point_read_t>(&read);
-    const rget_read_t *rg = boost::get<rget_read_t>(&read);
-    if (pr) {
+    void operator()(const point_read_t &) {
         rassert(responses.size() == 1);
         rassert(boost::get<point_read_response_t>(&responses[0].response));
-        *response = responses[0];
-    } else if (rg) {
-        env.scopes = rg->scopes;
-        response->response = rget_read_response_t();
-        rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response->response);
+        *response_out = responses[0];
+    }
+
+    void operator()(const rget_read_t &rg) {
+        env.scopes = rg.scopes;
+        response_out->response = rget_read_response_t();
+        rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response_out->response);
         rg_response.truncated = false;
-        rg_response.key_range = get_region().inner;
-        rg_response.last_considered_key = get_region().inner.left;
-        typedef std::vector<read_response_t>::iterator rri_t;
+        rg_response.key_range = read_t(rg).get_region().inner;
+        rg_response.last_considered_key = read_t(rg).get_region().inner.left;
+        typedef std::vector<read_response_t>::const_iterator rri_t;
 
         try {
             /* First check to see if any of the responses we're unsharding threw. */
@@ -356,7 +405,7 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
                 }
             }
 
-            if (!rg->terminal) {
+            if (!rg.terminal) {
                 //A vanilla range get (or filter or map)
                 rg_response.result = stream_t(); //Set the response to have the correct result type
                 stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
@@ -388,7 +437,7 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
                  */
 
                 /* Figure out what the last considered key actually is. */
-                rg_response.last_considered_key = get_region().inner.last_key_in_range();
+                rg_response.last_considered_key = read_t(rg).get_region().inner.last_key_in_range();
 
                 for (rri_t i = responses.begin(); i != responses.end(); ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
@@ -398,7 +447,7 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
                     guarantee(stream);
 
 
-                    if (stream->size() == rg->maximum) {
+                    if (stream->size() == rg.maximum) {
                         if (_rr->last_considered_key < rg_response.last_considered_key) {
                             rg_response.last_considered_key = _rr->last_considered_key;
                         }
@@ -424,7 +473,7 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
                     //res_stream->insert(res_stream->end(), stream->begin(), stream->end());
                     rg_response.truncated = rg_response.truncated || _rr->truncated;
                 }
-            } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg->terminal)) {
+            } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg.terminal)) {
                 //GroupedMapreduce
                 rg_response.result = groups_t();
                 groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
@@ -446,7 +495,7 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
                         (*res_groups)[j->first] = eval(&body, &env, backtrace);
                     }
                 }
-            } else if (const Reduction *r = boost::get<Reduction>(&*rg->terminal)) {
+            } else if (const Reduction *r = boost::get<Reduction>(&*rg.terminal)) {
                 //Normal Mapreduce
                 rg_response.result = atom_t();
                 atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
@@ -468,7 +517,7 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
                     Term body = r->body();
                     *res_atom = eval(&body, &env, backtrace);
                 }
-            } else if (boost::get<rdb_protocol_details::Length>(&*rg->terminal)) {
+            } else if (boost::get<rdb_protocol_details::Length>(&*rg.terminal)) {
                 rg_response.result = atom_t();
                 length_t *res_length = boost::get<length_t>(&rg_response.result);
                 res_length->length = 0;
@@ -481,7 +530,7 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
 
                     res_length->length += length->length;
                 }
-            } else if (boost::get<WriteQuery_ForEach>(&*rg->terminal)) {
+            } else if (boost::get<WriteQuery_ForEach>(&*rg.terminal)) {
                 rg_response.result = atom_t();
                 inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
                 res_inserted->inserted = 0;
@@ -500,9 +549,67 @@ void read_t::multistore_unshard(std::vector<read_response_t> responses, read_res
         } catch (const runtime_exc_t &e) {
             rg_response.result = e;
         }
-    } else {
-        unreachable("Unknown read response.");
     }
+
+    void operator()(const distribution_read_t &) {
+        rassert(responses.size() > 0);
+        rassert(boost::get<distribution_read_response_t>(&responses[0].response));
+        rassert(responses.size() == 1 || boost::get<distribution_read_response_t>(&responses[1].response));
+
+        // These test properties of distribution queries sharded by hash rather than key.
+        rassert(responses.size() > 1);
+        rassert(boost::get<distribution_read_response_t>(&responses[0].response)->key_counts.begin()->first == boost::get<distribution_read_response_t>(&responses[1].response)->key_counts.begin()->first);
+
+        response_out->response = distribution_read_response_t();
+        distribution_read_response_t *response = boost::get<distribution_read_response_t>(&response_out->response);
+
+        int64_t total_num_keys = 0;
+        rassert(responses.size() > 0);
+
+        int64_t total_keys_in_res = 0;
+        for (int i = 0, e = responses.size(); i < e; ++i) {
+            const distribution_read_response_t *result_piece = boost::get<distribution_read_response_t>(&responses[i].response);
+            rassert(result_piece, "Bad boost::get\n");
+
+            int64_t tmp_total_keys = 0;
+            for (std::map<store_key_t, int>::const_iterator it = result_piece->key_counts.begin();
+                 it != result_piece->key_counts.end();
+                 ++it) {
+                tmp_total_keys += it->second;
+            }
+
+            total_num_keys += tmp_total_keys;
+
+            if (response->key_counts.size() < result_piece->key_counts.size()) {
+                *response = *result_piece;
+                total_keys_in_res = tmp_total_keys;
+            }
+        }
+
+        if (total_keys_in_res == 0) {
+            return;
+        }
+
+        double scale_factor = static_cast<double>(total_num_keys) / static_cast<double>(total_keys_in_res);
+
+        rassert(scale_factor >= 1.0);  // Directly provable from the code above.
+
+        for (std::map<store_key_t, int>::iterator it  = response->key_counts.begin();
+                                                  it != response->key_counts.end();
+                                                  ++it) {
+            it->second = static_cast<int>(it->second * scale_factor);
+        }
+    }
+
+private:
+    const std::vector<read_response_t> &responses;
+    read_response_t *response_out;
+    query_language::runtime_environment_t env;
+};
+
+void read_t::multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
+    multistore_unshard_visitor_t v(responses, response, ctx);
+    boost::apply_visitor(v, read);
 }
 
 
