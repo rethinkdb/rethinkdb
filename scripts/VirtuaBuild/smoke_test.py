@@ -4,7 +4,7 @@
 
 import time, sys, os, socket, random, time, signal, subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'test', 'common')))
-import driver, workload_common
+import driver, memcached_workload_common
 from vcoptparse import *
 
 op = OptParser()
@@ -86,7 +86,7 @@ def wait_until_started_up(proc, host, port, timeout = 600):
         raise RuntimeError("Could not connect to process.")
 
 def test_against(host, port, timeout = 600):
-    with workload_common.make_memcache_connection({"address": (host, port), "mclib": "pylibmc", "protocol": "text"}) as mc:
+    with memcached_workload_common.make_memcache_connection({"address": (host, port), "mclib": "pylibmc", "protocol": "text"}) as mc:
         temp = 0
         time_limit = time.time() + timeout
         while not temp and time.time() < time_limit:
