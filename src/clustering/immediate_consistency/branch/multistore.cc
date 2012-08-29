@@ -141,7 +141,7 @@ void multistore_ptr_t<protocol_t>::do_get_metainfo(order_token_t order_token,
     typename protocol_t::region_t region = this->get_region();
 
     {
-        binary_blob_t blob;
+        binary_blob_t blob((version_range_t(version_t::zero())));
         region_map_t<protocol_t, binary_blob_t> ret(region, blob);
         *out = ret;
     }
