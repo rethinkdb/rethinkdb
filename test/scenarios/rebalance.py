@@ -73,8 +73,7 @@ with driver.Metacluster() as metacluster:
             print "Splitting at", list(adds), "and merging at", list(removes)
             http.change_namespace_shards(ns, adds = list(adds), removes = list(removes))
             shard_boundaries = (shard_boundaries - removes) | adds
-            t = http.wait_until_blueprint_satisfied(ns)
-            print "Rebalancing took %d seconds" % t
+            http.wait_until_blueprint_satisfied(ns)
             cluster.check()
             http.check_no_issues()
         workload.run_after()
