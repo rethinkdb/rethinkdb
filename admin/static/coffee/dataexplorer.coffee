@@ -32,6 +32,7 @@ module 'DataExplorerView', ->
         template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
 
         events:
+            ###
             'keyup .input_query': 'handle_keypress'
             'keydown .input_query': 'handle_tab'
             'blur .input_query': 'hide_suggestion'
@@ -40,6 +41,7 @@ module 'DataExplorerView', ->
             'mouseup .suggestion_name_li': 'position_cursor_after_click'
             'mouseover .suggestion_name_li' : 'mouseover_suggestion'
             'mouseout .suggestion_name_li' : 'mouseout_suggestion'
+            ###
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
             'click .namespace_link': 'write_query_namespace'
@@ -209,34 +211,8 @@ module 'DataExplorerView', ->
         query_last_part: ''
         refocus_position: '' 
 
-        handle_tab: (event) =>
-            if event.which is 9 # is tab
-                event.preventDefault()
-                @keypress_is_tab = true
-
-
-                @current_highlighted_suggestion++
-                if @current_highlighted_suggestion >= @current_suggestions.length
-                    @current_highlighted_suggestion = 0
-
-                if @current_suggestions[@current_highlighted_suggestion]?
-                    @highlight_suggestion @current_highlighted_suggestion
-                    @write_suggestion @current_suggestions[@current_highlighted_suggestion].suggestion
-
-                    position = (@query_first_part + @current_completed_query + @current_suggestions[@current_highlighted_suggestion].suggestion).length
-                    @position_cursor position
-
-                    
-            else if event.which is 13 and !event.shiftKey
-                event.preventDefault()
-                @hide_suggestion()
-                @execute_query()
-            else if event.which is 190
-                @hide_suggestion()
-                
-
         write_suggestion: (suggestion_to_write) =>
-            @.$('.input_query').val @query_first_part + @current_completed_query + suggestion_to_write + @query_last_part
+            @codemirror.setValue @query_first_part + @current_completed_query + suggestion_to_write + @query_last_part
 
         mouseover_suggestion: (event) =>
             @highlight_suggestion event.target.dataset.id
@@ -254,7 +230,12 @@ module 'DataExplorerView', ->
         position_cursor_after_click: (event) =>
             @position_cursor @.$(event.target).html().length #TODO doesn't work with Firefox
 
+
         position_cursor: (position) =>
+            @codemirror.setCursor
+                line: 1
+                pos: position
+            ###
             @.$('.input_query').focus()
             if @.$('.input_query').get(0)?.setSelectionRange?
                 @.$('.input_query').get(0).setSelectionRange position, position
@@ -264,13 +245,14 @@ module 'DataExplorerView', ->
                 range.moveEnd 'character', position
                 range.moveStart 'character', position
                 range.select()
+            ###
 
         select_suggestion: (event) =>
             suggestion_to_write = @.$(event.target).html()
             @write_suggestion suggestion_to_write
             @refocus_position = (@query_first_part + @current_completed_query + suggestion_to_write).length
 
-        hide_suggestion: ->
+        hide_suggestion: =>
             if @refocus_position isnt ''
                 @position_cursor @refocus_position
                 @refocus_position = ''
@@ -287,10 +269,6 @@ module 'DataExplorerView', ->
         show_suggestion_description: ->
             @.$('.suggestion_description').css 'display', 'block'
 
-        handle_keypress: (event) =>
-            @expand_textarea()
-            if event.which isnt 13
-                @make_suggestion()
 
         expand_textarea: (event) =>
             if @.$('.input_query').length is 1
@@ -320,22 +298,52 @@ module 'DataExplorerView', ->
 
 
         # Make suggestions when the user is writing
-        make_suggestion: =>
-            if @keypress_is_tab
-                @keypress_is_tab = false
-                return
+        handle_keypress: (editor, event) =>
+            if event?.which?
+                console.log event
+                if event.which is 9 # is tab
+                    event.preventDefault()
+                    if event.type isnt 'keydown'
+                        console.log 'break'
+                        return true
+                    @current_highlighted_suggestion++
+                    if @current_highlighted_suggestion >= @current_suggestions.length
+                        @current_highlighted_suggestion = 0
+
+                    if @current_suggestions[@current_highlighted_suggestion]?
+                        @highlight_suggestion @current_highlighted_suggestion
+                        @write_suggestion @current_suggestions[@current_highlighted_suggestion].suggestion
+
+                        position = (@query_first_part + @current_completed_query + @current_suggestions[@current_highlighted_suggestion].suggestion).length
+                        console.log '---'
+                        console.log @query_first_part
+                        console.log @current_completed_query
+                        console.log @current_suggestions[@current_highlighted_suggestion].suggestion
+                        @position_cursor position
+                    return true
+                if event.which is 13 and (event.shiftKey or event.ctrlKey)
+                    event.preventDefault()
+                    if event.type isnt 'keydown'
+                        console.log 'break'
+                        return true
+                    @.$('suggestion_name_list').css 'display', 'none'
+                    @execute_query()
+                    #@codemirror.blur()
+
+
 
             @current_highlighted_suggestion = -1
             @.$('.suggestion_name_list').html ''
 
-            #TODO Handle new line?
-            query_before_cursor = @.$('.input_query').val().slice 0, @.$('.input_query').prop("selectionStart")
+            #TODO Handle multiple line
+            query_before_cursor = @codemirror.getValue().slice 0, @codemirror.getCursor().ch
 
             # Check if we are in a string
             if (query_before_cursor.match(/\"/g)||[]).length%2 is 1
-                return @
+                @hide_suggestion()
+                return ''
 
-            query_after_cursor = @.$('.input_query').val().slice @.$('.input_query').prop("selectionStart")
+            query_after_cursor = @codemirror.getValue().slice @codemirror.getCursor().ch
             slice_index = @extract_query_first_part query_before_cursor
             query = query_before_cursor.slice slice_index
             
@@ -376,7 +384,8 @@ module 'DataExplorerView', ->
             else
                 @hide_suggestion()
  
-            return @
+            console.log 'end'
+            return false
 
         append_suggestion: (query, suggestions) =>
             splitdata = query.split('.')
@@ -404,16 +413,18 @@ module 'DataExplorerView', ->
                 @show_suggestion()
             else
                 @hide_suggestion()
-            return
+            return @
 
 
         callback_render: (data) =>
             @data_container.render(@query, data)
 
         execute_query: =>
+            console.log 'execute'
             window.result = {}
 
-            @query = @.$('.input_query').val()
+            #@query = @.$('.input_query').val()
+            @query = @codemirror.getValue()
             full_query = @query + '.run(this.callback_render)'
             try
                 eval(full_query)
@@ -503,7 +514,7 @@ module 'DataExplorerView', ->
 
         clear_query: =>
             #TODO remove when not testing
-            welcome = r.table('Welcome-rdb')
+            welcome = r.db('Welcome-db').table('Welcome-rdb')
             welcome.insert({
                 id: generate_id(25)
                 name: generate_string(9)+' '+generate_string(9)
@@ -520,7 +531,6 @@ module 'DataExplorerView', ->
             @.$('.input_query').val ''
             @.$('.input_query').focus()
 
-    
         # Write a query for the namespace clicked
         write_query_namespace: (event) =>
             event.preventDefault()
@@ -536,13 +546,16 @@ module 'DataExplorerView', ->
 
         initialize: =>
             log_initial '(initializing) dataexplorer view:'
-
+            
             host = window.location.hostname
+            port = window.location.port
             if port is ''
                 port = 13457
             else
-                port = parseInt(window.location.port)-1000+13457
-            window.conn = new rethinkdb.net.HttpConnection 'http://'+host+':'+port , ''
+                port = parseInt(port)-1000+13457
+            window.conn = new rethinkdb.net.HttpConnection 
+                host: host
+                port: port
             window.r = rethinkdb.query
             window.R = r.R
 
@@ -599,6 +612,19 @@ module 'DataExplorerView', ->
             @.$el.append @input_query.render().el
             @.$el.append @data_container.render().el
             return @
+
+        call_codemirror: =>
+            @codemirror = CodeMirror.fromTextArea document.getElementById('input_query'),
+                mode:
+                    name: 'javascript'
+                    json: true
+                onKeyEvent: @handle_keypress
+                onFocus: @handle_keypress
+                onBlur: @hide_suggestion
+                lineNumbers: true
+                lineWrapping: true
+
+            @codemirror.setSize 700, 100
 
         # Go home
         display_home: =>
