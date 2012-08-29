@@ -584,6 +584,60 @@ class ClientTest < Test::Unit::TestCase
     assert_raise(ArgumentError){r[arr].to_stream[4...'a'].run}
   end
 
+  def test_foreach_multi
+    db_name = "foreach_multi" + rand().to_s
+    table_name = "foreach_multi_tbl" + rand().to_s
+    table_name_2 = table_name + rand().to_s
+    table_name_3 = table_name_2 + rand().to_s
+    table_name_4 = table_name_3 + rand().to_s
+
+    assert_equal(r.create_db(db_name).run, nil)
+    assert_equal(r.db(db_name).create_table(table_name).run, nil)
+    assert_equal(r.db(db_name).create_table(table_name_2).run, nil)
+    assert_equal(r.db(db_name).create_table(table_name_3).run, nil)
+    assert_equal(r.db(db_name).create_table(table_name_4).run, nil)
+    rdb = r.db(db_name).table(table_name)
+    rdb2 = r.db(db_name).table(table_name_2)
+    rdb3 = r.db(db_name).table(table_name_3)
+    rdb4 = r.db(db_name).table(table_name_4)
+
+    assert_equal(rdb.insert($data).run, {'inserted' => 10})
+    assert_equal(rdb2.insert($data).run, {'inserted' => 10})
+
+    query = rdb.foreach {|row|
+      rdb2.foreach {|row2|
+        rdb3.insert({'id' => row[:id]*1000 + row2[:id]})
+      }
+    }
+    assert_equal(query.run, {'inserted' => 100})
+
+    query = rdb.foreach {|row|
+      rdb2.filter{r[:id].eq(row[:id] * row[:id])}.delete
+    }
+    assert_equal(query.run, {'deleted' => 4})
+
+    query = rdb.foreach {|row|
+      rdb2.foreach {|row2|
+        rdb3.filter{r[:id].eq(row[:id]*1000 + row2[:id])}.delete
+      }
+    }
+    assert_equal(query.run, {'deleted' => 60})
+
+    assert_equal(rdb.foreach{|row| rdb4.insert(row)}.run, {'inserted' => 10})
+    assert_equal(rdb2.foreach{|row| rdb4.filter{r[:id].eq(row[:id])}.delete}.run,
+                 {'deleted' => 6})
+
+    # TODO: Pending resolution of issue #930
+    # assert_equal(rdb3.orderby(:id).run,
+    #              r.let([['x', rdb2.concatmap{|row|
+    #                        rdb.filter{
+    #                          r[:id].neq(row[:id])
+    #                        }
+    #                      }.map{r[:id]}.distinct.to_array]],
+    #                    rdb.concatmap{|row|
+    #                      r[:$x].to_stream.map{|id| row[:id]*1000+id}}).run)
+  end
+
   def test_fancy_foreach #FOREACH
     db_name = rand().to_s
     table_name = rand().to_s
