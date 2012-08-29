@@ -31,51 +31,44 @@ template <class protocol_t>
 region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_t<protocol_t, binary_blob_t> &blob_map);
 
 template <class protocol_t>
-class multistore_ptr_t {
+class multistore_ptr_t : public store_view_t<protocol_t> {
 public:
     // We don't get ownership of the store_view_t pointers themselves.
-    multistore_ptr_t(store_view_t<protocol_t> **store_views, int num_store_views, 
+    multistore_ptr_t(store_view_t<protocol_t> **store_views, int num_store_views,
                      typename protocol_t::context_t *ctx,
                      const typename protocol_t::region_t &region_mask = protocol_t::region_t::universe());
 
     // Creates a multistore_ptr_t that depends on the lifetime of the
     // inner multistore_ptr_t.
-    multistore_ptr_t(multistore_ptr_t<protocol_t> *inner, 
+    multistore_ptr_t(multistore_ptr_t<protocol_t> *inner,
                      typename protocol_t::context_t *ctx,
                      const typename protocol_t::region_t &region_mask);
 
     // deletes the store_subview_t objects.
     ~multistore_ptr_t();
 
-    typename protocol_t::region_t get_multistore_joined_region() const;
-
     int num_stores() const { return store_views_.size(); }
 
     void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token_out);
     void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token_out);
 
-    // TODO: I'm pretty sure every time we call this function we are
-    // doing something stupid.
-    region_map_t<protocol_t, binary_blob_t>
-    get_all_metainfos(order_token_t order_token,
-                      scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
-		      signal_t *interruptor);
+    void do_get_metainfo(order_token_t order_token,
+                         scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                         signal_t *interruptor,
+                         region_map_t<protocol_t, binary_blob_t> *out) THROWS_ONLY(interrupted_exc_t);
 
-    typename protocol_t::region_t get_region(int i) const;
+    typename protocol_t::region_t get_a_region(int i) const;
 
-    // TODO: Perhaps all uses of set_all_metainfos are stupid, too.
-    // See get_all_metainfos.  This is the opposite of
-    // get_all_metainfos but is a bit more scary.
-    void set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
-                           order_token_t order_token,
-                           scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
-                           signal_t *interruptor);
+    void set_metainfo(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
+                      order_token_t order_token,
+                      scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-    bool send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                                  send_backfill_callback_t<protocol_t> *send_backfill_cb,
-                                  traversal_progress_combiner_t *progress,
-                                  scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
-                                  signal_t *interruptor)
+    bool send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
+                       send_backfill_callback_t<protocol_t> *send_backfill_cb,
+                       traversal_progress_combiner_t *progress,
+                       scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
+                       signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(const typename protocol_t::backfill_chunk_t &chunk,
@@ -86,7 +79,7 @@ public:
 
     void read(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
               const typename protocol_t::read_t &read,
-               typename protocol_t::read_response_t *response,
+              typename protocol_t::read_response_t *response,
               order_token_t order_token,
               scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
               signal_t *interruptor)
@@ -102,10 +95,10 @@ public:
                signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    void reset_all_data(const typename protocol_t::region_t &subregion,
-                        const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
-                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    void reset_data(const typename protocol_t::region_t &subregion,
+                    const typename protocol_t::store_t::metainfo_t &new_metainfo,
+                    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 private:
     // Used by send_multistore_backfill.
@@ -140,11 +133,11 @@ private:
                             std::vector<typename protocol_t::write_response_t> *responses,
                             signal_t *interruptor) THROWS_NOTHING;
 
-    void single_shard_reset_all_data(int i,
-                                     const typename protocol_t::region_t &subregion,
-                                     const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                                     const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
-                                     signal_t *interruptor) THROWS_NOTHING;
+    void single_shard_reset_data(int i,
+                                 const typename protocol_t::region_t &subregion,
+                                 const typename protocol_t::store_t::metainfo_t &new_metainfo,
+                                 const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
+                                 signal_t *interruptor) THROWS_NOTHING;
 
     void do_get_a_metainfo(int i,
                            order_token_t order_token,
