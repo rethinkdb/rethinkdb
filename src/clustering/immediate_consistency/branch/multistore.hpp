@@ -57,8 +57,6 @@ public:
                          signal_t *interruptor,
                          region_map_t<protocol_t, binary_blob_t> *out) THROWS_ONLY(interrupted_exc_t);
 
-    typename protocol_t::region_t get_a_region(int i) const;
-
     void set_metainfo(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
                       order_token_t order_token,
                       scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
@@ -101,6 +99,8 @@ public:
                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 private:
+    typename protocol_t::region_t get_a_region(int i) const;
+
     // Used by send_multistore_backfill.
     void single_shard_backfill(int i,
                                multistore_send_backfill_should_backfill_t<protocol_t> *helper,
