@@ -12,7 +12,6 @@
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/boost_types.hpp"
-#include "containers/archive/vector_stream.hpp"
 #include "containers/iterators.hpp"
 #include "containers/scoped.hpp"
 #include "memcached/memcached_btree/append_prepend.hpp"
