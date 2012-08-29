@@ -63,7 +63,7 @@ class ValueConflict(object):
 
 class Datacenter(object):
     def __init__(self, uuid, json_data):
-        self.uuid = uuid
+        self.uuid = validate_uuid(uuid)
         self.name = json_data[u"name"]
 
     def check(self, data):
@@ -77,7 +77,7 @@ class Datacenter(object):
 
 class Database(object):
     def __init__(self, uuid, json_data):
-        self.uuid = uuid
+        self.uuid = validate_uuid(uuid)
         self.name = json_data[u"name"]
 
     def check(self, data):
@@ -111,7 +111,7 @@ class Namespace(object):
         self.port = json_data[u"port"]
         self.primary_pinnings = json_data[u"primary_pinnings"]
         self.secondary_pinnings = json_data[u"secondary_pinnings"]
-        self.database_uuid = validate_uuid(json_data[u"database"])
+        self.database_uuid = None if json_data[u"database"] is None else validate_uuid(json_data[u"database"])
         self.protocol = protocol
 
     def check(self, data):
@@ -534,14 +534,17 @@ class ClusterAccess(object):
         ack_dict = { }
         for datacenter, count in ack_expectations.iteritems():
             ack_dict[self.find_datacenter(datacenter).uuid] = count
-        database = self.find_database(database)
+        if database is None:
+            database_uuid = None
+        else:
+            database_uuid = self.find_database(database).uuid
         data_to_post = {
             "name": name,
             "port": port,
             "primary_uuid": primary,
             "replica_affinities": aff_dict,
             "ack_expectations": ack_dict,
-            "database": database.uuid
+            "database": database_uuid
             }
         if protocol == "rdb":
             if primary_key is None:
