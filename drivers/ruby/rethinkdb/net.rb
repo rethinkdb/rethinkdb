@@ -4,8 +4,12 @@ require 'json'
 
 module RethinkDB
   class Connection
+    @@last = nil
     @@magic_number = 0xaf61ba35
-    def self.last; @@last; end
+    def self.last
+      return @@last if @@last
+      raise RuntimeError, "No last connection.  Use RethinkDB::Connection.new."
+    end
     def debug_socket; @socket; end
 
     def start_listener
@@ -46,6 +50,7 @@ module RethinkDB
     end
 
     def wait token
+      #raise RuntimeError
       @mutex.synchronize do
         (@waiters[token] = ConditionVariable.new).wait(@mutex) if not @data[token]
         return @data.delete token
