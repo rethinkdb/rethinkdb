@@ -96,10 +96,6 @@ public:
                     scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-    store_view_t<protocol_t> *get_store(int i) const {
-        return store_views_[i];
-    }
-
 private:
     int num_stores() const { return store_views_.size(); }
 

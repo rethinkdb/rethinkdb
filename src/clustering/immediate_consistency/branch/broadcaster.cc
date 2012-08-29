@@ -30,7 +30,7 @@ broadcaster_t<protocol_t>::write_callback_t::~write_callback_t() {
 template <class protocol_t>
 broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
         branch_history_manager_t<protocol_t> *bhm,
-        store_view_t<protocol_t> *initial_svs,
+        multistore_ptr_t<protocol_t> *initial_svs,
         perfmon_collection_t *parent_perfmon_collection,
         order_source_t *order_source,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
@@ -112,9 +112,9 @@ broadcaster_business_card_t<protocol_t> broadcaster_t<protocol_t>::get_business_
 }
 
 template <class protocol_t>
-store_view_t<protocol_t> *broadcaster_t<protocol_t>::release_bootstrap_svs_for_listener() {
+multistore_ptr_t<protocol_t> *broadcaster_t<protocol_t>::release_bootstrap_svs_for_listener() {
     rassert(bootstrap_svs != NULL);
-    store_view_t<protocol_t> *tmp = bootstrap_svs;
+    multistore_ptr_t<protocol_t> *tmp = bootstrap_svs;
     bootstrap_svs = NULL;
     return tmp;
 }

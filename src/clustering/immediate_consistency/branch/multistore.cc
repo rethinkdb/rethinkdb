@@ -26,7 +26,6 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **store_
       internal_sources_(num_store_views),
       internal_sinks_(num_store_views),
       ctx(_ctx) {
-    guarantee(num_store_views == CLUSTER_CPU_SHARDING_FACTOR);
 
     initialize(store_views);
 }
