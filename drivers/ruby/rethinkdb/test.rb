@@ -703,6 +703,18 @@ class ClientTest < Test::Unit::TestCase
                  {'deleted' => 0, 'inserted' => 0, 'modified' => 1, 'errors' => 0})
     assert_equal(rdb.orderby(:id).run, $data)
   end
+
+  def test_update_edge_cases #POINTUPDATE
+    assert_equal(rdb.orderby(:id).run, $data)
+    assert_equal(rdb.get(0).update{nil}.run,
+                 {'skipped' => 1, 'updated' => 0, 'errors' => 0})
+    assert_equal(rdb.get(11).update{nil}.run,
+                 {'skipped' => 1, 'updated' => 0, 'errors' => 0})
+    assert_equal(rdb.get(11).update{{}}.run,
+                 {'skipped' => 0, 'updated' => 0, 'errors' => 0})
+    assert_equal(rdb.orderby(:id).run, $data)
+  end
+
   def test___write #three underscores so it runs first
     db_name = rand().to_s
     table_name = rand().to_s

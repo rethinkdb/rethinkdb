@@ -1197,6 +1197,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             break;
         case WriteQuery::POINTUPDATE:
             {
+                int updated = 0;
                 int skipped = 0;
                 //First we need to grab the value the easiest way to do this is to just construct a term and evaluate it.
                 Term get;
@@ -1214,23 +1215,26 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 if (rhs->type() == cJSON_NULL) {
                     skipped = 1;
                 } else {
-                    boost::shared_ptr<scoped_cJSON_t> new_val(new scoped_cJSON_t(cJSON_merge(original_val->get(), rhs->get())));
-                    /* Now we insert the new value. */
-                    namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
+                    if (original_val->type() != cJSON_NULL) {
+                        updated = 1;
+                        boost::shared_ptr<scoped_cJSON_t> new_val(new scoped_cJSON_t(cJSON_merge(original_val->get(), rhs->get())));
+                        /* Now we insert the new value. */
+                        namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
 
-                    /* Get the primary key */
-                    std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
+                        /* Get the primary key */
+                        std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
 
-                    /* Make sure that the primary key wasn't changed. */
-                    if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
-                                     cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
-                        throw runtime_exc_t(strprintf("Updates are not allowed to change the primary key (%s).", pk.c_str()), backtrace);
+                        /* Make sure that the primary key wasn't changed. */
+                        if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
+                                         cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
+                            throw runtime_exc_t(strprintf("Updates are not allowed to change the primary key (%s).", pk.c_str()), backtrace);
+                        }
+
+                        insert(ns_access, pk, new_val, env, backtrace);
                     }
-
-                    insert(ns_access, pk, new_val, env, backtrace);
                 }
 
-                res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}", 1-skipped, skipped, 0));
+                res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}", updated, skipped, 0));
             }
             break;
         case WriteQuery::POINTDELETE:
