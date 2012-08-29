@@ -5,10 +5,11 @@
 #include <string>
 
 #include "clustering/administration/admin_tracker.hpp"
+#include "clustering/administration/issue_subscription.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/metadata_change_handler.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
-#include "clustering/administration/issue_subscription.hpp"
+#include "http/http.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class http_server_t;
@@ -38,6 +39,7 @@ public:
         namespace_repo_t<memcached_protocol_t> *_namespace_repo,
         admin_tracker_t *_admin_tracker,
         local_issue_tracker_t *_local_issue_tracker,
+        http_app_t *reql_app,
         uuid_t _us,
         std::string _path);
     ~administrative_http_server_manager_t();

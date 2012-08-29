@@ -33,7 +33,8 @@ def parse_mode_flags(parsed_opts):
     return driver.find_rethinkdb_executable(mode), command_prefix, shlex.split(parsed_opts["serve-flags"])
 
 def prepare_table_for_workload(parsed_opts, http, **kwargs):
-    return http.add_namespace(protocol = parsed_opts["protocol"], **kwargs)
+    db = http.add_database(name = "test_database")
+    return http.add_namespace(protocol = parsed_opts["protocol"], database = db, **kwargs)
 
 def get_workload_ports(parsed_opts, namespace, processes):
     for process in processes:
@@ -51,4 +52,4 @@ def get_workload_ports(parsed_opts, namespace, processes):
             http_port = process.http_port,
             rdb_port = 12346 + process.port_offset,
             table_name = namespace.name,
-            db_name = "")
+            db_name = "test_database")

@@ -19,7 +19,6 @@ class query_server_t {
 public:
     query_server_t(
         int port,
-        int http_port,
         extproc::pool_group_t *_pool_group,
         const boost::shared_ptr
             <semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
@@ -28,6 +27,8 @@ public:
             _directory_metadata,
         namespace_repo_t<rdb_protocol_t> *_ns_repo,
         uuid_t _this_machine);
+
+    http_app_t *get_http_app();
 
 private:
     Response handle(Query *q, stream_cache_t *stream_cache);

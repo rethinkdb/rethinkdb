@@ -141,7 +141,7 @@ public:
 
         bool send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
                            send_backfill_callback_t<dummy_protocol_t> *send_backfill_cb,
-                           backfill_progress_t *progress,
+                           traversal_progress_combiner_t *progress,
                            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 

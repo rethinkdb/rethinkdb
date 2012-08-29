@@ -1086,7 +1086,7 @@ class JSONFunction(object):
 
     def write_reduction(self, reduction, base):
         assert len(self.args) == 2
-        base._inner._write_ast(reduction.body)
+        base._inner._write_ast(reduction.base)
         reduction.var1 = self.args[0]
         reduction.var2 = self.args[1]
         self.body._inner._write_ast(reduction.body)

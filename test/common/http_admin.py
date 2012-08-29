@@ -63,7 +63,7 @@ class ValueConflict(object):
 
 class Datacenter(object):
     def __init__(self, uuid, json_data):
-        self.uuid = uuid
+        self.uuid = validate_uuid(uuid)
         self.name = json_data[u"name"]
 
     def check(self, data):
@@ -74,6 +74,20 @@ class Datacenter(object):
 
     def __str__(self):
         return "Datacenter(name:%s)" % (self.name)
+
+class Database(object):
+    def __init__(self, uuid, json_data):
+        self.uuid = validate_uuid(uuid)
+        self.name = json_data[u"name"]
+
+    def check(self, data):
+        return data[u"name"] == self.name
+
+    def to_json(self):
+        return { u"name": self.name }
+
+    def __str__(self):
+        return "Database(name:%s)" % (self.name)
 
 class Blueprint(object):
     def __init__(self, json_data):
@@ -97,6 +111,7 @@ class Namespace(object):
         self.port = json_data[u"port"]
         self.primary_pinnings = json_data[u"primary_pinnings"]
         self.secondary_pinnings = json_data[u"secondary_pinnings"]
+        self.database_uuid = None if json_data[u"database"] is None else validate_uuid(json_data[u"database"])
         self.protocol = protocol
 
     def check(self, data):
@@ -107,7 +122,8 @@ class Namespace(object):
             self.parse_shards(data[u"shards"]) == self.shards and \
             data[u"port"] == self.port and \
             data[u"primary_pinnings"] == self.primary_pinnings and \
-            data[u"secondary_pinnings"] == self.secondary_pinnings
+            data[u"secondary_pinnings"] == self.secondary_pinnings and \
+            data[u"database"] == self.database_uuid
 
     def to_json(self):
         return {
@@ -119,7 +135,8 @@ class Namespace(object):
             unicode("shards"): self.shards_to_json(),
             unicode("port"): self.port,
             unicode("primary_pinnings"): self.primary_pinnings,
-            unicode("secondary_pinnings"): self.secondary_pinnings
+            unicode("secondary_pinnings"): self.secondary_pinnings,
+            unicode("database"): self.database
             }
 
     def __str__(self):
@@ -134,7 +151,7 @@ class Namespace(object):
         else:
             for uuid, count in self.replica_affinities.iteritems():
                 shards += uuid + "=" + str(count) + ", "
-        return "Namespace(name:%s, port:%d, primary:%s, affinities:%sprimary pinnings:%s, secondary_pinnings:%s, shard boundaries:%s, blueprint:NYI)" % (self.name, self.port, self.primary_uuid, affinities, self.primary_pinnings, self.secondary_pinnings, self.shards)
+        return "Namespace(name:%s, port:%d, primary:%s, affinities:%sprimary pinnings:%s, secondary_pinnings:%s, shard boundaries:%s, blueprint:NYI, database:%s)" % (self.name, self.port, self.primary_uuid, affinities, self.primary_pinnings, self.secondary_pinnings, self.shards, self.database_uuid)
 
 class DummyNamespace(Namespace):
     def __init__(self, uuid, json_data):
@@ -321,6 +338,7 @@ class ClusterAccess(object):
         self.dummy_namespaces = { }
         self.memcached_namespaces = { }
         self.rdb_namespaces = { }
+        self.databases = { }
         self.conflicts = [ ]
 
         self.update_cluster_data(0)
@@ -361,6 +379,9 @@ class ClusterAccess(object):
         retval += "\nDatacenters:"
         for i in self.datacenters.iterkeys():
             retval += "\n%s: %s" % (i, self.datacenters[i])
+        retval += "\nDatabases:"
+        for i in self.datagbases.iterkeys():
+            retval += "\n%s: %s" % (i, self.databases[i])
         retval += "\nNamespaces:"
         for i in self.dummy_namespaces.iterkeys():
             retval += "\n%s: %s" % (i, self.dummy_namespaces[i])
@@ -399,6 +420,19 @@ class ClusterAccess(object):
         self.update_cluster_data(10)
         return datacenter
 
+    def add_database(self, name = None):
+        if name is None:
+            name = str(random.randint(0, 1000000))
+        info = self.do_query("POST", "/ajax/semilattice/databases/new", {
+            "name": name
+            })
+        assert len(info) == 1
+        uuid, json_data = next(info.iteritems())
+        database = Database(uuid, json_data)
+        self.databases[database.uuid] = database
+        self.update_cluster_data(10)
+        return database
+
     def _find_thing(self, what, type_class, type_str, search_space):
         if isinstance(what, (str, unicode)):
             if is_uuid(what):
@@ -422,6 +456,9 @@ class ClusterAccess(object):
 
     def find_datacenter(self, what):
         return self._find_thing(what, Datacenter, "data center", self.datacenters)
+
+    def find_database(self, what):
+        return self._find_thing(what, Database, "data base", self.databases)
 
     def find_namespace(self, what):
         nss = {}
@@ -481,7 +518,7 @@ class ClusterAccess(object):
         self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/ack_expectations" % (namespace.protocol, namespace.uuid), ae_dict)
         self.update_cluster_data(10)
 
-    def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }, ack_expectations = { }, primary_key = None, check = False):
+    def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }, ack_expectations = { }, primary_key = None, database = None, check = False):
         assert protocol in ["dummy", "memcached", "rdb"]
         if port is None:
             port = random.randint(10000, 20000)
@@ -497,12 +534,17 @@ class ClusterAccess(object):
         ack_dict = { }
         for datacenter, count in ack_expectations.iteritems():
             ack_dict[self.find_datacenter(datacenter).uuid] = count
+        if database is None:
+            database_uuid = None
+        else:
+            database_uuid = self.find_database(database).uuid
         data_to_post = {
             "name": name,
             "port": port,
             "primary_uuid": primary,
             "replica_affinities": aff_dict,
-            "ack_expectations": ack_dict
+            "ack_expectations": ack_dict,
+            "database": database_uuid
             }
         if protocol == "rdb":
             if primary_key is None:

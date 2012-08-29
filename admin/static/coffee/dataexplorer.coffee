@@ -515,6 +515,7 @@ module 'DataExplorerView', ->
             log_initial '(initializing) dataexplorer view:'
             
             host = window.location.hostname
+            ###
             port = window.location.port
             if port is ''
                 port = 13457
@@ -523,6 +524,8 @@ module 'DataExplorerView', ->
             window.conn = new rethinkdb.net.HttpConnection 
                 host: host
                 port: port
+            ###
+            window.conn = new rethinkdb.net.HttpConnection 'http://'+host+':'+window.location.port+'/ajax/reql'
             window.r = rethinkdb.query
             window.R = r.R
 

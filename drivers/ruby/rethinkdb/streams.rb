@@ -115,10 +115,10 @@ module RethinkDB
     # TODO: actual tests (reduce unimplemented right now)
     def reduce(base)
       S.with_var { |aname,a|
-        S.with_var { |bname,b| JSON_Expression.new
-          [:call,
-           [:reduce, S.r(base), aname, bname, S.r(yield(a,b))],
-           [@body]]}}
+        S.with_var { |bname,b|
+          JSON_Expression.new [:call,
+                               [:reduce, S.r(base), aname, bname, S.r(yield(a,b))],
+                               [@body]]}}
     end
 
     # Convert from a stream to an array.  Also has the synonym <b>+to_array+</b>.
@@ -130,6 +130,19 @@ module RethinkDB
     #   table.streamtoarray
     #   table.to_array
     def streamtoarray(); JSON_Expression.new [:call, [:streamtoarray], [@body]]; end
+
+    # TODO: doc
+    def groupedmapreduce(grouping, mapping, base, reduction)
+      grouping_term = S.with_var{|vname,v| [vname, S.r(grouping.call(v))]}
+      mapping_term = S.with_var{|vname,v| [vname, S.r(mapping.call(v))]}
+      reduction_term = S.with_var {|aname, a| S.with_var {|bname, b|
+          [S.r(base), aname, bname, reduction.call(a, b)]}}
+      JSON_Expression.new [:call, [:groupedmapreduce,
+                                   grouping_term,
+                                   mapping_term,
+                                   reduction_term],
+                           [@body]]
+    end
   end
 
   # A special case of Stream_Expression that you can write to.
