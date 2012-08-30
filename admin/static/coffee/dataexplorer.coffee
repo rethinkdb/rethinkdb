@@ -375,6 +375,7 @@ module 'DataExplorerView', ->
             
             if event?.type? and event.type isnt 'keyup'
                 return false
+
             @current_highlighted_suggestion = -1
             @.$('.suggestion_name_list').html ''
 
@@ -408,13 +409,24 @@ module 'DataExplorerView', ->
             query = query_before_cursor.slice slice_index
             
             @query_first_part = query_before_cursor.slice 0, slice_index
+            #TODO handle string
             next_dot_position = query_after_cursor.indexOf('.')
-            if next_dot_position is -1
+            next_parenthesis_position = query_after_cursor.indexOf(')')
+            if next_dot_position is -1 and next_parenthesis_position is -1
                 @query_last_part = ''
             else
-                @query_last_part = query_after_cursor.slice next_dot_position
-                if query_after_cursor[next_dot_position-1]? and query_after_cursor[next_dot_position-1] is '\n'
-                    @query_last_part = '\n' + @query_last_part
+                if next_dot_position is -1
+                    slice_position = next_parenthesis_position
+                else if next_parenthesis_position is -1
+                    slice_position = next_dot_position
+                else
+                    slice_position = Math.min next_dot_position, next_parenthesis_position
+
+                @query_last_part = query_after_cursor.slice slice_position
+                slice_position--
+                while query_after_cursor[slice_position]? and /\s/.test(query_after_cursor[slice_position])
+                    @query_last_part = query_after_cursor[slice_position] + @query_last_part
+                    slice_position--
             
             last_function = @extract_last_function(query)
             if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
@@ -658,7 +670,7 @@ module 'DataExplorerView', ->
                 lineWrapping: true
                 matchBrackets: true
 
-            @codemirror.setSize 700, 100
+            @codemirror.setSize 698, 100
 
         # Go home
         display_home: =>
