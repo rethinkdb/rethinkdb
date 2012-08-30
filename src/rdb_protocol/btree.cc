@@ -263,7 +263,7 @@ public:
         response.last_considered_key = range.left;
 
         if (terminal) {
-            boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result), *terminal);
+            boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result, env), *terminal);
         }
     }
 
