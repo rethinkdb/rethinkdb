@@ -411,7 +411,7 @@ module 'DataExplorerView', ->
                         return false
 
                     return true
-                if event.which is 13 and (event.shiftKey or event.ctrlKey)
+                if event.which is 13 and (event.shiftKey or event.ctrlKey) #Ctrl or shift + enter
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
@@ -425,6 +425,7 @@ module 'DataExplorerView', ->
             @.$('.suggestion_name_list').html ''
 
             query_lines = @codemirror.getValue().split '\n'
+
             # Get query before the cursor
             query_before_cursor = ''
             if @codemirror.getCursor().line > 0
@@ -446,11 +447,8 @@ module 'DataExplorerView', ->
             if (query_before_cursor.match(/\"/g)||[]).length%2 is 1
                 @hide_suggestion()
                 return ''
-            
-
 
             slice_index = @extract_query_first_part query_before_cursor
-            #TODO What is slice_index is -1?
             query = query_before_cursor.slice slice_index
             
             @query_first_part = query_before_cursor.slice 0, slice_index
@@ -480,20 +478,6 @@ module 'DataExplorerView', ->
 
             return false
         
-        extract_current_function: (query) =>
-            #TODO Handle string
-            start = query.lastIndexOf '.'
-            if start is -1
-                s = query
-            else
-                s = query.slice start+1
-
-            end = s.indexOf '('
-            if end is -1
-                return s
-            else
-                return s.slice 0, end
- 
         extract_last_function: (query) =>
             start = 0
             count_dot = 0
@@ -672,9 +656,6 @@ module 'DataExplorerView', ->
             @unsafe_to_safe_regexstr.push
                 pattern: /\}/g
                 replacement: '\\}'
-   
-
-
 
             @input_query = new DataExplorerView.InputQuery
             @data_container = new DataExplorerView.DataContainer
