@@ -375,6 +375,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_filter # FILTER
+    assert_equal(r[[1,2,3]].filter{|x| x<3}.run, [1,2])
+    assert_raise(RuntimeError){r[1].filter{true}.run}
     query_5 = rdb.filter{r[:name].eq('5')}
     assert_equal(query_5.run, [$data[5]])
     query_2345 = rdb.filter{|row| r.and r[:id] >= 2,row[:id] <= 5}

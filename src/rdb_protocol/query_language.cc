@@ -456,7 +456,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::FILTER:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
                 // polymorphic
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
 
@@ -1909,9 +1909,18 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
         case Builtin::CONCATMAP:
         case Builtin::ORDERBY:
         case Builtin::DISTINCT:
-        case Builtin::ARRAYTOSTREAM:
         case Builtin::UNION:
-        case Builtin::RANGE:
+        case Builtin::RANGE: {
+            boost::shared_ptr<json_stream_t> stream = eval_stream(c, env, backtrace);
+            boost::shared_ptr<scoped_cJSON_t>
+                arr(new scoped_cJSON_t(cJSON_CreateArray()));
+            boost::shared_ptr<scoped_cJSON_t> json;
+            while ((json = stream->next())) {
+                arr->AddItemToArray(json->release());
+            }
+            return arr;
+        } break;
+        case Builtin::ARRAYTOSTREAM:
             unreachable("eval called on a function that returns a stream (use eval_stream instead).");
             break;
         case Builtin::LENGTH:
