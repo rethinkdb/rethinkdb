@@ -43,6 +43,9 @@ class BackboneCluster extends Backbone.Router
             $.cookie('rethinkdb-admin', new Date())
             @render_walkthrough_popup()
 
+        @.bind 'all', (route, router) ->
+            @navbar.set_active_tab route
+
     render_sidebar: -> @$sidebar.html @sidebar.render().el
     render_navbar: -> $('#navbar-container').html @navbar.render().el
     render_walkthrough_popup: -> $('.walkthrough-popup').html (new Walkthrough).render().el
