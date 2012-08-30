@@ -93,6 +93,7 @@ class BackboneCluster extends Backbone.Router
         @current_view.destroy()
         @current_view = new DataExplorerView.Container
         @$container.html @current_view.render().el
+        @current_view.call_codemirror()
         @sidebar.set_type_view('dataexplorer')
 
     database: (id, tab) ->

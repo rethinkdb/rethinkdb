@@ -161,8 +161,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
             builds["drivers"] = {
                 "command_line": "cd rethinkdb/src; make drivers",
                 "products": [
-                    "rethinkdb/drivers/python/rethinkdb/rdb_protocol/query_language_pb2.py",
-                    "rethinkdb/drivers/ruby/rethinkdb/query_language.pb.rb"
+                    "rethinkdb/build/drivers"
                     ]
                 }
             config_bits = [
