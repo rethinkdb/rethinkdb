@@ -27,6 +27,7 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **store_
                                                const typename protocol_t::region_t &region)
     : store_view_t<protocol_t>(region),
       store_views_(num_store_views),
+      // TODO: region_ is redundant with superclass's region.
       region_(region),
       external_checkpoint_("multistore_ptr_t"),
       internal_sources_(num_store_views),
