@@ -687,7 +687,7 @@ class ClusterAccess(object):
                     return False
         return True
 
-    def wait_until_blueprint_satisfied(self, namespace, timeout = 600):
+    def wait_until_blueprint_satisfied(self, namespace, timeout = 600, print_seconds = True):
         start_time = time.time()
         while not self.is_blueprint_satisfied(namespace):
             time.sleep(1)
@@ -695,6 +695,10 @@ class ClusterAccess(object):
                 ajax = self.do_query("GET", "/ajax")
                 progress = self.do_query("GET", "/ajax/progress")
                 raise RuntimeError("Blueprint still not satisfied after %d seconds.\nContents of /ajax =\n%r\nContents of /ajax/progress =\n%r" % (timeout, ajax, progress))
+        seconds = time.time() - start_time
+        if print_seconds:
+            print "Blueprint satisfied after %d seconds." % seconds
+        return seconds
 
     def _pull_cluster_data(self, cluster_data, local_data, data_type):
         for uuid in cluster_data.iterkeys():

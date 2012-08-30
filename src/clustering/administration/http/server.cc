@@ -88,6 +88,10 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/chosen/chosen.css");
     white_list.insert("/js/chosen/chosen-sprite.png");
     white_list.insert("/js/jquery.ba-outside-events.min.js");
+    white_list.insert("/js/codemirror/codemirror.css");
+    white_list.insert("/js/codemirror/codemirror.js");
+    white_list.insert("/js/codemirror/ambiance.css");
+    white_list.insert("/js/codemirror/javascript.js");
     white_list.insert("/images/ajax-loader.gif");
     white_list.insert("/images/arrow_right.gif");
     white_list.insert("/images/arrow_down.gif");

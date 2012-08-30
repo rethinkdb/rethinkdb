@@ -37,6 +37,7 @@ with driver.Metacluster() as metacluster:
         http.check_no_issues()
         print "Killing the secondary..."
         secondary.close()
+        time.sleep(30)   # Wait for the other node to notice it's dead
         http.declare_machine_dead(secondary.files.machine_name)
         http.set_namespace_affinities(ns, {secondary_dc: 0})
         http.wait_until_blueprint_satisfied(ns)

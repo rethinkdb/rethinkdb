@@ -38,7 +38,7 @@ with driver.Metacluster() as metacluster:
         cluster.check()
         http.check_no_issues()
         http.move_namespace_to_datacenter(ns, secondary_dc)
-        time.sleep(10)
+        http.wait_until_blueprint_satisfied(ns)
         cluster.check()
         http.check_no_issues()
         workload.run_after()
