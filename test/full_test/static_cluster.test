@@ -44,7 +44,7 @@ for protocol, workloads_for_protocol in workloads.iteritems():
             "$RETHINKDB/test/scenarios/static_cluster.py --protocol %s '%s'" % (protocol, workload),
             repeat = 3,
             inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common",
-                "test/memcached_workloads", "test/rdb_workloads", "drivers"]
+                "test/memcached_workloads", "test/rdb_workloads", "drivers", "build/drivers"]
             )
 
 do_test(
