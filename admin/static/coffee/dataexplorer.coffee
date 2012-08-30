@@ -409,6 +409,7 @@ module 'DataExplorerView', ->
             query = query_before_cursor.slice slice_index
             
             @query_first_part = query_before_cursor.slice 0, slice_index
+            ###
             #TODO handle string
             next_dot_position = query_after_cursor.indexOf('.')
             next_parenthesis_position = query_after_cursor.indexOf(')')
@@ -427,7 +428,14 @@ module 'DataExplorerView', ->
                 while query_after_cursor[slice_position]? and /\s/.test(query_after_cursor[slice_position])
                     @query_last_part = query_after_cursor[slice_position] + @query_last_part
                     slice_position--
-            
+            ###
+            ###
+            slice_position = 0
+            while query_after_cursor[slice_position]? and /\s/.test(query_after_cursor[slice_position])
+                slice_position++
+            ###
+            @query_last_part = query_after_cursor #.slice slice_position
+
             last_function = @extract_last_function(query)
             if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
                 suggestions = []
@@ -450,7 +458,7 @@ module 'DataExplorerView', ->
                     @append_suggestion(query, suggestions)
 
             return false
-
+        
         extract_current_function: (query) =>
             #TODO Handle string
             start = query.lastIndexOf '.'
