@@ -850,7 +850,7 @@ module 'DataExplorerView', ->
             else if value_type is 'boolean'
                 return @template_json_tree.span
                     classname: 'jt_bool'
-                    value: value
+                    value: if value then 'true' else 'false'
  
 
 
