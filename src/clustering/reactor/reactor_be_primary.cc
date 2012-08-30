@@ -347,7 +347,8 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
          * interrupted or we have backfilled the most up to date data. */
         while (!attempt_backfill_from_peers(&directory_entry, &order_source, region, svs, blueprint, interruptor)) { }
 
-        std::string region_name = render_region_as_string(&region);
+        // TODO: Don't use local stack variable.
+        std::string region_name = strprintf("be_primary_%p", &region);
         perfmon_collection_t region_perfmon_collection;
         perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
