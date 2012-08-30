@@ -66,8 +66,21 @@ module 'DataExplorerView', ->
             'reduce': 'stream'
             'pluck': 'stream'
             'extend': 'array'
-
-
+            'R': 'expr'
+            'add': 'expr'
+            'sub': 'expr'
+            'mul': 'expr'
+            'div': 'expr'
+            'mod': 'expr'
+            'eq': 'expr'
+            'ne': 'expr'
+            'lt': 'expr'
+            'le': 'expr'
+            'gt': 'expr'
+            'ge': 'expr'
+            'not': 'expr'
+            'and': 'expr'
+            'or': 'expr'
             'range': 'stream'
 
         suggestions:
