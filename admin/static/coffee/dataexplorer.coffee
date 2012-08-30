@@ -36,8 +36,8 @@ module 'DataExplorerView', ->
             'keyup .input_query': 'handle_keypress'
             'keydown .input_query': 'handle_tab'
             'blur .input_query': 'hide_suggestion'
-            'click .input_query': 'make_suggestion' # Click and not focus for webkit browsers
             ###
+            'click .input_query': 'handle_keypress' # Click and not focus for webkit browsers
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
             #'mouseup .suggestion_name_li': 'position_cursor_after_click' # Not call because we remove the suggestion
             'mouseover .suggestion_name_li' : 'mouseover_suggestion'
@@ -343,7 +343,7 @@ module 'DataExplorerView', ->
                 start_line_index += 1
             
             ch = (@query_first_part + @current_completed_query + suggestion_to_write).length - start_line_index
-            if event.target.dataset.has_argument is true
+            if @.$(event.target).data('has_argument') is true
                 ch--
 
             @cursor =
@@ -355,6 +355,7 @@ module 'DataExplorerView', ->
         position_cursor_after_click: =>
             @codemirror.focus()
             @position_cursor @cursor
+            @handle_keypress()
 
 
         hide_suggestion: =>
@@ -547,6 +548,7 @@ module 'DataExplorerView', ->
                     @current_suggestions.push suggestion
                     @.$('.suggestion_name_list').append @template_suggestion_name 
                         id: i
+                        has_argument: suggestion.has_argument
                         suggestion: suggestion.suggestion
 
             if found_suggestion
