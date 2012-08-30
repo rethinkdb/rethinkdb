@@ -10,6 +10,12 @@
 #include "rpc/semilattice/joins/vclock.hpp"
 
 template <class protocol_t>
+store_view_t<protocol_t> *multistore_ptr_t<protocol_t>::get_store(int i) const {
+    guarantee(0 <= i && i < num_stores());
+    return store_views_[i];
+}
+
+template <class protocol_t>
 region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_t<protocol_t, binary_blob_t> &blob_map) {
     return region_map_transform<protocol_t, binary_blob_t, version_range_t>(blob_map,
                                                                             &binary_blob_t::get<version_range_t>);

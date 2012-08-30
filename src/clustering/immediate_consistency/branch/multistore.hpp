@@ -96,9 +96,11 @@ public:
                     scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-private:
+    store_view_t<protocol_t> *get_store(int i) const;
+
     int num_stores() const { return store_views_.size(); }
 
+private:
     typename protocol_t::region_t get_a_region(int i) const;
 
     // Used by send_multistore_backfill.

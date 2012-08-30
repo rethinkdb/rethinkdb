@@ -148,17 +148,17 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
         const typename protocol_t::region_t& region,
         multistore_ptr_t<protocol_t> *svs_subview,
         signal_t *interruptor) THROWS_NOTHING {
-    guarantee(cpu_shard_number == 0);
-
+    store_view_t<protocol_t> *store_view = svs_subview->get_store(cpu_shard_number);
+    typename protocol_t::region_t cpu_sharded_region = region_intersection(region, protocol_t::cpu_sharding_subspace(cpu_shard_number, CLUSTER_CPU_SHARDING_FACTOR));
     switch (role->role) {
     case blueprint_role_primary:
-        be_primary(region, svs_subview, role->blueprint.get_watchable(), interruptor);
+        be_primary(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
         break;
     case blueprint_role_secondary:
-        be_secondary(region, svs_subview, role->blueprint.get_watchable(), interruptor);
+        be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
         break;
     case blueprint_role_nothing:
-        be_nothing(region, svs_subview, role->blueprint.get_watchable(), interruptor);
+        be_nothing(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
         break;
     default:
         unreachable();
@@ -180,8 +180,9 @@ void reactor_t<protocol_t>::run_role(
         //and interruptions... so we just unify those signals
         wait_any_t wait_any(&role->abort, keepalive.get_drain_signal());
 
+        guarantee(CLUSTER_CPU_SHARDING_FACTOR == svs_subview.num_stores());
         // TODO: Obviously support more than one cpu shard.
-        pmap(1, boost::bind(&reactor_t<protocol_t>::run_cpu_sharded_role, this, _1, role, region, &svs_subview, &wait_any));
+        pmap(CLUSTER_CPU_SHARDING_FACTOR, boost::bind(&reactor_t<protocol_t>::run_cpu_sharded_role, this, _1, role, region, &svs_subview, &wait_any));
     }
 
     //As promised, clean up the state from try_spawn_roles
