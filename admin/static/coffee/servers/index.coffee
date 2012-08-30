@@ -152,19 +152,21 @@ module 'ServerView', ->
         template: Handlebars.compile $('#machine_list-template').html()
 
         initialize: (datacenter_uuid) ->
+            @datacenter_uuid = datacenter_uuid
             @callbacks = []
             super machines, ServerView.MachineListElement, 'tbody.list',
-                filter: (model) -> model.get('datacenter_uuid') is datacenter_uuid
+                filter: (model) -> model.get('datacenter_uuid') is @datacenter_uuid
 
-            machines.on 'change:datacenter_uuid', (machine, new_datacenter_uuid) =>
-                num_elements_removed = @remove_elements machine
-                @render() if num_elements_removed > 0
-
-                if new_datacenter_uuid is datacenter_uuid
-                    @add_element machine
-                    @render()
-
+            machines.on 'change:datacenter_uuid', @changed_datacenter
             return @
+
+        changed_datacenter: (machine, new_datacenter_uuid) =>
+            num_elements_removed = @remove_elements machine
+            @render() if num_elements_removed > 0
+
+            if new_datacenter_uuid is @datacenter_uuid
+                @add_element machine
+                @render()
 
 
         add_element: (element) =>
@@ -177,11 +179,14 @@ module 'ServerView', ->
             @bind_callbacks_to_machine machine_list_element for machine_list_element in @element_views
 
         bind_callbacks_to_machine: (machine_list_element) =>
-            machine_list_element.off 'selected'
-            machine_list_element.on 'selected', => callback() for callback in @callbacks
+            machine_list_element.off 'selected', @call_all_callback
+            machine_list_element.on 'selected', @call_all_callback
+
+        call_all_callback: =>
+            callback() for callback in @callbacks
 
         destroy: ->
-            machines.off()
+            machines.off 'change:datacenter_uuid', @changed_datacenter
 
 
     # Machine list element
@@ -405,8 +410,8 @@ module 'ServerView', ->
             $(event.currentTarget).tooltip('show')
 
         destroy: =>
-            @model.off()
-            directory.off()
+            @model.off 'change:name', @render_summary
+            directory.off 'all', @render_summary
 
     # Datacenter list element
     class @DatacenterListElement extends UIComponents.CollapsibleListElement
@@ -504,9 +509,9 @@ module 'ServerView', ->
             @machine_list.register_machine_callbacks callbacks
 
         destroy: ->
-            @model.off()
-            directory.off()
-            @machine_list.off()
+            @model.off 'change', @render_summary
+            directory.off 'all', @render_summary
+            @machine_list.off 'size_changed', @ml_size_changed
 
     # Equivalent of a DatacenterListElement, but for machines that haven't been assigned to a datacenter yet.
     class @UnassignedMachinesListElement extends UIComponents.CollapsibleListElement
@@ -556,8 +561,8 @@ module 'ServerView', ->
             @machine_list.register_machine_callbacks callbacks
 
         destroy: =>
-            machines.off()
-            @machine_list.off()
+            machines.off 'add', (machine) => @render() if machine.get('datacenter_uuid') is null
+            @machine_list.off 'size_changed', @ml_size_changed
 
     class @AddDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#add_datacenter-modal-template').html()
