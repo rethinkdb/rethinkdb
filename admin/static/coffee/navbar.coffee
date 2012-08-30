@@ -38,16 +38,7 @@ class NavBarView extends Backbone.View
         log_render '(rendering) NavBarView'
         @.$el.html @template()
         # set active tab
-        if route?
-            @.$('ul.nav li').removeClass('active')
-            if route is 'route:dashboard'
-                $('ul.nav li#nav-dashboard').addClass('active')
-            else if route is 'route:index_namespaces'
-                $('ul.nav li#nav-namespaces').addClass('active')
-            else if route is 'route:index_servers'
-                $('ul.nav li#nav-servers').addClass('active')
-            else if route is 'route:logs'
-                $('ul.nav li#nav-logs').addClass('active')
+        @set_active_tab route
 
         if @first_render is true
             # Initialize typeahead
@@ -56,3 +47,16 @@ class NavBarView extends Backbone.View
 
         return @
 
+    set_active_tab: (route) =>
+        if route?
+            @.$('ul.nav li').removeClass('active')
+            switch route 
+                when 'route:dashboard' then $('ul.nav li#nav-dashboard').addClass('active')
+                when 'route:index_namespaces' then $('ul.nav li#nav-namespaces').addClass('active')
+                when 'route:namespace' then $('ul.nav li#nav-namespaces').addClass('active')
+                when 'route:database' then $('ul.nav li#nav-namespaces').addClass('active')
+                when 'route:index_servers' then $('ul.nav li#nav-servers').addClass('active')
+                when 'route:server' then $('ul.nav li#nav-servers').addClass('active')
+                when 'route:datacenter' then $('ul.nav li#nav-servers').addClass('active')
+                when 'route:dataexplorer' then $('ul.nav li#nav-dataexplorer').addClass('active')
+                when 'route:logs' then $('ul.nav li#nav-logs').addClass('active')
