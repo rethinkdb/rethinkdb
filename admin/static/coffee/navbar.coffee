@@ -24,8 +24,12 @@ class NavBarView extends Backbone.View
                 _namespaces = _.map namespaces.models, (namespace) ->
                     uuid: namespace.get('id')
                     name: namespace.get('name') + ' (namespace)'
-                    type: 'namespaces'
-                return _machines.concat(_datacenters).concat(_namespaces)
+                    type: 'tables'
+                _databases = _.map databases.models, (database) ->
+                    uuid: database.get('id')
+                    name: database.get('name') + ' (database)'
+                    type: 'databases'
+                return _machines.concat(_datacenters).concat(_namespaces).concat(_databases)
             property: 'name'
             onselect: (obj) ->
                 window.app.navigate('#' + obj.type + '/' + obj.uuid , { trigger: true })
