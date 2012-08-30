@@ -93,6 +93,7 @@ class BackboneCluster extends Backbone.Router
         @current_view.destroy()
         @current_view = new DataExplorerView.Container
         @$container.html @current_view.render().el
+        @current_view.call_codemirror()
         @sidebar.set_type_view('dataexplorer')
 
     database: (id, tab) ->
@@ -149,8 +150,10 @@ class BackboneCluster extends Backbone.Router
         machine = machines.get(id)
 
         @current_view.destroy()
-        if machine? then @current_view = new MachineView.Container model: machine
-        else @current_view = new MachineView.NotFound id
+        if machine?
+            @current_view = new MachineView.Container model: machine
+        else
+            @current_view = new MachineView.NotFound id
         
         if tab?
             @$container.html @current_view.render(tab).el

@@ -158,13 +158,28 @@ struct rdb_protocol_t {
         RDB_MAKE_ME_SERIALIZABLE_5(result, errors, key_range, truncated, last_considered_key);
     };
 
+    struct distribution_read_response_t {
+        //Supposing the map has keys:
+        //k1, k2 ... kn
+        //with k1 < k2 < .. < kn
+        //Then k1 == left_key
+        //and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
+        //key_counts[kn] = the number of keys in [kn, right_key)
+        // TODO: Just make this use an int64_t.
+        std::map<store_key_t, int> key_counts;
+
+        RDB_MAKE_ME_SERIALIZABLE_1(key_counts);
+    };
+
     struct read_response_t {
-        boost::variant<point_read_response_t, rget_read_response_t> response;
+    private:
+        typedef boost::variant<point_read_response_t, rget_read_response_t, distribution_read_response_t> _response_t;
+    public:
+        _response_t response;
 
         read_response_t() { }
         read_response_t(const read_response_t& r) : response(r.response) { }
-        explicit read_response_t(const point_read_response_t& r) : response(r) { }
-        explicit read_response_t(const rget_read_response_t& r) : response(r) { }
+        explicit read_response_t(const _response_t &r) : response(r) { }
 
         RDB_MAKE_ME_SERIALIZABLE_1(response);
     };
@@ -218,8 +233,27 @@ struct rdb_protocol_t {
         RDB_MAKE_ME_SERIALIZABLE_5(key_range, maximum, transform, terminal, scopes);
     };
 
+    class distribution_read_t {
+    public:
+        distribution_read_t()
+            : max_depth(0), range(key_range_t::universe())
+        { }
+        explicit distribution_read_t(int _max_depth)
+            : max_depth(_max_depth), range(key_range_t::universe())
+        { }
+
+        int max_depth;
+        key_range_t range;
+
+        RDB_MAKE_ME_SERIALIZABLE_2(max_depth, range);
+    };
+
+
     struct read_t {
-        boost::variant<point_read_t, rget_read_t> read;
+    private:
+        typedef boost::variant<point_read_t, rget_read_t, distribution_read_t> _read_t;
+    public:
+        _read_t read;
 
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
@@ -228,8 +262,7 @@ struct rdb_protocol_t {
 
         read_t() { }
         read_t(const read_t& r) : read(r.read) { }
-        explicit read_t(const point_read_t &r) : read(r) { }
-        explicit read_t(const rget_read_t &r) : read(r) { }
+        explicit read_t(const _read_t &r) : read(r) { }
 
         RDB_MAKE_ME_SERIALIZABLE_1(read);
     };

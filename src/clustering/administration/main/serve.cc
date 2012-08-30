@@ -286,6 +286,7 @@ try {
                     semilattice_manager_cluster.get_root_view(),
                     directory_read_manager.get_root_view(),
                     &memcached_namespace_repo,
+                    &rdb_namespace_repo,
                     &admin_tracker,
                     &local_issue_tracker,
                     rdb_pb_server.get_http_app(),
