@@ -488,6 +488,7 @@ module 'DataExplorerView', ->
             return 0
 
         append_suggestion: (query, suggestions) =>
+            @hide_suggestion()
             splitdata = query.split('.')
             @current_completed_query = ''
             if splitdata.length>1
