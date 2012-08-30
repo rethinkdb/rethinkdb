@@ -431,7 +431,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             }
         case Builtin::MAP:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
 
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 check_mapping_type(b.map().mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("mapping"));
@@ -1562,12 +1562,15 @@ boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env
         case Term::JSON:
         case Term::BOOL:
         case Term::JSON_NULL:
-        case Term::ARRAY:
         case Term::OBJECT:
         case Term::GETBYKEY:
         case Term::JAVASCRIPT:
-            unreachable("eval_stream called on a function that does not return a stream (use eval instead).");
-            break;
+        case Term::ARRAY: {
+            boost::shared_ptr<scoped_cJSON_t> arr = eval(t, env, backtrace);
+            require_type(arr->get(), cJSON_Array, backtrace);
+            json_array_iterator_t it(arr->get());
+            return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it, env));
+        } break;
         default:
             unreachable();
             break;
