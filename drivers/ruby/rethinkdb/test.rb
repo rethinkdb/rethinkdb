@@ -359,6 +359,10 @@ class ClientTest < Test::Unit::TestCase
     # TODO_SERV: Reduce still broken.
     query = rdb.map{r.hasattr(:id)}.reduce(true){|a,b| r.all a,b}
     #assert_equal(query.run, true)
+
+    assert_equal(r[[1,2,3]].reduce(0){|a,b| a+b}.run, 6)
+    assert_raise(RuntimeError){r[1].reduce(0){0}.run}
+
     assert_equal(  rdb.map{|row| row['id']}.reduce(0){|a,b| a+b}.run,
                  $data.map{|row| row['id']}.reduce(0){|a,b| a+b})
 
