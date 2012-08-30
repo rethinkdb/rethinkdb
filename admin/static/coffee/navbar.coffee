@@ -16,7 +16,7 @@ class NavBarView extends Backbone.View
                 _machines = _.map machines.models, (machine) ->
                     uuid: machine.get('id')
                     name: machine.get('name') + ' (machine)'
-                    type: 'machines'
+                    type: 'servers'
                 _datacenters = _.map datacenters.models, (datacenter) ->
                     uuid: datacenter.get('id')
                     name: datacenter.get('name') + ' (datacenter)'
