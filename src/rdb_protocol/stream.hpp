@@ -52,7 +52,12 @@ public:
     template <class Ordering>
     void sort(const Ordering &o) {
         guarantee(!started);
-        raw_data.sort(o);
+        if (raw_data.size() == 1) {
+            // We want to do this so that we trigger exceptions consistently.
+            o(*raw_data.begin(), *raw_data.begin());
+        } else {
+            raw_data.sort(o);
+        }
     }
 
 

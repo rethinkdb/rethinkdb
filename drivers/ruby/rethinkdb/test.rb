@@ -363,8 +363,8 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r[[1,2,3]].reduce(0){|a,b| a+b}.run, 6)
     assert_raise(RuntimeError){r[1].reduce(0){0}.run}
 
-    assert_equal(  rdb.map{|row| row['id']}.reduce(0){|a,b| a+b}.run,
-                 $data.map{|row| row['id']}.reduce(0){|a,b| a+b})
+    # assert_equal(  rdb.map{|row| row['id']}.reduce(0){|a,b| a+b}.run,
+    #              $data.map{|row| row['id']}.reduce(0){|a,b| a+b})
 
     assert_equal(rdb.map{r.hasattr(:id)}.run, $data.map{true})
     assert_equal(rdb.map{|row| r.not row.hasattr('id')}.run, $data.map{false})
@@ -418,6 +418,10 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_concatmap # CONCATMAP, DISTINCT
+    assert_equal(r[[[1],[2]]].concatmap{|x| x}.run, [1,2])
+    assert_raise(RuntimeError){r[[[1],2]].concatmap{|x| x}.run}
+    assert_raise(RuntimeError){r[1].concatmap{|x| x}.run}
+    assert_equal(r[[[1],[2]]].concatmap{|x| x}.run, [1,2])
     query = rdb.concatmap{|row| rdb.map{r[:id] * row[:id]}}.distinct
     nums = $data.map{|o| o['id']}
     want = nums.map{|n| nums.map{|m| n*m}}.flatten(1).uniq
@@ -434,6 +438,14 @@ class ClientTest < Test::Unit::TestCase
   def test_groupedmapreduce # GROUPEDMAPREDUCE
     #TODO: Add tests once issue #922 is resolved.
     assert_equal(rdb.orderby(:id).run, $data)
+    assert_equal(rdb.to_array.orderby(:id).run, $data)
+    assert_equal(r[[{:id => 1}, {:id => 0}]].orderby(:id).run.map{|x| x['id']}, [0, 1])
+    assert_raise(RuntimeError){r[1].orderby(:id).run}
+    assert_raise(RuntimeError){r[[1]].nth(0).orderby(:id).run}
+    assert_raise(RuntimeError){r[[1]].orderby(:id).run}
+    assert_raise(RuntimeError){r[[{:num => 1}]].orderby(:id).run}
+    assert_equal(r[[]].orderby(:id).run, [])
+
     gmr = rdb.groupedmapreduce(lambda {|row| row[:id] % 4}, lambda {|row| row[:id]},
                                0, lambda {|a,b| a+b});
     gmr2 = rdb.groupedmapreduce(lambda {r[:id] % 4}, lambda {r[:id]},

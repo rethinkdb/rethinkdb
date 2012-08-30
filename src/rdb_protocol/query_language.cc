@@ -440,10 +440,10 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::CONCATMAP:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
 
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
-                check_mapping_type(b.concat_map().mapping(), TERM_TYPE_STREAM, env, &deterministic, deterministic, backtrace.with("mapping"));
+                //check_mapping_type(b.concat_map().mapping(), TERM_TYPE_STREAM, env, &deterministic, deterministic, backtrace.with("mapping"));
                 return term_info_t(TERM_TYPE_STREAM, deterministic);
             }
             break;
@@ -468,7 +468,8 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::ORDERBY:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
+
                 term_info_t res = get_term_type(c.args(0), env, backtrace);
                 res.deterministic &= deterministic;
                 return res;
@@ -504,7 +505,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::GROUPEDMAPREDUCE:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 check_mapping_type(b.grouped_map_reduce().group_mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("group_mapping"));
                 check_mapping_type(b.grouped_map_reduce().value_mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("value_mapping"));
@@ -521,7 +522,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             return term_info_t(TERM_TYPE_STREAM, deterministic);
             break;
         case Builtin::RANGE:
-            check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+            check_arg_count(c, 1, backtrace);
             return term_info_t(TERM_TYPE_STREAM, deterministic);
             break;
         default:
@@ -601,7 +602,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::FOREACH:
             {
                 check_protobuf(w.has_for_each());
-                check_term_type(w.for_each().stream(), TERM_TYPE_STREAM, env, is_det_out, backtrace.with("stream"));
+                //check_term_type(w.for_each().stream(), TERM_TYPE_STREAM, env, is_det_out, backtrace.with("stream"));
 
                 new_scope_t scope_maker(&env->scope, w.for_each().var(), term_info_t(TERM_TYPE_JSON, *is_det_out));
                 for (int i = 0; i < w.for_each().queries_size(); ++i) {
@@ -1521,11 +1522,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
 
 boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     switch (t->type()) {
-        case Term::VAR:
-            crash("Eval stream should never be called on a var term (because"
-                "streams can't be bound to vars) how did you get here and why"
-                    "did you think this was a nice place to come to?");
-            break;
         case Term::LET:
             {
                 // Push the scope
@@ -1556,6 +1552,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env
                 return eval_view(t->mutable_table(), env, backtrace).stream;
             }
             break;
+        case Term::VAR:
         case Term::ERROR:
         case Term::NUMBER:
         case Term::STRING:
@@ -2135,7 +2132,16 @@ public:
     { }
 
     //returns true if x < y according to the ordering
-    bool operator()(const boost::shared_ptr<scoped_cJSON_t> &x, const boost::shared_ptr<scoped_cJSON_t> &y) {
+    bool operator()(const boost::shared_ptr<scoped_cJSON_t> &x, const boost::shared_ptr<scoped_cJSON_t> &y) const {
+        if (x->type() != cJSON_Object) {
+            throw runtime_exc_t(
+                strprintf("Orderby encountered a non-object %s.\n", x->Print().c_str()),
+                backtrace);
+        } else if (y->type() != cJSON_Object) {
+            throw runtime_exc_t(
+                strprintf("Orderby encountered a non-object %s.\n", y->Print().c_str()),
+                backtrace);
+        }
         for (int i = 0; i < order.size(); ++i) {
             const Builtin::OrderBy& cur = order.Get(i);
 
@@ -2196,9 +2202,12 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
         case Builtin::REDUCE:
         case Builtin::ALL:
         case Builtin::GROUPEDMAPREDUCE:
-        case Builtin::ANY:
-            unreachable("eval_stream called on a function that does not return a stream (use eval instead).");
-            break;
+        case Builtin::ANY: {
+            boost::shared_ptr<scoped_cJSON_t> arr = eval(c, env, backtrace);
+            require_type(arr->get(), cJSON_Array, backtrace);
+            json_array_iterator_t it(arr->get());
+            return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it, env));
+        } break;
         case Builtin::FILTER:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
