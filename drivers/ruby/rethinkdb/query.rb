@@ -26,9 +26,9 @@ module RethinkDB
     def query; RQL_Protob.query sexp; end
 
     # Sed a message to the last connection with `self` as an argument.
-    def connection_send m
+    def connection_send (m, *a)
       if Connection.last
-      then return Connection.last.send(m, self)
+      then return Connection.last.send(m, self, *a)
       else raise RuntimeError, "No last connection, open a new one."
       end
     end

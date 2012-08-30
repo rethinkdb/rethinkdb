@@ -2,6 +2,7 @@ require 'socket'
 require 'thread'
 require 'json'
 
+#TODO: Make sure tokens don't overflow.
 module RethinkDB
   class Connection
     @@last = nil
