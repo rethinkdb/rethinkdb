@@ -2,9 +2,24 @@
 module 'MachineView', ->
     class @NotFound extends Backbone.View
         template: Handlebars.compile $('#machine_view-not_found-template').html()
-        initialize: (id) -> @id = id
+        ghost_template: Handlebars.compile $('#machine_view-ghost-template').html()
+        initialize: (id) => 
+            @id = id
         render: =>
-            @.$el.html @template id: @id
+            if directory.get(@id)?
+                for issue in issues.models
+                    if issue.get('type') is 'MACHINE_GHOST' and issue.get('ghost') is @id
+                        @.$el.html @ghost_template
+                            id: @id
+                            ips: directory.get(@id).get('ips')
+                        return @
+                @.$el.html @template
+                    not_found: false
+                    id: @id
+            else
+                @.$el.html @template
+                    not_found: true
+                    id: @id
             return @
 
     # Container
