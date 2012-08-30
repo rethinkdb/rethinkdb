@@ -101,7 +101,7 @@ module 'NamespaceView', ->
                     shard: @model
                     namespace: @namespace
 
-            @namespace.on 'change:key_distr_sorted', @render_summary
+            @namespace.on 'change:key_distr', @render_summary
             @namespace.on 'change:blueprint', @reset_datacenter_list #TODO bind to peers_roles
             @namespace.on 'change:replica_affinities', @reset_datacenter_list #TODO bind to peers_roles
 
@@ -124,7 +124,7 @@ module 'NamespaceView', ->
 
         destroy: =>
             @datacenter_list.destroy()
-            @namespace.off 'change:key_distr_sorted', @render_summary
+            @namespace.off 'change:key_distr', @render_summary
             @namespace.off 'change:blueprint', @reset_datacenter_list
 
     class @ShardDatacenterList extends UIComponents.AbstractList

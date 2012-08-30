@@ -36,8 +36,8 @@ module 'DataExplorerView', ->
             'keyup .input_query': 'handle_keypress'
             'keydown .input_query': 'handle_tab'
             'blur .input_query': 'hide_suggestion'
-            'click .input_query': 'make_suggestion' # Click and not focus for webkit browsers
             ###
+            'click .input_query': 'handle_keypress' # Click and not focus for webkit browsers
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
             #'mouseup .suggestion_name_li': 'position_cursor_after_click' # Not call because we remove the suggestion
             'mouseover .suggestion_name_li' : 'mouseover_suggestion'
@@ -86,105 +86,128 @@ module 'DataExplorerView', ->
         suggestions:
             stream: [
                 {
-                    suggestion: 'get('
+                    suggestion: 'get()'
                     description: 'get( id )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'filter('
+                    suggestion: 'filter()'
                     description: 'filter( predicate )'
+                    has_argument: true
                 }
                 {
                     suggestion: 'length()'
                     description: 'length()'
+                    has_argument: false
                 }
                 {
-                    suggestion: 'map('
+                    suggestion: 'map()'
                     description: 'map( attribute )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'slice'
+                    suggestion: 'slice()'
                     description: 'slice( start, end )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'orderby('
+                    suggestion: 'orderby()'
                     description: 'orderby( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'distinct'
+                    suggestion: 'distinct()'
                     description: 'distinct( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'reduce('
+                    suggestion: 'reduce()'
                     description: 'reduce( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'pluck('
+                    suggestion: 'pluck()'
                     description: 'pluck( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'extend('
+                    suggestion: 'extend()'
                     description: 'extend( expression )'
+                    has_argument: true
                 }
             ]
             view:[
                 {
-                    suggestion: 'pluck('
+                    suggestion: 'pluck()'
                     description: 'pluck( expression )'
+                    has_argument: true
                 }
             ]
             db:[
                 {
-                    suggestion: 'table('
+                    suggestion: 'table()'
                     description: 'table( table_name )'
+                    has_argument: true
                 }
                 {
                     suggestion: 'list()'
                     description: 'list()'
+                    has_argument: false
                 }
                 {
-                    suggestion: 'create'
+                    suggestion: 'create()'
                     description: 'create( database_name, primary_datacenter_id )'
+                    has_argument: true
                 }
                 {
                     suggestion: 'drop()'
                     description: 'drop()'
+                    has_argument: false
                 }
             ]
             table:[
                 {
-                    suggestion: 'insert('
+                    suggestion: 'insert()'
                     description: 'insert( document )'
+                    has_argument: true
                 }
                 
             ]
             r:[
                 {
-                    suggestion: 'dbCreate('
+                    suggestion: 'dbCreate()'
                     description: 'dbCreate( database_name, primary_datacenter )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'dbDrop('
+                    suggestion: 'dbDrop()'
                     description: 'dbDrop( database_name )'
+                    has_argument: true
                 }
                 {
                     suggestion: 'dbList()'
                     description: 'dbList()'
+                    has_argument: false
                 }
                 {
-                    suggestion: 'expr('
+                    suggestion: 'expr()'
                     description:'expr( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'fn('
+                    suggestion: 'fn()'
                     description: 'fn( argument..., body )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'ifThenElse('
+                    suggestion: 'ifThenElse()'
                     description: 'ifThenElse( expression, callback_true, callback_false)'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'let('
+                    suggestion: 'let()'
                     description: 'let( arguments..., body)'
+                    has_argument: true
                 }
 
             ]
@@ -192,73 +215,90 @@ module 'DataExplorerView', ->
                 {
                     suggestion: 'r'
                     description : 'The main ReQL namespace'
+                    has_argument: false
                 }
                 {
-                    suggestion: 'r('
+                    suggestion: 'r()'
                     description : 'Variable'
+                    has_argument: true
                 }
 
                 {
-                    suggestion: 'R('
+                    suggestion: 'R()'
                     description : 'Attribute Selector'
+                    has_argument: true
                 }
             ]
             expr: [
                 {
-                    suggestion: 'add('
+                    suggestion: 'add()'
                     description: 'add( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'sub('
+                    suggestion: 'sub()'
                     description: 'sub( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'mul('
+                    suggestion: 'mul()'
                     description: 'mul( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'div('
+                    suggestion: 'div()'
                     description: 'div( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'mod('
+                    suggestion: 'mod()'
                     description: 'mod( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'eq('
+                    suggestion: 'eq()'
                     description: 'eq( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'ne('
+                    suggestion: 'ne()'
                     description: 'ne( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'lt('
+                    suggestion: 'lt()'
                     description: 'lt( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'le('
+                    suggestion: 'le()'
                     description: 'le( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'gt('
+                    suggestion: 'gt()'
                     description: 'gt( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'ge('
+                    suggestion: 'ge()'
                     description: 'ge( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'not('
+                    suggestion: 'not()'
                     description: 'not( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'and('
+                    suggestion: 'and()'
                     description: 'and( expression )'
+                    has_argument: true
                 }
                 {
-                    suggestion: 'or('
+                    suggestion: 'or()'
                     description: 'or( expression )'
+                    has_argument: true
                 }
 
             ]
@@ -301,16 +341,21 @@ module 'DataExplorerView', ->
                 start_line_index = 0
             else
                 start_line_index += 1
+            
+            ch = (@query_first_part + @current_completed_query + suggestion_to_write).length - start_line_index
+            if @.$(event.target).data('has_argument') is true
+                ch--
 
             @cursor =
                 line: saved_cursor.line
-                ch: (@query_first_part + @current_completed_query + suggestion_to_write).length - start_line_index
+                ch: ch
 
             setTimeout @position_cursor_after_click, 1 # Ugliest hack ever.
 
         position_cursor_after_click: =>
             @codemirror.focus()
             @position_cursor @cursor
+            @handle_keypress()
 
 
         hide_suggestion: =>
@@ -356,7 +401,8 @@ module 'DataExplorerView', ->
                         else
                             start_line_index += 1
                         position = (@query_first_part + @current_completed_query + @current_suggestions[@current_highlighted_suggestion].suggestion).length - start_line_index 
-
+                        if @current_suggestions[@current_highlighted_suggestion].has_argument is true
+                            position--
                         @position_cursor
                             line: saved_cursor.line
                             ch: position
@@ -366,7 +412,7 @@ module 'DataExplorerView', ->
                         return false
 
                     return true
-                if event.which is 13 and (event.shiftKey or event.ctrlKey)
+                if event.which is 13 and (event.shiftKey or event.ctrlKey) #Ctrl or shift + enter
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
@@ -375,10 +421,12 @@ module 'DataExplorerView', ->
             
             if event?.type? and event.type isnt 'keyup'
                 return false
+
             @current_highlighted_suggestion = -1
             @.$('.suggestion_name_list').html ''
 
             query_lines = @codemirror.getValue().split '\n'
+
             # Get query before the cursor
             query_before_cursor = ''
             if @codemirror.getCursor().line > 0
@@ -400,22 +448,14 @@ module 'DataExplorerView', ->
             if (query_before_cursor.match(/\"/g)||[]).length%2 is 1
                 @hide_suggestion()
                 return ''
-            
-
 
             slice_index = @extract_query_first_part query_before_cursor
-            #TODO What is slice_index is -1?
             query = query_before_cursor.slice slice_index
             
             @query_first_part = query_before_cursor.slice 0, slice_index
-            next_dot_position = query_after_cursor.indexOf('.')
-            if next_dot_position is -1
-                @query_last_part = ''
-            else
-                @query_last_part = query_after_cursor.slice next_dot_position
-                if query_after_cursor[next_dot_position-1]? and query_after_cursor[next_dot_position-1] is '\n'
-                    @query_last_part = '\n' + @query_last_part
-            
+            # We might want to use tab to move faster (like w in vim)
+            @query_last_part = query_after_cursor #.slice slice_position
+
             last_function = @extract_last_function(query)
             if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
                 suggestions = []
@@ -438,21 +478,7 @@ module 'DataExplorerView', ->
                     @append_suggestion(query, suggestions)
 
             return false
-
-        extract_current_function: (query) =>
-            #TODO Handle string
-            start = query.lastIndexOf '.'
-            if start is -1
-                s = query
-            else
-                s = query.slice start+1
-
-            end = s.indexOf '('
-            if end is -1
-                return s
-            else
-                return s.slice 0, end
- 
+        
         extract_last_function: (query) =>
             start = 0
             count_dot = 0
@@ -522,6 +548,7 @@ module 'DataExplorerView', ->
                     @current_suggestions.push suggestion
                     @.$('.suggestion_name_list').append @template_suggestion_name 
                         id: i
+                        has_argument: suggestion.has_argument
                         suggestion: suggestion.suggestion
 
             if found_suggestion
@@ -631,9 +658,6 @@ module 'DataExplorerView', ->
             @unsafe_to_safe_regexstr.push
                 pattern: /\}/g
                 replacement: '\\}'
-   
-
-
 
             @input_query = new DataExplorerView.InputQuery
             @data_container = new DataExplorerView.DataContainer
@@ -658,7 +682,7 @@ module 'DataExplorerView', ->
                 lineWrapping: true
                 matchBrackets: true
 
-            @codemirror.setSize 700, 100
+            @codemirror.setSize 698, 100
 
         # Go home
         display_home: =>
