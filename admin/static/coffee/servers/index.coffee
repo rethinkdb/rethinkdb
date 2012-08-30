@@ -138,7 +138,6 @@ module 'ServerView', ->
                 if @.$('#reason_cannot_change_datacenter').length > 0
                     @.$('#reason_cannot_change_datacenter').slideUp 200, -> $(this).remove()
  
-
             return num_not_movable_machines>0 or selected_machines.length is 0
                 
 
@@ -675,6 +674,7 @@ module 'ServerView', ->
 
     class @SetDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#set_datacenter-modal-template').html()
+        cannot_change_datacenter_alert_template: Handlebars.compile $('#cannot_change_datacenter-alert_content-template').html()
         alert_tmpl: Handlebars.compile $('#set_datacenter-alert-template').html()
         class: 'set-datacenter-modal'
 
@@ -698,6 +698,10 @@ module 'ServerView', ->
             for _m in @machines_list
                 json[_m.get('id')] =
                     datacenter_uuid: @formdata.datacenter_uuid
+            
+            if @can_change_datacenter() is false
+                @reset_buttons()   
+                return @
 
             # Set the datacenters!
             $.ajax
@@ -722,5 +726,56 @@ module 'ServerView', ->
                 machines_rest: machine_names.splice(1)
                 machine_count: @machines_list.length
             )
+
+        can_change_datacenter: =>
+            selected_machines = @machines_list
+            reason_unmovable_machines = {}
+            for machine in selected_machines
+                for namespace in namespaces.models
+                    for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
+                        if machine_uuid is machine.get 'id'
+                            for shard, role of peer_roles
+                                if role is 'role_primary'
+                                    if not (machine.get('id') of reason_unmovable_machines)
+                                        reason_unmovable_machines[machine_uuid] = {}
+                                        reason_unmovable_machines[machine_uuid]['master'] = []
+                                    reason_unmovable_machines[machine_uuid]['master'].push
+                                        namespace_id: namespace.get 'id'
+                                    break
+
+
+            for selected_machine in selected_machines
+                num_machines_in_datacenter = 0
+                for machine in machines.models
+                    if machine.get('datacenter_uuid') is selected_machine.get('datacenter_uuid')
+                        num_machines_in_datacenter++
+
+                for namespace in namespaces.models
+                    if selected_machine.get('datacenter_uuid') of namespace.get('replica_affinities') # If the datacenter has responsabilities
+                        num_replica = namespace.get('replica_affinities')[selected_machine.get('datacenter_uuid')]
+                        if namespace.get('primary_uuid') is selected_machine.get('datacenter_uuid')
+                            num_replica++
+                        if num_machines_in_datacenter <= num_replica
+                            if not (selected_machine.get('id') of reason_unmovable_machines)
+                                reason_unmovable_machines[selected_machine.get('id')] = []
+                                reason_unmovable_machines[selected_machine.get('id')]['goals'] = []
+                            else if not ('goals' of reason_unmovable_machines[selected_machine.get('id')])
+                                reason_unmovable_machines[selected_machine.get('id')]['goals'] = []
+
+                            reason_unmovable_machines[selected_machine.get('id')]['goals'].push
+                                namespace_id: namespace.get 'id'
+
+            num_not_movable_machines = 0
+            for machine_id of reason_unmovable_machines
+                num_not_movable_machines++
+            
+            if num_not_movable_machines > 0
+                @.$('.alert').html('')
+                @.$('.alert').prepend @cannot_change_datacenter_alert_template
+                    reasons: reason_unmovable_machines
+                    red: true
+                @.$('.alert').slideDown 200
+
+            return num_not_movable_machines is 0
 
         #TODO Handle error
