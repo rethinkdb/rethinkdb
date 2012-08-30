@@ -777,5 +777,3 @@ module 'ServerView', ->
                 @.$('.alert').slideDown 200
 
             return num_not_movable_machines is 0
-
-        #TODO Handle error
