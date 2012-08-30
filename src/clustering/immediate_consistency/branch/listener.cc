@@ -330,7 +330,8 @@ void listener_t<protocol_t>::try_start_receiving_writes(
     intro_receiver_t<protocol_t> intro_receiver;
     typename listener_business_card_t<protocol_t>::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
-                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1));
+                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1),
+                      mailbox_callback_mode_inline);
 
     try {
         registrant_.init(new registrant_t<listener_business_card_t<protocol_t> >(
