@@ -110,10 +110,6 @@ module 'ServerView', ->
                         num_replica = namespace.get('replica_affinities')[selected_machine.get('datacenter_uuid')]
                         if namespace.get('primary_uuid') is selected_machine.get('datacenter_uuid')
                             num_replica++
-                        console.log '----'
-                        console.log namespace.get 'name'
-                        console.log num_machines_in_datacenter
-                        console.log num_replica
                         if num_machines_in_datacenter <= num_replica
                             if not (selected_machine.get('id') of reason_unmovable_machines)
                                 reason_unmovable_machines[selected_machine.get('id')] = []
