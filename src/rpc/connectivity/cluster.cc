@@ -525,7 +525,7 @@ connectivity_service_t *connectivity_cluster_t::get_connectivity_service() THROW
     return this;
 }
 
-void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<void(write_stream_t *)> &writer) THROWS_NOTHING {
+void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_callback_t *callback) THROWS_NOTHING {
     // We could be on _any_ thread.
 
     rassert(!dest.is_nil());
@@ -537,7 +537,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
     vector_stream_t buffer;
     {
         ASSERT_FINITE_CORO_WAITING;
-        writer(&buffer);
+        callback->write(&buffer);
     }
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING
@@ -573,7 +573,6 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
 
     if (conn_structure->conn == NULL) {
         // We're sending a message to ourself
-        // RSI: avoid serialization/deserialization, just make a copy
         rassert(dest == me);
         // We could be on any thread here! Oh no!
         vector_read_stream_t buffer2(&buffer.vector());

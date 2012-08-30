@@ -54,11 +54,11 @@ private:
         publisher_t<boost::function<void()> > *get_publisher();
     };
 
-    static void write_metadata(write_stream_t *stream, metadata_t md, metadata_version_t current_version);
-    static void write_sync_from_query(write_stream_t *stream, sync_from_query_id_t query_id);
-    static void write_sync_from_reply(write_stream_t *stream, sync_from_query_id_t query_id, metadata_version_t current_version);
-    static void write_sync_to_query(write_stream_t *stream, sync_to_query_id_t query_id, metadata_version_t current_version);
-    static void write_sync_to_reply(write_stream_t *stream, sync_to_query_id_t query_id);
+    class metadata_writer_t;
+    class sync_from_query_writer_t;
+    class sync_from_reply_writer_t;
+    class sync_to_query_writer_t;
+    class sync_to_reply_writer_t;
 
     /* These are called in a blocking fashion by the message service or by the
     `connectivity_service_t`. */

@@ -204,7 +204,7 @@ public:
 
     /* `message_service_t` public methods: */
     connectivity_service_t *get_connectivity_service() THROWS_NOTHING;
-    void send_message(peer_id_t, const boost::function<void(write_stream_t *)> &) THROWS_NOTHING;
+    void send_message(peer_id_t, send_message_write_callback_t *callback) THROWS_NOTHING;
 
     /* Other public methods: */
 

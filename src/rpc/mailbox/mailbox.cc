@@ -58,18 +58,35 @@ raw_mailbox_t::address_t raw_mailbox_t::get_address() const {
     return a;
 }
 
+class raw_mailbox_writer_t : public send_message_write_callback_t {
+public:
+    raw_mailbox_writer_t(int _dest_thread, raw_mailbox_t::id_t _dest_mailbox_id, mailbox_write_callback_t *_subwriter) :
+        dest_thread(_dest_thread), dest_mailbox_id(_dest_mailbox_id), subwriter(_subwriter) { }
+    virtual ~raw_mailbox_writer_t() { }
+
+    void write(write_stream_t *stream) {
+        write_message_t msg;
+        msg << dest_thread;
+        msg << dest_mailbox_id;
+
+        // TODO: Maybe pass write_message_t to writer... eventually.
+        int res = send_write_message(stream, &msg);
+        if (res) { throw fake_archive_exc_t(); }
+
+        subwriter->write(stream);
+    }
+private:
+    int32_t dest_thread;
+    raw_mailbox_t::id_t dest_mailbox_id;
+    mailbox_write_callback_t *subwriter;
+};
+
 void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, mailbox_write_callback_t *callback) {
     rassert(src);
     rassert(!dest.is_nil());
 
-    src->message_service->send_message(dest.peer,
-        boost::bind(
-            &mailbox_manager_t::write_mailbox_message,
-            _1,
-            dest.thread,
-            dest.mailbox_id,
-            callback
-            ));
+    raw_mailbox_writer_t writer(dest.thread, dest.mailbox_id, callback);
+    src->message_service->send_message(dest.peer, &writer);
 }
 
 mailbox_manager_t::mailbox_manager_t(message_service_t *ms) :
@@ -100,20 +117,6 @@ raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::i
     } else {
         return (*it).second;
     }
-}
-
-void mailbox_manager_t::write_mailbox_message(write_stream_t *stream, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, mailbox_write_callback_t *callback) {
-    write_message_t msg;
-    int32_t dest_thread_32_bit = dest_thread;
-    msg << dest_thread_32_bit;
-    msg << dest_mailbox_id;
-
-    // TODO: Maybe pass write_message_t to writer... eventually.
-    int res = send_write_message(stream, &msg);
-
-    if (res) { throw fake_archive_exc_t(); }
-
-    callback->write(stream);
 }
 
 void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *stream) {

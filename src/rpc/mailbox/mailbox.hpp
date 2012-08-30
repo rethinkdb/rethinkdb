@@ -36,6 +36,7 @@ public:
 struct raw_mailbox_t : public home_thread_mixin_t {
 private:
     friend struct mailbox_manager_t;
+    friend class raw_mailbox_writer_t;
 
     mailbox_manager_t *manager;
     const mailbox_thread_mode_t thread_mode;
