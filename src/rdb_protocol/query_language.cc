@@ -841,7 +841,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
            until that has happened, so we try to do a read every `poll_ms`
            milliseconds until one succeeds, then return. */
 
-        int64_t poll_ms = 200; //with this value, usually polls twice
+        int64_t poll_ms = 100; //with this value, usually polls twice
         //This read won't succeed, but we care whether it fails with an exception.
         rdb_protocol_t::read_t bad_read(rdb_protocol_t::point_read_t(store_key_t("")));
         try {
