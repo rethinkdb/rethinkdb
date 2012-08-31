@@ -593,7 +593,7 @@ module 'DataUtils', ->
         datacenter = datacenters.get(datacenter_uuid)
         acks = namespace?.get('ack_expectations')?[datacenter?.get('id')]?
         if acks?
-            return acks
+            return namespace.get('ack_expectations')[datacenter.get('id')]
         else
             return 0
 
