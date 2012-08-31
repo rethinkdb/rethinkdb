@@ -137,3 +137,17 @@ void assertion_failed_msg(char const * expr, char const * msg, char const * func
 }
 
 }
+
+// The following piece of code is needed to fix some unpleasant bug in
+// libstdc++ which shows up during linking if <cxxabi.h> is included and
+// `-fkeep-inline-functions` is on:
+//
+//     /usr/include/c++/4.6/cxxabi.h:618: error: undefined reference to 'vtable for __gnu_cxx::recursive_init_error'
+//
+// This happens because the destructor's body for `recursive_init_error` is not
+// defined.
+//
+// See also <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=43863>.
+namespace __gnu_cxx {
+recursive_init_error::~recursive_init_error() throw () { }
+}
