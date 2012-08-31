@@ -253,7 +253,8 @@
 
 // This "must" be hard-coded because a cluster cannot run with
 // differing cpu sharding factors.
-const int CLUSTER_CPU_SHARDING_FACTOR = 48;
+// TODO: Make this not be 16.
+const int CLUSTER_CPU_SHARDING_FACTOR = 16;
 
 #endif  // CONFIG_ARGS_HPP_
 
