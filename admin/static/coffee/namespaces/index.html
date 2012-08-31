@@ -41,21 +41,6 @@
             <p class="quick_info">
             {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "server" nmachines}}, replication: {{> backfill_progress_summary}}
             </p>
-    
-            <!--
-            <ul class="list_stats">
-                <li class="stat_name">Total op/sec</li>
-                <li class="opsec_sparkline sparkline_container contains_info" title="{{opsec}} {{pluralize_noun "operation" opsec}} per second"></li>
-            </ul>
-            <ul class="list_stats">
-                <li class="stat_name">Data in RAM</li>
-                <li class="data_in_ram">
-                    <div class="progress contains_info" title="Data in ram: {{data_in_memory}} - Data in disk: {{data_total}}">
-                        <div class="bar" style="width: {{data_in_memory_percent}}%;"></div>
-                    </div>
-                </li>
-            </ul>
-            -->
     </td>
 </script>
 
