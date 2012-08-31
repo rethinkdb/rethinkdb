@@ -1,10 +1,15 @@
 # Datacenter view
 module 'DatacenterView', ->
     class @NotFound extends Backbone.View
-        template: Handlebars.compile $('#datacenter_view-not_found-template').html()
-        initialize: (id) -> @id = id
+        template: Handlebars.compile $('#element_view-not_found-template').html()
+        initialize: (id) ->
+            @id = id
         render: =>
-            @.$el.html @template id: @id
+            @.$el.html @template
+                id: @id
+                type: 'datacenter'
+                type_url: 'datacenters'
+                type_all_url: 'servers'
             return @
 
     # Container
@@ -33,10 +38,25 @@ module 'DatacenterView', ->
             for machine in machines.models
                 if machine.get('datacenter_uuid') is @model.get('id')
                     filter[machine.get('id')] = true
+
             @logs = new LogView.Container
                 template_header: Handlebars.compile $('#log-header-datacenter-template').html()
                 filter: filter
+
+            datacenters.on 'remove', @check_if_still_exists
         
+        check_if_still_exists: =>
+            exist = false
+            for datacenter in datacenters.models
+                if datacenter.get('id') is @model.get('id')
+                    exist = true
+                    break
+            if exist is false
+                window.router.navigate '#servers'
+                window.app.index_servers
+                    alert_message: "The datacenter <a href=\"#datacenters/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
+
+
         change_route: (event) =>
             # Because we are using bootstrap tab. We should remove them later.
             window.router.navigate @.$(event.target).attr('href')
@@ -631,7 +651,6 @@ module 'DatacenterView', ->
         delete_datacenter: (event) ->
             event.preventDefault()
             remove_datacenter_dialog = new DatacenterView.RemoveDatacenterModal
-            datacenter_to_delete = @model
             remove_datacenter_dialog.render @model
 
         need_update: (old_data, new_data) ->
@@ -668,11 +687,9 @@ module 'DatacenterView', ->
 
     class @RemoveDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#remove_datacenter-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#removed_datacenter-alert-template').html()
-        class: 'remove-namespace-dialog'
+        class: 'remove_datacenter-dialog'
 
         initialize: ->
-            log_initial '(initializing) modal dialog: remove namespace'
             super
 
         render: (_datacenter_to_delete) ->
@@ -713,14 +730,16 @@ module 'DatacenterView', ->
                 error: @on_error
 
         on_success: (response) =>
+            name = datacenters.get(@datacenter_to_delete.get('id')).get 'name'
             datacenters.remove @datacenter_to_delete.get('id')
             for machine in machines.models
                 if machine.get('datacenter_uuid') is @datacenter_to_delete.get('id')
                     machine.set('datacenter_uuid', null)
             datacenters.trigger 'remove'
 
-            window.router.navigate '#servers', {'trigger': true}
-            #TODO add a feedback
+            window.router.navigate '#servers'
+            window.app.index_servers
+                alert_message: "The datacenter #{name} was successfully deleted."
             
         on_error: (response) =>
             #TODO implement

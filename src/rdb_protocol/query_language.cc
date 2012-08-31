@@ -569,10 +569,12 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
     w.GetReflection()->ListFields(w, &fields);
     check_protobuf(fields.size() == 2);
 
+    bool deterministic = true;
     switch (w.type()) {
         case WriteQuery::UPDATE: {
             check_protobuf(w.has_update());
             check_term_type(w.update().view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.update().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -584,6 +586,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::MUTATE: {
             check_protobuf(w.has_mutate());
             check_term_type(w.mutate().view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.mutate().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -613,6 +616,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::POINTUPDATE: {
             check_protobuf(w.has_point_update());
             check_term_type(w.point_update().key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.point_update().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -624,6 +628,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::POINTMUTATE: {
             check_protobuf(w.has_point_mutate());
             check_term_type(w.point_mutate().key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.point_mutate().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -841,7 +846,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
            until that has happened, so we try to do a read every `poll_ms`
            milliseconds until one succeeds, then return. */
 
-        int64_t poll_ms = 200; //with this value, usually polls twice
+        int64_t poll_ms = 100; //with this value, usually polls twice
         //This read won't succeed, but we care whether it fails with an exception.
         rdb_protocol_t::read_t bad_read(rdb_protocol_t::point_read_t(store_key_t("")));
         try {
@@ -1034,12 +1039,19 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 
                 int updated = 0, errors = 0, skipped = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
+                    rassert(json->type() == cJSON_Object);
                     try {
                         variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->update().mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
                         boost::shared_ptr<scoped_cJSON_t> rhs =
                             eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                         if (rhs->type() == cJSON_NULL) {
                             ++skipped;
+                        } else if (rhs->type() != cJSON_Object) {
+                            ++errors;
+                            if (reported_error == "") {
+                                reported_error = strprintf("Update returned a non-object (%s).\n", rhs->Print().c_str());
+                            }
                         } else {
                             boost::shared_ptr<scoped_cJSON_t> val(new scoped_cJSON_t(cJSON_merge(json->get(), rhs->get())));
                             cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
@@ -1047,7 +1059,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                             if (!cJSON_Equal(json_key, val_key)) {
                                 ++errors;
                                 if (reported_error == "") {
-                                    reported_error = strprintf("Update cannot change priamary keys: %s -> %s\n",
+                                    reported_error = strprintf("Update cannot change primary keys: %s -> %s\n",
                                                                json->PrintUnformatted().c_str(), val->PrintUnformatted().c_str());
                                 }
                             } else {
@@ -1093,11 +1105,17 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     try {
                         variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->mutate().mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
                         boost::shared_ptr<scoped_cJSON_t> val =
                             eval(w->mutable_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                         if (val->type() == cJSON_NULL) {
                             point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
                             ++deleted;
+                        } else if (val->type() != cJSON_Object) {
+                            ++errors;
+                            if (reported_error == "") {
+                                reported_error = strprintf("Mutate returned a non-object (%s).\n", val->Print().c_str());
+                            }
                         } else {
                             cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
                             cJSON *val_key = val->GetObjectItem(view.primary_key.c_str());
@@ -1220,10 +1238,12 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 
                 boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
                 new_val_scope_t scope_maker(&env->scopes.scope, w->point_update().mapping().arg(), original_val);
-
+                implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, original_val);
                 boost::shared_ptr<scoped_cJSON_t> rhs = eval(w->mutable_point_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                 if (rhs->type() == cJSON_NULL) {
                     skipped = 1;
+                } else if (rhs->type() != cJSON_Object) {
+                    throw runtime_exc_t(strprintf("Update returned a non-object: %s", rhs->Print().c_str()), backtrace);
                 } else {
                     if (original_val->type() != cJSON_NULL) {
                         updated = 1;
@@ -1274,6 +1294,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
 
             new_val_scope_t scope_maker(&env->scopes.scope, w->point_mutate().mapping().arg(), original_val);
+            implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, original_val);
             boost::shared_ptr<scoped_cJSON_t> new_val = eval(w->mutable_point_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
 
             namespace_repo_t<rdb_protocol_t>::access_t ns_access =
@@ -1285,6 +1306,8 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     deleted = 1;
                     point_delete(ns_access, cJSON_GetObjectItem(original_val->get(), pk.c_str()), env, backtrace);
                 }
+            } else if (new_val->type() != cJSON_Object) {
+                throw runtime_exc_t(strprintf("Mutate returned a non-object: %s", new_val->Print().c_str()), backtrace);
             } else {
                 if (original_val->type() == cJSON_NULL) {
                     inserted = 1;

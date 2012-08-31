@@ -618,7 +618,14 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb.run), docs)
     assert_equal(rdb.update{nil}.run, {'updated' => 0, 'skipped' => 10, 'errors' => 0})
 
-    res = rdb.update{|row| r.if((row[:id]%2).eq(0), {:id => -1}, row)}.run;
+    res = rdb.update{1}.run
+    assert_equal(res['errors'], 10)
+    res = rdb.update{|row| row[:id]}.run
+    assert_equal(res['errors'], 10)
+    res = rdb.update{r[:id]}.run
+    assert_equal(res['errors'], 10)
+
+    res = rdb.update{|row| r.if((r[:id]%2).eq(0), {:id => -1}, row)}.run;
     assert_not_nil(res['first_error'])
     filtered_res = res.reject {|k,v| k == 'first_error'}
     assert_not_equal(filtered_res, res)
@@ -729,7 +736,7 @@ class ClientTest < Test::Unit::TestCase
               nil)
        },
        rdb.filter{r[:id].eq(row[:id])}.mutate{ |row|
-         r.if((row[:id]%2).eq(1), nil, row)
+         r.if((r[:id]%2).eq(1), nil, row)
        },
        rdb.get(0).delete,
        rdb.get(12).delete]
@@ -748,6 +755,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_mutate_edge_cases #POINTMUTATE
+    res = rdb.mutate{1}.run
+    assert_equal(res['errors'], 10)
     assert_equal(rdb.orderby(:id).run, $data)
     assert_equal(rdb.get(0).mutate{nil}.run,
                  {'deleted' => 1, 'inserted' => 0, 'modified' => 0, 'errors' => 0})
