@@ -50,7 +50,7 @@ class BackboneCluster extends Backbone.Router
     render_navbar: -> $('#navbar-container').html @navbar.render().el
     render_walkthrough_popup: -> $('.walkthrough-popup').html (new Walkthrough).render().el
 
-    index_namespaces: ->
+    index_namespaces: (data) ->
         log_router '/index_namespaces'
         clear_modals()
         @current_view.destroy()

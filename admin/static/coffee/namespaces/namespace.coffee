@@ -515,7 +515,9 @@ module 'NamespaceView', ->
             namespace_to_delete = @model
         
             remove_namespace_dialog.on_success = (response) =>
-                window.router.navigate '#namespaces', {'trigger': true}
+                window.router.navigate '#tables'
+                window.app.index_namespaces
+                    alert_message: "The table #{@model.get('name')} was successfully deleted."
                 namespaces.remove @model.get 'id'
 
             remove_namespace_dialog.render [@model]
