@@ -33,6 +33,19 @@ module 'DatabaseView', ->
             @operations = new DatabaseView.Operations(model: @model)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
 
+            databases.on 'remove', @check_if_still_exists
+        
+        check_if_still_exists: =>
+            exist = false
+            for database in databases.models
+                if database.get('id') is @model.get('id')
+                    exist = true
+                    break
+            if exist is false
+                window.router.navigate '#tables'
+                window.app.index_namespaces
+                    alert_message: "The database <a href=\"#databases/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
+
         change_route: (event) =>
             # Because we are using bootstrap tab. We should remove them later.
             window.router.navigate @.$(event.target).attr('href')

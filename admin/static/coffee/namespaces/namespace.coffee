@@ -42,6 +42,18 @@ module 'NamespaceView', ->
 
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
 
+            namespaces.on 'remove', @check_if_still_exists
+        
+        check_if_still_exists: =>
+            exist = false
+            for namespace in namespaces.models
+                if namespace.get('id') is @model.get('id')
+                    exist = true
+                    break
+            if exist is false
+                window.router.navigate '#tables'
+                window.app.index_namespaces
+                    alert_message: "The table <a href=\"#tables/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
         change_route: (event) =>
             # Because we are using bootstrap tab. We should remove them later.
             window.router.navigate @.$(event.target).attr('href')
@@ -236,7 +248,7 @@ module 'NamespaceView', ->
             json = @model.toJSON()
             json = _.extend json, namespace_status
 
-            if namespace_status.reachability? and namespace_status.reachability is 'Live'
+            if namespace_status?.reachability? and namespace_status.reachability is 'Live'
                 json.reachability = true
             else
                 json.reachability = false

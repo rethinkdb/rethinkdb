@@ -38,10 +38,25 @@ module 'DatacenterView', ->
             for machine in machines.models
                 if machine.get('datacenter_uuid') is @model.get('id')
                     filter[machine.get('id')] = true
+
             @logs = new LogView.Container
                 template_header: Handlebars.compile $('#log-header-datacenter-template').html()
                 filter: filter
+
+            datacenters.on 'remove', @check_if_still_exists
         
+        check_if_still_exists: =>
+            exist = false
+            for datacenter in datacenters.models
+                if datacenter.get('id') is @model.get('id')
+                    exist = true
+                    break
+            if exist is false
+                window.router.navigate '#servers'
+                window.app.index_servers
+                    alert_message: "The datacenter <a href=\"#datacenters/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
+
+
         change_route: (event) =>
             # Because we are using bootstrap tab. We should remove them later.
             window.router.navigate @.$(event.target).attr('href')
