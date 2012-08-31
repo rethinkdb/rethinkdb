@@ -284,7 +284,9 @@ module 'DatabaseView', ->
                     error: @on_error
 
             confirmation_modal.on_success = (response) =>
-                window.router.navigate '#databases', {'trigger': true}
+                window.router.navigate '#databases'
+                window.app.index_servers
+                    alert_message: "The database #{model.get('name')} was successfully deleted."
 
                 namespace_id_to_remove = []
                 for namespace in namespaces.models
