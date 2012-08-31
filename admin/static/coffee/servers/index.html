@@ -27,7 +27,7 @@
 </script>
 
 <script id="cannot_change_datacenter-alert-template" type="text/x-handlebars-template">
-  <div id="reason_cannot_change_datacenter" class="alert" data-alert="alert">
+    <div id="reason_cannot_change_datacenter" class="alert" data-alert="alert">
     <a class="close" href="#">&times;</a>
     <p>You cannot change the datacenter of the selected machines because:
         <ul>
@@ -35,6 +35,15 @@
         </ul>
     </p>
   </div>
+</script>
+
+<script id="cannot_change_datacenter-alert_content-template" type="text/x-handlebars-template">
+    <a class="close" href="#">&times;</a>
+    <p>You cannot change the datacenter of the selected machines because:
+        <ul>
+            {{display_reasons_cannot_move reasons}}
+        </ul>
+    </p>
 </script>
 
 <script id="machine_list_element-summary-template" type="text/x-handlebars-template">

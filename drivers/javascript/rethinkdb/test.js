@@ -58,6 +58,7 @@ function testBool() {
 
 var arr = q([1,2,3,4,5,6]);
 function testSlices() {
+    arr.nth(0).run(aeq(1));
     arr.length().run(aeq(6));
     arr.limit(5).length().run(aeq(5));
     arr.skip(4).length().run(aeq(2));
@@ -78,22 +79,41 @@ function testIf() {
 
 function testLet() {
     q.let(['a', q(1)], q.R('$a')).run(aeq(1));
+    q.let(['a', q(1)], ['b', q(2)], q.R('$a').add(q.R('$b'))).run(aeq(3));
 }
 
 function testDistinct() {
-    q([1,1,2,3,4,4,4,5]).distinct().run(print);
+    // Awaiting changes on server
+    //q([1,1,2,3,3,3,3]).distinct().run(objeq([1,2,3]));
 }
 
 function testMap() {
-    arr.map(q.fn('a', q.R('$a').add(1))).nth(2).run(print);
+    // Awaiting changes on server
+    //arr.map(q.fn('a', q.R('$a').add(1))).nth(2).run(print);
 }
 
 function testReduce() {
-    tab.reduce(q(0), q.fn('a', 'b', q.R('$a').add(q.R('$b')))).run(aeq(155));
+    // Awaiting changes on server
+    //arr.reduce(q(0), q.fn('a', 'b', q.R('$a').add(q.R('$b')))).run(aeq(21));
+}
+
+function testGetAttr() {
+    q({a:1,b:2,c:3}).getAttr('a').run(aeq(1));
+    q({a:1,b:2,c:3}).getAttr('b').run(aeq(2));
+    q({a:1,b:2,c:3}).getAttr('c').run(aeq(3));
+}
+
+function testPickAttrs() {
+    q({a:1,b:2,c:3}).pickAttrs('a').run(objeq({a:1}));
+    q({a:1,b:2,c:3}).pickAttrs(['a', 'b']).run(objeq({a:1,b:2}));
 }
 
 function testPluck() {
-    tab.nth(1).pluck('num').run(print);
+    tab.orderby('num').pluck('num').nth(0).run(objeq({num:11}));
+}
+
+function testR() {
+    q.let(['a', q({b:1})], q.R('$a.b')).run(aeq(1));
 }
 
 var tab = q.table('Welcome-rdb');
@@ -107,6 +127,22 @@ function testGet() {
     for (var i = 0; i < 10; i++) {
         tab.get(i).run(objeq({id:i,num:20-i}));
     }
+}
+
+function testOrderby() {
+    tab.orderby('num').nth(2).run(objeq({id:7,num:13}));
+    //tab.orderby('num').nth(2).pickAttrs('num').run(objeq({num:13}));
+}
+
+function testTabMap() {
+    tab.orderby('num').map(q.R('num')).nth(2).run(aeq(13));
+}
+
+function testTabReduce() {
+    tab.map(q.R('num')).reduce(q(0), q.fn('a','b',q.R('$b').add(q.R('$a')))).run(aeq(155));
+
+    // Complains about not having field num
+    //tab.reduce(q(0), q.fn('a', 'b', q.R('$b.num'))).run(aeq(155));
 }
 
 function testClose() {
@@ -126,8 +162,13 @@ runTests([
     testDistinct,
     testMap,
     testReduce,
+    testGetAttr,
+    testPickAttrs,
     testPluck,
     testInsert,
     testGet,
+    testOrderby,
+    testTabMap,
+    testTabReduce,
     testClose,
 ]);
