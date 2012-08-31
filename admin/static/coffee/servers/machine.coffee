@@ -1,7 +1,7 @@
 # Machine view
 module 'MachineView', ->
     class @NotFound extends Backbone.View
-        template: Handlebars.compile $('#machine_view-not_found-template').html()
+        template: Handlebars.compile $('#element_view-not_found-template').html()
         ghost_template: Handlebars.compile $('#machine_view-ghost-template').html()
         initialize: (id) => 
             @id = id
@@ -14,12 +14,16 @@ module 'MachineView', ->
                             ips: directory.get(@id).get('ips')
                         return @
                 @.$el.html @template
-                    not_found: false
                     id: @id
+                    type: 'server'
+                    type_url: 'servers'
+                    type_all_url: 'servers'
             else
                 @.$el.html @template
-                    not_found: true
                     id: @id
+                    type: 'server'
+                    type_url: 'servers'
+                    type_all_url: 'servers'
             return @
 
     # Container

@@ -50,20 +50,26 @@ class BackboneCluster extends Backbone.Router
     render_navbar: -> $('#navbar-container').html @navbar.render().el
     render_walkthrough_popup: -> $('.walkthrough-popup').html (new Walkthrough).render().el
 
-    index_namespaces: ->
+    index_namespaces: (data) ->
         log_router '/index_namespaces'
         clear_modals()
         @current_view.destroy()
         @current_view = new NamespaceView.DatabaseList
-        @$container.html @current_view.render().el
+        if data?.alert_message?
+            @$container.html @current_view.render(data.alert_message).el
+        else
+            @$container.html @current_view.render().el
         @sidebar.set_type_view()
 
-    index_servers: ->
+    index_servers: (data) ->
         log_router '/index_servers'
         clear_modals()
         @current_view.destroy()
         @current_view = new ServerView.DatacenterList
-        @$container.html @current_view.render().el
+        if data?.alert_message?
+            @$container.html @current_view.render(data.alert_message).el
+        else
+            @$container.html @current_view.render().el
         @sidebar.set_type_view()
 
     dashboard: ->
