@@ -52,7 +52,12 @@ public:
     template <class Ordering>
     void sort(const Ordering &o) {
         guarantee(!started);
-        raw_data.sort(o);
+        if (raw_data.size() == 1) {
+            // We want to do this so that we trigger exceptions consistently.
+            o(*raw_data.begin(), *raw_data.begin());
+        } else {
+            raw_data.sort(o);
+        }
     }
 
 
@@ -287,8 +292,9 @@ private:
 
 class range_stream_t : public json_stream_t {
 public:
-    range_stream_t(boost::shared_ptr<json_stream_t> _stream, const key_range_t &_range, const std::string &_attrname)
-        : stream(_stream), range(_range), attrname(_attrname)
+    range_stream_t(boost::shared_ptr<json_stream_t> _stream, const key_range_t &_range,
+                   const std::string &_attrname, const backtrace_t &_backtrace)
+        : stream(_stream), range(_range), attrname(_attrname), backtrace(_backtrace)
     { }
 
     boost::shared_ptr<scoped_cJSON_t> next() {
@@ -296,7 +302,7 @@ public:
         // TODO reevaluate this when we better understand what we're doing for ordering
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             if (json->type() != cJSON_Object) {
-                continue;
+                throw runtime_exc_t(strprintf("Got non-object in RANGE query: %s.", json->Print().c_str()), backtrace);
             }
             cJSON* val = json->GetObjectItem(attrname.c_str());
             if (val && range.contains_key(store_key_t(cJSON_print_std_string(val)))) {
@@ -318,6 +324,7 @@ private:
     boost::shared_ptr<json_stream_t> stream;
     key_range_t range;
     std::string attrname;
+    backtrace_t backtrace;
 };
 
 

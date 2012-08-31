@@ -236,6 +236,7 @@ module 'ResolveIssuesView', ->
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: '/ajax/issues'
+                contentType: 'application/json'
                 success: set_issues
                 async: false
 

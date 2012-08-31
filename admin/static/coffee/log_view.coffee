@@ -256,7 +256,7 @@ module 'LogView', ->
         render: =>
             json = _.extend @model.toJSON(), @format_msg(@model)
             json = _.extend json,
-                machine_name: machines.get(@model.get('machine_uuid')).get('name')
+                machine_name: if machines.get(@model.get('machine_uuid'))? then machines.get(@model.get('machine_uuid')).get('name') else 'Unknown machine'
                 datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
         
             @.$el.html @template json
@@ -268,7 +268,7 @@ module 'LogView', ->
         render_small: =>
             json = _.extend @model.toJSON(), @format_msg_small(@model)
             json = _.extend json,
-                machine_name: machines.get(@model.get('machine_uuid')).get('name')
+                machine_name: if machines.get(@model.get('machine_uuid'))? then machines.get(@model.get('machine_uuid')).get('name') else 'Unknown machine'
                 datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
         
             @.$el.html @template_small json
