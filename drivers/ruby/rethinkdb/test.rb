@@ -644,7 +644,20 @@ class ClientTest < Test::Unit::TestCase
     assert_raise(ArgumentError){r[arr].to_stream[4...'a'].run}
   end
 
-  def test_foreach_multi
+  def test_array_foreach #FOREACH
+    assert_equal(id_sort(rdb.run), $data)
+    assert_equal(r[[2,3,4]].foreach{|x|
+                   [rdb.get(x).update{{:num => 0}},
+                    rdb.get(x*2).update{{:num => 0}}]}.run,
+                 {"skipped"=>0, "updated"=>6, "errors"=>0})
+    assert_equal(rdb.to_array.foreach{|row|
+                   rdb.filter{r[:id].eq(row[:id])}.update{|row|
+                     r.if(row[:num].eq(0), {:num => row[:id]}, nil)}}.run,
+                 {"skipped"=>4, "updated"=>6, "errors"=>0})
+    assert_equal(id_sort(rdb.run), $data)
+  end
+
+  def test_foreach_multi #FOREACH
     db_name = "foreach_multi" + rand().to_s
     table_name = "foreach_multi_tbl" + rand().to_s
     table_name_2 = table_name + rand().to_s
