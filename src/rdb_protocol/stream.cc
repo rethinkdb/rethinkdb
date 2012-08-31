@@ -4,7 +4,7 @@
 
 namespace query_language {
 
-in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it, runtime_environment_t *_env) 
+in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it, runtime_environment_t *_env)
     : started(false), env(_env)
 {
     while (cJSON *json = it.next()) {
@@ -12,7 +12,7 @@ in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it, runtime_environ
     }
 }
 
-in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *_env) 
+in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *_env)
     : started(false), env(_env)
 {
     while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
@@ -58,8 +58,12 @@ void in_memory_stream_t::add_transformation(const rdb_protocol_details::transfor
     transform.push_back(t);
 }
 
-result_t in_memory_stream_t::apply_terminal(const rdb_protocol_details::terminal_t &) {
-    crash("unimplemented");
+result_t in_memory_stream_t::apply_terminal(const rdb_protocol_details::terminal_t &t) {
+    result_t res;
+    boost::apply_visitor(terminal_initializer_visitor_t(&res, env), t);
+    boost::shared_ptr<scoped_cJSON_t> json;
+    while ((json = next())) boost::apply_visitor(terminal_visitor_t(json, env, &res), t);
+    return res;
 }
 
 batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
