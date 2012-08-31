@@ -449,7 +449,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::DISTINCT:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
 
                 return term_info_t(TERM_TYPE_STREAM, deterministic);
             }

@@ -195,7 +195,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(skip([1, 2], 0), [1, 2])
     assert_equal(skip([1, 2], 1), [2])
 
-    def distinct(a); r[a].to_stream.distinct.to_array.run; end
+    def distinct(a); r[a].distinct.run; end
     assert_equal(distinct([]), [])
     assert_equal(distinct([1,2,3]*10), [1,2,3])
     assert_equal(distinct([1, 2, 3, 2]), [1, 2, 3])
