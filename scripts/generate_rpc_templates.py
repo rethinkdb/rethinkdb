@@ -35,7 +35,7 @@ def generate_async_message_template(nargs):
         print "    private:"
         print "        friend class read_impl_t;"
         for i in xrange(nargs):
-            print "        arg%d_t arg%d;" % (i, i)
+            print "        const arg%d_t &arg%d;" % (i, i)
         print "    public:"
         print "        write_impl_t(" + csep("const arg#_t& _arg#") + ") :"
         print "            " + csep("arg#(_arg#)")

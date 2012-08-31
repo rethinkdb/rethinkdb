@@ -140,7 +140,7 @@ class mailbox_t< void(arg0_t) > {
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
+        const arg0_t &arg0;
     public:
         write_impl_t(const arg0_t& _arg0) :
             arg0(_arg0)
@@ -216,8 +216,8 @@ class mailbox_t< void(arg0_t, arg1_t) > {
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
-        arg1_t arg1;
+        const arg0_t &arg0;
+        const arg1_t &arg1;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1) :
             arg0(_arg0), arg1(_arg1)
@@ -297,9 +297,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2)
@@ -383,10 +383,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3)
@@ -474,11 +474,11 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4)
@@ -570,12 +570,12 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5)
@@ -671,13 +671,13 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6)
@@ -777,14 +777,14 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
+        const arg7_t &arg7;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7)
@@ -888,15 +888,15 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
+        const arg7_t &arg7;
+        const arg8_t &arg8;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8)
@@ -1004,16 +1004,16 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
-        arg9_t arg9;
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
+        const arg7_t &arg7;
+        const arg8_t &arg8;
+        const arg9_t &arg9;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9)
@@ -1125,17 +1125,17 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
-        arg9_t arg9;
-        arg10_t arg10;
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
+        const arg7_t &arg7;
+        const arg8_t &arg8;
+        const arg9_t &arg9;
+        const arg10_t &arg10;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10)
@@ -1251,18 +1251,18 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
-        arg9_t arg9;
-        arg10_t arg10;
-        arg11_t arg11;
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
+        const arg7_t &arg7;
+        const arg8_t &arg8;
+        const arg9_t &arg9;
+        const arg10_t &arg10;
+        const arg11_t &arg11;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11)
@@ -1382,19 +1382,19 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
-        arg9_t arg9;
-        arg10_t arg10;
-        arg11_t arg11;
-        arg12_t arg12;
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
+        const arg7_t &arg7;
+        const arg8_t &arg8;
+        const arg9_t &arg9;
+        const arg10_t &arg10;
+        const arg11_t &arg11;
+        const arg12_t &arg12;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11, const arg12_t& _arg12) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11), arg12(_arg12)
@@ -1518,20 +1518,20 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class write_impl_t : public mailbox_write_callback_t {
     private:
         friend class read_impl_t;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
-        arg9_t arg9;
-        arg10_t arg10;
-        arg11_t arg11;
-        arg12_t arg12;
-        arg13_t arg13;
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
+        const arg7_t &arg7;
+        const arg8_t &arg8;
+        const arg9_t &arg9;
+        const arg10_t &arg10;
+        const arg11_t &arg11;
+        const arg12_t &arg12;
+        const arg13_t &arg13;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11, const arg12_t& _arg12, const arg13_t& _arg13) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11), arg12(_arg12), arg13(_arg13)
