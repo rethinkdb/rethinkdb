@@ -60,7 +60,7 @@ void in_memory_stream_t::add_transformation(const rdb_protocol_details::transfor
 
 result_t in_memory_stream_t::apply_terminal(const rdb_protocol_details::terminal_t &t) {
     result_t res;
-    boost::apply_visitor(terminal_initializer_visitor_t(&res), t);
+    boost::apply_visitor(terminal_initializer_visitor_t(&res, env), t);
     boost::shared_ptr<scoped_cJSON_t> json;
     while ((json = next())) boost::apply_visitor(terminal_visitor_t(json, env, &res), t);
     return res;
