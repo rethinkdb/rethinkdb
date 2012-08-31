@@ -172,6 +172,8 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = backfill_end_point.begin();
          it != backfill_end_point.end();
          ++it) {
+        rassert(it->second.is_coherent());
+        rassert(it->second.earliest.branch == branch_id_);
         backfill_end_timestamp = std::max(backfill_end_timestamp, it->second.earliest.timestamp);
     }
 
