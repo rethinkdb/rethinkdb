@@ -481,7 +481,7 @@ module 'ServerView', ->
             _namespaces = []
             for namespace in namespaces.models
                 for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
-                    if machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
+                    if machines.get(machine_uuid)?.get('datacenter_uuid') and machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
                         machine_active_for_namespace = false
                         for shard, role of peer_role
                             if role is 'role_primary'

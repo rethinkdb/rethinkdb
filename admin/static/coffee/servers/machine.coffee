@@ -50,6 +50,18 @@ module 'MachineView', ->
                 route: "/ajax/log/"+@model.get('id')+"_?"
                 template_header: Handlebars.compile $('#log-header-machine-template').html()
 
+            machines.on 'remove', @check_if_still_exists
+
+        check_if_still_exists: =>
+            exist = false
+            for machine in machines.models
+                if machine.get('id') is @model.get('id')
+                    exist = true
+                    break
+            if exist is false
+                window.router.navigate '#servers'
+                window.app.index_servers
+                    alert_message: "The server <a href=\"#servers/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
         change_route: (event) =>
             # Because we are using bootstrap tab. We should remove them later.
             window.router.navigate @.$(event.target).attr('href')
@@ -385,7 +397,8 @@ module 'MachineView', ->
 
         initialize: =>
             @directory_entry = directory.get @model.get 'id'
-            @directory_entry.on 'change:memcached_namespaces', @render
+            if @directory_entry?
+                @directory_entry.on 'change:memcached_namespaces', @render
             namespaces.on 'add', @render
             namespaces.on 'remove', @render
             namespaces.on 'reset', @render
@@ -743,7 +756,12 @@ module 'MachineView', ->
             )
 
         destroy: =>
-            @directory_entry.on 'change:memcached_namespaces', @render
+            if @directory_entry?
+                @directory_entry.off 'change:memcached_namespaces', @render
+            namespaces.off 'add', @render
+            namespaces.off 'remove', @render
+            namespaces.off 'reset', @render
+
             for namespace_id of @namespaces_with_listeners
                 namespace = namespaces.get namespace_id
                 namespace.off 'change:shards', @render
