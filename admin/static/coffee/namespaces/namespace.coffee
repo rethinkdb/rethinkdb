@@ -1,10 +1,15 @@
 # Namespace view
 module 'NamespaceView', ->
     class @NotFound extends Backbone.View
-        template: Handlebars.compile $('#namespace_view-not_found-template').html()
-        initialize: (id) -> @id = id
+        template: Handlebars.compile $('#element_view-not_found-template').html()
+        initialize: (id) ->
+            @id = id
         render: =>
-            @.$el.html @template id: @id
+            @.$el.html @template
+                id: @id
+                type: 'table'
+                type_url: 'tables'
+                type_all_url: 'tables'
             return @
 
     # Container for the entire namespace view
@@ -37,6 +42,18 @@ module 'NamespaceView', ->
 
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
 
+            namespaces.on 'remove', @check_if_still_exists
+        
+        check_if_still_exists: =>
+            exist = false
+            for namespace in namespaces.models
+                if namespace.get('id') is @model.get('id')
+                    exist = true
+                    break
+            if exist is false
+                window.router.navigate '#tables'
+                window.app.index_namespaces
+                    alert_message: "The table <a href=\"#tables/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
         change_route: (event) =>
             # Because we are using bootstrap tab. We should remove them later.
             window.router.navigate @.$(event.target).attr('href')
@@ -231,7 +248,7 @@ module 'NamespaceView', ->
             json = @model.toJSON()
             json = _.extend json, namespace_status
 
-            if namespace_status.reachability? and namespace_status.reachability is 'Live'
+            if namespace_status?.reachability? and namespace_status.reachability is 'Live'
                 json.reachability = true
             else
                 json.reachability = false
@@ -515,7 +532,9 @@ module 'NamespaceView', ->
             namespace_to_delete = @model
         
             remove_namespace_dialog.on_success = (response) =>
-                window.router.navigate '#namespaces', {'trigger': true}
+                window.router.navigate '#tables'
+                window.app.index_namespaces
+                    alert_message: "The table #{@model.get('name')} was successfully deleted."
                 namespaces.remove @model.get 'id'
 
             remove_namespace_dialog.render [@model]

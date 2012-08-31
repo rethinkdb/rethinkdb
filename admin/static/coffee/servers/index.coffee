@@ -13,6 +13,7 @@ module 'ServerView', ->
         className: 'datacenters_list-container'
         template: Handlebars.compile $('#server_list-template').html()
         cannot_change_datacenter_alert_template: Handlebars.compile $('#cannot_change_datacenter-alert-template').html()
+        alert_message_template: Handlebars.compile $('#alert_message-template').html()
 
         # Extend the generic list events
         events:
@@ -30,10 +31,14 @@ module 'ServerView', ->
             super datacenters, ServerView.DatacenterListElement, 'div.datacenters'
 
 
-        render: =>
+        render: (message) =>
             super
             @.$('.unassigned-machines').html @unassigned_machines.render().el
             @update_toolbar_buttons()
+
+            if message?
+                @.$('#user-alert-space').append @alert_message_template
+                    message: message
 
             return @
 
@@ -139,11 +144,11 @@ module 'ServerView', ->
                     @.$('#reason_cannot_change_datacenter').slideUp 200, -> $(this).remove()
  
             return num_not_movable_machines>0 or selected_machines.length is 0
-                
 
         destroy: =>
             super()
             @unassigned_machines.destroy()
+
 
     class @MachineList extends UIComponents.AbstractList
         # Use a machine-specific template for the machine list
@@ -476,7 +481,7 @@ module 'ServerView', ->
             _namespaces = []
             for namespace in namespaces.models
                 for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
-                    if machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
+                    if machines.get(machine_uuid)?.get('datacenter_uuid') and machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
                         machine_active_for_namespace = false
                         for shard, role of peer_role
                             if role is 'role_primary'
