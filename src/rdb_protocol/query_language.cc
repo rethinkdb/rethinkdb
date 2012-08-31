@@ -569,10 +569,12 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
     w.GetReflection()->ListFields(w, &fields);
     check_protobuf(fields.size() == 2);
 
+    bool deterministic = true;
     switch (w.type()) {
         case WriteQuery::UPDATE: {
             check_protobuf(w.has_update());
             check_term_type(w.update().view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.update().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -1034,12 +1036,19 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 
                 int updated = 0, errors = 0, skipped = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
+                    rassert(json->type() == cJSON_Object);
                     try {
                         variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->update().mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
                         boost::shared_ptr<scoped_cJSON_t> rhs =
                             eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                         if (rhs->type() == cJSON_NULL) {
                             ++skipped;
+                        } else if (rhs->type() != cJSON_Object) {
+                            ++errors;
+                            if (reported_error == "") {
+                                reported_error = strprintf("Update returned a non-object (%s).\n", json->Print().c_str());
+                            }
                         } else {
                             boost::shared_ptr<scoped_cJSON_t> val(new scoped_cJSON_t(cJSON_merge(json->get(), rhs->get())));
                             cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
