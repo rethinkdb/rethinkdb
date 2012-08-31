@@ -631,7 +631,6 @@ module 'DatacenterView', ->
         delete_datacenter: (event) ->
             event.preventDefault()
             remove_datacenter_dialog = new DatacenterView.RemoveDatacenterModal
-            datacenter_to_delete = @model
             remove_datacenter_dialog.render @model
 
         need_update: (old_data, new_data) ->
@@ -668,11 +667,9 @@ module 'DatacenterView', ->
 
     class @RemoveDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#remove_datacenter-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#removed_datacenter-alert-template').html()
-        class: 'remove-namespace-dialog'
+        class: 'remove_datacenter-dialog'
 
         initialize: ->
-            log_initial '(initializing) modal dialog: remove namespace'
             super
 
         render: (_datacenter_to_delete) ->
