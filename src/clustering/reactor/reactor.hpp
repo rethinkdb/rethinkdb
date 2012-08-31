@@ -22,7 +22,7 @@ class io_backender_t;
 template <class> class multistore_ptr_t;
 
 template<class protocol_t>
-class reactor_t {
+class reactor_t : public home_thread_mixin_t {
 public:
     reactor_t(
             io_backender_t *io_backender,
@@ -56,12 +56,12 @@ private:
         directory_echo_version_t update_without_changing_id(typename reactor_business_card_t<protocol_t>::activity_t);
         ~directory_entry_t();
 
-        reactor_activity_id_t get_reactor_activity_id() {
+        reactor_activity_id_t get_reactor_activity_id() const {
             return reactor_activity_id;
         }
     private:
-        reactor_t<protocol_t> *parent;
-        typename protocol_t::region_t region;
+        reactor_t<protocol_t> *const parent;
+        const typename protocol_t::region_t region;
         reactor_activity_id_t reactor_activity_id;
 
         DISABLE_COPYING(directory_entry_t);

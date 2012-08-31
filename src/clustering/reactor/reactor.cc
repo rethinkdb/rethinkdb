@@ -4,6 +4,8 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
+#include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 
 template<class key_t, class value_t>
 std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::optional<value_t> > &map) {
@@ -57,6 +59,7 @@ reactor_t<protocol_t>::directory_entry_t::directory_entry_t(reactor_t<protocol_t
 
 template <class protocol_t>
 directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::set(typename reactor_business_card_t<protocol_t>::activity_t activity) {
+    on_thread_t th(parent->home_thread());
     typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
     if (!reactor_activity_id.is_nil()) {
         our_value_change.buffer.activities.erase(reactor_activity_id);
@@ -68,6 +71,7 @@ directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::set(typename 
 
 template <class protocol_t>
 directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_without_changing_id(typename reactor_business_card_t<protocol_t>::activity_t activity) {
+    on_thread_t th(parent->home_thread());
     typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
     rassert(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
 
@@ -77,6 +81,7 @@ directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_withou
 
 template <class protocol_t>
 reactor_t<protocol_t>::directory_entry_t::~directory_entry_t() {
+    on_thread_t th(parent->home_thread());
     if (!reactor_activity_id.is_nil()) {
         typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
         our_value_change.buffer.activities.erase(reactor_activity_id);
@@ -150,15 +155,21 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
         signal_t *interruptor) THROWS_NOTHING {
     store_view_t<protocol_t> *store_view = svs_subview->get_store(cpu_shard_number);
     typename protocol_t::region_t cpu_sharded_region = region_intersection(region, protocol_t::cpu_sharding_subspace(cpu_shard_number, CLUSTER_CPU_SHARDING_FACTOR));
+
+    const int dest_thread = store_view->home_thread();
+    cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
+    cross_thread_watchable_variable_t<blueprint_t<protocol_t> > ct_watchable(role->blueprint.get_watchable(), dest_thread);
+    on_thread_t th(dest_thread);
+
     switch (role->role) {
     case blueprint_role_primary:
-        be_primary(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
+        be_primary(cpu_sharded_region, store_view, ct_watchable.get_watchable(), &ct_interruptor);
         break;
     case blueprint_role_secondary:
-        be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
+        be_secondary(cpu_sharded_region, store_view, ct_watchable.get_watchable(), &ct_interruptor);
         break;
     case blueprint_role_nothing:
-        be_nothing(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
+        be_nothing(cpu_sharded_region, store_view, ct_watchable.get_watchable(), &ct_interruptor);
         break;
     default:
         unreachable();
