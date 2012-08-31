@@ -1,6 +1,7 @@
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 
 #include "clustering/immediate_consistency/branch/multistore.hpp"
+#include "clustering/reactor/reactor.hpp"
 #include "db_thread_info.hpp"
 
 template <class protocol_t>

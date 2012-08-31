@@ -251,10 +251,5 @@
 // Size of a cache line (used in cache_line_padded_t).
 #define CACHE_LINE_SIZE                           64
 
-// This "must" be hard-coded because a cluster cannot run with
-// differing cpu sharding factors.
-// TODO: Make this not be 16.
-const int CLUSTER_CPU_SHARDING_FACTOR = 16;
-
 #endif  // CONFIG_ARGS_HPP_
 
