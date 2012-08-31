@@ -74,7 +74,9 @@ function testExtend() {
 function testIf() {
     q.ifThenElse(q(true), q(1), q(2)).run(aeq(1));
     q.ifThenElse(q(false), q(1), q(2)).run(aeq(2));
-    q.ifThenElse(q(2).mul(8).ge(q(30).div(2)), q(8).div(2), q(9).div(3)).run(aeq(4));
+    q.ifThenElse(q(2).mul(8).ge(q(30).div(2)),
+        q(8).div(2),
+        q(9).div(3)).run(aeq(4));
 }
 
 function testLet() {
@@ -108,10 +110,6 @@ function testPickAttrs() {
     q({a:1,b:2,c:3}).pickAttrs(['a', 'b']).run(objeq({a:1,b:2}));
 }
 
-function testPluck() {
-    tab.orderby('num').pluck('num').nth(0).run(objeq({num:11}));
-}
-
 function testR() {
     q.let(['a', q({b:1})], q.R('$a.b')).run(aeq(1));
 }
@@ -134,6 +132,10 @@ function testOrderby() {
     //tab.orderby('num').nth(2).pickAttrs('num').run(objeq({num:13}));
 }
 
+function testPluck() {
+    tab.orderby('num').pluck('num').nth(0).run(objeq({num:11}));
+}
+
 function testTabMap() {
     tab.orderby('num').map(q.R('num')).nth(2).run(aeq(13));
 }
@@ -143,6 +145,19 @@ function testTabReduce() {
 
     // Complains about not having field num
     //tab.reduce(q(0), q.fn('a', 'b', q.R('$b.num'))).run(aeq(155));
+}
+
+function testJS() {
+    // Crashes the server
+    /*
+    tab.filter(function(row) {
+        return row.num > 16;
+    }).map(function(row) {
+        return row.num * 4;
+    }).reduce(0, function(acc, val) {
+        return acc + val;
+    }).run(aeq(296));
+    */
 }
 
 function testClose() {
@@ -164,11 +179,12 @@ runTests([
     testReduce,
     testGetAttr,
     testPickAttrs,
-    testPluck,
     testInsert,
     testGet,
     testOrderby,
+    testPluck,
     testTabMap,
     testTabReduce,
+    testJS,
     testClose,
 ]);
