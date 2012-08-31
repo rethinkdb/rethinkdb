@@ -433,6 +433,19 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb.between(2,nil).run), $data[2..-1])
     assert_equal(id_sort(rdb.between(1, 3).run), $data[1..3])
     assert_equal(id_sort(rdb.between(nil, 4).run),$data[0..4])
+
+    assert_equal(id_sort(rdb.to_array.between(1,3).run), $data[1..3])
+    assert_equal(id_sort(rdb.to_array.between(2,nil).run), $data[2..-1])
+    assert_equal(id_sort(rdb.to_array.between(1, 3).run), $data[1..3])
+    assert_equal(id_sort(rdb.to_array.between(nil, 4).run),$data[0..4])
+
+    assert_equal(id_sort(r[$data].between(1,3).run), $data[1..3])
+    assert_equal(id_sort(r[$data].between(2,nil).run), $data[2..-1])
+    assert_equal(id_sort(r[$data].between(1, 3).run), $data[1..3])
+    assert_equal(id_sort(r[$data].between(nil, 4).run),$data[0..4])
+
+    assert_raise(RuntimeError){r[[1]].between(1, 3).run}
+    assert_raise(RuntimeError){r[[1,2]].between(1, 3).run}
   end
 
   def test_groupedmapreduce # GROUPEDMAPREDUCE

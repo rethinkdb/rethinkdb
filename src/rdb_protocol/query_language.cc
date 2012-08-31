@@ -2338,7 +2338,8 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                                         key_range_t::closed, store_key_t(upperbound->Print()));
                 }
 
-                return boost::shared_ptr<json_stream_t>(new range_stream_t(stream, range, r->attrname()));
+                return boost::shared_ptr<json_stream_t>(
+                    new range_stream_t(stream, range, r->attrname(), backtrace));
             }
             throw runtime_exc_t("Unimplemented: Builtin::RANGE", backtrace);
             break;
