@@ -103,7 +103,7 @@ rethinkdb.query.JSFunctionExpression = function(fun) {
 };
 goog.inherits(rethinkdb.query.JSFunctionExpression, rethinkdb.query.FunctionExpression);
 
-rethinkdb.query.JSFunctionExpression.parseRegexp_ = /function [^(]*\(([^)]*)\) *{([^}]*)}/;
+rethinkdb.query.JSFunctionExpression.parseRegexp_ = /function [^(]*\(([^)]*)\) *{([^]*)}/m;
 //rethinkdb.query.JSFunctionExpression.parseRegexp_.compile();
 
 /**
@@ -460,6 +460,18 @@ rethinkdb.query.Expression.prototype.reduce = function(base, reduce) {
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'reduce',
                     rethinkdb.query.Expression.prototype.reduce);
+
+/**
+ * Returns true if expression has given attribute
+ */
+rethinkdb.query.Expression.prototype.hasAttr = function(attr) {
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.HASATTR, [this],
+        function(builtin) {
+            builtin.setAttr(attr);
+        });
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'hasAttr',
+                    rethinkdb.query.Expression.prototype.hasAttr);
 
 /**
  * Select only the given attribute

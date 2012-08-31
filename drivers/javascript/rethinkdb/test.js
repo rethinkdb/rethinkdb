@@ -85,13 +85,11 @@ function testLet() {
 }
 
 function testDistinct() {
-    // Awaiting changes on server
-    //q([1,1,2,3,3,3,3]).distinct().run(objeq([1,2,3]));
+    q([1,1,2,3,3,3,3]).distinct().run(objeq([1,2,3]));
 }
 
 function testMap() {
-    // Awaiting changes on server
-    //arr.map(q.fn('a', q.R('$a').add(1))).nth(2).run(print);
+    arr.map(q.fn('a', q.R('$a').add(1))).nth(2).run(aeq(4));
 }
 
 function testReduce() {
@@ -99,10 +97,23 @@ function testReduce() {
     //arr.reduce(q(0), q.fn('a', 'b', q.R('$a').add(q.R('$b')))).run(aeq(21));
 }
 
+var tobj = q({a:1,b:2,c:3});
+function testHasAttr() {
+    tobj.hasAttr('a').run(aeq(true));
+    tobj.hasAttr('d').run(aeq(false));
+}
+
 function testGetAttr() {
-    q({a:1,b:2,c:3}).getAttr('a').run(aeq(1));
-    q({a:1,b:2,c:3}).getAttr('b').run(aeq(2));
-    q({a:1,b:2,c:3}).getAttr('c').run(aeq(3));
+    tobj.getAttr('a').run(aeq(1));
+    tobj.getAttr('b').run(aeq(2));
+    tobj.getAttr('c').run(aeq(3));
+
+    q.let(['a', tobj],
+        q.ifThenElse(q.R('$a').hasAttr('b'),
+            q.R('$a.b'),
+            q("No attribute b")
+        )
+    ).run(aeq(2));
 }
 
 function testPickAttrs() {
@@ -129,7 +140,7 @@ function testGet() {
 
 function testOrderby() {
     tab.orderby('num').nth(2).run(objeq({id:7,num:13}));
-    //tab.orderby('num').nth(2).pickAttrs('num').run(objeq({num:13}));
+    tab.orderby('num').nth(2).pickAttrs('num').run(objeq({num:13}));
 }
 
 function testPluck() {
@@ -148,6 +159,16 @@ function testTabReduce() {
 }
 
 function testJS() {
+    tab.filter(function(row) {
+        return row.num > 16;
+    }).length().run(aeq(4));
+
+    tab.map(function(row) {
+        return row.num + 2;
+    }).filter(function (val) {
+        return val > 16;
+    }).length().run(aeq(6));
+
     // Crashes the server
     /*
     tab.filter(function(row) {
@@ -158,6 +179,58 @@ function testJS() {
         return acc + val;
     }).run(aeq(296));
     */
+}
+
+function testUpdate1() {
+    tab.update(function(a) {
+        a.updated = true;
+        return a;
+    }).run(objeq({
+        errors:0,
+        skipped:0,
+        updated:10,
+    }));
+}
+
+function testUpdate2() {
+    wait();
+    tab.run(function(res) {
+        for (var key in res) {
+            assertEquals(res[key]['updated'], true);
+        }
+        done();
+    });
+}
+
+function testMutate1() {
+    tab.mutate(function(a) {
+        return {id:a.id, mutated:true};
+    }).run(objeq({
+        deleted:0,
+        errors:0,
+        inserted:0,
+        modified:10
+    }));
+}
+
+function testMutate2() {
+    wait();
+    tab.run(function(res) {
+        for (var key in res) {
+            assertEquals(res[key]['mutated'], true);
+            assertEquals(res[key]['updated'], undefined);
+        }
+        done();
+    });
+}
+
+function testDelete1() {
+    tab.length().run(aeq(10));
+    tab.del().run(objeq({deleted:10}));
+}
+
+function testDelete2() {
+    tab.length().run(aeq(0));
 }
 
 function testClose() {
@@ -177,6 +250,7 @@ runTests([
     testDistinct,
     testMap,
     testReduce,
+    testHasAttr,
     testGetAttr,
     testPickAttrs,
     testInsert,
@@ -186,5 +260,11 @@ runTests([
     testTabMap,
     testTabReduce,
     testJS,
+    testUpdate1,
+    testUpdate2,
+    testMutate1,
+    testMutate2,
+    testDelete1,
+    testDelete2,
     testClose,
 ]);
