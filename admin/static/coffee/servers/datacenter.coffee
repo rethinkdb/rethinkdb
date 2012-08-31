@@ -713,14 +713,16 @@ module 'DatacenterView', ->
                 error: @on_error
 
         on_success: (response) =>
+            name = datacenters.get(@datacenter_to_delete.get('id')).get 'name'
             datacenters.remove @datacenter_to_delete.get('id')
             for machine in machines.models
                 if machine.get('datacenter_uuid') is @datacenter_to_delete.get('id')
                     machine.set('datacenter_uuid', null)
             datacenters.trigger 'remove'
 
-            window.router.navigate '#servers', {'trigger': true}
-            #TODO add a feedback
+            window.router.navigate '#servers'
+            window.app.index_servers
+                alert_message: "The datacenter #{name} was successfully deleted."
             
         on_error: (response) =>
             #TODO implement

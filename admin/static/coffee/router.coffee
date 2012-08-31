@@ -58,12 +58,15 @@ class BackboneCluster extends Backbone.Router
         @$container.html @current_view.render().el
         @sidebar.set_type_view()
 
-    index_servers: ->
+    index_servers: (data) ->
         log_router '/index_servers'
         clear_modals()
         @current_view.destroy()
         @current_view = new ServerView.DatacenterList
-        @$container.html @current_view.render().el
+        if data?.alert_message?
+            @$container.html @current_view.render(data.alert_message).el
+        else
+            @$container.html @current_view.render().el
         @sidebar.set_type_view()
 
     dashboard: ->
