@@ -1,10 +1,15 @@
 # Namespace view
 module 'NamespaceView', ->
     class @NotFound extends Backbone.View
-        template: Handlebars.compile $('#namespace_view-not_found-template').html()
-        initialize: (id) -> @id = id
+        template: Handlebars.compile $('#element_view-not_found-template').html()
+        initialize: (id) ->
+            @id = id
         render: =>
-            @.$el.html @template id: @id
+            @.$el.html @template
+                id: @id
+                type: 'table'
+                type_url: 'tables'
+                type_all_url: 'tables'
             return @
 
     # Container for the entire namespace view

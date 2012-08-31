@@ -1,10 +1,15 @@
 # Datacenter view
 module 'DatacenterView', ->
     class @NotFound extends Backbone.View
-        template: Handlebars.compile $('#datacenter_view-not_found-template').html()
-        initialize: (id) -> @id = id
+        template: Handlebars.compile $('#element_view-not_found-template').html()
+        initialize: (id) ->
+            @id = id
         render: =>
-            @.$el.html @template id: @id
+            @.$el.html @template
+                id: @id
+                type: 'datacenter'
+                type_url: 'datacenters'
+                type_all_url: 'servers'
             return @
 
     # Container
