@@ -463,7 +463,23 @@ class ClientTest < Test::Unit::TestCase
                                0, lambda {|a,b| a+b});
     gmr2 = rdb.groupedmapreduce(lambda {r[:id] % 4}, lambda {r[:id]},
                                 0, lambda {|a,b| a+b});
+    gmr3 = rdb.to_array.groupedmapreduce(lambda {|row| row[:id] % 4},
+                                         lambda {|row| row[:id]},
+                                         0, lambda {|a,b| a+b});
+    gmr4 = r[$data].groupedmapreduce(lambda {|row| row[:id] % 4},
+                                     lambda {|row| row[:id]},
+                                     0, lambda {|a,b| a+b});
     assert_equal(gmr.run, gmr2.run)
+    assert_equal(gmr.run, gmr3.run)
+    assert_equal(gmr.run, gmr4.run)
+    gmr5 = r[[$data]].groupedmapreduce(lambda {|row| row[:id] % 4},
+                                       lambda {|row| row[:id]},
+                                       0, lambda {|a,b| a+b});
+    gmr6 = r[1].groupedmapreduce(lambda {|row| row[:id] % 4},
+                                 lambda {|row| row[:id]},
+                                 0, lambda {|a,b| a+b});
+    assert_raise(RuntimeError){gmr5.run}
+    assert_raise(RuntimeError){gmr6.run}
     gmr.run.each {|obj|
       want = $data.map{|x| x['id']}.select{|x| x%4 == obj['group']}.reduce(0, :+)
       assert_equal(obj['reduction'], want)
