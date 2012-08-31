@@ -16,18 +16,7 @@ struct dummy_mailbox_t {
 private:
     std::set<int> inbox;
 
-    class read_impl_t : public mailbox_read_callback_t {
-    public:
-        read_impl_t(dummy_mailbox_t *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream) {
-            int i;
-            int res = deserialize(stream, &i);
-            if (res) { throw fake_archive_exc_t(); }
-            parent->inbox.insert(i);
-        }
-    private:
-        dummy_mailbox_t *parent;
-    };
+    class read_impl_t;
 
     class write_impl_t : public mailbox_write_callback_t {
     public:
@@ -39,7 +28,25 @@ private:
             if (res) { throw fake_archive_exc_t(); }
         }
     private:
+        friend class read_impl_t;
         int32_t arg;
+    };
+
+    class read_impl_t : public mailbox_read_callback_t {
+    public:
+        read_impl_t(dummy_mailbox_t *_parent) : parent(_parent) { }
+        void read(read_stream_t *stream) {
+            int i;
+            int res = deserialize(stream, &i);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->inbox.insert(i);
+        }
+        void read(mailbox_write_callback_t *_writer) {
+            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
+            parent->inbox.insert(writer->arg);
+        }
+    private:
+        dummy_mailbox_t *parent;
     };
 
     read_impl_t reader;

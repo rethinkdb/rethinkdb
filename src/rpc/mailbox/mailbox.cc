@@ -85,8 +85,22 @@ void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, mailbox_write_c
     rassert(src);
     rassert(!dest.is_nil());
 
-    raw_mailbox_writer_t writer(dest.thread, dest.mailbox_id, callback);
-    src->message_service->send_message(dest.peer, &writer);
+    if (dest.peer == src->get_connectivity_service()->get_me()) {
+        // Message is local, we can skip the connectivity service and serialization/deserialization
+        //   and call the mailbox directly
+        object_buffer_t<on_thread_t> rethreader;
+        if (dest.thread != raw_mailbox_t::address_t::ANY_THREAD) {
+            rethreader.create(dest.thread);
+        }
+
+        raw_mailbox_t *mbox = src->mailbox_tables.get()->find_mailbox(dest.mailbox_id);
+        if (mbox != NULL) {
+            mbox->callback->read(callback);
+        }
+    } else {
+        raw_mailbox_writer_t writer(dest.thread, dest.mailbox_id, callback);
+        src->message_service->send_message(dest.peer, &writer);
+    }
 }
 
 mailbox_manager_t::mailbox_manager_t(message_service_t *ms) :

@@ -26,6 +26,29 @@ def generate_async_message_template(nargs):
     print
     print "template<" + csep("class arg#_t") + ">"
     print "class mailbox_t< void(" + csep("arg#_t") + ") > {"
+    print "    class read_impl_t;"
+    print "    class write_impl_t : public mailbox_write_callback_t {"
+    if nargs == 0:
+        print "    public:"
+        print "        write_impl_t() { }"
+    else:
+        print "    private:"
+        print "        friend class read_impl_t;"
+        for i in xrange(nargs):
+            print "        arg%d_t arg%d;" % (i, i)
+        print "    public:"
+        print "        write_impl_t(" + csep("const arg#_t& _arg#") + ") :"
+        print "            " + csep("arg#(_arg#)")
+        print "        { }"
+    print "        void write(write_stream_t *stream) {"
+    print "            write_message_t msg;"
+    for i in xrange(nargs):
+        print "            msg << arg%d;" % i
+    print "            int res = send_write_message(stream, &msg);"
+    print "            if (res) { throw fake_archive_exc_t(); }"
+    print "        }"
+    print "    };"
+    print
     print "    class read_impl_t : public mailbox_read_callback_t {"
     print "    public:"
     print "        read_impl_t(mailbox_t< void(" + csep("arg#_t") + ") > *_parent) : parent(_parent) { }"
@@ -45,29 +68,20 @@ def generate_async_message_template(nargs):
     print "                parent->fun(" + csep("arg#") + ");"
     print "            }"
     print "        }"
+    print
+    if nargs == 0:
+        print "        void read(UNUSED mailbox_write_callback_t *_writer) {"
+    else:
+        print "        void read(mailbox_write_callback_t *_writer) {"
+        print "            write_impl_t *writer = static_cast<write_impl_t*>(_writer);"
+    print "            if (parent->callback_mode == mailbox_callback_mode_coroutine) {"
+    print "                coro_t::spawn_sometime(boost::bind(parent->fun" + cpre("writer->arg#") + "));"
+    print "            } else {"
+    print "                parent->fun(" + csep("writer->arg#") + ");"
+    print "            }"
+    print "        }"
     print "    private:"
     print "        mailbox_t< void(" + csep("arg#_t") + ") > *parent;"
-    print "    };"
-    print
-    print "    class write_impl_t : public mailbox_write_callback_t {"
-    if nargs == 0:
-        print "    public:"
-        print "        write_impl_t() { }"
-    else:
-        print "    private:"
-        for i in xrange(nargs):
-            print "        arg%d_t arg%d;" % (i, i)
-        print "    public:"
-        print "        write_impl_t(" + csep("const arg#_t& _arg#") + ") :"
-        print "            " + csep("arg#(_arg#)")
-        print "        { }"
-    print "        void write(write_stream_t *stream) {"
-    print "            write_message_t msg;"
-    for i in xrange(nargs):
-        print "            msg << arg%d;" % i
-    print "            int res = send_write_message(stream, &msg);"
-    print "            if (res) { throw fake_archive_exc_t(); }"
-    print "        }"
     print "    };"
     print
     print "    read_impl_t reader;"

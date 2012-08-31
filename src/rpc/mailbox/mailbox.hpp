@@ -21,22 +21,27 @@ enum mailbox_thread_mode_t {
     mailbox_any_thread
 };
 
-class mailbox_read_callback_t {
-public:
-    virtual ~mailbox_read_callback_t() { }
-    virtual void read(read_stream_t *stream) = 0;
-};
-
 class mailbox_write_callback_t {
 public:
     virtual ~mailbox_write_callback_t() { }
     virtual void write(write_stream_t *stream) = 0;
 };
 
+class mailbox_read_callback_t {
+public:
+    virtual ~mailbox_read_callback_t() { }
+    virtual void read(read_stream_t *stream) = 0;
+    virtual void read(mailbox_write_callback_t *writer) = 0;
+};
+
 struct raw_mailbox_t : public home_thread_mixin_t {
+public:
+    struct address_t;
+
 private:
     friend struct mailbox_manager_t;
     friend class raw_mailbox_writer_t;
+    friend void send(mailbox_manager_t *, address_t, mailbox_write_callback_t *);
 
     mailbox_manager_t *manager;
     const mailbox_thread_mode_t thread_mode;
@@ -127,6 +132,7 @@ private:
         ~mailbox_table_t();
         raw_mailbox_t::id_t next_local_mailbox_id;
         raw_mailbox_t::id_t next_global_mailbox_id;
+        // RSI: use a buffered structure to reduce dynamic allocation
         std::map<raw_mailbox_t::id_t, raw_mailbox_t *> mailboxes;
         raw_mailbox_t *find_mailbox(raw_mailbox_t::id_t);
     };
