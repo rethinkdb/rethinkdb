@@ -156,20 +156,15 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
     store_view_t<protocol_t> *store_view = svs_subview->get_store(cpu_shard_number);
     typename protocol_t::region_t cpu_sharded_region = region_intersection(region, protocol_t::cpu_sharding_subspace(cpu_shard_number, CLUSTER_CPU_SHARDING_FACTOR));
 
-    const int dest_thread = store_view->home_thread();
-    cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
-    cross_thread_watchable_variable_t<blueprint_t<protocol_t> > ct_watchable(role->blueprint.get_watchable(), dest_thread);
-    on_thread_t th(dest_thread);
-
     switch (role->role) {
     case blueprint_role_primary:
-        be_primary(cpu_sharded_region, store_view, ct_watchable.get_watchable(), &ct_interruptor);
+        be_primary(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
         break;
     case blueprint_role_secondary:
-        be_secondary(cpu_sharded_region, store_view, ct_watchable.get_watchable(), &ct_interruptor);
+        be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
         break;
     case blueprint_role_nothing:
-        be_nothing(cpu_sharded_region, store_view, ct_watchable.get_watchable(), &ct_interruptor);
+        be_nothing(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
         break;
     default:
         unreachable();
