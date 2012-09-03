@@ -62,11 +62,14 @@ void master_t<protocol_t>::client_t::perform_request(
                     bool is_acceptable;
                     {
                         // TODO: This is horrible.  It was horrible before we had to switch threads.  Make us not have to switch threads in order to call is_acceptable_ack_set.
+                        std::set<peer_id_t> ack_set_copy = ack_set;
                         on_thread_t th(ack_checker->home_thread());
-                        is_acceptable = ack_checker->is_acceptable_ack_set(ack_set);
+                        is_acceptable = ack_checker->is_acceptable_ack_set(ack_set_copy);
                     }
                     if (is_acceptable) {
-                        response_promise.pulse(response);
+                        if (!response_promise.is_pulsed()) {
+                            response_promise.pulse(response);
+                        }
                     }
                 }
             }
