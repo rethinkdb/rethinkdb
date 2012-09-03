@@ -22,9 +22,7 @@ void do_construct_existing_store(int i, io_backender_t *io_backender,
     // multiple namespaces?  We need a global
     // thread-distributor that evenly distributes stores about
     // threads.
-    // TODO: UNCOMMENT THIS
-    (void)num_db_threads;
-    //    on_thread_t th(i % num_db_threads);
+    on_thread_t th(i % num_db_threads);
 
     std::string file_name = fbssvsbn->file_name_for(namespace_id, i);
 
@@ -44,9 +42,7 @@ void do_create_new_store(int i, io_backender_t *io_backender,
                          store_view_t<protocol_t> **store_views,
                          typename protocol_t::context_t *ctx) {
     // TODO: See the todo about thread distribution in do_construct_existing_store.  It is applicable here, too.
-    // TODO: UNCOMMENT THIS
-    (void)num_db_threads;
-    // on_thread_t th(i % num_db_threads);
+    on_thread_t th(i % num_db_threads);
 
     std::string file_name = fbssvsbn->file_name_for(namespace_id, i);
 

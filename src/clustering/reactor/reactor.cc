@@ -59,7 +59,6 @@ reactor_t<protocol_t>::directory_entry_t::directory_entry_t(reactor_t<protocol_t
 
 template <class protocol_t>
 directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::set(typename reactor_business_card_t<protocol_t>::activity_t activity) {
-    on_thread_t th(parent->home_thread());
     typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
     if (!reactor_activity_id.is_nil()) {
         our_value_change.buffer.activities.erase(reactor_activity_id);
@@ -71,7 +70,6 @@ directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::set(typename 
 
 template <class protocol_t>
 directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_without_changing_id(typename reactor_business_card_t<protocol_t>::activity_t activity) {
-    on_thread_t th(parent->home_thread());
     typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
     rassert(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
 
@@ -81,7 +79,6 @@ directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_withou
 
 template <class protocol_t>
 reactor_t<protocol_t>::directory_entry_t::~directory_entry_t() {
-    on_thread_t th(parent->home_thread());
     if (!reactor_activity_id.is_nil()) {
         typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
         our_value_change.buffer.activities.erase(reactor_activity_id);
