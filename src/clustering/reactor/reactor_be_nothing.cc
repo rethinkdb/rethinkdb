@@ -3,6 +3,7 @@
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 
 
 /* Returns true if every peer listed as a primary for this shard in the
@@ -60,12 +61,15 @@ template<class protocol_t>
 void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
         store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint,
         signal_t *interruptor) THROWS_NOTHING {
-    order_source_t order_source;  // TODO: order_token_t::ignore
-
     try {
         directory_entry_t directory_entry(this, region);
 
         {
+            cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+            on_thread_t th(svs->home_thread());
+
+            order_source_t order_source;  // TODO: order_token_t::ignore
+
             /* We offer backfills while waiting for it to be safe to shutdown
              * in case another peer needs a copy of the data */
             backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history_manager, svs);
@@ -75,9 +79,11 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
             svs->new_read_token(&read_token);
             region_map_t<protocol_t, binary_blob_t> metainfo_blob;
-            svs->do_get_metainfo(order_source.check_in("be_nothing").with_read_mode(), &read_token, interruptor, &metainfo_blob);
+            svs->do_get_metainfo(order_source.check_in("be_nothing").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
             typename reactor_business_card_t<protocol_t>::nothing_when_safe_t
                 activity(to_version_range_map(metainfo_blob), backfiller.get_business_card());
+
+            on_thread_t th2(this->home_thread());
             directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
 
             /* Make sure everyone sees that we're trying to erase our data,

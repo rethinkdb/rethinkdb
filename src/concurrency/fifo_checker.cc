@@ -62,6 +62,8 @@ bool order_token_t::is_ignore() const { return !bucket_.valid() && value_ == ORD
 
 
 order_source_t::order_source_t() : bucket_(order_bucket_t::create()), counter_(0) { }
+order_source_t::order_source_t(int specified_home_thread)
+    : home_thread_mixin_t(specified_home_thread), bucket_(order_bucket_t::create()), counter_(0) { }
 
 order_source_t::~order_source_t() { }
 

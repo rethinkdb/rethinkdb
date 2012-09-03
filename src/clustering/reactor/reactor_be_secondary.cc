@@ -4,6 +4,8 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/direct_reader.hpp"
+#include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 
 template <class protocol_t>
 bool reactor_t<protocol_t>::find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &_reactor_directory,
@@ -134,7 +136,7 @@ bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t:
 template<class protocol_t>
 void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
-        order_source_t order_source;  // TODO: order_token_t::ignore
+        order_source_t order_source(svs->home_thread());  // TODO: order_token_t::ignore
 
         /* Tell everyone that we're backfilling so that we can get up to
          * date. */
@@ -147,6 +149,9 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
             reactor_activity_id_t activity_id;
 
             {
+                cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+                on_thread_t th(svs->home_thread());
+
                 /* First we construct a backfiller which offers backfills to
                  * the rest of the cluster, this is necessary because if a new
                  * primary is coming up it may need data from us before it can
@@ -161,7 +166,9 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 svs->new_read_token(&read_token);
 
                 region_map_t<protocol_t, binary_blob_t> metainfo_blob;
-                svs->do_get_metainfo(order_source.check_in("reactor_t::be_secondary").with_read_mode(), &read_token, interruptor, &metainfo_blob);
+                svs->do_get_metainfo(order_source.check_in("reactor_t::be_secondary").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
+
+                on_thread_t th2(this->home_thread());
 
                 typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
                     activity(to_version_range_map(metainfo_blob), backfiller.get_business_card());
@@ -211,13 +218,18 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                  * need to backfill to get up to date. */
                 directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_backfilling_t(backfill_location));
 
+                cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+                cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > ct_broadcaster(broadcaster, svs->home_thread());
+                cross_thread_watchable_variable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > ct_location_to_backfill_from(location_to_backfill_from, svs->home_thread());
+                on_thread_t th(svs->home_thread());
+
                 // TODO: Don't use local stack variable for name.
                 std::string region_name = strprintf("be_secondary_%p", &region);
                 perfmon_collection_t region_perfmon_collection;
                 perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
-                listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster, branch_history_manager, svs, location_to_backfill_from, backfill_session_id, &regions_perfmon_collection, interruptor, &order_source);
+                listener_t<protocol_t> listener(io_backender, mailbox_manager, ct_broadcaster.get_watchable(), branch_history_manager, svs, ct_location_to_backfill_from.get_watchable(), backfill_session_id, &regions_perfmon_collection, &ct_interruptor, &order_source);
 
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use
@@ -225,6 +237,8 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 replier_t<protocol_t> replier(&listener, mailbox_manager, branch_history_manager);
 
                 direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
+
+                on_thread_t th2(this->home_thread());
 
                 /* Make the directory reflect the new role that we are filling.
                  * (Being a secondary). */

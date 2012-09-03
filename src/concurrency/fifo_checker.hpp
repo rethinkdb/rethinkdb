@@ -91,12 +91,14 @@ class order_source_t : public home_thread_mixin_t {
 public:
 #ifndef NDEBUG
     order_source_t();
+    order_source_t(int specified_home_thread);
     ~order_source_t();
 
     // Makes a write-mode order token.
     order_token_t check_in(const std::string& tag);
 #else
     order_source_t() { }
+    order_source_t(int specified_home_thread) : home_thread_mixin_t(specified_home_thread) { }
     ~order_source_t() { }
 
     order_token_t check_in(const std::string&) { return order_token_t(); }

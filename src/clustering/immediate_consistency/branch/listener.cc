@@ -6,6 +6,7 @@
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 
 
 /* `WRITE_QUEUE_CORO_POOL_SIZE` is the number of coroutines that will be used
@@ -88,9 +89,17 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     }
 
     branch_id_ = business_card.get().get().branch_id;
-    branch_history_manager->import_branch_history(business_card.get().get().branch_id_associated_branch_history, interruptor);
-    // TODO: Is there a simpler way to get the region?  A business card maybe?
-    our_branch_region_ = branch_history_manager->get_branch(branch_id_).region;
+
+    branch_birth_certificate_t<protocol_t> this_branch_history;
+
+    {
+        cross_thread_signal_t ct_interruptor(interruptor, branch_history_manager->home_thread());
+        on_thread_t th(branch_history_manager->home_thread());
+        branch_history_manager->import_branch_history(business_card.get().get().branch_id_associated_branch_history, interruptor);
+        this_branch_history = branch_history_manager->get_branch(branch_id_);
+    }
+
+    our_branch_region_ = this_branch_history.region;
 
 #ifndef NDEBUG
     /* Sanity-check to make sure we're on the same timeline as the thing
@@ -98,8 +107,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
        but if there's an error it would be nice to catch it where the action
        was initiated. */
 
-    branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager->get_branch(branch_id_);
-    guarantee(region_is_superset(this_branch_history.region, svs_->get_region()));
+    guarantee(region_is_superset(our_branch_region_, svs_->get_region()));
 
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs_->new_read_token(&read_token);
@@ -107,16 +115,19 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     svs_->do_get_metainfo(order_source->check_in("listener_t(A)").with_read_mode(), &read_token, interruptor, &start_point_blob);
     region_map_t<protocol_t, version_range_t> start_point = to_version_range_map(start_point_blob);
 
-    for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
-         it != start_point.end();
-         ++it) {
+    {
+        on_thread_t th(branch_history_manager->home_thread());
+        for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
+             it != start_point.end();
+             ++it) {
 
-        version_t version = it->second.latest;
-        rassert(version.branch == branch_id_ ||
-                version_is_ancestor(branch_history_manager,
-                                    version,
-                                    version_t(branch_id_, this_branch_history.initial_timestamp),
-                                    it->first));
+            version_t version = it->second.latest;
+            rassert(version.branch == branch_id_ ||
+                    version_is_ancestor(branch_history_manager,
+                                        version,
+                                        version_t(branch_id_, this_branch_history.initial_timestamp),
+                                        it->first));
+        }
     }
 #endif
 
@@ -208,7 +219,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     mailbox_manager_(mm),
     svs_(broadcaster->release_bootstrap_svs_for_listener()),
     branch_id_(broadcaster->get_branch_id()),
-    our_branch_region_(branch_history_manager->get_branch(branch_id_).region),
     uuid_(generate_uuid()),
     perfmon_collection_(),
     perfmon_collection_membership_(backfill_stats_parent, &perfmon_collection_, "backfill-serialization-" + uuid_to_str(uuid_)),
@@ -227,6 +237,14 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline)
 {
+    branch_birth_certificate_t<protocol_t> this_branch_history;
+    {
+        on_thread_t th(branch_history_manager->home_thread());
+        this_branch_history = branch_history_manager->get_branch(branch_id_);
+    }
+
+    our_branch_region_ = this_branch_history.region;
+
 #ifndef NDEBUG
     /* Confirm that `broadcaster_metadata` corresponds to `broadcaster` */
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
@@ -238,7 +256,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     that we're using the same `branch_history_manager_t` as the broadcaster, so
     an entry should already be present for the branch we're trying to join, and
     we skip calling `import_branch_history()`. */
-    branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager->get_branch(branch_id_);
     rassert(svs_->get_region() == this_branch_history.region);
 
     /* Snapshot the metainfo before we start receiving writes */

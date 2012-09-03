@@ -21,11 +21,18 @@ replier_t<protocol_t>::replier_t(listener_t<protocol_t> *li,
     backfiller_(mailbox_manager_,
                 branch_history_manager,
                 listener_->svs()) {
-    rassert(listener_->svs()->get_region() ==
-            branch_history_manager->get_branch(listener_->branch_id()).region,
-            "Even though you can have a listener that only watches some subset "
-            "of a branch, you can't have a replier for some subset of a "
-            "branch.");
+
+#ifndef NDEBUG
+    {
+        // TODO: Lose the need to switch threads for this assertion.
+        typename protocol_t::region_t svs_region = listener_->svs()->get_region();
+        on_thread_t th(branch_history_manager->home_thread());
+        rassert(svs_region == branch_history_manager->get_branch(listener_->branch_id()).region,
+                "Even though you can have a listener that only watches some subset "
+                "of a branch, you can't have a replier for some subset of a "
+                "branch.");
+    }
+#endif  // NDEBUG
 
     /* Notify the broadcaster that we can reply to queries */
     send(mailbox_manager_,

@@ -1,7 +1,9 @@
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
+
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/coro_pool.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/fifo_enforcer_queue.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
@@ -167,7 +169,10 @@ void backfillee(
     start_point = start_point.mask(region);
 
     branch_history_t<protocol_t> start_point_associated_history;
-    branch_history_manager->export_branch_history(start_point, &start_point_associated_history);
+    {
+        on_thread_t th(branch_history_manager->home_thread());
+        branch_history_manager->export_branch_history(start_point, &start_point_associated_history);
+    }
 
     /* The backfiller will send a message to `end_point_mailbox` before it sends
     any other messages; that message will tell us what the version will be when
@@ -254,7 +259,12 @@ void backfillee(
         metainfo, because otherwise if we crashed at a bad time the data might
         make it to disk as part of the metainfo but not as part of the branch
         history, and that would lead to crashes. */
-        branch_history_manager->import_branch_history(end_point_cond.get_value().second, interruptor);
+        {
+            cross_thread_signal_t ct_interruptor(interruptor, branch_history_manager->home_thread());
+            branch_history_t<protocol_t> branch_history = end_point_cond.get_value().second;
+            on_thread_t th(branch_history_manager->home_thread());
+            branch_history_manager->import_branch_history(branch_history, &ct_interruptor);
+        }
 
         /* Indicate in the metadata that a backfill is happening. We do this by
         marking every region as indeterminate between the current state and the
@@ -267,23 +277,28 @@ void backfillee(
 
         std::vector<std::pair<typename protocol_t::region_t, version_range_t> > span_parts;
 
-        for (typename version_map_t::const_iterator it  = start_point.begin();
-                                                    it != start_point.end();
-                                                    it++) {
-            for (typename version_map_t::const_iterator jt  = end_point.begin();
-                                                        jt != end_point.end();
-                                                        jt++) {
-                typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
-                if (!region_is_empty(ixn)) {
-                    rassert(version_is_ancestor(branch_history_manager,
-                        it->second.earliest,
-                        jt->second.latest,
-                        ixn),
-                        "We're on a different timeline than the backfiller, "
-                        "but it somehow failed to notice.");
-                    span_parts.push_back(std::make_pair(
-                        ixn,
-                        version_range_t(it->second.earliest, jt->second.latest)));
+        {
+#ifndef NDEBUG
+            on_thread_t th(branch_history_manager->home_thread());
+#endif
+            for (typename version_map_t::const_iterator it  = start_point.begin();
+                 it != start_point.end();
+                 it++) {
+                for (typename version_map_t::const_iterator jt  = end_point.begin();
+                     jt != end_point.end();
+                     jt++) {
+                    typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
+                    if (!region_is_empty(ixn)) {
+                        rassert(version_is_ancestor(branch_history_manager,
+                                                    it->second.earliest,
+                                                    jt->second.latest,
+                                                    ixn),
+                                "We're on a different timeline than the backfiller, "
+                                "but it somehow failed to notice.");
+                        span_parts.push_back(std::make_pair(
+                                                            ixn,
+                                                            version_range_t(it->second.earliest, jt->second.latest)));
+                    }
                 }
             }
         }

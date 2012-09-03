@@ -4,6 +4,7 @@
 #include <boost/make_shared.hpp>
 
 #include "concurrency/coro_fifo.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
@@ -77,7 +78,10 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
         birth_certificate.initial_timestamp = initial_timestamp;
         birth_certificate.origin = origins;
 
-        branch_history_manager->create_branch(branch_id, birth_certificate, interruptor);
+        cross_thread_signal_t ct_interruptor(interruptor, branch_history_manager->home_thread());
+        on_thread_t th(branch_history_manager->home_thread());
+
+        branch_history_manager->create_branch(branch_id, birth_certificate, &ct_interruptor);
     }
 
     /* Reset the store metadata. We should do this after making the branch

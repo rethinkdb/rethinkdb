@@ -12,6 +12,8 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/direct_reader.hpp"
+#include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 
 template <class protocol_t>
 reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
@@ -255,14 +257,19 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
     /* block until all peers have acked `directory_entry` */
     wait_for_directory_acks(version_to_wait_on, interruptor);
 
+    cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+    on_thread_t th(svs->home_thread());
+
     /* Figure out what version of the data is already present in our
      * store so we don't backfill anything prior to it. */
     scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs->new_read_token(&read_token);
     region_map_t<protocol_t, binary_blob_t> metainfo_blob;
-    svs->do_get_metainfo(order_source->check_in("reactor_t::be_primary").with_read_mode(), &read_token, interruptor, &metainfo_blob);
+    svs->do_get_metainfo(order_source->check_in("reactor_t::be_primary").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
     region_map_t<protocol_t, version_range_t> metainfo = to_version_range_map(metainfo_blob);
     region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);
+
+    on_thread_t th2(this->home_thread());
 
     /* This waits until every other peer is ready to accept us as the
      * primary and there is a unique coherent latest verstion of the
@@ -337,10 +344,10 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
 template<class protocol_t>
 void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
-        order_source_t order_source;  // TODO: order_token_t::ignore
-
         //Tell everyone that we're looking to become the primary
         directory_entry_t directory_entry(this, region);
+
+        order_source_t order_source(svs->home_thread());  // TODO: order_token_t::ignore
 
         /* In this loop we repeatedly attempt to find peers to backfill from
          * and then perform the backfill. We exit the loop either when we get
@@ -349,10 +356,16 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
 
         // TODO: Don't use local stack variable.
         std::string region_name = strprintf("be_primary_%p", &region);
+
+        cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+        on_thread_t th(svs->home_thread());
+
         perfmon_collection_t region_perfmon_collection;
         perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
-        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history_manager, svs, &region_perfmon_collection, &order_source, interruptor);
+        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history_manager, svs, &region_perfmon_collection, &order_source, &ct_interruptor);
+
+        on_thread_t th2(this->home_thread());
 
         directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card()));
 
@@ -365,10 +378,15 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
          * ourselves after we've put it in the directory. */
         broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
 
-        listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster_business_card, branch_history_manager, &broadcaster, &region_perfmon_collection, interruptor, &order_source);
+        cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > ct_broadcaster_business_card(broadcaster_business_card, svs->home_thread());
+
+        on_thread_t th3(svs->home_thread());
+        listener_t<protocol_t> listener(io_backender, mailbox_manager, ct_broadcaster_business_card.get_watchable(), branch_history_manager, &broadcaster, &region_perfmon_collection, &ct_interruptor, &order_source);
         replier_t<protocol_t> replier(&listener, mailbox_manager, branch_history_manager);
         master_t<protocol_t> master(mailbox_manager, ack_checker, region, &broadcaster);
         direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
+
+        on_thread_t th4(this->home_thread());
 
         directory_entry.update_without_changing_id(
             typename reactor_business_card_t<protocol_t>::primary_t(
