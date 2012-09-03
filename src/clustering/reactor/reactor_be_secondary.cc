@@ -238,6 +238,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
 
                 direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
 
+                cross_thread_signal_t ct_broadcaster_lost_signal(listener.get_broadcaster_lost_signal(), this->home_thread());
                 on_thread_t th2(this->home_thread());
 
                 /* Make the directory reflect the new role that we are filling.
@@ -245,7 +246,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t(branch_id, replier.get_business_card(), direct_reader.get_business_card()));
 
                 /* Wait for something to change. */
-                wait_interruptible(listener.get_broadcaster_lost_signal(), interruptor);
+                wait_interruptible(&ct_broadcaster_lost_signal, interruptor);
             } catch (typename listener_t<protocol_t>::backfiller_lost_exc_t) {
                 /* We lost the replier which means we should retry, just
                  * going back to the top of the while loop accomplishes this.

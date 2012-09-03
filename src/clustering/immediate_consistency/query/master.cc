@@ -59,7 +59,13 @@ void master_t<protocol_t>::client_t::perform_request(
             void on_response(peer_id_t peer, const typename protocol_t::write_response_t &response) {
                 if (!response_promise.get_ready_signal()->is_pulsed()) {
                     ack_set.insert(peer);
-                    if (ack_checker->is_acceptable_ack_set(ack_set)) {
+                    bool is_acceptable;
+                    {
+                        // TODO: This is horrible.  It was horrible before we had to switch threads.  Make us not have to switch threads in order to call is_acceptable_ack_set.
+                        on_thread_t th(ack_checker->home_thread());
+                        is_acceptable = ack_checker->is_acceptable_ack_set(ack_set);
+                    }
+                    if (is_acceptable) {
                         response_promise.pulse(response);
                     }
                 }

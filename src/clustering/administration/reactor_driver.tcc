@@ -86,6 +86,8 @@ public:
     typename protocol_t::context_t *ctx;
 
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) {
+        home_thread_mixin_t::assert_thread();
+
         /* There are a bunch of weird corner cases: what if the namespace was
         deleted? What if we got an ack from a machine but then it was declared
         dead? What if the namespaces `expected_acks` field is in conflict? We
