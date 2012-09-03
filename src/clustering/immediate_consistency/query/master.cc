@@ -61,7 +61,7 @@ void master_t<protocol_t>::client_t::perform_request(
                     ack_set.insert(peer);
                     bool is_acceptable;
                     {
-                        // TODO: This is horrible.  It was horrible before we had to switch threads.  Make us not have to switch threads in order to call is_acceptable_ack_set.
+                        // TODO: This is horrible.  It was horrible before we had to switch threads, because it is (probably) an unnecessary location of side effects.  Make us not have to switch threads in order to call is_acceptable_ack_set.  (That won't be 100% easy, I don't think.)
                         std::set<peer_id_t> ack_set_copy = ack_set;
                         on_thread_t th(ack_checker->home_thread());
                         is_acceptable = ack_checker->is_acceptable_ack_set(ack_set_copy);
