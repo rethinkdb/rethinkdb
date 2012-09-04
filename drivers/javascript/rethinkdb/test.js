@@ -181,6 +181,10 @@ function testJS() {
     */
 }
 
+function testBetween() {
+    tab.between(2,3).length().run(aeq(2));
+}
+
 function testUpdate1() {
     tab.update(function(a) {
         a.updated = true;
@@ -260,6 +264,7 @@ runTests([
     testTabMap,
     testTabReduce,
     testJS,
+    testBetween,
     testUpdate1,
     testUpdate2,
     testMutate1,

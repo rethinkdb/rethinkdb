@@ -354,23 +354,13 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'filter',
 /**
  * Map a function over a list or a stream
  */
-rethinkdb.query.Expression.prototype.map = function(mapping) {
-    var mappingFunction;
-    if (mapping instanceof rethinkdb.query.FunctionExpression) {
-        mappingFunction = mapping;
-    } else if (mapping instanceof rethinkdb.query.Expression) {
-        mappingFunction = rethinkdb.query.fn('', mapping);
-    } else if(typeof mapping === 'function') {
-        mappingFunction = rethinkdb.query.fn(mapping);
-    } else {
-        // invalid mapping
-    }
-
+rethinkdb.query.Expression.prototype.map = function(mapFun) {
+    mapFun = functionWrap_(mapFun);
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.MAP, [this],
         function(builtin) {
             var mapping = new Mapping();
-            mapping.setArg(mappingFunction.args[0]);
-            mapping.setBody(mappingFunction.body.compile());
+            mapping.setArg(mapFun.args[0]);
+            mapping.setBody(mapFun.body.compile());
 
             var map = new Builtin.Map();
             map.setMapping(mapping);
@@ -427,17 +417,8 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'distinct',
  * @param {rethinkdb.query.FunctionExpression|function(...)} reduce
  */
 rethinkdb.query.Expression.prototype.reduce = function(base, reduce) {
-    if (!(base instanceof rethinkdb.query.Expression)) {
-        base = rethinkdb.query.expr(base);
-    }
-
-    if (!(reduce instanceof rethinkdb.query.FunctionExpression)) {
-        if (typeof reduce === 'function') {
-            reduce = new rethinkdb.query.JSFunctionExpression(reduce);
-        } else {
-            throw TypeError('reduce argument expected to be a function');
-        }
-    }
+    base = wrapIf_(base);
+    reduce = functionWrap_(reduce);
 
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.REDUCE, [this],
         function(builtin) {
@@ -586,21 +567,13 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'extend',
 /**
  * Apply mapping and then concat to an array.
  */
-rethinkdb.query.Expression.prototype.concatMap = function(mapping) {
-    var mappingFunction;
-    if (mapping instanceof rethinkdb.query.FunctionExpression) {
-        mappingFunction = mapping;
-    } else if (mapping instanceof rethinkdb.query.Expression) {
-        mappingFunction = rethinkdb.query.fn('', mapping);
-    } else {
-        // invalid mapping
-    }
-
+rethinkdb.query.Expression.prototype.concatMap = function(mapFun) {
+    mapFun = functionWrap_(mapFun);
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.CONCATMAP, [this],
         function(builtin) {
             var mapping = new Mapping();
-            mapping.setArg(mappingFunction.args[0]);
-            mapping.setBody(mappingFunction.body.compile());
+            mapping.setArg(mapFun.args[0]);
+            mapping.setBody(mapFun.body.compile());
 
             var concatmap = new Builtin.ConcatMap();
             concatmap.setMapping(mapping);

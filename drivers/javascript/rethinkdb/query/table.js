@@ -177,18 +177,8 @@ rethinkdb.query.UpdateQuery.prototype.buildQuery = function() {
  * Updates all rows according to the given mapping function
  */
 rethinkdb.query.Expression.prototype.update = function(mapping) {
-    var mappingFunction = null;
-    if (mapping instanceof rethinkdb.query.FunctionExpression) {
-        mappingFunction = mapping;
-    } else if (mapping instanceof rethinkdb.query.Expression) {
-        mappingFunction = rethinkdb.query.fn('', mapping);
-    } else if(typeof mapping === 'function') {
-        mappingFunction = rethinkdb.query.fn(mapping);
-    } else {
-        // invalid mapping
-    }
-
-    return new rethinkdb.query.UpdateQuery(this, mappingFunction);
+    mapping = functionWrap_(mapping);
+    return new rethinkdb.query.UpdateQuery(this, mapping);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'update',
                     rethinkdb.query.Expression.prototype.update);
@@ -229,18 +219,8 @@ rethinkdb.query.MutateQuery.prototype.buildQuery = function() {
  * Replcaces each row the the result of the mapping expression
  */
 rethinkdb.query.Expression.prototype.mutate = function(mapping) {
-    var mappingFunction = null;
-    if (mapping instanceof rethinkdb.query.FunctionExpression) {
-        mappingFunction = mapping;
-    } else if (mapping instanceof rethinkdb.query.Expression) {
-        mappingFunction = rethinkdb.query.fn('', mapping);
-    } else if(typeof mapping === 'function') {
-        mappingFunction = rethinkdb.query.fn(mapping);
-    } else {
-        // invalid mapping
-    }
-
-    return new rethinkdb.query.MutateQuery(this, mappingFunction);
+    mapping = functionWrap_(mapping);
+    return new rethinkdb.query.MutateQuery(this, mapping);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'mutate',
                     rethinkdb.query.Expression.prototype.mutate);

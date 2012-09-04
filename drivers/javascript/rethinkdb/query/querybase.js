@@ -26,4 +26,22 @@ function wrapIf_(val) {
     } else {
         return rethinkdb.query(val);
     }
-};
+}
+
+/**
+ * Internal utility for wrapping API function arguments that
+ * are expected to be function expressions.
+ */
+function functionWrap_(fun) {
+    if (fun instanceof rethinkdb.query.FunctionExpression) {
+        // No wrap needed
+    } else if (fun instanceof rethinkdb.query.Expression) {
+        fun = rethinkdb.query.fn('', fun);
+    } else if(typeof fun === 'function') {
+        fun = rethinkdb.query.fn(fun);
+    } else {
+       throw TypeError("Argument expected to be a function expression");
+    }
+
+    return fun;
+}
