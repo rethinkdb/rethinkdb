@@ -45,7 +45,18 @@ rethinkdb.query.BaseQuery.prototype.run = function(callback, conn) {
     conn.run(this, callback);
 };
 goog.exportProperty(rethinkdb.query.BaseQuery.prototype, 'run',
-    rethinkdb.query.BaseQuery.prototype.run);
+                    rethinkdb.query.BaseQuery.prototype.run);
+
+/**
+ * @param {function()} callback The callback to invoke with the result.
+ * @param {rethinkdb.net.Connection=} conn The connection to run this expression on.
+ */
+rethinkdb.query.BaseQuery.prototype.iter = function(callback, conn) {
+    conn = conn || rethinkdb.net.last_connection;
+    conn.iter(this, callback);
+};
+goog.exportProperty(rethinkdb.query.BaseQuery.prototype, 'iter',
+                    rethinkdb.query.BaseQuery.prototype.iter);
 
 /** @return {!Query} */
 rethinkdb.query.BaseQuery.prototype.buildQuery = goog.abstractMethod;
