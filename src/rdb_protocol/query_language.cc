@@ -2344,21 +2344,29 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 
                 if (r->has_lowerbound()) {
                     lowerbound = eval(r->mutable_lowerbound(), env, backtrace.with("lowerbound"));
+                    if (lowerbound->type() != cJSON_Number && lowerbound->type() != cJSON_String) {
+                        throw runtime_exc_t(strprintf("Lower bound of RANGE must be a string or a number, not %s.",
+                                                      lowerbound->Print().c_str()), backtrace);
+                    }
                 }
 
                 if (r->has_upperbound()) {
                     upperbound = eval(r->mutable_upperbound(), env, backtrace.with("upperbound"));
+                    if (upperbound->type() != cJSON_Number && upperbound->type() != cJSON_String) {
+                        throw runtime_exc_t(strprintf("Lower bound of RANGE must be a string or a number, not %s.",
+                                                      upperbound->Print().c_str()), backtrace);
+                    }
                 }
 
                 if (lowerbound && upperbound) {
-                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->Print()),
-                                        key_range_t::closed, store_key_t(upperbound->Print()));
+                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->PrintLexicographic()),
+                                        key_range_t::closed, store_key_t(upperbound->PrintLexicographic()));
                 } else if (lowerbound) {
-                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->Print()),
+                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->PrintLexicographic()),
                                         key_range_t::none, store_key_t());
                 } else if (upperbound) {
                     range = key_range_t(key_range_t::none, store_key_t(),
-                                        key_range_t::closed, store_key_t(upperbound->Print()));
+                                        key_range_t::closed, store_key_t(upperbound->PrintLexicographic()));
                 }
 
                 return boost::shared_ptr<json_stream_t>(
