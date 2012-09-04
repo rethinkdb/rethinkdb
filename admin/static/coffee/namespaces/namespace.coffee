@@ -14,7 +14,6 @@ module 'NamespaceView', ->
 
     # Container for the entire namespace view
     class @Container extends Backbone.View
-        #TODO Add a class to keep alert when adding multiple namespaces
         className: 'namespace-view'
         template: Handlebars.compile $('#namespace_view-container-template').html()
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
@@ -293,12 +292,9 @@ module 'NamespaceView', ->
 
         render: =>
             @.$el.html @container_template {}
-            @render_data_in_memory(true)
-            @render_data_repartition(true)
             return @
 
-        # TODO refactor without the boolean - Check machine view
-        render_data_in_memory: (force_render) =>
+        render_data_in_memory: =>
             data_in_memory = 0
             data_total = 0
             data_is_ready = false
@@ -329,7 +325,7 @@ module 'NamespaceView', ->
                 if not @json_in_memory[key]? or @json_in_memory[key] != json[key]
                     need_update = true
                     break
-            if need_update or force_render is true or @.$('.pie_chart-data_in_memory').children().length is 1 # Need is true for force_render since Machine is passed as an argument
+            if need_update
                 @json_in_memory = json
                 @.$('.data_in_memory-container').html @data_in_memory_template @json_in_memory
 
@@ -346,25 +342,21 @@ module 'NamespaceView', ->
 
                     data_pie = [data_total-data_in_memory, data_in_memory]
 
+                    # Remove transition for the time being. We have to use transition with opacity only the first time
+                    # For update, we should just move/extend pieces, too much work for now
+                    #@.$('.loading_text-svg').fadeOut '600', -> $(@).remove() 
+                    @.$('.loading_text-pie_chart').css 'display', 'none'
 
-                    if $('.pie_chart-data_in_memory').length is 1 #Check dom tree ready for d3. TODO: Replace this hack.
-                        # Remove transition for the time being. We have to use transition with opacity only the first time
-                        # For update, we should just move/extend pieces, too much work for now
-                        #@.$('.loading_text-svg').fadeOut '600', -> $(@).remove() 
-                        @.$('.loading_text-pie_chart').css 'display', 'none'
-    
-                        arc = d3.svg.arc().innerRadius(0).outerRadius(r)
-                        svg = d3.select('.pie_chart-data_in_memory').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
-                        arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc)
-    
-                        # No transition for now
-                        #arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc).style('opacity', 0).transition().duration(600).style('opacity', 1)
-                    else
-                        setTimeout(@render_data_memory, 1000)
+                    arc = d3.svg.arc().innerRadius(0).outerRadius(r)
+                    svg = d3.select('.pie_chart-data_in_memory').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
+                    arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc)
+
+                    # No transition for now
+                    #arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc).style('opacity', 0).transition().duration(600).style('opacity', 1)
 
             return @ # Just to make sure that d3 doesn't return false
 
-        render_data_repartition: (force_render) =>
+        render_data_repartition: =>
             $('.tooltip').remove()
             shards = []
             total_keys = 0
@@ -398,16 +390,12 @@ module 'NamespaceView', ->
                     need_update = true
                     break
 
-            if need_update or force_render is true or @.$('.data_repartition-diagram').children().length is 1
+            if need_update
 
                 @.$('.data_repartition-container').html @data_repartition_template json
 
-                if $('.data_repartition-diagram').length>0 #We need the dom tree to be fully available for d3
-                    #TODO Replace this hack with a proper callback/listener
-                    @.$('.loading_text-diagram').css 'display', 'none'
-                    @json_repartition = json
-                else
-                    setTimeout(@render_data_repartition, 1000)
+                @.$('.loading_text-diagram').css 'display', 'none'
+                @json_repartition = json
 
 
                 # Draw histogram
@@ -528,7 +516,6 @@ module 'NamespaceView', ->
         delete_namespace: (event) ->
             event.preventDefault()
             remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
-            #overwrite on_success to add a redirectiona
             namespace_to_delete = @model
         
             remove_namespace_dialog.on_success = (response) =>

@@ -135,6 +135,9 @@ class BackboneCluster extends Backbone.Router
         else
             @$container.html @current_view.render().el
 
+        @current_view.overview.render_data_repartition()
+        @current_view.overview.render_data_in_memory()
+
         @sidebar.set_type_view()
 
     datacenter: (id, tab) ->
