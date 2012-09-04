@@ -18,6 +18,16 @@ rethinkdb.query = function(jsobj) {
 };
 
 /**
+ * @constructor
+ * @extends {Error}
+ */
+function ClientError(msg) {
+    this.name = "RDB Client Error";
+    this.msg = msg || "The RDB client has experienced an error";
+}
+goog.inherits(ClientError, Error);
+
+/**
  * Internal utility for wrapping API function arguments
  */
 function wrapIf_(val) {

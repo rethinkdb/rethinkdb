@@ -152,10 +152,8 @@ function testTabMap() {
 }
 
 function testTabReduce() {
-    tab.map(q('@.num')).reduce(q(0), q.fn('a','b',q('$b').add(q('$a')))).run(aeq(155));
-
-    // Complains about not having field num
-    //tab.reduce(q(0), q.fn('a', 'b', q.R('$b.num'))).run(aeq(155));
+    tab.map(q('@.num')).reduce(q(0), q.fn('a','b', q('$b').add(q('$a')))).run(aeq(155));
+    tab.map(q('@.num')).reduce(q(0), q.fn('a', 'b', q('$b').add('$a'))).run(aeq(155));
 }
 
 function testJS() {

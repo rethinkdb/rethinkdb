@@ -81,6 +81,37 @@ rethinkdb.net.Connection.prototype.iter = function(expr, opt_callback) {
 goog.exportProperty(rethinkdb.net.Connection.prototype, 'iter',
                     rethinkdb.net.Connection.prototype.iter);
 
+
+/**
+ * @constructor
+ * @extends {Error}
+ */
+function RuntimeError(msg) {
+    this.name = "Runtime Error";
+    this.message = msg || "The RDB runtime experienced an error";
+}
+goog.inherits(RuntimeError, Error);
+
+/**
+ * @constructor
+ * @extends {Error}
+ */
+function BrokenClient() {
+    this.name = "Broken Client";
+    this.message = "The client sent the server an incorrectly formatted message";
+}
+goog.inherits(BrokenClient, Error);
+
+/**
+ * @constructor
+ * @extends {Error}
+ */
+function BadQuery(msg) {
+    this.name = "Bad Query";
+    this.message = msg || "This query contains type errors";
+}
+goog.inherits(BadQuery, Error);
+
 /**
  * Called when data is received on underlying connection.
  * @private
@@ -89,8 +120,7 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
     goog.asserts.assert(data.length >= 4);
     var msgLength = (new DataView(data.buffer)).getUint32(0, true);
     if (msgLength !== (data.length - 4)) {
-        //TODO handle this error
-        throw "message is wrong length";
+        throw new ClientError("RDB response corrupted, length inaccurate");
     }
 
     try {
@@ -104,13 +134,13 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
 
             switch(responseStatus) {
             case Response.StatusCode.BROKEN_CLIENT:
-                throw "Broken client";
+                throw new BrokenClient();
                 break;
             case Response.StatusCode.RUNTIME_ERROR:
-                throw "Runtime error";
+                throw new RuntimeError(response.getErrorMessage());
                 break;
             case Response.StatusCode.BAD_QUERY:
-                throw "bad query";
+                throw new BadQuery(response.getErrorMessage());
                 break;
             case Response.StatusCode.SUCCESS_EMPTY:
                 delete this.outstandingQueries_[response.getToken()]
@@ -151,15 +181,13 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
                 }
                 break;
             default:
-                throw "unknown response status code";
+                throw new ClientError("unknown response status code");
                 break;
             }
         } // else no matching request
 
     } catch(err) {
-        // Deserialization failed
-        // TODO how to express this erro?
-        throw err;
+        throw new ClientError("response deserialization failed");
     }
 };
 
