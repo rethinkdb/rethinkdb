@@ -58,18 +58,12 @@ void master_t<protocol_t>::client_t::perform_request(
             explicit write_callback_t(ack_checker_t *ac) : ack_checker(ac) { }
             void on_response(peer_id_t peer, const typename protocol_t::write_response_t &response) {
                 if (!response_promise.get_ready_signal()->is_pulsed()) {
+                    ASSERT_NO_CORO_WAITING;
                     ack_set.insert(peer);
-                    bool is_acceptable;
-                    {
-                        // TODO: This is horrible.  It was horrible before we had to switch threads, because it is (probably) an unnecessary location of side effects.  Make us not have to switch threads in order to call is_acceptable_ack_set.  (That won't be 100% easy, I don't think.)
-                        std::set<peer_id_t> ack_set_copy = ack_set;
-                        on_thread_t th(ack_checker->home_thread());
-                        is_acceptable = ack_checker->is_acceptable_ack_set(ack_set_copy);
-                    }
+                    // TODO: Having this centralized ack checker is horrible?  But maybe it's ok.
+                    bool is_acceptable = ack_checker->is_acceptable_ack_set(ack_set);
                     if (is_acceptable) {
-                        if (!response_promise.is_pulsed()) {
-                            response_promise.pulse(response);
-                        }
+                        response_promise.pulse(response);
                     }
                 }
             }

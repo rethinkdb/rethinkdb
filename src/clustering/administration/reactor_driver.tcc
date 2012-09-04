@@ -11,12 +11,13 @@
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/perfmon_collection_repo.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/watchable.hpp"
+#include "db_thread_info.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include "clustering/administration/perfmon_collection_repo.hpp"
-#include "clustering/immediate_consistency/branch/multistore.hpp"
 
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */
@@ -41,6 +42,65 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
     }
     return output;
 }
+
+template <class protocol_t>
+class per_thread_ack_info_t {
+public:
+    per_thread_ack_info_t(const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table,
+                          const semilattice_watchable_t<machines_semilattice_metadata_t> &machines_view,
+                          const semilattice_watchable_t<namespaces_semilattice_metadata_t<protocol_t> > &namespaces_view,
+                          int dest_thread)
+        : machine_id_translation_table_(machine_id_translation_table, dest_thread),
+          machines_view_(clone_ptr_t<watchable_t<machines_semilattice_metadata_t> >(machines_view.clone()), dest_thread),
+          namespaces_view_(clone_ptr_t<watchable_t<namespaces_semilattice_metadata_t<protocol_t> > >(namespaces_view.clone()), dest_thread) { }
+
+    // TODO: Just get the value directly.
+    std::map<peer_id_t, machine_id_t> get_machine_id_translation_table() {
+        return machine_id_translation_table_.get_watchable()->get();
+    }
+
+    machines_semilattice_metadata_t get_machines_view() {
+        return machines_view_.get_watchable()->get();
+    }
+
+    namespaces_semilattice_metadata_t<protocol_t> get_namespaces_view() {
+        return namespaces_view_.get_watchable()->get();
+    }
+
+private:
+    cross_thread_watchable_variable_t<std::map<peer_id_t, machine_id_t> > machine_id_translation_table_;
+    cross_thread_watchable_variable_t<machines_semilattice_metadata_t> machines_view_;
+    cross_thread_watchable_variable_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces_view_;
+    DISABLE_COPYING(per_thread_ack_info_t);
+};
+
+template <class protocol_t>
+class ack_info_t : public home_thread_mixin_t {
+public:
+    ack_info_t(const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table,
+               const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machines_view,
+               const boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > &namespaces_view)
+        : machine_id_translation_table_(machine_id_translation_table),
+          machines_view_(machines_view),
+          namespaces_view_(namespaces_view) {
+        for (int i = 0, e = get_num_db_threads(); i < e; ++i) {
+            per_thread_info_[i].init(new per_thread_ack_info_t<protocol_t>(machine_id_translation_table_, machines_view_, namespaces_view_, i));
+        }
+    }
+
+    per_thread_ack_info_t<protocol_t> *per_thread_ack_info() {
+        return per_thread_info_[get_thread_id()].get();
+    }
+
+private:
+    clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table_;
+    semilattice_watchable_t<machines_semilattice_metadata_t> machines_view_;
+    semilattice_watchable_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces_view_;
+
+    scoped_array_t<scoped_ptr_t<per_thread_ack_info_t<protocol_t> > > per_thread_info_;
+
+    DISABLE_COPYING(ack_info_t);
+};
 
 /* This is in part because these types aren't copyable so they can't go in
  * a std::pair. This class is used to hold a reactor and a watchable that
@@ -81,9 +141,7 @@ public:
         reactor_.reset();
     }
 
-    bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) {
-        home_thread_mixin_t::assert_thread();
-
+    static bool compute_is_acceptable_ack_set(const std::set<peer_id_t> &acks, const namespace_id_t &namespace_id, per_thread_ack_info_t<protocol_t> *ack_info) {
         /* There are a bunch of weird corner cases: what if the namespace was
         deleted? What if we got an ack from a machine but then it was declared
         dead? What if the namespaces `expected_acks` field is in conflict? We
@@ -93,9 +151,9 @@ public:
         enough acks. That's a bit weird, but fortunately it can't lead to data
         corruption. */
         std::multiset<datacenter_id_t> acks_by_dc;
-        std::map<peer_id_t, machine_id_t> translation_table_snapshot = parent_->machine_id_translation_table->get();
-        machines_semilattice_metadata_t mmd = parent_->machines_view->get();
-        namespaces_semilattice_metadata_t<protocol_t> nmd = parent_->namespaces_view->get();
+        std::map<peer_id_t, machine_id_t> translation_table_snapshot = ack_info->get_machine_id_translation_table();
+        machines_semilattice_metadata_t mmd = ack_info->get_machines_view();
+        namespaces_semilattice_metadata_t<protocol_t> nmd = ack_info->get_namespaces_view();
 
         for (std::set<peer_id_t>::const_iterator it = acks.begin(); it != acks.end(); it++) {
             std::map<peer_id_t, machine_id_t>::iterator tt_it = translation_table_snapshot.find(*it);
@@ -108,7 +166,7 @@ public:
             acks_by_dc.insert(dc);
         }
         typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
-            nmd.namespaces.find(namespace_id_);
+            nmd.namespaces.find(namespace_id);
         if (it == nmd.namespaces.end()) return false;
         if (it->second.is_deleted()) return false;
         if (it->second.get().ack_expectations.in_conflict()) return false;
@@ -119,6 +177,10 @@ public:
             }
         }
         return true;
+    }
+
+    bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) {
+        return compute_is_acceptable_ack_set(acks, namespace_id_, parent_->ack_info->per_thread_ack_info());
     }
 
 private:
@@ -218,6 +280,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(io_backender_t *_io_backender,
       machines_view(machines_view_),
       ctx(_ctx),
       svs_by_namespace(_svs_by_namespace),
+      ack_info(new ack_info_t<protocol_t>(machine_id_translation_table, machines_view, namespaces_view)),
       watchable_variable(namespaces_directory_metadata_t<protocol_t>()),
       semilattice_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), namespaces_view),
       translation_table_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this)),
