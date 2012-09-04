@@ -25,15 +25,18 @@ rethinkdb.net.Connection.prototype.close = goog.nullFunction;
  * Evaluates the given ReQL expression on the server and invokes
  * callback with the result.
  * @param {rethinkdb.query.BaseQuery} expr The expression to run.
- * @param {function(ArrayBuffer)} callback Function to invoke with response.
+ * @param {function(ArrayBuffer)} opt_callback Function to invoke with response.
  */
-rethinkdb.net.Connection.prototype.run = function(expr, callback) {
+rethinkdb.net.Connection.prototype.run = function(expr, opt_callback) {
     var query = expr.buildQuery();
 
     // Assign a token
     query.setToken((this.nextToken_++).toString());
 
-    this.outstandingQueries_[query.getToken()] = callback;
+    this.outstandingQueries_[query.getToken()] = {
+        callback: (opt_callback || null),
+        partial : []
+    };
 
     var serializer = new goog.proto2.WireFormatSerializer();
     var data = serializer.serialize(query);
@@ -67,42 +70,47 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
         serializer.deserializeTo(response, new Uint8Array(data.buffer, 4));
 
         var responseStatus = response.getStatusCode();
-        var callback = this.outstandingQueries_[response.getToken()];
-        switch(responseStatus) {
-        case Response.StatusCode.BROKEN_CLIENT:
-            throw "Broken client";
-            break;
-        case Response.StatusCode.RUNTIME_ERROR:
-            throw "Runtime error";
-            break;
-        case Response.StatusCode.BAD_QUERY:
-            throw "bad query";
-            break;
-        case Response.StatusCode.SUCCESS_EMPTY:
-            delete this.outstandingQueries_[response.getToken()]
-            if (callback) callback();
-            break;
-        case Response.StatusCode.SUCCESS_STREAM:
-            delete this.outstandingQueries_[response.getToken()]
-            if (callback) {
+        var request = this.outstandingQueries_[response.getToken()];
+        if (request) {
+
+            switch(responseStatus) {
+            case Response.StatusCode.BROKEN_CLIENT:
+                throw "Broken client";
+                break;
+            case Response.StatusCode.RUNTIME_ERROR:
+                throw "Runtime error";
+                break;
+            case Response.StatusCode.BAD_QUERY:
+                throw "bad query";
+                break;
+            case Response.StatusCode.SUCCESS_EMPTY:
+                delete this.outstandingQueries_[response.getToken()]
+                if (request.callback) request.callback();
+                break;
+            case Response.StatusCode.SUCCESS_STREAM:
+                delete this.outstandingQueries_[response.getToken()]
                 var results = response.responseArray().map(JSON.parse);
-                callback(results);
+                request.partial = request.partial.concat(results)
+                if (request.callback) {
+                    request.callback(request.partial);
+                }
+                break;
+            case Response.StatusCode.SUCCESS_JSON:
+                delete this.outstandingQueries_[response.getToken()]
+                if (request.callback) {
+                    var result = JSON.parse(response.getResponse(0));
+                    request.callback(result);
+                }
+                break;
+            case Response.StatusCode.SUCCESS_PARTIAL:
+                var results = response.responseArray().map(JSON.parse);
+                request.partial = request.partial.concat(results);
+                break;
+            default:
+                throw "unknown response status code";
+                break;
             }
-            break;
-        case Response.StatusCode.SUCCESS_JSON:
-            delete this.outstandingQueries_[response.getToken()]
-            if (callback) {
-                var result = JSON.parse(response.getResponse(0));
-                callback(result);
-            }
-            break;
-        case Response.StatusCode.SUCCESS_PARTIAL:
-            throw "partial results not yet implemented";
-            break;
-        default:
-            throw "unknown response status code";
-            break;
-        }
+        } // else no matching request
 
     } catch(err) {
         // Deserialization failed
