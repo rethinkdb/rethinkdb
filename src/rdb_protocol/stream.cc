@@ -4,16 +4,16 @@
 
 namespace query_language {
 
-in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it, runtime_environment_t *_env) 
-    : started(false), env(_env)
+in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it, runtime_environment_t *_env)
+    : started(false), env(new runtime_environment_t(*_env))
 {
     while (cJSON *json = it.next()) {
         raw_data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
     }
 }
 
-in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *_env) 
-    : started(false), env(_env)
+in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *_env)
+    : started(false), env(new runtime_environment_t(*_env))
 {
     while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
         raw_data.push_back(json);
@@ -40,7 +40,7 @@ boost::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
                 for (json_list_t::iterator jt  = accumulator.begin();
                                            jt != accumulator.end();
                                            ++jt) {
-                    boost::apply_visitor(transform_visitor_t(*jt, &tmp, env), *it);
+                    boost::apply_visitor(transform_visitor_t(*jt, &tmp, env.get()), *it);
                 }
                 accumulator.clear();
                 accumulator.splice(accumulator.begin(), tmp);
@@ -58,8 +58,12 @@ void in_memory_stream_t::add_transformation(const rdb_protocol_details::transfor
     transform.push_back(t);
 }
 
-result_t in_memory_stream_t::apply_terminal(const rdb_protocol_details::terminal_t &) {
-    crash("unimplemented");
+result_t in_memory_stream_t::apply_terminal(const rdb_protocol_details::terminal_t &t) {
+    result_t res;
+    boost::apply_visitor(terminal_initializer_visitor_t(&res, env.get()), t);
+    boost::shared_ptr<scoped_cJSON_t> json;
+    while ((json = next())) boost::apply_visitor(terminal_visitor_t(json, env.get(), &res), t);
+    return res;
 }
 
 batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,

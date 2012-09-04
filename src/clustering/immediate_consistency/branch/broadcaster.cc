@@ -482,8 +482,13 @@ void broadcaster_t<protocol_t>::spawn_write(typename protocol_t::write_t write, 
         that we don't check `interruptor` until the write is on its way
         to every dispatchee. */
         fifo_enforcer_write_token_t fifo_enforcer_token = it->first->fifo_source.enter_write();
-        it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
-            it->first, it->second, write_ref, order_token, fifo_enforcer_token));
+        if (it->first->is_readable) {
+            it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_writeread, this,
+                it->first, it->second, write_ref, order_token, fifo_enforcer_token));
+        } else {
+            it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
+                it->first, it->second, write_ref, order_token, fifo_enforcer_token));
+        }
     }
 }
 
@@ -509,19 +514,24 @@ void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispat
 template<class protocol_t>
 void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
-        if (mirror->is_readable) {
-            typename protocol_t::write_response_t resp;
-            listener_writeread<protocol_t>(mailbox_manager, mirror->writeread_mailbox,
-                                           write_ref.get()->write, &resp, write_ref.get()->timestamp, order_token, token,
-                                           mirror_lock.get_drain_signal());
+        listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
+                                   write_ref.get()->write, write_ref.get()->timestamp, order_token, token,
+                                   mirror_lock.get_drain_signal());
+    } catch (interrupted_exc_t) {
+        return;
+    }
+}
 
-            if (write_ref.get()->callback) {
-                write_ref.get()->callback->on_response(mirror->get_peer(), resp);
-            }
-        } else {
-            listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
-                    write_ref.get()->write, write_ref.get()->timestamp, order_token, token,
-                    mirror_lock.get_drain_signal());
+template<class protocol_t>
+void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING {
+    try {
+        typename protocol_t::write_response_t resp;
+        listener_writeread<protocol_t>(mailbox_manager, mirror->writeread_mailbox,
+                                       write_ref.get()->write, &resp, write_ref.get()->timestamp, order_token, token,
+                                       mirror_lock.get_drain_signal());
+
+        if (write_ref.get()->callback) {
+            write_ref.get()->callback->on_response(mirror->get_peer(), resp);
         }
     } catch (interrupted_exc_t) {
         return;

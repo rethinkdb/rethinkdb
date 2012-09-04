@@ -62,6 +62,26 @@ std::string scoped_cJSON_t::PrintUnformatted() const THROWS_NOTHING {
     return res;
 }
 
+std::string scoped_cJSON_t::PrintLexicographic() const THROWS_NOTHING {
+    std::string acc;
+    rassert(type() == cJSON_Number || type() == cJSON_String);
+    if (type() == cJSON_Number) {
+        acc += "N";
+
+        union {double d; int64_t u;} packed;
+        rassert(sizeof(packed.d) == sizeof(packed.u));
+        rassert((void *)&packed.d == (void *)&packed.u);
+        packed.d = val->valuedouble;
+        acc += strprintf("%0.*lx", (int)(sizeof(double)*2), packed.u);
+        return acc;
+    } else {
+        rassert(type() == cJSON_String);
+        acc += "S";
+        acc += val->valuestring;
+    }
+    return acc;
+}
+
 cJSON *scoped_cJSON_t::get() const {
     return val;
 }

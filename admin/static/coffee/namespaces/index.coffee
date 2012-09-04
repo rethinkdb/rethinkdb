@@ -8,6 +8,7 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#database_list-template').html()
         className: 'databases_list-container'
         error_template: Handlebars.compile $('#error_adding_namespace-template').html()
+        alert_message_template: Handlebars.compile $('#alert_message-template').html()
 
         events: ->
             'click .add-database': 'add_database'
@@ -35,9 +36,14 @@ module 'NamespaceView', ->
 
             super databases, NamespaceView.DatabaseListElement, '.collapsible-list'
 
-        render: =>
+        render: (message) =>
             super
             @update_toolbar_buttons()
+
+            if message?
+                @.$('#user-alert-space').append @alert_message_template
+                    message: message
+
             return @
 
         remove_parent_alert: (event) ->

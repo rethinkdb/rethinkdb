@@ -13,6 +13,7 @@ module 'ServerView', ->
         className: 'datacenters_list-container'
         template: Handlebars.compile $('#server_list-template').html()
         cannot_change_datacenter_alert_template: Handlebars.compile $('#cannot_change_datacenter-alert-template').html()
+        alert_message_template: Handlebars.compile $('#alert_message-template').html()
 
         # Extend the generic list events
         events:
@@ -30,10 +31,14 @@ module 'ServerView', ->
             super datacenters, ServerView.DatacenterListElement, 'div.datacenters'
 
 
-        render: =>
+        render: (message) =>
             super
             @.$('.unassigned-machines').html @unassigned_machines.render().el
             @update_toolbar_buttons()
+
+            if message?
+                @.$('#user-alert-space').append @alert_message_template
+                    message: message
 
             return @
 
@@ -138,13 +143,12 @@ module 'ServerView', ->
                 if @.$('#reason_cannot_change_datacenter').length > 0
                     @.$('#reason_cannot_change_datacenter').slideUp 200, -> $(this).remove()
  
-
             return num_not_movable_machines>0 or selected_machines.length is 0
-                
 
         destroy: =>
             super()
             @unassigned_machines.destroy()
+
 
     class @MachineList extends UIComponents.AbstractList
         # Use a machine-specific template for the machine list
@@ -477,7 +481,7 @@ module 'ServerView', ->
             _namespaces = []
             for namespace in namespaces.models
                 for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
-                    if machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
+                    if machines.get(machine_uuid)?.get('datacenter_uuid') and machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
                         machine_active_for_namespace = false
                         for shard, role of peer_role
                             if role is 'role_primary'
@@ -675,6 +679,7 @@ module 'ServerView', ->
 
     class @SetDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#set_datacenter-modal-template').html()
+        cannot_change_datacenter_alert_template: Handlebars.compile $('#cannot_change_datacenter-alert_content-template').html()
         alert_tmpl: Handlebars.compile $('#set_datacenter-alert-template').html()
         class: 'set-datacenter-modal'
 
@@ -698,6 +703,10 @@ module 'ServerView', ->
             for _m in @machines_list
                 json[_m.get('id')] =
                     datacenter_uuid: @formdata.datacenter_uuid
+            
+            if @can_change_datacenter() is false
+                @reset_buttons()   
+                return @
 
             # Set the datacenters!
             $.ajax
@@ -723,4 +732,53 @@ module 'ServerView', ->
                 machine_count: @machines_list.length
             )
 
-        #TODO Handle error
+        can_change_datacenter: =>
+            selected_machines = @machines_list
+            reason_unmovable_machines = {}
+            for machine in selected_machines
+                for namespace in namespaces.models
+                    for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
+                        if machine_uuid is machine.get 'id'
+                            for shard, role of peer_roles
+                                if role is 'role_primary'
+                                    if not (machine.get('id') of reason_unmovable_machines)
+                                        reason_unmovable_machines[machine_uuid] = {}
+                                        reason_unmovable_machines[machine_uuid]['master'] = []
+                                    reason_unmovable_machines[machine_uuid]['master'].push
+                                        namespace_id: namespace.get 'id'
+                                    break
+
+
+            for selected_machine in selected_machines
+                num_machines_in_datacenter = 0
+                for machine in machines.models
+                    if machine.get('datacenter_uuid') is selected_machine.get('datacenter_uuid')
+                        num_machines_in_datacenter++
+
+                for namespace in namespaces.models
+                    if selected_machine.get('datacenter_uuid') of namespace.get('replica_affinities') # If the datacenter has responsabilities
+                        num_replica = namespace.get('replica_affinities')[selected_machine.get('datacenter_uuid')]
+                        if namespace.get('primary_uuid') is selected_machine.get('datacenter_uuid')
+                            num_replica++
+                        if num_machines_in_datacenter <= num_replica
+                            if not (selected_machine.get('id') of reason_unmovable_machines)
+                                reason_unmovable_machines[selected_machine.get('id')] = []
+                                reason_unmovable_machines[selected_machine.get('id')]['goals'] = []
+                            else if not ('goals' of reason_unmovable_machines[selected_machine.get('id')])
+                                reason_unmovable_machines[selected_machine.get('id')]['goals'] = []
+
+                            reason_unmovable_machines[selected_machine.get('id')]['goals'].push
+                                namespace_id: namespace.get 'id'
+
+            num_not_movable_machines = 0
+            for machine_id of reason_unmovable_machines
+                num_not_movable_machines++
+            
+            if num_not_movable_machines > 0
+                @.$('.alert').html('')
+                @.$('.alert').prepend @cannot_change_datacenter_alert_template
+                    reasons: reason_unmovable_machines
+                    red: true
+                @.$('.alert').slideDown 200
+
+            return num_not_movable_machines is 0

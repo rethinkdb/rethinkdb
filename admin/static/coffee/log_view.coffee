@@ -113,7 +113,7 @@ module 'LogView', ->
 
 
         check_for_new_updates: =>
-            min_timestamp = @current_logs[0].get('timestamp')
+            min_timestamp = @current_logs[0]?.get('timestamp')
             if min_timestamp?
                 route = @route+"&min_timestamp=#{min_timestamp}"
 
