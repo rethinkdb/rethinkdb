@@ -82,8 +82,9 @@ public:
                const boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > &namespaces_view)
         : machine_id_translation_table_(machine_id_translation_table),
           machines_view_(machines_view),
-          namespaces_view_(namespaces_view) {
-        for (int i = 0, e = get_num_db_threads(); i < e; ++i) {
+          namespaces_view_(namespaces_view),
+          per_thread_info_(get_num_db_threads()) {
+        for (ssize_t i = 0; i < per_thread_info_.size(); ++i) {
             per_thread_info_[i].init(new per_thread_ack_info_t<protocol_t>(machine_id_translation_table_, machines_view_, namespaces_view_, i));
         }
     }
