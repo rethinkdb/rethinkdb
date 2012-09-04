@@ -13,6 +13,11 @@ rethinkdb.query.expr = function(value) {
 };
 
 /** @export */
+rethinkdb.query.js = function(jsExpr) {
+    return new rethinkdb.query.JSExpression(jsExpr);
+};
+
+/** @export */
 rethinkdb.query.table = function(table_identifier) {
     var db_table_array = table_identifier.split('.');
 
