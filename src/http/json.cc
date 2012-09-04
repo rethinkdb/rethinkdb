@@ -72,7 +72,7 @@ std::string scoped_cJSON_t::PrintLexicographic() const THROWS_NOTHING {
         rassert(sizeof(packed.d) == sizeof(packed.u));
         rassert((void *)&packed.d == (void *)&packed.u);
         packed.d = val->valuedouble;
-        acc += strprintf("%0.*lx", (int)(sizeof(double)*2), packed.u);
+        acc += strprintf("%.*lx", (int)(sizeof(double)*2), packed.u);
         return acc;
     } else {
         rassert(type() == cJSON_String);
