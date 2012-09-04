@@ -11,7 +11,7 @@ template <class T>
 inline void assert_T(const T &) { }
 
 template <>
-inline void assert_T<boost::shared_ptr<scoped_cJSON_t> >(const boost::shared_ptr<scoped_cJSON_t> &j) {
+inline void assert_T<boost::shared_ptr<scoped_cJSON_t> >(DEBUG_VAR const boost::shared_ptr<scoped_cJSON_t> &j) {
     rassert(j);
 }
 
