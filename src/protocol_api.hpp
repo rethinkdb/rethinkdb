@@ -17,6 +17,8 @@
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 
+class traversal_progress_combiner_t;
+
 /* This file describes the relationship between the protocol-specific logic for
 each protocol and the protocol-agnostic logic that routes queries for all the
 protocols. Each protocol defines a `protocol_t` struct that acts as a
@@ -293,7 +295,7 @@ opaque binary blob (`binary_blob_t`).
 template <class protocol_t>
 class chunk_fun_callback_t {
 public:
-    virtual void send_chunk(const typename protocol_t::backfill_chunk_t &) = 0;
+    virtual void send_chunk(const typename protocol_t::backfill_chunk_t &, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
 protected:
     chunk_fun_callback_t() { }
@@ -394,7 +396,7 @@ public:
     virtual bool send_backfill(
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<protocol_t> *send_backfill_cb,
-            typename protocol_t::backfill_progress_t *progress,
+            traversal_progress_combiner_t *progress,
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
@@ -426,7 +428,9 @@ protected:
     explicit store_view_t(typename protocol_t::region_t r) : region(r) { }
 
 private:
-    typename protocol_t::region_t region;
+    const typename protocol_t::region_t region;
+
+    DISABLE_COPYING(store_view_t);
 };
 
 /* The query-routing logic provides the following ordering guarantees:
@@ -533,10 +537,12 @@ public:
         return store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, timestamp, order_token, token, interruptor);
     }
 
+    // TODO: Make this take protocol_t::progress_t again (or maybe a
+    // progress_receiver_t type that you define).
     bool send_backfill(
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<protocol_t> *send_backfill_cb,
-            typename protocol_t::backfill_progress_t *p,
+            traversal_progress_combiner_t *p,
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {

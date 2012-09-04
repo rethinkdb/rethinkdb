@@ -167,145 +167,152 @@ try {
     //This is an annoying chicken and egg problem here
     rdb_ctx.ns_repo = &rdb_namespace_repo;
 
-    file_based_svs_by_namespace_t<mock::dummy_protocol_t> dummy_svs_source(io_backender, filepath);
-    // Reactor drivers
-
-    // Dummy
-    scoped_ptr_t<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!i_am_a_server ? NULL :
-        new reactor_driver_t<mock::dummy_protocol_t>(
-            io_backender,
-            &mailbox_manager,
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
-            persistent_file->get_dummy_branch_history_manager(),
-            metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-            metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-            &dummy_svs_source,
-            &perfmon_repo,
-            NULL));
-    scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> >
-        dummy_reactor_directory_copier(!i_am_a_server ? NULL :
-            new field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(
-                &cluster_directory_metadata_t::dummy_namespaces,
-                dummy_reactor_driver->get_watchable(),
-                &our_root_directory_variable));
-
-    file_based_svs_by_namespace_t<memcached_protocol_t> memcached_svs_source(io_backender, filepath);
-    scoped_ptr_t<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!i_am_a_server ? NULL :
-        new reactor_driver_t<memcached_protocol_t>(
-            io_backender,
-            &mailbox_manager,
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
-            persistent_file->get_memcached_branch_history_manager(),
-            metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-            metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-            &memcached_svs_source,
-            &perfmon_repo,
-            NULL));
-    scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >
-        memcached_reactor_directory_copier(!i_am_a_server ? NULL :
-            new field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(
-                &cluster_directory_metadata_t::memcached_namespaces,
-                memcached_reactor_driver->get_watchable(),
-                &our_root_directory_variable));
-
-    // RDB
-
-
-    file_based_svs_by_namespace_t<rdb_protocol_t> rdb_svs_source(io_backender, filepath);
-    scoped_ptr_t<reactor_driver_t<rdb_protocol_t> > rdb_reactor_driver(!i_am_a_server ? NULL :
-        new reactor_driver_t<rdb_protocol_t>(
-            io_backender,
-            &mailbox_manager,
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
-            persistent_file->get_rdb_branch_history_manager(),
-            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()),
-            metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-            &rdb_svs_source,
-            &perfmon_repo,
-            &rdb_ctx));
-    scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t> >
-        rdb_reactor_directory_copier(!i_am_a_server ? NULL :
-            new field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(
-                &cluster_directory_metadata_t::rdb_namespaces,
-                rdb_reactor_driver->get_watchable(),
-                &our_root_directory_variable));
-
-    parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
-        &mailbox_manager,
-        metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-        ports.port_offset,
-        &dummy_namespace_repo,
-        &local_issue_tracker,
-        &perfmon_repo);
-
-    parser_maker_t<memcached_protocol_t, memcache_listener_t> memcached_parser_maker(
-        &mailbox_manager,
-        metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-        ports.port_offset,
-        &memcached_namespace_repo,
-        &local_issue_tracker,
-        &perfmon_repo);
-
-    rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
-    // TODO: make this not be shitty (port offsets and such)
-    int rdb_protocol_port = base_ports::rdb_protocol + ports.port_offset;
-    int http_rdb_protocol_port = base_ports::http_rdb_protocol + ports.port_offset;
-    query_server_t rdb_pb_server(
-        rdb_protocol_port,
-        http_rdb_protocol_port,
-        &extproc_pool_group,
-        semilattice_manager_cluster.get_root_view(),
-        directory_read_manager.get_root_view(),
-        &rdb_namespace_repo,
-        machine_id);
-    logINF("Listening for RDB protocol traffic on port %d.\n", rdb_protocol_port);
-    logINF("Listening for HTTP RDB protocol traffic on port %d.\n",
-           http_rdb_protocol_port);
-
-    scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
-        new metadata_persistence::semilattice_watching_persister_t(
-            persistent_file, semilattice_manager_cluster.get_root_view()));
-
     {
-        if (0 == ports.http_port)
-            ports.http_port = ports.port + port_offsets::http;
+        // Reactor drivers
 
-        // TODO: Pardon me what, but is this how we fail here?
-        guarantee(ports.http_port < 65536);
+        // Dummy
+        file_based_svs_by_namespace_t<mock::dummy_protocol_t> dummy_svs_source(io_backender, filepath);
+        scoped_ptr_t<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!i_am_a_server ? NULL :
+            new reactor_driver_t<mock::dummy_protocol_t>(
+                io_backender,
+                &mailbox_manager,
+                directory_read_manager.get_root_view()->subview(
+                    field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
+                persistent_file->get_dummy_branch_history_manager(),
+                metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
+                metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
+                directory_read_manager.get_root_view()->subview(
+                    field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+                &dummy_svs_source,
+                &perfmon_repo,
+                NULL));
+        scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> >
+            dummy_reactor_directory_copier(!i_am_a_server ? NULL :
+                new field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(
+                    &cluster_directory_metadata_t::dummy_namespaces,
+                    dummy_reactor_driver->get_watchable(),
+                    &our_root_directory_variable));
 
-        administrative_http_server_manager_t administrative_http_interface(
-            ports.http_port,
-            &mailbox_manager,
-            &metadata_change_handler,
-            semilattice_manager_cluster.get_root_view(),
-            directory_read_manager.get_root_view(),
-            &memcached_namespace_repo,
-            &admin_tracker,
-            &local_issue_tracker,
-            machine_id,
-            web_assets);
-        logINF("Listening for administrative HTTP connections on port %d.\n", ports.http_port);
+        // Memcached
+        file_based_svs_by_namespace_t<memcached_protocol_t> memcached_svs_source(io_backender, filepath);
+        scoped_ptr_t<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!i_am_a_server ? NULL :
+            new reactor_driver_t<memcached_protocol_t>(
+                io_backender,
+                &mailbox_manager,
+                directory_read_manager.get_root_view()->subview(
+                    field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
+                persistent_file->get_memcached_branch_history_manager(),
+                metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
+                metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
+                directory_read_manager.get_root_view()->subview(
+                    field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+                &memcached_svs_source,
+                &perfmon_repo,
+                NULL));
+        scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >
+            memcached_reactor_directory_copier(!i_am_a_server ? NULL :
+                new field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(
+                    &cluster_directory_metadata_t::memcached_namespaces,
+                    memcached_reactor_driver->get_watchable(),
+                    &our_root_directory_variable));
 
-        logINF("Server started; send SIGINT to stop.\n");
+        // RDB
+        file_based_svs_by_namespace_t<rdb_protocol_t> rdb_svs_source(io_backender, filepath);
+        scoped_ptr_t<reactor_driver_t<rdb_protocol_t> > rdb_reactor_driver(!i_am_a_server ? NULL :
+            new reactor_driver_t<rdb_protocol_t>(
+                io_backender,
+                &mailbox_manager,
+                directory_read_manager.get_root_view()->subview(
+                    field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
+                persistent_file->get_rdb_branch_history_manager(),
+                metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()),
+                metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
+                directory_read_manager.get_root_view()->subview(
+                    field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+                &rdb_svs_source,
+                &perfmon_repo,
+                &rdb_ctx));
+        scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t> >
+            rdb_reactor_directory_copier(!i_am_a_server ? NULL :
+                new field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(
+                    &cluster_directory_metadata_t::rdb_namespaces,
+                    rdb_reactor_driver->get_watchable(),
+                    &our_root_directory_variable));
 
-        stop_cond->wait_lazily_unordered();
+        {
+            parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
+                &mailbox_manager,
+                metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
+                ports.port_offset,
+                &dummy_namespace_repo,
+                &local_issue_tracker,
+                &perfmon_repo);
 
-        logINF("Server got SIGINT; shutting down...\n");
+            parser_maker_t<memcached_protocol_t, memcache_listener_t> memcached_parser_maker(
+                &mailbox_manager,
+                metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
+                ports.port_offset,
+                &memcached_namespace_repo,
+                &local_issue_tracker,
+                &perfmon_repo);
+
+            rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
+            // TODO: make this not be shitty (port offsets and such)
+            int rdb_protocol_port = base_ports::rdb_protocol + ports.port_offset;
+            query_server_t rdb_pb_server(
+                rdb_protocol_port,
+                &extproc_pool_group,
+                semilattice_manager_cluster.get_root_view(),
+                directory_read_manager.get_root_view(),
+                &rdb_namespace_repo,
+                machine_id);
+            logINF("Listening for RDB protocol traffic on port %d.\n", rdb_protocol_port);
+
+            scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
+                new metadata_persistence::semilattice_watching_persister_t(
+                    persistent_file, semilattice_manager_cluster.get_root_view()));
+
+            {
+                if (0 == ports.http_port)
+                    ports.http_port = ports.port + port_offsets::http;
+
+                // TODO: Pardon me what, but is this how we fail here?
+                guarantee(ports.http_port < 65536);
+
+                administrative_http_server_manager_t administrative_http_interface(
+                    ports.http_port,
+                    &mailbox_manager,
+                    &metadata_change_handler,
+                    semilattice_manager_cluster.get_root_view(),
+                    directory_read_manager.get_root_view(),
+                    &memcached_namespace_repo,
+                    &rdb_namespace_repo,
+                    &admin_tracker,
+                    &local_issue_tracker,
+                    rdb_pb_server.get_http_app(),
+                    machine_id,
+                    web_assets);
+                logINF("Listening for administrative HTTP connections on port %d.\n", ports.http_port);
+
+                logINF("Server started; send SIGINT to stop.\n");
+
+                stop_cond->wait_lazily_unordered();
+
+                logINF("Server got SIGINT; shutting down...\n");
+            }
+
+            cond_t non_interruptor;
+            if (persister.has()) {
+                persister->stop_and_flush(&non_interruptor);
+            }
+
+            logINF("Shutting down client connections...\n");
+        }
+        logINF("All client connections closed.\n");
+
+        logINF("Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)\n");
     }
-
-    cond_t non_interruptor;
-    if (persister.has()) {
-        persister->stop_and_flush(&non_interruptor);
-    }
+    logINF("Storage engine shut down.\n");
 
     return true;
 

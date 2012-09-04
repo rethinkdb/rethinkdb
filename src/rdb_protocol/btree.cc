@@ -8,6 +8,7 @@
 #include "btree/backfill.hpp"
 #include "btree/depth_first_traversal.hpp"
 #include "btree/erase_range.hpp"
+#include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -157,17 +158,17 @@ class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
     agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
 
-    void on_delete_range(const key_range_t &range) {
+    void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.is_superset(range));
-        cb_->on_delete_range(range);
+        cb_->on_delete_range(range, interruptor);
     }
 
-    void on_deletion(const btree_key_t *key, repli_timestamp_t recency) {
+    void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.contains_key(key->contents, key->size));
-        cb_->on_deletion(key, recency);
+        cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *val) {
+    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *val, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.contains_key(key->contents, key->size));
         const rdb_value_t *value = static_cast<const rdb_value_t *>(val);
 
@@ -175,7 +176,7 @@ public:
         atom.key.assign(key->size, key->contents);
         atom.value = get_data(value, txn);
         atom.recency = recency;
-        cb_->on_keyvalue(atom);
+        cb_->on_keyvalue(atom, interruptor);
     }
 
     rdb_backfill_callback_t *cb_;
@@ -262,56 +263,63 @@ public:
         response.last_considered_key = range.left;
 
         if (terminal) {
-            boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result), *terminal);
+            boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result, env), *terminal);
         }
     }
+
     bool handle_pair(const btree_key_t* key, const void *value) {
-        store_key_t store_key(key);
-        if (response.last_considered_key < store_key) {
-            response.last_considered_key = store_key;
-        }
-
-        const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
-
-        json_list_t data;
-        data.push_back(get_data(rdb_value, transaction));
-
-        //Apply transforms to the data
-        typedef rdb_protocol_details::transform_t::iterator tit_t;
-        for (tit_t it  = transform.begin();
-                   it != transform.end();
-                   ++it) {
-            json_list_t tmp;
-
-            for (json_list_t::iterator jt  = data.begin();
-                                       jt != data.end();
-                                       ++jt) {
-                boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env), *it);
-            }
-            data.clear();
-            data.splice(data.begin(), tmp);
-        }
-
-        if (!terminal) {
-            typedef rget_read_response_t::stream_t stream_t;
-            stream_t *stream = boost::get<stream_t>(&response.result);
-            guarantee(stream);
-            for (json_list_t::iterator it =  data.begin();
-                                       it != data.end();
-                                       ++it) {
-                stream->push_back(std::make_pair(key, *it));
+        try {
+            store_key_t store_key(key);
+            if (response.last_considered_key < store_key) {
+                response.last_considered_key = store_key;
             }
 
-            cumulative_size += estimate_rget_response_size(stream->back().second);
-            // TODO: If we have to cast stream->size(), why is maximum an int?
-            return static_cast<int>(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
-        } else {
-            for (json_list_t::iterator jt  = data.begin();
-                                       jt != data.end();
-                                       ++jt) {
-                boost::apply_visitor(query_language::terminal_visitor_t(*jt, env, &response.result), *terminal);
+            const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
+
+            json_list_t data;
+            data.push_back(get_data(rdb_value, transaction));
+
+            //Apply transforms to the data
+            typedef rdb_protocol_details::transform_t::iterator tit_t;
+            for (tit_t it  = transform.begin();
+                       it != transform.end();
+                       ++it) {
+                json_list_t tmp;
+
+                for (json_list_t::iterator jt  = data.begin();
+                                           jt != data.end();
+                                           ++jt) {
+                    boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env), *it);
+                }
+                data.clear();
+                data.splice(data.begin(), tmp);
             }
-            return true;
+
+            if (!terminal) {
+                typedef rget_read_response_t::stream_t stream_t;
+                stream_t *stream = boost::get<stream_t>(&response.result);
+                guarantee(stream);
+                for (json_list_t::iterator it =  data.begin();
+                                           it != data.end();
+                                           ++it) {
+                    stream->push_back(std::make_pair(key, *it));
+                }
+
+                cumulative_size += estimate_rget_response_size(stream->back().second);
+                // TODO: If we have to cast stream->size(), why is maximum an int?
+                return static_cast<int>(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
+            } else {
+                for (json_list_t::iterator jt  = data.begin();
+                                           jt != data.end();
+                                           ++jt) {
+                    boost::apply_visitor(query_language::terminal_visitor_t(*jt, env, &response.result), *terminal);
+                }
+                return true;
+            }
+        } catch(const query_language::runtime_exc_t &e) {
+            /* Evaluation threw so we're not going to be accepting any more requests. */
+            response.result = e;
+            return false;
         }
     }
     transaction_t *transaction;
@@ -335,5 +343,30 @@ rget_read_response_t rdb_rget_slice(btree_slice_t *slice, const key_range_t &ran
         callback.response.truncated = false;
     }
     return callback.response;
+}
+
+distribution_read_response_t rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key, 
+                                                 transaction_t *txn, superblock_t *superblock) {
+    int key_count_out;
+    std::vector<store_key_t> key_splits;
+    get_btree_key_distribution(slice, txn, superblock, max_depth, &key_count_out, &key_splits);
+
+    distribution_read_response_t res;
+
+    int keys_per_bucket;
+    if (key_splits.size() == 0) {
+        keys_per_bucket = key_count_out;
+    } else  {
+        keys_per_bucket = std::max(key_count_out / key_splits.size(), 1ul);
+    }
+    res.key_counts[left_key] = keys_per_bucket;
+
+    for (std::vector<store_key_t>::iterator it  = key_splits.begin();
+                                            it != key_splits.end();
+                                            ++it) {
+        res.key_counts[*it] = keys_per_bucket;
+    }
+
+    return res;
 }
 

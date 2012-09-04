@@ -4,6 +4,7 @@
 
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
+#include <boost/variant.hpp>
 
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/suggester.hpp"
@@ -430,7 +431,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             }
         case Builtin::MAP:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
 
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 check_mapping_type(b.map().mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("mapping"));
@@ -439,23 +440,23 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::CONCATMAP:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
 
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
-                check_mapping_type(b.concat_map().mapping(), TERM_TYPE_STREAM, env, &deterministic, deterministic, backtrace.with("mapping"));
+                //check_mapping_type(b.concat_map().mapping(), TERM_TYPE_STREAM, env, &deterministic, deterministic, backtrace.with("mapping"));
                 return term_info_t(TERM_TYPE_STREAM, deterministic);
             }
             break;
         case Builtin::DISTINCT:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
 
                 return term_info_t(TERM_TYPE_STREAM, deterministic);
             }
             break;
         case Builtin::FILTER:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
                 // polymorphic
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
 
@@ -467,7 +468,8 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::ORDERBY:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
+
                 term_info_t res = get_term_type(c.args(0), env, backtrace);
                 res.deterministic &= deterministic;
                 return res;
@@ -495,7 +497,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::REDUCE:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 check_reduction_type(b.reduce(), env, &deterministic, deterministic, backtrace.with("reduce"));
                 return term_info_t(TERM_TYPE_JSON, false); //This is always false because we can't be sure the functions is associative or commutative
@@ -503,7 +505,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::GROUPEDMAPREDUCE:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 check_mapping_type(b.grouped_map_reduce().group_mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("group_mapping"));
                 check_mapping_type(b.grouped_map_reduce().value_mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("value_mapping"));
@@ -520,7 +522,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             return term_info_t(TERM_TYPE_STREAM, deterministic);
             break;
         case Builtin::RANGE:
-            check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+            check_arg_count(c, 1, backtrace);
             return term_info_t(TERM_TYPE_STREAM, deterministic);
             break;
         default:
@@ -567,10 +569,12 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
     w.GetReflection()->ListFields(w, &fields);
     check_protobuf(fields.size() == 2);
 
+    bool deterministic = true;
     switch (w.type()) {
         case WriteQuery::UPDATE: {
             check_protobuf(w.has_update());
             check_term_type(w.update().view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.update().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -582,6 +586,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::MUTATE: {
             check_protobuf(w.has_mutate());
             check_term_type(w.mutate().view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.mutate().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -600,7 +605,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::FOREACH:
             {
                 check_protobuf(w.has_for_each());
-                check_term_type(w.for_each().stream(), TERM_TYPE_STREAM, env, is_det_out, backtrace.with("stream"));
+                //check_term_type(w.for_each().stream(), TERM_TYPE_STREAM, env, is_det_out, backtrace.with("stream"));
 
                 new_scope_t scope_maker(&env->scope, w.for_each().var(), term_info_t(TERM_TYPE_JSON, *is_det_out));
                 for (int i = 0; i < w.for_each().queries_size(); ++i) {
@@ -611,6 +616,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::POINTUPDATE: {
             check_protobuf(w.has_point_update());
             check_term_type(w.point_update().key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.point_update().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -622,6 +628,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::POINTMUTATE: {
             check_protobuf(w.has_point_mutate());
             check_term_type(w.point_mutate().key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.point_mutate().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -839,7 +846,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
            until that has happened, so we try to do a read every `poll_ms`
            milliseconds until one succeeds, then return. */
 
-        int64_t poll_ms = 200; //with this value, usually polls twice
+        int64_t poll_ms = 100; //with this value, usually polls twice
         //This read won't succeed, but we care whether it fails with an exception.
         rdb_protocol_t::read_t bad_read(rdb_protocol_t::point_read_t(store_key_t("")));
         try {
@@ -901,24 +908,26 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
     const char *status;
     std::string db_name = t->db_name();
     std::string table_name = t->table_name();
-    cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
+    namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata = env->namespaces_semilattice_metadata->get();
+    databases_semilattice_metadata_t db_metadata = env->databases_semilattice_metadata->get();
+
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
-        ns_searcher(&metadata.rdb_namespaces.namespaces);
+        ns_searcher(&ns_metadata.namespaces);
     metadata_searcher_t<database_semilattice_metadata_t>
-        db_searcher(&metadata.databases.databases);
+        db_searcher(&db_metadata.databases);
 
     uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DB "+db_name, bt);
     namespace_predicate_t pred(table_name, db_id);
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
-        ns_metadata = ns_searcher.find_uniq(pred, &status);
+        ns_metadata_it = ns_searcher.find_uniq(pred, &status);
     meta_check(status, METADATA_SUCCESS, "FIND_TABLE "+table_name, bt);
-    rassert(!ns_metadata->second.is_deleted());
-    if (ns_metadata->second.get().primary_key.in_conflict()) {
+    rassert(!ns_metadata_it->second.is_deleted());
+    if (ns_metadata_it->second.get().primary_key.in_conflict()) {
         throw runtime_exc_t(strprintf(
             "Table %s.%s has a primary key in conflict, which should never happen.",
             db_name.c_str(), table_name.c_str()), bt);
     }
-    return ns_metadata->second.get().primary_key.get();
+    return ns_metadata_it->second.get().primary_key.get();
 }
 
 void execute(Query *q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
@@ -998,18 +1007,25 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
     }
 }
 
-void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace) {
+void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace, int *out_num_deletes=0) {
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_std_string(id))));
         rdb_protocol_t::write_response_t response;
         ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+        if (out_num_deletes) {
+            if (boost::get<rdb_protocol_t::point_delete_response_t>(response.response).result == DELETED) {
+                *out_num_deletes = 1;
+            } else {
+                *out_num_deletes = 0;
+            }
+        }
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
 }
 
-void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> id, runtime_environment_t *env, const backtrace_t &backtrace) {
-    point_delete(ns_access, id->get(), env, backtrace);
+void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> id, runtime_environment_t *env, const backtrace_t &backtrace, int *out_num_deletes=0) {
+    point_delete(ns_access, id->get(), env, backtrace, out_num_deletes);
 }
 
 void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
@@ -1023,12 +1039,19 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 
                 int updated = 0, errors = 0, skipped = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
+                    rassert(json->type() == cJSON_Object);
                     try {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scope, w->update().mapping().arg(), json);
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->update().mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
                         boost::shared_ptr<scoped_cJSON_t> rhs =
                             eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                         if (rhs->type() == cJSON_NULL) {
                             ++skipped;
+                        } else if (rhs->type() != cJSON_Object) {
+                            ++errors;
+                            if (reported_error == "") {
+                                reported_error = strprintf("Update returned a non-object (%s).\n", rhs->Print().c_str());
+                            }
                         } else {
                             boost::shared_ptr<scoped_cJSON_t> val(new scoped_cJSON_t(cJSON_merge(json->get(), rhs->get())));
                             cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
@@ -1036,7 +1059,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                             if (!cJSON_Equal(json_key, val_key)) {
                                 ++errors;
                                 if (reported_error == "") {
-                                    reported_error = strprintf("Update cannot change priamary keys: %s -> %s\n",
+                                    reported_error = strprintf("Update cannot change primary keys: %s -> %s\n",
                                                                json->PrintUnformatted().c_str(), val->PrintUnformatted().c_str());
                                 }
                             } else {
@@ -1081,12 +1104,18 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 std::string reported_error = "";
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     try {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scope, w->mutate().mapping().arg(), json);
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->mutate().mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
                         boost::shared_ptr<scoped_cJSON_t> val =
                             eval(w->mutable_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                         if (val->type() == cJSON_NULL) {
                             point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
                             ++deleted;
+                        } else if (val->type() != cJSON_Object) {
+                            ++errors;
+                            if (reported_error == "") {
+                                reported_error = strprintf("Mutate returned a non-object (%s).\n", val->Print().c_str());
+                            }
                         } else {
                             cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
                             cJSON *val_key = val->GetObjectItem(view.primary_key.c_str());
@@ -1109,7 +1138,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                         if (reported_error == "") reported_error = e.message + "\n" + e.backtrace.print();
                     }
                 }
-                std::string res_list = strprintf("\"modified\": %d, \"deleted\": %d, \"errors\": %d", modified, deleted, errors);
+                std::string res_list = strprintf("\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d", modified, 0, deleted, errors);
                 if (reported_error != "") {
                     res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
                                          scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
@@ -1148,21 +1177,55 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 res->add_response(strprintf("{\"inserted\": %d}", inserted));
             }
             break;
-        case WriteQuery::FOREACH:
-            {
-                boost::shared_ptr<json_stream_t> stream = eval_stream(w->mutable_for_each()->mutable_stream(), env, backtrace.with("stream"));
+        case WriteQuery::FOREACH: {
+                boost::shared_ptr<json_stream_t> stream =
+                    eval_stream(w->mutable_for_each()->mutable_stream(), env, backtrace.with("stream"));
+
+                // The cJSON object we'll eventually return (named `lhs` because it's merged with `rhs` below).
+                scoped_cJSON_t lhs(cJSON_CreateObject());
 
                 while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    variable_val_scope_t::new_scope_t scope_maker(&env->scope, w->for_each().var(), json);
+                    variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->for_each().var(), json);
 
                     for (int i = 0; i < w->for_each().queries_size(); ++i) {
-                        execute(w->mutable_for_each()->mutable_queries(i), env, res, backtrace.with(strprintf("query:%d", i)));
+                        // Run the write query and retrieve the result.
+                        rassert(res->response_size() == 0);
+                        scoped_cJSON_t rhs(0);
+                        try {
+                            execute(w->mutable_for_each()->mutable_queries(i), env, res, backtrace.with(strprintf("query:%d", i)));
+                            rassert(res->response_size() == 1);
+                            rhs.reset(cJSON_Parse(res->response(0).c_str()));
+                        } catch (runtime_exc_t &e) {
+                            rhs.reset(cJSON_CreateObject());
+                            rhs.AddItemToObject("errors", cJSON_CreateNumber(1.0));
+                            std::string err = strprintf("Term %d of the foreach threw an error: %s\n", i,
+                                                        (e.message + "\n" + e.backtrace.print()).c_str());
+                            rhs.AddItemToObject("first_error", cJSON_CreateString(err.c_str()));
+                        }
+                        res->clear_response();
+
+                        // Merge the result of the write query into `lhs`
+                        scoped_cJSON_t merged(cJSON_merge(lhs.get(), rhs.get()));
+                        for (int f = 0; f < merged.GetArraySize(); ++f) {
+                            cJSON *el = merged.GetArrayItem(f);
+                            rassert(el);
+                            cJSON *lhs_el = lhs.GetObjectItem(el->string);
+                            cJSON *rhs_el = rhs.GetObjectItem(el->string);
+                            if (lhs_el && lhs_el->type == cJSON_Number &&
+                                rhs_el && rhs_el->type == cJSON_Number) {
+                                el->valueint = lhs_el->valueint + rhs_el->valueint;
+                                el->valuedouble = lhs_el->valuedouble + rhs_el->valuedouble;
+                            }
+                        }
+                        lhs.reset(merged.release());
                     }
                 }
+                res->add_response(lhs.Print());
             }
             break;
         case WriteQuery::POINTUPDATE:
             {
+                int updated = 0;
                 int skipped = 0;
                 //First we need to grab the value the easiest way to do this is to just construct a term and evaluate it.
                 Term get;
@@ -1174,42 +1237,51 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 *get.mutable_get_by_key() = get_by_key;
 
                 boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
-                new_val_scope_t scope_maker(&env->scope, w->point_update().mapping().arg(), original_val);
-
+                new_val_scope_t scope_maker(&env->scopes.scope, w->point_update().mapping().arg(), original_val);
+                implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, original_val);
                 boost::shared_ptr<scoped_cJSON_t> rhs = eval(w->mutable_point_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                 if (rhs->type() == cJSON_NULL) {
                     skipped = 1;
+                } else if (rhs->type() != cJSON_Object) {
+                    throw runtime_exc_t(strprintf("Update returned a non-object: %s", rhs->Print().c_str()), backtrace);
                 } else {
-                    boost::shared_ptr<scoped_cJSON_t> new_val(new scoped_cJSON_t(cJSON_merge(original_val->get(), rhs->get())));
-                    /* Now we insert the new value. */
-                    namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
+                    if (original_val->type() != cJSON_NULL) {
+                        updated = 1;
+                        boost::shared_ptr<scoped_cJSON_t> new_val(new scoped_cJSON_t(cJSON_merge(original_val->get(), rhs->get())));
+                        /* Now we insert the new value. */
+                        namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
 
-                    /* Get the primary key */
-                    std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
+                        /* Get the primary key */
+                        std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
 
-                    /* Make sure that the primary key wasn't changed. */
-                    if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
-                                     cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
-                        throw runtime_exc_t(strprintf("Updates are not allowed to change the primary key (%s).", pk.c_str()), backtrace);
+                        /* Make sure that the primary key wasn't changed. */
+                        if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
+                                         cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
+                            throw runtime_exc_t(strprintf("Updates are not allowed to change the primary key (%s).", pk.c_str()), backtrace);
+                        }
+
+                        insert(ns_access, pk, new_val, env, backtrace);
                     }
-
-                    insert(ns_access, pk, new_val, env, backtrace);
                 }
 
-                res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}", 1-skipped, skipped, 0));
+                res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}", updated, skipped, 0));
             }
             break;
         case WriteQuery::POINTDELETE:
             {
+                int deleted = -1;
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_point_delete()->mutable_table_ref(), env, backtrace);
                 boost::shared_ptr<scoped_cJSON_t> id = eval(w->mutable_point_delete()->mutable_key(), env, backtrace.with("key"));
-                point_delete(ns_access, id, env, backtrace);
+                point_delete(ns_access, id, env, backtrace, &deleted);
+                rassert(deleted == 0 || deleted == 1);
 
-                res->add_response(strprintf("{\"deleted\": %d}", 1));
+                res->add_response(strprintf("{\"deleted\": %d}", deleted));
             }
             break;
         case WriteQuery::POINTMUTATE: {
             int deleted = 0;
+            int inserted = 0;
+            int modified = 0;
             //First we need to grab the value the easiest way to do this is to just construct a term and evaluate it.
             Term get;
             get.set_type(Term::GETBYKEY);
@@ -1220,7 +1292,9 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             *get.mutable_get_by_key() = get_by_key;
 
             boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
-            new_val_scope_t scope_maker(&env->scope, w->point_mutate().mapping().arg(), original_val);
+
+            new_val_scope_t scope_maker(&env->scopes.scope, w->point_mutate().mapping().arg(), original_val);
+            implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, original_val);
             boost::shared_ptr<scoped_cJSON_t> new_val = eval(w->mutable_point_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
 
             namespace_repo_t<rdb_protocol_t>::access_t ns_access =
@@ -1228,17 +1302,26 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             /* Get the primary key */
             std::string pk = get_primary_key(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
             if (new_val->type() == cJSON_NULL) {
-                deleted = 1;
-                point_delete(ns_access, cJSON_GetObjectItem(original_val->get(), pk.c_str()), env, backtrace);
+                if (original_val->type() != cJSON_NULL) {
+                    deleted = 1;
+                    point_delete(ns_access, cJSON_GetObjectItem(original_val->get(), pk.c_str()), env, backtrace);
+                }
+            } else if (new_val->type() != cJSON_Object) {
+                throw runtime_exc_t(strprintf("Mutate returned a non-object: %s", new_val->Print().c_str()), backtrace);
             } else {
-                /* Make sure that the primary key wasn't changed. */
-                if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
-                                 cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
-                    throw runtime_exc_t(strprintf("Mutates musn't change the primary key (%s).", pk.c_str()), backtrace);
+                if (original_val->type() == cJSON_NULL) {
+                    inserted = 1;
+                } else {
+                    /* Make sure that the primary key wasn't changed. */
+                    if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
+                                     cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
+                        throw runtime_exc_t(strprintf("Mutates musn't change the primary key (%s).", pk.c_str()), backtrace);
+                    }
+                    modified = 1;
                 }
                 insert(ns_access, pk, new_val, env, backtrace);
             }
-            res->add_response(strprintf("{\"modified\": %d, \"deleted\": %d, \"errors\": %d}", 1-deleted, deleted, 0));
+            res->add_response(strprintf("{\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d}", modified, inserted, deleted, 0));
         } break;
         default:
             unreachable();
@@ -1250,10 +1333,10 @@ void eval_let_binds(Term::Let *let, runtime_environment_t *env, const backtrace_
     // Go through the bindings in a let and add them one by one
     for (int i = 0; i < let->binds_size(); ++i) {
         backtrace_t backtrace_bind = backtrace.with(strprintf("bind:%s", let->binds(i).var().c_str()));
-        term_info_t type = get_term_type(let->binds(i).term(), &env->type_env, backtrace_bind);
+        term_info_t type = get_term_type(let->binds(i).term(), &env->scopes.type_env, backtrace_bind);
 
         if (type.type == TERM_TYPE_JSON) {
-            env->scope.put_in_scope(let->binds(i).var(),
+            env->scopes.scope.put_in_scope(let->binds(i).var(),
                     eval(let->mutable_binds(i)->mutable_term(), env, backtrace_bind));
         } else if (type.type == TERM_TYPE_STREAM || type.type == TERM_TYPE_VIEW) {
             throw runtime_exc_t("Cannot bind streams/views to variable names", backtrace);
@@ -1263,7 +1346,7 @@ void eval_let_binds(Term::Let *let, runtime_environment_t *env, const backtrace_
                 "evaluating it must throw  `runtime_exc_t`.");
         }
 
-        env->type_env.scope.put_in_scope(let->binds(i).var(),
+        env->scopes.type_env.scope.put_in_scope(let->binds(i).var(),
                                      type);
     }
 }
@@ -1288,13 +1371,13 @@ boost::shared_ptr<scoped_cJSON_t> eval_and_check_either(Term *t, runtime_environ
 boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     switch (t->type()) {
         case Term::VAR:
-            return env->scope.get(t->var());
+            return env->scopes.scope.get(t->var());
             break;
         case Term::LET:
             {
                 // Push the scope
-                variable_val_scope_t::new_scope_t new_scope(&env->scope);
-                variable_type_scope_t::new_scope_t new_type_scope(&env->type_env.scope);
+                variable_val_scope_t::new_scope_t new_scope(&env->scopes.scope);
+                variable_type_scope_t::new_scope_t new_type_scope(&env->scopes.type_env.scope);
 
                 eval_let_binds(t->mutable_let(), env, backtrace);
 
@@ -1421,7 +1504,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
             // TODO(rntz): this is wasteful double-copying.
             std::vector<std::string> argnames; // only used if (!compiled)
             std::vector<boost::shared_ptr<scoped_cJSON_t> > argvals;
-            env->scope.dump(compiled ? NULL : &argnames, &argvals);
+            env->scopes.scope.dump(compiled ? NULL : &argnames, &argvals);
 
             js::id_t id;
             if (compiled) {
@@ -1437,8 +1520,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
 
             // Figure out whether to bind "this" to the implicit object.
             boost::shared_ptr<scoped_cJSON_t> object;
-            if (env->implicit_attribute_value.has_value()) {
-                object = env->implicit_attribute_value.get_value();
+            if (env->scopes.implicit_attribute_value.has_value()) {
+                object = env->scopes.implicit_attribute_value.get_value();
                 if (object->type() != cJSON_Object) {
                     // If it's not a JSON object, we have to ignore it ("this"
                     // can't be bound to a non-object).
@@ -1462,16 +1545,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
 
 boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     switch (t->type()) {
-        case Term::VAR:
-            crash("Eval stream should never be called on a var term (because"
-                "streams can't be bound to vars) how did you get here and why"
-                    "did you think this was a nice place to come to?");
-            break;
         case Term::LET:
             {
                 // Push the scope
-                variable_val_scope_t::new_scope_t new_scope(&env->scope);
-                variable_type_scope_t::new_scope_t new_type_scope(&env->type_env.scope);
+                variable_val_scope_t::new_scope_t new_scope(&env->scopes.scope);
+                variable_type_scope_t::new_scope_t new_type_scope(&env->scopes.type_env.scope);
 
                 eval_let_binds(t->mutable_let(), env, backtrace);
 
@@ -1497,18 +1575,22 @@ boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env
                 return eval_view(t->mutable_table(), env, backtrace).stream;
             }
             break;
+        case Term::VAR:
         case Term::ERROR:
         case Term::NUMBER:
         case Term::STRING:
         case Term::JSON:
         case Term::BOOL:
         case Term::JSON_NULL:
-        case Term::ARRAY:
         case Term::OBJECT:
         case Term::GETBYKEY:
         case Term::JAVASCRIPT:
-            unreachable("eval_stream called on a function that does not return a stream (use eval instead).");
-            break;
+        case Term::ARRAY: {
+            boost::shared_ptr<scoped_cJSON_t> arr = eval(t, env, backtrace);
+            require_type(arr->get(), cJSON_Array, backtrace);
+            json_array_iterator_t it(arr->get());
+            return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it, env));
+        } break;
         default:
             unreachable();
             break;
@@ -1540,8 +1622,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 if (c->builtin().type() == Builtin::GETATTR) {
                     data = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
                 } else {
-                    rassert(env->implicit_attribute_value.has_value());
-                    data = env->implicit_attribute_value.get_value();
+                    rassert(env->scopes.implicit_attribute_value.has_value());
+                    data = env->scopes.implicit_attribute_value.get_value();
                 }
 
                 if (!data->type() == cJSON_Object) {
@@ -1564,8 +1646,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 if (c->builtin().type() == Builtin::HASATTR) {
                     data = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
                 } else {
-                    rassert(env->implicit_attribute_value.has_value());
-                    data = env->implicit_attribute_value.get_value();
+                    rassert(env->scopes.implicit_attribute_value.has_value());
+                    data = env->scopes.implicit_attribute_value.get_value();
                 }
 
                 if (!data->type() == cJSON_Object) {
@@ -1588,8 +1670,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 if (c->builtin().type() == Builtin::PICKATTRS) {
                     data = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
                 } else {
-                    rassert(env->implicit_attribute_value.has_value());
-                    data = env->implicit_attribute_value.get_value();
+                    rassert(env->scopes.implicit_attribute_value.has_value());
+                    data = env->scopes.implicit_attribute_value.get_value();
                 }
 
                 if (!data->type() == cJSON_Object) {
@@ -1700,7 +1782,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
             {
                 std::vector<std::string> argnames;
                 std::vector<boost::shared_ptr<scoped_cJSON_t> > values;
-                env->scope.dump(&argnames, &values);
+                env->scopes.scope.dump(&argnames, &values);
 
                 if (c->args_size() == 0) {
                     return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNull()));
@@ -1806,7 +1888,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 for (int i = 1; i < c->args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> rhs = eval(c->mutable_args(i), env, backtrace.with(strprintf("arg:%d", i)));
 
-                    int res = cJSON_cmp(lhs->get(), rhs->get(), backtrace.with(strprintf("arg:%d", i)));
+                    int res = lhs->type() == cJSON_NULL && rhs->type() == cJSON_NULL ? 0:
+                        cJSON_cmp(lhs->get(), rhs->get(), backtrace.with(strprintf("arg:%d", i)));
 
                     switch (c->builtin().comparison()) {
                     case Builtin_Comparison_EQ:
@@ -1846,10 +1929,18 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
         case Builtin::CONCATMAP:
         case Builtin::ORDERBY:
         case Builtin::DISTINCT:
-        case Builtin::ARRAYTOSTREAM:
-        case Builtin::GROUPEDMAPREDUCE:
         case Builtin::UNION:
-        case Builtin::RANGE:
+        case Builtin::RANGE: {
+            boost::shared_ptr<json_stream_t> stream = eval_stream(c, env, backtrace);
+            boost::shared_ptr<scoped_cJSON_t>
+                arr(new scoped_cJSON_t(cJSON_CreateArray()));
+            boost::shared_ptr<scoped_cJSON_t> json;
+            while ((json = stream->next())) {
+                arr->AddItemToArray(json->release());
+            }
+            return arr;
+        } break;
+        case Builtin::ARRAYTOSTREAM:
             unreachable("eval called on a function that returns a stream (use eval_stream instead).");
             break;
         case Builtin::LENGTH:
@@ -1939,22 +2030,63 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 } catch (const boost::bad_get &) {
                     crash("Expected a json atom... something is implemented wrong in the clustering code\n");
                 }
-                // Start off accumulator with the base
-                //boost::shared_ptr<scoped_cJSON_t> acc = eval(c->mutable_builtin()->mutable_reduce()->mutable_base(), env);
-
-                //for (json_stream_t::iterator it  = stream.begin();
-                //                             it != stream.end();
-                //                             ++it)
-                //{
-                //    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                //    env->scope.put_in_scope(c->builtin().reduce().var1(), acc);
-                //    env->scope.put_in_scope(c->builtin().reduce().var2(), *it);
-
-                //    acc = eval(c->mutable_builtin()->mutable_reduce()->mutable_body(), env);
-                //}
-                //return acc;
             }
             break;
+        case Builtin::GROUPEDMAPREDUCE: {
+                Builtin::GroupedMapReduce *g = c->mutable_builtin()->mutable_grouped_map_reduce();
+                shared_scoped_less_t comparator(backtrace);
+                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups(comparator);
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
+
+                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+                    boost::shared_ptr<scoped_cJSON_t> group_mapped_row, value_mapped_row, reduced_row;
+
+                    // Figure out which group we belong to
+                    {
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, g->group_mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
+                        group_mapped_row = eval(g->mutable_group_mapping()->mutable_body(), env, backtrace.with("group_mapping"));
+                    }
+
+                    // Map the value for comfy reduction goodness
+                    {
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, g->value_mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
+                        value_mapped_row = eval(g->mutable_value_mapping()->mutable_body(), env, backtrace.with("value_mapping"));
+                    }
+
+                    // Do the reduction
+                    {
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope);
+                        std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator
+                            elem = groups.find(group_mapped_row);
+                        if(elem != groups.end()) {
+                            env->scopes.scope.put_in_scope(g->reduction().var1(),
+                                                    (*elem).second);
+                        } else {
+                            env->scopes.scope.put_in_scope(g->reduction().var1(),
+                                                    eval(g->mutable_reduction()->mutable_base(), env, backtrace.with("reduction").with("base")));
+                        }
+                        env->scopes.scope.put_in_scope(g->reduction().var2(), value_mapped_row);
+
+                        reduced_row = eval(g->mutable_reduction()->mutable_body(), env, backtrace.with("reduction").with("body"));
+                    }
+
+                    // Phew, update the relevant group
+                    groups[group_mapped_row] = reduced_row;
+
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
+                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator it;
+                for (it = groups.begin(); it != groups.end(); ++it) {
+                    scoped_cJSON_t obj(cJSON_CreateObject());
+                    obj.AddItemToObject("group", it->first->release());
+                    obj.AddItemToObject("reduction", it->second->release());
+                    res->AddItemToArray(obj.release());
+                }
+                return res;
+        } break;
         case Builtin::ALL:
             {
                 bool result = true;
@@ -2003,8 +2135,8 @@ predicate_t::predicate_t(const Predicate &_pred, runtime_environment_t _env, con
 { }
 
 bool predicate_t::operator()(boost::shared_ptr<scoped_cJSON_t> json) {
-    variable_val_scope_t::new_scope_t scope_maker(&env.scope, pred.arg(), json);
-    implicit_value_setter_t impliciter(&env.implicit_attribute_value, json);
+    variable_val_scope_t::new_scope_t scope_maker(&env.scopes.scope, pred.arg(), json);
+    implicit_value_setter_t impliciter(&env.scopes.implicit_attribute_value, json);
     boost::shared_ptr<scoped_cJSON_t> a_bool = eval(pred.mutable_body(), &env, backtrace.with("predicate"));
 
     if (a_bool->type() == cJSON_True) {
@@ -2023,7 +2155,16 @@ public:
     { }
 
     //returns true if x < y according to the ordering
-    bool operator()(const boost::shared_ptr<scoped_cJSON_t> &x, const boost::shared_ptr<scoped_cJSON_t> &y) {
+    bool operator()(const boost::shared_ptr<scoped_cJSON_t> &x, const boost::shared_ptr<scoped_cJSON_t> &y) const {
+        if (x->type() != cJSON_Object) {
+            throw runtime_exc_t(
+                strprintf("Orderby encountered a non-object %s.\n", x->Print().c_str()),
+                backtrace);
+        } else if (y->type() != cJSON_Object) {
+            throw runtime_exc_t(
+                strprintf("Orderby encountered a non-object %s.\n", y->Print().c_str()),
+                backtrace);
+        }
         for (int i = 0; i < order.size(); ++i) {
             const Builtin::OrderBy& cur = order.Get(i);
 
@@ -2049,14 +2190,14 @@ private:
 };
 
 boost::shared_ptr<scoped_cJSON_t> map(std::string arg, Term *term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {
-    variable_val_scope_t::new_scope_t scope_maker(&env.scope, arg, val);
-    implicit_value_setter_t impliciter(&env.implicit_attribute_value, val);
+    variable_val_scope_t::new_scope_t scope_maker(&env.scopes.scope, arg, val);
+    implicit_value_setter_t impliciter(&env.scopes.implicit_attribute_value, val);
     return eval(term, &env, backtrace);
 }
 
 boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {
-    variable_val_scope_t::new_scope_t scope_maker(&env.scope, arg, val);
-    implicit_value_setter_t impliciter(&env.implicit_attribute_value, val);
+    variable_val_scope_t::new_scope_t scope_maker(&env.scopes.scope, arg, val);
+    implicit_value_setter_t impliciter(&env.scopes.implicit_attribute_value, val);
     return eval_stream(term, &env, backtrace);
 }
 
@@ -2083,68 +2224,13 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
         case Builtin::STREAMTOARRAY:
         case Builtin::REDUCE:
         case Builtin::ALL:
-        case Builtin::ANY:
-            unreachable("eval_stream called on a function that does not return a stream (use eval instead).");
-            break;
         case Builtin::GROUPEDMAPREDUCE:
-            {
-                Builtin::GroupedMapReduce *g = c->mutable_builtin()->mutable_grouped_map_reduce();
-                shared_scoped_less_t comparator(backtrace);
-                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups(comparator);
-                boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
-
-                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    boost::shared_ptr<scoped_cJSON_t> group_mapped_row, value_mapped_row, reduced_row;
-
-                    // Figure out which group we belong to
-                    {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scope, g->group_mapping().arg(), json);
-                        implicit_value_setter_t impliciter(&env->implicit_attribute_value, json);
-                        group_mapped_row = eval(g->mutable_group_mapping()->mutable_body(), env, backtrace.with("group_mapping"));
-                    }
-
-                    // Map the value for comfy reduction goodness
-                    {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scope, g->value_mapping().arg(), json);
-                        implicit_value_setter_t impliciter(&env->implicit_attribute_value, json);
-                        value_mapped_row = eval(g->mutable_value_mapping()->mutable_body(), env, backtrace.with("value_mapping"));
-                    }
-
-                    // Do the reduction
-                    {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                        std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator
-                            elem = groups.find(group_mapped_row);
-                        if(elem != groups.end()) {
-                            env->scope.put_in_scope(g->reduction().var1(),
-                                                    (*elem).second);
-                        } else {
-                            env->scope.put_in_scope(g->reduction().var1(),
-                                                    eval(g->mutable_reduction()->mutable_base(), env, backtrace.with("reduction").with("base")));
-                        }
-                        env->scope.put_in_scope(g->reduction().var2(), value_mapped_row);
-
-                        reduced_row = eval(g->mutable_reduction()->mutable_body(), env, backtrace.with("reduction").with("body"));
-                    }
-
-                    // Phew, update the relevant group
-                    groups[group_mapped_row] = reduced_row;
-
-                }
-
-                // Phew, convert the whole shebang to a stream
-                // TODO this is an extra copy we just need a gracefull way to
-                // deal with this
-                std::list<boost::shared_ptr<scoped_cJSON_t> > res;
-
-                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator it;
-                for(it = groups.begin(); it != groups.end(); ++it) {
-                    res.push_back((*it).second);
-                }
-
-                return boost::shared_ptr<in_memory_stream_t>(new in_memory_stream_t(res.begin(), res.end(), env));
-            }
-            break;
+        case Builtin::ANY: {
+            boost::shared_ptr<scoped_cJSON_t> arr = eval(c, env, backtrace);
+            require_type(arr->get(), cJSON_Array, backtrace);
+            json_array_iterator_t it(arr->get());
+            return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it, env));
+        } break;
         case Builtin::FILTER:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
@@ -2240,9 +2326,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
         case Builtin::ARRAYTOSTREAM:
             {
                 boost::shared_ptr<scoped_cJSON_t> array = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
-                if (array->get()->type != cJSON_Array) {
-                    throw runtime_exc_t("TO_STREAM called on non-array", backtrace);
-                }
+                require_type(array->get(), cJSON_Array, backtrace);
                 json_array_iterator_t it(array->get());
 
                 return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it, env));
@@ -2277,7 +2361,8 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                                         key_range_t::closed, store_key_t(upperbound->Print()));
                 }
 
-                return boost::shared_ptr<json_stream_t>(new range_stream_t(stream, range, r->attrname()));
+                return boost::shared_ptr<json_stream_t>(
+                    new range_stream_t(stream, range, r->attrname(), backtrace));
             }
             throw runtime_exc_t("Unimplemented: Builtin::RANGE", backtrace);
             break;
@@ -2295,11 +2380,13 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(
     std::string table_name = t->table_name();
     std::string db_name = t->db_name();
 
-    cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
+    namespaces_semilattice_metadata_t<rdb_protocol_t> namespaces_metadata = env->namespaces_semilattice_metadata->get();
+    databases_semilattice_metadata_t databases_metadata = env->databases_semilattice_metadata->get();
+
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
-        ns_searcher(&metadata.rdb_namespaces.namespaces);
+        ns_searcher(&namespaces_metadata.namespaces);
     metadata_searcher_t<database_semilattice_metadata_t>
-        db_searcher(&metadata.databases.databases);
+        db_searcher(&databases_metadata.databases);
 
     uuid_t db_id = meta_get_uuid(db_searcher, db_name, "EVAL_DB "+db_name, bt);
     namespace_predicate_t pred(table_name, db_id);
@@ -2454,7 +2541,7 @@ view_t eval_view(Term *t, runtime_environment_t *env, const backtrace_t &backtra
 view_t eval_view(Term::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(t->mutable_table_ref(), env, backtrace);
     std::string pk = get_primary_key(t->mutable_table_ref(), env, backtrace);
-    boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace));
+    boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace, env->scopes));
     return view_t(ns_access, pk, stream);
 }
 

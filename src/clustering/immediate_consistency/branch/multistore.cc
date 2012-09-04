@@ -19,10 +19,17 @@ struct multistore_ptr_t<protocol_t>::switch_read_token_t {
 };
 
 template <class protocol_t>
+region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_t<protocol_t, binary_blob_t> &blob_map) {
+    return region_map_transform<protocol_t, binary_blob_t, version_range_t>(blob_map,
+                                                                            &binary_blob_t::get<version_range_t>);
+}
+
+template <class protocol_t>
 multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **store_views, int num_store_views,
                                                typename protocol_t::context_t *_ctx,
                                                const typename protocol_t::region_t &region)
-    : store_views_(num_store_views),
+    : store_view_t<protocol_t>(region),
+      store_views_(num_store_views),
       region_(region),
       external_checkpoint_("multistore_ptr_t"),
       internal_sources_(num_store_views),
@@ -36,7 +43,8 @@ template <class protocol_t>
 multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inner,
                                                typename protocol_t::context_t *_ctx,
                                                const typename protocol_t::region_t &region)
-    : store_views_(inner->num_stores()),
+    : store_view_t<protocol_t>(region),
+      store_views_(inner->num_stores()),
       region_(region),
       external_checkpoint_("multistore_ptr_t"),
       internal_sources_(inner->num_stores()),
@@ -86,11 +94,6 @@ multistore_ptr_t<protocol_t>::~multistore_ptr_t() {
 }
 
 template <class protocol_t>
-typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_multistore_joined_region() const {
-    return region_;
-}
-
-template <class protocol_t>
 void multistore_ptr_t<protocol_t>::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token_out) {
     fifo_enforcer_read_token_t token = external_source_.get()->enter_read();
     external_token_out->create(external_sink_.get(), token);
@@ -107,9 +110,9 @@ void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
                                                      order_token_t order_token,
                                                      const switch_read_token_t *internal_tokens,
                                                      signal_t *interruptor,
-                                                     region_map_t<protocol_t, version_range_t> *updatee,
+                                                     region_map_t<protocol_t, binary_blob_t> *updatee,
                                                      mutex_t *updatee_mutex) THROWS_NOTHING {
-    region_map_t<protocol_t, version_range_t> transformed;
+    region_map_t<protocol_t, binary_blob_t> metainfo;
 
     try {
         {
@@ -121,29 +124,23 @@ void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> store_token;
             switch_inner_read_token(i, internal_tokens[i].token, &ct_interruptor, &store_token);
 
-            region_map_t<protocol_t, binary_blob_t> metainfo;
             store_views_[i]->do_get_metainfo(order_token, &store_token, &ct_interruptor, &metainfo);
-            region_map_t<protocol_t, binary_blob_t> masked_metainfo
-                = metainfo.mask(get_region(i));
-
-            transformed
-                = region_map_transform<protocol_t, binary_blob_t, version_range_t>(masked_metainfo,
-                                                                                   &binary_blob_t::get<version_range_t>);
         }
 
         // updatee->update doesn't block so the mutex is redundant, who cares.
         mutex_t::acq_t acq(updatee_mutex, true);
-        updatee->update(transformed);
+        updatee->update(metainfo.mask(get_a_region(i)));
     } catch (const interrupted_exc_t& exc) {
         // do nothing, we're in pmap.
     }
 }
 
 template <class protocol_t>
-region_map_t<protocol_t, version_range_t>  multistore_ptr_t<protocol_t>::
-get_all_metainfos(order_token_t order_token,
-                  object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
-		  signal_t *interruptor) {
+void multistore_ptr_t<protocol_t>::do_get_metainfo(order_token_t order_token,
+                                                   object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
+                                                   signal_t *interruptor,
+                                                   region_map_t<protocol_t, binary_blob_t> *out)
+    THROWS_ONLY(interrupted_exc_t) {
 
     // RSI: this is kind of awkward
     int count = num_stores();
@@ -155,37 +152,31 @@ get_all_metainfos(order_token_t order_token,
 
     switch_read_tokens(external_token, interruptor, &order_token, internal_tokens);
 
-    mutex_t ret_mutex;
-    typename protocol_t::region_t region = get_multistore_joined_region();
-    // v is initialized here in order to avoid the compiler warning (-Wuninitialized).
-    // pmap should change its value later.
-    version_range_t v(version_t::zero());
-    region_map_t<protocol_t, version_range_t> ret(region, v);
+    mutex_t out_mutex;
+    typename protocol_t::region_t region = this->get_region();
+
+    {
+        binary_blob_t blob((version_range_t(version_t::zero())));
+        region_map_t<protocol_t, binary_blob_t> ret(region, blob);
+        *out = ret;
+    }
 
     // TODO: For getting, we possibly want to cache things on the home
     // thread, but wait until we want a multithreaded listener.
 
     pmap(count, boost::bind(&multistore_ptr_t<protocol_t>::do_get_a_metainfo,
-                            this,
-                            _1,
-                            order_token,
-                            internal_tokens,
-                            interruptor,
-                            &ret,
-                            &ret_mutex));
+                            this, _1, order_token, internal_tokens, interruptor, out, &out_mutex));
 
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
 
-    rassert(ret.get_domain() == region_);
-
-    return ret;
+    rassert(out->get_domain() == region_);
 }
 
 
 template <class protocol_t>
-typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_region(int i) const {
+typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_a_region(int i) const {
     guarantee(0 <= i && i < num_stores());
 
     return region_intersection(region_, protocol_t::cpu_sharding_subspace(i, num_stores()));
@@ -208,7 +199,7 @@ void multistore_ptr_t<protocol_t>::do_set_a_metainfo(int i,
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> store_token;
         switch_inner_write_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
-        store_views_[i]->set_metainfo(new_metainfo.mask(get_region(i)), order_token, &store_token, &ct_interruptor);
+        store_views_[i]->set_metainfo(new_metainfo.mask(get_a_region(i)), order_token, &store_token, &ct_interruptor);
 
     } catch (const interrupted_exc_t& exc) {
         // do nothing
@@ -216,10 +207,10 @@ void multistore_ptr_t<protocol_t>::do_set_a_metainfo(int i,
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
-                                                     order_token_t order_token,
-                                                     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
-                                                     signal_t *interruptor) {
+void multistore_ptr_t<protocol_t>::set_metainfo(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
+                                                order_token_t order_token,
+                                                object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     scoped_array_t<fifo_enforcer_write_token_t> internal_tokens;
     switch_write_tokens(external_token, interruptor, &order_token, &internal_tokens);
 
@@ -283,12 +274,13 @@ public:
         return helper_->should_backfill(metainfo);
     }
 
-    void send_chunk(const typename protocol_t::backfill_chunk_t &chunk) {
+    void send_chunk(const typename protocol_t::backfill_chunk_t &chunk, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        cross_thread_signal_t ct_interruptor(interruptor, home_thread());
         // TODO: Is chunkfun supposed to block like this?  (No, that's slow.)
         on_thread_t th(home_thread());
 
         // TODO: This is a borderline hack for memcached delete_range_t chunks.
-        inner_chunk_fun_cb_->send_chunk(chunk.shard(region_));
+        inner_chunk_fun_cb_->send_chunk(chunk.shard(region_), &ct_interruptor);
     }
 
 private:
@@ -311,11 +303,11 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
 
     const int dest_thread = store->home_thread();
 
-    multistore_send_backfill_callback_t<protocol_t> send_backfill_cb(helper, chunk_fun_cb, get_region(i));
+    multistore_send_backfill_callback_t<protocol_t> send_backfill_cb(helper, chunk_fun_cb, get_a_region(i));
 
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
-    typename protocol_t::backfill_progress_t *store_progress = new typename protocol_t::backfill_progress_t(dest_thread);
+    traversal_progress_combiner_t *store_progress = new traversal_progress_combiner_t(dest_thread);
     scoped_ptr_t<traversal_progress_t> progress_owner(store_progress);
     progress->add_constituent(&progress_owner);
 
@@ -326,7 +318,7 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> store_token;
         switch_inner_read_token(i, internal_tokens[i].token, &ct_interruptor, &store_token);
 
-        store->send_backfill(start_point.mask(get_region(i)),
+        store->send_backfill(start_point.mask(get_a_region(i)),
                              &send_backfill_cb,
                              store_progress,
                              &store_token,
@@ -348,12 +340,12 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
    [May block]
 */
 template <class protocol_t>
-bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                                                            send_backfill_callback_t<protocol_t> *send_backfill_cb,
-                                                            traversal_progress_combiner_t *progress,
-                                                            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
-                                                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    guarantee(region_is_superset(get_multistore_joined_region(), start_point.get_domain()));
+bool multistore_ptr_t<protocol_t>::send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
+                                                 send_backfill_callback_t<protocol_t> *send_backfill_cb,
+                                                 traversal_progress_combiner_t *progress,
+                                                 object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
+                                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    guarantee(region_is_superset(this->get_region(), start_point.get_domain()));
     order_token_t fake_order_token = order_token_t::ignore;  // TODO
 
     // RSI: this is kind of awkward
@@ -391,7 +383,7 @@ void multistore_ptr_t<protocol_t>::single_shard_receive_backfill(int i, const ty
                                                                  const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
                                                                  signal_t *interruptor) THROWS_NOTHING {
 
-    typename protocol_t::region_t ith_intersection = region_intersection(get_region(i), chunk.get_region());
+    typename protocol_t::region_t ith_intersection = region_intersection(get_a_region(i), chunk.get_region());
 
     store_view_t<protocol_t> *store = store_views_[i];
     const int dest_thread = store->home_thread();
@@ -423,7 +415,7 @@ template <class protocol_t>
 void multistore_ptr_t<protocol_t>::receive_backfill(const typename protocol_t::backfill_chunk_t &chunk,
                                                     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    guarantee(region_is_superset(get_multistore_joined_region(), chunk.get_region()));
+    guarantee(region_is_superset(this->get_region(), chunk.get_region()));
 
     scoped_array_t<fifo_enforcer_write_token_t> internal_tokens;
     order_token_t fake_order_token = order_token_t::ignore;  // TODO
@@ -488,7 +480,7 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_
 
     for (int i = 0; i < num_stores(); ++i) {
         token_info[i].shard = i;
-        token_info[i].region = get_region(i);
+        token_info[i].region = get_a_region(i);
         token_info[i].intersection = region_intersection(token_info[i].region, read.get_region());
         token_info[i].do_read = !region_is_empty(token_info[i].intersection);
 
@@ -552,7 +544,7 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
                                                       const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
                                                       std::vector<typename protocol_t::write_response_t> *responses,
                                                       signal_t *interruptor) THROWS_NOTHING {
-    const typename protocol_t::region_t &ith_region = get_region(i);
+    const typename protocol_t::region_t &ith_region = get_a_region(i);
     typename protocol_t::region_t ith_intersection = region_intersection(ith_region, write.get_region());
 
     const int dest_thread = store_views_[i]->home_thread();
@@ -618,11 +610,11 @@ void multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<pro
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::single_shard_reset_all_data(int i,
-                                                               const typename protocol_t::region_t &subregion,
-                                                               const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                                                               const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
-                                                               signal_t *interruptor) THROWS_NOTHING {
+void multistore_ptr_t<protocol_t>::single_shard_reset_data(int i,
+                                                           const typename protocol_t::region_t &subregion,
+                                                           const typename protocol_t::store_t::metainfo_t &new_metainfo,
+                                                           const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
+                                                           signal_t *interruptor) THROWS_NOTHING {
     const int dest_thread = store_views_[i]->home_thread();
 
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
@@ -633,15 +625,15 @@ void multistore_ptr_t<protocol_t>::single_shard_reset_all_data(int i,
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> store_token;
         switch_inner_write_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
-        if (!region_overlaps(get_region(i), subregion)) {
+        if (!region_overlaps(get_a_region(i), subregion)) {
             // TODO: We shouldn't have to go to this thread if we do nothing.
             return;
         }
 
 
         // TODO: order token?
-        store_views_[i]->reset_data(region_intersection(subregion, get_region(i)),
-                                    new_metainfo.mask(get_region(i)),
+        store_views_[i]->reset_data(region_intersection(subregion, get_a_region(i)),
+                                    new_metainfo.mask(get_a_region(i)),
                                     &store_token,
                                     &ct_interruptor);
     } catch (const interrupted_exc_t& exc) {
@@ -650,15 +642,15 @@ void multistore_ptr_t<protocol_t>::single_shard_reset_all_data(int i,
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::reset_all_data(const typename protocol_t::region_t &subregion,
-                                                  const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                                                  object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
-                                                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void multistore_ptr_t<protocol_t>::reset_data(const typename protocol_t::region_t &subregion,
+                                              const typename protocol_t::store_t::metainfo_t &new_metainfo,
+                                              object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     scoped_array_t<fifo_enforcer_write_token_t> internal_tokens;
     order_token_t fake_order_token = order_token_t::ignore;
     switch_write_tokens(external_token, interruptor, &fake_order_token, &internal_tokens);
 
-    pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_reset_all_data,
+    pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_reset_data,
                                    this, _1,
                                    boost::ref(subregion),
                                    boost::ref(new_metainfo),
@@ -731,3 +723,7 @@ void multistore_ptr_t<protocol_t>::switch_inner_write_token(int i, fifo_enforcer
 template class multistore_ptr_t<mock::dummy_protocol_t>;
 template class multistore_ptr_t<memcached_protocol_t>;
 template class multistore_ptr_t<rdb_protocol_t>;
+
+template region_map_t<mock::dummy_protocol_t, version_range_t> to_version_range_map<mock::dummy_protocol_t>(const region_map_t<mock::dummy_protocol_t, binary_blob_t> &blob_map);
+template region_map_t<memcached_protocol_t, version_range_t> to_version_range_map<memcached_protocol_t>(const region_map_t<memcached_protocol_t, binary_blob_t> &blob_map);
+template region_map_t<rdb_protocol_t, version_range_t> to_version_range_map<rdb_protocol_t>(const region_map_t<rdb_protocol_t, binary_blob_t> &blob_map);

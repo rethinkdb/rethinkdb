@@ -120,11 +120,11 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
 
         order_source_t order_source;  // TODO: order_token_t::ignore.  Use the svs.
 
-        (*svs_out)->set_all_metainfos(region_map_t<protocol_t, binary_blob_t>((*svs_out)->get_multistore_joined_region(),
-                                                                              binary_blob_t(version_range_t(version_t::zero()))),
-                                      order_source.check_in("file_based_svs_by_namespace_t"),
-                                      &write_token,
-                                      &dummy_interruptor);
+        (*svs_out)->set_metainfo(region_map_t<protocol_t, binary_blob_t>((*svs_out)->get_region(),
+                                                                         binary_blob_t(version_range_t(version_t::zero()))),
+                                 order_source.check_in("file_based_svs_by_namespace_t"),
+                                 &write_token,
+                                 &dummy_interruptor);
     }
 }
 

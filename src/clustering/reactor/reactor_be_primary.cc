@@ -271,7 +271,9 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
              * store so we don't backfill anything prior to it. */
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
             svs->new_read_token(&read_token);
-            region_map_t<protocol_t, version_range_t> metainfo = svs->get_all_metainfos(order_source.check_in("reactor_t::be_primary").with_read_mode(), &read_token, interruptor);
+            region_map_t<protocol_t, binary_blob_t> metainfo_blob;
+            svs->do_get_metainfo(order_source.check_in("reactor_t::be_primary").with_read_mode(), &read_token, interruptor, &metainfo_blob);
+            region_map_t<protocol_t, version_range_t> metainfo = to_version_range_map(metainfo_blob);
             region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);
 
             /* This waits until every other peer is ready to accept us as the

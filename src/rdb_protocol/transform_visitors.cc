@@ -64,17 +64,30 @@ void transform_visitor_t::operator()(Builtin_Range range) const {
     }
 }
 
-terminal_initializer_visitor_t::terminal_initializer_visitor_t(rget_read_response_t::result_t *_out)
-    : out(_out)
+terminal_initializer_visitor_t::terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,
+                                                               query_language::runtime_environment_t *_env)
+    : out(_out), env(_env)
 { }
 
 void terminal_initializer_visitor_t::operator()(const Builtin_GroupedMapReduce &) const { *out = rget_read_response_t::groups_t(); }
 
-void terminal_initializer_visitor_t::operator()(const Reduction &) const { *out = rget_read_response_t::atom_t(); }
+void terminal_initializer_visitor_t::operator()(const Reduction &r) const {
+    query_language::backtrace_t b; //TODO get this from somewhere
+    Term base = r.base();
+    *out = eval(&base, env, b);
+}
 
-void terminal_initializer_visitor_t::operator()(const rdb_protocol_details::Length &) const { *out = rget_read_response_t::length_t(); }
+void terminal_initializer_visitor_t::operator()(const rdb_protocol_details::Length &) const {
+    rget_read_response_t::length_t l;
+    l.length = 0;
+    *out = l;
+}
 
-void terminal_initializer_visitor_t::operator()(const WriteQuery_ForEach &) const { *out = rget_read_response_t::inserted_t(); }
+void terminal_initializer_visitor_t::operator()(const WriteQuery_ForEach &) const {
+    rget_read_response_t::inserted_t i;
+    i.inserted = 0;
+    *out = i;
+}
 
 terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                    query_language::runtime_environment_t *_env,
@@ -92,17 +105,17 @@ void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
     //Grab the grouping
     boost::shared_ptr<scoped_cJSON_t> grouping;
     {
-        query_language::new_val_scope_t scope(&env->scope);
+        query_language::new_val_scope_t scope(&env->scopes.scope);
         Term body = gmr.group_mapping().body();
 
-        env->scope.put_in_scope(gmr.group_mapping().arg(), json_cpy);
+        env->scopes.scope.put_in_scope(gmr.group_mapping().arg(), json_cpy);
         grouping = eval(&body, env, b);
     }
 
     //Apply the mapping
     {
-        query_language::new_val_scope_t scope(&env->scope);
-        env->scope.put_in_scope(gmr.value_mapping().arg(), json_cpy);
+        query_language::new_val_scope_t scope(&env->scopes.scope);
+        env->scopes.scope.put_in_scope(gmr.value_mapping().arg(), json_cpy);
 
         Term body = gmr.value_mapping().body();
         json_cpy = eval(&body, env, b);
@@ -110,13 +123,13 @@ void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
 
     //Finally reduce it in
     {
-        query_language::new_val_scope_t scope(&env->scope);
+        query_language::new_val_scope_t scope(&env->scopes.scope);
 
         Term base = gmr.reduction().base(),
              body = gmr.reduction().body();
 
-        env->scope.put_in_scope(gmr.reduction().var1(), get_with_default(*res_groups, grouping, eval(&base, env, b)));
-        env->scope.put_in_scope(gmr.reduction().var2(), json_cpy);
+        env->scopes.scope.put_in_scope(gmr.reduction().var1(), get_with_default(*res_groups, grouping, eval(&base, env, b)));
+        env->scopes.scope.put_in_scope(gmr.reduction().var2(), json_cpy);
         (*res_groups)[grouping] = eval(&body, env, b);
     }
 }
@@ -126,14 +139,11 @@ void terminal_visitor_t::operator()(const Reduction &r) const {
     //we assume the result has already been set to groups_t
     rget_read_response_t::atom_t *res_atom = boost::get<rget_read_response_t::atom_t>(out);
     guarantee(res_atom);
-    if (!*res_atom) {
-        Term base = r.base();
-        *res_atom = eval(&base, env, b);
-    }
+    guarantee(*res_atom);
 
-    query_language::new_val_scope_t scope(&env->scope);
-    env->scope.put_in_scope(r.var1(), *res_atom);
-    env->scope.put_in_scope(r.var2(), json);
+    query_language::new_val_scope_t scope(&env->scopes.scope);
+    env->scopes.scope.put_in_scope(r.var1(), *res_atom);
+    env->scopes.scope.put_in_scope(r.var2(), json);
     Term body = r.body();
     *res_atom = eval(&body, env, b);
 }
@@ -147,8 +157,8 @@ void terminal_visitor_t::operator()(const rdb_protocol_details::Length &) const 
 void terminal_visitor_t::operator()(const WriteQuery_ForEach &w) const {
     query_language::backtrace_t b; //TODO get this from somewhere
 
-    query_language::new_val_scope_t scope(&env->scope);
-    env->scope.put_in_scope(w.var(), json);
+    query_language::new_val_scope_t scope(&env->scopes.scope);
+    env->scopes.scope.put_in_scope(w.var(), json);
 
     for (int i = 0; i < w.queries_size(); ++i) {
         WriteQuery q = w.queries(i);

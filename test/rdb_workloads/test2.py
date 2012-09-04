@@ -4,7 +4,7 @@
 # Environment variables:
 # HOST: location of server (default = "localhost")
 # PORT: port that server listens for RDB protocol traffic on (default = 14356)
-# DB_NAME: database to look for test table in (default = "")
+# DB_NAME: database to look for test table in (default = "Welcome-db")
 # TABLE_NAME: table to run tests against (default = "Welcome-rdb")
 
 import json
@@ -26,7 +26,7 @@ class RDBTest(unittest.TestCase):
             os.environ.get('HOST', 'localhost'),
             int(os.environ.get('PORT', 12346+2010))
             )
-        cls.table = table(os.environ.get('DB_NAME', '') + "." + os.environ.get('TABLE_NAME', 'Welcome-rdb'))
+        cls.table = table(os.environ.get('DB_NAME', 'Welcome-db') + "." + os.environ.get('TABLE_NAME', 'Welcome-rdb'))
 
     def expect(self, query, expected):
         try:
@@ -317,7 +317,7 @@ class RDBTest(unittest.TestCase):
         for doc in docs:
             self.expect(self.table.get(doc['id']), doc)
 
-        self.expect(self.table.map(R("a")).distinct(), [3, 9])
+        self.expect(self.table.orderby("id").map(R("a")).distinct(), [3, 9])
 
         self.expect(self.table.filter({"a": 3}), [docs[0]])
 
@@ -385,7 +385,6 @@ class RDBTest(unittest.TestCase):
         expect = self.expect
 
         expect(-expr(3), -3)
-        expect(+expr(3), 3)
 
         expect(expr(3) + 4, 7)
         expect(expr(3) - 4, -1)
@@ -438,7 +437,7 @@ class RDBTest(unittest.TestCase):
         docs = [{"id": n, "a": "x" * n} for n in range(10)]
         self.do_insert(docs)
 
-        self.expect(self.table.range(2, 3), docs[2:4])
+        self.expect(self.table.orderby("id").range(2, 3), docs[2:4])
 
     def test_js(self):
         self.expect(js('2'), 2)
@@ -464,18 +463,18 @@ class RDBTest(unittest.TestCase):
         self.expect(let(('x', 2), ('y', 3), js('x + y')), 5)
 
         self.do_insert(docs)
-        self.expect(self.table.map(fn("x", R('$x'))), docs) # sanity check
+        self.expect(self.table.orderby("id").map(fn("x", R('$x'))), docs) # sanity check
 
-        self.expect(self.table.map(fn('x', js('x'))), docs)
-        self.expect(self.table.map(fn('x', js('x.name'))), names)
-        self.expect(self.table.filter(fn('x', js('x.id > 2'))),
+        self.expect(self.table.orderby("id").map(fn('x', js('x'))), docs)
+        self.expect(self.table.orderby("id").map(fn('x', js('x.name'))), names)
+        self.expect(self.table.orderby("id").filter(fn('x', js('x.id > 2'))),
                     [x for x in docs if x['id'] > 2])
-        self.expect(self.table.map(fn('x', js('x.id + ": " + x.name'))),
+        self.expect(self.table.orderby("id").map(fn('x', js('x.id + ": " + x.name'))),
                     ["%s: %s" % (x['id'], x['name']) for x in docs])
 
-        self.expect(self.table, docs)
-        self.expect(self.table.map(js('this')), docs)
-        self.expect(self.table.map(js('this.name')), names)
+        self.expect(self.table.orderby("id"), docs)
+        self.expect(self.table.orderby("id").map(js('this')), docs)
+        self.expect(self.table.orderby("id").map(js('this.name')), names)
 
     def test_updatemutate(self):
         self.clear_table()
@@ -483,8 +482,8 @@ class RDBTest(unittest.TestCase):
         docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(10)]
         self.do_insert(docs)
 
-        self.expect(self.table.mutate(fn('x', R('$x'))), {"modified": len(docs), "deleted": 0})
-        self.expect(self.table, docs)
+        self.expect(self.table.mutate(fn('x', R('$x'))), {"modified": len(docs), "deleted": 0, "errors": 0})
+        self.expect(self.table.orderby("id"), docs)
 
         self.expect(self.table.update(None), {'updated': 0, 'skipped': 10, 'errors': 0})
 

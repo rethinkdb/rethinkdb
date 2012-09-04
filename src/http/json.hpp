@@ -201,6 +201,8 @@ void project(cJSON *json, std::set<std::string> keys);
 //Merge two cJSON objects, crashes if there are overlapping keys
 cJSON *merge(cJSON *, cJSON *);
 
+std::string cJSON_type_to_string(int type);
+
 /* Json serialization */
 write_message_t &operator<<(write_message_t &msg, const cJSON &cjson);
 MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson);

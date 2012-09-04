@@ -150,7 +150,7 @@ void backfillee(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
-    rassert(region_is_superset(svs->get_multistore_joined_region(), region));
+    rassert(region_is_superset(svs->get_region(), region));
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
@@ -160,9 +160,9 @@ void backfillee(
     // TODO: This is bs.  order_token_t::ignore.  The svs needs an order checkpoint with its fifo enforcers.
     order_source_t order_source;
 
-    region_map_t<protocol_t, version_range_t> start_point
-        = svs->get_all_metainfos(order_source.check_in("backfillee(A)").with_read_mode(),
-                                 &read_token, interruptor);
+    region_map_t<protocol_t, binary_blob_t> start_point_blob;
+    svs->do_get_metainfo(order_source.check_in("backfillee(A)").with_read_mode(), &read_token, interruptor, &start_point_blob);
+    region_map_t<protocol_t, version_range_t> start_point = to_version_range_map(start_point_blob);
 
     start_point = start_point.mask(region);
 
@@ -292,11 +292,10 @@ void backfillee(
 
         svs->new_write_token(&write_token);
 
-        svs->set_all_metainfos(
+        svs->set_metainfo(
             region_map_transform<protocol_t, version_range_t, binary_blob_t>(
                 region_map_t<protocol_t, version_range_t>(span_parts.begin(), span_parts.end()),
-                &binary_blob_t::make<version_range_t>
-                ),
+                &binary_blob_t::make<version_range_t>),
             order_source.check_in("backfillee(B)"),
             &write_token,
             interruptor);
@@ -324,11 +323,9 @@ void backfillee(
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
     svs->new_write_token(&write_token);
 
-    svs->set_all_metainfos(
-        region_map_transform<protocol_t, version_range_t, binary_blob_t>(
-            end_point_cond.get_value().first,
-            &binary_blob_t::make<version_range_t>
-            ),
+    svs->set_metainfo(
+        region_map_transform<protocol_t, version_range_t, binary_blob_t>(end_point_cond.get_value().first,
+                                                                         &binary_blob_t::make<version_range_t>),
         order_source.check_in("backfillee(C)"),
         &write_token,
         interruptor);

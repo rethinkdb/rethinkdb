@@ -4,6 +4,7 @@
 #include <string>
 
 #include "rdb_protocol/backtrace.hpp"
+#include "rpc/serialize_macros.hpp"
 
 namespace query_language {
 
@@ -44,6 +45,7 @@ public:
 
 class runtime_exc_t {
 public:
+    runtime_exc_t() { }
     runtime_exc_t(const std::string &_what, const backtrace_t &bt)
         : message(_what), backtrace(bt)
     { }
@@ -54,6 +56,8 @@ public:
 
     std::string message;
     backtrace_t backtrace;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(message, backtrace);
 };
 
 

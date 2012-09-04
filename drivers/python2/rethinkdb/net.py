@@ -122,6 +122,7 @@ class Connection():
         """
         self.token = 1
         self.socket = socket.create_connection((host_or_list, port))
+        self.socket.sendall(struct.pack("<L", 0xaf61ba35))
 
     def _get_token(self):
         token = self.token

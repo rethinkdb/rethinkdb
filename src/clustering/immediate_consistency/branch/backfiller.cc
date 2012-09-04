@@ -83,8 +83,9 @@ void do_send_chunk(mailbox_manager_t *mbox_manager,
                    mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_addr,
                    const typename protocol_t::backfill_chunk_t &chunk,
                    fifo_enforcer_source_t *fifo_src,
-                   semaphore_t *chunk_semaphore) {
-    chunk_semaphore->co_lock();
+                   semaphore_t *chunk_semaphore,
+                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    chunk_semaphore->co_lock_interruptible(interruptor);
     send(mbox_manager, chunk_addr, chunk, fifo_src->enter_write());
 }
 
@@ -110,8 +111,8 @@ public:
         return backfiller_->confirm_and_send_metainfo(metainfo, *start_point_, end_point_cont_);
     }
 
-    void send_chunk(const typename protocol_t::backfill_chunk_t &chunk) {
-        do_send_chunk<protocol_t>(mailbox_manager_, chunk_cont_, chunk, fifo_src_, chunk_semaphore_);
+    void send_chunk(const typename protocol_t::backfill_chunk_t &chunk, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        do_send_chunk<protocol_t>(mailbox_manager_, chunk_cont_, chunk, fifo_src_, chunk_semaphore_, interruptor);
     }
 private:
     const region_map_t<protocol_t, version_range_t> *start_point_;
@@ -136,7 +137,7 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
                                            auto_drainer_t::lock_t keepalive) {
 
     assert_thread();
-    rassert(region_is_superset(svs->get_multistore_joined_region(), start_point.get_domain()));
+    rassert(region_is_superset(svs->get_region(), start_point.get_domain()));
 
     /* Set up a local interruptor cond and put it in the map so that this
        session can be interrupted if the backfillee decides to abort */
@@ -169,7 +170,7 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
             send_backfill_cb(&start_point, end_point_cont, mailbox_manager, chunk_cont, &fifo_src, &chunk_semaphore, this);
 
         /* Actually perform the backfill */
-        svs->send_multistore_backfill(
+        svs->send_backfill(
                      region_map_transform<protocol_t, version_range_t, state_timestamp_t>(
                                                       start_point,
                                                       &get_earliest_timestamp_of_version_range

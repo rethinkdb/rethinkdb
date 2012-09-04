@@ -95,7 +95,7 @@ typedef boost::variant<boost::shared_ptr<scoped_cJSON_t>, std::string> json_resu
 
 // Visitors to extract values from results.
 struct id_visitor_t {
-    typedef bool result_type;
+    typedef id_t result_type;
     explicit id_visitor_t(std::string *errmsg) : errmsg_(errmsg) {}
     std::string *errmsg_;
     id_t operator()(const id_t &id) {
