@@ -97,11 +97,13 @@ public:
         enough acks. That's a bit weird, but fortunately it can't lead to data
         corruption. */
         std::multiset<datacenter_id_t> acks_by_dc;
+        std::map<peer_id_t, machine_id_t> translation_table_snapshot = parent->machine_id_translation_table->get();
+        machines_semilattice_metadata_t mmd = parent->machines_view->get();
+        namespaces_semilattice_metadata_t<protocol_t> nmd = parent->namespaces_view->get();
+
         for (std::set<peer_id_t>::const_iterator it = acks.begin(); it != acks.end(); it++) {
-            std::map<peer_id_t, machine_id_t> translation_table_snapshot = parent->machine_id_translation_table->get();
             std::map<peer_id_t, machine_id_t>::iterator tt_it = translation_table_snapshot.find(*it);
             if (tt_it == translation_table_snapshot.end()) continue;
-            machines_semilattice_metadata_t mmd = parent->machines_view->get();
             machines_semilattice_metadata_t::machine_map_t::iterator jt = mmd.machines.find(tt_it->second);
             if (jt == mmd.machines.end()) continue;
             if (jt->second.is_deleted()) continue;
@@ -109,7 +111,6 @@ public:
             datacenter_id_t dc = jt->second.get().datacenter.get();
             acks_by_dc.insert(dc);
         }
-        namespaces_semilattice_metadata_t<protocol_t> nmd = parent->namespaces_view->get();
         typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
             nmd.namespaces.find(namespace_id);
         if (it == nmd.namespaces.end()) return false;
