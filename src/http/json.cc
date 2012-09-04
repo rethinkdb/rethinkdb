@@ -42,15 +42,17 @@ scoped_cJSON_t::~scoped_cJSON_t() {
     }
 }
 
-
-/* Render a cJSON entity to text for transfer/storage. */
-std::string scoped_cJSON_t::Print() const THROWS_NOTHING {
-    char *s = cJSON_Print(val);
+std::string cJSON_Print_std(cJSON *json) {
+    char *s = cJSON_Print(json);
     rassert(s);
     std::string res(s);
     free(s);
-
     return res;
+}
+
+/* Render a cJSON entity to text for transfer/storage. */
+std::string scoped_cJSON_t::Print() const THROWS_NOTHING {
+    return cJSON_Print_std(val);
 }
 /* Render a cJSON entity to text for transfer/storage without any formatting. */
 std::string scoped_cJSON_t::PrintUnformatted() const THROWS_NOTHING {
