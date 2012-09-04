@@ -9,6 +9,7 @@
 
 #include "errors.hpp"
 #include <boost/function.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/variant/get.hpp>
 
@@ -40,12 +41,6 @@ private:
 
 class in_memory_stream_t : public json_stream_t {
 public:
-    template <class iterator>
-    in_memory_stream_t(const iterator &begin, const iterator &end, runtime_environment_t *_env)
-        : started(false), raw_data(begin, end), env(_env)
-    { }
-
-
     in_memory_stream_t(json_array_iterator_t it, runtime_environment_t *env);
     in_memory_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *env);
 
@@ -65,7 +60,7 @@ private:
 
     json_list_t raw_data;
     json_list_t data;
-    runtime_environment_t *env;
+    boost::scoped_ptr<runtime_environment_t> env;
 };
 
 class batched_rget_stream_t : public json_stream_t {

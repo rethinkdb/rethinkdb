@@ -5,7 +5,7 @@
 namespace query_language {
 
 in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it, runtime_environment_t *_env) 
-    : started(false), env(_env)
+    : started(false), env(new runtime_environment_t(*_env))
 {
     while (cJSON *json = it.next()) {
         raw_data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
@@ -13,7 +13,7 @@ in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it, runtime_environ
 }
 
 in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *_env) 
-    : started(false), env(_env)
+    : started(false), env(new runtime_environment_t(*_env))
 {
     while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
         raw_data.push_back(json);
@@ -40,7 +40,7 @@ boost::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
                 for (json_list_t::iterator jt  = accumulator.begin();
                                            jt != accumulator.end();
                                            ++jt) {
-                    boost::apply_visitor(transform_visitor_t(*jt, &tmp, env), *it);
+                    boost::apply_visitor(transform_visitor_t(*jt, &tmp, env.get()), *it);
                 }
                 accumulator.clear();
                 accumulator.splice(accumulator.begin(), tmp);
