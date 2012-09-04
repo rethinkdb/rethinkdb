@@ -186,15 +186,15 @@
 <script id="resolve_issues-machine_ghost-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}}">
         <div class="header">
-            <h3 class="title">Dead server is connected</h3>
+            <h3 class="title">Zombie server</h3>
             {{#if datetime}}
             <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
         {{/if}}
         </div>
         <hr />
-        <h4>A server was declared dead, but is connected to the cluster.</h4>
+        <h4>A server was declared dead, but is now connected to the cluster.</h4>
         <p class="description">Server's id: <a href="#servers/{{machine_id}}">{{machine_name}}</a><br/>
-        Please manually remove it (by killing the rethinkDB instance for instance)</p>
+        Please manually remove it (by killing the rethinkDB instance for example)</p>
   </div>
 </script>
 

@@ -5,7 +5,11 @@ goog.require('goog.asserts');
 
 /** @export */
 rethinkdb.query.expr = function(value) {
-    return new rethinkdb.query.JSONExpression(value);
+    if (typeof value === 'number') {
+        return new rethinkdb.query.NumberExpression(value);
+    } else {
+        return new rethinkdb.query.JSONExpression(value);
+    }
 };
 
 /** @export */

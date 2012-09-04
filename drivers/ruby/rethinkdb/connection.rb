@@ -25,6 +25,17 @@ module RethinkDB
       token_iter(dispatch query){|row| a.push row} ? a : a[0]
     end
 
+    #TODO: doc
+    def run_async query
+      dispatch query
+    end
+
+    #TODO: doc
+    def block token
+      a = []
+      token_iter(token){|row| a.push row} ? a : a[0]
+    end
+
     # Run the RQL query <b>+query+</b> and iterate over the results.  The
     # <b>+block+</b> you provide should take a single argument, which will be
     # bound to a single JSON value each time your block is invoked.  Returns

@@ -431,7 +431,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             }
         case Builtin::MAP:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
 
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 check_mapping_type(b.map().mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("mapping"));
@@ -440,23 +440,23 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::CONCATMAP:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
 
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
-                check_mapping_type(b.concat_map().mapping(), TERM_TYPE_STREAM, env, &deterministic, deterministic, backtrace.with("mapping"));
+                //check_mapping_type(b.concat_map().mapping(), TERM_TYPE_STREAM, env, &deterministic, deterministic, backtrace.with("mapping"));
                 return term_info_t(TERM_TYPE_STREAM, deterministic);
             }
             break;
         case Builtin::DISTINCT:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
 
                 return term_info_t(TERM_TYPE_STREAM, deterministic);
             }
             break;
         case Builtin::FILTER:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
                 // polymorphic
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
 
@@ -468,7 +468,8 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::ORDERBY:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
+
                 term_info_t res = get_term_type(c.args(0), env, backtrace);
                 res.deterministic &= deterministic;
                 return res;
@@ -496,7 +497,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::REDUCE:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 check_reduction_type(b.reduce(), env, &deterministic, deterministic, backtrace.with("reduce"));
                 return term_info_t(TERM_TYPE_JSON, false); //This is always false because we can't be sure the functions is associative or commutative
@@ -504,7 +505,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::GROUPEDMAPREDUCE:
             {
-                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                check_arg_count(c, 1, backtrace);
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 check_mapping_type(b.grouped_map_reduce().group_mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("group_mapping"));
                 check_mapping_type(b.grouped_map_reduce().value_mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("value_mapping"));
@@ -521,7 +522,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             return term_info_t(TERM_TYPE_STREAM, deterministic);
             break;
         case Builtin::RANGE:
-            check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+            check_arg_count(c, 1, backtrace);
             return term_info_t(TERM_TYPE_STREAM, deterministic);
             break;
         default:
@@ -568,10 +569,12 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
     w.GetReflection()->ListFields(w, &fields);
     check_protobuf(fields.size() == 2);
 
+    bool deterministic = true;
     switch (w.type()) {
         case WriteQuery::UPDATE: {
             check_protobuf(w.has_update());
             check_term_type(w.update().view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.update().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -583,6 +586,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::MUTATE: {
             check_protobuf(w.has_mutate());
             check_term_type(w.mutate().view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.mutate().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -601,7 +605,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::FOREACH:
             {
                 check_protobuf(w.has_for_each());
-                check_term_type(w.for_each().stream(), TERM_TYPE_STREAM, env, is_det_out, backtrace.with("stream"));
+                //check_term_type(w.for_each().stream(), TERM_TYPE_STREAM, env, is_det_out, backtrace.with("stream"));
 
                 new_scope_t scope_maker(&env->scope, w.for_each().var(), term_info_t(TERM_TYPE_JSON, *is_det_out));
                 for (int i = 0; i < w.for_each().queries_size(); ++i) {
@@ -612,6 +616,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::POINTUPDATE: {
             check_protobuf(w.has_point_update());
             check_term_type(w.point_update().key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.point_update().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -623,6 +628,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::POINTMUTATE: {
             check_protobuf(w.has_point_mutate());
             check_term_type(w.point_mutate().key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.point_mutate().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -840,7 +846,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
            until that has happened, so we try to do a read every `poll_ms`
            milliseconds until one succeeds, then return. */
 
-        int64_t poll_ms = 200; //with this value, usually polls twice
+        int64_t poll_ms = 100; //with this value, usually polls twice
         //This read won't succeed, but we care whether it fails with an exception.
         rdb_protocol_t::read_t bad_read(rdb_protocol_t::point_read_t(store_key_t("")));
         try {
@@ -1033,12 +1039,19 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 
                 int updated = 0, errors = 0, skipped = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
+                    rassert(json->type() == cJSON_Object);
                     try {
                         variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->update().mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
                         boost::shared_ptr<scoped_cJSON_t> rhs =
                             eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                         if (rhs->type() == cJSON_NULL) {
                             ++skipped;
+                        } else if (rhs->type() != cJSON_Object) {
+                            ++errors;
+                            if (reported_error == "") {
+                                reported_error = strprintf("Update returned a non-object (%s).\n", rhs->Print().c_str());
+                            }
                         } else {
                             boost::shared_ptr<scoped_cJSON_t> val(new scoped_cJSON_t(cJSON_merge(json->get(), rhs->get())));
                             cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
@@ -1046,7 +1059,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                             if (!cJSON_Equal(json_key, val_key)) {
                                 ++errors;
                                 if (reported_error == "") {
-                                    reported_error = strprintf("Update cannot change priamary keys: %s -> %s\n",
+                                    reported_error = strprintf("Update cannot change primary keys: %s -> %s\n",
                                                                json->PrintUnformatted().c_str(), val->PrintUnformatted().c_str());
                                 }
                             } else {
@@ -1092,11 +1105,17 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     try {
                         variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->mutate().mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
                         boost::shared_ptr<scoped_cJSON_t> val =
                             eval(w->mutable_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                         if (val->type() == cJSON_NULL) {
                             point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
                             ++deleted;
+                        } else if (val->type() != cJSON_Object) {
+                            ++errors;
+                            if (reported_error == "") {
+                                reported_error = strprintf("Mutate returned a non-object (%s).\n", val->Print().c_str());
+                            }
                         } else {
                             cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
                             cJSON *val_key = val->GetObjectItem(view.primary_key.c_str());
@@ -1219,10 +1238,12 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 
                 boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
                 new_val_scope_t scope_maker(&env->scopes.scope, w->point_update().mapping().arg(), original_val);
-
+                implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, original_val);
                 boost::shared_ptr<scoped_cJSON_t> rhs = eval(w->mutable_point_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                 if (rhs->type() == cJSON_NULL) {
                     skipped = 1;
+                } else if (rhs->type() != cJSON_Object) {
+                    throw runtime_exc_t(strprintf("Update returned a non-object: %s", rhs->Print().c_str()), backtrace);
                 } else {
                     if (original_val->type() != cJSON_NULL) {
                         updated = 1;
@@ -1273,6 +1294,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
 
             new_val_scope_t scope_maker(&env->scopes.scope, w->point_mutate().mapping().arg(), original_val);
+            implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, original_val);
             boost::shared_ptr<scoped_cJSON_t> new_val = eval(w->mutable_point_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
 
             namespace_repo_t<rdb_protocol_t>::access_t ns_access =
@@ -1284,6 +1306,8 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     deleted = 1;
                     point_delete(ns_access, cJSON_GetObjectItem(original_val->get(), pk.c_str()), env, backtrace);
                 }
+            } else if (new_val->type() != cJSON_Object) {
+                throw runtime_exc_t(strprintf("Mutate returned a non-object: %s", new_val->Print().c_str()), backtrace);
             } else {
                 if (original_val->type() == cJSON_NULL) {
                     inserted = 1;
@@ -1521,11 +1545,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
 
 boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     switch (t->type()) {
-        case Term::VAR:
-            crash("Eval stream should never be called on a var term (because"
-                "streams can't be bound to vars) how did you get here and why"
-                    "did you think this was a nice place to come to?");
-            break;
         case Term::LET:
             {
                 // Push the scope
@@ -1556,18 +1575,22 @@ boost::shared_ptr<json_stream_t> eval_stream(Term *t, runtime_environment_t *env
                 return eval_view(t->mutable_table(), env, backtrace).stream;
             }
             break;
+        case Term::VAR:
         case Term::ERROR:
         case Term::NUMBER:
         case Term::STRING:
         case Term::JSON:
         case Term::BOOL:
         case Term::JSON_NULL:
-        case Term::ARRAY:
         case Term::OBJECT:
         case Term::GETBYKEY:
         case Term::JAVASCRIPT:
-            unreachable("eval_stream called on a function that does not return a stream (use eval instead).");
-            break;
+        case Term::ARRAY: {
+            boost::shared_ptr<scoped_cJSON_t> arr = eval(t, env, backtrace);
+            require_type(arr->get(), cJSON_Array, backtrace);
+            json_array_iterator_t it(arr->get());
+            return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it, env));
+        } break;
         default:
             unreachable();
             break;
@@ -1906,9 +1929,18 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
         case Builtin::CONCATMAP:
         case Builtin::ORDERBY:
         case Builtin::DISTINCT:
-        case Builtin::ARRAYTOSTREAM:
         case Builtin::UNION:
-        case Builtin::RANGE:
+        case Builtin::RANGE: {
+            boost::shared_ptr<json_stream_t> stream = eval_stream(c, env, backtrace);
+            boost::shared_ptr<scoped_cJSON_t>
+                arr(new scoped_cJSON_t(cJSON_CreateArray()));
+            boost::shared_ptr<scoped_cJSON_t> json;
+            while ((json = stream->next())) {
+                arr->AddItemToArray(json->release());
+            }
+            return arr;
+        } break;
+        case Builtin::ARRAYTOSTREAM:
             unreachable("eval called on a function that returns a stream (use eval_stream instead).");
             break;
         case Builtin::LENGTH:
@@ -2123,7 +2155,16 @@ public:
     { }
 
     //returns true if x < y according to the ordering
-    bool operator()(const boost::shared_ptr<scoped_cJSON_t> &x, const boost::shared_ptr<scoped_cJSON_t> &y) {
+    bool operator()(const boost::shared_ptr<scoped_cJSON_t> &x, const boost::shared_ptr<scoped_cJSON_t> &y) const {
+        if (x->type() != cJSON_Object) {
+            throw runtime_exc_t(
+                strprintf("Orderby encountered a non-object %s.\n", x->Print().c_str()),
+                backtrace);
+        } else if (y->type() != cJSON_Object) {
+            throw runtime_exc_t(
+                strprintf("Orderby encountered a non-object %s.\n", y->Print().c_str()),
+                backtrace);
+        }
         for (int i = 0; i < order.size(); ++i) {
             const Builtin::OrderBy& cur = order.Get(i);
 
@@ -2184,9 +2225,12 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
         case Builtin::REDUCE:
         case Builtin::ALL:
         case Builtin::GROUPEDMAPREDUCE:
-        case Builtin::ANY:
-            unreachable("eval_stream called on a function that does not return a stream (use eval instead).");
-            break;
+        case Builtin::ANY: {
+            boost::shared_ptr<scoped_cJSON_t> arr = eval(c, env, backtrace);
+            require_type(arr->get(), cJSON_Array, backtrace);
+            json_array_iterator_t it(arr->get());
+            return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it, env));
+        } break;
         case Builtin::FILTER:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
@@ -2300,24 +2344,33 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 
                 if (r->has_lowerbound()) {
                     lowerbound = eval(r->mutable_lowerbound(), env, backtrace.with("lowerbound"));
+                    if (lowerbound->type() != cJSON_Number && lowerbound->type() != cJSON_String) {
+                        throw runtime_exc_t(strprintf("Lower bound of RANGE must be a string or a number, not %s.",
+                                                      lowerbound->Print().c_str()), backtrace);
+                    }
                 }
 
                 if (r->has_upperbound()) {
                     upperbound = eval(r->mutable_upperbound(), env, backtrace.with("upperbound"));
+                    if (upperbound->type() != cJSON_Number && upperbound->type() != cJSON_String) {
+                        throw runtime_exc_t(strprintf("Lower bound of RANGE must be a string or a number, not %s.",
+                                                      upperbound->Print().c_str()), backtrace);
+                    }
                 }
 
                 if (lowerbound && upperbound) {
-                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->Print()),
-                                        key_range_t::closed, store_key_t(upperbound->Print()));
+                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->PrintLexicographic()),
+                                        key_range_t::closed, store_key_t(upperbound->PrintLexicographic()));
                 } else if (lowerbound) {
-                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->Print()),
+                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->PrintLexicographic()),
                                         key_range_t::none, store_key_t());
                 } else if (upperbound) {
                     range = key_range_t(key_range_t::none, store_key_t(),
-                                        key_range_t::closed, store_key_t(upperbound->Print()));
+                                        key_range_t::closed, store_key_t(upperbound->PrintLexicographic()));
                 }
 
-                return boost::shared_ptr<json_stream_t>(new range_stream_t(stream, range, r->attrname()));
+                return boost::shared_ptr<json_stream_t>(
+                    new range_stream_t(stream, range, r->attrname(), backtrace));
             }
             throw runtime_exc_t("Unimplemented: Builtin::RANGE", backtrace);
             break;

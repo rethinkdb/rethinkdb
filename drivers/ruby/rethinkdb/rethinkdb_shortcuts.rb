@@ -1,4 +1,4 @@
-load 'rethinkdb.rb'
+require 'rethinkdb.rb'
 # Right now, this is a place to record high-level spec changes that need to
 # happen.  TODO:
 # * MUTATE needs to be renamed to REPLACE (Joe and Tim and I just talked about

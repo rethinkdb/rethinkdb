@@ -167,11 +167,30 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     /* Make sure the region is not empty. */
     guarantee(backfill_end_point.begin() != backfill_end_point.end());
 
-    // The end timestamp is the maximum of the timestamps we've seen.
+    /* The end timestamp is the maximum of the timestamps we've seen. If you've
+    been following closely (which you probably haven't because this is
+    confusing) you should be thinking "How is that correct? If the region map
+    says that we're at timestamp 900 on region A and 901 on region B, then that
+    means we're missing the updates for the write with timestamp 900->901 on
+    region A. If the region map has different timestamps for different regions,
+    then it's not possible to boil down the current timestamp to a single
+    number, right?" But this is wrong. Our backfill was, in fact, serialized
+    with respect to all the writes. In fact, the reason why region A has
+    timestamp 900 is that the write with timestamp 900->901 didn't touch any
+    keys in region A. We didn't update the timestamp for region A because
+    regions A and B were on separate threads, and we didn't want to send the
+    operation to region A unnecessarily if we weren't actually updating any keys
+    there. That's why it's OK to just take the maximum of all the timestamps
+    that we see.
+    TODO: If we change the way we shard such that each listener_t maps to a
+    single B-tree on the same machine, then replace this loop with a strict
+    assertion that requires everything to be at the same timestamp. */
     state_timestamp_t backfill_end_timestamp = backfill_end_point.begin()->second.earliest.timestamp;
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = backfill_end_point.begin();
          it != backfill_end_point.end();
          ++it) {
+        rassert(it->second.is_coherent());
+        rassert(it->second.earliest.branch == branch_id_);
         backfill_end_timestamp = std::max(backfill_end_timestamp, it->second.earliest.timestamp);
     }
 
@@ -332,7 +351,8 @@ void listener_t<protocol_t>::try_start_receiving_writes(
     intro_receiver_t<protocol_t> intro_receiver;
     typename listener_business_card_t<protocol_t>::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
-                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1, _2, _3));
+                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1, _2, _3),
+                      mailbox_callback_mode_inline);
 
     try {
         registrant_.init(new registrant_t<listener_business_card_t<protocol_t> >(
