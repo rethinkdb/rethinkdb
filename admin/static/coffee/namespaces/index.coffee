@@ -25,6 +25,34 @@ module 'NamespaceView', ->
 
             super databases, NamespaceView.DatabaseListElement, '.collapsible-list'
 
+            @datacenters_length = -1
+            @databases_length = -1
+            datacenters.on 'all', @update_button_create_namespace
+            databases.on 'all', @update_button_create_namespace
+        
+        update_button_create_namespace: =>
+            need_update = false
+            if (datacenters.models.length>0) isnt (@datacenters_length>0) or @datacenters_length is -1
+                need_update = true
+                @datacenters_length = datacenters.models.length
+            if (databases.models.length>0) isnt (@databases_length>0) or @databases_length is -1
+                need_update = true
+                @databases_length = databases.models.length
+            
+            if need_update
+                if @datacenters_length isnt 0 and @databases_length isnt 0
+                    @.$('.user_alert_space-cannot_create_namespace').html ''
+                    @.$('.user_alert_space-cannot_create_namespace').css 'display', 'none'
+                    @.$('.add-namespace').removeProp 'disabled'
+                else
+                    @.$('.user_alert_space-cannot_create_namespace').html @error_template
+                        need_datacenter: @datacenters_length is 0
+                        need_database: @databases_length is 0
+                        need_something: @datacenters_length is 0 or @databases_length is 0
+                    @.$('.user_alert_space-cannot_create_namespace').css 'display', 'block'
+                    @.$('.add-namespace').prop 'disabled', 'disabled'
+
+
         render: (message) =>
             super
             @update_toolbar_buttons()
@@ -32,7 +60,7 @@ module 'NamespaceView', ->
             if message?
                 @.$('#user-alert-space').append @alert_message_template
                     message: message
-
+            @update_button_create_namespace()
             return @
 
         remove_parent_alert: (event) ->
@@ -50,13 +78,8 @@ module 'NamespaceView', ->
 
         add_namespace: (event) =>
             event.preventDefault()
-            if datacenters.length is 0
-                @.$('#user-alert-space').html @error_template
-                @.$('#user-alert-space').alert()
-            else
-                log_action 'add namespace button clicked'
-                @add_namespace_dialog.render()
-                $('#focus_namespace_name').focus()
+            @add_namespace_dialog.render()
+            $('#focus_namespace_name').focus()
 
         remove_namespace: (event) =>
             log_action 'remove namespace button clicked'
@@ -86,7 +109,11 @@ module 'NamespaceView', ->
         update_toolbar_buttons: =>
             # We need to check how many namespaces have been checked off to decide which buttons to enable/disable
             $remove_namespaces_button = @.$('.btn.remove-namespace')
-            $remove_namespaces_button.toggleClass 'disabled', @get_selected_namespaces().length < 1
+            if @get_selected_namespaces().length < 1
+                $remove_namespaces_button.prop 'disabled', 'disabled'
+            else
+                $remove_namespaces_button.removeProp 'disabled'
+
 
         destroy: =>
              super()

@@ -1,13 +1,13 @@
 <script id="database_list-template" type="text/x-handlebars-template">
-  <h1>Tables in the cluster</h1>
-  <div id="user-alert-space"></div>
-  <div class="actions-bar">
-      <input type="button" class="btn add-database" value="Add database" />
-    <input type="button" class="btn add-namespace" value="Add table" />
-    <input type="button" class="btn for-multiple-elements disabled remove-namespace" value="Remove selected tables" />
-  </div>
-  <div class="collapsible-list">
-  </div>
+    <h1>Tables in the cluster</h1>
+    <div id="user-alert-space"></div>
+    <div class="actions-bar">
+        <input type="button" class="btn add-database" value="Add database" />
+        <input type="button" class="btn add-namespace" value="Add table" />
+        <input type="button" class="btn for-multiple-elements remove-namespace" value="Remove selected tables" disabled="disabled" />
+        <div class="user_alert_space-cannot_create_namespace"></div>
+    </div>
+    <div class="collapsible-list"></div>
 </script>
 
 <script id="namespace_list-template" type="text/x-handlebars-template">
@@ -146,9 +146,15 @@
 </script>
 
 <script id="error_adding_namespace-template" type="text/x-handlebars-template">
-  <div class="alert alert-error" data-alert="alert">
-    <a class="close" href="#">&times;</a>
-    <p>You cannot create a new table without first creating a new datacenter. <a href="#servers">Create one</a></p>
+    <div class="alert reason_cannot_create_namespace">
+        {{#if need_something}}<p>{{/if}}
+        {{#if need_datacenter}}
+        You need to create a datacenter before creating a new table. <a href="#servers">Create one</a>.<br/>
+        {{/if}}
+        {{#if need_database}}
+        You need to create a database before creating a new table. <a href="#" class="add-database">Create one</a>.
+        {{/if}}   
+        {{#if need_something}}</p>{{/if}}
   </div>
 </script>
 

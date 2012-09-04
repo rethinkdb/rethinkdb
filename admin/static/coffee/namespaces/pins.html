@@ -93,7 +93,7 @@
     {{/if}}
     <a class="machine name" href="#servers/{{id}}">{{name}}</a>
     <p class="status">
-        {{humanize_machine_reachability status}}{{#if status.reachable}}{{> backfill_progress_summary}}{{/if}}
+        {{humanize_machine_reachability status}}
         {{#if status.reachable}}
             {{> backfill_progress_summary}}
         {{/if}}
