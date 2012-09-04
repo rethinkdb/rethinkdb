@@ -81,10 +81,6 @@ public:
         reactor.reset();
     }
 
-    watchable_variable_t<blueprint_t<protocol_t> > watchable;
-
-    typename protocol_t::context_t *ctx;
-
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) {
         home_thread_mixin_t::assert_thread();
 
@@ -181,9 +177,15 @@ private:
         reactor_has_been_initialized.pulse();
     }
 
+public:
+    watchable_variable_t<blueprint_t<protocol_t> > watchable;
+
+    typename protocol_t::context_t *const ctx;
+
+private:
     cond_t reactor_has_been_initialized;
 
-    reactor_driver_t<protocol_t> *parent;
+    reactor_driver_t<protocol_t> *const parent;
     const namespace_id_t namespace_id;
     svs_by_namespace_t<protocol_t> *const svs_by_namespace;
 
