@@ -592,6 +592,14 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         }
         case WriteQuery::INSERT: {
             check_protobuf(w.has_insert());
+            if (w.insert().terms_size() == 1) {
+                term_info_t res = get_term_type(w.insert().terms(0), env, backtrace);
+                //TODO: This casting is copy-pasted from NTH, but WTF?
+                const_cast<WriteQuery&>(w).mutable_insert()->mutable_terms(0)->
+                    SetExtension(extension::inferred_type,
+                                 static_cast<int32_t>(res.type));
+                break; //Single-element insert polymorphic over streams and arrays
+            }
             for (int i = 0; i < w.insert().terms_size(); ++i) {
                 check_term_type(w.insert().terms(i), TERM_TYPE_JSON, env, is_det_out, backtrace.with(strprintf("term:%d", i)));
             }
@@ -1154,16 +1162,47 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
         case WriteQuery::INSERT:
             {
                 std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref(), env, backtrace);
-                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_insert()->mutable_table_ref(), env, backtrace);
+                namespace_repo_t<rdb_protocol_t>::access_t ns_access =
+                    eval(w->mutable_insert()->mutable_table_ref(), env, backtrace);
 
-                for (int i = 0; i < w->insert().terms_size(); ++i) {
-                    boost::shared_ptr<scoped_cJSON_t> data = eval(w->mutable_insert()->mutable_terms(i), env,
-                        backtrace.with(strprintf("term:%d", i)));
+                int inserted = 0;
+                if (w->insert().terms_size() == 1) {
+                    Term *t = w->mutable_insert()->mutable_terms(0);
+                    int32_t t_type = t->GetExtension(extension::inferred_type);
+                    boost::shared_ptr<json_stream_t> stream;
+                    if (t_type == TERM_TYPE_JSON) {
+                        boost::shared_ptr<scoped_cJSON_t> data = eval(t, env, backtrace.with("term:0"));
+                        if (data->type() == cJSON_Object) {
+                            ++inserted;
+                            insert(ns_access, pk, data, env, backtrace.with("term:0"));
+                        } else if (data->type() == cJSON_Array) {
+                            stream.reset(new in_memory_stream_t(json_array_iterator_t(data->get()), env));
+                        } else {
+                            throw runtime_exc_t(strprintf("Cannon insert non-object %s.\n", data->Print().c_str()), backtrace);
+                        }
+                    } else if (t_type == TERM_TYPE_STREAM || t_type == TERM_TYPE_VIEW) {
+                        stream = eval_stream(w->mutable_insert()->mutable_terms(0), env, backtrace.with("stream"));
+                    } else {
+                        unreachable("bad term type");
+                    }
 
-                    insert(ns_access, pk, data, env, backtrace.with(strprintf("term:%d", i)));
+                    if (stream) {
+                        int i = 0;
+                        while (boost::shared_ptr<scoped_cJSON_t> data = stream->next()) {
+                            ++inserted;
+                            insert(ns_access, pk, data, env, backtrace.with(strprintf("stream:%d", i++)));
+                        }
+                    }
+                } else {
+                    for (int i = 0; i < w->insert().terms_size(); ++i) {
+                        boost::shared_ptr<scoped_cJSON_t> data =
+                            eval(w->mutable_insert()->mutable_terms(i), env, backtrace.with(strprintf("term:%d", i)));
+                        ++inserted;
+                        insert(ns_access, pk, data, env, backtrace.with(strprintf("term:%d", i)));
+                    }
                 }
 
-                res->add_response(strprintf("{\"inserted\": %d}", w->insert().terms_size()));
+                res->add_response(strprintf("{\"inserted\": %d}", inserted));
             }
             break;
         case WriteQuery::INSERTSTREAM:

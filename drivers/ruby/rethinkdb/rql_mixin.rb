@@ -72,6 +72,7 @@ module RethinkDB
     def expr x
       return x if x.kind_of? RQL_Query
       case x.class().hash
+      when Table.hash      then x.to_mrs
       when String.hash     then JSON_Expression.new [:string, x]
       when Fixnum.hash     then JSON_Expression.new [:number, x]
       when Float.hash      then JSON_Expression.new [:number, x]

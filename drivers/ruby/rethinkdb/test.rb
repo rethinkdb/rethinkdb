@@ -906,7 +906,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb2.run, [])
 
     # INSERTSTREAM
-    assert_equal(rdb2.insertstream(r[$data].to_stream).run['inserted'], len)
+    assert_equal(rdb2.insert(r[$data].to_stream).run['inserted'], len)
     rdb2.insert($data).run
     assert_equal(id_sort(rdb2.run), $data)
 
