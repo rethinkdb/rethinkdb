@@ -80,8 +80,8 @@ function testIf() {
 }
 
 function testLet() {
-    q.let(['a', q(1)], q.R('$a')).run(aeq(1));
-    q.let(['a', q(1)], ['b', q(2)], q.R('$a').add(q.R('$b'))).run(aeq(3));
+    q.let(['a', q(1)], q('$a')).run(aeq(1));
+    q.let(['a', q(1)], ['b', q(2)], q('$a').add(q('$b'))).run(aeq(3));
 }
 
 function testDistinct() {
@@ -89,7 +89,7 @@ function testDistinct() {
 }
 
 function testMap() {
-    arr.map(q.fn('a', q.R('$a').add(1))).nth(2).run(aeq(4));
+    arr.map(q.fn('a', q('$a').add(1))).nth(2).run(aeq(4));
 }
 
 function testReduce() {
@@ -109,8 +109,8 @@ function testGetAttr() {
     tobj.getAttr('c').run(aeq(3));
 
     q.let(['a', tobj],
-        q.ifThenElse(q.R('$a').hasAttr('b'),
-            q.R('$a.b'),
+        q.ifThenElse(q('$a').hasAttr('b'),
+            q('$a.b'),
             q("No attribute b")
         )
     ).run(aeq(2));
@@ -152,7 +152,7 @@ function testTabMap() {
 }
 
 function testTabReduce() {
-    tab.map(q.R('num')).reduce(q(0), q.fn('a','b',q.R('$b').add(q.R('$a')))).run(aeq(155));
+    tab.map(q('@.num')).reduce(q(0), q.fn('a','b',q('$b').add(q('$a')))).run(aeq(155));
 
     // Complains about not having field num
     //tab.reduce(q(0), q.fn('a', 'b', q.R('$b.num'))).run(aeq(155));
@@ -179,6 +179,14 @@ function testJS() {
         return acc + val;
     }).run(aeq(296));
     */
+}
+
+function testBetween() {
+    tab.between(2,3).length().run(aeq(2));
+    tab.between(2,2).nth(0).run(objeq({
+        id:2,
+        num:18
+    }));
 }
 
 function testUpdate1() {
@@ -260,6 +268,7 @@ runTests([
     testTabMap,
     testTabReduce,
     testJS,
+    testBetween,
     testUpdate1,
     testUpdate2,
     testMutate1,

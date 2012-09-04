@@ -997,6 +997,11 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
     if (!data->GetObjectItem(pk.c_str())) {
         throw runtime_exc_t(strprintf("Must have a field named \"%s\" (The primary key).", pk.c_str()), backtrace);
     }
+    cJSON *primary_key = data->GetObjectItem(pk.c_str());
+    if (primary_key->type != cJSON_String && primary_key->type != cJSON_Number) {
+        throw runtime_exc_t(strprintf("Cannot insert row %s with primary key %s of non-string, non-number type.",
+                                      data->Print().c_str(), cJSON_Print_std(primary_key).c_str()), backtrace);
+    }
 
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(data->GetObjectItem(pk.c_str()))), data));
@@ -1122,7 +1127,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                             if (!cJSON_Equal(json_key, val_key)) {
                                 ++errors;
                                 if (reported_error == "") {
-                                    reported_error = strprintf("Update cannot change priamary keys: %s -> %s\n",
+                                    reported_error = strprintf("Mutate cannot change primary keys: %s -> %s\n",
                                                                json->PrintUnformatted().c_str(), val->PrintUnformatted().c_str());
                                 }
                             } else {

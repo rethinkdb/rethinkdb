@@ -755,6 +755,11 @@ class ClientTest < Test::Unit::TestCase
                   {"num"=>16, "id"=>8, "name"=>"8"}])
   end
 
+  def test_bad_primary_key_type
+    assert_raise(RuntimeError){rdb.insert({:id => []}).run}
+    assert_raise(RuntimeError){rdb.get(100).mutate{{:id => []}}.run}
+  end
+
   def test_big_between
     data = (0...100).map{|x| {:id => x}}
     assert_equal(rdb.insert(data).run, {'inserted' => 100})
