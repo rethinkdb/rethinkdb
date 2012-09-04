@@ -200,8 +200,10 @@ module 'NamespaceView', ->
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
         
             super namespaces, NamespaceView.NamespaceListElement, 'tbody.list',
+                {
                 filter: (model) -> model.get('database') is database_id
-
+                }
+                , 'table', 'database'
 
         remove_parent_alert: (event) ->
             event.preventDefault()

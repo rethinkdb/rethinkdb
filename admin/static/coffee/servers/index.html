@@ -1,15 +1,13 @@
 <script id="server_list-template" type="text/x-handlebars-template">
-  <h1>Servers connected to the cluster</h1>
-  <div id="user-alert-space"></div>
-  <div class="actions-bar">
-    <a href="#" class="btn add-datacenter">Add datacenter</a>
-    <a href="#" class="btn for-multiple-elements disabled set-datacenter">Set datacenter</a>
-    <div id="user-alert-space-set_datacenter"></div>
-  </div>
-  <div class="server-list list">
+    <h1>Servers connected to the cluster</h1>
+    <div id="user-alert-space"></div>
+    <div class="actions-bar">
+        <a href="#" class="btn add-datacenter">Add datacenter</a>
+        <a href="#" class="btn for-multiple-elements disabled set-datacenter">Set datacenter</a>
+        <div id="user-alert-space-set_datacenter"></div>
+    </div>
     <div class="datacenters collapsible-list"></div>
     <div class="unassigned-machines collapsible-list"></div>
-  </div>
 </script>
 
 <script id="machine_list-template" type="text/x-handlebars-template">
@@ -74,9 +72,7 @@
       <div class="datacenter summary"></div>
   </div>
 
-  {{#unless no_machines}}
   <div class="element-list-container"></div>
-  {{/unless}}
 </script>
 
 <script id="datacenter_list_element-summary-template" type="text/x-handlebars-template">

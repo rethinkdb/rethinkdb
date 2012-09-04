@@ -21,7 +21,7 @@ module 'ServerView', ->
             'click a.btn.set-datacenter': 'set_datacenter'
             'click .close': 'remove_parent_alert'
 
-        initialize: ->
+        initialize: =>
             @add_datacenter_dialog = new ServerView.AddDatacenterModal
             @set_datacenter_dialog = new ServerView.SetDatacenterModal
 
@@ -159,7 +159,10 @@ module 'ServerView', ->
             @datacenter_uuid = datacenter_uuid
             @callbacks = []
             super machines, ServerView.MachineListElement, 'tbody.list',
+                {
                 filter: (model) -> model.get('datacenter_uuid') is @datacenter_uuid
+                }
+                , 'machine', 'datacenter'
 
             machines.on 'change:datacenter_uuid', @changed_datacenter
             return @
