@@ -100,13 +100,14 @@ class Namespace extends Backbone.Model
         start_key = shard[0]
         end_key = shard[1]
 
-        # TODO: we should probably support interpolation here
+        # TODO: we should interpolate once we will have decided how to order different type of keys
 
         # find the first key greater than the beginning of our shard
         # and keep summing until we get past our shard boundary.
         count = 0
 
         for key in @get('key_distr_sorted')
+            # TODO Might be unsafe when comparing string and integers. Need to be checked when the back end will have decided what to do.
             if key >= start_key or start_key is ""
                 if end_key is null or key < end_key
                     if @get('key_distr')[key]?
