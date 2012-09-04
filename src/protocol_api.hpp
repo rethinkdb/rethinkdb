@@ -16,6 +16,8 @@
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 
+class traversal_progress_combiner_t;
+
 /* This file describes the relationship between the protocol-specific logic for
 each protocol and the protocol-agnostic logic that routes queries for all the
 protocols. Each protocol defines a `protocol_t` struct that acts as a
@@ -54,12 +56,18 @@ public:
         return s;
     }
 
+    virtual signal_t *get_initial_ready_signal() { return 0; }
+
 protected:
     virtual ~namespace_interface_t() { }
 };
 
 /* Some `protocol_t::region_t` functions can be implemented in terms of other
 functions. Here are default implementations for those functions. */
+
+/* Forward declaration to make this work. */
+template <class region_t>
+bool region_is_superset(const region_t &, const region_t &);
 
 template<class region_t>
 bool region_is_empty(const region_t &r) {
@@ -106,7 +114,7 @@ public:
             regions.push_back(it->first);
         }
         typename protocol_t::region_t join;
-        DEBUG_ONLY_VAR region_join_result_t join_result = region_join(regions, &join);
+        region_join_result_t join_result = region_join(regions, &join);
         guarantee(join_result == REGION_JOIN_OK);
         return join;
     }
@@ -218,8 +226,7 @@ region_map_t<protocol_t, new_t> region_map_transform(const region_map_t<protocol
                                                                   it++) {
         new_pairs.push_back(std::pair<typename protocol_t::region_t, new_t>(
                 it->first,
-                callable(it->second)
-                ));
+                callable(it->second)));
     }
     return region_map_t<protocol_t, new_t>(new_pairs.begin(), new_pairs.end());
 }
@@ -286,7 +293,7 @@ opaque binary blob (`binary_blob_t`).
 template <class protocol_t>
 class chunk_fun_callback_t {
 public:
-    virtual void send_chunk(const typename protocol_t::backfill_chunk_t &) = 0;
+    virtual void send_chunk(const typename protocol_t::backfill_chunk_t &, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
 protected:
     chunk_fun_callback_t() { }
@@ -387,7 +394,7 @@ public:
     virtual bool send_backfill(
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<protocol_t> *send_backfill_cb,
-            typename protocol_t::backfill_progress_t *progress,
+            traversal_progress_combiner_t *progress,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
@@ -419,7 +426,9 @@ protected:
     explicit store_view_t(typename protocol_t::region_t r) : region(r) { }
 
 private:
-    typename protocol_t::region_t region;
+    const typename protocol_t::region_t region;
+
+    DISABLE_COPYING(store_view_t);
 };
 
 /* The query-routing logic provides the following ordering guarantees:
@@ -526,10 +535,12 @@ public:
         return store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, timestamp, order_token, token, interruptor);
     }
 
+    // TODO: Make this take protocol_t::progress_t again (or maybe a
+    // progress_receiver_t type that you define).
     bool send_backfill(
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<protocol_t> *send_backfill_cb,
-            typename protocol_t::backfill_progress_t *p,
+            traversal_progress_combiner_t *p,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {

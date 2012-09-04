@@ -70,8 +70,7 @@ static void make_issues(const namespaces_semilattice_metadata_t<protocol_t> &nam
         }
         if (!is_satisfiable(ns.primary_datacenter.get(), ns.replica_affinities.get(), actual_machines_in_datacenters)) {
             issues_out->push_back(clone_ptr_t<global_issue_t>(
-                new unsatisfiable_goals_issue_t(it->first, ns.primary_datacenter.get(), ns.replica_affinities.get(), actual_machines_in_datacenters)
-                ));
+                new unsatisfiable_goals_issue_t(it->first, ns.primary_datacenter.get(), ns.replica_affinities.get(), actual_machines_in_datacenters)));
         }
     }
 }

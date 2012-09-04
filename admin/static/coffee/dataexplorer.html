@@ -5,7 +5,7 @@
 
 <script id="dataexplorer_input_query-template" type="text/x-handlebars-template">
     <div class="input_query_container" >
-        <textarea class="input_query"></textarea>
+        <textarea class="input_query" id="input_query"></textarea>
         <div class="suggestion_list_container">
             <ul class="suggestion_name_list"></ul>
         </div>
@@ -23,24 +23,24 @@
 
 
 <script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
-    <li class="suggestion_name_li" data-id={{id}}>{{suggestion}}</li>
+    <li class="suggestion_name_li" data-has_argument="{{has_argument}}" data-id={{id}}>{{suggestion}}</li>
 </script>
 
 <script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
-    You have to choose the database that contains the namespaces you want to query on.
+    You have to choose the database that contains the tables you want to query on.
 </script>
 <script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
-    You have to choose a namespace where you will run your query.
+    You have to choose a table where you will run your query.
 </script>
 
 
 <script id="dataexplorer_default_view-template" type="text/x-handlebars-template">
     <h2>Quick Start</h2>
-    <p>You can automatically build a query by clicking on a namespace or on a previous query. You can then modify them as you wish.</p>
+    <p>You can automatically build a query by clicking on a table or on a previous query. You can then modify them as you wish.</p>
     <p>The data explorer is equipped with a suggestion feature, but if you are lost, you can find more details in the <a href="#help">help page</a>.</p>
 
     <div class="namespaces_available_container">
-        <h3>Namespaces available</h3>
+        <h3>Tables available</h3>
 
         {{#if has_namespaces}}
         <ul class="namaspaces_available_list">
@@ -49,7 +49,7 @@
             {{/each}}
         </ul>
         {{else}}
-        There is no namespace available. <br />Start by <a href="#namespaces">creating one</a>.
+        There is no table available. <br />Start by <a href="#tables">creating one</a>.
         {{/if}}
    </div>
     <div class="history_queries">
@@ -69,6 +69,11 @@
     </div>
 </script>
 
+<script id="dataexplorer-error-template" type="text/x-handlebars-template">
+    <h2>Error</h2>
+    <p>The following query could not be executed.</p>
+    <p>Error: {{error}}</p>
+</script>
 
 <script id="dataexplorer_query_list-template" type="text/x-handlebars-template">
     <ul class="history_query_list">
@@ -120,17 +125,17 @@
     <span class="jta_arrow jta_arrow_h"></span><div class="json_tree">{{print_safe tree}}</div></script>
 
 <script id="dataexplorer_result_json_tree_span-template" type="text/x-handlebars-template">
-    <span class="jt_editable {{classname}}" contentEditable="true">{{value}}</span></script>
+    <span class="jt_editable {{classname}}" >{{value}}</span></script>
 
 <script id="dataexplorer_result_json_tree_span_with_quotes-template" type="text/x-handlebars-template">
-    <span class="{{classname}}">"</span><span class="jt_editable {{classname}}" contentEditable="true">{{value}}</span><span class="{{classname}}">"</span></script>
+    <span class="{{classname}}">"</span><span class="jt_editable {{classname}}" >{{value}}</span><span class="{{classname}}">"</span></script>
 
 <script id="dataexplorer_result_json_tree_url-template" type="text/xs-handlebars-template">
-    <span class="jt_editable jt_url" contentEditable="true">{{url}}</span>,
+    <span class="jt_editable jt_url" >{{url}}</span>,
     <a href="{{url}}" class="jt_link">»</a></script>
 
 <script id="dataexplorer_result_json_tree_email-template" type="text/xs-handlebars-template">
-    <span class="jt_editable jt_email" contentEditable="true">{{email}}</span>,
+    <span class="jt_editable jt_email" >{{email}}</span>,
     <a href="mailto:{{email}}" class="jt_link">»</a></script>
 
 <script id="dataexplorer_result_json_tree_array-template" type="text/x-handlebars-template">

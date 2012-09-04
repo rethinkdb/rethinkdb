@@ -23,8 +23,7 @@ void direct_reader_t<protocol_t>::on_read(
     coro_t::spawn_sometime(boost::bind(
         &direct_reader_t<protocol_t>::perform_read, this,
         read, cont,
-        auto_drainer_t::lock_t(&drainer)
-        ));
+        auto_drainer_t::lock_t(&drainer)));
 }
 
 template <class protocol_t>
@@ -38,7 +37,7 @@ void direct_reader_t<protocol_t>::perform_read(
 
 #ifndef NDEBUG
         trivial_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback;
-        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs->get_multistore_joined_region());
+        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs->get_region());
 #endif
 
         typename protocol_t::read_response_t response;

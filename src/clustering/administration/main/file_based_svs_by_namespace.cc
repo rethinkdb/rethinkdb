@@ -10,7 +10,8 @@ void do_construct_existing_store(int i, io_backender_t *io_backender,
                                  namespace_id_t namespace_id,
                                  int num_db_threads,
                                  stores_lifetimer_t<protocol_t> *stores_out,
-                                 store_view_t<protocol_t> **store_views) {
+                                 store_view_t<protocol_t> **store_views,
+                                 typename protocol_t::context_t *ctx) {
 
     // TODO: Exceptions?  Can exceptions happen, and then this doesn't
     // catch it, and the caller doesn't handle it.
@@ -25,7 +26,7 @@ void do_construct_existing_store(int i, io_backender_t *io_backender,
     std::string file_name = fbssvsbn->file_name_for(namespace_id, i);
 
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
-    typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, false, serializers_perfmon_collection);
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, false, serializers_perfmon_collection, ctx);
     (*stores_out->stores())[i].init(store);
     store_views[i] = store;
 }
@@ -37,13 +38,14 @@ void do_create_new_store(int i, io_backender_t *io_backender,
                          namespace_id_t namespace_id,
                          int num_db_threads,
                          stores_lifetimer_t<protocol_t> *stores_out,
-                         store_view_t<protocol_t> **store_views) {
+                         store_view_t<protocol_t> **store_views,
+                         typename protocol_t::context_t *ctx) {
     // TODO: See the todo about thread distribution in do_construct_existing_store.  It is applicable here, too.
     on_thread_t th(i % num_db_threads);
 
     std::string file_name = fbssvsbn->file_name_for(namespace_id, i);
 
-    typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, true, serializers_perfmon_collection);
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, true, serializers_perfmon_collection, ctx);
     (*stores_out->stores())[i].init(store);
     store_views[i] = store;
 }
@@ -54,7 +56,8 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
             perfmon_collection_t *serializers_perfmon_collection,
             namespace_id_t namespace_id,
             stores_lifetimer_t<protocol_t> *stores_out,
-            scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out) {
+            scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out,
+            typename protocol_t::context_t *ctx) {
 
     const int num_db_threads = get_num_db_threads();
 
@@ -79,7 +82,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
         stores_out->stores()->init(num_stores);
 
-        debugf("loading %d hash-sharded stores\n", num_stores);
 
         // TODO: Exceptions?  Can exceptions happen, and then
         // store_views' values would leak.  That is, are we handling
@@ -88,12 +90,11 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>,
                                      _1, io_backender_, serializers_perfmon_collection,
                                      this, namespace_id,
-                                     num_db_threads, stores_out, store_views.data()));
+                                     num_db_threads, stores_out, store_views.data(), ctx));
 
-        svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
+        svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores, ctx));
     } else {
         const int num_stores = 4 + randint(4);
-        debugf("creating %d hash-sharded stores\n", num_stores);
         stores_out->stores()->init(num_stores);
 
         // TODO: How do we specify what the stores' regions are?
@@ -107,9 +108,9 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         pmap(num_stores, boost::bind(do_create_new_store<protocol_t>,
                                      _1, io_backender_, serializers_perfmon_collection,
                                      this, namespace_id,
-                                     num_db_threads, stores_out, store_views.data()));
+                                     num_db_threads, stores_out, store_views.data(), ctx));
 
-        svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
+        svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores, ctx));
 
         // Initialize the metadata in the underlying stores.
         scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
@@ -119,11 +120,11 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
 
         order_source_t order_source;  // TODO: order_token_t::ignore.  Use the svs.
 
-        (*svs_out)->set_all_metainfos(region_map_t<protocol_t, binary_blob_t>((*svs_out)->get_multistore_joined_region(),
-                                                                              binary_blob_t(version_range_t(version_t::zero()))),
-                                      order_source.check_in("file_based_svs_by_namespace_t"),
-                                      &write_token,
-                                      &dummy_interruptor);
+        (*svs_out)->set_metainfo(region_map_t<protocol_t, binary_blob_t>((*svs_out)->get_region(),
+                                                                         binary_blob_t(version_range_t(version_t::zero()))),
+                                 order_source.check_in("file_based_svs_by_namespace_t"),
+                                 &write_token,
+                                 &dummy_interruptor);
     }
 }
 

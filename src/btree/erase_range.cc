@@ -17,9 +17,10 @@ public:
     { }
 
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
-                        UNUSED const btree_key_t *l_excl,
-                        UNUSED const btree_key_t *r_incl, 
-                        int *population_change_out) {
+                        const btree_key_t *l_excl,
+                        const btree_key_t *r_incl,
+                        int *population_change_out,
+                        UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(*population_change_out == 0);
         leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_major_write());
 

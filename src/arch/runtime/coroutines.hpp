@@ -133,7 +133,7 @@ private:
 
     static void return_coro_to_free_list(coro_t *coro);
 
-    static void run();
+    static void run() NORETURN;
 
     friend struct coro_globals_t;
     ~coro_t();

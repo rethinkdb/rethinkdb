@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__
 #if defined __i386 || defined __x86_64
 #define BREAKPOINT __asm__ volatile ("int3")
@@ -15,6 +16,9 @@
 #ifdef __MACH__
 #define BREAKPOINT raise(SIGTRAP)
 #endif
+#else /* Breakpoints Disabled */
+#define BREAKPOINT
+#endif /* DISABLE_BREAKPOINTS */
 
 #define CT_ASSERT(e) {enum { compile_time_assert_error = 1/(!!(e)) };}
 
@@ -38,6 +42,8 @@
 #else
 #define NON_NULL_ATTR(arg) __attribute__((nonnull(arg)))
 #endif
+
+#define NORETURN __attribute__((noreturn))
 
 /* Error handling
  *
@@ -69,9 +75,9 @@
  */
 
 #ifndef NDEBUG
-#define DEBUG_ONLY_VAR
+#define DEBUG_VAR
 #else
-#define DEBUG_ONLY_VAR __attribute__((unused))
+#define DEBUG_VAR __attribute__((unused))
 #endif
 
 #define UNUSED __attribute__((unused))

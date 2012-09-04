@@ -223,7 +223,7 @@ private:
         state_starting_up,
         state_ready,
         state_shutting_down,
-        state_shut_down,
+        state_shut_down
     } state;
 
     const char *db_path;

@@ -25,19 +25,19 @@ class test_store_t {
 public:
     test_store_t(io_backender_t *io_backender, order_source_t *order_source) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
-            store(io_backender, temp_file.name(), true, &get_global_perfmon_collection()) {
+            store(io_backender, temp_file.name(), true, &get_global_perfmon_collection(), &ctx) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> token;
         store.new_write_token(&token);
         region_map_t<protocol_t, binary_blob_t> new_metainfo(
                 store.get_region(),
-                binary_blob_t(version_range_t(version_t::zero()))
-            );
+                binary_blob_t(version_range_t(version_t::zero())));
         store.set_metainfo(new_metainfo, order_source->check_in("test_store_t"), &token, &non_interruptor);
     }
 
     temp_file_t temp_file;
+    typename protocol_t::context_t ctx;
     typename protocol_t::store_t store;
 };
 
@@ -87,7 +87,7 @@ public:
         : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), key_gen_fun(_key_gen_fun), osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-                                           this, osource, tag, auto_drainer_t::lock_t(drainer.get())));
+                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     template <class protocol_t>
@@ -100,7 +100,7 @@ public:
           osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-                                           this, osource, tag, auto_drainer_t::lock_t(drainer.get())));
+                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     template <class protocol_t>
@@ -113,7 +113,7 @@ public:
           osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-                                           this, osource, tag, auto_drainer_t::lock_t(drainer.get())));
+                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     void stop() {
@@ -146,10 +146,7 @@ private:
 
     scoped_ptr_t<auto_drainer_t> drainer;
 
-    void insert_forever(
-            order_source_t *osource,
-            const std::string &msg,
-            auto_drainer_t::lock_t keepalive) {
+    void insert_forever(const std::string &msg, auto_drainer_t::lock_t keepalive) {
         try {
             std::string tag = strprintf("insert_forever(%p,%s)", this, msg.c_str());
             for (int i = 0; ; i++) {

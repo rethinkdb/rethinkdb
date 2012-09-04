@@ -3,6 +3,18 @@
 #include "concurrency/cond_var.hpp"
 #include "concurrency/wait_any.hpp"
 
+void fifo_enforcer_state_t::advance_by_read(DEBUG_VAR fifo_enforcer_read_token_t token) THROWS_NOTHING {
+    rassert(timestamp == token.timestamp);
+    num_reads++;
+}
+
+void fifo_enforcer_state_t::advance_by_write(fifo_enforcer_write_token_t token) THROWS_NOTHING {
+    rassert(timestamp == token.timestamp.timestamp_before());
+    rassert(num_reads == token.num_preceding_reads);
+    timestamp = token.timestamp.timestamp_after();
+    num_reads = 0;
+}
+
 fifo_enforcer_read_token_t fifo_enforcer_source_t::enter_read() THROWS_NOTHING {
     assert_thread();
     mutex_assertion_t::acq_t freeze(&lock);
@@ -20,10 +32,10 @@ fifo_enforcer_write_token_t fifo_enforcer_source_t::enter_write() THROWS_NOTHING
 }
 
 fifo_enforcer_sink_t::exit_read_t::exit_read_t() THROWS_NOTHING :
-    parent(NULL), ended(false), is_dummy(false) { }
+    parent(NULL), ended(false) { }
 
 fifo_enforcer_sink_t::exit_read_t::exit_read_t(fifo_enforcer_sink_t *p, fifo_enforcer_read_token_t t) THROWS_NOTHING :
-    parent(NULL), ended(false), is_dummy(false)
+    parent(NULL), ended(false)
 {
     begin(p, t);
 }
@@ -31,43 +43,59 @@ fifo_enforcer_sink_t::exit_read_t::exit_read_t(fifo_enforcer_sink_t *p, fifo_enf
 void fifo_enforcer_sink_t::exit_read_t::begin(fifo_enforcer_sink_t *p, fifo_enforcer_read_token_t t) THROWS_NOTHING {
     rassert(parent == NULL);
     rassert(p != NULL);
-    rassert(!is_dummy);
     parent = p;
     token = t;
 
     parent->assert_thread();
-    mutex_assertion_t::acq_t acq(&parent->lock);
-    parent->waiting_readers.push(this);
-    parent->pump();
+    mutex_assertion_t::acq_t acq(&parent->internal_lock);
+    parent->internal_read_queue.push(this);
+    parent->internal_pump();
 }
 
 void fifo_enforcer_sink_t::exit_read_t::end() THROWS_NOTHING {
     rassert(parent && !ended);
-    rassert(!is_dummy);
     parent->assert_thread();
-    mutex_assertion_t::acq_t acq(&parent->lock);
+    mutex_assertion_t::acq_t acq(&parent->internal_lock);
     if (is_pulsed()) {
-        parent->finish_a_reader(token);
-        parent->pump();
+        parent->internal_finish_a_reader(token);
     } else {
-        /* Swap us out for a dummy. The dummy is heap-allocated and the
-        `fifo_enforcer_sink_t` will delete it when appropriate. */
-        parent->waiting_readers.swap_in_place(this, new exit_read_t(token));
+        /* Swap us out for a dummy. The dummy is heap-allocated and it will
+        delete itself when it's done. */
+        class dummy_exit_read_t : public internal_exit_read_t {
+        public:
+            dummy_exit_read_t(fifo_enforcer_read_token_t t, fifo_enforcer_sink_t *s) :
+                token(t), sink(s) { }
+            fifo_enforcer_read_token_t get_token() {
+                return token;
+            }
+            void on_reached_head_of_queue() {
+                sink->internal_read_queue.remove(this);
+                sink->internal_finish_a_reader(token);
+                delete this;
+            }
+            void on_early_shutdown() {
+                delete this;
+            }
+            fifo_enforcer_read_token_t token;
+            fifo_enforcer_sink_t *sink;
+        };
+        parent->internal_read_queue.swap_in_place(this,
+            new dummy_exit_read_t(token, parent));
     }
     ended = true;
 }
 
 fifo_enforcer_sink_t::exit_read_t::~exit_read_t() THROWS_NOTHING {
-    if (!is_dummy && parent && !ended) {
+    if (parent && !ended) {
         end();
     }
 }
 
 fifo_enforcer_sink_t::exit_write_t::exit_write_t() THROWS_NOTHING :
-    parent(NULL), ended(false), is_dummy(false) { }
+    parent(NULL), ended(false) { }
 
 fifo_enforcer_sink_t::exit_write_t::exit_write_t(fifo_enforcer_sink_t *p, fifo_enforcer_write_token_t t) THROWS_NOTHING :
-    parent(NULL), ended(false), is_dummy(false)
+    parent(NULL), ended(false)
 {
     begin(p, t);
 }
@@ -75,97 +103,97 @@ fifo_enforcer_sink_t::exit_write_t::exit_write_t(fifo_enforcer_sink_t *p, fifo_e
 void fifo_enforcer_sink_t::exit_write_t::begin(fifo_enforcer_sink_t *p, fifo_enforcer_write_token_t t) THROWS_NOTHING {
     rassert(parent == NULL);
     rassert(p != NULL);
-    rassert(!is_dummy);
     parent = p;
     token = t;
 
     parent->assert_thread();
-    mutex_assertion_t::acq_t acq(&parent->lock);
-    parent->waiting_writers.push(this);
-    parent->pump();
+    mutex_assertion_t::acq_t acq(&parent->internal_lock);
+    parent->internal_write_queue.push(this);
+    parent->internal_pump();
 }
 
 void fifo_enforcer_sink_t::exit_write_t::end() THROWS_NOTHING {
     rassert(parent && !ended);
-    rassert(!is_dummy);
-    mutex_assertion_t::acq_t acq(&parent->lock);
+    mutex_assertion_t::acq_t acq(&parent->internal_lock);
     if (is_pulsed()) {
-        parent->finish_a_writer(token);
-        parent->pump();
+        parent->internal_finish_a_writer(token);
     } else {
         /* Swap us out for a dummy. */
-        parent->waiting_writers.swap_in_place(this, new exit_write_t(token));
+        class dummy_exit_write_t : public internal_exit_write_t {
+        public:
+            dummy_exit_write_t(fifo_enforcer_write_token_t t, fifo_enforcer_sink_t *s) :
+                token(t), sink(s) { }
+            fifo_enforcer_write_token_t get_token() {
+                return token;
+            }
+            void on_reached_head_of_queue() {
+                sink->internal_write_queue.remove(this);
+                sink->internal_finish_a_writer(token);
+                delete this;
+            }
+            void on_early_shutdown() {
+                delete this;
+            }
+            fifo_enforcer_write_token_t token;
+            fifo_enforcer_sink_t *sink;
+        };
+        parent->internal_write_queue.swap_in_place(this,
+            new dummy_exit_write_t(token, parent));
     }
     ended = true;
 }
 
 fifo_enforcer_sink_t::exit_write_t::~exit_write_t() THROWS_NOTHING {
-    if (!is_dummy && parent && !ended) {
+    if (parent && !ended) {
         end();
     }
 }
 
 fifo_enforcer_sink_t::~fifo_enforcer_sink_t() THROWS_NOTHING {
-    while (!waiting_readers.empty()) {
-        exit_read_t *dummy_read = waiting_readers.pop();
-        rassert(dummy_read->is_dummy);
-        delete dummy_read;
+    while (!internal_read_queue.empty()) {
+        internal_exit_read_t *read = internal_read_queue.pop();
+        read->on_early_shutdown();
     }
-    while (!waiting_writers.empty()) {
-        exit_write_t *dummy_write = waiting_writers.pop();
-        rassert(dummy_write->is_dummy);
-        delete dummy_write;
+    while (!internal_write_queue.empty()) {
+        internal_exit_write_t *write = internal_write_queue.pop();
+        write->on_early_shutdown();
     }
 }
 
-void fifo_enforcer_sink_t::pump() THROWS_NOTHING {
+void fifo_enforcer_sink_t::internal_pump() THROWS_NOTHING {
     bool cont;
     do {
-        cont = false;
-
-        while (!waiting_readers.empty() &&
-                waiting_readers.peek()->token.timestamp == state.timestamp) {
-            exit_read_t *read = waiting_readers.pop();
-            if (read->is_dummy) {
-                finish_a_reader(read->token);
-                delete read;
-                cont = true;
-            } else {
-                read->pulse();
-            }
+        while (!internal_read_queue.empty() &&
+                internal_read_queue.peek()->get_token().timestamp == finished_state.timestamp) {
+            internal_exit_read_t *read = internal_read_queue.peek();
+            popped_state.advance_by_read(read->get_token());
+            read->on_reached_head_of_queue();
         }
 
-        if (!waiting_writers.empty() &&
-                waiting_writers.peek()->token.timestamp.timestamp_before() == state.timestamp &&
-                waiting_writers.peek()->token.num_preceding_reads == state.num_reads) {
-            exit_write_t *write = waiting_writers.pop();
-            if (write->is_dummy) {
-                finish_a_writer(write->token);
-                delete write;
-                cont = true;
-            } else {
-                write->pulse();
-            }
+        if (!internal_write_queue.empty() &&
+                internal_write_queue.peek()->get_token().timestamp.timestamp_before() == finished_state.timestamp &&
+                internal_write_queue.peek()->get_token().num_preceding_reads == finished_state.num_reads) {
+            cont = true;
+            internal_exit_write_t *write = internal_write_queue.peek();
+            popped_state.advance_by_write(write->get_token());
+            write->on_reached_head_of_queue();
+        } else {
+            cont = false;
         }
 
     } while (cont);
 }
 
-void fifo_enforcer_sink_t::finish_a_reader(DEBUG_ONLY_VAR fifo_enforcer_read_token_t token) THROWS_NOTHING {
-    assert_thread();
-
-    rassert(state.timestamp == token.timestamp);
-
-    state.num_reads++;
+void fifo_enforcer_sink_t::internal_finish_a_reader(fifo_enforcer_read_token_t token) THROWS_NOTHING {
+    rassert(popped_state.timestamp == token.timestamp);
+    rassert(finished_state.num_reads <= popped_state.num_reads);
+    finished_state.advance_by_read(token);
+    internal_pump();
 }
 
-void fifo_enforcer_sink_t::finish_a_writer(fifo_enforcer_write_token_t token) THROWS_NOTHING {
-    assert_thread();
-
-    rassert(state.timestamp == token.timestamp.timestamp_before());
-    rassert(state.num_reads == token.num_preceding_reads);
-
-    state.timestamp = token.timestamp.timestamp_after();
-    state.num_reads = 0;
+void fifo_enforcer_sink_t::internal_finish_a_writer(fifo_enforcer_write_token_t token) THROWS_NOTHING {
+    rassert(popped_state.timestamp == token.timestamp.timestamp_after());
+    rassert(popped_state.num_reads == 0);
+    finished_state.advance_by_write(token);
+    internal_pump();
 }
-

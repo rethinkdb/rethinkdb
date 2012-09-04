@@ -24,9 +24,7 @@ template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOTHING {
     assert_thread();
     rassert(sessions.count(peer) == 0);
-    sessions.insert(peer, new session_t(
-        connectivity_service->get_connection_session_id(peer)
-        ));
+    sessions.insert(peer, new session_t(connectivity_service->get_connection_session_id(peer)));
 }
 
 template<class metadata_t>
@@ -41,7 +39,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, rea
         case 'I': {
             /* Initial message from another peer */
             metadata_t initial_value;
-            fifo_enforcer_source_t::state_t metadata_fifo_state;
+            fifo_enforcer_state_t metadata_fifo_state;
             {
                 int res = deserialize(s, &initial_value);
                 guarantee(!res);  // In the spirit of unreachable...
@@ -55,8 +53,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, rea
                 &directory_read_manager_t::propagate_initialization, this,
                 source_peer, connectivity_service->get_connection_session_id(source_peer),
                 initial_value, metadata_fifo_state,
-                auto_drainer_t::lock_t(per_thread_drainers.get())
-                ));
+                auto_drainer_t::lock_t(per_thread_drainers.get())));
 
             break;
         }
@@ -80,8 +77,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, rea
                 &directory_read_manager_t::propagate_update, this,
                 source_peer, connectivity_service->get_connection_session_id(source_peer),
                 new_value, metadata_fifo_token,
-                auto_drainer_t::lock_t(per_thread_drainers.get())
-                ));
+                auto_drainer_t::lock_t(per_thread_drainers.get())));
 
             break;
         }
@@ -108,8 +104,7 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     coro_t::spawn_sometime(boost::bind(
         &directory_read_manager_t::interrupt_updates_and_free_session, this,
         session_to_destroy,
-        auto_drainer_t::lock_t(&global_drainer)
-        ));
+        auto_drainer_t::lock_t(&global_drainer)));
 
     /* Notify that the peer has disconnected */
     if (got_initialization) {
@@ -122,7 +117,7 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t peer, uuid_t session_id, metadata_t initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
+void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t peer, uuid_t session_id, metadata_t initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
 
@@ -191,10 +186,8 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
 
         /* Exit this peer's `metadata_fifo_sink` so that we perform the updates
         in the same order as they were performed at the source. */
-        fifo_enforcer_sink_t::exit_write_t fifo_exit(
-            session->metadata_fifo_sink.get(),
-            metadata_fifo_token
-            );
+        fifo_enforcer_sink_t::exit_write_t fifo_exit(session->metadata_fifo_sink.get(),
+                                                     metadata_fifo_token);
         wait_interruptible(&fifo_exit, session_keepalive.get_drain_signal());
 
         {
@@ -219,7 +212,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::interrupt_updates_and_free_session(session_t *session, UNUSED auto_drainer_t::lock_t global_keepalive) THROWS_NOTHING {
+void directory_read_manager_t<metadata_t>::interrupt_updates_and_free_session(session_t *session, auto_drainer_t::lock_t global_keepalive) THROWS_NOTHING {
     assert_thread();
     global_keepalive.assert_is_holding(&global_drainer);
 

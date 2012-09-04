@@ -25,7 +25,7 @@ public:
 
     void read(typename protocol_t::read_t read,
               typename protocol_t::read_response_t *response,
-              DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
+              DEBUG_VAR state_timestamp_t expected_timestamp,
               order_token_t order_token,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
@@ -73,10 +73,7 @@ public:
         return store->write(
             DEBUG_ONLY(metainfo_checker, )
             region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
-            write, response, transition_timestamp,
-            order_token,
-            &write_token, &non_interruptor
-            );
+            write, response, transition_timestamp, order_token, &write_token, &non_interruptor);
     }
 
     order_source_t bs_outdated_read_source;
@@ -152,8 +149,8 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        typename protocol_t::temporary_cache_t cache;
-        read.unshard(responses, response, &cache);
+        typename protocol_t::context_t ctx;
+        read.unshard(responses, response, &ctx);
     }
 
     void read_outdated(typename protocol_t::read_t read, typename protocol_t::read_response_t *response, signal_t *interruptor) {
@@ -169,8 +166,8 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        typename protocol_t::temporary_cache_t cache;
-        read.unshard(responses, response, &cache);
+        typename protocol_t::context_t ctx;
+        read.unshard(responses, response, &ctx);
     }
 
     void write(typename protocol_t::write_t write, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) {
@@ -187,8 +184,9 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        typename protocol_t::temporary_cache_t cache;
-        write.unshard(responses, response, &cache);
+
+        typename protocol_t::context_t ctx;
+        write.unshard(responses, response, &ctx);
     }
 
 private:

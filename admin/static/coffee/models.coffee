@@ -100,8 +100,7 @@ class Namespace extends Backbone.Model
         start_key = shard[0]
         end_key = shard[1]
 
-        # TODO: we should probably support interpolation here, but
-        # fuck it for now.
+        # TODO: we should probably support interpolation here
 
         # find the first key greater than the beginning of our shard
         # and keep summing until we get past our shard boundary.
@@ -592,7 +591,7 @@ module 'DataUtils', ->
     @get_ack_expectations = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
         datacenter = datacenters.get(datacenter_uuid)
-        acks = namespace.get('ack_expectations')[datacenter.get('id')]
+        acks = namespace?.get('ack_expectations')?[datacenter?.get('id')]?
         if acks?
             return acks
         else

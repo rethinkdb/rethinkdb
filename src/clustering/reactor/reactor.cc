@@ -25,7 +25,8 @@ reactor_t<protocol_t>::reactor_t(
         branch_history_manager_t<protocol_t> *bhm,
         clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > b,
         multistore_ptr_t<protocol_t> *_underlying_svs,
-        perfmon_collection_t *_parent_perfmon_collection) THROWS_NOTHING :
+        perfmon_collection_t *_parent_perfmon_collection,
+        typename protocol_t::context_t *_ctx) THROWS_NOTHING :
     io_backender(_io_backender),
     mailbox_manager(mm),
     ack_checker(ack_checker_),
@@ -38,7 +39,8 @@ reactor_t<protocol_t>::reactor_t(
     blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
     parent_perfmon_collection(_parent_perfmon_collection),
     regions_perfmon_collection(),
-    regions_perfmon_membership(parent_perfmon_collection, &regions_perfmon_collection, "regions")
+    regions_perfmon_membership(parent_perfmon_collection, &regions_perfmon_collection, "regions"),
+    ctx(_ctx)
 {
     {
         typename watchable_t<blueprint_t<protocol_t> >::freeze_t freeze(blueprint_watchable);
@@ -146,7 +148,7 @@ void reactor_t<protocol_t>::run_role(
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
 
     //A store_view_t derived object that acts as a store for the specified region
-    multistore_ptr_t<protocol_t> svs_subview(underlying_svs, region);
+    multistore_ptr_t<protocol_t> svs_subview(underlying_svs, ctx, region);
 
     {
         //All of the be_{role} functions respond identically to blueprint changes

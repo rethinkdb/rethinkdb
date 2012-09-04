@@ -84,8 +84,7 @@ private:
             ++active_worker_count;
             coro_t::spawn_sometime(boost::bind(
                 &coro_pool_t::worker_run, this,
-                source->pop(), auto_drainer_t::lock_t(&coro_drain_semaphore)
-                ));
+                source->pop(), auto_drainer_t::lock_t(&coro_drain_semaphore)));
         }
     }
 

@@ -230,7 +230,10 @@ inline json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespa
     contents, so Valgrind will complain. */
     region_map_t<protocol_t, machine_id_t> default_primary_pinnings(protocol_t::region_t::universe(), nil_uuid());
     default_namespace.primary_pinnings = default_namespace.primary_pinnings.make_new_version(default_primary_pinnings, ctx.us);
+
     default_namespace.database = default_namespace.database.make_new_version(nil_uuid(), ctx.us);
+
+    default_namespace.primary_key = default_namespace.primary_key.make_new_version("id", ctx.us);
 
     deletable_t<namespace_semilattice_metadata_t<protocol_t> > default_ns_in_deletable(default_namespace);
     return json_ctx_adapter_with_inserter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, vclock_ctx_t>(&target->namespaces, generate_uuid, ctx, default_ns_in_deletable).get_subfields();

@@ -1,10 +1,15 @@
 # Database view
 module 'DatabaseView', ->
     class @NotFound extends Backbone.View
-        template: Handlebars.compile $('#database_view-not_found-template').html()
-        initialize: (id) -> @id = id
+        template: Handlebars.compile $('#element_view-not_found-template').html()
+        initialize: (id) ->
+            @id = id
         render: =>
-            @.$el.html @template id: @id
+            @.$el.html @template
+                id: @id
+                type: 'database'
+                type_url: 'databases'
+                type_all_url: 'tables'
             return @
 
     # Container for the entire database view
@@ -27,6 +32,19 @@ module 'DatabaseView', ->
             @overview = new DatabaseView.Overview(model: @model)
             @operations = new DatabaseView.Operations(model: @model)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
+
+            databases.on 'remove', @check_if_still_exists
+        
+        check_if_still_exists: =>
+            exist = false
+            for database in databases.models
+                if database.get('id') is @model.get('id')
+                    exist = true
+                    break
+            if exist is false
+                window.router.navigate '#tables'
+                window.app.index_namespaces
+                    alert_message: "The database <a href=\"#databases/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
 
         change_route: (event) =>
             # Because we are using bootstrap tab. We should remove them later.
@@ -258,51 +276,10 @@ module 'DatabaseView', ->
 
         delete_database: (event) ->
             event.preventDefault()
+            remove_database_dialog = new DatabaseView.RemoveDatabaseModal
+            remove_database_dialog.render @model
 
             model = @model
-            confirmation_modal = new UIComponents.ConfirmationDialogModal
-            confirmation_modal.on_submit = ->
-                @.$('.btn-primary').button('loading')
-                @.$('.cancel').button('loading')
-
-                post_data = {}
-                post_data.databases = {}
-                post_data.databases[model.get('id')] = null
-                for namespace in namespaces.models
-                    if namespace.get('database') is model.get('id')
-                        if not post_data[namespace.get('protocol')+'_namespaces']?
-                            post_data[namespace.get('protocol')+'_namespaces'] = {}
-                        post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = null
-
-                $.ajax
-                    processData: false
-                    url: @url
-                    type: 'POST'
-                    contentType: 'application/json'
-                    data: JSON.stringify(post_data)
-                    success: @on_success
-                    error: @on_error
-
-            confirmation_modal.on_success = (response) =>
-                window.router.navigate '#databases', {'trigger': true}
-
-                namespace_id_to_remove = []
-                for namespace in namespaces.models
-                    if namespace.get('database') is model.get('id')
-                        namespace_id_to_remove.push namespace.get 'id'
-
-
-                for id in namespace_id_to_remove
-                    namespaces.remove id
-                
-                databases.remove @model.get 'id'
-
-            confirmation_modal.render("Are you sure you want to delete the database <strong>#{@model.get('name')}</strong>? All the namespaces'data of this database will be lost.",
-                "/ajax/semilattice",
-                '',
-                (response) =>
-                    database_to_delete = @model
-            )
 
 
         render: =>
@@ -311,3 +288,58 @@ module 'DatabaseView', ->
 
         destroy: =>
             @model.off 'change:name', @render
+
+
+    class @RemoveDatabaseModal extends UIComponents.AbstractModal
+        template: Handlebars.compile $('#remove_database-modal-template').html()
+        class: 'remove_database-dialog'
+
+        initialize: ->
+            super
+
+        render: (_database_to_delete) ->
+            @database_to_delete = _database_to_delete
+
+            super
+                modal_title: 'Remove database'
+                btn_primary_text: 'Remove'
+                id: _database_to_delete.get('id')
+                name: _database_to_delete.get('name')
+
+            @.$('.btn-primary').focus()
+
+        on_submit: =>
+            super
+
+            post_data = {}
+            post_data.databases = {}
+            post_data.databases[@database_to_delete.get('id')] = null
+            for namespace in namespaces.models
+                if namespace.get('database') is @database_to_delete.get('id')
+                    if not post_data[namespace.get('protocol')+'_namespaces']?
+                        post_data[namespace.get('protocol')+'_namespaces'] = {}
+                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = null
+
+            $.ajax
+                processData: false
+                url: '/ajax/semilattice'
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify(post_data)
+                success: @on_success
+                error: @on_error
+
+        on_success: (response) =>
+            window.router.navigate '#tables'
+            window.app.index_namespaces
+                alert_message: "The database #{@database_to_delete.get('name')} was successfully deleted."
+
+            namespace_id_to_remove = []
+            for namespace in namespaces.models
+                if namespace.get('database') is @database_to_delete.get('id')
+                    namespace_id_to_remove.push namespace.get 'id'
+
+            for id in namespace_id_to_remove
+                namespaces.remove id
+            
+            databases.remove @database_to_delete.get 'id'

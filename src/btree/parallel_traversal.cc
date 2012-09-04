@@ -80,6 +80,7 @@ public:
           transaction_ptr(txn),
           stat_block(NULL_BLOCK_ID),
           helper(_helper),
+          interruptor(_interruptor),
           interrupted(false)
     {
         interruptor_watcher.parent = this;
@@ -88,8 +89,10 @@ public:
 
     ~traversal_state_t() {
         if (!interrupted) {
-            for (size_t i = 0; i < acquisition_waiter_stacks.size(); i++) {
-                rassert(acquisition_waiter_stacks[i].empty());
+            for (size_t i = 0; i < acquisition_waiter_stacks.size(); ++i) {
+                for (size_t j = 0; j < acquisition_waiter_stacks[i].size(); ++j) {
+                    acquisition_waiter_stacks[i][j]->cancel();
+                }
             }
         }
     }
@@ -106,6 +109,7 @@ public:
     // The helper.
     btree_traversal_helper_t *helper;
 
+    signal_t *interruptor;
     bool interrupted;
     cond_t finished_cond;
 
@@ -187,8 +191,8 @@ public:
     void interrupt() {
         rassert(interrupted == false);
         interrupted = true;
-        for (int i = 0; i < int(acquisition_waiter_stacks.size()); i++) {
-            for (int j = 0; j < int(acquisition_waiter_stacks[i].size()); j++) {
+        for (size_t i = 0; i < acquisition_waiter_stacks.size(); ++i) {
+            for (size_t j = 0; j < acquisition_waiter_stacks[i].size(); ++j) {
                 acquisition_waiter_stacks[i][j]->cancel();
             }
         }
@@ -196,7 +200,7 @@ public:
 
     int64_t total_level_count() {
         int64_t sum = 0;
-        for (int i = 0, n = level_counts.size(); i < n; ++i) {
+        for (size_t i = 0; i < level_counts.size(); ++i) {
             sum += level_counts[i];
         }
         return sum;
@@ -444,7 +448,13 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf
     //
     int population_change = 0;
 
-    state->helper->process_a_leaf(state->transaction_ptr, buf->get(), left_exclusive_or_null, right_inclusive_or_null, &population_change);
+    try {
+        state->helper->process_a_leaf(state->transaction_ptr, buf->get(), left_exclusive_or_null, right_inclusive_or_null, &population_change, state->interruptor);
+    } catch (interrupted_exc_t) {
+        rassert(state->interruptor->is_pulsed());
+        /* ignore it; the backfill will come to a stop on its own now that
+        `interruptor` has been pulsed */
+    }
 
     if (state->helper->btree_node_mode() != rwi_write) {
         rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");

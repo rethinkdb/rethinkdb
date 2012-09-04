@@ -2,12 +2,19 @@ require 'socket'
 require 'thread'
 require 'json'
 
+#TODO: Make sure tokens don't overflow.
 module RethinkDB
   class Connection
-    def self.last; @@last; end
+    @@last = nil
+    @@magic_number = 0xaf61ba35
+    def self.last
+      return @@last if @@last
+      raise RuntimeError, "No last connection.  Use RethinkDB::Connection.new."
+    end
     def debug_socket; @socket; end
 
     def start_listener
+      @socket.send([@@magic_number].pack('L<'), 0)
       @listener = Thread.new do
         loop do
           response_length = @socket.recv(4).unpack('L<')[0]
@@ -31,15 +38,20 @@ module RethinkDB
     end
 
     def dispatch msg
+      # if msg.class == RethinkDB::RQL_Query
+      #   File.open("sexp.txt", "a") {|f| f.write(msg.sexp.inspect+"\n")}
+      # end
       if msg.class != Query then return dispatch msg.query end
+      # $stdout.sync = true
+      # PP.pp msg
       payload = msg.serialize_to_string
-      #File.open("payloads.txt", "a") {|f| f.write(payload.inspect+"\n")}
       packet = [payload.length].pack('L<') + payload
       @socket.send(packet, 0)
       return msg.token
     end
 
     def wait token
+      #raise RuntimeError
       @mutex.synchronize do
         (@waiters[token] = ConditionVariable.new).wait(@mutex) if not @data[token]
         return @data.delete token
@@ -74,6 +86,8 @@ module RethinkDB
           when Response::StatusCode::SUCCESS_STREAM then
             data.push *protob.response
             done = true
+          when Response::StatusCode::SUCCESS_EMPTY then
+            return false
           when Response::StatusCode::BAD_QUERY then error protob,SyntaxError
           when Response::StatusCode::RUNTIME_ERROR then error protob,RuntimeError
           else error protob

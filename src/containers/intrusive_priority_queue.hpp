@@ -1,6 +1,11 @@
 #ifndef CONTAINERS_INTRUSIVE_PRIORITY_QUEUE_HPP_
 #define CONTAINERS_INTRUSIVE_PRIORITY_QUEUE_HPP_
 
+#include <algorithm>
+#include <vector>
+
+#include "errors.hpp"
+
 template <class node_t>
 class intrusive_priority_queue_t;
 
@@ -46,6 +51,7 @@ public:
     }
 
     void push(node_t *x) {
+        rassert(x);
         rassert(get_mixin(x)->queue == NULL);
         DEBUG_ONLY_CODE(get_mixin(x)->queue = this);
 
@@ -55,9 +61,11 @@ public:
     }
 
     void remove(node_t *x) {
+        rassert(x);
         rassert(get_mixin(x)->queue == this);
         DEBUG_ONLY_CODE(get_mixin(x)->queue = NULL);
-        if (get_mixin(x)->index == nodes.size() - 1) {
+        // TODO: static_cast?  really?
+        if (get_mixin(x)->index == static_cast<int>(nodes.size()) - 1) {
             nodes.pop_back();
         } else {
             node_t *replacement = nodes[get_mixin(x)->index] = nodes.back();
@@ -96,11 +104,14 @@ public:
     }
 
     void update(node_t *node) {
+        rassert(node);
         bubble_towards_root(node);
         bubble_towards_leaves(node);
     }
 
     void swap_in_place(node_t *to_remove, node_t *to_insert) {
+        rassert(to_remove);
+        rassert(to_insert);
         rassert(get_mixin(to_remove)->queue == this);
         rassert(get_mixin(to_insert)->queue == NULL);
         rassert(!get_mixin(to_remove)->is_higher_priority_than(to_insert));
@@ -129,7 +140,7 @@ private:
         return index * 2 + 2;
     }
 
-    void swap(int i, int j) {
+    void swap_nodes(int i, int j) {
         get_mixin(nodes[i])->index = j;
         get_mixin(nodes[j])->index = i;
         std::swap(nodes[i], nodes[j]);
@@ -138,7 +149,7 @@ private:
     void bubble_towards_root(node_t *node) {
         while (get_mixin(node)->index != 0 &&
                 get_mixin(node)->is_higher_priority_than(nodes[compute_parent_index(get_mixin(node)->index)])) {
-            swap(get_mixin(node)->index, compute_parent_index(get_mixin(node)->index));
+            swap_nodes(get_mixin(node)->index, compute_parent_index(get_mixin(node)->index));
         }
     }
 
@@ -147,25 +158,26 @@ private:
             int left_index = compute_left_child_index(get_mixin(node)->index);
             int right_index = compute_right_child_index(get_mixin(node)->index);
             int winner = get_mixin(node)->index;
-            if (left_index < int(nodes.size()) &&
+            if (left_index < static_cast<int>(nodes.size()) &&
                     get_mixin(nodes[left_index])->is_higher_priority_than(nodes[winner])) {
                 winner = left_index;
             }
-            if (right_index < int(nodes.size()) &&
+            if (right_index < static_cast<int>(nodes.size()) &&
                     get_mixin(nodes[right_index])->is_higher_priority_than(nodes[winner])) {
                 winner = right_index;
             }
             if (winner == node->index) {
                 break;
             } else {
-                swap(winner, node->index);
+                swap_nodes(winner, node->index);
             }
         }
     }
 
+    // TODO: Vectors are O(n).
     std::vector<node_t *> nodes;
 
     DISABLE_COPYING(intrusive_priority_queue_t);
 };
 
-#endif   /* CONTAINERS_INTRUSIVE_PRIORITY_QUEUE_HPP_ */
+#endif  // CONTAINERS_INTRUSIVE_PRIORITY_QUEUE_HPP_

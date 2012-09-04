@@ -69,8 +69,7 @@ void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, boost::function
             _1,
             dest.thread,
             dest.mailbox_id,
-            writer
-            ));
+            writer));
 }
 
 mailbox_manager_t::mailbox_manager_t(message_service_t *ms) :
@@ -122,11 +121,9 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *
     raw_mailbox_t::id_t dest_mailbox_id;
     {
         archive_result_t res = deserialize(stream, &dest_thread);
-        if (!res) { res = deserialize(stream, &dest_mailbox_id); }
-
-        if (res) {
-            throw fake_archive_exc_t();
-        }
+        if (res) { throw fake_archive_exc_t(); }
+        res = deserialize(stream, &dest_mailbox_id);
+        if (res) { throw fake_archive_exc_t(); }
     }
 
     if (dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {

@@ -99,7 +99,6 @@ RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 
-
 ifeq ($(COMPILER),CLANG)
 CXX:=clang
 else
@@ -138,7 +137,7 @@ ifeq ($(COMPILER), INTEL)
 CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wused-but-marked-unused -Wunused-macros -Wundef -Wvla -Wshadow -Wconditional-uninitialized -Wmissing-noreturn
 else
 ifeq ($(LEGACY_GCC), 1)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
@@ -160,16 +159,33 @@ endif
 
 STRIP_ON_INSTALL?=1
 
+NO_OMIT_FRAME_POINTER?=0
+
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
 SYMBOLS:=1
 CXXFLAGS+=-O0
-else
+ifneq ($(COMPILER), INTEL)
+CXXFLAGS+=-fkeep-inline-functions
+endif
+ifeq ($(COMPILER), GCC)
+CXXFLAGS+=-fkeep-static-consts
+endif
+else # DEBUG=0
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
 CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
 # TODO: remove this once memcached is added back in the release (disables memcached from showing up in the admin CLI help or tab-completion)
 CXXFLAGS+=-DNO_MEMCACHE
+ifeq ($(NO_OMIT_FRAME_POINTER),1)
+CXXFLAGS+=-fno-omit-frame-pointer
+else
+CXXFLAGS+=-fomit-frame-pointer
+endif
+endif
+
+ifeq ($(DISABLE_BREAKPOINTS),1)
+CXXFLAGS+=-DDISABLE_BREAKPOINTS
 endif
 
 ifneq ($(TRIAL),0)
@@ -611,11 +627,14 @@ sense:
 	$(error Make does not make sense)
 
 # Profiling
-OPROF_TARGETS=oprof-start oprof-dump oprof-stop oprof-report
+OPROF_TARGETS=oprof-start oprof-dump oprof-stop oprof-report oprof-build
 .PHONY: $(OPROF_TARGETS)
 
+oprof-build:
+	$(MAKE) DEBUG=0 SYMBOLS=1 NO_OMIT_FRAME_POINTER=1
+
 oprof-start: OPROF_NO_KERNEL:=0
-oprof-start: OPROF_SESSION:=../oprofile.$(shell date +%F-%T)
+oprof-start: OPROF_SESSION:=../oprofile.$(RETHINKDB_VERSION).$(shell date +%F-%T)
 oprof-start:
 	@echo no kernel: $(OPROF_NO_KERNEL)
 ifeq ($(OPROF_NO_KERNEL),1)
@@ -627,7 +646,7 @@ else
 endif
 	@echo "    OPROFILE[start] -> $(abspath $(OPROF_SESSION))"
 	@echo "      (if you want to use a different location, set OPROF_SESSION make variable to a directory path"
-	$(QUIET) opcontrol --start --buffer-size=1048576 --buffer-watershed=524288 "--session-dir=$(abspath $(OPROF_SESSION))"
+	$(QUIET) opcontrol --start --callgraph=2 --event=CPU_CLK_UNHALTED:90000:0:1:1 --buffer-size=10485760 --buffer-watershed=524288 "--session-dir=$(abspath $(OPROF_SESSION))"
 
 oprof-dump:
 	@echo "    OPROFILE[dump]"
@@ -652,16 +671,33 @@ oprof-report:
 	@echo "    OPREPORT[$(OPROF_BINARY)] -> $(OPROF_RESULT)"
 	$(QUIET) opreport --merge=lib,unitmask -a --symbols --callgraph --threshold 1 --sort sample "--session-dir=$(realpath $(OPROF_SESSION))" -l "$(realpath $(OPROF_BINARY))" > $(OPROF_RESULT)
 
-# Build rules
-drivers: rdb_protocol/query_language.proto
+PYTHON_PBDIR:=../build/drivers/python
+PYTHON_PBFILE:=query_language_pb2.py
+RUBY_PBDIR:=../build/drivers/ruby
+RUBY_PBFILE:=query_language.pb.rb
 ifeq ($(BUILD_DRIVERS), 1)
+$(PYTHON_PBDIR):
+	$(QUIET) mkdir -p $(PYTHON_PBDIR)
+$(RUBY_PBDIR):
+	$(QUIET) mkdir -p $(RUBY_PBDIR)
+
+drivers: $(PYTHON_PBDIR)/$(PYTHON_PBFILE) $(RUBY_PBDIR)/$(RUBY_PBFILE)
+PROTOFILE:=$(SOURCE_DIR)/rdb_protocol/query_language.proto
+$(PYTHON_PBDIR)/$(PYTHON_PBFILE): $(PYTHON_PBDIR) $(PROTOFILE)
 ifeq ($(VERBOSE),0)
-	@echo "    PROTOC[PY] $^"
-	@echo "    PROTOC[RB] $^"
+	@echo "    PROTOC[PY] $(PROTOFILE)"
 endif
-	$(QUIET) protoc $(PROTOCFLAGS) --python_out ../drivers/python/rethinkdb/ $^
-	$(QUIET) rprotoc $(PROTOCFLAGS) --out ../drivers/ruby/rethinkdb $^ 2>&1 | (grep -v "../drivers/ruby/rethinkdb/query_language.pb.rb writing..." || true)
+	$(QUIET) protoc $(PROTOCFLAGS) --python_out $(PYTHON_PBDIR) $(PROTOFILE)
+
+$(RUBY_PBDIR)/$(RUBY_PBFILE): $(RUBY_PBDIR) $(PROTOFILE)
+ifeq ($(VERBOSE),0)
+	@echo "    PROTOC[RB] $(PROTOFILE)"
 endif
+	$(QUIET) rprotoc $(PROTOCFLAGS) --out $(RUBY_PBDIR) $(PROTOFILE) | \
+		(grep -v 'writing...' || true)
+else
+drivers:
+endif #BUILD_DRIVERS
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
 rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py

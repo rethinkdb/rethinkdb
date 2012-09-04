@@ -53,14 +53,14 @@ module 'DashboardView', ->
             @render()
 
 
-        # We could create a model to create issues because of CPU/RAM
-        threshold_cpu: 0.9
+        # We could create a model to create issues because of Disk/RAM
+        threshold_disk: 0.9
         threshold_ram: 0.9
 
         compute_status: ->
             status =
                 has_availability_problems: false
-                has_cpu_problems: false
+                has_disk_problems: false
                 has_conflicts_problems : false
                 has_redundancy_problems: false
                 has_ram_problems: false
@@ -159,30 +159,30 @@ module 'DashboardView', ->
                 status.replicas_offline = issues_redundancy.models
 
 
-            # checking for CPU and RAM prolems
-            status.machines_with_cpu_problems = []
+            # checking for Disk and RAM prolems
+            status.machines_with_disk_full_problems = []
             status.machines_with_ram_problems = []
 
             for machine in machines.models
                 if machine.get('stats')?
-                    cpu_used = machine.get('stats').proc.cpu_combined_avg
-                    if cpu_used > @threshold_cpu
+                    disk_used = machine.get('stats').sys.global_disk_space_used / machine.get('stats').sys.global_disk_space_total
+                    if disk_used > @threshold_disk
                         new_machine =
-                            uid: machine.get('id')
+                            id: machine.get('id')
                             name: machine.get('name')
-                        status.machines_with_cpu_problems.push new_machine
+                        status.machines_with_disk_full_problems.push new_machine
                     ram_used = machine.get('stats').proc.global_mem_used / machine.get('stats').proc.global_mem_total
                     if ram_used > @threshold_ram
                         new_machine =
-                            uid: machine.get('id')
+                            id: machine.get('id')
                             name: machine.get('name')
                         status.machines_with_ram_problems.push new_machine
 
 
-            if status.machines_with_cpu_problems.length > 0
-                status.has_cpu_problems = true
-                status.num_machines_with_cpu_problems = status.machines_with_cpu_problems.length
-            status.threshold_cpu = Math.floor(@threshold_cpu*100)
+            if status.machines_with_disk_full_problems.length > 0
+                status.has_disk_problems = true
+                status.num_machines_with_disk_full_problems = status.machines_with_disk_full_problems.length
+            status.threshold_disk = Math.floor(@threshold_disk*100)
 
             if status.machines_with_ram_problems.length > 0
                 status.has_ram_problems = true

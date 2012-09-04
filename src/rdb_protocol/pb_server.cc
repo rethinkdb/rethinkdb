@@ -4,18 +4,45 @@
 #include <boost/make_shared.hpp>
 
 #include "rdb_protocol/stream_cache.hpp"
+#include "rpc/semilattice/view/field.hpp"
+#include "concurrency/watchable.hpp"
 
-query_server_t::query_server_t(int port, extproc::pool_group_t *_pool_group, const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata, namespace_repo_t<rdb_protocol_t> * _ns_repo)
+query_server_t::query_server_t(
+    int port,
+    extproc::pool_group_t *_pool_group,
+    const boost::shared_ptr
+        <semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+        &_semilattice_metadata,
+    clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
+        _directory_metadata,
+    namespace_repo_t<rdb_protocol_t> *_ns_repo,
+    uuid_t _this_machine)
     : pool_group(_pool_group),
-      server(port, boost::bind(&query_server_t::handle, this, _1, _2), INLINE),
-      semilattice_metadata(_semilattice_metadata), ns_repo(_ns_repo)
+      server(port, boost::bind(&query_server_t::handle, this, _1, _2),
+             &on_unparsable_query, INLINE),
+      semilattice_metadata(_semilattice_metadata),
+      directory_metadata(_directory_metadata),
+      ns_repo(_ns_repo),
+      this_machine(_this_machine)
 { }
+
+http_app_t *query_server_t::get_http_app() {
+    return &server;
+}
 
 static void put_backtrace(const query_language::backtrace_t &bt, Response *res_out) {
     std::vector<std::string> frames = bt.get_frames();
     for (size_t i = 0; i < frames.size(); ++i) {
         res_out->mutable_backtrace()->add_frame(frames[i]);
     }
+}
+
+Response on_unparsable_query(Query *q, std::string msg) {
+    Response res;
+    res.set_status_code(Response::BROKEN_CLIENT);
+    res.set_token( (q && q->has_token()) ? q->token() : -1);
+    res.set_error_message(msg);
+    return res;
 }
 
 Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
@@ -44,7 +71,15 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
     {
         query_language::runtime_environment_t runtime_environment(
-            pool_group, ns_repo, semilattice_metadata, js_runner, &interruptor);
+            pool_group, ns_repo,
+            clone_ptr_t<watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
+                new semilattice_watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(
+                    metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_metadata))),
+            clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(
+                new semilattice_watchable_t<databases_semilattice_metadata_t>(
+                    metadata_field(&cluster_semilattice_metadata_t::databases, semilattice_metadata))),
+            semilattice_metadata,
+            directory_metadata, js_runner, &interruptor, this_machine);
         try {
             //[execute] will set the status code unless it throws
             execute(q, &runtime_environment, &res, root_backtrace, stream_cache);

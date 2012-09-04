@@ -86,9 +86,9 @@ void *linux_thread_pool_t::start_thread(void *arg) {
     // Use a separate block so that it's very clear how long the thread lives for
     // It's not really necessary, but I like it.
     {
-        linux_thread_t thread(tdata->thread_pool, tdata->current_thread);
-        tdata->thread_pool->threads[tdata->current_thread] = &thread;
-        linux_thread_pool_t::thread = &thread;
+        linux_thread_t local_thread(tdata->thread_pool, tdata->current_thread);
+        tdata->thread_pool->threads[tdata->current_thread] = &local_thread;
+        linux_thread_pool_t::thread = &local_thread;
         blocker_pool_t *generic_blocker_pool = NULL; // Will only be instantiated by one thread
 
         /* Install a handler for segmentation faults that just prints a backtrace. If we're
@@ -115,7 +115,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         if (tdata->initial_message) {
             rassert(tdata->thread_pool->generic_blocker_pool == NULL, "generic_blocker_pool already initialized");
             generic_blocker_pool = new blocker_pool_t(GENERIC_BLOCKER_THREAD_COUNT,
-                                                      &thread.queue);
+                                                      &local_thread.queue);
             tdata->thread_pool->generic_blocker_pool = generic_blocker_pool;
         }
 
@@ -129,10 +129,10 @@ void *linux_thread_pool_t::start_thread(void *arg) {
 
         // Prime the pump by calling the initial thread message that was passed to thread_pool::run()
         if (tdata->initial_message) {
-            thread.message_hub.store_message(tdata->current_thread, tdata->initial_message);
+            local_thread.message_hub.store_message(tdata->current_thread, tdata->initial_message);
         }
 
-        thread.queue.run();
+        local_thread.queue.run();
 
         // If one thread is allowed to delete itself before another one has
         // broken out of its loop, it might delete something that the other thread

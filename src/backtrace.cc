@@ -227,9 +227,9 @@ std::string format_backtrace(bool use_addr2line) {
 
                 output.append(" at ");
 
-                char line[255] = {0};
-                if (use_addr2line && run_addr2line(&procs, executable, address, line, sizeof(line))) {
-                    output.append(line);
+                char some_other_line[255] = {0};
+                if (use_addr2line && run_addr2line(&procs, executable, address, some_other_line, sizeof(some_other_line))) {
+                    output.append(some_other_line);
                 } else {
                     output.append(strprintf("%s (%s)", address, executable));
                 }

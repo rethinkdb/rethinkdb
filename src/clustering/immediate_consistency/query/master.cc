@@ -37,8 +37,11 @@ void master_t<protocol_t>::client_t::perform_request(
 
         boost::variant<typename protocol_t::read_response_t, std::string> reply;
         try {
+            reply = typename protocol_t::read_response_t();
+            typename protocol_t::read_response_t &resp = boost::get<typename protocol_t::read_response_t>(reply);
+
             fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, read->fifo_token);
-            reply = parent->broadcaster->read(read->read, &exiter, read->order_token, interruptor);
+            parent->broadcaster->read(read->read, &resp, &exiter, read->order_token, interruptor);
         } catch (cannot_perform_query_exc_t e) {
             reply = e.what();
         }
@@ -49,6 +52,7 @@ void master_t<protocol_t>::client_t::perform_request(
 
         write->order_token.assert_write_mode();
 
+        // TODO: avoid extra response_t copies here
         class write_callback_t : public broadcaster_t<protocol_t>::write_callback_t {
         public:
             explicit write_callback_t(ack_checker_t *ac) : ack_checker(ac) { }
@@ -95,13 +99,11 @@ void master_t<protocol_t>::client_t::perform_request(
 
         if (write_callback.response_promise.get_ready_signal()->is_pulsed()) {
             send(parent->mailbox_manager, write->cont_addr,
-                 boost::variant<typename protocol_t::write_response_t, std::string>(write_callback.response_promise.get_value())
-                 );
+                 boost::variant<typename protocol_t::write_response_t, std::string>(write_callback.response_promise.get_value()));
         } else {
             rassert(write_callback.done_cond.is_pulsed());
             send(parent->mailbox_manager, write->cont_addr,
-                 boost::variant<typename protocol_t::write_response_t, std::string>("not enough replicas responded")
-                 );
+                 boost::variant<typename protocol_t::write_response_t, std::string>("not enough replicas responded"));
         }
 
         /* When we return, our multi-throttler ticket will be returned to the

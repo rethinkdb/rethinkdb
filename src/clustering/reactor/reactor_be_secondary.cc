@@ -6,7 +6,7 @@
 #include "clustering/immediate_consistency/query/direct_reader.hpp"
 
 template <class protocol_t>
-bool reactor_t<protocol_t>::find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,
+bool reactor_t<protocol_t>::find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &_reactor_directory,
                                                           clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > *broadcaster_out) {
     /* This helps us detect if we have multiple broadcasters. */
     bool found_broadcaster = false;
@@ -17,8 +17,8 @@ bool reactor_t<protocol_t>::find_broadcaster_in_directory(const typename protoco
     for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
                                                                       it != bp.peers_roles.end();
                                                                       it++) {
-        typename reactor_directory_t::const_iterator p_it = reactor_directory.find(it->first);
-        if (p_it != reactor_directory.end() && p_it->second) {
+        typename reactor_directory_t::const_iterator p_it = _reactor_directory.find(it->first);
+        if (p_it != _reactor_directory.end() && p_it->second) {
             for (typename rb_t::activity_map_t::const_iterator a_it  = p_it->second->internal.activities.begin();
                                                                a_it != p_it->second->internal.activities.end();
                                                                a_it++) {
@@ -79,7 +79,7 @@ boost::optional<boost::optional<replier_business_card_t<protocol_t> > > extract_
 }
 
 template <class protocol_t>
-bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,
+bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &_reactor_directory,
                                                          clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > *replier_out, peer_id_t *peer_id_out, reactor_activity_id_t *activity_id_out) {
     std::vector<clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > > backfill_candidates;
     std::vector<peer_id_t> peer_ids;
@@ -91,8 +91,8 @@ bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t:
     for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
                                                                       it != bp.peers_roles.end();
                                                                       it++) {
-        typename reactor_directory_t::const_iterator p_it = reactor_directory.find(it->first);
-        if (p_it != reactor_directory.end() && p_it->second) {
+        typename reactor_directory_t::const_iterator p_it = _reactor_directory.find(it->first);
+        if (p_it != _reactor_directory.end() && p_it->second) {
             for (typename rb_t::activity_map_t::const_iterator a_it  = p_it->second->internal.activities.begin();
                                                                a_it != p_it->second->internal.activities.end();
                                                                a_it++) {
@@ -160,9 +160,11 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                 scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
                 svs->new_read_token(&read_token);
 
+                region_map_t<protocol_t, binary_blob_t> metainfo_blob;
+                svs->do_get_metainfo(order_source.check_in("reactor_t::be_secondary").with_read_mode(), &read_token, interruptor, &metainfo_blob);
+
                 typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
-                    activity(svs->get_all_metainfos(order_source.check_in("reactor_t::be_secondary").with_read_mode(), &read_token, interruptor),
-                             backfiller.get_business_card());
+                    activity(to_version_range_map(metainfo_blob), backfiller.get_business_card());
 
                 directory_entry.set(activity);
 
