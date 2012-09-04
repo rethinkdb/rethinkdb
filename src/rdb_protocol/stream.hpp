@@ -9,6 +9,7 @@
 
 #include "errors.hpp"
 #include <boost/function.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/variant/get.hpp>
 
@@ -40,12 +41,6 @@ private:
 
 class in_memory_stream_t : public json_stream_t {
 public:
-    template <class iterator>
-    in_memory_stream_t(const iterator &begin, const iterator &end, runtime_environment_t *_env)
-        : started(false), raw_data(begin, end), env(_env)
-    { }
-
-
     in_memory_stream_t(json_array_iterator_t it, runtime_environment_t *env);
     in_memory_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *env);
 
@@ -70,7 +65,7 @@ private:
 
     json_list_t raw_data;
     json_list_t data;
-    runtime_environment_t *env;
+    boost::scoped_ptr<runtime_environment_t> env;
 };
 
 class batched_rget_stream_t : public json_stream_t {
@@ -298,14 +293,20 @@ public:
     { }
 
     boost::shared_ptr<scoped_cJSON_t> next() {
-        // TODO: error handling
+        // TODO: more error handling
         // TODO reevaluate this when we better understand what we're doing for ordering
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+            rassert(json);
+            rassert(json->get());
             if (json->type() != cJSON_Object) {
                 throw runtime_exc_t(strprintf("Got non-object in RANGE query: %s.", json->Print().c_str()), backtrace);
             }
-            cJSON* val = json->GetObjectItem(attrname.c_str());
-            if (val && range.contains_key(store_key_t(cJSON_print_std_string(val)))) {
+            scoped_cJSON_t val(cJSON_DeepCopy(json->GetObjectItem(attrname.c_str())));
+            if (!val.get()) {
+                throw runtime_exc_t(strprintf("Object %s has not attribute %s.", json->Print().c_str(), attrname.c_str()),backtrace);
+            } else if (val.type() != cJSON_Number && val.type() != cJSON_String) {
+                throw runtime_exc_t(strprintf("Primary key must be a number or string, not %s.", val.Print().c_str()), backtrace);
+            } else if (range.contains_key(store_key_t(val.PrintLexicographic()))) {
                 return json;
             }
         }

@@ -31,6 +31,9 @@ public:
     std::string Print() const THROWS_NOTHING;
     /* Render a cJSON entity to text for transfer/storage without any formatting. */
     std::string PrintUnformatted() const THROWS_NOTHING;
+    /* Render a cJSON entitiy to text for lexicographic sorting.  MUST
+       be a number or a string. */
+    std::string PrintLexicographic() const THROWS_NOTHING;
 
     /* Returns the number of items in an array (or object). */
     int GetArraySize() const {

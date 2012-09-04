@@ -429,6 +429,7 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_range # RANGE
+    assert_raise(RuntimeError){rdb.between(1, r[[3]]).run}
     assert_equal(id_sort(rdb.between(1,3).run), $data[1..3])
     assert_equal(id_sort(rdb.between(2,nil).run), $data[2..-1])
     assert_equal(id_sort(rdb.between(1, 3).run), $data[1..3])
@@ -752,6 +753,15 @@ class ClientTest < Test::Unit::TestCase
                   {"num"=>8,  "id"=>4, "name"=>"4"},
                   {"num"=>12, "id"=>6, "name"=>"6"},
                   {"num"=>16, "id"=>8, "name"=>"8"}])
+  end
+
+  def test_big_between
+    data = (0...100).map{|x| {:id => x}}
+    assert_equal(rdb.insert(data).run, {'inserted' => 100})
+    assert_equal(id_sort(rdb.between(1, 2).run), [{'id' => 1}, {'id' => 2}])
+    assert_equal(rdb.delete.run, {'deleted' => 100})
+    assert_equal(rdb.insert($data).run, {'inserted' => 10})
+    assert_equal(id_sort(rdb.run), $data)
   end
 
   def test_mutate_edge_cases #POINTMUTATE
