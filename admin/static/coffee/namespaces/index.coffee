@@ -92,6 +92,7 @@ module 'NamespaceView', ->
         add_element: (element) =>
             namespaces_list_element = super element
             namespaces_list_element.register_namespace_callback [@update_toolbar_buttons]
+            #TODO destroy this listener
 
         # Count up the number of namespaces checked off across all machine lists
         get_selected_namespaces: =>
@@ -107,16 +108,15 @@ module 'NamespaceView', ->
 
         # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
         update_toolbar_buttons: =>
-            # We need to check how many namespaces have been checked off to decide which buttons to enable/disable
-            $remove_namespaces_button = @.$('.btn.remove-namespace')
-            if @get_selected_namespaces().length < 1
-                $remove_namespaces_button.prop 'disabled', 'disabled'
-            else
-                $remove_namespaces_button.removeProp 'disabled'
-
+            @.$('.btn.remove-namespace').prop 'disabled', @get_selected_namespaces().length < 1
 
         destroy: =>
-             super()
+            super
+            datacenters.off 'all', @update_button_create_namespace
+            databases.off 'all', @update_button_create_namespace
+            @add_database_dialog.destroy()
+            @add_namespace_dialog.destroy()
+            @remove_namespace_dialog.destroy()
 
     class @DatabaseListElement extends UIComponents.CollapsibleListElement
         template: Handlebars.compile $('#database_list_element-template').html()
@@ -134,7 +134,6 @@ module 'NamespaceView', ->
             @no_namespace = true
 
             @model.on 'change', @render_summary
-
             @namespace_list.on 'size_changed', @nl_size_changed
 
         nl_size_changed: =>
@@ -172,17 +171,17 @@ module 'NamespaceView', ->
 
         register_namespace_callback: (callbacks) =>
             @callbacks = callbacks
-            @namespace_list.register_namespace_callbacks callbacks
+            @namespace_list.register_namespace_callbacks @callbacks
 
         rename_datacenter: (event) ->
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'datacenter'
             rename_modal.render()
 
-        ###
-        destroy: ->
-            #TODO
-        ###
+        destroy: =>
+            @model.off 'change', @render_summary
+            @namespace_list.off 'size_changed', @nl_size_changed
+            @namespace_list.destroy()
 
     # Show a list of namespaces
     class @NamespaceList extends UIComponents.AbstractList
@@ -241,8 +240,9 @@ module 'NamespaceView', ->
             namespace_list_element.on 'selected', => callback() for callback in @callbacks
 
         destroy: =>
-             super()
-
+            super()
+            @add_namespace_dialog.destroy()
+            @remove_namespace_dialog.destroy()
 
     # Namespace list element
     class @NamespaceListElement extends UIComponents.CheckboxListElement
@@ -264,13 +264,12 @@ module 'NamespaceView', ->
             return json
 
         render: =>
-            super()
+            super
 
             return @
 
         destroy: =>
-            @model.off 'change', @render
-            machines.off 'all', @render
+            super
 
 
     class @AddDatabaseModal extends UIComponents.AbstractModal
