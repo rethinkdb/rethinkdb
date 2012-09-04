@@ -24,14 +24,14 @@ struct payload_t {
         first(new char[bs]), second(0), buffer_size(bs) { }
     payload_t(const payload_t &p) :
         first(new char[p.buffer_size]), second(p.second), buffer_size(p.buffer_size) {
-        memcpy(first, p.first, second);
+        memcpy(first, p.first, buffer_size);
     }
     payload_t &operator=(const payload_t &p) {
         delete[] first;
         first = new char[p.buffer_size];
         second = p.second;
         buffer_size = p.buffer_size;
-        memcpy(first, p.first, second);
+        memcpy(first, p.first, buffer_size);
     }
     ~payload_t() {
         delete[] first;
