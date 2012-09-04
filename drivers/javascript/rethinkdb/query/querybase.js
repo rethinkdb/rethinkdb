@@ -16,3 +16,14 @@ rethinkdb.query = function(jsobj) {
         return rethinkdb.query.expr(jsobj);
     }
 };
+
+/**
+ * Internal utility for wrapping API function arguments
+ */
+function wrapIf_(val) {
+    if (val instanceof rethinkdb.query.Expression) {
+        return val;
+    } else {
+        return rethinkdb.query(val);
+    }
+};

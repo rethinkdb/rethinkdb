@@ -162,9 +162,7 @@ rethinkdb.query.BuiltinExpression.prototype.compile = function() {
  */
 function makeBinary(builtinType, chainName) {
     rethinkdb.query.Expression.prototype[chainName] = function(other) {
-        if (!(other instanceof rethinkdb.query.Expression)) {
-            other = rethinkdb.query.expr(other);
-        }
+        other = wrapIf_(other);
         return new rethinkdb.query.BuiltinExpression(builtinType, [this, other]);
     };
 }
@@ -175,9 +173,7 @@ function makeBinary(builtinType, chainName) {
  */
 function makeComparison(comparison, chainName) {
     rethinkdb.query.Expression.prototype[chainName] = function(other) {
-        if (!(other instanceof rethinkdb.query.Expression)) {
-            other = rethinkdb.query.expr(other);
-        }
+        other = wrapIf_(other);
         return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.COMPARE,
                 [this, other], function(builtin) {
             builtin.setComparison(comparison);
@@ -220,11 +216,8 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'length',
  * Boolean and
  */
 rethinkdb.query.Expression.prototype.and = function(predicate) {
-    if (predicate instanceof rethinkdb.query.Expression)
-        return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ALL, [this, predicate]);
-    else
-        return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ALL,
-                                                     [this, rethinkdb.query.expr(predicate)]);
+    predicate = wrapIf_(predicate);
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ALL, [this, predicate]);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'and',
                     rethinkdb.query.Expression.prototype.and);
@@ -233,12 +226,9 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'and',
  * Boolean or
  */
 rethinkdb.query.Expression.prototype.or = function(predicate) {
-    if (predicate instanceof rethinkdb.query.Expression)
-        return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ANY,
+    predicate = wrapIf_(predicate);
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ANY,
                                                      [this, predicate]);
-    else
-        return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ANY,
-                                                     [this, rethinkdb.query.expr(predicate)]);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'or',
                     rethinkdb.query.Expression.prototype.or);
@@ -253,6 +243,8 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'or',
  */
 rethinkdb.query.Expression.prototype.between =
         function(start_key, end_key, start_inclusive, end_inclusive) {
+    start_key = wrapIf_(start_key);
+    end_key = wrapIf_(end_key);
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.RANGE, [this],
                     function(builtin) {
                         var range = new Builtin.Range();
@@ -423,7 +415,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'orderby',
  * @param {string=} opt_attr
  */
 rethinkdb.query.Expression.prototype.distinct = function(opt_attr) {
-    var leftExpr = this; //opt_attr ? this.map(rethinkdb.query.R(opt_attr)) : this;
+    var leftExpr = opt_attr ? this.map(rethinkdb.query.R(opt_attr)) : this;
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.DISTINCT, [leftExpr]);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'distinct',
@@ -585,9 +577,7 @@ rethinkdb.query.R = function(varString) {
  * Extend this object with properties from another
  */
 rethinkdb.query.Expression.prototype.extend = function(other) {
-    if (!(other instanceof rethinkdb.query.Expression)) {
-        other = rethinkdb.query.expr(other);
-    }
+    other = wrapIf_(other);
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.MAPMERGE, [this, other]);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'extend',
@@ -650,6 +640,7 @@ rethinkdb.query.IfExpression.prototype.compile = function() {
  * @export
  */
 rethinkdb.query.ifThenElse = function(test, trueBranch, falseBranch) {
+    test = wrapIf_(test);
     return new rethinkdb.query.IfExpression(test, trueBranch, falseBranch);
 };
 
