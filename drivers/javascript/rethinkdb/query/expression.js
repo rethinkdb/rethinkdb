@@ -238,17 +238,18 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'or',
  * @return {rethinkdb.query.Expression}
  * @param {*} start_key
  * @param {*} end_key
- * @param {boolean=} start_inclusive
- * @param {boolean=} end_inclusive
+ * @param {string=} opt_keyName
  */
 rethinkdb.query.Expression.prototype.between =
-        function(start_key, end_key, start_inclusive, end_inclusive) {
+        function(start_key, end_key, opt_keyName) {
     start_key = wrapIf_(start_key);
     end_key = wrapIf_(end_key);
+    var keyName = opt_keyName ? opt_keyName : 'id';
+
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.RANGE, [this],
                     function(builtin) {
                         var range = new Builtin.Range();
-                        range.setAttrname('id');
+                        range.setAttrname(keyName);
                         range.setLowerbound(start_key.compile());
                         range.setUpperbound(end_key.compile());
                         builtin.setRange(range);
