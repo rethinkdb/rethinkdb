@@ -564,6 +564,10 @@ rethinkdb.query.R = function(varString) {
 
     var curName = attrChain.shift();
     var curExpr = null;
+    if (curName[0] === '@') {
+        curName = attrChain.shift();
+    }
+
     if (curName[0] === '$') {
         curExpr = new rethinkdb.query.VarExpression(curName.slice(1));
     } else {
