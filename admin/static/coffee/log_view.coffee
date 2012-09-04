@@ -426,7 +426,6 @@ module 'LogView', ->
                                             database_id: database_id
                                             database_id_trunked: database_id.slice 24
 
-                    #TODO logs for databases
                     else
                         msg += "We were unable to parse this log. Click on 'More details' to see the raw log"
                 return {
@@ -546,8 +545,6 @@ module 'LogView', ->
 
                     else
                         msg += "We were unable to parse this log. Click on 'More details' to see the raw log"
-
-                        #TODO logs for databases
                 return {
                     msg: msg
                     raw_data: JSON.stringify $.parseJSON(data), undefined, 2
