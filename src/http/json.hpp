@@ -11,6 +11,7 @@ class http_res_t;
 
 http_res_t http_json_res(cJSON *json);
 cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs);
+std::string cJSON_Print_std(cJSON *json);
 
 class scoped_cJSON_t {
 private:
