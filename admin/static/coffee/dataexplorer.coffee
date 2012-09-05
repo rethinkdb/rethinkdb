@@ -595,6 +595,10 @@ module 'DataExplorerView', ->
                 eval(full_query)
             catch err
                 @data_container.render_error(err)
+            
+            # Display query in sidebar and home view
+            @data_container.add_query @codemirror.getValue()
+            window.app.sidebar.add_query @codemirror.getValue()
 
         clear_query: =>
             #TODO remove when not testing
@@ -629,8 +633,11 @@ module 'DataExplorerView', ->
         # Write an old query in the input
         write_query_old: (event) =>
             event.preventDefault()
-            @.$('.input_query').focus() # Keep this order to have focus at the end of the textarea
-            @.$('.input_query').val event.target.dataset.query
+            @codemirror.setValue event.target.dataset.query
+            @codemirror.focus()
+            @codemirror.setCursor
+                line: Infinity
+                ch: Infinity
 
         initialize: =>
             if @has_been_initialized.value is false
@@ -1228,7 +1235,19 @@ module 'DataExplorerView', ->
         history_queries: []
 
         initialize :->
-            namespaces.on 'all', @render
+            @data = {}
+            namespaces.on 'all', @compute_data
+
+        compute_data: => # So we don't refresh every 5 seconds
+            data = {}
+            for namespace in namespaces.models
+                data[namespace.get('id')] =
+                    name: namespace.get('name')
+                    database: databases.get(namespace.get('database')).get 'name'
+
+            if objects_are_equal(data, @data) is false
+                @data = data
+                @render()
 
         add_query: (query) =>
             @history_queries.unshift query
@@ -1259,4 +1278,4 @@ module 'DataExplorerView', ->
             return @
 
         destroy: ->
-            namespaces.off 'all', @render
+            namespaces.off 'all', @compute_data
