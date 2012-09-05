@@ -111,9 +111,9 @@ struct rget_response_t {
 };
 
 rget_read_response_t rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-                               int maximum, transaction_t *txn, superblock_t *superblock,
-                               query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
-                               boost::optional<rdb_protocol_details::terminal_t> terminal);
+                                    transaction_t *txn, superblock_t *superblock,
+                                    query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
+                                    boost::optional<rdb_protocol_details::terminal_t> terminal);
 
 distribution_read_response_t rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key, 
                                                  transaction_t *txn, superblock_t *superblock);

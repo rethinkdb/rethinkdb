@@ -23,13 +23,13 @@ socket_node_.setNoDelay;
 var JSON;
 JSON.stringify;
 JSON.parse;
-var TextEncoder;
-TextEncoder.encode;
-var TextDecoder;
-TextDecoder.decode;
 var console;
 console.log;
 var Buffer;
 var node_data;
 node_data.length;
 node_data.readUInt32LE;
+//var TextEncoder
+//TextEncoder.encode
+//var TextDecoder
+//TextDecoder.decode

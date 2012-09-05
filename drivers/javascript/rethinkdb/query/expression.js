@@ -478,6 +478,24 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'pickAttrs',
                     rethinkdb.query.Expression.prototype.pickAttrs);
 
 /**
+ * Inverse of pickattrs
+ */
+rethinkdb.query.Expression.prototype.without = function(attrs) {
+    if (!goog.isArray(attrs)) {
+        attrs = [attrs];
+    }
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.WITHOUT, [this],
+        function(builtin) {
+            for (var key in attrs) {
+                var attr = attrs[key];
+                builtin.addAttrs(attr);
+            }
+        });
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'without',
+                    rethinkdb.query.Expression.prototype.without);
+
+/**
  * Shortcut to map a pick attrs over stream
  */
 rethinkdb.query.Expression.prototype.pluck = function(attrs) {
