@@ -117,8 +117,13 @@ function testGetAttr() {
 }
 
 function testPickAttrs() {
-    q({a:1,b:2,c:3}).pickAttrs('a').run(objeq({a:1}));
-    q({a:1,b:2,c:3}).pickAttrs(['a', 'b']).run(objeq({a:1,b:2}));
+    tobj.pickAttrs('a').run(objeq({a:1}));
+    tobj.pickAttrs(['a', 'b']).run(objeq({a:1,b:2}));
+}
+
+function testWithout() {
+    tobj.without('a').run(objeq({b:2,c:3}));
+    tobj.without(['a','b']).run(objeq({c:3}));
 }
 
 function testR() {
@@ -259,6 +264,7 @@ runTests([
     testHasAttr,
     testGetAttr,
     testPickAttrs,
+    testWithout,
     testInsert,
     testGet,
     testOrderby,

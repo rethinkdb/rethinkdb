@@ -123,72 +123,72 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
         throw new ClientError("RDB response corrupted, length inaccurate");
     }
 
+    var serializer = new goog.proto2.WireFormatSerializer();
+    var response = new Response();
+
     try {
-        var serializer = new goog.proto2.WireFormatSerializer();
-        var response = new Response();
         serializer.deserializeTo(response, new Uint8Array(data.buffer, 4));
-
-        var responseStatus = response.getStatusCode();
-        var request = this.outstandingQueries_[response.getToken()];
-        if (request) {
-
-            switch(responseStatus) {
-            case Response.StatusCode.BROKEN_CLIENT:
-                throw new BrokenClient();
-                break;
-            case Response.StatusCode.RUNTIME_ERROR:
-                throw new RuntimeError(response.getErrorMessage());
-                break;
-            case Response.StatusCode.BAD_QUERY:
-                throw new BadQuery(response.getErrorMessage());
-                break;
-            case Response.StatusCode.SUCCESS_EMPTY:
-                delete this.outstandingQueries_[response.getToken()]
-                if (request.callback) request.callback();
-                break;
-            case Response.StatusCode.SUCCESS_STREAM:
-                delete this.outstandingQueries_[response.getToken()]
-                var results = response.responseArray().map(JSON.parse);
-                if (request.callback) {
-                    if (request.iterate) {
-                        results.forEach(request.callback);
-                    } else {
-                        request.callback(request.partial.concat(results));
-                    }
-                }
-                break;
-            case Response.StatusCode.SUCCESS_JSON:
-                delete this.outstandingQueries_[response.getToken()]
-                if (request.callback) {
-                    var result = JSON.parse(response.getResponse(0));
-                    request.callback(result);
-                }
-                break;
-            case Response.StatusCode.SUCCESS_PARTIAL:
-                var cont = new Query();
-                cont.setType(Query.QueryType.CONTINUE);
-                cont.setToken(response.getTokenOrDefault());
-                this.sendProtoBuf_(cont);
-
-                var results = response.responseArray().map(JSON.parse);
-                if (request.callback) {
-                    if (request.iterate) {
-                        results.forEach(request.callback);
-                    } else {
-                        // Save results for eventual callback call
-                        request.partial = request.partial.concat(results);
-                    }
-                }
-                break;
-            default:
-                throw new ClientError("unknown response status code");
-                break;
-            }
-        } // else no matching request
-
     } catch(err) {
         throw new ClientError("response deserialization failed");
     }
+
+    var responseStatus = response.getStatusCode();
+    var request = this.outstandingQueries_[response.getToken()];
+    if (request) {
+
+        switch(responseStatus) {
+        case Response.StatusCode.BROKEN_CLIENT:
+            throw new BrokenClient();
+            break;
+        case Response.StatusCode.RUNTIME_ERROR:
+            throw new RuntimeError(response.getErrorMessage());
+            break;
+        case Response.StatusCode.BAD_QUERY:
+            throw new BadQuery(response.getErrorMessage());
+            break;
+        case Response.StatusCode.SUCCESS_EMPTY:
+            delete this.outstandingQueries_[response.getToken()]
+            if (request.callback) request.callback();
+            break;
+        case Response.StatusCode.SUCCESS_STREAM:
+            delete this.outstandingQueries_[response.getToken()]
+            var results = response.responseArray().map(JSON.parse);
+            if (request.callback) {
+                if (request.iterate) {
+                    results.forEach(request.callback);
+                } else {
+                    request.callback(request.partial.concat(results));
+                }
+            }
+            break;
+        case Response.StatusCode.SUCCESS_JSON:
+            delete this.outstandingQueries_[response.getToken()]
+            if (request.callback) {
+                var result = JSON.parse(response.getResponse(0));
+                request.callback(result);
+            }
+            break;
+        case Response.StatusCode.SUCCESS_PARTIAL:
+            var cont = new Query();
+            cont.setType(Query.QueryType.CONTINUE);
+            cont.setToken(response.getTokenOrDefault());
+            this.sendProtoBuf_(cont);
+
+            var results = response.responseArray().map(JSON.parse);
+            if (request.callback) {
+                if (request.iterate) {
+                    results.forEach(request.callback);
+                } else {
+                    // Save results for eventual callback call
+                    request.partial = request.partial.concat(results);
+                }
+            }
+            break;
+        default:
+            throw new ClientError("unknown response status code");
+            break;
+        }
+    } // else no matching request
 };
 
 rethinkdb.net.Connection.prototype.use = function(db_name) {

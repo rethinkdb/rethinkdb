@@ -23,7 +23,7 @@ rethinkdb.query = function(jsobj) {
  */
 function ClientError(msg) {
     this.name = "RDB Client Error";
-    this.msg = msg || "The RDB client has experienced an error";
+    this.message = msg || "The RDB client has experienced an error";
 }
 goog.inherits(ClientError, Error);
 
