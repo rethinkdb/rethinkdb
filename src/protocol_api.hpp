@@ -474,18 +474,19 @@ public:
     typedef typename store_view_t<protocol_t>::metainfo_t metainfo_t;
 
     store_subview_t(store_view_t<protocol_t> *_store_view, typename protocol_t::region_t region)
-        : store_view_t<protocol_t>(region), store_view(_store_view)
-    {
+        : store_view_t<protocol_t>(region), store_view(_store_view) {
         rassert(region_is_superset(_store_view->get_region(), region));
     }
 
     using store_view_t<protocol_t>::get_region;
 
     void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
+        home_thread_mixin_t::assert_thread();
         store_view->new_read_token(token_out);
     }
 
     void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
+        home_thread_mixin_t::assert_thread();
         store_view->new_write_token(token_out);
     }
 
@@ -493,6 +494,7 @@ public:
                          scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
                          signal_t *interruptor,
                          metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
+        home_thread_mixin_t::assert_thread();
         metainfo_t tmp;
         store_view->do_get_metainfo(order_token, token, interruptor, &tmp);
         *out = tmp.mask(get_region());
@@ -502,6 +504,7 @@ public:
                       order_token_t order_token,
                       scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
         store_view->set_metainfo(new_metainfo, order_token, token, interruptor);
     }
@@ -514,6 +517,7 @@ public:
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
+        home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
 
         return store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, token, interruptor);
@@ -529,6 +533,7 @@ public:
             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
+        home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
@@ -544,6 +549,7 @@ public:
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
+        home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), start_point.get_domain()));
 
         return store_view->send_backfill(start_point, send_backfill_cb, p, token, interruptor);
@@ -554,7 +560,8 @@ public:
             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
-                store_view->receive_backfill(chunk, token, interruptor);
+        home_thread_mixin_t::assert_thread();
+        store_view->receive_backfill(chunk, token, interruptor);
     }
 
     void reset_data(
@@ -563,14 +570,17 @@ public:
             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
+        home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), subregion));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
         store_view->reset_data(subregion, new_metainfo, token, interruptor);
     }
 
-public:
+private:
     store_view_t<protocol_t> *store_view;
+
+    DISABLE_COPYING(store_subview_t);
 };
 
 #endif /* PROTOCOL_API_HPP_ */

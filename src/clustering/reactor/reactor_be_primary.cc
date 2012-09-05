@@ -233,8 +233,16 @@ void do_backfill(
         backfill_session_id_t backfill_session_id,
         promise_t<bool> *success,
         signal_t *interruptor) THROWS_NOTHING {
+
     try {
-        backfillee<protocol_t>(mailbox_manager, branch_history_manager, svs, region, backfiller_metadata, backfill_session_id, interruptor);
+        {
+            cross_thread_watchable_variable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > ct_backfiller_metadata(backfiller_metadata, svs->home_thread());
+            cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+            on_thread_t th(svs->home_thread());
+
+            backfillee<protocol_t>(mailbox_manager, branch_history_manager, svs, region, ct_backfiller_metadata.get_watchable(), backfill_session_id, &ct_interruptor);
+
+        }
         success->pulse(true);
     } catch (interrupted_exc_t) {
         success->pulse(false);
