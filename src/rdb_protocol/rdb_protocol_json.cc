@@ -23,21 +23,30 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::shared_ptr<scoped
 
 namespace query_language {
 
+/* In a less ridiculous world, the C++ standard wouldn't have dropped designated
+   initializers for arrays, and this namespace wouldn't be necessary. */
+namespace cJSON_type_ordering {
+struct rank_wrapper {
+    int rank[7];
+    rank_wrapper() {
+        rank[cJSON_Array]  = 0;
+        rank[cJSON_False]  = 1;
+        rank[cJSON_True]   = 2;
+        rank[cJSON_NULL]   = 3;
+        rank[cJSON_Number] = 4;
+        rank[cJSON_Object] = 5;
+        rank[cJSON_String] = 6;
+    }
+};
+rank_wrapper wrapper;
+int cmp(int t1, int t2) { return wrapper.rank[t1] - wrapper.rank[t2]; }
+}
+
 // TODO: Rename this function!  It is not part of the cJSON library,
 // so it should not be part of the cJSON namepace.
-static const int cJSON_rank[7] = {
-    [cJSON_Array]  = 0,  //5
-    [cJSON_False]  = 1,  //0
-    [cJSON_True]   = 2,  //1
-    [cJSON_NULL]   = 3,  //2
-    [cJSON_Number] = 4,  //3
-    [cJSON_Object] = 5,  //6
-    [cJSON_String] = 6}; //4
 int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace) {
     if (l->type != r->type) {
-        rassert(0 <= l->type && l->type < int(sizeof(cJSON_rank)/sizeof(*cJSON_rank)));
-        rassert(0 <= r->type && r->type < int(sizeof(cJSON_rank)/sizeof(*cJSON_rank)));
-        return cJSON_rank[l->type] - cJSON_rank[r->type];
+        return cJSON_type_ordering::cmp(l->type, r->type);
     }
     switch (l->type) {
         case cJSON_False:
