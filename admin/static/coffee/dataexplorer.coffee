@@ -22,7 +22,6 @@ generate_string = (n) ->
 
     return result
 
-#TODO destroy views
 #TODO maintain data
 module 'DataExplorerView', ->
     class @Container extends Backbone.View
