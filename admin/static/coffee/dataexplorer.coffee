@@ -22,7 +22,6 @@ generate_string = (n) ->
 
     return result
 
-#TODO Close connection
 #TODO destroy views
 #TODO maintain data
 module 'DataExplorerView', ->
@@ -32,14 +31,8 @@ module 'DataExplorerView', ->
         template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
 
         events:
-            ###
-            'keyup .input_query': 'handle_keypress'
-            'keydown .input_query': 'handle_tab'
-            'blur .input_query': 'hide_suggestion'
-            ###
             'click .input_query': 'handle_keypress' # Click and not focus for webkit browsers
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
-            #'mouseup .suggestion_name_li': 'position_cursor_after_click' # Not call because we remove the suggestion
             'mouseover .suggestion_name_li' : 'mouseover_suggestion'
             'mouseout .suggestion_name_li' : 'mouseout_suggestion'
             'click .clear_query': 'clear_query'
@@ -593,9 +586,13 @@ module 'DataExplorerView', ->
         # Write a query for the namespace clicked
         write_query_namespace: (event) =>
             event.preventDefault()
-            query = 'r.'+event.target.dataset.name+'.find()'
-            @.$('.input_query').focus() # Keep this order to have focus at the end of the textarea
-            @.$('.input_query').val query
+            query = 'r.db("'+event.target.dataset.database+'").table("'+event.target.dataset.name+'").filter()'
+            @codemirror.setValue query
+            @codemirror.focus()
+            @codemirror.setCursor
+                line: 0
+                ch: Infinity
+            @handle_keypress()
 
         # Write an old query in the input
         write_query_old: (event) =>
@@ -714,9 +711,10 @@ module 'DataExplorerView', ->
             $('.dataexplorer_container').css 'margin', '0px 0px 0px 20px'
             $('.change_size').val 'Smaller view'
 
-        destroy: =>
+       destroy: =>
             @input_query.destroy()
             @data_container.destroy()
+            window.conn.close()
 
     
     class @InputQuery extends Backbone.View
@@ -1225,9 +1223,11 @@ module 'DataExplorerView', ->
         render: => 
             json = {}
             json.namespaces = []
+            #TODO display database
             for namespace in namespaces.models
                 json.namespaces.push
                     name: namespace.get('name')
+                    database: databases.get(namespace.get('database')).get 'name'
 
             json.has_namespaces = if json.namespaces.length is 0 then false else true
 

@@ -43,9 +43,9 @@
         <h3>Tables available</h3>
 
         {{#if has_namespaces}}
-        <ul class="namaspaces_available_list">
+        <ul class="namespaces_available_list">
             {{#each namespaces}}
-            <li class="namespace_element"><a href="#" data-name="{{name}}" class="namespace_link">{{name}}</a></li>
+            <li class="namespace_element"><a href="#" data-database="{{database}}" data-name="{{name}}" class="namespace_link">{{name}}</a></li>
             {{/each}}
         </ul>
         {{else}}

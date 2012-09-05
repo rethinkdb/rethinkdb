@@ -62,7 +62,10 @@ module 'Sidebar', ->
             else
                 namespaces_data = []
                 for namespace in namespaces.models
-                    namespaces_data.push namespace.get('name')
+
+                    namespaces_data.push
+                        name: namespace.get('name')
+                        database: databases.get(namespace.get('database')).get('name')
 
                 
                 @.$el.html @template_dataexplorer
