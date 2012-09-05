@@ -569,6 +569,8 @@ module 'DataExplorerView', ->
             @current_suggestions = []
             for suggestion, i in suggestions
                 if pattern.test(suggestion.suggestion)
+                    if splitdata[splitdata.length-1] is suggestion.suggestion
+                        continue # Skip the case when we have an exact match including parenthesis
                     found_suggestion = true
                     @current_suggestions.push suggestion
                     @.$('.suggestion_name_list').append @template_suggestion_name 
@@ -1236,44 +1238,60 @@ module 'DataExplorerView', ->
 
         initialize :->
             @data = {}
-            namespaces.on 'all', @compute_data
+            @compare_data()
+            namespaces.on 'all', @compare_data
 
-        compute_data: => # So we don't refresh every 5 seconds
-            data = {}
+        compute_data: =>
+            data_temp = {}
+            for database in databases.models
+                data_temp[database.get('id')] = []
             for namespace in namespaces.models
-                data[namespace.get('id')] =
+                data_temp[namespace.get('database')].push
                     name: namespace.get('name')
                     database: databases.get(namespace.get('database')).get 'name'
 
+            data = {}
+            data['databases'] = []
+            for database_id of data_temp
+                if data_temp[database_id].length > 0
+                    data['databases'].push
+                        name: databases.get(database_id).get 'name'
+                        namespaces: data_temp[database_id] 
+
+            return data
+
+        compare_data: (data) => #So we don't refresh every five seconds.
+            data = @compute_data()
             if objects_are_equal(data, @data) is false
                 @data = data
                 @render()
 
         add_query: (query) =>
-            @history_queries.unshift query
-            # Let's check if the list already exists
+            if query.length > 35
+                query_summary = query.slice(0, 10) + '...' + query.slice(query.length-24)
+            else
+                query_summary = query
+
+            @history_queries.unshift
+                query: query
+                query_summary: query_summary
+
             if @history_queries.length is 1
                 @.$('.history_query_container').html @template_query_list
 
-            #TODO Trunk query
             @.$('.history_query_list').prepend @template_query 
                 query: query
+                query_summary: query_summary
 
-        render: => 
-            json = {}
-            json.namespaces = []
-            #TODO display database
-            for namespace in namespaces.models
-                json.namespaces.push
-                    name: namespace.get('name')
-                    database: databases.get(namespace.get('database')).get 'name'
+        render: =>
+            data = {}
+            data = _.extend data, @data
 
-            json.has_namespaces = if json.namespaces.length is 0 then false else true
+            data.has_namespaces = data['databases'].length > 0
+            data.has_old_queries = @history_queries.length > 0
+            data.old_queries = @history_queries
 
-            json.has_old_queries = if @history_queries.length is 0 then false else true
-            json.old_queries = @history_queries
-
-            @.$el.html @template json
+            @.$el.html @template data
         
             return @
 

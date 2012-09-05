@@ -43,13 +43,16 @@
         <h3>Tables available</h3>
 
         {{#if has_namespaces}}
-        <ul class="namespaces_available_list">
+        {{#each databases}}
+        <h4>{{name}}</h4>
+        <ul class="namespaces_available_list queries_list">
             {{#each namespaces}}
             <li class="namespace_element"><a href="#" data-database="{{database}}" data-name="{{name}}" class="namespace_link">{{name}}</a></li>
             {{/each}}
         </ul>
+        {{/each}}
         {{else}}
-        There is no table available. <br />Start by <a href="#tables">creating one</a>.
+        <p>There is no table available. <br />Start by <a href="#tables">creating one</a>.</p>
         {{/if}}
    </div>
     <div class="history_queries">
@@ -57,13 +60,13 @@
         
         <div class="history_query_container">
         {{#if has_old_queries}}
-        <ul class="history_queries_list">
+        <ul class="history_queries_list queries_list">
             {{#each old_queries}}
-            <li class="query_element"><a href="#" class="old_query" data-query="{{this}}">{{this}}</a></li>
+            <li class="query_element"><a href="#" class="old_query" data-query="{{query}}">{{query_summary}}</a></li>
             {{/each}}
         </ul>
         {{else}}
-        <p>There are no previous queries</p>
+        <p>There are no previous queries.</p>
         {{/if}}
     </div>
     </div>
@@ -76,12 +79,12 @@
 </script>
 
 <script id="dataexplorer_query_list-template" type="text/x-handlebars-template">
-    <ul class="history_query_list">
+    <ul class="history_query_list queries_list">
     </ul>
 </script>
 
 <script id="dataexplorer_query_element-template" type="text/x-handlebars-template">
-    <li class="query_element">{{query}}</a></li>
+    <li class="query_element"><a href="#" class="old_query" data-query="{{query}}">{{query_summary}}</a></li>
 </script>
 
 

@@ -245,9 +245,20 @@
             background: url('/images/information-icon_small.png') no-repeat center center;
         }
     }
-    .constrained_li{
-        width: 150px;
-        overflow: hidden;
+    .queries_list{
+        margin: 4px 0px 7px 0px;
+        padding: 0px;
+        list-style: none;
+        .constrained_li{
+            margin: 0px;
+            padding: 0px;
+            width: 150px;
+            overflow: hidden;
+            font-family: monospace;
+        }
+    }
+    .no_query{
+        margin: 4px 0px 7px 0px;
     }
 
     .recent-log-entries {
@@ -374,90 +385,6 @@
         }
     }
 }
-
-/*
-    ----------------------------
-    Alerts dropdown
-    ----------------------------
-*/
-
-/*#alerts-dropdown  {
-    .bordered {
-        border-bottom: thin solid @grayLighter;
-    }
-
-    .header {
-        padding: 5px 15px;
-        .bordered;
-    }
-
-    .footer {
-        padding: 10px 15px;
-        font-size: 1.2em;
-        text-align: center;
-        a { font-weight: bold; }
-        .bordered;
-    }
-
-    .alert {
-        background: #F5F5F5;
-        color: #666;
-        height: 32px;
-        padding: 15px;
-        cursor: pointer;
-        .bordered;
-
-        div {
-            display: table-cell;
-            height: 32px;
-            overflow: hidden;
-            padding: 0 0;
-            vertical-align: middle;
-            width: 100%;
-            &.goto {
-                padding-left: 5px;
-                font-size: 2em;
-            }
-        }
-
-        img {
-            float: left;
-            margin-top: 4px;
-            margin-bottom: 4px;
-            margin-right: 15px;
-        }
-
-        &.new {
-            background: #FFF;
-            color: #404040;
-            .element {
-                font-weight: bold;
-            }
-        }
-    }
-*/
-    /* Override Bootstrap */
-/*    padding: 0;
-    max-width: 600px;
-    width: 350px;
-    background-color: @white;
-
-    .border-radius(0 0 0 0);
-
-    a {
-        text-shadow: none;
-        color: @linkColor;
-        &:hover {
-            background: none;
-            text-decoration: underline
-        }
-    }
-
-    color: @black;
-    text-shadow: none;
-
-    p, h1, h2, h3, h4, h5, h6 { padding: 0px 15px; }
-}*/
 
 /*
     ----------------------------
@@ -758,129 +685,6 @@
         display: none;
     }
 }
-/*
-.server-list {
-    margin-top: 20px;
-    .label.element-type {
-        text-transform: uppercase;
-        font-size: 10px;
-        margin-right: 15px;
-        display: inline-block;
-        margin-top: -3px;
-    }
-
-
-    .datacenter.details p, .machine.details p {
-        font-size: 11px;
-        text-transform: uppercase;
-        margin-bottom: 0;
-    }
-
-    .datacenter.details p.status .label {
-        vertical-align: text-top;
-        font-size: 10px;
-        margin-right: 5px;
-    }
-    
-    .list_stats {
-        margin: 0px 0px 0px 0px;
-        float: left;
-        list-style: none;
-        li {
-            display: inline-block;
-        }
-        .stat_name{
-            width: 80px;
-        }
-        .minichart{
-            width: 110px;
-            margin-right: 10px;
-        }
-        .sparkline_container{
-            height: 15px;
-            width: 75px;
-            margin: 0px 5px 0px 5px;
-            padding: 0px;
-        }
-        .progress{
-            height: 10px;
-            width: 75px;
-            margin: 0px 5px 0px 5px;
-            padding: 0px;
-        }
-        canvas{
-            border-bottom: 1px solid #ddd;
-            border-left: 1px solid #ddd;
-        }
-        .bar{
-            background: #a0b0b8;
-        }
-        .bar-alert{
-            background: #E62E2E;
-        }
-    }
-    .machine.details {
-        div.toolbar {
-            float: right;
-            margin-top: -25px;
-            text-align: right;
-        }
-        p.status {
-            .label {
-                vertical-align: text-top;
-                font-size: 10px;
-            }
-        }
-        p.actions {
-            text-transform: none;
-            font-size: 13px;
-        }
-    }
-
-    .header {
-        cursor: pointer;
-    }
-
-    .arrow {
-        width: 16px;
-        height: 16px;
-        float: left;
-        &.collapsed {
-            background: url('/images/right-arrow_16x16.png') no-repeat center top;
-        }
-        &.expanded {
-            background: url('/images/down-arrow_16x16.png') no-repeat center top;
-            margin-top: 3px;
-        }
-    }
-
-    .divider {
-       margin-top: 10px;
-       margin-bottom: 20px;
-       border-bottom: 2px solid #DDD;
-       margin-left: 28px;
-    }
-
-    h3.datacenter.name { 
-        line-height: 1em;
-        margin-left: 28px;
-    }
-
-    .datacenter.actions {
-        text-align: right;
-        padding-right: 13px;
-    }
-
-    .datacenter.details {
-        margin-top: 10px;
-        margin-left: 28px;
-    }
-    .machine-list {
-        margin-left: 28px;
-    }
-}
-*/
-
 
 .modal {
     display: none;
@@ -2336,21 +2140,38 @@ Database view
             float: left;
             width: 330px;
             padding: 20px 10px 10px 10px;
+            h4 {
+                margin: 7px 0px 5px 0px;
+            }
         }
         .history_queries{
             float: left;
             width: 330px;
             padding: 20px 10px 10px 10px;
+        }
+        .queries_list{
+            margin: 0px;
+            list-style: none;
+            font-family: monospace;
+            li{
+                padding: 0px 0px 0px 7px;
+                margin: 0px;
+                border-left: 1px solid #ccc;
+            }
             .query_element{
                 width: 300px;
                 overflow: hidden;
             }
             .namespace_element{
+                padding: 0px 0px 0px 7px;
+                margin: 0px;
+                border-left: 1px solid #ccc;
+
                 width: 300px;
                 overflow: hidden;
             }
         }
-        .options_container{
+    .options_container{
             float: right;
         }
         .change_view_container{
