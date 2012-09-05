@@ -367,7 +367,6 @@ module 'NamespaceView', ->
                 shards.push new_shard
                 total_keys += new_shard.num_keys
 
-            # We could probably use apply for a cleaner code, but d3.max has a strange behavior.
             max_keys = d3.max shards, (d) -> return d.num_keys
             min_keys = d3.min shards, (d) -> return d.num_keys
             json =
@@ -378,7 +377,7 @@ module 'NamespaceView', ->
 
             if shards.length > 1
                 json.has_shards = true
-                if shards.length > 6
+                if shards.length > 16
                     json.numerous_shards = true
             else
                 json.has_shards = false
@@ -400,30 +399,39 @@ module 'NamespaceView', ->
 
                 # Draw histogram
                 if json.max_keys? and not _.isNaN json.max_keys and shards.length isnt 0
-                    
-                    if json.numerous_shards? and json.numerous_shards
-                        svg_width = 700
-                        svg_height = 350
-                    else
-                        svg_width = 350
-                        svg_height = 270
                     margin_width = 20
                     margin_height = 20
 
-                    width = Math.floor((svg_width-margin_width*3)/shards.length*0.8)
-                    margin_bar = Math.floor((svg_width-margin_width*3)/shards.length*0.2/2)
-                    if shards.length is 1 # Special hack when there is just one shard
-                        width = Math.floor width/2
-                        margin_bar = Math.floor margin_bar+width/2
+                    margin_width_inner = 20
+                    width = 28
+                    margin_bar = 2
+
+                    if json.numerous_shards? and json.numerous_shards
+                        if margin_width+margin_width_inner+(width+margin_bar)*json.shards_length+margin_width_inner+margin_width > 700
+                            svg_width = 700
+                            width_and_margin = (700-margin_width*2-margin_width_inner*2)/json.shards_length
+                            width = width_and_margin/30*28
+                            margin_bar = width_and_margin/30*2
+                        else
+                            svg_width = margin_width+margin_width_inner+(width+margin_bar)*json.shards_length+margin_width_inner+margin_width
+                        container_width = svg_width
+                    else
+                        svg_width = margin_width+margin_width_inner+(width+margin_bar)*json.shards_length+margin_width_inner+margin_width
+                        svg_height = 270
+                        container_width = Math.max svg_width, 350
+
  
-                    x = d3.scale.linear().domain([0, shards.length-1]).range([margin_width*1.5+margin_bar, svg_width-margin_width*1.5-margin_bar-width])
+                    @.$('.data_repartition-graph').css('width', container_width+'px')
+
                     y = d3.scale.linear().domain([0, json.max_keys]).range([1, svg_height-margin_height*2.5])
 
                     svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
                     svg.selectAll('rect').data(shards)
                         .enter()
                         .append('rect')
-                        .attr('x', (d, i) -> return x(i))
+                        .attr('x', (d, i) ->
+                            return margin_width+margin_width_inner+(width+margin_bar)*i
+                        )
                         .attr('y', (d) -> return svg_height-y(d.num_keys)-margin_height-1) #-1 not to overlap with axe
                         .attr('width', width)
                         .attr( 'height', (d) -> return y(d.num_keys))
