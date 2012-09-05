@@ -127,16 +127,19 @@ class BackboneCluster extends Backbone.Router
         namespace = namespaces.get(id)
         
         @current_view.destroy()
-        if namespace? then @current_view = new NamespaceView.Container model:namespace
-        else @current_view = new NamespaceView.NotFound id
+        if namespace?
+            @current_view = new NamespaceView.Container model:namespace
+        else
+            @current_view = new NamespaceView.NotFound id
 
         if tab?
             @$container.html @current_view.render(tab).el
         else
             @$container.html @current_view.render().el
-
-        @current_view.overview.render_data_repartition()
-        @current_view.overview.render_data_in_memory()
+        
+        if namespace?
+            @current_view.overview.render_data_repartition()
+            @current_view.overview.render_data_in_memory()
 
         @sidebar.set_type_view()
 
