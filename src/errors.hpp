@@ -86,6 +86,7 @@
 // TODO: Abort probably is not the right thing to do here.
 #define fail_due_to_user_error(msg, ...) do {                           \
         report_user_error(msg, ##__VA_ARGS__);                          \
+        BREAKPOINT;                                                     \
         exit(-1);                                                       \
     } while (0)
 

@@ -1,5 +1,5 @@
 error_tolerant_workloads = [
-    "$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity --ignore-protocol-errors"
+    "$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d infinity --ignore-protocol-errors"
     ]
 
 scenarios = [

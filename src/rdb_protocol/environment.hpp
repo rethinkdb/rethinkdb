@@ -37,7 +37,7 @@ public:
           js_runner(_js_runner),
           interruptor(_interruptor),
           this_machine(_this_machine)
-    { }
+    { rassert(js_runner); }
 
     runtime_environment_t(
         extproc::pool_group_t *_pool_group,
@@ -59,7 +59,7 @@ public:
           js_runner(_js_runner),
           interruptor(_interruptor),
           this_machine(_this_machine)
-    { }
+    { rassert(js_runner); }
 
     /* This is put in a seperate structure so that it can be made serializable. */
     scopes_t scopes;

@@ -192,6 +192,7 @@ module 'MachineView', ->
 
 
     class @Overview extends Backbone.View
+        #TODO: Add network and CPU if relevant?
         className: 'machine-overview'
         container_template: Handlebars.compile $('#machine_overview-container-template').html()
         pie_disk_template: Handlebars.compile $('#machine_overview-pie_disk-container-template').html()
@@ -207,10 +208,6 @@ module 'MachineView', ->
             @.$el.html @container_template
                 is_assigned: @model.get('datacenter_uuid')?
                 machine_id: @model.get 'id'
-            @render_pie_disk()
-            @render_pie_ram()
-
-            #TODO: Add network and CPU if relevant?
             return @
 
         render_pie_disk: =>
@@ -326,7 +323,8 @@ module 'MachineView', ->
 
 
         destroy: =>
-            @model.on 'change:stats', @render_disk
+            @model.off 'change:stats', @render_pie_disk
+            @model.off 'change:stats', @render_pie_ram
 
 
 
@@ -924,7 +922,3 @@ module 'MachineView', ->
         on_success: (response) =>
             machines.get(@machine_to_unassign.get('id')).set('datacenter_uuid', null)
             clear_modals()
-            
-        on_error: (response) =>
-            #TODO implement
-

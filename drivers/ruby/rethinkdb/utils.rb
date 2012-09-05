@@ -24,6 +24,7 @@ module RethinkDB
     def query_rewrites
       { :getattr => :attr, :implicit_getattr => :attr,
         :hasattr => :attr, :implicit_hasattr => :attr,
+        :without => :attrs, :implicit_without => :attrs,
         :pickattrs => :attrs, :implicit_pickattrs => :attrs,
         :string => :valuestring, :json => :jsonstring, :bool => :valuebool,
         :if => :if_, :getbykey => :get_by_key, :groupedmapreduce => :grouped_map_reduce,

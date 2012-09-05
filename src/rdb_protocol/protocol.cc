@@ -190,7 +190,7 @@ public:
               ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
               ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
               ctx->semilattice_metadata,
-              boost::shared_ptr<js::runner_t>(),
+              boost::make_shared<js::runner_t>(),
               ctx->signals[get_thread_id()].get(),
               ctx->machine_id)
     { }
@@ -373,7 +373,7 @@ public:
               ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
               ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
               ctx->semilattice_metadata,
-              boost::shared_ptr<js::runner_t>(),
+              boost::make_shared<js::runner_t>(),
               ctx->signals[get_thread_id()].get(),
               ctx->machine_id)
     { }
