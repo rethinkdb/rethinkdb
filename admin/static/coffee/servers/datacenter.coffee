@@ -267,8 +267,8 @@ module 'DatacenterView', ->
         disk_repartition_template: Handlebars.compile $('#datacenter-disk_repartition-template').html()
 
         initialize: =>
-            @listener_set = false
-
+            machines.on 'all', @render_ram_repartition
+            machines.on 'all', @render_disk_repartition
 
         events:
             'click rect': 'redirect_to_server'
@@ -289,13 +289,8 @@ module 'DatacenterView', ->
             @.$('#'+event.target.dataset.target).tooltip 'hide'
             $('.tooltip').remove()
             
-
-            
-
         render: =>
             @.$el.html @container_template {}
-            @render_ram_repartition()
-            @render_disk_repartition()
             return @
         
         render_ram_repartition: =>
@@ -344,17 +339,6 @@ module 'DatacenterView', ->
 
             @.$(class_container).html template_container
                 few_machines: machines_in_datacenter.length < 17
-            
-            #TODO Cheap hack. Should be removed later.
-            if $(class_diagram).length is 0
-                setTimeout(this_callback, 1000)
-                return
-            else
-                @.$(loading_text_class).css 'display', 'none'
-                if @set_listener is false
-                    @set_listener = true
-                    machines.on 'all', @render_ram_repartition
-                    machines.on 'all', @render_disk_repartition
 
             data_is_defined = true
             for machine in machines_in_datacenter
@@ -362,126 +346,130 @@ module 'DatacenterView', ->
                     data_is_defined = false
                     break
 
-            if data_is_defined
-                max_value = d3.max machines_in_datacenter, get_total
-                margin_width = 20
-                margin_height = 20
+            if $(class_diagram).length is 0 or data_is_defined is false
+                setTimeout(this_callback, 1000)
+                return
+            else
+                @.$(loading_text_class).css 'display', 'none'
 
-                margin_width_inner = 20
-                width = 28
-                margin_bar = 2
+            max_value = d3.max machines_in_datacenter, get_total
+            margin_width = 20
+            margin_height = 20
 
-                # Compute the width of the graph
-                if machines_in_datacenter.length < 17
-                    svg_width = margin_width+margin_width_inner+(width+margin_bar)*machines_in_datacenter.length+margin_width_inner+margin_width
-                    svg_height = 270
-                    container_width = Math.max svg_width, 350
+            margin_width_inner = 20
+            width = 28
+            margin_bar = 2
+
+            # Compute the width of the graph
+            if machines_in_datacenter.length < 17
+                svg_width = margin_width+margin_width_inner+(width+margin_bar)*machines_in_datacenter.length+margin_width_inner+margin_width
+                svg_height = 270
+                container_width = Math.max svg_width, 350
+            else
+                if margin_width+margin_width_inner+(width+margin_bar)*machines_in_datacenter.length+margin_width_inner+margin_width > 700
+                    svg_width = 700
+                    width_and_margin = (700-margin_width*2-margin_width_inner*2)/machines_in_datacenter.length
+                    width = width_and_margin/30*28
+                    margin_bar = width_and_margin/30*2
                 else
-                    if margin_width+margin_width_inner+(width+margin_bar)*machines_in_datacenter.length+margin_width_inner+margin_width > 700
-                        svg_width = 700
-                        width_and_margin = (700-margin_width*2-margin_width_inner*2)/machines_in_datacenter.length
-                        width = width_and_margin/30*28
-                        margin_bar = width_and_margin/30*2
-                    else
-                        svg_width = margin_width+margin_width_inner+(width+margin_bar)*machines_in_datacenter.length+margin_width_inner+margin_width
-                    svg_height = 350
-                    container_width = svg_width
+                    svg_width = margin_width+margin_width_inner+(width+margin_bar)*machines_in_datacenter.length+margin_width_inner+margin_width
+                svg_height = 350
+                container_width = svg_width
 
-                # Set graph's container width
-                @.$(class_graph).css('width', container_width+'px')
+            # Set graph's container width
+            @.$(class_graph).css('width', container_width+'px')
 
-                y = d3.scale.linear().domain([0, max_value]).range([1, svg_height-margin_height*2.5])
+            y = d3.scale.linear().domain([0, max_value]).range([1, svg_height-margin_height*2.5])
 
-                svg = d3.select(class_diagram).attr('width', svg_width).attr('height', svg_height).append('svg:g')
-                svg.selectAll(class_free_bar).data(machines_in_datacenter)
-                    .enter()
-                    .append('rect')
-                    .attr('class', class_free_bar)
-                    .attr('x', (d, i) ->
-                        return margin_width+margin_width_inner+(width+margin_bar)*i
-                    )
-                    .attr('y', (d) ->
-                        return svg_height-y(get_total(d))-margin_height-1
-                    ) #-1 not to overlap with axe
-                    .attr('width', width)
-                    .attr( 'height', (d) ->
-                        return y(get_total(d) - get_used(d))
-                    )
-                    .attr('data-id', (d) -> return d.get('id'))
-                    .attr('id', (d) -> return y_title+'-'+d.get('id'))
-                    .attr('data-target', (d) -> return y_title+'-'+d.get('id'))
-                    .attr('title', (d) -> 
-                        return machines.get(d.get('id')).get('name') + '<br/>' + human_readable_units(get_used(d), units_space) + '/' + human_readable_units(get_total(d), units_space)
-                    )
+            svg = d3.select(class_diagram).attr('width', svg_width).attr('height', svg_height).append('svg:g')
+            svg.selectAll(class_free_bar).data(machines_in_datacenter)
+                .enter()
+                .append('rect')
+                .attr('class', class_free_bar)
+                .attr('x', (d, i) ->
+                    return margin_width+margin_width_inner+(width+margin_bar)*i
+                )
+                .attr('y', (d) ->
+                    return svg_height-y(get_total(d))-margin_height-1
+                ) #-1 not to overlap with axe
+                .attr('width', width)
+                .attr( 'height', (d) ->
+                    return y(get_total(d) - get_used(d))
+                )
+                .attr('data-id', (d) -> return d.get('id'))
+                .attr('id', (d) -> return y_title+'-'+d.get('id'))
+                .attr('data-target', (d) -> return y_title+'-'+d.get('id'))
+                .attr('title', (d) -> 
+                    return machines.get(d.get('id')).get('name') + '<br/>' + human_readable_units(get_used(d), units_space) + '/' + human_readable_units(get_total(d), units_space)
+                )
 
-                svg.selectAll(class_used_bar).data(machines_in_datacenter)
-                    .enter()
-                    .append('rect')
-                    .attr('class', class_used_bar)
-                    .attr('x', (d, i) ->
-                        return margin_width+margin_width_inner+(width+margin_bar)*i
-                    )
-                    .attr('y', (d) ->
-                        return svg_height-y(get_used(d))-margin_height-1
-                    ) #-1 not to overlap with axe
-                    .attr('width', width)
-                    .attr( 'height', (d) ->
-                        return y(get_used(d))
-                    )
-                    .attr('data-id', (d) -> return d.get('id'))
-                    .attr('data-target', (d) -> return y_title+'-'+d.get('id'))
-           
+            svg.selectAll(class_used_bar).data(machines_in_datacenter)
+                .enter()
+                .append('rect')
+                .attr('class', class_used_bar)
+                .attr('x', (d, i) ->
+                    return margin_width+margin_width_inner+(width+margin_bar)*i
+                )
+                .attr('y', (d) ->
+                    return svg_height-y(get_used(d))-margin_height-1
+                ) #-1 not to overlap with axe
+                .attr('width', width)
+                .attr( 'height', (d) ->
+                    return y(get_used(d))
+                )
+                .attr('data-id', (d) -> return d.get('id'))
+                .attr('data-target', (d) -> return y_title+'-'+d.get('id'))
+       
 
-                arrow_width = 4
-                arrow_length = 7
-                extra_data = []
-                extra_data.push
-                    x1: margin_width
-                    x2: margin_width
-                    y1: margin_height
-                    y2: svg_height-margin_height
+            arrow_width = 4
+            arrow_length = 7
+            extra_data = []
+            extra_data.push
+                x1: margin_width
+                x2: margin_width
+                y1: margin_height
+                y2: svg_height-margin_height
 
-                extra_data.push
-                    x1: margin_width
-                    x2: margin_width+margin_width_inner+(width+margin_bar)*machines_in_datacenter.length+margin_width_inner
-                    y1: svg_height-margin_height
-                    y2: svg_height-margin_height
+            extra_data.push
+                x1: margin_width
+                x2: margin_width+margin_width_inner+(width+margin_bar)*machines_in_datacenter.length+margin_width_inner
+                y1: svg_height-margin_height
+                y2: svg_height-margin_height
 
-                svg = d3.select(class_diagram).attr('width', svg_width).attr('height', svg_height).append('svg:g')
-                svg.selectAll('line').data(extra_data).enter().append('line')
-                    .attr('x1', (d) -> return d.x1)
-                    .attr('x2', (d) -> return d.x2)
-                    .attr('y1', (d) -> return d.y1)
-                    .attr('y2', (d) -> return d.y2)
-                    .style('stroke', '#000')
+            svg = d3.select(class_diagram).attr('width', svg_width).attr('height', svg_height).append('svg:g')
+            svg.selectAll('line').data(extra_data).enter().append('line')
+                .attr('x1', (d) -> return d.x1)
+                .attr('x2', (d) -> return d.x2)
+                .attr('y1', (d) -> return d.y1)
+                .attr('y2', (d) -> return d.y2)
+                .style('stroke', '#000')
 
-                axe_legend = []
-                axe_legend.push
-                    x: margin_width
-                    y: Math.floor(margin_height/2)
-                    anchor: 'middle'
-                    string: y_title
-                axe_legend.push
-                    x: Math.floor(svg_width/2)
-                    y: svg_height
-                    anchor: 'middle'
-                    string: x_title
+            axe_legend = []
+            axe_legend.push
+                x: margin_width
+                y: Math.floor(margin_height/2)
+                anchor: 'middle'
+                string: y_title
+            axe_legend.push
+                x: Math.floor(svg_width/2)
+                y: svg_height
+                anchor: 'middle'
+                string: x_title
 
-                svg.selectAll('.legend')
-                    .data(axe_legend).enter().append('text')
-                    .attr('class', 'legend')
-                    .attr('x', (d) -> return d.x)
-                    .attr('y', (d) -> return d.y)
-                    .attr('text-anchor', (d) -> return d.anchor)
-                    .text((d) -> return d.string)
+            svg.selectAll('.legend')
+                .data(axe_legend).enter().append('text')
+                .attr('class', 'legend')
+                .attr('x', (d) -> return d.x)
+                .attr('y', (d) -> return d.y)
+                .attr('text-anchor', (d) -> return d.anchor)
+                .text((d) -> return d.string)
 
-                @.$('rect').tooltip
-                    trigger: 'manual'
+            @.$('rect').tooltip
+                trigger: 'manual'
 
         destroy: =>
-            if @set_listener
-                machines.off 'all', @render_ram_repartition
-                machines.off 'all', @render_disk_repartition
+            machines.off 'all', @render_ram_repartition
+            machines.off 'all', @render_disk_repartition
 
     class @Data extends Backbone.View
         className: 'datacenter-data-view'
@@ -725,8 +713,8 @@ module 'DatacenterView', ->
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify data
-                dataType: 'json',
-                success: @on_success,
+                dataType: 'json'
+                success: @on_success
                 error: @on_error
 
         on_success: (response) =>
@@ -740,7 +728,3 @@ module 'DatacenterView', ->
             window.router.navigate '#servers'
             window.app.index_servers
                 alert_message: "The datacenter #{name} was successfully deleted."
-            
-        on_error: (response) =>
-            #TODO implement
-            console.log response

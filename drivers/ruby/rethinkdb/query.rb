@@ -74,6 +74,10 @@ module RethinkDB
     def method_missing(m, *args, &block)
       Multi_Row_Selection.new(@body).send(m, *args, &block);
     end
+
+    def to_mrs
+      Multi_Row_Selection.new(@body)
+    end
   end
 end
 
