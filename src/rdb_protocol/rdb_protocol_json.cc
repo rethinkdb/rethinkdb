@@ -25,9 +25,19 @@ namespace query_language {
 
 // TODO: Rename this function!  It is not part of the cJSON library,
 // so it should not be part of the cJSON namepace.
+static const int cJSON_rank[7] = {
+    [cJSON_Array]  = 0,  //5
+    [cJSON_False]  = 1,  //0
+    [cJSON_True]   = 2,  //1
+    [cJSON_NULL]   = 3,  //2
+    [cJSON_Number] = 4,  //3
+    [cJSON_Object] = 5,  //6
+    [cJSON_String] = 6}; //4
 int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace) {
     if (l->type != r->type) {
-        return l->type - r->type;
+        rassert(0 <= l->type && l->type < int(sizeof(cJSON_rank)/sizeof(*cJSON_rank)));
+        rassert(0 <= r->type && r->type < int(sizeof(cJSON_rank)/sizeof(*cJSON_rank)));
+        return cJSON_rank[l->type] - cJSON_rank[r->type];
     }
     switch (l->type) {
         case cJSON_False:
@@ -45,7 +55,7 @@ int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace) {
             }
             break;
         case cJSON_NULL:
-            return 1;
+            return 0;
             break;
         case cJSON_Number:
             if (l->valuedouble < r->valuedouble) {
