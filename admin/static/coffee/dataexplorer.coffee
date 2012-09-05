@@ -41,7 +41,8 @@ module 'DataExplorerView', ->
             'click .change_size': 'toggle_size'
 
         displaying_full_view: false
-
+        has_been_initialized:
+            value: false #We use that boolean to track if suggestions['stream'] has been append to suggestions['table']
         map_state:
             '': ''
             'r': 'r'
@@ -632,9 +633,10 @@ module 'DataExplorerView', ->
             @.$('.input_query').val event.target.dataset.query
 
         initialize: =>
-            log_initial '(initializing) dataexplorer view'
-            for suggestion in @suggestions.stream
-                @suggestions.table.push suggestion
+            if @has_been_initialized.value is false
+                for suggestion in @suggestions.stream
+                    @suggestions.table.push suggestion
+                @has_been_initialized.value = true
             
             host = window.location.hostname
             port = window.location.port
