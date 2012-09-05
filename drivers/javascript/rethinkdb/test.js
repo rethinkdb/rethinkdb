@@ -189,6 +189,23 @@ function testBetween() {
     }));
 }
 
+function testGroupedMapReduce() {
+    tab.groupedMapReduce(function(row) {
+        if (row.id < 5) {
+            return 0;
+        } else {
+            return 1;
+        }
+    }, function(row) {
+        return row.num;
+    }, 0, function(acc, num) {
+        return acc + num;
+    }).run(objeq([
+            {group:0, reduction:90},
+            {group:1, reduction:65}
+    ]));
+}
+
 function testUpdate1() {
     tab.update(function(a) {
         a.updated = true;
@@ -264,6 +281,7 @@ function testForEach3() {
 }
 
 function testClose() {
+    tab.del().run();
     conn.close();
 }
 
@@ -292,6 +310,7 @@ runTests([
     testTabReduce,
     testJS,
     testBetween,
+    testGroupedMapReduce,
     testUpdate1,
     testUpdate2,
     testMutate1,

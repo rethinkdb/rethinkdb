@@ -530,6 +530,42 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'reduce',
                     rethinkdb.query.Expression.prototype.reduce);
 
 /**
+ * Divides the stream into sets and then performs a map reduce per set
+ */
+rethinkdb.query.Expression.prototype.groupedMapReduce = function(grouping, mapping, base, reduce) {
+    grouping = functionWrap_(grouping);
+    mapping  = functionWrap_(mapping);
+    base     = wrapIf_(base);
+    reduce   = functionWrap_(reduce);
+
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.GROUPEDMAPREDUCE, [this],
+        function(builtin) {
+            var groupMapping = new Mapping();
+            groupMapping.setArg(grouping.args[0]);
+            groupMapping.setBody(grouping.body.compile());
+
+            var valueMapping = new Mapping();
+            valueMapping.setArg(mapping.args[0]);
+            valueMapping.setBody(mapping.body.compile());
+
+            var reduction = new Reduction();
+            reduction.setBase(base.compile());
+            reduction.setVar1(reduce.args[0]);
+            reduction.setVar2(reduce.args[1]);
+            reduction.setBody(reduce.body.compile());
+
+            var groupedMapReduce = new Builtin.GroupedMapReduce();
+            groupedMapReduce.setGroupMapping(groupMapping);
+            groupedMapReduce.setValueMapping(valueMapping);
+            groupedMapReduce.setReduction(reduction);
+
+            builtin.setGroupedMapReduce(groupedMapReduce);
+        });
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'groupedMapReduce',
+                    rethinkdb.query.Expression.prototype.groupedMapReduce);
+
+/**
  * Returns true if expression has given attribute
  */
 rethinkdb.query.Expression.prototype.hasAttr = function(attr) {
