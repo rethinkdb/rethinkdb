@@ -14,7 +14,6 @@ module 'DatabaseView', ->
 
     # Container for the entire database view
     class @Container extends Backbone.View
-        #TODO Add a class to keep alert when adding multiple databases
         className: 'database-view'
         template: Handlebars.compile $('#database_view-container-template').html()
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
