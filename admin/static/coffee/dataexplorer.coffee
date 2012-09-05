@@ -484,20 +484,35 @@ module 'DataExplorerView', ->
 
             return false
         
+        # Extract the last function of the current line
         extract_last_function: (query) =>
             start = 0
             count_dot = 0
             num_not_open_parenthesis = 0
+
+            is_string = false
+            char_used = ""
             for i in [query.length-1..0] by -1
-                if query[i] is ')'
-                    num_not_open_parenthesis++
-                else if query[i] is '('
-                    num_not_open_parenthesis--
-                else if query[i] is '.' and num_not_open_parenthesis <= 0
-                    count_dot++
-                    if count_dot is 2
-                        start = i+1
-                        break
+                if is_string is false
+                    if (query[i] is '"' or query[i] is '\'')
+                        is_string = true
+                        char_used = query[i]
+                    else if query[i] is '('
+                        num_not_open_parenthesis--
+                    else if query[i] is ')'
+                        num_not_open_parenthesis++
+                    else if query[i] is '.' and num_not_open_parenthesis <= 0
+                        count_dot++
+                        if count_dot is 2
+                            start = i+1
+                            break
+                else if is_string is true
+                    if query[i] is char_used
+                        if query[i-1]? and query[i-1] is '\\'
+                            continue
+                        else
+                            is_string = false
+
             dot_position = query.indexOf('.', start) 
             dot_position = query.length if dot_position is -1
             parenthesis_position = query.indexOf('(', start) 
