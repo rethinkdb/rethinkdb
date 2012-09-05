@@ -204,6 +204,18 @@ module 'DataExplorerView', ->
                 }
 
             ]
+            array :[
+                {
+                    suggestion: 'length()'
+                    description : 'Return the length of the array'
+                    has_argument: false
+                }
+                {
+                    suggestion: 'limit()'
+                    description : 'limit( number )'
+                    has_argument: true
+                }
+            ]
             "" :[
                 {
                     suggestion: 'r'
@@ -500,23 +512,29 @@ module 'DataExplorerView', ->
         # Return the position of the beggining of the first subquery
         extract_query_first_part: (query) ->
             is_string = false
+            char_used = ""
             count_opening_parenthesis = 0
             for i in [query.length-1..0] by -1
-                if query[i] is '"'
-                    is_string = !is_string
-                else
-                    if is_string
-                        continue
-                    else
-                        if query[i] is '('
-                            count_opening_parenthesis++
-                            if count_opening_parenthesis > 0
-                                k = 0
-                                while query[i+1+k]? and /\s/.test(query[i+1+k])
-                                    k++
-                                return i+1+k
-                        else if query[i] is ')'
-                            count_opening_parenthesis--
+                if is_string is false
+                    if (query[i] is '"' or query[i] is '\'')
+                        is_string = true
+                        char_used = query[i]
+                    else if query[i] is '('
+                        count_opening_parenthesis++
+                        if count_opening_parenthesis > 0
+                            k = 0
+                            while query[i+1+k]? and /\s/.test(query[i+1+k])
+                                k++
+                            return i+1+k
+                    else if query[i] is ')'
+                        count_opening_parenthesis--
+
+                else if is_string is true
+                    if query[i] is char_used
+                        if query[i-1]? and query[i-1] is '\\'
+                            continue
+                        else
+                            is_string = false
             return 0
 
         append_suggestion: (query, suggestions) =>
@@ -785,10 +803,6 @@ module 'DataExplorerView', ->
             'click .link_to_raw_view': 'expand_raw_textarea'
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
-            ### No editing for now
-            'keypress .jt_editable': 'handle_keypress'
-            'blur .jt_editable': 'send_update'
-            ###
             # For Table view
             'mousedown td': 'handle_mousedown'
             'click .jta_arrow_v': 'expand_tree_in_table'
@@ -1176,9 +1190,6 @@ module 'DataExplorerView', ->
                 @.$('suggestion_name_list').css 'display', 'none'
                 @.$(event.target).blur()
 
-        on_editable_blur: (data) ->
-            @send_update(data)
-
 
         #TODO Fix it for Firefox
         expand_raw_textarea: =>
@@ -1191,12 +1202,6 @@ module 'DataExplorerView', ->
             if $('.'+classname).length > 0
                 height = $('.'+classname)[0].scrollHeight
                 $('.'+classname).height(height)
-
-        #TODO complete method
-        #TODO change color
-        #TOOD handle change type
-        send_update: (target) ->
-            console.log 'update'
 
     class @DefaultView extends Backbone.View
         className: 'helper_view'
