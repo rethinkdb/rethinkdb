@@ -20,13 +20,13 @@ from rethinkdb import *
 import rethinkdb.internal
 
 class PrettyPrintTest(unittest.TestCase):
-    # @classmethod
-    # def setUpClass(cls):
-    #     cls.conn = connect(
-    #         os.environ.get('HOST', 'localhost'),
-    #         int(os.environ.get('PORT', 12346+2010))
-    #         )
-    #     cls.table = table(os.environ.get('DB_NAME', 'Welcome-db') + "." + os.environ.get('TABLE_NAME', 'Welcome-rdb'))
+    @classmethod
+    def setUpClass(cls):
+        cls.conn = connect(
+            os.environ.get('HOST', 'localhost'),
+            int(os.environ.get('PORT', 12346+2010))
+            )
+        cls.table = table(os.environ.get('DB_NAME', 'Welcome-db') + "." + os.environ.get('TABLE_NAME', 'Welcome-rdb'))
 
     def test_pretty_print(self):
         self.assertEqual(str(expr(44)), "expr(44)")
@@ -34,6 +34,14 @@ class PrettyPrintTest(unittest.TestCase):
 
         # Make sure this doesn't crash
         str(expr([1,2,3]).to_stream().map(fn("x", R("$x") * 2)))
+
+    def test_backtraces(self):
+        try:
+            self.conn.run(expr({"a": 1})["floop"])
+        except ExecutionError, e:
+            self.assertIn("floop", e.location())
+        else:
+            raise ValueError("that was supposed to fail")
 
 if __name__ == "__main__":
     unittest.main()

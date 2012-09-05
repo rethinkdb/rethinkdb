@@ -1,5 +1,4 @@
 import query
-
 import query_language_pb2 as p
 
 ###################
@@ -10,11 +9,13 @@ PRETTY_PRINT_EXPR_WRAPPED = "wrapped"
 PRETTY_PRINT_EXPR_UNWRAPPED = "unwrapped"
 
 class PrettyPrinter(object):
-    def expr_wrapped(self, expr, backtrace_step):
+    def expr_wrapped(self, expr, backtrace_steps):
         raise NotImplementedError()
-    def expr_unwrapped(self, expr, backtrace_step):
+    def expr_unwrapped(self, expr, backtrace_steps):
         raise NotImplementedError()
-    def write_query(self, query, backtrace_step):
+    def write_query(self, query, backtrace_steps):
+        raise NotImplementedError()
+    def simple_string(self, string, backtrace_steps):
         raise NotImplementedError()
 
 class ReprPrettyPrinter(PrettyPrinter):
@@ -36,57 +37,8 @@ class ReprPrettyPrinter(PrettyPrinter):
         assert isinstance(backtrace_steps, list)
         return wq._inner.pretty_print(self)
 
-PRETTY_PRINT_BEGIN_TARGET = "\0begin\0"
-PRETTY_PRINT_END_TARGET = "\0end\0"
-
-class BacktracePrettyPrinter(PrettyPrinter):
-    def __init__(self, current_backtrace, target_backtrace):
-        self.current_backtrace = current_backtrace
-        self.target_backtrace = target_backtrace
-
-    def consider_backtrace(self, string, backtrace_steps):
-        complete_backtrace = self.current_backtrace + backtrace_steps
-        if complete_backtrace == self.target_backtrace:
-            assert PRETTY_PRINT_BEGIN_TARGET not in string
-            assert PRETTY_PRINT_END_TARGET not in string
-            return PRETTY_PRINT_BEGIN_TARGET + string + PRETTY_PRINT_END_TARGET
-        else:
-            prefix_match_length = 0
-            while True:
-                if prefix_match_length == len(complete_backtrace):
-                    # We're on the path to the target term.
-                    return string
-                elif prefix_match_length == len(self.target_backtrace):
-                    # We're a sub-term of the target term.
-                    if len(complete_backtrace) > len(self.target_backtrace) + 2 or len(string) > 60:
-                        # Don't keep recursing for very long after finding the target
-                        return "..." if len(string) > 8 else string
-                    else:
-                        return string
-                else:
-                    if complete_backtrace[prefix_match_length] == self.target_backtrace[prefix_match_length]:
-                        prefix_match_length += 1
-                    else:
-                        # We're not on the path to the target term.
-                        if len(complete_backtrace) > prefix_match_length + 2 or len(string) > 60:
-                            # Don't keep recursing for very long on a side branch of the tree.
-                            return "..." if len(string) > 8 else string
-                        else:
-                            return string
-
-    def expr_wrapped(self, expr, backtrace_steps):
-        string, wrapped = expr._inner.pretty_print(BacktracePrettyPrinter(self.current_backtrace + backtrace_steps, self.target_backtrace))
-        if wrapped == PRETTY_PRINT_EXPR_UNWRAPPED:
-            string = "expr(%s)" % string
-        return self.consider_backtrace(string, backtrace_steps)
-
-    def expr_unwrapped(self, expr, backtrace_steps):
-        string = expr._inner.pretty_print(BacktracePrettyPrinter(self.current_backtrace + backtrace_steps, self.target_backtrace))[0]
-        return self.consider_backtrace(string, backtrace_steps)
-
-    def write_query(self, wq, backtrace_steps):
-        string = wq._inner.pretty_print(BacktracePrettyPrinter(self.current_backtrace + backtrace_steps, self.target_backtrace))
-        return self.consider_backtrace(string, backtrace_steps)
+    def simple_string(self, string, backtrace_steps):
+        return string
 
 #####################################
 # DATABASE AND TABLE ADMINISTRATION #
@@ -266,7 +218,7 @@ class LiteralObject(ExpressionInner):
         self.value = dict((k, query.expr(v)) for k, v in value.iteritems())
     def _write_ast(self, parent):
         parent.type = p.Term.OBJECT
-        for k, v in self.value:
+        for k, v in self.value.iteritems():
             pair = parent.object.add()
             pair.var = k
             v._inner._write_ast(pair.term)
@@ -446,7 +398,10 @@ class Attr(ExpressionInner):
         self._write_call(parent, p.Builtin.GETATTR, self.parent)
         parent.call.builtin.attr = self.key
     def pretty_print(self, printer):
-        return ("%s[%r]" % (printer.expr_wrapped(self.parent, ["arg:0"]), self.key), PRETTY_PRINT_EXPR_WRAPPED)
+        return ("%s[%s]" % (
+                printer.expr_wrapped(self.parent, ["arg:0"]),
+                printer.simple_string(repr(self.key), ["attr"])),
+            PRETTY_PRINT_EXPR_WRAPPED)
 
 class ImplicitAttr(ExpressionInner):
     def __init__(self, attr):

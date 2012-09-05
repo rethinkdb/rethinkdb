@@ -2,14 +2,132 @@
 network. It is used to send ReQL commands to RethinkDB in order to do
 data manipulation."""
 
+__all__ = ["QueryError", "ExecutionError", "BadQueryError",
+    "BatchedIterator",
+    "Connection", "connect"]
+
 import json
 import socket
 import struct
 
 import query_language_pb2 as p
-import errors
+import query
+import internal
 
 last_connection = None
+
+PRETTY_PRINT_BEGIN_TARGET = "\0begin\0"
+PRETTY_PRINT_END_TARGET = "\0end\0"
+
+class BacktracePrettyPrinter(internal.PrettyPrinter):
+    def __init__(self, current_backtrace, target_backtrace):
+        self.current_backtrace = current_backtrace
+        self.target_backtrace = target_backtrace
+
+    def consider_backtrace(self, string, backtrace_steps):
+        complete_backtrace = self.current_backtrace + backtrace_steps
+        if complete_backtrace == self.target_backtrace:
+            assert PRETTY_PRINT_BEGIN_TARGET not in string
+            assert PRETTY_PRINT_END_TARGET not in string
+            return PRETTY_PRINT_BEGIN_TARGET + string + PRETTY_PRINT_END_TARGET
+        else:
+            prefix_match_length = 0
+            while True:
+                if prefix_match_length == len(complete_backtrace):
+                    # We're on the path to the target term.
+                    return string
+                elif prefix_match_length == len(self.target_backtrace):
+                    # We're a sub-term of the target term.
+                    if len(complete_backtrace) > len(self.target_backtrace) + 2 or len(string) > 60:
+                        # Don't keep recursing for very long after finding the target
+                        return "..." if len(string) > 8 else string
+                    else:
+                        return string
+                else:
+                    if complete_backtrace[prefix_match_length] == self.target_backtrace[prefix_match_length]:
+                        prefix_match_length += 1
+                    else:
+                        # We're not on the path to the target term.
+                        if len(complete_backtrace) > prefix_match_length + 2 or len(string) > 60:
+                            # Don't keep recursing for very long on a side branch of the tree.
+                            return "..." if len(string) > 8 else string
+                        else:
+                            return string
+
+    def expr_wrapped(self, expr, backtrace_steps):
+        string, wrapped = expr._inner.pretty_print(BacktracePrettyPrinter(self.current_backtrace + backtrace_steps, self.target_backtrace))
+        if wrapped == internal.PRETTY_PRINT_EXPR_UNWRAPPED:
+            string = "expr(%s)" % string
+        return self.consider_backtrace(string, backtrace_steps)
+
+    def expr_unwrapped(self, expr, backtrace_steps):
+        string = expr._inner.pretty_print(BacktracePrettyPrinter(self.current_backtrace + backtrace_steps, self.target_backtrace))[0]
+        return self.consider_backtrace(string, backtrace_steps)
+
+    def write_query(self, wq, backtrace_steps):
+        string = wq._inner.pretty_print(BacktracePrettyPrinter(self.current_backtrace + backtrace_steps, self.target_backtrace))
+        return self.consider_backtrace(string, backtrace_steps)
+
+    def simple_string(self, string, backtrace_steps):
+        return self.consider_backtrace(string, backtrace_steps)
+
+class QueryError(StandardError):
+    def __init__(self, message, ast_path, query):
+        self.message = message
+        self.ast_path = ast_path
+        self.query = query
+
+    def location(self):
+        printer = BacktracePrettyPrinter([], self.ast_path)
+        if isinstance(self.query, query.ReadQuery):
+            query_str = printer.expr_wrapped(self.query, [])
+        elif isinstance(self.query, query.WriteQuery):
+            query_str = printer.write_query(self.query, [])
+        elif isinstance(self.query, query.MetaQuery):
+            raise NotImplementedError()
+
+        # Draw a row of carets under the part of `query_str` that is bracketed
+        # by `PRETTY_PRINT_BEGIN_TARGET` and `PRETTY_PRINT_END_TARGET`.
+        if not (query_str.count(PRETTY_PRINT_BEGIN_TARGET) == query_str.count(PRETTY_PRINT_END_TARGET) == 1):
+            raise ValueError("Internal error: can't follow path %r in %r" % (self.ast_path, self.query))
+        formatted_lines = []
+        in_target = False
+        for line in query_str.split("\n"):
+            line = line.rstrip(" ")
+            if not in_target:
+                if PRETTY_PRINT_BEGIN_TARGET in line:
+                    if PRETTY_PRINT_END_TARGET in line:
+                        before, rest = line.split(PRETTY_PRINT_BEGIN_TARGET)
+                        target, after = rest.split(PRETTY_PRINT_END_TARGET)
+                        formatted_lines.append(before + target + after)
+                        formatted_lines.append(" " * len(before) + "^" * len(target))
+                    else:
+                        before, after = line.split(PRETTY_PRINT_BEGIN_TARGET)
+                        formatted_lines.append(before + after)
+                        formatted_lines.append(" " * len(before) + "^" * len(after))
+                        in_target = True
+                else:
+                    formatted_lines.append(line)
+            else:
+                without_spaces = line.lstrip(" ")
+                spaces = " " * (len(line) - len(without_spaces))
+                if PRETTY_PRINT_END_TARGET in without_spaces:
+                    before, after = without_spaces.split(PRETTY_PRINT_END_TARGET)
+                    formatted_lines.append(spaces + before + after)
+                    formatted_lines.append(spaces + "^" * len(before))
+                    in_target = False
+                else:
+                    formatted_lines.append(spaces + without_spaces)
+                    formatted_lines.append(spaces + "^" * len(without_spaces))
+        return "\n".join(formatted_lines)
+
+class ExecutionError(QueryError):
+    def __str__(self):
+        return "Error while executing query on server: %s" % self.message + "\n" + self.location()
+
+class BadQueryError(QueryError):
+    def __str__(self):
+        return "Illegal query: %s" % self.message + "\n" + self.location()
 
 class BatchedIterator(object):
     """A result stream from the server that lazily fetches results"""
@@ -161,9 +279,9 @@ class Connection():
         elif code == p.Response.SUCCESS_EMPTY:
             return None, code
         elif code == p.Response.RUNTIME_ERROR:
-            raise errors.ExecutionError(response.error_message, response.backtrace.frame, query)
+            raise ExecutionError(response.error_message, response.backtrace.frame, query)
         elif code == p.Response.BAD_QUERY:
-            raise errors.BadQueryError(response.error_message, response.backtrace.frame, query)
+            raise BadQueryError(response.error_message, response.backtrace.frame, query)
         elif code == p.Response.BROKEN_CLIENT:
             raise ValueError("RethinkDB server rejected our protocol buffer as "
                 "malformed. RethinkDB client is buggy?")
