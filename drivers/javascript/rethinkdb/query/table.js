@@ -70,7 +70,7 @@ rethinkdb.query.InsertQuery = function(table, docs) {
     if (!goog.isArray(docs))
         docs = [docs];
 
-    this.docs_ = docs;
+    this.docs_ = docs.map(rethinkdb.query.expr);
 };
 goog.inherits(rethinkdb.query.InsertQuery, rethinkdb.query.BaseQuery);
 
@@ -83,8 +83,7 @@ rethinkdb.query.InsertQuery.prototype.buildQuery = function() {
     insert.setTableRef(tableRef);
 
     for (var i = 0; i < this.docs_.length; i++) {
-        var jsonExpr = new rethinkdb.query.JSONExpression(this.docs_[i]);
-        insert.addTerms(jsonExpr.compile());
+        insert.addTerms(this.docs_[i].compile());
     }
 
     var writeQuery = new WriteQuery();

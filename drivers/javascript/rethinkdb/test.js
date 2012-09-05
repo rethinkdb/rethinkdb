@@ -172,8 +172,6 @@ function testJS() {
         return val > 16;
     }).length().run(aeq(6));
 
-    // Crashes the server
-    /*
     tab.filter(function(row) {
         return row.num > 16;
     }).map(function(row) {
@@ -181,7 +179,6 @@ function testJS() {
     }).reduce(0, function(acc, val) {
         return acc + val;
     }).run(aeq(296));
-    */
 }
 
 function testBetween() {
@@ -244,6 +241,28 @@ function testDelete2() {
     tab.length().run(aeq(0));
 }
 
+function testForEach1() {
+    q([1,2,3]).forEach(q.fn('a', tab.insert({id:q('$a'), fe:true}))).run(objeq({
+        inserted:3
+    }));
+}
+
+function testForEach2() {
+    tab.forEach(q.fn('a', tab.insert({id:q('$a.id').add(100), fe:true}))).run(objeq({
+        inserted:3
+    }));
+}
+
+function testForEach3() {
+    wait();
+    tab.run(function(res) {
+        for (var key in res) {
+            assertEquals(res[key]['fe'], true);
+        }
+        done();
+    });
+}
+
 function testClose() {
     conn.close();
 }
@@ -279,5 +298,8 @@ runTests([
     testMutate2,
     testDelete1,
     testDelete2,
+    testForEach1,
+    testForEach2,
+    testForEach3,
     testClose,
 ]);
