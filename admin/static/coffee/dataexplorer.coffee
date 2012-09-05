@@ -31,7 +31,7 @@ module 'DataExplorerView', ->
         template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
 
         events:
-            'click .input_query': 'handle_keypress' # Click and not focus for webkit browsers
+            'click .CodeMirror': 'handle_keypress'
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
             'mouseover .suggestion_name_li' : 'mouseover_suggestion'
             'mouseout .suggestion_name_li' : 'mouseout_suggestion'
@@ -706,7 +706,7 @@ module 'DataExplorerView', ->
                     name: 'javascript'
                     json: true
                 onKeyEvent: @handle_keypress
-                onFocus: @handle_keypress
+                #onCursorActivity: @handle_keypress
                 onBlur: @hide_suggestion
                 lineNumbers: true
                 lineWrapping: true
@@ -758,10 +758,6 @@ module 'DataExplorerView', ->
             @.$el.html @template()
             return @
 
-        destroy: ->
-            @.$('.input_query').off()
-
-
     class @DataContainer extends Backbone.View
         className: 'data_container'
         error_template: Handlebars.compile $('#dataexplorer-error-template').html()
@@ -789,6 +785,7 @@ module 'DataExplorerView', ->
 
         destroy: =>
             @default_view.destroy()
+            @result_view.destroy()
 
 
     class @ResultView extends Backbone.View
@@ -1218,6 +1215,10 @@ module 'DataExplorerView', ->
                 height = $('.'+classname)[0].scrollHeight
                 $('.'+classname).height(height)
 
+        destroy: =>
+            $(document).unbind 'mousemove', @handle_mousemove
+            $(document).unbind 'mouseup', @handle_mouseup
+
     class @DefaultView extends Backbone.View
         className: 'helper_view'
         template: Handlebars.compile $('#dataexplorer_default_view-template').html()
@@ -1259,4 +1260,4 @@ module 'DataExplorerView', ->
             return @
 
         destroy: ->
-            namespaces.off()
+            namespaces.off 'all', @render
