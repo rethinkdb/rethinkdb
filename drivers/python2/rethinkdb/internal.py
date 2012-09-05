@@ -14,14 +14,10 @@ class PrettyPrinter(object):
         raise NotImplementedError()
     def expr_unwrapped(self, expr, backtrace_step):
         raise NotImplementedError()
-    def mapping(self, mapping, backtrace_step):
-        raise NotImplementedError()
-    def reduction_base(self, expr, backtrace_step):
-        raise NotImplementedError()
-    def reduction_func(self, func, backtrace_step):
+    def write_query(self, query, backtrace_step):
         raise NotImplementedError()
 
-class ReprPrettyPrinter(object):
+class ReprPrettyPrinter(PrettyPrinter):
     def expr_wrapped(self, expr, backtrace_steps):
         assert isinstance(expr, query.ReadQuery)
         assert isinstance(backtrace_steps, list)
@@ -35,10 +31,15 @@ class ReprPrettyPrinter(object):
         assert isinstance(backtrace_steps, list)
         return expr._inner.pretty_print(self)[0]
 
+    def write_query(self, wq, backtrace_steps):
+        assert isinstance(wq, query.WriteQuery)
+        assert isinstance(backtrace_steps, list)
+        return wq._inner.pretty_print(self)
+
 PRETTY_PRINT_BEGIN_TARGET = "\0begin\0"
 PRETTY_PRINT_END_TARGET = "\0end\0"
 
-class BacktracePrettyPrinter(object):
+class BacktracePrettyPrinter(PrettyPrinter):
     def __init__(self, current_backtrace, target_backtrace):
         self.current_backtrace = current_backtrace
         self.target_backtrace = target_backtrace
@@ -79,8 +80,12 @@ class BacktracePrettyPrinter(object):
             string = "expr(%s)" % string
         return self.consider_backtrace(string, backtrace_steps)
 
-    def expr_unwrapped(self, expr, backtrace_step):
-        string = expr._inner.pretty_print(BacktracePrettyPrinter(self.current_backtrace + backtrace_steps, self.target_backtrace))
+    def expr_unwrapped(self, expr, backtrace_steps):
+        string = expr._inner.pretty_print(BacktracePrettyPrinter(self.current_backtrace + backtrace_steps, self.target_backtrace))[0]
+        return self.consider_backtrace(string, backtrace_steps)
+
+    def write_query(self, wq, backtrace_steps):
+        string = wq._inner.pretty_print(BacktracePrettyPrinter(self.current_backtrace + backtrace_steps, self.target_backtrace))
         return self.consider_backtrace(string, backtrace_steps)
 
 #####################################
@@ -138,7 +143,7 @@ class Insert(WriteQueryInner):
 
     def pretty_print(self, printer):
         return "%s.insert([%s])" % (
-            printer.expr_wrapped(self.table, "table_ref"),
+            printer.expr_wrapped(self.table, ["table_ref"]),
             ", ".join(printer.expr_unwrapped(e, ["terms:%d" % i]) for i, e in enumerate(self.entries)))
 
 class Delete(WriteQueryInner):
