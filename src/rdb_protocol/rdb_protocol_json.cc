@@ -27,7 +27,7 @@ namespace query_language {
    initializers for arrays, and this namespace wouldn't be necessary. */
 namespace cJSON_type_ordering {
 struct rank_wrapper {
-    int rank[7];
+    std::map<int, int> rank;
     rank_wrapper() {
         rank[cJSON_Array]  = 0;
         rank[cJSON_False]  = 1;
