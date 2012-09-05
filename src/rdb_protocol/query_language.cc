@@ -341,6 +341,8 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
     case Builtin::IMPLICIT_HASATTR:
         check_protobuf(b.has_attr());
         break;
+    case Builtin::WITHOUT:
+    case Builtin::IMPLICIT_WITHOUT:
     case Builtin::PICKATTRS:
     case Builtin::IMPLICIT_PICKATTRS:
         check_protobuf(b.attrs_size());
@@ -389,12 +391,14 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
         case Builtin::GETATTR:
         case Builtin::HASATTR:
         case Builtin::PICKATTRS:
+        case Builtin::WITHOUT:
             check_function_args(c, TERM_TYPE_JSON, 1, env, &deterministic, backtrace);
             return term_info_t(TERM_TYPE_JSON, deterministic);
             break;
         case Builtin::IMPLICIT_GETATTR:
         case Builtin::IMPLICIT_HASATTR:
         case Builtin::IMPLICIT_PICKATTRS:
+        case Builtin::IMPLICIT_WITHOUT:
             check_arg_count(c, 0, backtrace);
             if (!env->implicit_type.has_value() || env->implicit_type.get_value().type != TERM_TYPE_JSON) {
                 throw bad_query_exc_t("No implicit variable in scope", backtrace);
@@ -1707,6 +1711,25 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 }
             }
             break;
+        case Builtin::IMPLICIT_WITHOUT:
+        case Builtin::WITHOUT: {
+            boost::shared_ptr<scoped_cJSON_t> data;
+            if (c->builtin().type() == Builtin::WITHOUT) {
+                data = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
+            } else {
+                rassert(c->builtin().type() == Builtin::IMPLICIT_WITHOUT);
+                rassert(env->scopes.implicit_attribute_value.has_value());
+                data = env->scopes.implicit_attribute_value.get_value();
+            }
+            if (!data->type() == cJSON_Object) {
+                throw runtime_exc_t("Data must be an object", backtrace.with("arg:0"));
+            }
+            boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(data->DeepCopy()));
+            for (int i = 0; i < c->builtin().attrs_size(); ++i) {
+                res->DeleteItemFromObject(c->builtin().attrs(i).c_str());
+            }
+            return res;
+        } break;
         case Builtin::PICKATTRS:
         case Builtin::IMPLICIT_PICKATTRS:
             {
@@ -2253,6 +2276,8 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
         case Builtin::IMPLICIT_GETATTR:
         case Builtin::HASATTR:
         case Builtin::IMPLICIT_HASATTR:
+        case Builtin::WITHOUT:
+        case Builtin::IMPLICIT_WITHOUT:
         case Builtin::PICKATTRS:
         case Builtin::IMPLICIT_PICKATTRS:
         case Builtin::MAPMERGE:
@@ -2455,6 +2480,8 @@ view_t eval_view(Term::Call *c, runtime_environment_t *env, const backtrace_t &b
         case Builtin::IMPLICIT_GETATTR:
         case Builtin::HASATTR:
         case Builtin::IMPLICIT_HASATTR:
+        case Builtin::WITHOUT:
+        case Builtin::IMPLICIT_WITHOUT:
         case Builtin::PICKATTRS:
         case Builtin::IMPLICIT_PICKATTRS:
         case Builtin::MAPMERGE:

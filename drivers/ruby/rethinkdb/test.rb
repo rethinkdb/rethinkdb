@@ -74,6 +74,14 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.lt([], false, true, nil, 1, {}, "").run, true)
   end
 
+  def test_without
+    assert_equal(r[{:a => 1, :b => 2, :c => 3}].without(:a, :c).run, {'b' => 2})
+    assert_equal(rdb.orderby(:id).map{r.without(:name, :num)}.run,
+                 rdb.orderby(:id).map{|row| row.without(:name).without(:num)}.run)
+    assert_equal(r[{:a => 1}].without(:b).run, {'a' => 1})
+    assert_equal(r[{}].without(:b).run, {})
+  end
+
   def test_junctions # from python tests
     assert_equal(r.any(false).run, false)
     assert_equal(r.any(true, false).run, true)

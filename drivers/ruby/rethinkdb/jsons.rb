@@ -25,6 +25,11 @@ module RethinkDB
       JSON_Expression.new [:call, [:pickattrs, *attrnames], [@body]]
     end
 
+    #TODO: doc
+    def without(*attrnames)
+      JSON_Expression.new [:call, [:without, *attrnames], [@body]]
+    end
+
     # Convert from an array to a stream.  Also has the synonym
     # <b>+to_stream+</b>.  While most sequence functions are polymorphic
     # and handle both arrays and streams, when arrays or streams need to be

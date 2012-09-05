@@ -181,6 +181,11 @@ module RethinkDB
       JSON_Expression.new [:call, [:implicit_pickattrs, *attrnames], []]
     end
 
+    #TODO: doc
+    def without(*attrnames)
+      JSON_Expression.new [:call, [:implicit_without, *attrnames], []]
+    end
+
     # Add the results of two or more queries together.  (Those queries should
     # return numbers.)  May also be called as if it were a instance method of
     # RQL_Query for convenience, and overloads <b><tt>+</tt></b> if the lefthand
