@@ -42,15 +42,17 @@ scoped_cJSON_t::~scoped_cJSON_t() {
     }
 }
 
-
-/* Render a cJSON entity to text for transfer/storage. */
-std::string scoped_cJSON_t::Print() const THROWS_NOTHING {
-    char *s = cJSON_Print(val);
+std::string cJSON_Print_std(cJSON *json) {
+    char *s = cJSON_Print(json);
     rassert(s);
     std::string res(s);
     free(s);
-
     return res;
+}
+
+/* Render a cJSON entity to text for transfer/storage. */
+std::string scoped_cJSON_t::Print() const THROWS_NOTHING {
+    return cJSON_Print_std(val);
 }
 /* Render a cJSON entity to text for transfer/storage without any formatting. */
 std::string scoped_cJSON_t::PrintUnformatted() const THROWS_NOTHING {
@@ -60,6 +62,26 @@ std::string scoped_cJSON_t::PrintUnformatted() const THROWS_NOTHING {
     free(s);
 
     return res;
+}
+
+std::string scoped_cJSON_t::PrintLexicographic() const THROWS_NOTHING {
+    std::string acc;
+    rassert(type() == cJSON_Number || type() == cJSON_String);
+    if (type() == cJSON_Number) {
+        acc += "N";
+
+        union {double d; int64_t u;} packed;
+        rassert(sizeof(packed.d) == sizeof(packed.u));
+        rassert((void *)&packed.d == (void *)&packed.u);
+        packed.d = val->valuedouble;
+        acc += strprintf("%.*lx", (int)(sizeof(double)*2), packed.u);
+        return acc;
+    } else {
+        rassert(type() == cJSON_String);
+        acc += "S";
+        acc += val->valuestring;
+    }
+    return acc;
 }
 
 cJSON *scoped_cJSON_t::get() const {

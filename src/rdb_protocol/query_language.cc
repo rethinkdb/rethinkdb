@@ -569,10 +569,12 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
     w.GetReflection()->ListFields(w, &fields);
     check_protobuf(fields.size() == 2);
 
+    bool deterministic = true;
     switch (w.type()) {
         case WriteQuery::UPDATE: {
             check_protobuf(w.has_update());
             check_term_type(w.update().view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.update().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -584,11 +586,20 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::MUTATE: {
             check_protobuf(w.has_mutate());
             check_term_type(w.mutate().view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.mutate().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
         case WriteQuery::INSERT: {
             check_protobuf(w.has_insert());
+            if (w.insert().terms_size() == 1) {
+                term_info_t res = get_term_type(w.insert().terms(0), env, backtrace);
+                //TODO: This casting is copy-pasted from NTH, but WTF?
+                const_cast<WriteQuery&>(w).mutable_insert()->mutable_terms(0)->
+                    SetExtension(extension::inferred_type,
+                                 static_cast<int32_t>(res.type));
+                break; //Single-element insert polymorphic over streams and arrays
+            }
             for (int i = 0; i < w.insert().terms_size(); ++i) {
                 check_term_type(w.insert().terms(i), TERM_TYPE_JSON, env, is_det_out, backtrace.with(strprintf("term:%d", i)));
             }
@@ -613,6 +624,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::POINTUPDATE: {
             check_protobuf(w.has_point_update());
             check_term_type(w.point_update().key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.point_update().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -624,6 +636,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         case WriteQuery::POINTMUTATE: {
             check_protobuf(w.has_point_mutate());
             check_term_type(w.point_mutate().key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
+            implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
             check_mapping_type(w.point_mutate().mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("mapping"));
             break;
         }
@@ -841,7 +854,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
            until that has happened, so we try to do a read every `poll_ms`
            milliseconds until one succeeds, then return. */
 
-        int64_t poll_ms = 200; //with this value, usually polls twice
+        int64_t poll_ms = 100; //with this value, usually polls twice
         //This read won't succeed, but we care whether it fails with an exception.
         rdb_protocol_t::read_t bad_read(rdb_protocol_t::point_read_t(store_key_t("")));
         try {
@@ -992,6 +1005,11 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
     if (!data->GetObjectItem(pk.c_str())) {
         throw runtime_exc_t(strprintf("Must have a field named \"%s\" (The primary key).", pk.c_str()), backtrace);
     }
+    cJSON *primary_key = data->GetObjectItem(pk.c_str());
+    if (primary_key->type != cJSON_String && primary_key->type != cJSON_Number) {
+        throw runtime_exc_t(strprintf("Cannot insert row %s with primary key %s of non-string, non-number type.",
+                                      data->Print().c_str(), cJSON_Print_std(primary_key).c_str()), backtrace);
+    }
 
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(data->GetObjectItem(pk.c_str()))), data));
@@ -1034,12 +1052,19 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 
                 int updated = 0, errors = 0, skipped = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
+                    rassert(json->type() == cJSON_Object);
                     try {
                         variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->update().mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
                         boost::shared_ptr<scoped_cJSON_t> rhs =
                             eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                         if (rhs->type() == cJSON_NULL) {
                             ++skipped;
+                        } else if (rhs->type() != cJSON_Object) {
+                            ++errors;
+                            if (reported_error == "") {
+                                reported_error = strprintf("Update returned a non-object (%s).\n", rhs->Print().c_str());
+                            }
                         } else {
                             boost::shared_ptr<scoped_cJSON_t> val(new scoped_cJSON_t(cJSON_merge(json->get(), rhs->get())));
                             cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
@@ -1047,7 +1072,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                             if (!cJSON_Equal(json_key, val_key)) {
                                 ++errors;
                                 if (reported_error == "") {
-                                    reported_error = strprintf("Update cannot change priamary keys: %s -> %s\n",
+                                    reported_error = strprintf("Update cannot change primary keys: %s -> %s\n",
                                                                json->PrintUnformatted().c_str(), val->PrintUnformatted().c_str());
                                 }
                             } else {
@@ -1093,18 +1118,24 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     try {
                         variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->mutate().mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
                         boost::shared_ptr<scoped_cJSON_t> val =
                             eval(w->mutable_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                         if (val->type() == cJSON_NULL) {
                             point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
                             ++deleted;
+                        } else if (val->type() != cJSON_Object) {
+                            ++errors;
+                            if (reported_error == "") {
+                                reported_error = strprintf("Mutate returned a non-object (%s).\n", val->Print().c_str());
+                            }
                         } else {
                             cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
                             cJSON *val_key = val->GetObjectItem(view.primary_key.c_str());
                             if (!cJSON_Equal(json_key, val_key)) {
                                 ++errors;
                                 if (reported_error == "") {
-                                    reported_error = strprintf("Update cannot change priamary keys: %s -> %s\n",
+                                    reported_error = strprintf("Mutate cannot change primary keys: %s -> %s\n",
                                                                json->PrintUnformatted().c_str(), val->PrintUnformatted().c_str());
                                 }
                             } else {
@@ -1131,16 +1162,47 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
         case WriteQuery::INSERT:
             {
                 std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref(), env, backtrace);
-                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_insert()->mutable_table_ref(), env, backtrace);
+                namespace_repo_t<rdb_protocol_t>::access_t ns_access =
+                    eval(w->mutable_insert()->mutable_table_ref(), env, backtrace);
 
-                for (int i = 0; i < w->insert().terms_size(); ++i) {
-                    boost::shared_ptr<scoped_cJSON_t> data = eval(w->mutable_insert()->mutable_terms(i), env,
-                        backtrace.with(strprintf("term:%d", i)));
+                int inserted = 0;
+                if (w->insert().terms_size() == 1) {
+                    Term *t = w->mutable_insert()->mutable_terms(0);
+                    int32_t t_type = t->GetExtension(extension::inferred_type);
+                    boost::shared_ptr<json_stream_t> stream;
+                    if (t_type == TERM_TYPE_JSON) {
+                        boost::shared_ptr<scoped_cJSON_t> data = eval(t, env, backtrace.with("term:0"));
+                        if (data->type() == cJSON_Object) {
+                            ++inserted;
+                            insert(ns_access, pk, data, env, backtrace.with("term:0"));
+                        } else if (data->type() == cJSON_Array) {
+                            stream.reset(new in_memory_stream_t(json_array_iterator_t(data->get()), env));
+                        } else {
+                            throw runtime_exc_t(strprintf("Cannon insert non-object %s.\n", data->Print().c_str()), backtrace);
+                        }
+                    } else if (t_type == TERM_TYPE_STREAM || t_type == TERM_TYPE_VIEW) {
+                        stream = eval_stream(w->mutable_insert()->mutable_terms(0), env, backtrace.with("stream"));
+                    } else {
+                        unreachable("bad term type");
+                    }
 
-                    insert(ns_access, pk, data, env, backtrace.with(strprintf("term:%d", i)));
+                    if (stream) {
+                        int i = 0;
+                        while (boost::shared_ptr<scoped_cJSON_t> data = stream->next()) {
+                            ++inserted;
+                            insert(ns_access, pk, data, env, backtrace.with(strprintf("stream:%d", i++)));
+                        }
+                    }
+                } else {
+                    for (int i = 0; i < w->insert().terms_size(); ++i) {
+                        boost::shared_ptr<scoped_cJSON_t> data =
+                            eval(w->mutable_insert()->mutable_terms(i), env, backtrace.with(strprintf("term:%d", i)));
+                        ++inserted;
+                        insert(ns_access, pk, data, env, backtrace.with(strprintf("term:%d", i)));
+                    }
                 }
 
-                res->add_response(strprintf("{\"inserted\": %d}", w->insert().terms_size()));
+                res->add_response(strprintf("{\"inserted\": %d}", inserted));
             }
             break;
         case WriteQuery::INSERTSTREAM:
@@ -1220,10 +1282,12 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 
                 boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
                 new_val_scope_t scope_maker(&env->scopes.scope, w->point_update().mapping().arg(), original_val);
-
+                implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, original_val);
                 boost::shared_ptr<scoped_cJSON_t> rhs = eval(w->mutable_point_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
                 if (rhs->type() == cJSON_NULL) {
                     skipped = 1;
+                } else if (rhs->type() != cJSON_Object) {
+                    throw runtime_exc_t(strprintf("Update returned a non-object: %s", rhs->Print().c_str()), backtrace);
                 } else {
                     if (original_val->type() != cJSON_NULL) {
                         updated = 1;
@@ -1274,6 +1338,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
 
             new_val_scope_t scope_maker(&env->scopes.scope, w->point_mutate().mapping().arg(), original_val);
+            implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, original_val);
             boost::shared_ptr<scoped_cJSON_t> new_val = eval(w->mutable_point_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
 
             namespace_repo_t<rdb_protocol_t>::access_t ns_access =
@@ -1285,6 +1350,8 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     deleted = 1;
                     point_delete(ns_access, cJSON_GetObjectItem(original_val->get(), pk.c_str()), env, backtrace);
                 }
+            } else if (new_val->type() != cJSON_Object) {
+                throw runtime_exc_t(strprintf("Mutate returned a non-object: %s", new_val->Print().c_str()), backtrace);
             } else {
                 if (original_val->type() == cJSON_NULL) {
                     inserted = 1;
@@ -2321,21 +2388,29 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 
                 if (r->has_lowerbound()) {
                     lowerbound = eval(r->mutable_lowerbound(), env, backtrace.with("lowerbound"));
+                    if (lowerbound->type() != cJSON_Number && lowerbound->type() != cJSON_String) {
+                        throw runtime_exc_t(strprintf("Lower bound of RANGE must be a string or a number, not %s.",
+                                                      lowerbound->Print().c_str()), backtrace);
+                    }
                 }
 
                 if (r->has_upperbound()) {
                     upperbound = eval(r->mutable_upperbound(), env, backtrace.with("upperbound"));
+                    if (upperbound->type() != cJSON_Number && upperbound->type() != cJSON_String) {
+                        throw runtime_exc_t(strprintf("Lower bound of RANGE must be a string or a number, not %s.",
+                                                      upperbound->Print().c_str()), backtrace);
+                    }
                 }
 
                 if (lowerbound && upperbound) {
-                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->Print()),
-                                        key_range_t::closed, store_key_t(upperbound->Print()));
+                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->PrintLexicographic()),
+                                        key_range_t::closed, store_key_t(upperbound->PrintLexicographic()));
                 } else if (lowerbound) {
-                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->Print()),
+                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->PrintLexicographic()),
                                         key_range_t::none, store_key_t());
                 } else if (upperbound) {
                     range = key_range_t(key_range_t::none, store_key_t(),
-                                        key_range_t::closed, store_key_t(upperbound->Print()));
+                                        key_range_t::closed, store_key_t(upperbound->PrintLexicographic()));
                 }
 
                 return boost::shared_ptr<json_stream_t>(

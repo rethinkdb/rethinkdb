@@ -429,6 +429,7 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_range # RANGE
+    assert_raise(RuntimeError){rdb.between(1, r[[3]]).run}
     assert_equal(id_sort(rdb.between(1,3).run), $data[1..3])
     assert_equal(id_sort(rdb.between(2,nil).run), $data[2..-1])
     assert_equal(id_sort(rdb.between(1, 3).run), $data[1..3])
@@ -618,7 +619,14 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb.run), docs)
     assert_equal(rdb.update{nil}.run, {'updated' => 0, 'skipped' => 10, 'errors' => 0})
 
-    res = rdb.update{|row| r.if((row[:id]%2).eq(0), {:id => -1}, row)}.run;
+    res = rdb.update{1}.run
+    assert_equal(res['errors'], 10)
+    res = rdb.update{|row| row[:id]}.run
+    assert_equal(res['errors'], 10)
+    res = rdb.update{r[:id]}.run
+    assert_equal(res['errors'], 10)
+
+    res = rdb.update{|row| r.if((r[:id]%2).eq(0), {:id => -1}, row)}.run;
     assert_not_nil(res['first_error'])
     filtered_res = res.reject {|k,v| k == 'first_error'}
     assert_not_equal(filtered_res, res)
@@ -729,7 +737,7 @@ class ClientTest < Test::Unit::TestCase
               nil)
        },
        rdb.filter{r[:id].eq(row[:id])}.mutate{ |row|
-         r.if((row[:id]%2).eq(1), nil, row)
+         r.if((r[:id]%2).eq(1), nil, row)
        },
        rdb.get(0).delete,
        rdb.get(12).delete]
@@ -747,7 +755,23 @@ class ClientTest < Test::Unit::TestCase
                   {"num"=>16, "id"=>8, "name"=>"8"}])
   end
 
+  def test_bad_primary_key_type
+    assert_raise(RuntimeError){rdb.insert({:id => []}).run}
+    assert_raise(RuntimeError){rdb.get(100).mutate{{:id => []}}.run}
+  end
+
+  def test_big_between
+    data = (0...100).map{|x| {:id => x}}
+    assert_equal(rdb.insert(data).run, {'inserted' => 100})
+    assert_equal(id_sort(rdb.between(1, 2).run), [{'id' => 1}, {'id' => 2}])
+    assert_equal(rdb.delete.run, {'deleted' => 100})
+    assert_equal(rdb.insert($data).run, {'inserted' => 10})
+    assert_equal(id_sort(rdb.run), $data)
+  end
+
   def test_mutate_edge_cases #POINTMUTATE
+    res = rdb.mutate{1}.run
+    assert_equal(res['errors'], 10)
     assert_equal(rdb.orderby(:id).run, $data)
     assert_equal(rdb.get(0).mutate{nil}.run,
                  {'deleted' => 1, 'inserted' => 0, 'modified' => 0, 'errors' => 0})
@@ -882,7 +906,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb2.run, [])
 
     # INSERTSTREAM
-    assert_equal(rdb2.insertstream(r[$data].to_stream).run['inserted'], len)
+    assert_equal(rdb2.insert(r[$data].to_stream).run['inserted'], len)
     rdb2.insert($data).run
     assert_equal(id_sort(rdb2.run), $data)
 
