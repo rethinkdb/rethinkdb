@@ -8,7 +8,6 @@ module 'Vis', ->
             log_initial '(initializing) performance panel'
             @ops_plot = new Vis.OpsPlot(_stats_fn)
 
-            #@stats_panel = new Vis.StatsPanel(_stats_fn)
             @more_stats = new Vis.MoreStats()
 
         render: ->
@@ -19,7 +18,6 @@ module 'Vis', ->
             @.$('.ops_plot_placeholder').html(@ops_plot.render().$el)
 
             @.$('.stats_placeholder').html(@more_stats.render().$el)
-            #@.$('.stats_placeholder').html(@stats_panel.render().$el)
             return @
 
         destroy: =>
@@ -264,73 +262,4 @@ module 'Vis', ->
                 num_servers: machines.length
                 num_databases: databases.length
                 num_namespaces: namespaces.length
-            return @
-
-    #TODO Clean Stats Panel + HTML + CSS if we agree on removing the sparklines
-    class @StatsPanel extends Backbone.View
-        className: 'stats_panel'
-        template: Handlebars.compile $('#stats_panel-template').html()
-        NUM_POINTS: 25
-        RENDER_INVERVAL_IN_MS: 1000
-        SPARKLINE_DEFAULTS:
-            fillColor: false
-            spotColor: false
-            minSpotColor: false
-            maxSpotColor: false
-
-        initialize: (_stats_fn) =>
-            log_initial '(initializing) stats panel'
-            @stats_fn = _stats_fn
-            @total_ops_cache = new Vis.SizeBoundedCache(@NUM_POINTS, ((stats) -> return stats['keys_read'] + stats['keys_set']))
-            @total_cpu_util_cache = new Vis.SizeBoundedCache(@NUM_POINTS, ((stats) ->
-                return parseInt((stats['global_cpu_util']['avg'] * 100).toFixed(0))
-            ))
-            @total_disk_space_cache = new Vis.SizeBoundedCache(@NUM_POINTS, 'global_disk_space')
-            @net_recv_cache = new Vis.SizeBoundedCache(@NUM_POINTS, 'avg')
-            @net_sent_cache = new Vis.SizeBoundedCache(@NUM_POINTS, 'avg')
-
-        render: =>
-            log_render '(rendering) stats panel'
-            # Grab latest stats
-            stats = @stats_fn()
-            @total_ops_cache.push(stats)
-            @total_cpu_util_cache.push(stats)
-            @total_disk_space_cache.push(stats)
-            @net_recv_cache.push(stats.global_net_recv_persec)
-            @net_sent_cache.push(stats.global_net_sent_persec)
-
-            # Render the plot container
-            @.$el.html @template
-                total_ops_sec: Vis.num_formatter(@total_ops_cache.get_latest())
-                total_cpu_util: @total_cpu_util_cache.get_latest()
-                mem_used: human_readable_units(stats.global_mem_used * 1024, units_space)
-                mem_total: human_readable_units(stats.global_mem_total * 1024, units_space)
-                mem_used_percent: parseInt((stats.global_mem_used / stats.global_mem_total * 100).toFixed(0))
-                disk_used: human_readable_units(stats.global_disk_space, units_space)
-                global_net_recv: human_readable_units(stats.global_net_recv_persec.avg, units_space) if stats.global_net_recv_persec?
-                global_net_sent: human_readable_units(stats.global_net_sent_persec.avg, units_space) if stats.global_net_sent_persec?
-
-
-
-            # Totals ops sparkline
-            @.$('ul.total_ops_sec > li.minichart > span').sparkline(@total_ops_cache.get(), @SPARKLINE_DEFAULTS)
-            # CPU utilization sparkline
-            cpu_sparkline_json = {}
-            _.extend cpu_sparkline_json, @SPARKLINE_DEFAULTS,
-                chartRangeMin: 0
-                chartRangeMax: 100
-            @.$('ul.total_cpu_util > li.minichart > span').sparkline(@total_cpu_util_cache.get(), cpu_sparkline_json)
-            # Disk utilization sparkline
-            disk_sparkline_json = {}
-            _.extend disk_sparkline_json, @SPARKLINE_DEFAULTS,
-                chartRangeMin: 0
-            @.$('ul.total_disk_usage > li.minichart > span').sparkline(@total_disk_space_cache.get(), disk_sparkline_json)
-            # Network sparklines
-            @.$('ul.global_net_sent > li.minichart > span').sparkline(@net_sent_cache.get(), @SPARKLINE_DEFAULTS)
-            @.$('ul.global_net_recv > li.minichart > span').sparkline(@net_recv_cache.get(), @SPARKLINE_DEFAULTS)
-
-
-            # Rerender ourselves to update the data
-            setTimeout(@render, @RENDER_INVERVAL_IN_MS)
-
             return @
