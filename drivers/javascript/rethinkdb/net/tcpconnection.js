@@ -75,7 +75,7 @@ goog.inherits(rethinkdb.net.TcpConnection, rethinkdb.net.Connection);
  */
 rethinkdb.net.TcpConnection.prototype.send_ = function(data) {
     if (!this.socket_)
-        throw "Connection not open";
+        throw new ClientError("Connection not open");
 
     // This is required because the node socket has to take a native node
     // buffer, not an ArrayBuffer. Even though ArrayBuffers are supported
@@ -135,7 +135,7 @@ rethinkdb.net.TcpConnection.prototype.tcpRecv_ = function(node_data) {
  */
 rethinkdb.net.TcpConnection.prototype.close = function() {
     if (!this.socket_)
-        throw "Connection not open";
+        throw new ClientError("Connection not open");
 
     this.socket_.end();
     this.socket_ = null;
