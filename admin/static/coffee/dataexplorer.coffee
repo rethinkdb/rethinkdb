@@ -22,7 +22,6 @@ generate_string = (n) ->
 
     return result
 
-#TODO maintain data
 module 'DataExplorerView', ->
     class @Container extends Backbone.View
         className: 'dataexplorer_container'
@@ -648,8 +647,7 @@ module 'DataExplorerView', ->
             window.r = rethinkdb.query
             window.R = r.R
 
-
-            #TODO Make this little thing prettier
+            # We escape the last function because we are building a regex on top of it.
             @unsafe_to_safe_regexstr = []
             @unsafe_to_safe_regexstr.push # This one has to be firest
                 pattern: /\\/g
