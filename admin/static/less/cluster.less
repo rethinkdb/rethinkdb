@@ -599,6 +599,7 @@
                         border-bottom: 0;
                     }
                     .checkbox-container{
+                        width: 50px;
                         padding: 12px 8px;
                         vertical-align: top;
                         text-align: center;
@@ -643,14 +644,23 @@
                     background: #f1f1f1;
                 }
             }
+            .no_element{
+                margin: 12px 0px 12px 67px;
+            }
         }
     }
 }
 
-
+.databases_list-container{
+    .reason_cannot_create_namespace{
+        margin: 10px 0px 0px 0px;
+    }
+    p{
+        margin: 4px 0px;
+    }
+}
 .namespace-list {
     margin-top: 20px;
-
     .datacenter_list{
         padding: 0px;
         margin: 10px;
@@ -988,14 +998,6 @@
                 &.last-child td {
                     border-bottom: 0;
                 }
-                .checkbox-container{
-                    padding: 12px 8px;
-                    vertical-align: top;
-                    text-align: center;
-                    input{
-                        margin: 10px 0px 0px 0px;
-                    }
-                }
                 .element-detail-container{
                     padding: 12px 8px 12px 0px;
                     .status{
@@ -1189,6 +1191,7 @@ Database view
     }
 
     .data_repartition-graph{
+        text-align: center;
         rect{
             fill: #ed993e;
         }
