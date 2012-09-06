@@ -29,6 +29,7 @@ rethinkdb.query.Table.prototype.compile = function() {
 /**
  * @constructor
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.GetExpression = function(table, key) {
     this.table_ = table;
@@ -52,6 +53,9 @@ rethinkdb.query.GetExpression.prototype.compile = function() {
     return term;
 };
 
+/**
+ * Return a single row of this table by key
+ */
 rethinkdb.query.Table.prototype.get = function(key) {
     return new rethinkdb.query.GetExpression(this, key);
 };
@@ -63,6 +67,7 @@ goog.exportProperty(rethinkdb.query.Table.prototype, 'get',
  * @param {*} docs
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
  */
 rethinkdb.query.InsertQuery = function(table, docs) {
     this.table_ = table;
@@ -110,6 +115,7 @@ goog.exportProperty(rethinkdb.query.Table.prototype, 'insert',
  * @param {rethinkdb.query.Expression} view
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
  */
 rethinkdb.query.DeleteQuery = function(view) {
     this.view_ = view;
@@ -136,6 +142,7 @@ rethinkdb.query.DeleteQuery.prototype.buildQuery = function() {
  * @param {rethinkdb.query.Expression} key
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
  */
 rethinkdb.query.PointDeleteQuery = function(table, key) {
     this.table_ = table;
@@ -178,6 +185,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'del',
  * @param {rethinkdb.query.FunctionExpression} mapping
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
  */
 rethinkdb.query.UpdateQuery = function(view, mapping) {
     this.view_ = view;
@@ -211,6 +219,7 @@ rethinkdb.query.UpdateQuery.prototype.buildQuery = function() {
  * @param {rethinkdb.query.FunctionExpression} mapping
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
  */
 rethinkdb.query.PointUpdateQuery = function(table, key, mapping) {
     this.table_ = table;
@@ -260,6 +269,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'update',
  * @param {rethinkdb.query.FunctionExpression} mapping
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
  */
 rethinkdb.query.MutateQuery = function(view, mapping) {
     this.view_ = view;
@@ -293,6 +303,7 @@ rethinkdb.query.MutateQuery.prototype.buildQuery = function() {
  * @param {rethinkdb.query.FunctionExpression} mapping
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
  */
 rethinkdb.query.PointMutateQuery = function(table, key, mapping) {
     this.table_ = table;

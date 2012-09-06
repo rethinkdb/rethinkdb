@@ -76,7 +76,7 @@ goog.inherits(rethinkdb.net.HttpConnection, rethinkdb.net.Connection);
  */
 rethinkdb.net.HttpConnection.prototype.send_ = function(data) {
     if (!this.url_)
-        throw new ClientError("Connection not open");
+        throw new rethinkdb.errors.ClientError("Connection not open");
 
     var xhr = new XMLHttpRequest();
     xhr.responseType = "arraybuffer";
@@ -98,7 +98,7 @@ rethinkdb.net.HttpConnection.prototype.send_ = function(data) {
  */
 rethinkdb.net.HttpConnection.prototype.close = function() {
     if (!this.url_)
-        throw new ClientError("Connection not open");
+        throw new rethinkdb.errors.ClientError("Connection not open");
 
     var xhr = new XMLHttpRequest();
     xhr.open("POST", this.url_+'close-connection?conn_id='+this.conn_id_, true);

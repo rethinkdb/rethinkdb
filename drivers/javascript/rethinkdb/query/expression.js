@@ -5,18 +5,24 @@ goog.require('rethinkdb.query2');
 goog.require('Query');
 
 /**
+ * Base for all ReQL expression objects
  * @constructor
  * @extends {rethinkdb.query.ReadQuery}
  */
 rethinkdb.query.Expression = function() { };
 goog.inherits(rethinkdb.query.Expression, rethinkdb.query.ReadQuery);
 
-/** @return {!Term} */
+/**
+ * @function
+ * @return {!Term}
+ * @ignore
+ */
 rethinkdb.query.Expression.prototype.compile = goog.abstractMethod;
 
 /**
  * @constructor
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.JSONExpression = function(json_value) {
     this.value_ = json_value;
@@ -38,6 +44,7 @@ rethinkdb.query.JSONExpression.prototype.compile = function() {
  * @constructor
  * @param {number=} number
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.NumberExpression = function(number) {
     this.value_ = (typeof number === 'undefined') ? null : number;
@@ -60,6 +67,7 @@ rethinkdb.query.NumberExpression.prototype.compile = function() {
  * @constructor
  * @param {boolean} bool
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.BooleanExpression = function(bool) {
     this.value_ = bool;
@@ -78,6 +86,7 @@ rethinkdb.query.BooleanExpression.prototype.compile = function() {
  * @constructor
  * @param {string} string
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.StringExpression = function(string) {
     this.value_ = string;
@@ -96,6 +105,7 @@ rethinkdb.query.StringExpression.prototype.compile = function() {
  * @constructor
  * @param {Array} array
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.ArrayExpression = function(array) {
     this.value_ = [];
@@ -122,6 +132,7 @@ rethinkdb.query.ArrayExpression.prototype.compile = function() {
  * @constructor
  * @param {Object} object
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.ObjectExpression = function(object) {
     this.value_ = {};
@@ -154,6 +165,7 @@ rethinkdb.query.ObjectExpression.prototype.compile = function() {
  * @constructor
  * @param {string} expr
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.JSExpression = function(expr) {
     this.src_ = expr;
@@ -172,6 +184,7 @@ rethinkdb.query.JSExpression.prototype.compile = function() {
  * @param {Array.<string>} args
  * @param {rethinkdb.query.Expression} body
  * @constructor
+ * @ignore
  */
 rethinkdb.query.FunctionExpression = function(args, body) {
     /** @type {Array.<string>} */
@@ -185,6 +198,7 @@ rethinkdb.query.FunctionExpression = function(args, body) {
  * @param {function(...)} fun
  * @constructor
  * @extends {rethinkdb.query.FunctionExpression}
+ * @ignore
  */
 rethinkdb.query.JSFunctionExpression = function(fun) {
     var match = rethinkdb.query.JSFunctionExpression.parseRegexp_.exec(fun.toString());
@@ -222,6 +236,7 @@ rethinkdb.query.fn = function(var_args) {
  * @param {function(Builtin)=} opt_additional
  * @constructor
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.BuiltinExpression = function(builtinType, args, opt_additional) {
     this.builtinType_ = builtinType;
@@ -358,6 +373,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'between',
  * @param {rethinkdb.query.Expression} leftExpr
  * @param {number} leftExtent
  * @param {number=} opt_rightExtent
+ * @ignore
  */
 rethinkdb.query.SliceExpression = function(leftExpr, leftExtent, opt_rightExtent) {
     goog.base(this, Builtin.BuiltinType.SLICE, [
@@ -638,6 +654,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'pluck',
  * @param {string} varName
  * @constructor
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.VarExpression = function(varName) {
     this.varName_ = varName;
@@ -657,6 +674,7 @@ rethinkdb.query.VarExpression.prototype.compile = function() {
  * @param {string} attrName
  * @constructor
  * @extends {rethinkdb.query.BuiltinExpression}
+ * @ignore
  */
 rethinkdb.query.AttrExpression = function(leftExpr, attrName) {
     goog.base(this, Builtin.BuiltinType.GETATTR, [leftExpr], function(builtin) {
@@ -669,6 +687,7 @@ goog.inherits(rethinkdb.query.AttrExpression, rethinkdb.query.BuiltinExpression)
  * @param {string} attrName
  * @constructor
  * @extends {rethinkdb.query.BuiltinExpression}
+ * @ignore
  */
 rethinkdb.query.ImplicitAttrExpression = function(attrName) {
     goog.base(this, Builtin.BuiltinType.IMPLICIT_GETATTR, [], function(builtin) {
@@ -734,6 +753,7 @@ rethinkdb.query.Expression.prototype.concatMap = function(mapFun) {
 /**
  * @constructor
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.IfExpression = function(test, trueBranch, falseBranch) {
     this.test_ = test;
@@ -769,6 +789,7 @@ rethinkdb.query.ifThenElse = function(test, trueBranch, falseBranch) {
 /**
  * @constructor
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.LetExpression = function(bindings, body) {
     this.bindings_ = bindings;
@@ -809,6 +830,7 @@ rethinkdb.query.let = function(var_args) {
 /**
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
  */
 rethinkdb.query.ForEachQuery = function(leftExpr, fun) {
     this.leftExpr_ = leftExpr;
@@ -823,7 +845,7 @@ rethinkdb.query.ForEachQuery.prototype.buildQuery = function() {
 
     var sub = this.fun_.body.buildQuery().getWriteQuery();
     if (!sub) {
-        throw new ClientError("For each requires a write query to execute");
+        throw new rethinkdb.errors.ClientError("For each requires a write query to execute");
     }
 
     foreach.addQueries(sub);

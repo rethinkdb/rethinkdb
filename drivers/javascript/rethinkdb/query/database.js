@@ -7,6 +7,7 @@ goog.require('rethinkdb.query');
  * @param {string=} opt_dbName
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
  */
 rethinkdb.query.MetaQuery = function(type, opt_dbName) {
     this.type_ = type;
@@ -75,6 +76,7 @@ goog.exportProperty(rethinkdb.query.Database.prototype, 'list',
  * @param {string=} opt_primaryKey
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
  */
 rethinkdb.query.CreateTableQuery = function(dataCenter, dbName, tableName, opt_primaryKey) {
     this.dataCenter_ = dataCenter;
@@ -121,6 +123,7 @@ goog.exportProperty(rethinkdb.query.Database.prototype, 'create',
  * @param {string} tableName
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
  */
 rethinkdb.query.DropTableQuery = function(dbName, tableName) {
     this.dbName_ = dbName;
