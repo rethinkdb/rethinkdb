@@ -88,8 +88,9 @@ class QueryError(StandardError):
 
         # Draw a row of carets under the part of `query_str` that is bracketed
         # by `PRETTY_PRINT_BEGIN_TARGET` and `PRETTY_PRINT_END_TARGET`.
-        if not (query_str.count(PRETTY_PRINT_BEGIN_TARGET) == query_str.count(PRETTY_PRINT_END_TARGET) == 1):
+        if PRETTY_PRINT_BEGIN_TARGET not in query_str:
             raise ValueError("Internal error: can't follow path %r in %r" % (self.ast_path, self.query))
+        assert query_str.count(PRETTY_PRINT_BEGIN_TARGET) == query_str.count(PRETTY_PRINT_END_TARGET) == 1
         formatted_lines = []
         in_target = False
         for line in query_str.split("\n"):

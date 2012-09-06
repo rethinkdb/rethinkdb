@@ -333,7 +333,7 @@ class JSONExpression(ReadQuery):
 
         :returns: :class:`JSONExpression`
         """
-        return JSONExpression(internal.Sub(self))
+        return JSONExpression(internal.Negate(self))
 
     def __or__(self, other):
         """Computes the boolean "or" of `self` and `other`.
@@ -619,7 +619,7 @@ class JSONExpression(ReadQuery):
         >>> expr([1, 2, 3]).length().run()
         3
         """
-        return JSONExpression(internal.Count(self))
+        return JSONExpression(internal.Length(self))
 
     def __len__(self):
         raise ValueError("To construct a `rethinkdb.JSONExpression` "

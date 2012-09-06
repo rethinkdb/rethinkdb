@@ -96,7 +96,7 @@ class Insert(WriteQueryInner):
     def pretty_print(self, printer):
         return "%s.insert([%s])" % (
             printer.expr_wrapped(self.table, ["table_ref"]),
-            ", ".join(printer.expr_unwrapped(e, ["terms:%d" % i]) for i, e in enumerate(self.entries)))
+            ", ".join(printer.expr_unwrapped(e, ["term:%d" % i]) for i, e in enumerate(self.entries)))
 
 class Delete(WriteQueryInner):
     def __init__(self, parent_view):
@@ -257,11 +257,12 @@ class Builtin(ExpressionInner):
     #       a whole is wrapped or not.
     def __init__(self, *args):
         self.args = [query.expr(arg) for arg in args]
+        assert len(self.args) == len(self.arg_wrapped_flags)
     def _write_ast(self, parent):
         self._write_call(parent, self.builtin, *self.args)
     def pretty_print(self, printer):
         printed_args = []
-        assert len(self.args) == len(self.arg_wrapped_flags)
+        assert len(self.args) == len(self.arg_wrapped_flags), "bad format for %r" % type(self)
         for i, (arg, wrapped) in enumerate(zip(self.args, self.arg_wrapped_flags)):
             if wrapped == PRETTY_PRINT_EXPR_WRAPPED:
                 printed_args.append(printer.expr_wrapped(arg, ["arg:%d" % i]))
@@ -281,6 +282,12 @@ class Sub(Builtin):
     builtin = p.Builtin.SUBTRACT
     format_string = "(%s - %s)"
     arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
+
+class Negate(Builtin):
+    builtin = p.Builtin.SUBTRACT
+    format_string = "-%s"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED]
     wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
 class Mul(Builtin):
@@ -304,12 +311,6 @@ class Mod(Builtin):
 class Any(Builtin):
     builtin = p.Builtin.ANY
     format_string = "(%s | %s)"
-    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
-    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
-
-class All(Builtin):
-    builtin = p.Builtin.ALL
-    format_string = "(%s & %s)"
     arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
     wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
@@ -372,6 +373,17 @@ class CompareGE(Comparison):
     arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
     wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
+# `All` is not a subclass of `Builtin` because it needs to work with an
+# arbitrary number of arguments to support the syntactic sugar for `e.filter()`.
+class All(ExpressionInner):
+    def __init__(self, *args):
+        self.args = [query.expr(a) for a in args]
+    def _write_ast(self, parent):
+        self._write_call(parent, p.Builtin.ALL, *self.args)
+    def pretty_print(self, printer):
+        return ("(" + " | ".join(printer.expr_wrapped(a, ["arg:%d" % i]) for i, a in enumerate(self.args)) + ")",
+            PRETTY_PRINT_EXPR_WRAPPED)
+
 class Has(ExpressionInner):
     def __init__(self, parent, key):
         self.parent = query.expr(parent)
@@ -388,7 +400,7 @@ class Length(ExpressionInner):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.LENGTH, self.seq)
     def pretty_print(self, printer):
-        return ("%s.length()" % printer.expr_wrapped(self.parent, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
+        return ("%s.length()" % printer.expr_wrapped(self.seq, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
 
 class Attr(ExpressionInner):
     def __init__(self, parent, key):
@@ -427,7 +439,7 @@ class Nth(ExpressionInner):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.NTH, self.stream, self.index)
     def pretty_print(self, printer):
-        return ("%s[%s]" % (printer.expr_wrapped(self.stream, ["arg:0"]), printer.expr_unwrapped(self.index, ["arg:0"])), PRETTY_PRINT_EXPR_WRAPPED)
+        return ("%s[%s]" % (printer.expr_wrapped(self.stream, ["arg:0"]), printer.expr_unwrapped(self.index, ["arg:1"])), PRETTY_PRINT_EXPR_WRAPPED)
 
 class Slice(ExpressionInner):
     def __init__(self, parent, start, stop):
