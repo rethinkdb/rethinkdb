@@ -269,7 +269,7 @@ void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start
         for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator amit = it->second.activities.begin(); amit != it->second.activities.end(); ++amit) {
             bool has_anything_useful;
             bool is_primary;
-            if (const reactor_business_card_details::primary_t<protocol_t> *primary = boost::get<reactor_business_card_details::primary_t<protocol_t> >(&amit->second.second)) {
+            if (const reactor_business_card_details::primary_t<protocol_t> *primary = boost::get<reactor_business_card_details::primary_t<protocol_t> >(&amit->second.activity)) {
                 if (primary->master) {
                     has_anything_useful = true;
                     is_primary = true;
@@ -277,7 +277,7 @@ void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start
                     has_anything_useful = false;
                     is_primary = false;  // Appease -Wconditional-uninitialized
                 }
-            } else if (boost::get<reactor_business_card_details::secondary_up_to_date_t<protocol_t> >(&amit->second.second)) {
+            } else if (boost::get<reactor_business_card_details::secondary_up_to_date_t<protocol_t> >(&amit->second.activity)) {
                 has_anything_useful = true;
                 is_primary = false;
             } else {
@@ -296,7 +296,7 @@ void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start
 
                     /* Now handle it. */
                     coro_t::spawn_sometime(boost::bind(&cluster_namespace_interface_t::relationship_coroutine, this,
-                                                       it->first, id, is_start, is_primary, amit->second.first,
+                                                       it->first, id, is_start, is_primary, amit->second.region,
                                                        auto_drainer_t::lock_t(&relationship_coroutine_auto_drainer)));
                 }
             }
@@ -314,7 +314,7 @@ cluster_namespace_interface_t<protocol_t>:: extract_master_business_card(const s
         typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second.activities.find(activity_id);
         if (jt != it->second.activities.end()) {
             if (const reactor_business_card_details::primary_t<protocol_t> *primary_record =
-                boost::get<reactor_business_card_details::primary_t<protocol_t> >(&jt->second.second)) {
+                boost::get<reactor_business_card_details::primary_t<protocol_t> >(&jt->second.activity)) {
                 if (primary_record->master) {
                     ret.get() = primary_record->master.get();
                 }
@@ -334,7 +334,7 @@ cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_f
         typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second.activities.find(activity_id);
         if (jt != it->second.activities.end()) {
             if (const reactor_business_card_details::primary_t<protocol_t> *primary_record =
-                boost::get<reactor_business_card_details::primary_t<protocol_t> >(&jt->second.second)) {
+                boost::get<reactor_business_card_details::primary_t<protocol_t> >(&jt->second.activity)) {
                 if (primary_record->direct_reader) {
                     ret.get() = primary_record->direct_reader.get();
                 }
@@ -354,7 +354,7 @@ cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_f
         typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second.activities.find(activity_id);
         if (jt != it->second.activities.end()) {
             if (const reactor_business_card_details::secondary_up_to_date_t<protocol_t> *secondary_up_to_date_record =
-                boost::get<reactor_business_card_details::secondary_up_to_date_t<protocol_t> >(&jt->second.second)) {
+                boost::get<reactor_business_card_details::secondary_up_to_date_t<protocol_t> >(&jt->second.activity)) {
                 ret.get() = secondary_up_to_date_record->direct_reader;
             }
         }

@@ -64,7 +64,7 @@ directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::set(typename 
         our_value_change.buffer.activities.erase(reactor_activity_id);
     }
     reactor_activity_id = generate_uuid();
-    our_value_change.buffer.activities.insert(std::make_pair(reactor_activity_id, std::make_pair(region, activity)));
+    our_value_change.buffer.activities.insert(std::make_pair(reactor_activity_id, typename reactor_business_card_t<protocol_t>::activity_entry_t(region, activity)));
     return our_value_change.commit();
 }
 
@@ -73,7 +73,7 @@ directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_withou
     typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
     rassert(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
 
-    our_value_change.buffer.activities[reactor_activity_id].second = activity;
+    our_value_change.buffer.activities[reactor_activity_id].activity = activity;
     return our_value_change.commit();
 }
 

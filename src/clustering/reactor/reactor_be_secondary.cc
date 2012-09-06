@@ -24,8 +24,8 @@ bool reactor_t<protocol_t>::find_broadcaster_in_directory(const typename protoco
             for (typename rb_t::activity_map_t::const_iterator a_it  = p_it->second->internal.activities.begin();
                                                                a_it != p_it->second->internal.activities.end();
                                                                a_it++) {
-                if (a_it->second.first == region) {
-                    if (boost::get<typename rb_t::primary_t>(&a_it->second.second)) {
+                if (a_it->second.region == region) {
+                    if (boost::get<typename rb_t::primary_t>(&a_it->second.activity)) {
                         if (!found_broadcaster) {
                             //This is the first viable broadcaster we've found
                             //so we set the output variable.
@@ -90,23 +90,23 @@ bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t:
     typedef reactor_business_card_t<protocol_t> rb_t;
     typedef std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<rb_t> > > reactor_directory_t;
 
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
-                                                                      it != bp.peers_roles.end();
-                                                                      it++) {
+    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it = bp.peers_roles.begin();
+         it != bp.peers_roles.end();
+         ++it) {
         typename reactor_directory_t::const_iterator p_it = _reactor_directory.find(it->first);
         if (p_it != _reactor_directory.end() && p_it->second) {
-            for (typename rb_t::activity_map_t::const_iterator a_it  = p_it->second->internal.activities.begin();
-                                                               a_it != p_it->second->internal.activities.end();
-                                                               a_it++) {
-                if (a_it->second.first == region) {
-                    if (const typename rb_t::primary_t *primary = boost::get<typename rb_t::primary_t>(&a_it->second.second)) {
+            for (typename rb_t::activity_map_t::const_iterator a_it = p_it->second->internal.activities.begin();
+                 a_it != p_it->second->internal.activities.end();
+                 ++a_it) {
+                if (a_it->second.region == region) {
+                    if (const typename rb_t::primary_t *primary = boost::get<typename rb_t::primary_t>(&a_it->second.activity)) {
                         if (primary->replier && primary->broadcaster.branch_id == b_id) {
                             backfill_candidates.push_back(get_directory_entry_view<typename rb_t::primary_t>(it->first, a_it->first)->
                                 subview(&extract_replier_from_reactor_business_card_primary<protocol_t>));
                             peer_ids.push_back(it->first);
                             activity_ids.push_back(a_it->first);
                         }
-                    } else if (const typename rb_t::secondary_up_to_date_t *secondary = boost::get<typename rb_t::secondary_up_to_date_t>(&a_it->second.second)) {
+                    } else if (const typename rb_t::secondary_up_to_date_t *secondary = boost::get<typename rb_t::secondary_up_to_date_t>(&a_it->second.activity)) {
                         if (secondary->branch_id == b_id) {
                             backfill_candidates.push_back(get_directory_entry_view<typename rb_t::secondary_up_to_date_t>(it->first, a_it->first)->
                                 subview(&extract_replier_from_reactor_business_card_secondary<protocol_t>));

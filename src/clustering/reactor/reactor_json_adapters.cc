@@ -220,6 +220,41 @@ void on_subfield_change(nothing_when_done_erasing_t<protocol_t> *) { }
 
 } //namespace reactor_business_card_details
 
+
+// json adapter for reactor_activity_entry_t
+template <class protocol_t>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(reactor_activity_entry_t<protocol_t> *target) {
+    // TODO: Rename these fields and rename this in the UI.
+    json_adapter_if_t::json_adapter_map_t res;
+    res["first"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename protocol_t::region_t>(&target->region));
+    res["second"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename reactor_business_card_t<protocol_t>::activity_t>(&target->activity));
+    return res;
+}
+
+template <class protocol_t>
+cJSON *render_as_json(reactor_activity_entry_t<protocol_t> *target) {
+    cJSON *res = cJSON_CreateArray();
+    cJSON_AddItemToArray(res, render_as_json(&target->region));
+    cJSON_AddItemToArray(res, render_as_json(&target->activity));
+    return res;
+}
+
+template <class protocol_t>
+void apply_json_to(cJSON *change, reactor_activity_entry_t<protocol_t> *target) {
+    json_array_iterator_t it = get_array_it(change);
+    cJSON *first = it.next(), *second = it.next();
+    if (!first || !second || it.next()) {
+        throw schema_mismatch_exc_t("Expected an array with exactly 2 elements in it");
+    }
+    apply_json_to(first, &target->region);
+    apply_json_to(second, &target->activity);
+}
+
+template <class protocol_t>
+void on_subfield_change(reactor_activity_entry_t<protocol_t> *) { }
+
+
+
 // ctx-less json adapter for reactor_business_card_t
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(reactor_business_card_t<protocol_t> *target) {

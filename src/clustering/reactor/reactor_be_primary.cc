@@ -146,11 +146,11 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
         for (typename rb_t::activity_map_t::const_iterator it = bcard_it->second->internal.activities.begin();
              it != bcard_it->second->internal.activities.end();
              ++it) {
-            typename protocol_t::region_t intersection = region_intersection(it->second.first, region);
+            typename protocol_t::region_t intersection = region_intersection(it->second.region, region);
             if (!region_is_empty(intersection)) {
                 regions.push_back(intersection);
                 try {
-                    if (const typename rb_t::secondary_without_primary_t * secondary_without_primary = boost::get<typename rb_t::secondary_without_primary_t>(&it->second.second)) {
+                    if (const typename rb_t::secondary_without_primary_t * secondary_without_primary = boost::get<typename rb_t::secondary_without_primary_t>(&it->second.activity)) {
                         update_best_backfiller(secondary_without_primary->current_state,
                                                typename backfill_candidate_t::backfill_location_t(
                                                    get_directory_entry_view<typename rb_t::secondary_without_primary_t>(peer, it->first)->subview(
@@ -158,7 +158,7 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
                                                    peer,
                                                    it->first),
                                                &res);
-                    } else if (const typename rb_t::nothing_when_safe_t * nothing_when_safe = boost::get<typename rb_t::nothing_when_safe_t>(&it->second.second)) {
+                    } else if (const typename rb_t::nothing_when_safe_t * nothing_when_safe = boost::get<typename rb_t::nothing_when_safe_t>(&it->second.activity)) {
                         update_best_backfiller(nothing_when_safe->current_state,
                                                typename backfill_candidate_t::backfill_location_t(
                                                    get_directory_entry_view<typename rb_t::nothing_when_safe_t>(peer, it->first)->subview(
@@ -166,9 +166,9 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
                                                    peer,
                                                    it->first),
                                                &res);
-                    } else if(boost::get<typename rb_t::nothing_t>(&it->second.second)) {
+                    } else if(boost::get<typename rb_t::nothing_t>(&it->second.activity)) {
                         //Everything's fine this peer cannot obstruct us so we shall proceed
-                    } else if(boost::get<typename rb_t::nothing_when_done_erasing_t>(&it->second.second)) {
+                    } else if(boost::get<typename rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
                         //Everything's fine this peer cannot obstruct us so we shall proceed
                     } else {
                         return false;

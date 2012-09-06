@@ -54,25 +54,25 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
         }
         reactor_business_card_t<protocol_t> bcard = reactor_directory.find(it->first)->second.get();
 
-        for (typename blueprint_t<protocol_t>::region_to_role_map_t::const_iterator jt  = it->second.begin();
-                                                                                    jt != it->second.end();
-                                                                                    jt++) {
+        for (typename blueprint_t<protocol_t>::region_to_role_map_t::const_iterator jt = it->second.begin();
+             jt != it->second.end();
+             ++jt) {
             bool found = false;
-            for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator kt  = bcard.activities.begin();
-                                                                                              kt != bcard.activities.end();
-                                                                                              kt++) {
-                if (jt->first == kt->second.first) {
+            for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator kt = bcard.activities.begin();
+                 kt != bcard.activities.end();
+                 ++kt) {
+                if (jt->first == kt->second.region) {
                     if (jt->second == blueprint_role_primary &&
-                            boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(&kt->second.second) &&
-                            boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(kt->second.second).replier.is_initialized()) {
+                        boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(&kt->second.activity) &&
+                        boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(kt->second.activity).replier.is_initialized()) {
                         found = true;
                         break;
                     } else if (jt->second == blueprint_role_secondary &&
-                            boost::get<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t>(&kt->second.second)) {
+                               boost::get<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t>(&kt->second.activity)) {
                         found = true;
                         break;
                     } else if (jt->second == blueprint_role_nothing &&
-                            boost::get<typename reactor_business_card_t<protocol_t>::nothing_t>(&kt->second.second)) {
+                               boost::get<typename reactor_business_card_t<protocol_t>::nothing_t>(&kt->second.activity)) {
                         found = true;
                         break;
                     } else {

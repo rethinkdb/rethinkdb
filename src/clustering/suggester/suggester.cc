@@ -88,24 +88,24 @@ float estimate_cost_to_get_up_to_date(
     region_map_t<protocol_t, float> costs(shard, 3);
     for (typename rb_t::activity_map_t::const_iterator it = business_card.activities.begin();
             it != business_card.activities.end(); it++) {
-        typename protocol_t::region_t intersection = region_intersection(it->second.first, shard);
+        typename protocol_t::region_t intersection = region_intersection(it->second.region, shard);
         if (!region_is_empty(intersection)) {
             int cost;
-            if (boost::get<typename rb_t::primary_when_safe_t>(&it->second.second)) {
+            if (boost::get<typename rb_t::primary_when_safe_t>(&it->second.activity)) {
                 cost = 0;
-            } else if (boost::get<typename rb_t::primary_t>(&it->second.second)) {
+            } else if (boost::get<typename rb_t::primary_t>(&it->second.activity)) {
                 cost = 0;
-            } else if (boost::get<typename rb_t::secondary_up_to_date_t>(&it->second.second)) {
+            } else if (boost::get<typename rb_t::secondary_up_to_date_t>(&it->second.activity)) {
                 cost = 1;
-            } else if (boost::get<typename rb_t::secondary_without_primary_t>(&it->second.second)) {
+            } else if (boost::get<typename rb_t::secondary_without_primary_t>(&it->second.activity)) {
                 cost = 2;
-            } else if (boost::get<typename rb_t::secondary_backfilling_t>(&it->second.second)) {
+            } else if (boost::get<typename rb_t::secondary_backfilling_t>(&it->second.activity)) {
                 cost = 2;
-            } else if (boost::get<typename rb_t::nothing_when_safe_t>(&it->second.second)) {
+            } else if (boost::get<typename rb_t::nothing_when_safe_t>(&it->second.activity)) {
                 cost = 3;
-            } else if (boost::get<typename rb_t::nothing_when_done_erasing_t>(&it->second.second)) {
+            } else if (boost::get<typename rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
                 cost = 3;
-            } else if (boost::get<typename rb_t::nothing_t>(&it->second.second)) {
+            } else if (boost::get<typename rb_t::nothing_t>(&it->second.activity)) {
                 cost = 3;
             } else {
                 // I don't know if this is unreachable, but cost would be uninitialized otherwise  - Sam

@@ -28,16 +28,16 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_
 
         /* Whether or not we found a directory entry for this peer */
         bool found = false;
-        for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator it = (*bcard_it->second).internal.activities.begin();
+        for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator it = bcard_it->second->internal.activities.begin();
              it != bcard_it->second->internal.activities.end();
              ++it) {
-            if (it->second.first == region) {
+            if (it->second.region == region) {
                 if (r_it->second == blueprint_role_primary) {
-                    if (!boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(&it->second.second)) {
+                    if (!boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(&it->second.activity)) {
                         return false;
                     }
                 } else if (r_it->second == blueprint_role_secondary) {
-                    if (!boost::get<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t>(&it->second.second)) {
+                    if (!boost::get<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t>(&it->second.activity)) {
                         return false;
                     }
                 }
