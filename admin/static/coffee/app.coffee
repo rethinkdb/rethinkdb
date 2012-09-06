@@ -165,64 +165,48 @@ collections_ready = ->
 #   - an optional callback can be provided. Currently this callback will only be called after the /ajax route (metadata) is collected
 # To avoid memory leak, we use function declaration (so with pure javascript since coffeescript can't do it)
 # Using setInterval seems to be safe, TODO
-`function collect_stat_data() {
-    $.ajax({
-        url: '/ajax/stat',
-        dataType: 'json',
-        contentType: 'application/json',
-        success: function(data) {
-            set_stats(data)
-            setTimeout(collect_stat_data, statUpdateInterval)
-        }
-    });
-}
-
-function collect_server_data_once(async, optional_callback) {
-    $.ajax({
-        url: '/ajax',
-        dataType: 'json',
-        contentType: 'application/json',
-        async: async,
-        success: function(updates) {
-            if (window.is_disconnected != null) {
+collect_server_data_once = (async, optional_callback) ->
+    $.ajax
+        url: '/ajax'
+        dataType: 'json'
+        contentType: 'application/json'
+        async: async
+        success: (updates) ->
+            if window.is_disconnected?
                 delete window.is_disconnected
                 window.location.reload(true)
-            }
+
             apply_diffs(updates.semilattice)
             set_issues(updates.issues)
             set_directory(updates.directory)
             set_last_seen(updates.last_seen)
-            if (optional_callback) {
+            if optional_callback?
                 optional_callback()
-            }
-
-        },
-        error: function() {
-            if (window.is_disconnected != null) {
+        error: ->
+            if window.is_disconnected?
                 window.is_disconnected.display_fail()
-            }
-            else {
+            else
                 window.is_disconnected = new IsDisconnected
-            }
-        }
-    })
 
-    $.ajax({
+    $.ajax
         contentType: 'application/json',
         url: '/ajax/progress',
         dataType: 'json',
         success: set_progress
-    })
-    
 
-} 
+collect_server_data_async = ->
+    collect_server_data_once true
 
-function collect_server_data(optional_callback) {
-    collect_server_data_once(true, optional_callback)
-    setTimeout(collect_server_data, updateInterval) // The callback are used just once.
-}`
-
-
+collect_stat_data = ->
+    $.ajax
+        url: '/ajax/stat'
+        dataType: 'json'
+        contentType: 'application/json'
+        success: (data) ->
+            set_stats(data)
+        error: ->
+            #TODO
+            console.log 'Could not retrieve stats'
 
 $ ->
     render_loading()
@@ -251,6 +235,7 @@ $ ->
     Backbone.sync = (method, model, success, error) ->
         if method is 'read'
             collect_server_data()
+            console.log 'call'
         else
             legacy_sync method, model, success, error
 
@@ -273,9 +258,10 @@ $ ->
     # We need to reload data every updateInterval
     #setInterval (-> Backbone.sync 'read', null), updateInterval
     declare_client_connected()
-    # Stat update intervanl is different
-    #setInterval collect_stat_data, statUpdateInterval
+    
+    # Collect the first time
+    collect_server_data_once(true, collections_ready)
 
-    # Populate collection for the first time
-    collect_server_data(collections_ready)
-    collect_stat_data()
+    # Set interval to update the data
+    setInterval collect_server_data_async, updateInterval
+    setInterval collect_stat_data, statUpdateInterval

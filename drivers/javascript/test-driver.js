@@ -70,7 +70,7 @@ exports.fail = function(msg) {
     exit();
 }
 
-function assertEquals(expected, val) {
+exports.assertEquals = function(expected, val) {
     if (expected !== val) {
         fail("Value "+val+" expected to equal "+expected);
     }

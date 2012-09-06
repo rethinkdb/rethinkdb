@@ -117,8 +117,13 @@ function testGetAttr() {
 }
 
 function testPickAttrs() {
-    q({a:1,b:2,c:3}).pickAttrs('a').run(objeq({a:1}));
-    q({a:1,b:2,c:3}).pickAttrs(['a', 'b']).run(objeq({a:1,b:2}));
+    tobj.pickAttrs('a').run(objeq({a:1}));
+    tobj.pickAttrs(['a', 'b']).run(objeq({a:1,b:2}));
+}
+
+function testWithout() {
+    tobj.without('a').run(objeq({b:2,c:3}));
+    tobj.without(['a','b']).run(objeq({c:3}));
 }
 
 function testR() {
@@ -152,10 +157,8 @@ function testTabMap() {
 }
 
 function testTabReduce() {
-    tab.map(q('@.num')).reduce(q(0), q.fn('a','b',q('$b').add(q('$a')))).run(aeq(155));
-
-    // Complains about not having field num
-    //tab.reduce(q(0), q.fn('a', 'b', q.R('$b.num'))).run(aeq(155));
+    tab.map(q('@.num')).reduce(q(0), q.fn('a','b', q('$b').add(q('$a')))).run(aeq(155));
+    tab.map(q('@.num')).reduce(q(0), q.fn('a', 'b', q('$b').add('$a'))).run(aeq(155));
 }
 
 function testJS() {
@@ -261,6 +264,7 @@ runTests([
     testHasAttr,
     testGetAttr,
     testPickAttrs,
+    testWithout,
     testInsert,
     testGet,
     testOrderby,

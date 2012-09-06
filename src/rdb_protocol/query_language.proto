@@ -119,6 +119,8 @@ message Builtin {
         ANY = 35;
         ALL = 36;
         RANGE = 37;
+        IMPLICIT_WITHOUT = 38;
+        WITHOUT = 39;
     };
 
     enum Comparison {
@@ -134,7 +136,7 @@ message Builtin {
 
     optional string attr = 2; //used if type is GETATTR of HASATTR
 
-    repeated string attrs = 3; //used if type is PICKATTRS
+    repeated string attrs = 3; //used if type is PICKATTRS or WITHOUT
 
     optional Comparison comparison = 4;
 

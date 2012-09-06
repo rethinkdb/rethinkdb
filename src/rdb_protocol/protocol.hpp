@@ -197,40 +197,38 @@ struct rdb_protocol_t {
     class rget_read_t {
     public:
         rget_read_t() { }
-        rget_read_t(const key_range_t &_key_range, int _maximum)
-            : key_range(_key_range), maximum(_maximum) { }
+        rget_read_t(const key_range_t &_key_range)
+            : key_range(_key_range) { }
 
-        rget_read_t(const key_range_t &_key_range, int _maximum,
+        rget_read_t(const key_range_t &_key_range,
                     const rdb_protocol_details::transform_t &_transform,
                     const query_language::scopes_t &_scopes)
-            : key_range(_key_range), maximum(_maximum),
+            : key_range(_key_range),
               transform(_transform), scopes(_scopes)
         { }
 
-        rget_read_t(const key_range_t &_key_range, int _maximum,
+        rget_read_t(const key_range_t &_key_range,
                     const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
                     const query_language::scopes_t &_scopes)
-            : key_range(_key_range), maximum(_maximum),
-              terminal(_terminal), scopes(_scopes)
-        { }
-
-        rget_read_t(const key_range_t &_key_range, int _maximum,
-                    const rdb_protocol_details::transform_t &_transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
-                    const query_language::scopes_t &_scopes)
-            : key_range(_key_range), maximum(_maximum),
-              transform(_transform), terminal(_terminal),
+            : key_range(_key_range), terminal(_terminal),
               scopes(_scopes)
         { }
 
+        rget_read_t(const key_range_t &_key_range,
+                    const rdb_protocol_details::transform_t &_transform,
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
+                    const query_language::scopes_t &_scopes)
+            : key_range(_key_range), transform(_transform),
+              terminal(_terminal), scopes(_scopes)
+        { }
+
         key_range_t key_range;
-        size_t maximum;
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
         query_language::scopes_t scopes;
 
-        RDB_MAKE_ME_SERIALIZABLE_5(key_range, maximum, transform, terminal, scopes);
+        RDB_MAKE_ME_SERIALIZABLE_4(key_range, transform, terminal, scopes);
     };
 
     class distribution_read_t {
