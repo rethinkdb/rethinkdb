@@ -16,6 +16,7 @@
 
 #define MAX_PROTOBUF_SIZE (1024*1024)
 #define RDB_TABLE_NAME "Welcome-rdb"
+#define DB_NAME "Welcome-db"
 #define PRIMARY_KEY_NAME "id"
 #define SECONDARY_KEY_NAME "val"
 
@@ -75,6 +76,10 @@ struct rethinkdb_protocol_t : protocol_t {
             perror("connect() failed");
             exit(-1);
         }
+
+        // Write the initial magic number to identify us as a rethinkdb peer
+        int32_t magic_number = 0xaf61ba35;
+        send_all(reinterpret_cast<char *>(&magic_number), sizeof(magic_number));
 
         // set up readfds for socket_ready()
         FD_ZERO(&readfds);
@@ -376,6 +381,7 @@ private:
             WriteQuery::PointDelete *point_delete = write_query->mutable_point_delete();
             TableRef *table_ref = point_delete->mutable_table_ref();
             table_ref->set_table_name(RDB_TABLE_NAME);
+            table_ref->set_db_name(DB_NAME);
             point_delete->set_attrname(PRIMARY_KEY_NAME);
         }
         if (option == FINALIZE || option == GENERATE) {
@@ -394,6 +400,7 @@ private:
             WriteQuery::PointUpdate *point_update = write_query->mutable_point_update();
             TableRef *table_ref = point_update->mutable_table_ref();
             table_ref->set_table_name(RDB_TABLE_NAME);
+            table_ref->set_db_name(DB_NAME);
             point_update->set_attrname(PRIMARY_KEY_NAME);
             Term *term_key = point_update->mutable_key();
             term_key->set_type(Term::STRING);
@@ -429,6 +436,7 @@ private:
             WriteQuery::Insert *insert = write_query->mutable_insert();
             TableRef *table_ref = insert->mutable_table_ref();
             table_ref->set_table_name(RDB_TABLE_NAME);
+            table_ref->set_db_name(DB_NAME);
             Term *term = insert->add_terms();
             term->set_type(Term::OBJECT);
             VarTermTuple *object_key = term->add_object();
@@ -464,6 +472,7 @@ private:
                 Term::GetByKey *get_by_key = array_term->mutable_get_by_key();
                 TableRef *table_ref = get_by_key->mutable_table_ref();
                 table_ref->set_table_name(RDB_TABLE_NAME);
+                table_ref->set_db_name(DB_NAME);
                 get_by_key->set_attrname(PRIMARY_KEY_NAME);
                 Term *term_key = get_by_key->mutable_key();
                 term_key->set_type(Term::STRING);
@@ -481,6 +490,7 @@ private:
             Term::GetByKey *get_by_key = term->mutable_get_by_key();
             TableRef *table_ref = get_by_key->mutable_table_ref();
             table_ref->set_table_name(RDB_TABLE_NAME);
+            table_ref->set_db_name(DB_NAME);
             get_by_key->set_attrname(PRIMARY_KEY_NAME);
             Term *term_key = get_by_key->mutable_key();
             term_key->set_type(Term::STRING);
@@ -512,6 +522,7 @@ private:
             Term::Table *table = args->mutable_table();
             TableRef *table_ref = table->mutable_table_ref();
             table_ref->set_table_name(RDB_TABLE_NAME);
+            table_ref->set_db_name(DB_NAME);
         }
         if (option == FINALIZE || option == GENERATE) {
             Term *lowerbound = query->mutable_read_query()->mutable_term()->mutable_call()->mutable_builtin()->mutable_range()->mutable_lowerbound();

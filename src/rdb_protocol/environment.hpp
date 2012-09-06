@@ -23,8 +23,7 @@ public:
              _databases_semilattice_metadata,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _semilattice_metadata,
-        clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
-            _directory_metadata,
+        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
         uuid_t _this_machine)
@@ -33,7 +32,7 @@ public:
           namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
           databases_semilattice_metadata(_databases_semilattice_metadata),
           semilattice_metadata(_semilattice_metadata),
-          directory_metadata(_directory_metadata),
+          directory_read_manager(_directory_read_manager),
           js_runner(_js_runner),
           interruptor(_interruptor),
           this_machine(_this_machine)
@@ -56,6 +55,7 @@ public:
           namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
           databases_semilattice_metadata(_databases_semilattice_metadata),
           semilattice_metadata(_semilattice_metadata),
+          directory_read_manager(NULL),
           js_runner(_js_runner),
           interruptor(_interruptor),
           this_machine(_this_machine)
@@ -73,8 +73,7 @@ public:
     //constructing views is too hard :-/
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         semilattice_metadata;
-    clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
-        directory_metadata;
+    directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
 
   private:
     // Ideally this would be a scoped_ptr_t<js::runner_t>, but unfortunately we
