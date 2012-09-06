@@ -227,7 +227,6 @@ module 'ServerView', ->
                 @history.traffic_recv.push 0
 
             @model.on 'change:name', @render_summary
-            #TODO change callback so we don't refresh the whole element but just the status
             directory.on 'all', @render_summary
 
             # Load abstract list element view with the machine template
@@ -243,7 +242,6 @@ module 'ServerView', ->
         render_summary: =>
             json = _.extend @model.toJSON(),
                 status: DataUtils.get_machine_reachability(@model.get('id'))
-                ip: 'TBD' #TODO
                 primary_count: 0
                 secondary_count: 0
 
