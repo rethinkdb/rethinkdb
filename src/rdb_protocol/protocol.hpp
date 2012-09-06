@@ -31,12 +31,15 @@
 #include "rdb_protocol/query_language.pb.h"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rpc/semilattice/watchable.hpp"
+#include "rpc/directory/read_manager.hpp"
 #include "rdb_protocol/serializable_environment.hpp"
 
 using query_language::scopes_t;
 using query_language::backtrace_t;
 using query_language::shared_scoped_less_t;
 using query_language::runtime_exc_t;
+
+class cluster_directory_metadata_t;
 
 enum point_write_result_t {
     STORED,
@@ -106,7 +109,9 @@ struct rdb_protocol_t {
         context_t(extproc::pool_group_t *_pool_group,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+                  directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
                   machine_id_t _machine_id);
+        ~context_t();
 
         extproc::pool_group_t *pool_group;
         namespace_repo_t<rdb_protocol_t> *ns_repo;
@@ -116,6 +121,7 @@ struct rdb_protocol_t {
         scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > cross_thread_namespace_watchables;
         scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<databases_semilattice_metadata_t> > > cross_thread_database_watchables;
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+        directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
         cond_t interruptor; //TODO figure out where we're going to want to interrupt this from and put this there instead
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
         machine_id_t machine_id;
