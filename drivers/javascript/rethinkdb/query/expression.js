@@ -846,3 +846,23 @@ rethinkdb.query.Expression.prototype.forEach = function(fun) {
     fun = functionWrap_(fun);
     return new rethinkdb.query.ForEachQuery(this, fun);
 };
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'forEach',
+                    rethinkdb.query.Expression.prototype.forEach);
+
+/**
+ * Convert a stream to an array
+ */
+rethinkdb.query.Expression.prototype.streamToArray = function() {
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.STREAMTOARRAY, [this]);
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'streamToArray',
+                    rethinkdb.query.Expression.prototype.streamToArray);
+
+/**
+ * Convert an array to a stream
+ */
+rethinkdb.query.Expression.prototype.arrayToStream = function() {
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ARRAYTOSTREAM, [this]);
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'arrayToStream',
+                    rethinkdb.query.Expression.prototype.arrayToStream);
