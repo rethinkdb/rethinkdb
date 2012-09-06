@@ -767,24 +767,29 @@ module 'DataExplorerView', ->
         toggle_size: =>
             if @displaying_full_view
                 @display_normal()
+                $(window).unbind 'resize', @display_full
                 @displaying_full_view = false
             else
                 @display_full()
+                $(window).bind 'resize', @display_full
                 @displaying_full_view = true
 
         display_normal: =>
             $('.main-container').width '940'
             $('#cluster').width 700
-            $('.input_query').width 678
+            @codemirror.setSize 698, 100
+            #$('.input_query').width 678
             $('.dataexplorer_container').removeClass 'full_container'
             $('.dataexplorer_container').css 'margin', '0px'
             $('.change_size').val 'Full view'
 
         display_full: =>
             width = $(window).width() - 220 -40
+
             $('.main-container').width '100%'
             $('#cluster').width width
-            $('.input_query').width width-45
+            @codemirror.setSize width-22, 100
+            #$('.input_query').width width-45
             $('.dataexplorer_container').addClass 'full_container'
             $('.dataexplorer_container').css 'margin', '0px 0px 0px 20px'
             $('.change_size').val 'Smaller view'
