@@ -449,7 +449,7 @@ module 'DataExplorerView', ->
                         query_after_cursor += query_lines[i]
 
             # Check if we are in a string
-            if (query_before_cursor.match(/\"/g)||[]).length%2 is 1
+            if @is_in_string(query_before_cursor) is true
                 @hide_suggestion()
                 return ''
 
@@ -480,9 +480,28 @@ module 'DataExplorerView', ->
                     @hide_suggestion()
                 else
                     @append_suggestion(query, suggestions)
+            else
+                @hide_suggestion()
 
             return false
         
+        is_in_string: (query) ->
+            is_string = false
+            char_used = ''
+
+            for i in [query.length-1..0] by -1
+                if is_string is false
+                    if (query[i] is '"' or query[i] is '\'')
+                        is_string = true
+                        char_used = query[i]
+                else if is_string is true
+                    if query[i] is char_used
+                        if query[i-1]? and query[i-1] is '\\'
+                            continue
+                        else
+                            is_string = false
+            return is_string
+
         # Extract the last function of the current line
         extract_last_function: (query) =>
             start = 0
@@ -490,7 +509,7 @@ module 'DataExplorerView', ->
             num_not_open_parenthesis = 0
 
             is_string = false
-            char_used = ""
+            char_used = ''
             for i in [query.length-1..0] by -1
                 if is_string is false
                     if (query[i] is '"' or query[i] is '\'')
