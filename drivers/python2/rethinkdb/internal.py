@@ -5,6 +5,9 @@ import query_language_pb2 as p
 # PRETTY PRINTING #
 ###################
 
+# A note about pretty printing: The result of a pretty-print shouldn't contain
+# newlines or tab characters. It may contain spaces.
+
 PRETTY_PRINT_EXPR_WRAPPED = "wrapped"
 PRETTY_PRINT_EXPR_UNWRAPPED = "unwrapped"
 
@@ -19,10 +22,14 @@ class PrettyPrinter(object):
         raise NotImplementedError()
 
 class ReprPrettyPrinter(PrettyPrinter):
+    # This implementation has a lot of assertions so that it validates the
+    # implementations of `pretty_print()` on the various objects.
+
     def expr_wrapped(self, expr, backtrace_steps):
         assert isinstance(expr, query.ReadQuery)
         assert isinstance(backtrace_steps, list)
         string, wrapped = expr._inner.pretty_print(self)
+        assert "\n" not in string
         if wrapped == PRETTY_PRINT_EXPR_UNWRAPPED:
             string = "expr(%s)" % string
         return string
@@ -30,14 +37,19 @@ class ReprPrettyPrinter(PrettyPrinter):
     def expr_unwrapped(self, expr, backtrace_steps):
         assert isinstance(expr, query.ReadQuery)
         assert isinstance(backtrace_steps, list)
-        return expr._inner.pretty_print(self)[0]
+        string = expr._inner.pretty_print(self)[0]
+        assert "\n" not in string
+        return string
 
     def write_query(self, wq, backtrace_steps):
         assert isinstance(wq, query.WriteQuery)
         assert isinstance(backtrace_steps, list)
-        return wq._inner.pretty_print(self)
+        string = wq._inner.pretty_print(self)
+        assert "\n" not in string
+        return string
 
     def simple_string(self, string, backtrace_steps):
+        assert "\n" not in string
         return string
 
 #####################################

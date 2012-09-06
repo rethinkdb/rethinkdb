@@ -91,36 +91,41 @@ class QueryError(StandardError):
         if PRETTY_PRINT_BEGIN_TARGET not in query_str:
             raise ValueError("Internal error: can't follow path %r in %r" % (self.ast_path, self.query))
         assert query_str.count(PRETTY_PRINT_BEGIN_TARGET) == query_str.count(PRETTY_PRINT_END_TARGET) == 1
-        formatted_lines = []
-        in_target = False
-        for line in query_str.split("\n"):
-            line = line.rstrip(" ")
-            if not in_target:
-                if PRETTY_PRINT_BEGIN_TARGET in line:
-                    if PRETTY_PRINT_END_TARGET in line:
-                        before, rest = line.split(PRETTY_PRINT_BEGIN_TARGET)
-                        target, after = rest.split(PRETTY_PRINT_END_TARGET)
-                        formatted_lines.append(before + target + after)
-                        formatted_lines.append(" " * len(before) + "^" * len(target))
-                    else:
-                        before, after = line.split(PRETTY_PRINT_BEGIN_TARGET)
-                        formatted_lines.append(before + after)
-                        formatted_lines.append(" " * len(before) + "^" * len(after))
-                        in_target = True
-                else:
-                    formatted_lines.append(line)
+        before, rest = query_str.split(PRETTY_PRINT_BEGIN_TARGET)
+        target, after = rest.split(PRETTY_PRINT_END_TARGET)
+        query_str = before + target + after
+        underline_str = " " * len(before) + "^" * len(target)
+
+        # Insert line breaks to keep lines short. We try to break on spaces.
+        assert "\n" not in query_str
+        lines = []
+        def take(start, prefix, count):
+            lines.append(prefix + query_str[start:start + count])
+            part = underline_str[start:start + count]
+            if part != " " * len(part):
+                lines.append(prefix + part.rstrip())
+        prefix = ""
+        start = 0
+        max_line_length = 80
+        min_line_length = 40
+        while start < len(query_str):
+            if len(query_str) < max_line_length - len(prefix):
+                count = len(query_str)
             else:
-                without_spaces = line.lstrip(" ")
-                spaces = " " * (len(line) - len(without_spaces))
-                if PRETTY_PRINT_END_TARGET in without_spaces:
-                    before, after = without_spaces.split(PRETTY_PRINT_END_TARGET)
-                    formatted_lines.append(spaces + before + after)
-                    formatted_lines.append(spaces + "^" * len(before))
-                    in_target = False
+                # Try to put the next line break on a space, but only if the
+                # line length would be between `max_line_length` and
+                # `min_line_length`
+                space_candidate = query_str.rfind(" ", 0, start + max_line_length - len(prefix))
+                if space_candidate != -1 and space_candidate - start > min_line_length - len(prefix):
+                    count = space_candidate - start
                 else:
-                    formatted_lines.append(spaces + without_spaces)
-                    formatted_lines.append(spaces + "^" * len(without_spaces))
-        return "\n".join(formatted_lines)
+                    count = max_line_length - len(prefix)
+            take(start, prefix, count)
+            start += count
+            prefix = "    "
+        query_str = "\n".join(lines)
+
+        return query_str
 
 class ExecutionError(QueryError):
     def __str__(self):
@@ -186,9 +191,7 @@ class BatchedIterator(object):
         return NotImplemented
 
     def __repr__(self):
-        return 'BachedIterator(query=%s, token=%s): data=[%s]' % (
-            self.query, self.token, ', '.join(map(str, self.data))
-            + ('...', '')[self.complete])
+        return "<BatchedIterator [%s]>" % (', '.join(map(str, self.data)) + ('...', '')[self.complete])
 
 class Connection():
     """A network connection to the RethinkDB cluster. Queries may be
@@ -242,6 +245,9 @@ class Connection():
         self.token = 1
         self.socket = socket.create_connection((host_or_list, port))
         self.socket.sendall(struct.pack("<L", 0xaf61ba35))
+
+        global last_connection
+        last_connection = self
 
     def _get_token(self):
         token = self.token

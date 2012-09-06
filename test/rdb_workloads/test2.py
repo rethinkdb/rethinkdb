@@ -43,12 +43,14 @@ class RDBTest(unittest.TestCase):
         with self.assertRaises(BadQueryError) as cm:
             res = self.conn.run(query)
         e = cm.exception
+        print "\n\n", e
         self.assertIn(msg, str(e))
 
     def error_exec(self, query, msg):
         with self.assertRaises(ExecutionError) as cm:
             res = self.conn.run(query)
         e = cm.exception
+        print "\n\n", e
         self.assertIn(msg, str(e))
 
     def clear_table(self):

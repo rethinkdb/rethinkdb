@@ -76,6 +76,7 @@ Manipulating databases and tables
 """
 
 import query_language_pb2 as p
+import net
 
 class BaseQuery(object):
     """A base class for all ReQL queries. Queries can be run by calling the
@@ -92,7 +93,7 @@ class BaseQuery(object):
     def _finalize_query(self, root):
         raise NotImplementedError()
 
-    def run(conn=None):
+    def run(self, conn=None):
         """Evaluate the expression on the server using the connection
         specified by `conn`. If `conn` is empty, uses the last created
         connection (located in :data:`rethinkdb.net.last_connection`).
@@ -110,7 +111,11 @@ class BaseQuery(object):
         >>> res = table('db_name.table_name').insert({ 'a': 1, 'b': 2 }).run(conn)
         >>> res = table('db_name.table_name').run() # uses conn since it's the last created connection
         """
-        raise NotImplementedError()
+        if conn is None:
+            if net.last_connection is None:
+                raise StandardError("Call rethinkdb.net.connect() to connect to a server before calling run()")
+            conn = net.last_connection
+        return conn.run(self)
 
 class ReadQuery(BaseQuery):
     """Base class for expressions"""
