@@ -109,7 +109,7 @@ class QueryError(StandardError):
         max_line_length = 80
         min_line_length = 40
         while start < len(query_str):
-            if len(query_str) < max_line_length - len(prefix):
+            if len(query_str) - start < max_line_length - len(prefix):
                 count = len(query_str)
             else:
                 # Try to put the next line break on a space, but only if the
