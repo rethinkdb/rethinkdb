@@ -591,6 +591,31 @@ module 'DataExplorerView', ->
             window.result = {}
 
             @query = @codemirror.getValue()
+
+            # Replace new lines with \n so the query is not splitted.
+            is_string = false
+            char_used = ''
+            i = 0
+            while i < @query.length
+                if is_string is true
+                    if @query[i] is char_used
+                        if @query[i-1]? and @query[i-1] isnt '\\'
+                            console.log '++++'
+                            console.log @query
+                            @query = @query.slice(0, start_string) + @query.slice(start_string, i).replace('\n', '\\n') + @query.slice(i)
+                            is_string = false
+                            console.log @query
+                else if is_string is false
+                    if @query[i] is '\'' or @query[i] is '"'
+                        is_string = true
+                        start_string = i
+                        char_used = @query[i]
+                i++
+
+
+            console.log @query
+            
+
             full_query = @query + '.run(this.callback_render)'
             try
                 eval(full_query)
@@ -845,7 +870,6 @@ module 'DataExplorerView', ->
                 tree: @json_to_node(result)
 
         #TODO catch RangeError: Maximum call stack size exceeded?
-        #TODO check special characters
         #TODO what to do with new line?
         json_to_node: (value) =>
             value_type = typeof value
@@ -903,7 +927,6 @@ module 'DataExplorerView', ->
                 else if /^[a-z0-9]+@[a-z0-9]+.[a-z0-9]{2,4}/i.test(value) # We don't handle .museum extension and special characters
                     return @template_json_tree.email
                         email: value
-
                 else
                     return @template_json_tree.span_with_quotes
                         classname: 'jt_string'

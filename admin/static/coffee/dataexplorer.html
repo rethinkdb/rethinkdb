@@ -233,8 +233,8 @@
         </div>
         {{else}}
         <div class="jta_value {{class_value}} {{classname}}">
-            <span contenteditable="true">
-                {{print_safe value}}
+            <span>
+                {{value}}
             </span>
         </div>
         {{/if}}
@@ -252,7 +252,7 @@
         {{#if need_comma}}, {{/if}}
     </span>
     {{else}}
-    <span contenteditable="true" class={{classname}}>{{print_safe value}}</span>{{#if need_comma}}, {{/if}}
+    <span class={{classname}}>{{print_safe value}}</span>{{#if need_comma}}, {{/if}}
     {{/if}}
 </script>
 
