@@ -30,7 +30,6 @@ reactor_t<protocol_t>::reactor_t(
     io_backender(_io_backender),
     mailbox_manager(mm),
     ack_checker(ack_checker_),
-    reactor_directory(rd),
     directory_echo_writer(mailbox_manager, reactor_business_card_t<protocol_t>()),
     directory_echo_mirror(mailbox_manager, rd->subview(&collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >)),
     branch_history_manager(bhm),
