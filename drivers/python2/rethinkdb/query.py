@@ -76,6 +76,7 @@ Manipulating databases and tables
 """
 
 import query_language_pb2 as p
+import net
 
 class BaseQuery(object):
     """A base class for all ReQL queries. Queries can be run by calling the
@@ -92,7 +93,7 @@ class BaseQuery(object):
     def _finalize_query(self, root):
         raise NotImplementedError()
 
-    def run(conn=None):
+    def run(self, conn=None):
         """Evaluate the expression on the server using the connection
         specified by `conn`. If `conn` is empty, uses the last created
         connection (located in :data:`rethinkdb.net.last_connection`).
@@ -110,7 +111,11 @@ class BaseQuery(object):
         >>> res = table('db_name.table_name').insert({ 'a': 1, 'b': 2 }).run(conn)
         >>> res = table('db_name.table_name').run() # uses conn since it's the last created connection
         """
-        raise NotImplementedError()
+        if conn is None:
+            if net.last_connection is None:
+                raise StandardError("Call rethinkdb.net.connect() to connect to a server before calling run()")
+            conn = net.last_connection
+        return conn.run(self)
 
 class ReadQuery(BaseQuery):
     """Base class for expressions"""
@@ -118,6 +123,9 @@ class ReadQuery(BaseQuery):
     def __init__(self, inner):
         assert isinstance(inner, internal.ExpressionInner)
         self._inner = inner
+
+    def __str__(self):
+        return internal.ReprPrettyPrinter().expr_wrapped(self, [])
 
     def _finalize_query(self, root):
         root.type = p.Query.READ
@@ -145,6 +153,9 @@ class JSONExpression(ReadQuery):
     :class:`JSONExpression` overloads Python operators wherever possible to
     implement arithmetic, attribute access, and so on.
     """
+
+    def __repr__(self):
+        return "<JSONExpression %s>" % str(self)
 
     def __getitem__(self, index):
         """If `index` is a string, expects `self` to evaluate to an object and
@@ -327,7 +338,7 @@ class JSONExpression(ReadQuery):
 
         :returns: :class:`JSONExpression`
         """
-        return JSONExpression(internal.Sub(self))
+        return JSONExpression(internal.Negate(self))
 
     def __or__(self, other):
         """Computes the boolean "or" of `self` and `other`.
@@ -613,7 +624,7 @@ class JSONExpression(ReadQuery):
         >>> expr([1, 2, 3]).length().run()
         3
         """
-        return JSONExpression(internal.Count(self))
+        return JSONExpression(internal.Length(self))
 
     def __len__(self):
         raise ValueError("To construct a `rethinkdb.JSONExpression` "
@@ -634,6 +645,10 @@ class JSONExpression(ReadQuery):
 
 class StreamExpression(ReadQuery):
     """A sequence of JSON values which can be read."""
+
+    def __repr__(self):
+        return "<StreamExpression %s>" % str(self)
+
     def _make_selector(self, inner):
         if isinstance(self, MultiRowSelection):
             return MultiRowSelection(inner)
@@ -899,7 +914,7 @@ class StreamExpression(ReadQuery):
 
         >>> table("users").length()   # Total number of users in the system
         """
-        return JSONExpression(internal.Count(self))
+        return JSONExpression(internal.Length(self))
 
     def __len__(self):
         raise ValueError("To construct a `rethinkdb.JSONExpression` "
@@ -925,7 +940,20 @@ def expr(val):
     """
     if isinstance(val, JSONExpression):
         return val
-    return JSONExpression(internal.JSONLiteral(val))
+    elif val is None:
+        return JSONExpression(internal.LiteralNull())
+    elif isinstance(val, bool):
+        return JSONExpression(internal.LiteralBool(val))
+    elif isinstance(val, (int, float)):
+        return JSONExpression(internal.LiteralNumber(val))
+    elif isinstance(val, (str, unicode)):
+        return JSONExpression(internal.LiteralString(val))
+    elif isinstance(val, list):
+        return JSONExpression(internal.LiteralArray(val))
+    elif isinstance(val, object):
+        return JSONExpression(internal.LiteralObject(val))
+    else:
+        raise TypeError("%r is not a valid JSONExpression" % val)
 
 def if_then_else(test, true_branch, false_branch):
     """If `test` returns `true`, evaluates to `true_branch`. If `test` returns
@@ -1076,6 +1104,12 @@ class JSONFunction(object):
         self.body = expr(body)
         self.args = args
 
+    def __str__(self):
+        return self._pretty_print(internal.ReprPrettyPrinter(), [])
+
+    def __repr__(self):
+        return "<JSONFunction %s>" % str(self)
+
     def write_mapping(self, mapping):
         assert len(self.args) <= 1
         if self.args:
@@ -1091,6 +1125,9 @@ class JSONFunction(object):
         reduction.var2 = self.args[1]
         self.body._inner._write_ast(reduction.body)
 
+    def _pretty_print(self, printer, backtrace_steps):
+        return "fn(%s)" % (", ".join([repr(x) for x in self.args] + [printer.expr_unwrapped(self.body, backtrace_steps)]))
+
 class StreamFunction(object):
     """TODO document me"""
     def __init__(self, body, *args):
@@ -1098,12 +1135,21 @@ class StreamFunction(object):
         self.body = body
         self.args = args
 
+    def __str__(self):
+        return self._pretty_print(internal.ReprPrettyPrinter(), [])
+
+    def __repr__(self):
+        return "<StreamFunction %s>" % str(self)
+
     def write_mapping(self, mapping):
         if self.args:
             mapping.arg = self.args[0]
         else:
             mapping.arg = 'row'     # TODO: GET RID OF THIS
         self.body._inner._write_ast(mapping.body)
+
+    def _pretty_print(self, printer, backtrace_steps):
+        return "fn(%s)" % (", ".join([repr(x) for x in self.args] + [printer.expr_unwrapped(self.body, backtrace_steps)]))
 
 class BaseSelection(object):
     """Something which can be read or written."""
@@ -1133,8 +1179,14 @@ class BaseSelection(object):
 class RowSelection(JSONExpression, BaseSelection):
     """A single row from a table which can be read or written."""
 
+    def __repr__(self):
+        return "<RowSelection %s>" % str(self)
+
 class MultiRowSelection(StreamExpression, BaseSelection):
     """A sequence of rows which can be read or written."""
+
+    def __repr__(self):
+        return "<MultiRowSelection %s>" % str(self)
 
 class WriteQuery(BaseQuery):
     """All queries that modify the database are instances of
@@ -1142,6 +1194,12 @@ class WriteQuery(BaseQuery):
     def __init__(self, inner):
         assert isinstance(inner, internal.WriteQueryInner)
         self._inner = inner
+
+    def __str__(self):
+        return internal.ReprPrettyPrinter().write_query(self, [])
+
+    def __repr__(self):
+        return "<WriteQuery %s>" % str(self)
 
     def _finalize_query(self, root):
         root.type = p.Query.WRITE
@@ -1234,6 +1292,9 @@ class Database(object):
         :type db_name: str
         """
         self.db_name = db_name
+
+    def __repr__(self):
+        return "<Database %r>" % self.db_name
 
     def create(self, table_name, primary_key="id"):
         """Create a ReQL expression that creates a table within this
@@ -1345,6 +1406,12 @@ class Table(MultiRowSelection):
         ReadQuery.__init__(self, internal.Table(self))
         self.table_name = table_name
         self.db_expr = db_expr
+
+    def __repr__(self):
+        if self.db_expr is not None:
+            return "<Table %r>" % (self.db_expr.db_name + "." + self.table_name)
+        else:
+            return "<Table %r>" % self.table_name
 
     def insert(self, docs):
         """Insert documents into the table.
