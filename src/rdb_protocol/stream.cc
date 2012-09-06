@@ -100,7 +100,7 @@ void batched_rget_stream_t::add_transformation(const rdb_protocol_details::trans
 }
 
 result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::terminal_t &t) {
-    rdb_protocol_t::rget_read_t rget_read(range);
+    rdb_protocol_t::rget_read_t rget_read(range, -1);
     rget_read.transform = transform;
     rget_read.terminal = t;
     rdb_protocol_t::read_t read(rget_read);
@@ -122,7 +122,7 @@ result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::termi
 }
 
 void batched_rget_stream_t::read_more() {
-    rdb_protocol_t::rget_read_t rget_read(range, transform, scopes, backtrace);
+    rdb_protocol_t::rget_read_t rget_read(range, batch_size, transform, scopes, backtrace);
     rdb_protocol_t::read_t read(rget_read);
     try {
         guarantee(ns_access.get_namespace_if());
