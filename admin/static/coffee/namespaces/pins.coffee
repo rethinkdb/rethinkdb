@@ -102,8 +102,8 @@ module 'NamespaceView', ->
                     namespace: @namespace
 
             @namespace.on 'change:key_distr', @render_summary
-            @namespace.on 'change:blueprint', @reset_datacenter_list #TODO bind to peers_roles
-            @namespace.on 'change:replica_affinities', @reset_datacenter_list #TODO bind to peers_roles
+            @namespace.on 'change:blueprint', @reset_datacenter_list
+            @namespace.on 'change:replica_affinities', @reset_datacenter_list
 
         render: =>
             @.el = @template({})
@@ -262,6 +262,9 @@ module 'NamespaceView', ->
                 "/ajax/semilattice/memcached_namespaces/#{@namespace.get('id')}/primary_pinnings",
                 JSON.stringify(post_data),
                 (response) =>
+                    # Trigger a manual refresh of the data
+                    collect_server_data_once(false)
+
                     # Set the link's text to a loading state
                     $link = @.$('a.make-master')
                     $link.text $link.data('loading-text')
@@ -269,8 +272,6 @@ module 'NamespaceView', ->
                     clear_modals()
                     $('#user-alert-space').html @alert_tmpl {}
                     
-                    # Trigger a manual refresh of the data
-                    collect_server_data_once(false)
             )
 
         get_available_machines_in_datacenter: =>

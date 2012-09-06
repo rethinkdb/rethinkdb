@@ -5,11 +5,24 @@ goog.require('goog.asserts');
 
 /** @export */
 rethinkdb.query.expr = function(value) {
-    if (typeof value === 'number') {
+    if (goog.isNumber(value)) {
         return new rethinkdb.query.NumberExpression(value);
+    } else if (goog.isBoolean(value)) {
+        return new rethinkdb.query.BooleanExpression(value);
+    } else if (goog.isString(value)) {
+        return new rethinkdb.query.StringExpression(value);
+    } else if (goog.isArray(value)) {
+        return new rethinkdb.query.ArrayExpression(value);
+    } else if (goog.isObject(value)) {
+        return new rethinkdb.query.ObjectExpression(value);
     } else {
         return new rethinkdb.query.JSONExpression(value);
     }
+};
+
+/** @export */
+rethinkdb.query.js = function(jsExpr) {
+    return new rethinkdb.query.JSExpression(jsExpr);
 };
 
 /** @export */
@@ -40,7 +53,18 @@ rethinkdb.query.BaseQuery.prototype.run = function(callback, conn) {
     conn.run(this, callback);
 };
 goog.exportProperty(rethinkdb.query.BaseQuery.prototype, 'run',
-    rethinkdb.query.BaseQuery.prototype.run);
+                    rethinkdb.query.BaseQuery.prototype.run);
+
+/**
+ * @param {function()} callback The callback to invoke with the result.
+ * @param {rethinkdb.net.Connection=} conn The connection to run this expression on.
+ */
+rethinkdb.query.BaseQuery.prototype.iter = function(callback, conn) {
+    conn = conn || rethinkdb.net.last_connection;
+    conn.iter(this, callback);
+};
+goog.exportProperty(rethinkdb.query.BaseQuery.prototype, 'iter',
+                    rethinkdb.query.BaseQuery.prototype.iter);
 
 /** @return {!Query} */
 rethinkdb.query.BaseQuery.prototype.buildQuery = goog.abstractMethod;

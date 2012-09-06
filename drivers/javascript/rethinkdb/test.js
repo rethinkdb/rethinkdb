@@ -117,8 +117,13 @@ function testGetAttr() {
 }
 
 function testPickAttrs() {
-    q({a:1,b:2,c:3}).pickAttrs('a').run(objeq({a:1}));
-    q({a:1,b:2,c:3}).pickAttrs(['a', 'b']).run(objeq({a:1,b:2}));
+    tobj.pickAttrs('a').run(objeq({a:1}));
+    tobj.pickAttrs(['a', 'b']).run(objeq({a:1,b:2}));
+}
+
+function testWithout() {
+    tobj.without('a').run(objeq({b:2,c:3}));
+    tobj.without(['a','b']).run(objeq({c:3}));
 }
 
 function testR() {
@@ -152,10 +157,8 @@ function testTabMap() {
 }
 
 function testTabReduce() {
-    tab.map(q('@.num')).reduce(q(0), q.fn('a','b',q('$b').add(q('$a')))).run(aeq(155));
-
-    // Complains about not having field num
-    //tab.reduce(q(0), q.fn('a', 'b', q.R('$b.num'))).run(aeq(155));
+    tab.map(q('@.num')).reduce(q(0), q.fn('a','b', q('$b').add(q('$a')))).run(aeq(155));
+    tab.map(q('@.num')).reduce(q(0), q.fn('a', 'b', q('$b').add('$a'))).run(aeq(155));
 }
 
 function testJS() {
@@ -169,8 +172,6 @@ function testJS() {
         return val > 16;
     }).length().run(aeq(6));
 
-    // Crashes the server
-    /*
     tab.filter(function(row) {
         return row.num > 16;
     }).map(function(row) {
@@ -178,7 +179,6 @@ function testJS() {
     }).reduce(0, function(acc, val) {
         return acc + val;
     }).run(aeq(296));
-    */
 }
 
 function testBetween() {
@@ -187,6 +187,23 @@ function testBetween() {
         id:2,
         num:18
     }));
+}
+
+function testGroupedMapReduce() {
+    tab.groupedMapReduce(function(row) {
+        if (row.id < 5) {
+            return 0;
+        } else {
+            return 1;
+        }
+    }, function(row) {
+        return row.num;
+    }, 0, function(acc, num) {
+        return acc + num;
+    }).run(objeq([
+            {group:0, reduction:90},
+            {group:1, reduction:65}
+    ]));
 }
 
 function testUpdate1() {
@@ -208,6 +225,21 @@ function testUpdate2() {
         }
         done();
     });
+}
+
+function testPointUpdate1() {
+    tab.get(0).update(function(a) {
+        a.pointupdated = true;
+        return a;
+    }).run(objeq({
+        errors:0,
+        skipped:0,
+        updated:1
+    }));
+}
+
+function testPointUpdate2() {
+    tab.get(0).getAttr('pointupdated').run(aeq(true));
 }
 
 function testMutate1() {
@@ -232,16 +264,64 @@ function testMutate2() {
     });
 }
 
+function testPointMutate1() {
+    tab.get(0).mutate(function(a) {
+        return {id:a.id, pointmutated:true};
+    }).run(objeq({
+        deleted:0,
+        errors:0,
+        inserted:0,
+        modified:1
+    }));
+}
+
+function testPointMutate2() {
+    tab.get(0).getAttr('pointmutated').run(aeq(true));
+}
+
+function testPointDelete1() {
+    tab.get(0).del().run(objeq({
+        deleted:1
+    }));
+}
+
+function testPointDelete2() {
+    tab.length().run(aeq(9));
+}
+
 function testDelete1() {
-    tab.length().run(aeq(10));
-    tab.del().run(objeq({deleted:10}));
+    tab.length().run(aeq(9));
+    tab.del().run(objeq({deleted:9}));
 }
 
 function testDelete2() {
     tab.length().run(aeq(0));
 }
 
+function testForEach1() {
+    q([1,2,3]).forEach(q.fn('a', tab.insert({id:q('$a'), fe:true}))).run(objeq({
+        inserted:3
+    }));
+}
+
+function testForEach2() {
+    tab.forEach(q.fn('a', tab.insert({id:q('$a.id').add(100), fe:true}))).run(objeq({
+        inserted:3
+    }));
+}
+
+function testForEach3() {
+    wait();
+    tab.run(function(res) {
+        for (var key in res) {
+            assertEquals(res[key]['fe'], true);
+        }
+        done();
+    });
+}
+
 function testClose() {
+    tab.del().run();
     conn.close();
 }
 
@@ -261,6 +341,7 @@ runTests([
     testHasAttr,
     testGetAttr,
     testPickAttrs,
+    testWithout,
     testInsert,
     testGet,
     testOrderby,
@@ -269,11 +350,21 @@ runTests([
     testTabReduce,
     testJS,
     testBetween,
+    testGroupedMapReduce,
     testUpdate1,
     testUpdate2,
+    testPointUpdate1,
+    testPointUpdate2,
     testMutate1,
     testMutate2,
+    testPointMutate1,
+    testPointMutate2,
+    testPointDelete1,
+    testPointDelete2,
     testDelete1,
     testDelete2,
+    testForEach1,
+    testForEach2,
+    testForEach3,
     testClose,
 ]);

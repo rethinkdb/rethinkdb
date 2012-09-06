@@ -252,12 +252,11 @@ size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*js
 
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
-    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn, int max,
-                                              query_language::runtime_environment_t *_env,
+    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn, query_language::runtime_environment_t *_env,
                                               const rdb_protocol_details::transform_t &_transform,
                                               boost::optional<rdb_protocol_details::terminal_t> _terminal,
                                               const key_range_t &range)
-        : transaction(txn), maximum(max), cumulative_size(0),
+        : transaction(txn), cumulative_size(0),
           env(_env), transform(_transform), terminal(_terminal)
     {
         response.last_considered_key = range.left;
@@ -303,11 +302,10 @@ public:
                                            it != data.end();
                                            ++it) {
                     stream->push_back(std::make_pair(key, *it));
+                    cumulative_size += estimate_rget_response_size(*it);
                 }
 
-                cumulative_size += estimate_rget_response_size(stream->back().second);
-                // TODO: If we have to cast stream->size(), why is maximum an int?
-                return static_cast<int>(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
+                return cumulative_size < rget_max_chunk_size;
             } else {
                 for (json_list_t::iterator jt  = data.begin();
                                            jt != data.end();
@@ -323,7 +321,6 @@ public:
         }
     }
     transaction_t *transaction;
-    int maximum;
     rget_read_response_t response;
     size_t cumulative_size;
     query_language::runtime_environment_t *env;
@@ -332,11 +329,12 @@ public:
 };
 
 rget_read_response_t rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-                                    int maximum, transaction_t *txn, superblock_t *superblock,
+                                    transaction_t *txn, superblock_t *superblock,
                                     query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
                                     boost::optional<rdb_protocol_details::terminal_t> terminal) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, maximum, env, transform, terminal, range);
+    rdb_rget_depth_first_traversal_callback_t callback(txn, env, transform, terminal, range);
     btree_depth_first_traversal(slice, txn, superblock, range, &callback);
+
     if (callback.cumulative_size >= rget_max_chunk_size) {
         callback.response.truncated = true;
     } else {

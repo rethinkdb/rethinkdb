@@ -127,13 +127,19 @@ class BackboneCluster extends Backbone.Router
         namespace = namespaces.get(id)
         
         @current_view.destroy()
-        if namespace? then @current_view = new NamespaceView.Container model:namespace
-        else @current_view = new NamespaceView.NotFound id
+        if namespace?
+            @current_view = new NamespaceView.Container model:namespace
+        else
+            @current_view = new NamespaceView.NotFound id
 
         if tab?
             @$container.html @current_view.render(tab).el
         else
             @$container.html @current_view.render().el
+        
+        if namespace?
+            @current_view.overview.render_data_repartition()
+            @current_view.overview.render_data_in_memory()
 
         @sidebar.set_type_view()
 
@@ -143,13 +149,19 @@ class BackboneCluster extends Backbone.Router
         datacenter = datacenters.get(id)
         
         @current_view.destroy()
-        if datacenter? then @current_view = new DatacenterView.Container model: datacenter
-        else @current_view = new DatacenterView.NotFound id
+        if datacenter?
+            @current_view = new DatacenterView.Container model: datacenter
+        else
+            @current_view = new DatacenterView.NotFound id
 
         if tab?
             @$container.html @current_view.render(tab).el
         else
             @$container.html @current_view.render().el
+
+        if datacenter?
+            @current_view.overview.render_ram_repartition()
+            @current_view.overview.render_disk_repartition()
 
         @sidebar.set_type_view()
 
@@ -168,5 +180,8 @@ class BackboneCluster extends Backbone.Router
             @$container.html @current_view.render(tab).el
         else
             @$container.html @current_view.render().el
+        if machine?
+            @current_view.overview.render_pie_disk()
+            @current_view.overview.render_pie_ram()
 
         @sidebar.set_type_view()

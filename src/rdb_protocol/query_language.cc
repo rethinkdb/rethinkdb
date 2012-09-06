@@ -341,6 +341,8 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
     case Builtin::IMPLICIT_HASATTR:
         check_protobuf(b.has_attr());
         break;
+    case Builtin::WITHOUT:
+    case Builtin::IMPLICIT_WITHOUT:
     case Builtin::PICKATTRS:
     case Builtin::IMPLICIT_PICKATTRS:
         check_protobuf(b.attrs_size());
@@ -389,12 +391,14 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
         case Builtin::GETATTR:
         case Builtin::HASATTR:
         case Builtin::PICKATTRS:
+        case Builtin::WITHOUT:
             check_function_args(c, TERM_TYPE_JSON, 1, env, &deterministic, backtrace);
             return term_info_t(TERM_TYPE_JSON, deterministic);
             break;
         case Builtin::IMPLICIT_GETATTR:
         case Builtin::IMPLICIT_HASATTR:
         case Builtin::IMPLICIT_PICKATTRS:
+        case Builtin::IMPLICIT_WITHOUT:
             check_arg_count(c, 0, backtrace);
             if (!env->implicit_type.has_value() || env->implicit_type.get_value().type != TERM_TYPE_JSON) {
                 throw bad_query_exc_t("No implicit variable in scope", backtrace);
@@ -592,6 +596,14 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
         }
         case WriteQuery::INSERT: {
             check_protobuf(w.has_insert());
+            if (w.insert().terms_size() == 1) {
+                term_info_t res = get_term_type(w.insert().terms(0), env, backtrace);
+                //TODO: This casting is copy-pasted from NTH, but WTF?
+                const_cast<WriteQuery&>(w).mutable_insert()->mutable_terms(0)->
+                    SetExtension(extension::inferred_type,
+                                 static_cast<int32_t>(res.type));
+                break; //Single-element insert polymorphic over streams and arrays
+            }
             for (int i = 0; i < w.insert().terms_size(); ++i) {
                 check_term_type(w.insert().terms(i), TERM_TYPE_JSON, env, is_det_out, backtrace.with(strprintf("term:%d", i)));
             }
@@ -756,6 +768,13 @@ static uuid_t meta_get_uuid(T searcher, U predicate,
 }
 
 void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const backtrace_t &bt) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
+    // This must be performed on the semilattice_metadata's home thread,
+    int metadata_home_thread = env->semilattice_metadata->get_publisher()->home_thread();
+    rassert(env->directory_read_manager->home_thread() == metadata_home_thread);
+    on_thread_t rethreader(metadata_home_thread);
+    clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > directory_metadata =
+        env->directory_read_manager->get_root_view();
+
     cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
         ns_searcher(&metadata.rdb_namespaces.namespaces);
@@ -771,7 +790,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
         /* Ensure database doesn't already exist. */
         db_searcher.find_uniq(db_name, &status);
-        meta_check(status, METADATA_ERR_NONE, "CREATE_DB "+db_name, bt);
+        meta_check(status, METADATA_ERR_NONE, "CREATE_DB " + db_name, bt);
 
         /* Create namespace, insert into metadata, then join into real metadata. */
         database_semilattice_metadata_t db;
@@ -786,7 +805,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         // Get database metadata.
         metadata_searcher_t<database_semilattice_metadata_t>::iterator
             db_metadata = db_searcher.find_uniq(db_name, &status);
-        meta_check(status, METADATA_SUCCESS, "DROP_DB "+db_name, bt);
+        meta_check(status, METADATA_SUCCESS, "DROP_DB " + db_name, bt);
         rassert(!db_metadata->second.is_deleted());
         uuid_t db_id = db_metadata->first;
 
@@ -823,8 +842,8 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         std::string table_name = m->create_table().table_ref().table_name();
         std::string primary_key = m->create_table().primary_key();
 
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE "+db_name, bt);
-        uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name,"FIND_DATACENTER "+dc_name,bt);
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt);
+        uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name, bt);
 
         /* Ensure table doesn't already exist. */
         ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
@@ -837,7 +856,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
             new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, table_name,
                                           primary_key, port_constants::namespace_port);
         metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, ns));
-        fill_in_blueprints(&metadata, env->directory_metadata->get(), env->this_machine);
+        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
         env->semilattice_metadata->join(metadata);
 
         /* The following is an ugly hack, but it's probably what we want.  It
@@ -1154,16 +1173,47 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
         case WriteQuery::INSERT:
             {
                 std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref(), env, backtrace);
-                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_insert()->mutable_table_ref(), env, backtrace);
+                namespace_repo_t<rdb_protocol_t>::access_t ns_access =
+                    eval(w->mutable_insert()->mutable_table_ref(), env, backtrace);
 
-                for (int i = 0; i < w->insert().terms_size(); ++i) {
-                    boost::shared_ptr<scoped_cJSON_t> data = eval(w->mutable_insert()->mutable_terms(i), env,
-                        backtrace.with(strprintf("term:%d", i)));
+                int inserted = 0;
+                if (w->insert().terms_size() == 1) {
+                    Term *t = w->mutable_insert()->mutable_terms(0);
+                    int32_t t_type = t->GetExtension(extension::inferred_type);
+                    boost::shared_ptr<json_stream_t> stream;
+                    if (t_type == TERM_TYPE_JSON) {
+                        boost::shared_ptr<scoped_cJSON_t> data = eval(t, env, backtrace.with("term:0"));
+                        if (data->type() == cJSON_Object) {
+                            ++inserted;
+                            insert(ns_access, pk, data, env, backtrace.with("term:0"));
+                        } else if (data->type() == cJSON_Array) {
+                            stream.reset(new in_memory_stream_t(json_array_iterator_t(data->get()), env));
+                        } else {
+                            throw runtime_exc_t(strprintf("Cannon insert non-object %s.\n", data->Print().c_str()), backtrace);
+                        }
+                    } else if (t_type == TERM_TYPE_STREAM || t_type == TERM_TYPE_VIEW) {
+                        stream = eval_stream(w->mutable_insert()->mutable_terms(0), env, backtrace.with("stream"));
+                    } else {
+                        unreachable("bad term type");
+                    }
 
-                    insert(ns_access, pk, data, env, backtrace.with(strprintf("term:%d", i)));
+                    if (stream) {
+                        int i = 0;
+                        while (boost::shared_ptr<scoped_cJSON_t> data = stream->next()) {
+                            ++inserted;
+                            insert(ns_access, pk, data, env, backtrace.with(strprintf("stream:%d", i++)));
+                        }
+                    }
+                } else {
+                    for (int i = 0; i < w->insert().terms_size(); ++i) {
+                        boost::shared_ptr<scoped_cJSON_t> data =
+                            eval(w->mutable_insert()->mutable_terms(i), env, backtrace.with(strprintf("term:%d", i)));
+                        ++inserted;
+                        insert(ns_access, pk, data, env, backtrace.with(strprintf("term:%d", i)));
+                    }
                 }
 
-                res->add_response(strprintf("{\"inserted\": %d}", w->insert().terms_size()));
+                res->add_response(strprintf("{\"inserted\": %d}", inserted));
             }
             break;
         case WriteQuery::INSERTSTREAM:
@@ -1668,6 +1718,25 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 }
             }
             break;
+        case Builtin::IMPLICIT_WITHOUT:
+        case Builtin::WITHOUT: {
+            boost::shared_ptr<scoped_cJSON_t> data;
+            if (c->builtin().type() == Builtin::WITHOUT) {
+                data = eval(c->mutable_args(0), env, backtrace.with("arg:0"));
+            } else {
+                rassert(c->builtin().type() == Builtin::IMPLICIT_WITHOUT);
+                rassert(env->scopes.implicit_attribute_value.has_value());
+                data = env->scopes.implicit_attribute_value.get_value();
+            }
+            if (!data->type() == cJSON_Object) {
+                throw runtime_exc_t("Data must be an object", backtrace.with("arg:0"));
+            }
+            boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(data->DeepCopy()));
+            for (int i = 0; i < c->builtin().attrs_size(); ++i) {
+                res->DeleteItemFromObject(c->builtin().attrs(i).c_str());
+            }
+            return res;
+        } break;
         case Builtin::PICKATTRS:
         case Builtin::IMPLICIT_PICKATTRS:
             {
@@ -2214,6 +2283,8 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
         case Builtin::IMPLICIT_GETATTR:
         case Builtin::HASATTR:
         case Builtin::IMPLICIT_HASATTR:
+        case Builtin::WITHOUT:
+        case Builtin::IMPLICIT_WITHOUT:
         case Builtin::PICKATTRS:
         case Builtin::IMPLICIT_PICKATTRS:
         case Builtin::MAPMERGE:
@@ -2416,6 +2487,8 @@ view_t eval_view(Term::Call *c, runtime_environment_t *env, const backtrace_t &b
         case Builtin::IMPLICIT_GETATTR:
         case Builtin::HASATTR:
         case Builtin::IMPLICIT_HASATTR:
+        case Builtin::WITHOUT:
+        case Builtin::IMPLICIT_WITHOUT:
         case Builtin::PICKATTRS:
         case Builtin::IMPLICIT_PICKATTRS:
         case Builtin::MAPMERGE:

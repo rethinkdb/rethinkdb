@@ -1,6 +1,56 @@
 import query
-
 import query_language_pb2 as p
+
+###################
+# PRETTY PRINTING #
+###################
+
+# A note about pretty printing: The result of a pretty-print shouldn't contain
+# newlines or tab characters. It may contain spaces.
+
+PRETTY_PRINT_EXPR_WRAPPED = "wrapped"
+PRETTY_PRINT_EXPR_UNWRAPPED = "unwrapped"
+
+class PrettyPrinter(object):
+    def expr_wrapped(self, expr, backtrace_steps):
+        raise NotImplementedError()
+    def expr_unwrapped(self, expr, backtrace_steps):
+        raise NotImplementedError()
+    def write_query(self, query, backtrace_steps):
+        raise NotImplementedError()
+    def simple_string(self, string, backtrace_steps):
+        raise NotImplementedError()
+
+class ReprPrettyPrinter(PrettyPrinter):
+    # This implementation has a lot of assertions so that it validates the
+    # implementations of `pretty_print()` on the various objects.
+
+    def expr_wrapped(self, expr, backtrace_steps):
+        assert isinstance(expr, query.ReadQuery)
+        assert isinstance(backtrace_steps, list)
+        string, wrapped = expr._inner.pretty_print(self)
+        assert "\n" not in string
+        if wrapped == PRETTY_PRINT_EXPR_UNWRAPPED:
+            string = "expr(%s)" % string
+        return string
+
+    def expr_unwrapped(self, expr, backtrace_steps):
+        assert isinstance(expr, query.ReadQuery)
+        assert isinstance(backtrace_steps, list)
+        string = expr._inner.pretty_print(self)[0]
+        assert "\n" not in string
+        return string
+
+    def write_query(self, wq, backtrace_steps):
+        assert isinstance(wq, query.WriteQuery)
+        assert isinstance(backtrace_steps, list)
+        string = wq._inner.pretty_print(self)
+        assert "\n" not in string
+        return string
+
+    def simple_string(self, string, backtrace_steps):
+        assert "\n" not in string
+        return string
 
 #####################################
 # DATABASE AND TABLE ADMINISTRATION #
@@ -41,6 +91,8 @@ class TableList(MetaQueryInner):
 class WriteQueryInner(object):
     def _write_write_query(self, parent):
         raise NotImplementedError()
+    def pretty_print(self, printer):
+        raise NotImplementedError()
 
 class Insert(WriteQueryInner):
     def __init__(self, table, entries):
@@ -53,6 +105,11 @@ class Insert(WriteQueryInner):
         for entry in self.entries:
             entry._inner._write_ast(parent.insert.terms.add())
 
+    def pretty_print(self, printer):
+        return "%s.insert([%s])" % (
+            printer.expr_wrapped(self.table, ["table_ref"]),
+            ", ".join(printer.expr_unwrapped(e, ["term:%d" % i]) for i, e in enumerate(self.entries)))
+
 class Delete(WriteQueryInner):
     def __init__(self, parent_view):
         self.parent_view = parent_view
@@ -60,6 +117,9 @@ class Delete(WriteQueryInner):
     def _write_write_query(self, parent):
         parent.type = p.WriteQuery.DELETE
         self.parent_view._inner._write_ast(parent.delete.view)
+
+    def pretty_print(self, printer):
+        return "%s.delete()" % printer.expr_wrapped(self.parent_view, ["view"])
 
 class Update(WriteQueryInner):
     def __init__(self, parent_view, mapping):
@@ -71,6 +131,11 @@ class Update(WriteQueryInner):
         self.parent_view._inner._write_ast(parent.update.view)
         self.mapping.write_mapping(parent.update.mapping)
 
+    def pretty_print(self, printer):
+        return "%s.update(%s)" % (
+            printer.expr_wrapped(self.parent_view, ["view"]),
+            self.mapping._pretty_print(printer, ["mapping"]))
+
 class Mutate(WriteQueryInner):
     def __init__(self, parent_view, mapping):
         self.parent_view = parent_view
@@ -80,6 +145,11 @@ class Mutate(WriteQueryInner):
         parent.type = p.WriteQuery.MUTATE
         self.parent_view._inner._write_ast(parent.mutate.view)
         self.mapping.write_mapping(parent.mutate.mapping)
+
+    def pretty_print(self, printer):
+        return "%s.mutate(%s)" % (
+            printer.expr_wrapped(self.parent_view, ["view"]),
+            self.mapping._pretty_print(printer, ["mapping"]))
 
 class InsertStream(WriteQueryInner):
     def __init__(self, table, stream):
@@ -91,9 +161,14 @@ class InsertStream(WriteQueryInner):
         self.table._write_ref_ast(parent.insert_stream.table_ref)
         self.stream._inner._write_ast(parent.insert_stream.stream)
 
-##############
-# OPERATIONS #
-##############
+    def pretty_print(self, printer):
+        return "%s.insert(%s)" % (
+            printer.expr_wrapped(self.table, ["table_ref"]),
+            printer.expr_unwrapped(self.stream, ["stream"]))
+
+################
+# READ QUERIES #
+################
 
 class ExpressionInner(object):
     def _write_ast(self, parent):
@@ -104,43 +179,63 @@ class ExpressionInner(object):
         for arg in args:
             arg._inner._write_ast(parent.call.args.add())
         return parent.call.builtin
+    def pretty_print(self, pp):
+        raise NotImplementedError()
 
-class JSONLiteral(ExpressionInner):
-    """A literal JSON value."""
+class LiteralNull(ExpressionInner):
+    def _write_ast(self, parent):
+        parent.type = p.Term.JSON_NULL
+    def pretty_print(self, printer):
+        return ("None", PRETTY_PRINT_EXPR_UNWRAPPED)
 
+class LiteralBool(ExpressionInner):
     def __init__(self, value):
         self.value = value
-        if isinstance(value, bool):
-            self.type = p.Term.BOOL
-            self.valueattr = 'valuebool'
-        elif isinstance(value, (int, float)):
-            self.type = p.Term.NUMBER
-            self.valueattr = 'number'
-        elif isinstance(value, (str, unicode)):
-            self.type = p.Term.STRING
-            self.valueattr = 'valuestring'
-        elif isinstance(value, dict):
-            self.type = p.Term.OBJECT
-        elif isinstance(value, list):
-            self.type = p.Term.ARRAY
-        elif value is None:
-            self.type = p.Term.JSON_NULL
-        else:
-            raise TypeError("argument must be a JSON-compatible type (bool/int/float/str/unicode/dict/list),"
-                            " not %r" % value.__class__.__name__)
-
     def _write_ast(self, parent):
-        parent.type = self.type
-        if self.type == p.Term.ARRAY:
-            for value in self.value:
-                query.expr(value)._inner._write_ast(parent.array.add())
-        elif self.type == p.Term.OBJECT:
-            for key, value in self.value.iteritems():
-                pair = parent.object.add()
-                pair.var = key
-                query.expr(value)._inner._write_ast(pair.term)
-        elif self.value is not None:
-            setattr(parent, self.valueattr, self.value)
+        parent.type = p.Term.BOOL
+        parent.valuebool = self.value
+    def pretty_print(self, printer):
+        return (repr(self.value), PRETTY_PRINT_EXPR_UNWRAPPED)
+
+class LiteralNumber(ExpressionInner):
+    def __init__(self, value):
+        self.value = value
+    def _write_ast(self, parent):
+        parent.type = p.Term.NUMBER
+        parent.number = self.value
+    def pretty_print(self, printer):
+        return (repr(self.value), PRETTY_PRINT_EXPR_UNWRAPPED)
+
+class LiteralString(ExpressionInner):
+    def __init__(self, value):
+        self.value = value
+    def _write_ast(self, parent):
+        parent.type = p.Term.STRING
+        parent.valuestring = self.value
+    def pretty_print(self, printer):
+        return (repr(self.value), PRETTY_PRINT_EXPR_UNWRAPPED)
+
+class LiteralArray(ExpressionInner):
+    def __init__(self, value):
+        self.value = [query.expr(e) for e in value]
+    def _write_ast(self, parent):
+        parent.type = p.Term.ARRAY
+        for e in self.value:
+            e._inner._write_ast(parent.array.add())
+    def pretty_print(self, printer):
+        return ("[" + ", ".join(printer.expr_unwrapped(e, ["elem:%d" % i]) for i, e in enumerate(self.value)) + "]", PRETTY_PRINT_EXPR_UNWRAPPED)
+
+class LiteralObject(ExpressionInner):
+    def __init__(self, value):
+        self.value = dict((k, query.expr(v)) for k, v in value.iteritems())
+    def _write_ast(self, parent):
+        parent.type = p.Term.OBJECT
+        for k, v in self.value.iteritems():
+            pair = parent.object.add()
+            pair.var = k
+            v._inner._write_ast(pair.term)
+    def pretty_print(self, printer):
+        return ("{" + ", ".join(repr(k) + ": " + printer.expr_unwrapped(v, ["key:%s" % k]) for k, v in self.value.iteritems()) + "}", PRETTY_PRINT_EXPR_UNWRAPPED)
 
 class Javascript(ExpressionInner):
     def __init__(self, body):
@@ -150,76 +245,156 @@ class Javascript(ExpressionInner):
         parent.type = p.Term.JAVASCRIPT
         parent.javascript = self.body
 
+    def pretty_print(self, printer):
+        return ("js(body=%r)" % self.body, PRETTY_PRINT_EXPR_WRAPPED)
+
 class ToArray(ExpressionInner):
     def __init__(self, stream):
         self.stream = stream
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.STREAMTOARRAY, self.stream)
+    def pretty_print(self, printer):
+        return ("%s.to_array()" % printer.expr_wrapped(self.stream, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
 
-class Count(ExpressionInner):
-    def __init__(self, stream):
-        self.stream = stream
-    def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.LENGTH, self.stream)
-
-class JSONBuiltin(ExpressionInner):
+class Builtin(ExpressionInner):
+    # The subclass of `Builtin` is obligated to set the following attributes:
+    # `builtin` - the protocol buffer enumeration value for the builtin
+    # `format_string` - string with one `%s` per argument, for pretty-printing
+    # `arg_wrapped_flags` - array of `PRETTY_PRINT_EXPR_WRAPPED` or
+    #       `PRETTY_PRINT_EXPR_UNWRAPPED`, one per argument. Determines whether
+    #       arguments will be pretty printed with `expr_wrapped()` or
+    #       `expr_unwrapped()`.
+    # `wrapped_flag` - either `PRETTY_PRINT_EXPR_WRAPPED` or
+    #       `PRETTY_PRINT_EXPR_UNWRAPPED`, indicating whether the expression as
+    #       a whole is wrapped or not.
     def __init__(self, *args):
         self.args = [query.expr(arg) for arg in args]
+        assert len(self.args) == len(self.arg_wrapped_flags)
     def _write_ast(self, parent):
         self._write_call(parent, self.builtin, *self.args)
+    def pretty_print(self, printer):
+        printed_args = []
+        assert len(self.args) == len(self.arg_wrapped_flags), "bad format for %r" % type(self)
+        for i, (arg, wrapped) in enumerate(zip(self.args, self.arg_wrapped_flags)):
+            if wrapped == PRETTY_PRINT_EXPR_WRAPPED:
+                printed_args.append(printer.expr_wrapped(arg, ["arg:%d" % i]))
+            elif wrapped == PRETTY_PRINT_EXPR_UNWRAPPED:
+                printed_args.append(printer.expr_unwrapped(arg, ["arg:%d" % i]))
+            else:
+                raise ValueError("bad format for `arg_wrapped_flags`")
+        return (self.format_string % tuple(printed_args), self.wrapped_flag)
 
-class Add(JSONBuiltin):
+class Add(Builtin):
     builtin = p.Builtin.ADD
+    format_string = "(%s + %s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
-class Sub(JSONBuiltin):
+class Sub(Builtin):
     builtin = p.Builtin.SUBTRACT
+    format_string = "(%s - %s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
-class Mul(JSONBuiltin):
+class Negate(Builtin):
+    builtin = p.Builtin.SUBTRACT
+    format_string = "-%s"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
+
+class Mul(Builtin):
     builtin = p.Builtin.MULTIPLY
+    format_string = "(%s * %s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
-class Div(JSONBuiltin):
+class Div(Builtin):
     builtin = p.Builtin.DIVIDE
+    format_string = "(%s / %s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
-class Mod(JSONBuiltin):
+class Mod(Builtin):
     builtin = p.Builtin.MODULO
+    format_string = "(%s %% %s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
-class Any(JSONBuiltin):
+class Any(Builtin):
     builtin = p.Builtin.ANY
+    format_string = "(%s | %s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
-class All(JSONBuiltin):
-    builtin = p.Builtin.ALL
-
-class Not(JSONBuiltin):
+class Not(Builtin):
     builtin = p.Builtin.NOT
+    format_string = "(~%s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
-class Extend(JSONBuiltin):
+class Extend(Builtin):
     builtin = p.Builtin.MAPMERGE
+    format_string = "%s.extend(%s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_UNWRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
-class Append(JSONBuiltin):
+class Append(Builtin):
     builtin = p.Builtin.ARRAYAPPEND
+    format_string = "%s.append(%s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_UNWRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
-class Comparison(JSONBuiltin):
+class Comparison(Builtin):
     def _write_ast(self, parent):
         builtin = self._write_call(parent, p.Builtin.COMPARE, *self.args)
         builtin.comparison = self.comparison
 
 class CompareLT(Comparison):
     comparison = p.Builtin.LT
+    format_string = "(%s < %s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
 class CompareLE(Comparison):
     comparison = p.Builtin.LE
+    format_string = "(%s <= %s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
 class CompareEQ(Comparison):
     comparison = p.Builtin.EQ
+    format_string = "(%s == %s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
 class CompareNE(Comparison):
     comparison = p.Builtin.NE
+    format_string = "(%s != %s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
 class CompareGT(Comparison):
     comparison = p.Builtin.GT
+    format_string = "(%s > %s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
 class CompareGE(Comparison):
     comparison = p.Builtin.GE
+    format_string = "(%s >= %s)"
+    arg_wrapped_flags = [PRETTY_PRINT_EXPR_WRAPPED, PRETTY_PRINT_EXPR_WRAPPED]
+    wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
+
+# `All` is not a subclass of `Builtin` because it needs to work with an
+# arbitrary number of arguments to support the syntactic sugar for `e.filter()`.
+class All(ExpressionInner):
+    def __init__(self, *args):
+        self.args = [query.expr(a) for a in args]
+    def _write_ast(self, parent):
+        self._write_call(parent, p.Builtin.ALL, *self.args)
+    def pretty_print(self, printer):
+        return ("(" + " | ".join(printer.expr_wrapped(a, ["arg:%d" % i]) for i, a in enumerate(self.args)) + ")",
+            PRETTY_PRINT_EXPR_WRAPPED)
 
 class Has(ExpressionInner):
     def __init__(self, parent, key):
@@ -228,17 +403,29 @@ class Has(ExpressionInner):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.HASATTR, self.parent)
         parent.call.builtin.attr = self.key
+    def pretty_print(self, printer):
+        return ("%s.has_attr(%r)" % (printer.expr_wrapped(self.parent, ["arg:0"]), self.key), PRETTY_PRINT_EXPR_WRAPPED)
 
 class Length(ExpressionInner):
     def __init__(self, seq):
         self.seq = seq
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.LENGTH, self.seq)
+    def pretty_print(self, printer):
+        return ("%s.length()" % printer.expr_wrapped(self.seq, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
 
-class Attr(Has):
+class Attr(ExpressionInner):
+    def __init__(self, parent, key):
+        self.parent = query.expr(parent)
+        self.key = key
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.GETATTR, self.parent)
         parent.call.builtin.attr = self.key
+    def pretty_print(self, printer):
+        return ("%s[%s]" % (
+                printer.expr_wrapped(self.parent, ["arg:0"]),
+                printer.simple_string(repr(self.key), ["attr"])),
+            PRETTY_PRINT_EXPR_WRAPPED)
 
 class ImplicitAttr(ExpressionInner):
     def __init__(self, attr):
@@ -246,19 +433,16 @@ class ImplicitAttr(ExpressionInner):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.IMPLICIT_GETATTR)
         parent.call.builtin.attr = self.attr
-
-class StreamBuiltin(ExpressionInner):
-    def __init__(self, stream, *args):
-        self.stream = stream
-        self.args = [query.expr(arg) for arg in args]
-    def _write_ast(self, parent):
-        self._write_call(parent, self.builtin, stream, *self.args)
+    def pretty_print(self, printer):
+        return ("R(%r)" % self.attr, PRETTY_PRINT_EXPR_WRAPPED)
 
 class ToStream(ExpressionInner):
     def __init__(self, array):
         self.array = query.expr(array)
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.ARRAYTOSTREAM, self.array)
+    def pretty_print(self, printer):
+        return ("%s.to_stream()" % printer.expr_wrapped(self.array, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
 
 class Nth(ExpressionInner):
     def __init__(self, stream, index):
@@ -266,6 +450,8 @@ class Nth(ExpressionInner):
         self.index = query.expr(index)
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.NTH, self.stream, self.index)
+    def pretty_print(self, printer):
+        return ("%s[%s]" % (printer.expr_wrapped(self.stream, ["arg:0"]), printer.expr_unwrapped(self.index, ["arg:1"])), PRETTY_PRINT_EXPR_WRAPPED)
 
 class Slice(ExpressionInner):
     def __init__(self, parent, start, stop):
@@ -276,6 +462,13 @@ class Slice(ExpressionInner):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.SLICE, self.parent, self.start, self.stop)
 
+    def pretty_print(self, printer):
+        return ("%s[%s:%s]" % (
+                printer.expr_wrapped(self.parent, ["arg:0"]),
+                printer.expr_unwrapped(self.start, ["arg:1"]),
+                printer.expr_unwrapped(self.stop, ["arg:2"])),
+            PRETTY_PRINT_EXPR_WRAPPED)
+
 class Skip(ExpressionInner):
     def __init__(self, parent, offset):
         self.parent = parent
@@ -283,6 +476,12 @@ class Skip(ExpressionInner):
 
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.SKIP, self.parent, self.offset)
+
+    def pretty_print(self, printer):
+        return ("%s[%s:]" % (
+                printer.expr_wrapped(self.parent, ["arg:0"]),
+                printer.expr_unwrapped(self.offset, ["arg:1"])),
+            PRETTY_PRINT_EXPR_WRAPPED)
 
 class Filter(ExpressionInner):
     def __init__(self, parent, selector):
@@ -292,6 +491,12 @@ class Filter(ExpressionInner):
     def _write_ast(self, parent):
         builtin = self._write_call(parent, p.Builtin.FILTER, self.parent)
         self.selector.write_mapping(builtin.filter.predicate)
+
+    def pretty_print(self, printer):
+        return ("%s.filter(%s)" % (
+                printer.expr_wrapped(self.parent, ["arg:0"]),
+                self.selector._pretty_print(printer, ["predicate"])),
+            PRETTY_PRINT_EXPR_WRAPPED)
 
 class OrderBy(ExpressionInner):
     def __init__(self, parent, ordering):
@@ -304,6 +509,12 @@ class OrderBy(ExpressionInner):
             elem = parent.call.builtin.order_by.add()
             elem.attr = key
             elem.ascending = bool(val)
+
+    def pretty_print(self, printer):
+        return ("%s.orderby(%s)" % (
+                printer.expr_wrapped(self.parent, ["arg:0"]),
+                ", ".join(repr(attr) for attr in self.ordering)),
+            PRETTY_PRINT_EXPR_WRAPPED)
 
 class Range(ExpressionInner):
     def __init__(self, parent, lowerbound, upperbound, attrname):
@@ -318,6 +529,14 @@ class Range(ExpressionInner):
         self.lowerbound._inner._write_ast(builtin.range.lowerbound)
         self.upperbound._inner._write_ast(builtin.range.upperbound)
 
+    def pretty_print(self, printer):
+        return ("%s.range(%s, %s%s)" % (
+                printer.expr_wrapped(self.parent, ["arg:0"]),
+                printer.expr_unwrapped(self.lowerbound, ["lowerbound"]),
+                printer.expr_unwrapped(self.upperbound, ["upperbound"]),
+                "" if self.attrname == "id" else ", attr_name = %r" % self.attrname),
+            PRETTY_PRINT_EXPR_WRAPPED)
+
 class Get(ExpressionInner):
     def __init__(self, table, value):
         self.table = table
@@ -329,6 +548,12 @@ class Get(ExpressionInner):
         self.table._write_ref_ast(parent.get_by_key.table_ref)
         parent.get_by_key.attrname = self.key
         self.value._inner._write_ast(parent.get_by_key.key)
+
+    def pretty_print(self, printer):
+        return ("%s.get(%s)" % (
+                printer.expr_wrapped(self.table, ["table_ref"]),
+                printer.expr_unwrapped(self.value, ["key"])),
+            PRETTY_PRINT_EXPR_WRAPPED)
 
 class If(ExpressionInner):
     def __init__(self, test, true_branch, false_branch):
@@ -343,6 +568,13 @@ class If(ExpressionInner):
         self.true_branch._inner._write_ast(parent.if_.true_branch)
         self.false_branch._inner._write_ast(parent.if_.false_branch)
 
+    def pretty_print(self, printer):
+        return ("if_then_else(%s, %s, %s)" % (
+                printer.expr_unwrapped(self.test, ["test"]),
+                printer.expr_unwrapped(self.true_branch, ["true_branch"]),
+                printer.expr_unwrapped(self.false_branch, ["false_branch"])),
+            PRETTY_PRINT_EXPR_WRAPPED)
+
 class Map(ExpressionInner):
     def __init__(self, parent, mapping):
         self.parent = parent
@@ -352,6 +584,12 @@ class Map(ExpressionInner):
         builtin = self._write_call(parent, p.Builtin.MAP, self.parent)
         self.mapping.write_mapping(builtin.map.mapping)
 
+    def pretty_print(self, printer):
+        return ("%s.map(%s)" % (
+                printer.expr_wrapped(self.parent, ["arg:0"]),
+                self.mapping._pretty_print(printer, ["mapping"])),
+            PRETTY_PRINT_EXPR_WRAPPED)
+
 class ConcatMap(ExpressionInner):
     def __init__(self, parent, mapping):
         self.parent = parent
@@ -360,6 +598,12 @@ class ConcatMap(ExpressionInner):
     def _write_ast(self, parent):
         builtin = self._write_call(parent, p.Builtin.CONCATMAP, self.parent)
         self.mapping.write_mapping(builtin.concat_map.mapping)
+
+    def pretty_print(self, printer):
+        return ("%s.concat_map(%s)" % (
+                printer.expr_wrapped(self.parent, ["arg:0"]),
+                self.mapping._pretty_print(printer, ["mapping"])),
+            PRETTY_PRINT_EXPR_WRAPPED)
 
 class GroupedMapReduce(ExpressionInner):
     def __init__(self, input, group_mapping, value_mapping, reduction_base, reduction_func):
@@ -375,12 +619,24 @@ class GroupedMapReduce(ExpressionInner):
         self.value_mapping.write_mapping(builtin.grouped_map_reduce.value_mapping)
         self.reduction_func.write_reduction(builtin.grouped_map_reduce.reduction, self.reduction_base)
 
+    def pretty_print(self, printer):
+        return ("%s.grouped_map_reduce(%s, %s, %s, %s)" % (
+                printer.expr_wrapped(self.input, ["arg:0"]),
+                self.group_mapping._pretty_print(printer, ["group_mapping"]),
+                self.value_mapping._pretty_print(printer, ["value_mapping"]),
+                printer.expr_unwrapped(self.reduction_base, ["reduction", "base"]),
+                self.reduction_func._pretty_print(printer, ["reduction", "body"])),
+            PRETTY_PRINT_EXPR_WRAPPED)
+
 class Distinct(ExpressionInner):
     def __init__(self, parent):
         self.parent = parent
 
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.DISTINCT, self.parent)
+
+    def pretty_print(self, printer):
+        return ("%s.distinct()" % printer.expr_wrapped(self.parent, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
 
 class Reduce(ExpressionInner):
     def __init__(self, parent, base, reduction):
@@ -391,6 +647,13 @@ class Reduce(ExpressionInner):
     def _write_ast(self, parent):
         builtin = self._write_call(parent, p.Builtin.REDUCE, self.parent)
         self.reduction.write_reduction(builtin.reduce, self.base)
+
+    def pretty_print(self, printer):
+        return ("%s.reduce(%s, %s)" % (
+                printer.expr_wrapped(self.parent, ["arg:0"]),
+                printer.expr_unwrapped(self.base, ["reduce", "base"]),
+                self.reduce._pretty_print(printer, ["reduce", "body"])),
+            PRETTY_PRINT_EXPR_WRAPPED)
 
 class Let(ExpressionInner):
     def __init__(self, expr, bindings):
@@ -407,6 +670,13 @@ class Let(ExpressionInner):
             value._inner._write_ast(binding.term)
         self.expr._inner._write_ast(parent.let.expr)
 
+    def pretty_print(self, printer):
+        return ("let(%s, %s)" % (
+                ", ".join("(%r, %s)" % (var, printer.expr_unwrapped(val, ["bind:%s" % var]))
+                    for var, val in self.bindings),
+                printer.expr_unwrapped(self.expr, ["expr"])),
+            PRETTY_PRINT_EXPR_WRAPPED)
+
 class Var(ExpressionInner):
     def __init__(self, name):
         self.name = name
@@ -414,6 +684,9 @@ class Var(ExpressionInner):
     def _write_ast(self, parent):
         parent.type = p.Term.VAR
         parent.var = self.name
+
+    def pretty_print(self, printer):
+        return ("R(%r)" % ("$" + self.name), PRETTY_PRINT_EXPR_WRAPPED)
 
 class Table(ExpressionInner):
     def __init__(self, table):
@@ -423,3 +696,6 @@ class Table(ExpressionInner):
     def _write_ast(self, parent):
         parent.type = p.Term.TABLE
         self.table._write_ref_ast(parent.table.table_ref)
+
+    def pretty_print(self, printer):
+        return ("table(%r)" % (self.table.db_expr.db_name + "." + self.table.table_name), PRETTY_PRINT_EXPR_WRAPPED)

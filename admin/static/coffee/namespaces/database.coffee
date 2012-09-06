@@ -14,7 +14,6 @@ module 'DatabaseView', ->
 
     # Container for the entire database view
     class @Container extends Backbone.View
-        #TODO Add a class to keep alert when adding multiple databases
         className: 'database-view'
         template: Handlebars.compile $('#database_view-container-template').html()
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
@@ -207,10 +206,13 @@ module 'DatabaseView', ->
             for view in @namespaces_view_list
                 view.destroy()
             @namespaces_view_list = []
+            @.$('.namespaces-list').html ''
             for namespace in @namespaces_list
                 view = new DatabaseView.NamespaceView(model: namespace)
                 @namespaces_view_list.push view
                 @.$('.namespaces-list').append view.render().$el
+            if @namespaces_list.length is 0
+                @.$('.namespaces-list').html 'There is no table in this database.'
             
 
             return @

@@ -36,20 +36,21 @@ class RDBTest(unittest.TestCase):
         except Exception, e:
             root_ast = rethinkdb.internal.p.Query()
             query._finalize_query(root_ast)
-            print root_ast
+            print e
             raise
 
     def error_query(self, query, msg):
         with self.assertRaises(BadQueryError) as cm:
             res = self.conn.run(query)
         e = cm.exception
+        print "\n\n", e
         self.assertIn(msg, str(e))
 
     def error_exec(self, query, msg):
         with self.assertRaises(ExecutionError) as cm:
             res = self.conn.run(query)
         e = cm.exception
-        #print "\n\n", e
+        print "\n\n", e
         self.assertIn(msg, str(e))
 
     def clear_table(self):
@@ -482,7 +483,7 @@ class RDBTest(unittest.TestCase):
         docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(10)]
         self.do_insert(docs)
 
-        self.expect(self.table.mutate(fn('x', R('$x'))), {"modified": len(docs), "deleted": 0, "errors": 0})
+        self.expect(self.table.mutate(fn('x', R('$x'))), {"modified": len(docs), "deleted": 0, "inserted": 0,  "errors": 0})
         self.expect(self.table.orderby("id"), docs)
 
         self.expect(self.table.update(None), {'updated': 0, 'skipped': 10, 'errors': 0})

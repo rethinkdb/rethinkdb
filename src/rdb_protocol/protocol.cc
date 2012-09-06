@@ -16,6 +16,7 @@
 #include "rdb_protocol/query_language.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "serializer/config.hpp"
+#include "clustering/administration/metadata.hpp"
 
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 
@@ -54,7 +55,6 @@ typedef rdb_protocol_t::rget_read_response_t::groups_t groups_t;
 typedef rdb_protocol_t::rget_read_response_t::atom_t atom_t;
 typedef rdb_protocol_t::rget_read_response_t::length_t length_t;
 typedef rdb_protocol_t::rget_read_response_t::inserted_t inserted_t;
-typedef rdb_protocol_t::rget_read_response_t::runtime_exc_t runtime_exc_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
 
@@ -70,17 +70,20 @@ rdb_protocol_t::context_t::context_t()
     : pool_group(NULL), ns_repo(NULL),
     cross_thread_namespace_watchables(get_num_threads()),
     cross_thread_database_watchables(get_num_threads()),
+    directory_read_manager(NULL),
     signals(get_num_threads())
 { }
 
 rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
           namespace_repo_t<rdb_protocol_t> *_ns_repo,
           boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+          directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
           machine_id_t _machine_id)
     : pool_group(_pool_group), ns_repo(_ns_repo),
       cross_thread_namespace_watchables(get_num_threads()),
       cross_thread_database_watchables(get_num_threads()),
       semilattice_metadata(_semilattice_metadata),
+      directory_read_manager(_directory_read_manager),
       signals(get_num_threads()),
       machine_id(_machine_id)
 {
@@ -98,6 +101,8 @@ rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
         signals[thread].init(new cross_thread_signal_t(&interruptor, thread));
     }
 }
+
+rdb_protocol_t::context_t::~context_t() { };
 
 // Construct a region containing only the specified key
 region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
@@ -248,17 +253,16 @@ public:
                     guarantee(_rr);
 
                     const groups_t *groups = boost::get<groups_t>(&(_rr->result));
-                    query_language::backtrace_t backtrace;
 
                     for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
                         query_language::new_val_scope_t scope(&env.scopes.scope);
                         Term base = gmr->reduction().base(),
                              body = gmr->reduction().body();
 
-                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
+                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, rg.backtrace)));
                         env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
 
-                        (*res_groups)[j->first] = eval(&body, &env, backtrace);
+                        (*res_groups)[j->first] = eval(&body, &env, rg.backtrace);
                     }
                 }
             } else if (const Reduction *r = boost::get<Reduction>(&*rg.terminal)) {
@@ -266,10 +270,8 @@ public:
                 rg_response.result = atom_t();
                 atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
 
-                query_language::backtrace_t backtrace;
-
                 Term base = r->base();
-                *res_atom = eval(&base, &env, backtrace);
+                *res_atom = eval(&base, &env, rg.backtrace);
 
                 for(size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
@@ -281,7 +283,7 @@ public:
                     env.scopes.scope.put_in_scope(r->var1(), *res_atom);
                     env.scopes.scope.put_in_scope(r->var2(), *atom);
                     Term body = r->body();
-                    *res_atom = eval(&body, &env, backtrace);
+                    *res_atom = eval(&body, &env, rg.backtrace);
                 }
             } else if (boost::get<rdb_protocol_details::Length>(&*rg.terminal)) {
                 rg_response.result = atom_t();
@@ -445,10 +447,8 @@ public:
                     guarantee(stream);
 
 
-                    if (stream->size() == rg.maximum) {
-                        if (_rr->last_considered_key < rg_response.last_considered_key) {
-                            rg_response.last_considered_key = _rr->last_considered_key;
-                        }
+                    if (_rr->last_considered_key < rg_response.last_considered_key) {
+                        rg_response.last_considered_key = _rr->last_considered_key;
                     }
                 }
 
@@ -480,17 +480,16 @@ public:
                     guarantee(_rr);
 
                     const groups_t *groups = boost::get<groups_t>(&(_rr->result));
-                    query_language::backtrace_t backtrace;
 
                     for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
                         query_language::new_val_scope_t scope(&env.scopes.scope);
                         Term base = gmr->reduction().base(),
                              body = gmr->reduction().body();
 
-                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
+                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, rg.backtrace)));
                         env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
 
-                        (*res_groups)[j->first] = eval(&body, &env, backtrace);
+                        (*res_groups)[j->first] = eval(&body, &env, rg.backtrace);
                     }
                 }
             } else if (const Reduction *r = boost::get<Reduction>(&*rg.terminal)) {
@@ -498,10 +497,8 @@ public:
                 rg_response.result = atom_t();
                 atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
 
-                query_language::backtrace_t backtrace;
-
                 Term base = r->base();
-                *res_atom = eval(&base, &env, backtrace);
+                *res_atom = eval(&base, &env, rg.backtrace);
 
                 for(size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
@@ -513,7 +510,7 @@ public:
                     env.scopes.scope.put_in_scope(r->var1(), *res_atom);
                     env.scopes.scope.put_in_scope(r->var2(), *atom);
                     Term body = r->body();
-                    *res_atom = eval(&body, &env, backtrace);
+                    *res_atom = eval(&body, &env, rg.backtrace);
                 }
             } else if (boost::get<rdb_protocol_details::Length>(&*rg.terminal)) {
                 rg_response.result = atom_t();
@@ -690,7 +687,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
 
     read_response_t operator()(const rget_read_t &rget) {
         env.scopes = rget.scopes;
-        return read_response_t(rdb_rget_slice(btree, rget.key_range, 1000, txn, superblock, &env, rget.transform, rget.terminal));
+        return read_response_t(rdb_rget_slice(btree, rget.key_range, txn, superblock, &env, rget.transform, rget.terminal));
     }
 
     read_response_t operator()(const distribution_read_t &dg) {
