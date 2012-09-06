@@ -119,6 +119,12 @@ point_read_response_t rdb_get(const store_key_t &store_key, btree_slice_t *slice
     return point_read_response_t(data);
 }
 
+// point_write_response_t rdb_update(const store_key_t &key, query_language::runtime_environment_t env, Mapping mapping,
+//                                   btree_slice_t *slice, repli_timestamp_t timestamp,
+//                                   transaction *txn, superblock_t *superblock) {
+
+// }
+
 point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data,
                        btree_slice_t *slice, repli_timestamp_t timestamp,
                        transaction_t *txn, superblock_t *superblock) {

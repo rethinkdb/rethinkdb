@@ -37,21 +37,27 @@ enum point_write_result_t {
     STORED,
     DUPLICATE
 };
-
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_write_result_t, int8_t, STORED, DUPLICATE);
 
 enum point_delete_result_t {
     DELETED,
     MISSING
 };
-
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_delete_result_t, int8_t, DELETED, MISSING);
+
+namespace point_modify {
+enum result_t { MODIFIED, SKIPPED, DELETED, ERROR };
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(result_t, int8_t, STORED, DUPLICATE);
+enum op_t { UPDATE, MUTATE };
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(op_t, int8_t, STORED, DUPLICATE);
+}
 
 RDB_DECLARE_SERIALIZABLE(Builtin_Range);
 RDB_DECLARE_SERIALIZABLE(Builtin_Filter);
 RDB_DECLARE_SERIALIZABLE(Builtin_Map);
 RDB_DECLARE_SERIALIZABLE(Builtin_ConcatMap);
 RDB_DECLARE_SERIALIZABLE(Builtin_GroupedMapReduce);
+RDB_DECLARE_SERIALIZABLE(Mapping);
 RDB_DECLARE_SERIALIZABLE(Reduction);
 RDB_DECLARE_SERIALIZABLE(WriteQuery_ForEach);
 
@@ -289,6 +295,15 @@ struct rdb_protocol_t {
         RDB_MAKE_ME_SERIALIZABLE_1(result);
     };
 
+    struct point_modify_response_t {
+        point_modify::result_t result;
+        query_language::runtime_exc_t exc;
+        point_modify_response_t() { }
+        explicit point_modify_response_t(point_modify::result_t _result, const query_language::runtime_exc_t *_exc=0)
+            : result(_result) { if (_exc) exc = *_exc; }
+        RDB_MAKE_ME_SERIALIZABLE_2(result, exc);
+    };
+
     struct write_response_t {
         boost::variant<point_write_response_t, point_delete_response_t> response;
 
@@ -298,6 +313,20 @@ struct rdb_protocol_t {
         explicit write_response_t(const point_delete_response_t& d) : response(d) { }
 
         RDB_MAKE_ME_SERIALIZABLE_1(response);
+    };
+
+    class point_modify_t {
+    public:
+        point_modify_t() { }
+        point_modify_t(const store_key_t &_key, const point_modify::op_t &_op,
+                       const query_language::scopes_t &_scopes, const Mapping &_m)
+            : key(_key), op(_op), scopes(_scopes), m(_m) { }
+
+        store_key_t key;
+        point_modify::op_t op;
+        query_language::scopes_t scopes;
+        Mapping m;
+        RDB_MAKE_ME_SERIALIZABLE_4(key, op, scopes, m);
     };
 
     class point_write_t {

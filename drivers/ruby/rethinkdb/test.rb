@@ -82,6 +82,11 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r[{}].without(:b).run, {})
   end
 
+  def test_arr_ordering
+    assert_equal(r.lt([1,2,3],[1,2,3,4]).run, true)
+    assert_equal(r.lt([1,2,3],[1,2,3]).run, false)
+  end
+
   def test_junctions # from python tests
     assert_equal(r.any(false).run, false)
     assert_equal(r.any(true, false).run, true)
