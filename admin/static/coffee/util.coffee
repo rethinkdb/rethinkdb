@@ -381,6 +381,39 @@ bind_dev_tools = ->
         $.get('/fakeurl')
         return false
 
+objects_are_equal = (a, b) ->
+    for key of a
+        if not key of b
+            return false
+    for key of b
+        if not key of a
+            return false
+
+    # They have the same set of keys
+    for key of a
+        if not key of b
+            return false
+        else
+            if typeof a[key] isnt typeof b[key]
+                return false
+            else if a[key].constructor? and a[key].constructor is Array
+                if b[key].constructor? and b[key].constructor is Array
+                    if a[key].length isnt b[key].length
+                        return false
+                    else
+                        for i in [0..a[key].length-1]
+                            if a[key][i] isnt b[key][i]
+                                return false
+                else
+                    return false
+            else if typeof a[key] is 'object'
+                if objects_are_equal(a[key], b[key]) is false
+                    return false
+            else if a[key] isnt b[key]
+                return false
+    return true
+
+
 ###
     Taken from "Namespacing and modules with Coffeescript"
     https://github.com/jashkenas/coffee-script/wiki/Easy-modules-with-coffeescript

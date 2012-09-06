@@ -102,8 +102,8 @@ module 'NamespaceView', ->
                     namespace: @namespace
 
             @namespace.on 'change:key_distr', @render_summary
-            @namespace.on 'change:blueprint', @reset_datacenter_list #TODO bind to peers_roles
-            @namespace.on 'change:replica_affinities', @reset_datacenter_list #TODO bind to peers_roles
+            @namespace.on 'change:blueprint', @reset_datacenter_list
+            @namespace.on 'change:replica_affinities', @reset_datacenter_list
 
         render: =>
             @.el = @template({})
