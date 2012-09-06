@@ -13,7 +13,6 @@ expressing queries friendly and convenient."""
 __all__ = ['connect', 'expr', 'table', 'R', 'js', 'let', 'fn', 'if_then_else', 'ExecutionError', 'BadQueryError']
 
 from query import *
-from net import connect
-from errors import *
+from net import connect, ExecutionError, BadQueryError
 
 # Package initialization
