@@ -27,7 +27,7 @@ std::map<peer_id_t, reactor_business_card_t<protocol_t> > get_reactor_business_c
         typename namespaces_directory_metadata_t<protocol_t>::reactor_bcards_map_t::const_iterator jt =
             it->second.reactor_bcards.find(n_id);
         if (jt != it->second.reactor_bcards.end()) {
-            res[it->first] = jt->second.internal;
+            res[it->first] = *jt->second.internal;
         } else {
             res[it->first] = reactor_business_card_t<protocol_t>();
         }
