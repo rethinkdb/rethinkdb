@@ -54,7 +54,6 @@ typedef rdb_protocol_t::rget_read_response_t::groups_t groups_t;
 typedef rdb_protocol_t::rget_read_response_t::atom_t atom_t;
 typedef rdb_protocol_t::rget_read_response_t::length_t length_t;
 typedef rdb_protocol_t::rget_read_response_t::inserted_t inserted_t;
-typedef rdb_protocol_t::rget_read_response_t::runtime_exc_t runtime_exc_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
 
@@ -182,8 +181,8 @@ bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
 
 class unshard_visitor_t : public boost::static_visitor<void> {
 public:
-    unshard_visitor_t(const std::vector<read_response_t> &_responses, 
-                      read_response_t *_response_out, context_t *ctx) 
+    unshard_visitor_t(const std::vector<read_response_t> &_responses,
+                      read_response_t *_response_out, context_t *ctx)
         : responses(_responses), response_out(_response_out),
           env(ctx->pool_group,
               ctx->ns_repo,
@@ -248,17 +247,16 @@ public:
                     guarantee(_rr);
 
                     const groups_t *groups = boost::get<groups_t>(&(_rr->result));
-                    query_language::backtrace_t backtrace;
 
                     for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
                         query_language::new_val_scope_t scope(&env.scopes.scope);
                         Term base = gmr->reduction().base(),
                              body = gmr->reduction().body();
 
-                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
+                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, rg.backtrace)));
                         env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
 
-                        (*res_groups)[j->first] = eval(&body, &env, backtrace);
+                        (*res_groups)[j->first] = eval(&body, &env, rg.backtrace);
                     }
                 }
             } else if (const Reduction *r = boost::get<Reduction>(&*rg.terminal)) {
@@ -266,10 +264,8 @@ public:
                 rg_response.result = atom_t();
                 atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
 
-                query_language::backtrace_t backtrace;
-
                 Term base = r->base();
-                *res_atom = eval(&base, &env, backtrace);
+                *res_atom = eval(&base, &env, rg.backtrace);
 
                 for(rri_t i = responses.begin(); i != responses.end(); ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
@@ -281,7 +277,7 @@ public:
                     env.scopes.scope.put_in_scope(r->var1(), *res_atom);
                     env.scopes.scope.put_in_scope(r->var2(), *atom);
                     Term body = r->body();
-                    *res_atom = eval(&body, &env, backtrace);
+                    *res_atom = eval(&body, &env, rg.backtrace);
                 }
             } else if (boost::get<rdb_protocol_details::Length>(&*rg.terminal)) {
                 rg_response.result = atom_t();
@@ -365,8 +361,8 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
 
 class multistore_unshard_visitor_t : public boost::static_visitor<void> {
 public:
-    multistore_unshard_visitor_t(const std::vector<read_response_t> &_responses, 
-                                 read_response_t *_response_out, context_t *ctx) 
+    multistore_unshard_visitor_t(const std::vector<read_response_t> &_responses,
+                                 read_response_t *_response_out, context_t *ctx)
         : responses(_responses), response_out(_response_out),
           env(ctx->pool_group,
               ctx->ns_repo,
@@ -480,17 +476,16 @@ public:
                     guarantee(_rr);
 
                     const groups_t *groups = boost::get<groups_t>(&(_rr->result));
-                    query_language::backtrace_t backtrace;
 
                     for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
                         query_language::new_val_scope_t scope(&env.scopes.scope);
                         Term base = gmr->reduction().base(),
                              body = gmr->reduction().body();
 
-                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, backtrace)));
+                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, rg.backtrace)));
                         env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
 
-                        (*res_groups)[j->first] = eval(&body, &env, backtrace);
+                        (*res_groups)[j->first] = eval(&body, &env, rg.backtrace);
                     }
                 }
             } else if (const Reduction *r = boost::get<Reduction>(&*rg.terminal)) {
@@ -498,10 +493,8 @@ public:
                 rg_response.result = atom_t();
                 atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
 
-                query_language::backtrace_t backtrace;
-
                 Term base = r->base();
-                *res_atom = eval(&base, &env, backtrace);
+                *res_atom = eval(&base, &env, rg.backtrace);
 
                 for(rri_t i = responses.begin(); i != responses.end(); ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
@@ -513,7 +506,7 @@ public:
                     env.scopes.scope.put_in_scope(r->var1(), *res_atom);
                     env.scopes.scope.put_in_scope(r->var2(), *atom);
                     Term body = r->body();
-                    *res_atom = eval(&body, &env, backtrace);
+                    *res_atom = eval(&body, &env, rg.backtrace);
                 }
             } else if (boost::get<rdb_protocol_details::Length>(&*rg.terminal)) {
                 rg_response.result = atom_t();

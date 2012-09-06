@@ -85,16 +85,27 @@ exports.aeq = function(eq) {
 }
 
 exports.objeq = function(eq) {
-    wait();
-    return function(val) {
-        for (var key in eq) {
-            if (eq.hasOwnProperty(key)) {
-                if (!val.hasOwnProperty(key) ||
-                    val[key] !== eq[key]) {
-                        fail('objects differ in key '+key);
+    function objEqual(one, two) {
+        for (var key in one) {
+            if (one.hasOwnProperty(key)) {
+                if (two.hasOwnProperty(key)) {
+                    var propOne = one[key];
+                    var propTwo = two[key];
+                    if (typeof propOne === 'object') {
+                        objEqual(propOne, propTwo);
+                    } else {
+                        assertEquals(propOne, propTwo);
+                    }
+                } else {
+                    fail('result missing property '+key);
                 }
             }
         }
+    }
+
+    wait();
+    return function(val) {
+        objEqual(eq, val);
         done();
     };
 }
