@@ -600,21 +600,14 @@ module 'DataExplorerView', ->
                 if is_string is true
                     if @query[i] is char_used
                         if @query[i-1]? and @query[i-1] isnt '\\'
-                            console.log '++++'
-                            console.log @query
                             @query = @query.slice(0, start_string) + @query.slice(start_string, i).replace('\n', '\\n') + @query.slice(i)
                             is_string = false
-                            console.log @query
                 else if is_string is false
                     if @query[i] is '\'' or @query[i] is '"'
                         is_string = true
                         start_string = i
                         char_used = @query[i]
                 i++
-
-
-            console.log @query
-            
 
             full_query = @query + '.run(this.callback_render)'
             try
@@ -738,7 +731,6 @@ module 'DataExplorerView', ->
                     name: 'javascript'
                     json: true
                 onKeyEvent: @handle_keypress
-                #onCursorActivity: @handle_keypress
                 onBlur: @hide_suggestion
                 lineNumbers: true
                 lineWrapping: true
