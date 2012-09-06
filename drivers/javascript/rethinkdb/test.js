@@ -227,6 +227,21 @@ function testUpdate2() {
     });
 }
 
+function testPointUpdate1() {
+    tab.get(0).update(function(a) {
+        a.pointupdated = true;
+        return a;
+    }).run(objeq({
+        errors:0,
+        skipped:0,
+        updated:1
+    }));
+}
+
+function testPointUpdate2() {
+    tab.get(0).getAttr('pointupdated').run(aeq(true));
+}
+
 function testMutate1() {
     tab.mutate(function(a) {
         return {id:a.id, mutated:true};
@@ -249,9 +264,34 @@ function testMutate2() {
     });
 }
 
+function testPointMutate1() {
+    tab.get(0).mutate(function(a) {
+        return {id:a.id, pointmutated:true};
+    }).run(objeq({
+        deleted:0,
+        errors:0,
+        inserted:0,
+        modified:1
+    }));
+}
+
+function testPointMutate2() {
+    tab.get(0).getAttr('pointmutated').run(aeq(true));
+}
+
+function testPointDelete1() {
+    tab.get(0).del().run(objeq({
+        deleted:1
+    }));
+}
+
+function testPointDelete2() {
+    tab.length().run(aeq(9));
+}
+
 function testDelete1() {
-    tab.length().run(aeq(10));
-    tab.del().run(objeq({deleted:10}));
+    tab.length().run(aeq(9));
+    tab.del().run(objeq({deleted:9}));
 }
 
 function testDelete2() {
@@ -313,8 +353,14 @@ runTests([
     testGroupedMapReduce,
     testUpdate1,
     testUpdate2,
+    testPointUpdate1,
+    testPointUpdate2,
     testMutate1,
     testMutate2,
+    testPointMutate1,
+    testPointMutate2,
+    testPointDelete1,
+    testPointDelete2,
     testDelete1,
     testDelete2,
     testForEach1,
