@@ -7,6 +7,9 @@ port = ENV['PORT'].to_i
 raise RuntimeError,"Must specify HOST and PORT in environment." if
 (!host || !port)
 
+raise RuntimeError,"Expected at most one argument" if ARGV.length > 1
+if ARGV.length == 1 then count = ARGV[0].to_i else count = 100 end
+
 require 'rethinkdb.rb'
 extend RethinkDB::Shortcuts_Mixin
 
@@ -23,7 +26,7 @@ datacenter_name = datacenters_json.to_a[0][1]["name"]
 
 require 'time'
 i = 0
-while i < 100 do
+while i < count do
  tbl_name = rand().to_s
  start_time = Time.now
  r.db(ENV["DB_NAME"]).create_table(tbl_name, datacenter_name).run
