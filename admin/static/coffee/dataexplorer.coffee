@@ -563,7 +563,6 @@ module 'DataExplorerView', ->
 
             for char in @unsafe_to_safe_regexstr
                 element_currently_written = element_currently_written.replace char.pattern, char.replacement
-            #element_currently_written = element_currently_written.replace /\s/g, ''
             found_suggestion = false
             pattern = new RegExp('^('+element_currently_written+')', 'i')
             @current_suggestions = []
@@ -596,7 +595,7 @@ module 'DataExplorerView', ->
             try
                 eval(full_query)
             catch err
-                @data_container.render_error(err)
+                @data_container.render_error(full_query, err)
             
             # Display query in sidebar and home view
             @data_container.add_query @codemirror.getValue()
@@ -769,6 +768,8 @@ module 'DataExplorerView', ->
     class @DataContainer extends Backbone.View
         className: 'data_container'
         error_template: Handlebars.compile $('#dataexplorer-error-template').html()
+        events:
+            'click .home_view': 'display_home'
 
         initialize: ->
             @default_view = new DataExplorerView.DefaultView
@@ -776,6 +777,9 @@ module 'DataExplorerView', ->
 
         add_query: (query) =>
             @default_view.add_query(query)
+
+        display_home: (event) =>
+            window.app.current_view.display_home(event)
 
         render: (query, result) =>
             if query? and result?
@@ -786,8 +790,9 @@ module 'DataExplorerView', ->
 
             return @
 
-        render_error: (err) =>
+        render_error: (query, err) =>
             @.$el.html @error_template 
+                query: query
                 error: err.toString()
             return @
 

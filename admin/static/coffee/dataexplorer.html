@@ -35,7 +35,6 @@
 
 
 <script id="dataexplorer_default_view-template" type="text/x-handlebars-template">
-    <h2>Quick Start</h2>
     <p>You can automatically build a query by clicking on a table or on a previous query. You can then modify them as you wish.</p>
     <p>The data explorer is equipped with a suggestion feature, but if you are lost, you can find more details in the <a href="#help">help page</a>.</p>
 
@@ -75,7 +74,9 @@
 <script id="dataexplorer-error-template" type="text/x-handlebars-template">
     <h2>Error</h2>
     <p>The following query could not be executed.</p>
+    <p class="query">{{query}}</p>
     <p>Error: {{error}}</p>
+    <p><a href="#dataexplorer" class="home_view">Read quick start</a></p>
 </script>
 
 <script id="dataexplorer_query_list-template" type="text/x-handlebars-template">
