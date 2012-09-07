@@ -8,115 +8,67 @@ import time
 import random
 import sys
 
-names = """Nervous Energy
-Prosthetic Conscience
-Determinist
-Irregular Apocalypse
-No More Mr Nice Guy
-Profit Margin
-Revisionist
-Trade Surplus
-The Ends Of Invention
-Clear Air Turbulence
-Flexible Demeanour
-Just Read The Instructions
-Of Course I Still Love You
-Limiting Factor
-Cargo Cult
-Little Rascal
-So Much For Subtlety
-Just Testing
-Very Little Gravitas Indeed
-What Are The Civilian Applications?
-Congenital Optimist
-Size Isn't Everything
-Sweet and Full of Grace
-Different Tan
-Fate Amenable To Change
-It's Character Forming
-Jaundiced Outlook
-Problem Child
-Reasonable Excuse
-Recent Convert
-Tactical Grace
-Unacceptable Behaviour
-Steely Glint
-Highpoint
-Shoot Them Later
-Attitude Adjuster
-Killing Time
-Heavy Messing
-Frank Exchange Of Views
-Death and Gravity
-Ethics Gradient
-Honest Mistake
-Limnivorous
-No Fixed Abode
-Quietly Confident
-Uninvited Guest
-Use Psychology
-What Is The Answer and Why?
-Wisdom Like Silence
-Yawning Angel
-Zero Gravitas
-Misophist
-Serious Callers Only
-Not Invented Here
-Charitable View
-I Blame My Mother
-I Blame Your Mother
-Just Passing Through
-Appeal To Reason
-Break Even
-Long View
-Peace Makes Plenty
-Sober Counsel
-Within Reason
-Kiss the Blade
-Frightspear
-Furious Purpose
-Riptalon
-Xenoclast
-Bad for Business
-Arbitrary
-Cantankerous
-Only Slightly Bent
-I Thought He Was With You
-Space Monster
-A Series Of Unlikely Explanations
-Never Talk To Strangers
-Funny, It Worked Last Time...
-Don't Try This At Home
-Eight Rounds Rapid
-Lightly Seared On The Reality Grill
-Now We Try It My Way
-Liveware Problem
-Pure Big Mad Boat Man
-Qualifier
-Seed Drill
-Subtle Shift In Emphasis
-Transient Atmospheric Phenomenon
-You Naughty Monsters
-You'll Clean That Up Before You Leave
-Sense Amid Madness, Wit Amidst Folly
-Me, I'm Counting
-Total Internal Reflection
-Armchair Traveller
-Hidden Income
-Hylozoist
-No One Knows What The Dead Think
-Pelagian
-Fixed Grin
-Scar Glamour
-Labtebricolephile
-Dressed Up To Party
-Ucalegon
-Messenger Of Truth
-Fractious Person
-Rubric Of Ruin
-Abundance Of Onslaught
-Vision Of Hope Surpassed
-Partial Photic Boundary""".splitlines()
+names = """Aphrodite
+Apollo
+Ares
+Artemis
+Athena
+Demeter
+Dionysus
+Hades
+Hephaestus
+Hera
+Hermes
+Hestia
+Poseidon
+Zeus
+Aether
+Ananke
+Erebos
+Gaia
+Hemera
+Chaos
+Chronos
+Nesoi
+Nyx
+Uranus
+Ourea
+Phanes
+Pontus
+Tartarus
+Thalassa
+Hyperion
+Lapetus
+Coeus
+Crius
+Cronus
+Mnemosyne
+Oceanus
+Phoebe
+Rhea
+Tethys
+Themis
+Asteria
+Astraeus
+Atlas
+Aura
+Dione
+Eos
+Epimetheus
+Eurybia
+Eurynome
+Helios
+Clumene
+Lelantos
+Leto
+Menoetius
+Metis
+Ophion
+Phallas
+Perses
+Prometheus
+Selene
+Styx""".splitlines()
 
 
 def usage():
