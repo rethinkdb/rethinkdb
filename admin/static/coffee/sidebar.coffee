@@ -227,7 +227,6 @@ module 'Sidebar', ->
             issues.on 'all', @render
 
         render: =>
-            console.log 'render'
             # Group critical issues by type
             critical_issues = issues.filter (issue) -> issue.get('critical')
             critical_issues = _.groupBy critical_issues, (issue) -> issue.get('type')

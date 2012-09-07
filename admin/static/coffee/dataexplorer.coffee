@@ -691,15 +691,19 @@ module 'DataExplorerView', ->
                 if window.conn?
                     window.conn.close()
             catch err
-                @console.log err
+                #TODO
+                #console.log err
             host = window.location.hostname
             port = window.location.port
             if port is ''
                 port = 13457
-
-            window.conn = new rethinkdb.net.HttpConnection 
-                host: host
-                port: port
+            try
+                window.conn = new rethinkdb.net.HttpConnection 
+                    host: host
+                    port: port
+            catch err
+                #TODO
+                #console.log err
 
         initialize: =>
             if @has_been_initialized.value is false

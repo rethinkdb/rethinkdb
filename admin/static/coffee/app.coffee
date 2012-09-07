@@ -100,8 +100,10 @@ apply_diffs = (updates) ->
             when 'machines'
                 apply_to_collection(machines, collection_data)
             when 'me' then continue
+            ###
             else
-                console.log "Unhandled element update: " + collection_id
+                console.log "Unhandled element update: " + collection_id + "."
+            ###
     return
 
 set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
@@ -206,7 +208,7 @@ collect_stat_data = ->
             set_stats(data)
         error: ->
             #TODO
-            console.log 'Could not retrieve stats'
+            #console.log 'Could not retrieve stats'
 
 $ ->
     render_loading()
@@ -235,7 +237,6 @@ $ ->
     Backbone.sync = (method, model, success, error) ->
         if method is 'read'
             collect_server_data()
-            console.log 'call'
         else
             legacy_sync method, model, success, error
 
