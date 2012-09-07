@@ -21,7 +21,7 @@ reactor_t<protocol_t>::reactor_t(
         io_backender_t *_io_backender,
         mailbox_manager_t *mm,
         typename master_t<protocol_t>::ack_checker_t *ack_checker_,
-        clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > rd,
+        clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > > > > rd,
         branch_history_manager_t<protocol_t> *bhm,
         clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > b,
         multistore_ptr_t<protocol_t> *_underlying_svs,
@@ -30,9 +30,8 @@ reactor_t<protocol_t>::reactor_t(
     io_backender(_io_backender),
     mailbox_manager(mm),
     ack_checker(ack_checker_),
-    reactor_directory(rd),
-    directory_echo_writer(mailbox_manager, reactor_business_card_t<protocol_t>()),
-    directory_echo_mirror(mailbox_manager, rd->subview(&collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >)),
+    directory_echo_writer(mailbox_manager, boost::make_shared<reactor_business_card_t<protocol_t> >()),
+    directory_echo_mirror(mailbox_manager, rd->subview(&collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > >)),
     branch_history_manager(bhm),
     blueprint_watchable(b),
     underlying_svs(_underlying_svs),
@@ -57,29 +56,34 @@ reactor_t<protocol_t>::directory_entry_t::directory_entry_t(reactor_t<protocol_t
 
 template <class protocol_t>
 directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::set(typename reactor_business_card_t<protocol_t>::activity_t activity) {
-    typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
+    typename directory_echo_writer_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > >::our_value_change_t our_value_change(&parent->directory_echo_writer);
+    boost::shared_ptr<reactor_business_card_t<protocol_t> > mutable_copy = boost::make_shared<reactor_business_card_t<protocol_t> >(*our_value_change.buffer);
     if (!reactor_activity_id.is_nil()) {
-        our_value_change.buffer.activities.erase(reactor_activity_id);
+        mutable_copy->activities.erase(reactor_activity_id);
     }
     reactor_activity_id = generate_uuid();
-    our_value_change.buffer.activities.insert(std::make_pair(reactor_activity_id, std::make_pair(region, activity)));
+    mutable_copy->activities.insert(std::make_pair(reactor_activity_id, std::make_pair(region, activity)));
+    our_value_change.buffer = mutable_copy;
     return our_value_change.commit();
 }
 
 template <class protocol_t>
 directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_without_changing_id(typename reactor_business_card_t<protocol_t>::activity_t activity) {
-    typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
+    typename directory_echo_writer_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > >::our_value_change_t our_value_change(&parent->directory_echo_writer);
     rassert(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
-
-    our_value_change.buffer.activities[reactor_activity_id].second = activity;
+    boost::shared_ptr<reactor_business_card_t<protocol_t> > mutable_copy = boost::make_shared<reactor_business_card_t<protocol_t> >(*our_value_change.buffer);
+    mutable_copy->activities[reactor_activity_id].second = activity;
+    our_value_change.buffer = mutable_copy;
     return our_value_change.commit();
 }
 
 template <class protocol_t>
 reactor_t<protocol_t>::directory_entry_t::~directory_entry_t() {
     if (!reactor_activity_id.is_nil()) {
-        typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
-        our_value_change.buffer.activities.erase(reactor_activity_id);
+        typename directory_echo_writer_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > >::our_value_change_t our_value_change(&parent->directory_echo_writer);
+        boost::shared_ptr<reactor_business_card_t<protocol_t> > mutable_copy = boost::make_shared<reactor_business_card_t<protocol_t> >(*our_value_change.buffer);
+        mutable_copy->activities.erase(reactor_activity_id);
+        our_value_change.buffer = mutable_copy;
         our_value_change.commit();
     }
 }
@@ -213,7 +217,7 @@ void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t ver
         }
         typename std::map<peer_id_t, std::map<typename protocol_t::region_t, typename blueprint_details::role_t> >::iterator it = bp.peers_roles.begin();
         for (it = bp.peers_roles.begin(); it != bp.peers_roles.end(); it++) {
-            typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::ack_waiter_t ack_waiter(&directory_echo_writer, it->first, version_to_wait_on);
+            typename directory_echo_writer_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > >::ack_waiter_t ack_waiter(&directory_echo_writer, it->first, version_to_wait_on);
             wait_any_t waiter(&ack_waiter, &blueprint_changed);
             wait_interruptible(&waiter, interruptor);
             if (blueprint_changed.is_pulsed()) {

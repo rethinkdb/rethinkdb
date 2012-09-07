@@ -6,6 +6,7 @@
 #include <set>
 
 #include "errors.hpp"
+#include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
@@ -54,14 +55,14 @@ public:
     void set_all_blueprints(const blueprint_t<protocol_t> &bp);
 
     static std::map<peer_id_t, reactor_business_card_t<protocol_t> > extract_reactor_business_cards_no_optional(
-                                                                                                                const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input);
+            const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input);
 
     void make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t<protocol_t> > *out);
 
     void run_queries();
 
-    static std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > extract_reactor_business_cards(
-                                                                                                                      const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input);
+    static std::map<peer_id_t, boost::optional<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > extract_reactor_business_cards(
+            const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input);
 
     void wait_until_blueprint_is_satisfied(const blueprint_t<protocol_t> &bp);
 

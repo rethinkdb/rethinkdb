@@ -768,6 +768,13 @@ static uuid_t meta_get_uuid(T searcher, U predicate,
 }
 
 void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const backtrace_t &bt) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
+    // This must be performed on the semilattice_metadata's home thread,
+    int metadata_home_thread = env->semilattice_metadata->get_publisher()->home_thread();
+    rassert(env->directory_read_manager->home_thread() == metadata_home_thread);
+    on_thread_t rethreader(metadata_home_thread);
+    clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > directory_metadata =
+        env->directory_read_manager->get_root_view();
+
     cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
         ns_searcher(&metadata.rdb_namespaces.namespaces);
@@ -783,7 +790,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
         /* Ensure database doesn't already exist. */
         db_searcher.find_uniq(db_name, &status);
-        meta_check(status, METADATA_ERR_NONE, "CREATE_DB "+db_name, bt);
+        meta_check(status, METADATA_ERR_NONE, "CREATE_DB " + db_name, bt);
 
         /* Create namespace, insert into metadata, then join into real metadata. */
         database_semilattice_metadata_t db;
@@ -798,7 +805,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         // Get database metadata.
         metadata_searcher_t<database_semilattice_metadata_t>::iterator
             db_metadata = db_searcher.find_uniq(db_name, &status);
-        meta_check(status, METADATA_SUCCESS, "DROP_DB "+db_name, bt);
+        meta_check(status, METADATA_SUCCESS, "DROP_DB " + db_name, bt);
         rassert(!db_metadata->second.is_deleted());
         uuid_t db_id = db_metadata->first;
 
@@ -835,8 +842,8 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         std::string table_name = m->create_table().table_ref().table_name();
         std::string primary_key = m->create_table().primary_key();
 
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE "+db_name, bt);
-        uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name,"FIND_DATACENTER "+dc_name,bt);
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt);
+        uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name, bt);
 
         /* Ensure table doesn't already exist. */
         ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
@@ -849,7 +856,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
             new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, table_name,
                                           primary_key, port_constants::namespace_port);
         metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, ns));
-        fill_in_blueprints(&metadata, env->directory_metadata->get(), env->this_machine);
+        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
         env->semilattice_metadata->join(metadata);
 
         /* The following is an ugly hack, but it's probably what we want.  It

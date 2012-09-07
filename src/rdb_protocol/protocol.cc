@@ -16,6 +16,7 @@
 #include "rdb_protocol/query_language.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "serializer/config.hpp"
+#include "clustering/administration/metadata.hpp"
 
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 
@@ -69,17 +70,20 @@ rdb_protocol_t::context_t::context_t()
     : pool_group(NULL), ns_repo(NULL),
     cross_thread_namespace_watchables(get_num_threads()),
     cross_thread_database_watchables(get_num_threads()),
+    directory_read_manager(NULL),
     signals(get_num_threads())
 { }
 
 rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
           namespace_repo_t<rdb_protocol_t> *_ns_repo,
           boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+          directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
           machine_id_t _machine_id)
     : pool_group(_pool_group), ns_repo(_ns_repo),
       cross_thread_namespace_watchables(get_num_threads()),
       cross_thread_database_watchables(get_num_threads()),
       semilattice_metadata(_semilattice_metadata),
+      directory_read_manager(_directory_read_manager),
       signals(get_num_threads()),
       machine_id(_machine_id)
 {
@@ -97,6 +101,8 @@ rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
         signals[thread].init(new cross_thread_signal_t(&interruptor, thread));
     }
 }
+
+rdb_protocol_t::context_t::~context_t() { };
 
 // Construct a region containing only the specified key
 region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
@@ -443,8 +449,10 @@ public:
                     guarantee(stream);
 
 
-                    if (_rr->last_considered_key < rg_response.last_considered_key) {
-                        rg_response.last_considered_key = _rr->last_considered_key;
+                    if (stream->size() == rg.maximum) {
+                        if (_rr->last_considered_key < rg_response.last_considered_key) {
+                            rg_response.last_considered_key = _rr->last_considered_key;
+                        }
                     }
                 }
 
@@ -682,7 +690,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
 
     read_response_t operator()(const rget_read_t &rget) {
         env.scopes = rget.scopes;
-        return read_response_t(rdb_rget_slice(btree, rget.key_range, txn, superblock, &env, rget.transform, rget.terminal));
+        return read_response_t(rdb_rget_slice(btree, rget.key_range, 1000, txn, superblock, &env, rget.transform, rget.terminal));
     }
 
     read_response_t operator()(const distribution_read_t &dg) {

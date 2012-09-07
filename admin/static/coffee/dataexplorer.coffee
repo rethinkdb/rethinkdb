@@ -621,6 +621,7 @@ module 'DataExplorerView', ->
 
         clear_query: =>
             #TODO remove when not testing
+            ###
             welcome = r.db('Welcome-db').table('Welcome-rdb')
             welcome.insert({
                 id: generate_id(25)
@@ -634,9 +635,10 @@ module 'DataExplorerView', ->
                     mobile: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
                 website: 'http://www.'+generate_string(12)+'.com'
                 }).run()
+            ###
+            @codemirror.setValue ''
+            @codemirror.focus()
 
-            @.$('.input_query').val ''
-            @.$('.input_query').focus()
 
         # Write a query for the namespace clicked
         write_query_namespace: (event) =>
