@@ -180,6 +180,7 @@ bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t
 dummy_protocol_t::region_t region_intersection(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 MUST_USE region_join_result_t region_join(const std::vector<dummy_protocol_t::region_t> &vec, dummy_protocol_t::region_t *out) THROWS_NOTHING;
 std::vector<dummy_protocol_t::region_t> region_subtract_many(const dummy_protocol_t::region_t &a, const std::vector<dummy_protocol_t::region_t>& b);
+dummy_protocol_t::region_t drop_cpu_sharding(const dummy_protocol_t::region_t &r);
 
 bool operator==(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);

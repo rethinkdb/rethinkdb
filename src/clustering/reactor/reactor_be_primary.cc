@@ -351,8 +351,6 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
 
 template<class protocol_t>
 void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
-    debugf_print("be_primary on region", region);
-
     try {
         //Tell everyone that we're looking to become the primary
         directory_entry_t directory_entry(this, region);

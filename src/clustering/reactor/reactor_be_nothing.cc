@@ -12,8 +12,6 @@
 template <class protocol_t>
 bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &_reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                                          const typename protocol_t::region_t &region) {
-    debugf_print("is_safe_for_us_to_be_nothing on region", region);
-    debugf_print("is_safe_for_us_to_be_nothing blueprint", blueprint);
     /* Iterator through the peers the blueprint claims we should be able to
      * see. */
     for (typename std::map<peer_id_t, std::map<typename protocol_t::region_t, blueprint_role_t> >::const_iterator p_it = blueprint.peers_roles.begin();
@@ -25,10 +23,7 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_
             return false;
         }
 
-        debugf_print("for peer", p_it->first);
-        debugf_print("role map", p_it->second);
-
-        typename std::map<typename protocol_t::region_t, blueprint_role_t>::const_iterator r_it = p_it->second.find(region);
+        typename std::map<typename protocol_t::region_t, blueprint_role_t>::const_iterator r_it = p_it->second.find(drop_cpu_sharding(region));
         rassert(r_it != p_it->second.end(), "Invalid blueprint issued, different peers have different sharding schemes.\n");
 
         /* Whether or not we found a directory entry for this peer */
@@ -63,7 +58,6 @@ template<class protocol_t>
 void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
         store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint,
         signal_t *interruptor) THROWS_NOTHING {
-    debugf_print("be_nothing on region", region);
     try {
         directory_entry_t directory_entry(this, region);
 
@@ -124,10 +118,12 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
 
         /* This actually erases the data. */
         {
+            cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+            on_thread_t th(svs->home_thread());
             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
             svs->new_write_token(&write_token);
 
-            svs->reset_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), &write_token, interruptor);
+            svs->reset_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), &write_token, &ct_interruptor);
         }
 
         /* Tell the other peers that we are officially nothing for this region,
