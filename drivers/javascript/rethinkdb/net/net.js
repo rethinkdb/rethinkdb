@@ -1,3 +1,7 @@
+/**
+ * @name rethinkdb.net
+ * @namespace Namespace for networking releated classes and functions
+ */
 goog.provide('rethinkdb.net');
 
 goog.require('rethinkdb.net.Connection');
@@ -5,7 +9,7 @@ goog.require('rethinkdb.net.TcpConnection');
 goog.require('rethinkdb.net.HttpConnection');
 
 /**
- * Shorthand for connection constructor.
+ * Shortcut for constructing new connection objects
  * @export
  */
 rethinkdb.net.connect = function(host_or_list, onConnect, onFailure) {

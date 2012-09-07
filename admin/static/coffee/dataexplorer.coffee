@@ -391,9 +391,14 @@ module 'DataExplorerView', ->
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
-                    @current_highlighted_suggestion++
-                    if @current_highlighted_suggestion >= @current_suggestions.length
-                        @current_highlighted_suggestion = 0
+                    if event.shiftKey
+                        @current_highlighted_suggestion--
+                        if @current_highlighted_suggestion < 0
+                            @current_highlighted_suggestion = @current_suggestions.length-1
+                    else
+                        @current_highlighted_suggestion++
+                        if @current_highlighted_suggestion >= @current_suggestions.length
+                            @current_highlighted_suggestion = 0
 
                     if @current_suggestions[@current_highlighted_suggestion]?
                         @highlight_suggestion @current_highlighted_suggestion
@@ -640,7 +645,6 @@ module 'DataExplorerView', ->
 
         clear_query: =>
             #TODO remove when not testing
-            ###
             welcome = r.db('Welcome-db').table('Welcome-rdb')
             welcome.insert({
                 id: generate_id(25)
@@ -654,7 +658,6 @@ module 'DataExplorerView', ->
                     mobile: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
                 website: 'http://www.'+generate_string(12)+'.com'
                 }).run()
-            ###
             @codemirror.setValue ''
             @codemirror.focus()
 

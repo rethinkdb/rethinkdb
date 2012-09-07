@@ -38,6 +38,9 @@ lib: query_language.pb.js
 query_language.pb.js: $(PROTO_FILE)
 	$(PROTOC_JS) -I $(PROTO_FILE_DIR)  --js_out=rethinkdb $(PROTO_FILE)
 
+docs: rethinkdb.js
+	jsdoc -d=docs -E=query_language.pb.js -r=3 rethinkdb/
+
 clean:
 	rm -rf rethinkdb.js
 	rm -rf rethinkdb.js.map

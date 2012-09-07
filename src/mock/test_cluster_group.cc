@@ -5,6 +5,7 @@
 #include <set>
 
 #include "errors.hpp"
+#include <boost/make_shared.hpp>
 #include <boost/tokenizer.hpp>
 
 #include "arch/io/io_utils.hpp"
@@ -285,14 +286,14 @@ void test_cluster_group_t<protocol_t>::set_all_blueprints(const blueprint_t<prot
 }
 
 template <class protocol_t>
-std::map<peer_id_t, reactor_business_card_t<protocol_t> > test_cluster_group_t<protocol_t>::extract_reactor_business_cards_no_optional(
+std::map<peer_id_t, boost::shared_ptr<const reactor_business_card_t<protocol_t> > > test_cluster_group_t<protocol_t>::extract_reactor_business_cards_no_optional(
         const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input) {
-    std::map<peer_id_t, reactor_business_card_t<protocol_t> > out;
+    std::map<peer_id_t, boost::shared_ptr<const reactor_business_card_t<protocol_t> > > out;
     for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = input.begin(); it != input.end(); it++) {
         if (it->second.reactor_directory) {
-            out.insert(std::make_pair(it->first, *it->second.reactor_directory->internal));
+            out.insert(std::make_pair(it->first, it->second.reactor_directory->internal));
         } else {
-            out.insert(std::make_pair(it->first, reactor_business_card_t<protocol_t>()));
+            out.insert(std::make_pair(it->first, boost::make_shared<reactor_business_card_t<protocol_t> >()));
         }
     }
     return out;

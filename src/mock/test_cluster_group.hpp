@@ -54,7 +54,7 @@ public:
 
     void set_all_blueprints(const blueprint_t<protocol_t> &bp);
 
-    static std::map<peer_id_t, reactor_business_card_t<protocol_t> > extract_reactor_business_cards_no_optional(
+    static std::map<peer_id_t, boost::shared_ptr<const reactor_business_card_t<protocol_t> > > extract_reactor_business_cards_no_optional(
             const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input);
 
     void make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t<protocol_t> > *out);
