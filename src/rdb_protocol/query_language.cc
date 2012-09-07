@@ -1071,34 +1071,15 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
 
                 int updated = 0, errors = 0, skipped = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-                    rassert(json->type() == cJSON_Object);
+                    rassert(json && json->type() == cJSON_Object);
                     try {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->update().mapping().arg(), json);
-                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
-                        boost::shared_ptr<scoped_cJSON_t> rhs =
-                            eval(w->mutable_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
-                        if (rhs->type() == cJSON_NULL) {
-                            ++skipped;
-                        } else if (rhs->type() != cJSON_Object) {
-                            ++errors;
-                            if (reported_error == "") {
-                                reported_error = strprintf("Update returned a non-object (%s).\n", rhs->Print().c_str());
-                            }
-                        } else {
-                            boost::shared_ptr<scoped_cJSON_t> val(new scoped_cJSON_t(cJSON_merge(json->get(), rhs->get())));
-                            cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
-                            cJSON *val_key = val->GetObjectItem(view.primary_key.c_str());
-                            if (!cJSON_Equal(json_key, val_key)) {
-                                ++errors;
-                                if (reported_error == "") {
-                                    reported_error = strprintf("Update cannot change primary keys: %s -> %s\n",
-                                                               json->PrintUnformatted().c_str(), val->PrintUnformatted().c_str());
-                                }
-                            } else {
-                                insert(view.access, view.primary_key, val, env, backtrace);
-                                updated++;
-                            }
-                        }
+                        std::string pk = view.primary_key;
+                        cJSON *id = json->GetObjectItem(pk.c_str());
+                        point_modify::result_t mres =
+                            point_modify(view.access, pk, id, point_modify::UPDATE, env, w->update().mapping(), backtrace);
+                        rassert(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
+                        updated += (mres == point_modify::MODIFIED);
+                        skipped += (mres == point_modify::SKIPPED);
                     } catch (const query_language::broken_client_exc_t &e) {
                         ++errors;
                         if (reported_error == "") reported_error = e.message;
