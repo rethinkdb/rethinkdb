@@ -21,8 +21,8 @@ help:
 	@echo "  html       to make standalone HTML files"
 	@echo "  serve      to make HTML files and serve them locally, by default on http://localhost:8080."
 	@echo "             You can override the port like so: make PORT=12345 serve"
-	@echo "  install    to make HTML files and install them in /var/www/code.rethinkdb.com/htdocs/python_docs,"
-	@echo "             which (when run on newton) makes them accessible through http://newton/code.rethinkdb.com/htdocs/python_docs"
+	@echo "  install    to make HTML files and install them in /var/www/docs.rethinkdb.com/htdocs/python_docs,"
+	@echo "             which (when run on newton) makes them accessible through http://newton/docs.rethinkdb.com/htdocs/python_docs"
 	@echo "  dirhtml    to make HTML files named index.html in directories"
 	@echo "  singlehtml to make a single large HTML file"
 	@echo "  pickle     to make pickle files"
@@ -49,9 +49,9 @@ serve: PORT:=8080
 serve: html
 	(cd _build/html && python -m SimpleHTTPServer $(PORT) )
 install: html
-	mkdir -p /var/www/code.rethinkdb.com/htdocs/python_docs
-	rm -rf /var/www/code.rethinkdb.com/htdocs/python_docs/*
-	cp -aR _build/html/* /var/www/code.rethinkdb.com/htdocs/python_docs
+	mkdir -p /var/www/docs.rethinkdb.com/htdocs/python_docs
+	rm -rf /var/www/docs.rethinkdb.com/htdocs/python_docs/*
+	cp -aR _build/html/* /var/www/docs.rethinkdb.com/htdocs/python_docs
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
