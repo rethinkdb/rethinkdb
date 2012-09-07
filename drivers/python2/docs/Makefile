@@ -22,7 +22,7 @@ help:
 	@echo "  serve      to make HTML files and serve them locally, by default on http://localhost:8080."
 	@echo "             You can override the port like so: make PORT=12345 serve"
 	@echo "  install    to make HTML files and install them in /var/www/docs.rethinkdb.com/htdocs/python_docs,"
-	@echo "             which (when run on newton) makes them accessible through http://newton/docs.rethinkdb.com/htdocs/python_docs"
+	@echo "             which (when run on newton) makes them accessible through http://docs.rethinkdb.com/python_docs"
 	@echo "  dirhtml    to make HTML files named index.html in directories"
 	@echo "  singlehtml to make a single large HTML file"
 	@echo "  pickle     to make pickle files"
