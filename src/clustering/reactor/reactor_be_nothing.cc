@@ -12,6 +12,8 @@
 template <class protocol_t>
 bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &_reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                                          const typename protocol_t::region_t &region) {
+    debugf_print("is_safe_for_us_to_be_nothing on region", region);
+    debugf_print("is_safe_for_us_to_be_nothing blueprint", blueprint);
     /* Iterator through the peers the blueprint claims we should be able to
      * see. */
     for (typename std::map<peer_id_t, std::map<typename protocol_t::region_t, blueprint_role_t> >::const_iterator p_it = blueprint.peers_roles.begin();
@@ -22,6 +24,9 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_
             //The peer is down or has no reactor
             return false;
         }
+
+        debugf_print("for peer", p_it->first);
+        debugf_print("role map", p_it->second);
 
         typename std::map<typename protocol_t::region_t, blueprint_role_t>::const_iterator r_it = p_it->second.find(region);
         rassert(r_it != p_it->second.end(), "Invalid blueprint issued, different peers have different sharding schemes.\n");
@@ -58,6 +63,7 @@ template<class protocol_t>
 void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
         store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint,
         signal_t *interruptor) THROWS_NOTHING {
+    debugf_print("be_nothing on region", region);
     try {
         directory_entry_t directory_entry(this, region);
 

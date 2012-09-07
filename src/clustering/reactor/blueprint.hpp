@@ -16,7 +16,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(blueprint_role_t, int8_t, blueprint_role_p
 
 // Explain what a blueprint_t is here please.
 
-template<class protocol_t>
+template <class protocol_t>
 class blueprint_t {
 public:
     //TODO if we swap the region_t and peer_id_t's positions in these maps we
@@ -60,6 +60,13 @@ public:
 
     role_map_t peers_roles;
 };
+
+template <class protocol_t>
+void debug_print(append_only_printf_buffer_t *buf, const blueprint_t<protocol_t> &blueprint) {
+    buf->appendf("blueprint{roles=");
+    debug_print(buf, blueprint.peers_roles);
+    buf->appendf("}");
+}
 
 #endif /* CLUSTERING_REACTOR_BLUEPRINT_HPP_ */
 
