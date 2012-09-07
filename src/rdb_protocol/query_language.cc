@@ -1064,38 +1064,67 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
     //TODO: When writes can return different responses, be more clever.
     res->set_status_code(Response::SUCCESS_JSON);
     switch (w->type()) {
-        case WriteQuery::UPDATE:
-            {
-                view_t view = eval_view(w->mutable_update()->mutable_view(), env, backtrace.with("view"));
-                std::string reported_error = "";
+        case WriteQuery::UPDATE: {
+            view_t view = eval_view(w->mutable_update()->mutable_view(), env, backtrace.with("view"));
+            std::string reported_error = "";
 
-                int updated = 0, errors = 0, skipped = 0;
-                while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-                    rassert(json && json->type() == cJSON_Object);
-                    try {
-                        std::string pk = view.primary_key;
-                        cJSON *id = json->GetObjectItem(pk.c_str());
-                        point_modify::result_t mres =
-                            point_modify(view.access, pk, id, point_modify::UPDATE, env, w->update().mapping(), backtrace);
-                        rassert(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
-                        updated += (mres == point_modify::MODIFIED);
-                        skipped += (mres == point_modify::SKIPPED);
-                    } catch (const query_language::broken_client_exc_t &e) {
-                        ++errors;
-                        if (reported_error == "") reported_error = e.message;
-                    } catch (const query_language::runtime_exc_t &e) {
-                        ++errors;
-                        if (reported_error == "") reported_error = e.message + "\n" + e.backtrace.print();
-                    }
+            int updated = 0, errors = 0, skipped = 0;
+            while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
+                rassert(json && json->type() == cJSON_Object);
+                try {
+                    std::string pk = view.primary_key;
+                    cJSON *id = json->GetObjectItem(pk.c_str());
+                    point_modify::result_t mres =
+                        point_modify(view.access, pk, id, point_modify::UPDATE, env, w->update().mapping(), backtrace);
+                    rassert(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
+                    updated += (mres == point_modify::MODIFIED);
+                    skipped += (mres == point_modify::SKIPPED);
+                } catch (const query_language::broken_client_exc_t &e) {
+                    ++errors;
+                    if (reported_error == "") reported_error = e.message;
+                } catch (const query_language::runtime_exc_t &e) {
+                    ++errors;
+                    if (reported_error == "") reported_error = e.message + "\n" + e.backtrace.print();
                 }
-                std::string res_list = strprintf("\"updated\": %d, \"skipped\": %d, \"errors\": %d", updated, skipped, errors);
-                if (reported_error != "") {
-                    res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
-                                         scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
-                }
-                res->add_response("{"+res_list+"}");
             }
-            break;
+            std::string res_list = strprintf("\"updated\": %d, \"skipped\": %d, \"errors\": %d", updated, skipped, errors);
+            if (reported_error != "") {
+                res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
+                                     scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
+            }
+            res->add_response("{"+res_list+"}");
+        } break;
+        case WriteQuery::MUTATE: {
+            view_t view = eval_view(w->mutable_mutate()->mutable_view(), env, backtrace.with("view"));
+
+            int modified = 0, deleted = 0, errors = 0;
+            std::string reported_error = "";
+            while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
+                rassert(json && json->type() == cJSON_Object);
+                try {
+                    std::string pk = view.primary_key;
+                    cJSON *id = json->GetObjectItem(pk.c_str());
+                    point_modify::result_t mres =
+                        point_modify(view.access, pk, id, point_modify::MUTATE, env, w->mutate().mapping(), backtrace);
+                    rassert(mres == point_modify::MODIFIED || mres == point_modify::DELETED);
+                    modified += (mres == point_modify::MODIFIED);
+                    deleted += (mres == point_modify::DELETED);
+                } catch (const query_language::broken_client_exc_t &e) {
+                    ++errors;
+                    if (reported_error == "") reported_error = e.message;
+                } catch (const query_language::runtime_exc_t &e) {
+                    ++errors;
+                    if (reported_error == "") reported_error = e.message + "\n" + e.backtrace.print();
+                }
+            }
+            std::string res_list = strprintf("\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d",
+                                             modified, 0, deleted, errors);
+            if (reported_error != "") {
+                res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
+                                     scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
+            }
+            res->add_response("{"+res_list+"}");
+        } break;
         case WriteQuery::DELETE:
             {
                 view_t view = eval_view(w->mutable_delete_()->mutable_view(), env, backtrace.with("view"));
@@ -1107,56 +1136,6 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 }
 
                 res->add_response(strprintf("{\"deleted\": %d}", deleted));
-            }
-            break;
-        case WriteQuery::MUTATE:
-            {
-                view_t view = eval_view(w->mutable_mutate()->mutable_view(), env, backtrace.with("view"));
-
-                int modified = 0, deleted = 0, errors = 0;
-                std::string reported_error = "";
-                while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-                    try {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, w->mutate().mapping().arg(), json);
-                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
-                        boost::shared_ptr<scoped_cJSON_t> val =
-                            eval(w->mutable_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
-                        if (val->type() == cJSON_NULL) {
-                            point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
-                            ++deleted;
-                        } else if (val->type() != cJSON_Object) {
-                            ++errors;
-                            if (reported_error == "") {
-                                reported_error = strprintf("Mutate returned a non-object (%s).\n", val->Print().c_str());
-                            }
-                        } else {
-                            cJSON *json_key = json->GetObjectItem(view.primary_key.c_str());
-                            cJSON *val_key = val->GetObjectItem(view.primary_key.c_str());
-                            if (!cJSON_Equal(json_key, val_key)) {
-                                ++errors;
-                                if (reported_error == "") {
-                                    reported_error = strprintf("Mutate cannot change primary keys: %s -> %s\n",
-                                                               json->PrintUnformatted().c_str(), val->PrintUnformatted().c_str());
-                                }
-                            } else {
-                                insert(view.access, view.primary_key, val, env, backtrace);
-                                ++modified;
-                            }
-                        }
-                    } catch (const query_language::broken_client_exc_t &e) {
-                        ++errors;
-                        if (reported_error == "") reported_error = e.message;
-                    } catch (const query_language::runtime_exc_t &e) {
-                        ++errors;
-                        if (reported_error == "") reported_error = e.message + "\n" + e.backtrace.print();
-                    }
-                }
-                std::string res_list = strprintf("\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d", modified, 0, deleted, errors);
-                if (reported_error != "") {
-                    res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
-                                         scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
-                }
-                res->add_response("{"+res_list+"}");
             }
             break;
         case WriteQuery::INSERT:
