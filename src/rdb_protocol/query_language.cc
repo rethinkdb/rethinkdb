@@ -1286,50 +1286,17 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 res->add_response(lhs.Print());
             }
             break;
-        case WriteQuery::POINTUPDATE:
-            {
-                int updated = 0;
-                int skipped = 0;
-                //First we need to grab the value the easiest way to do this is to just construct a term and evaluate it.
-                Term get;
-                get.set_type(Term::GETBYKEY);
-                Term::GetByKey get_by_key;
-                *get_by_key.mutable_table_ref() = w->point_update().table_ref();
-                get_by_key.set_attrname(w->point_update().attrname());
-                *get_by_key.mutable_key() = w->point_update().key();
-                *get.mutable_get_by_key() = get_by_key;
-
-                boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
-                new_val_scope_t scope_maker(&env->scopes.scope, w->point_update().mapping().arg(), original_val);
-                implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, original_val);
-                boost::shared_ptr<scoped_cJSON_t> rhs = eval(w->mutable_point_update()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
-                if (rhs->type() == cJSON_NULL) {
-                    skipped = 1;
-                } else if (rhs->type() != cJSON_Object) {
-                    throw runtime_exc_t(strprintf("Update returned a non-object: %s", rhs->Print().c_str()), backtrace);
-                } else {
-                    if (original_val->type() != cJSON_NULL) {
-                        updated = 1;
-                        boost::shared_ptr<scoped_cJSON_t> new_val(new scoped_cJSON_t(cJSON_merge(original_val->get(), rhs->get())));
-                        /* Now we insert the new value. */
-                        namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
-
-                        /* Get the primary key */
-                        std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
-
-                        /* Make sure that the primary key wasn't changed. */
-                        if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
-                                         cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
-                            throw runtime_exc_t(strprintf("Updates are not allowed to change the primary key (%s).", pk.c_str()), backtrace);
-                        }
-
-                        insert(ns_access, pk, new_val, env, backtrace);
-                    }
-                }
-
-                res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}", updated, skipped, 0));
-            }
-            break;
+        case WriteQuery::POINTUPDATE: {
+            namespace_repo_t<rdb_protocol_t>::access_t ns_access =
+                eval(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
+            std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
+            boost::shared_ptr<scoped_cJSON_t> id = eval(w->mutable_point_update()->mutable_key(), env, backtrace);
+            point_modify::result_t mres =
+                point_modify(ns_access, pk, id->get(), point_modify::UPDATE, env, w->point_update().mapping(), backtrace);
+            rassert(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
+            res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}",
+                                        mres == point_modify::MODIFIED, mres == point_modify::SKIPPED, 0));
+            } break;
         case WriteQuery::POINTDELETE:
             {
                 int deleted = -1;

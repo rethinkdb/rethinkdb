@@ -165,16 +165,17 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
         find_keyvalue_location_for_write(txn,superblock,key.btree_key(),&kv_location,&slice->root_eviction_priority,&slice->stats);
-        debugf("Got location!\n");
 
         boost::shared_ptr<scoped_cJSON_t> lhs;
         if (!kv_location.value.has()) {
+            debugf("No location...\n");
             switch(op) {
             case point_modify::MUTATE: lhs.reset(new scoped_cJSON_t(cJSON_CreateNull())); break;
             case point_modify::UPDATE: return point_modify_response_t(point_modify::SKIPPED); //TODO: err?
             default:                   unreachable("Bad point_modify::op_t.");
             }
         } else {
+            debugf("Got location!\n");
             lhs = get_data(kv_location.value.get(), txn);
             rassert(lhs->GetObjectItem(primary_key.c_str()));
         }

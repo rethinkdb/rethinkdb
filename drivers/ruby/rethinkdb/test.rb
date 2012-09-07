@@ -811,7 +811,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.get(11).update{nil}.run,
                  {'skipped' => 1, 'updated' => 0, 'errors' => 0})
     assert_equal(rdb.get(11).update{{}}.run,
-                 {'skipped' => 0, 'updated' => 0, 'errors' => 0})
+                 {'skipped' => 1, 'updated' => 0, 'errors' => 0})
     assert_equal(rdb.orderby(:id).run, $data)
   end
 
