@@ -761,12 +761,8 @@ struct write_visitor_t : public boost::static_visitor<write_response_t> {
     }
 
     write_response_t operator()(const point_modify_t &m) {
-        debugf("BEGIN modify...\n");
-        m.key.debug_print();
-        debugf("%s\n", m.primary_key.c_str());
         env.scopes = m.scopes;
         write_response_t res(rdb_modify(m.primary_key, m.key, m.op, &env, m.mapping, btree, timestamp, txn, superblock));
-        debugf("END modify...\n");
         return res;
     }
 

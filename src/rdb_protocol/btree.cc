@@ -168,23 +168,19 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
 
         boost::shared_ptr<scoped_cJSON_t> lhs;
         if (!kv_location.value.has()) {
-            debugf("No location...\n");
             switch(op) {
             case point_modify::MUTATE: lhs.reset(new scoped_cJSON_t(cJSON_CreateNull())); break;
             case point_modify::UPDATE: return point_modify_response_t(point_modify::SKIPPED); //TODO: err?
             default:                   unreachable("Bad point_modify::op_t.");
             }
         } else {
-            debugf("Got location!\n");
             lhs = get_data(kv_location.value.get(), txn);
             rassert(lhs->GetObjectItem(primary_key.c_str()));
         }
         rassert(lhs && ((lhs->type() == cJSON_NULL && op == point_modify::MUTATE) || lhs->type() == cJSON_Object));
-        debugf("lhs: %s\n", lhs->Print().c_str());
 
         boost::shared_ptr<scoped_cJSON_t> rhs(query_language::eval_mapping(mapping, *env, lhs, bt));
         rassert(rhs);
-        debugf("rhs: %s\n", rhs->Print().c_str());
         if (rhs->type() == cJSON_NULL) {
             switch (op) {
             case point_modify::MUTATE: {
@@ -207,7 +203,6 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
         default:                   unreachable("Bad point_modify::op_t.");
         }
         rassert(val && val->type() == cJSON_Object);
-        debugf("val: %s\n", val->Print().c_str());
 
         cJSON *val_pk = val->GetObjectItem(primary_key.c_str());
         if (!val_pk) {
@@ -226,7 +221,6 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
             if (key != new_key) {
                 throw query_language::runtime_exc_t(strprintf("Mutate cannot insert a row with a different primary key."), bt);
             }
-            debugf("inserting...\n");
             kv_location_set(&kv_location, key, val, slice, timestamp, txn);
             return point_modify_response_t(point_modify::INSERTED);
         }
@@ -239,11 +233,9 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
                                                           cJSON_Print(lhs_pk), cJSON_Print(val_pk)), bt);
         }
 
-        debugf("modifying...\n");
         kv_location_set(&kv_location, key, val, slice, timestamp, txn);
         return point_modify_response_t(point_modify::MODIFIED);
     } catch (const query_language::runtime_exc_t &e) {
-        debugf("caught exception...\n");
         return point_modify_response_t(e);
     }
 }
