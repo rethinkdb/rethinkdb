@@ -134,6 +134,11 @@ module 'DataExplorerView', ->
                     description: 'pluck( expression )'
                     has_argument: true
                 }
+                {
+                    suggestion: 'del()'
+                    description: 'del()'
+                    has_argument: false
+                }
             ]
             db:[
                 {
@@ -682,6 +687,11 @@ module 'DataExplorerView', ->
                 line: Infinity
                 ch: Infinity
         connect: =>
+            try
+                if window.conn?
+                    window.conn.close()
+            catch err
+                @console.log err
             host = window.location.hostname
             port = window.location.port
             if port is ''
