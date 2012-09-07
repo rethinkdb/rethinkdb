@@ -100,10 +100,8 @@ apply_diffs = (updates) ->
             when 'machines'
                 apply_to_collection(machines, collection_data)
             when 'me' then continue
-            ###
             else
                 console.log "Unhandled element update: " + collection_id + "."
-            ###
     return
 
 set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
