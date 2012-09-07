@@ -3,7 +3,10 @@
  * coordinate compilation and loading.
  */
 
-// Entry point for dependency walking
+/**
+ * @name rethinkdb
+ * @namespace namespace for all rethinkdb functions and classes
+ */
 goog.provide('rethinkdb');
 
 // All exported modules must be reachable from this file according to the dependency chain

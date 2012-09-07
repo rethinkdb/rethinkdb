@@ -41,6 +41,7 @@ rethinkdb.query.table = function(table_identifier) {
 
 /**
  * @constructor
+ * @ignore
  */
 rethinkdb.query.BaseQuery = function() { };
 
@@ -72,6 +73,7 @@ rethinkdb.query.BaseQuery.prototype.buildQuery = goog.abstractMethod;
 /**
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
  */
 rethinkdb.query.ReadQuery = function() { };
 goog.inherits(rethinkdb.query.ReadQuery, rethinkdb.query.BaseQuery);
