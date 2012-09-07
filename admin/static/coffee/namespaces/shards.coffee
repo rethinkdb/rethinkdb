@@ -281,7 +281,6 @@ module 'NamespaceView', ->
                 primary_pinnings: empty_master_pin
                 secondary_pinnings: empty_replica_pins
             # TODO detect when there are no changes.
-            console.log json
             $.ajax
                 processData: false
                 url: "/ajax/semilattice/#{@namespace.attributes.protocol}_namespaces/#{@namespace.id}"
@@ -295,7 +294,10 @@ module 'NamespaceView', ->
             @namespace.set(response)
             $('#user-alert-space').html @alert_tmpl({})
             @suggest_shards_view = false
-            @original_shard_set = @shard_set
+
+            @original_shard_set = []
+            for key in @shard_set
+                @original_shard_set.push key
             @render()
 
         destroy: =>
