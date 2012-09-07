@@ -281,6 +281,7 @@ module 'NamespaceView', ->
                 primary_pinnings: empty_master_pin
                 secondary_pinnings: empty_replica_pins
             # TODO detect when there are no changes.
+            console.log json
             $.ajax
                 processData: false
                 url: "/ajax/semilattice/#{@namespace.attributes.protocol}_namespaces/#{@namespace.id}"
@@ -395,8 +396,16 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#shard_name-shard_keys-template').html()
         className: 'shard_name'
         render: (shard) =>
+            keys = shard.name.split(' to ')
+            pattern = /^(%22).*(%22)$/
+            for key, i in keys
+                if pattern.test(key) is true
+                    keys[i] = key.slice(3, key.length-3)
+
+            name = keys[0]+' to '+keys[1]
+
             @.$el.html @template
-                name: shard.name
+                name: name
                 shard_stats:
                     rows_approx: shard.shard_stats.rows_approx if shard?.shard_stats?.rows_approx?
             return @
