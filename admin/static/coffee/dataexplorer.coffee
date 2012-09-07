@@ -681,13 +681,7 @@ module 'DataExplorerView', ->
             @codemirror.setCursor
                 line: Infinity
                 ch: Infinity
-
-        initialize: =>
-            if @has_been_initialized.value is false
-                for suggestion in @suggestions.stream
-                    @suggestions.table.push suggestion
-                @has_been_initialized.value = true
-            
+        connect: =>
             host = window.location.hostname
             port = window.location.port
             if port is ''
@@ -696,8 +690,18 @@ module 'DataExplorerView', ->
             window.conn = new rethinkdb.net.HttpConnection 
                 host: host
                 port: port
+
+        initialize: =>
+            if @has_been_initialized.value is false
+                for suggestion in @suggestions.stream
+                    @suggestions.table.push suggestion
+                @has_been_initialized.value = true
+            
+            @connect()
             window.r = rethinkdb.query
             window.R = r.R
+
+            @interval = setInterval @connect, 60*5*1000
 
             # We escape the last function because we are building a regex on top of it.
             @unsafe_to_safe_regexstr = []
@@ -801,6 +805,7 @@ module 'DataExplorerView', ->
             @input_query.destroy()
             @data_container.destroy()
             window.conn.close()
+            clearInterval @interval
 
     
     class @InputQuery extends Backbone.View
