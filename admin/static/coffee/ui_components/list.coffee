@@ -40,23 +40,27 @@ module 'UIComponents', ->
             @render()
 
             # Collection is reset, create all new views
-            @collection.on 'reset', (collection) =>
-                @reset_element_views()
-                @render()
-
-            # When an element is added to the collection, create a view for it
-            @collection.on 'add', (model, collection) =>
-                # Make sure the model is relevant for this list before we add it
-                if @filter model
-                    @add_element model
-                    @render()
-
-            @collection.on 'remove', (model, collection) =>
-                # Make sure the model is relevant for this list before we remove it
-                if @filter model
-                    @remove_elements model
+            @collection.on 'reset', @on_reset
+            @collection.on 'add', @on_add
+            @collection.on 'remove', @on_remove
 
             return true
+
+        on_reset: (collection) =>
+            @reset_element_views()
+            @render()
+
+        on_add: (model, collection) =>
+            # When an element is added to the collection, create a view for it
+            # Make sure the model is relevant for this list before we add it
+            if @filter model
+                @add_element model
+                @render()
+
+        on_remove: (model, collection) =>
+            # Make sure the model is relevant for this list before we remove it
+            if @filter model
+                @remove_elements model
 
         render: =>
             @element_views.sort @sort
@@ -127,7 +131,9 @@ module 'UIComponents', ->
         get_callbacks: -> []
 
         destroy: =>
-            @collection.off()
+            @collection.off 'reset', @on_reset
+            @collection.off 'add', @on_add
+            @collection.off 'remove', @on_remove
             for view in @element_views
                 view.destroy()
 
