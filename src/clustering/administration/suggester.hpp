@@ -15,7 +15,7 @@ struct missing_machine_exc_t : public std::exception {
 template<class protocol_t>
 persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
         const namespace_semilattice_metadata_t<protocol_t> &ns_goals,
-        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > > &reactor_directory_view,
+        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
         THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t);

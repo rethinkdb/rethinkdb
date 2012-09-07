@@ -5,7 +5,6 @@
 #include <set>
 
 #include "errors.hpp"
-#include <boost/make_shared.hpp>
 #include <boost/tokenizer.hpp>
 
 #include "arch/io/io_utils.hpp"
@@ -17,6 +16,7 @@
 #include "clustering/reactor/namespace_interface.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "containers/archive/boost_types.hpp"
+#include "containers/archive/cow_ptr_type.hpp"
 #include "concurrency/watchable.hpp"
 #include "mock/branch_history_manager.hpp"
 #include "mock/clustering_utils.hpp"
@@ -32,7 +32,7 @@ namespace mock {
 template<class protocol_t>
 class test_cluster_directory_t {
 public:
-    boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > reactor_directory;
+    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > reactor_directory;
 
     RDB_MAKE_ME_SERIALIZABLE_1(reactor_directory);
 };
@@ -44,7 +44,7 @@ void generate_sample_region(int i, int n, dummy_protocol_t::region_t *out) {
 
 template<class protocol_t>
 bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
-                            const std::map<peer_id_t, boost::optional<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > &reactor_directory) {
+                            const std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<protocol_t> > > > &reactor_directory) {
     for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
                                                                       it != bp.peers_roles.end();
                                                                       it++) {
@@ -130,13 +130,13 @@ public:
 
     watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
     reactor_t<protocol_t> reactor;
-    field_copier_t<boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > >, test_cluster_directory_t<protocol_t> > reactor_directory_copier;
+    field_copier_t<boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >, test_cluster_directory_t<protocol_t> > reactor_directory_copier;
 
 private:
     typename protocol_t::context_t ctx;
-    static boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > wrap_in_optional(const directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > &input);
+    static boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > &input);
 
-    static std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > > extract_reactor_directory(const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &bcards);
+    static std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > extract_reactor_directory(const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &bcards);
 };
 
 
@@ -189,13 +189,13 @@ bool test_reactor_t<protocol_t>::is_acceptable_ack_set(const std::set<peer_id_t>
 }
 
 template <class protocol_t>
-boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > test_reactor_t<protocol_t>::wrap_in_optional(const directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > &input) {
-    return boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > >(input);
+boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > test_reactor_t<protocol_t>::wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > &input) {
+    return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(input);
 }
 
 template <class protocol_t>
-std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > > test_reactor_t<protocol_t>::extract_reactor_directory(const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &bcards) {
-    std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > > out;
+std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > test_reactor_t<protocol_t>::extract_reactor_directory(const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &bcards) {
+    std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > out;
     for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = bcards.begin(); it != bcards.end(); it++) {
         out.insert(std::make_pair(it->first, it->second.reactor_directory));
     }
@@ -286,14 +286,14 @@ void test_cluster_group_t<protocol_t>::set_all_blueprints(const blueprint_t<prot
 }
 
 template <class protocol_t>
-std::map<peer_id_t, boost::shared_ptr<const reactor_business_card_t<protocol_t> > > test_cluster_group_t<protocol_t>::extract_reactor_business_cards_no_optional(
+std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > test_cluster_group_t<protocol_t>::extract_reactor_business_cards_no_optional(
         const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input) {
-    std::map<peer_id_t, boost::shared_ptr<const reactor_business_card_t<protocol_t> > > out;
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > out;
     for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = input.begin(); it != input.end(); it++) {
         if (it->second.reactor_directory) {
             out.insert(std::make_pair(it->first, it->second.reactor_directory->internal));
         } else {
-            out.insert(std::make_pair(it->first, boost::make_shared<reactor_business_card_t<protocol_t> >()));
+            out.insert(std::make_pair(it->first, cow_ptr_t<reactor_business_card_t<protocol_t> >()));
         }
     }
     return out;
@@ -326,14 +326,14 @@ void test_cluster_group_t<protocol_t>::run_queries() {
 }
 
 template <class protocol_t>
-std::map<peer_id_t, boost::optional<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > test_cluster_group_t<protocol_t>::extract_reactor_business_cards(
+std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<protocol_t> > > > test_cluster_group_t<protocol_t>::extract_reactor_business_cards(
         const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input) {
-    std::map<peer_id_t, boost::optional<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > out;
+    std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<protocol_t> > > > out;
     for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = input.begin(); it != input.end(); it++) {
         if (it->second.reactor_directory) {
-            out.insert(std::make_pair(it->first, boost::optional<boost::shared_ptr<const reactor_business_card_t<protocol_t> > >(it->second.reactor_directory->internal)));
+            out.insert(std::make_pair(it->first, boost::optional<cow_ptr_t<reactor_business_card_t<protocol_t> > >(it->second.reactor_directory->internal)));
         } else {
-            out.insert(std::make_pair(it->first, boost::optional<boost::shared_ptr<const reactor_business_card_t<protocol_t> > >()));
+            out.insert(std::make_pair(it->first, boost::optional<cow_ptr_t<reactor_business_card_t<protocol_t> > >()));
         }
     }
     return out;

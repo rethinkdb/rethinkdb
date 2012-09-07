@@ -1,6 +1,3 @@
-#include "errors.hpp"
-#include <boost/make_shared.hpp>
-
 #include "unittest/dummy_namespace_interface.hpp"
 #include "unittest/gtest.hpp"
 #include "mock/dummy_protocol.hpp"

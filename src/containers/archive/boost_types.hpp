@@ -208,36 +208,6 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
 }
 
 
-template <class T>
-write_message_t &operator<<(write_message_t &msg, const boost::shared_ptr<const T> &x) {
-    bool exists = x.get() != NULL;
-    msg << exists;
-    if (exists) {
-        msg << *x;
-    }
-    return msg;
-}
-
-template <class T>
-MUST_USE archive_result_t deserialize(read_stream_t *s, boost::shared_ptr<const T> *x) {
-    bool exists;
-    rassert(!x->get());
-
-    archive_result_t res = deserialize(s, &exists);
-    if (res) { return res; }
-    if (exists) {
-        boost::shared_ptr<T> mutable_value = boost::make_shared<T>();
-        res = deserialize(s, mutable_value.get());
-        if (res) { return res; }
-        *x = mutable_value;
-        return res;
-    } else {
-        x->reset();
-        return ARCHIVE_SUCCESS;
-    }
-}
-
-
 template <class K, class V>
 write_message_t &operator<<(write_message_t &msg, const boost::ptr_map<K, V> &x) {
     msg << x.size();

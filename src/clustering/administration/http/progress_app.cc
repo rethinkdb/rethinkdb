@@ -276,13 +276,13 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
          * didn't specify a specific machine but want all the machines). */
         if (!requested_machine_id || requested_machine_id == p_it->second.machine_id) {
 
-            typedef std::map<namespace_id_t, directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<memcached_protocol_t> > > > reactor_bcard_map_t;
+            typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<memcached_protocol_t> > > > reactor_bcard_map_t;
             reactor_bcard_map_t bcard_map = p_it->second.memcached_namespaces.reactor_bcards;
 
             /* Iterate through the machine's reactor's business_cards to see which ones are doing backfills. */
-            for (std::map<namespace_id_t, directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<memcached_protocol_t> > > >::iterator n_it  = bcard_map.begin();
-                                                                                                                                                         n_it != bcard_map.end();
-                                                                                                                                                         ++n_it) {
+            for (std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<memcached_protocol_t> > > >::iterator n_it  = bcard_map.begin();
+                                                                                                                                           n_it != bcard_map.end();
+                                                                                                                                           ++n_it) {
                 /* Check to see if this matches the requested namespace (or
                  * if we're just getting all the namespaces). */
                 if (!requested_namespace_id || requested_namespace_id == n_it->first) {

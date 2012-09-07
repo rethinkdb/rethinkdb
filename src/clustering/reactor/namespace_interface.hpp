@@ -16,6 +16,7 @@
 #include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "clustering/reactor/metadata.hpp"
+#include "containers/cow_ptr.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
@@ -52,7 +53,7 @@ class cluster_namespace_interface_t :
 public:
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<watchable_t<std::map<peer_id_t, boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > > dv,
+            clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > > dv,
             typename protocol_t::context_t *);
 
 
@@ -143,10 +144,10 @@ private:
 
     void update_registrants(bool is_start);
 
-    static boost::optional<boost::optional<master_business_card_t<protocol_t> > > extract_master_business_card(const std::map<peer_id_t, boost::shared_ptr<const reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
-    static boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, boost::shared_ptr<const reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<master_business_card_t<protocol_t> > > extract_master_business_card(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
 
-    static boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > extract_direct_reader_business_card_from_secondary_up_to_date(const std::map<peer_id_t, boost::shared_ptr<const reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > extract_direct_reader_business_card_from_secondary_up_to_date(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
 
 
     void relationship_coroutine(peer_id_t peer_id, reactor_activity_id_t activity_id,
@@ -154,7 +155,7 @@ private:
                                 auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
     mailbox_manager_t *mailbox_manager;
-    clone_ptr_t<watchable_t<std::map<peer_id_t, boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > > directory_view;
+    clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > > directory_view;
     typename protocol_t::context_t *ctx;
 
     rng_t distributor_rng;
@@ -170,7 +171,7 @@ private:
 
     auto_drainer_t relationship_coroutine_auto_drainer;
 
-    typename watchable_t<std::map<peer_id_t, boost::shared_ptr<const reactor_business_card_t<protocol_t> > > >::subscription_t watcher_subscription;
+    typename watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t watcher_subscription;
 
     DISABLE_COPYING(cluster_namespace_interface_t);
 };
