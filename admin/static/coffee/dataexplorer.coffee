@@ -391,9 +391,14 @@ module 'DataExplorerView', ->
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
-                    @current_highlighted_suggestion++
-                    if @current_highlighted_suggestion >= @current_suggestions.length
-                        @current_highlighted_suggestion = 0
+                    if event.shiftKey
+                        @current_highlighted_suggestion--
+                        if @current_highlighted_suggestion < 0
+                            @current_highlighted_suggestion = @current_suggestions.length-1
+                    else
+                        @current_highlighted_suggestion++
+                        if @current_highlighted_suggestion >= @current_suggestions.length
+                            @current_highlighted_suggestion = 0
 
                     if @current_suggestions[@current_highlighted_suggestion]?
                         @highlight_suggestion @current_highlighted_suggestion
