@@ -98,6 +98,9 @@ module 'Sidebar', ->
 
                 return @
 
+        destroy: =>
+            window.app.off 'all', @render
+
     class @Logs extends Backbone.View
         className: 'recent-log-entries'
         tagName: 'ul'
@@ -156,13 +159,12 @@ module 'Sidebar', ->
         tagName: 'div'
         template: Handlebars.compile $('#sidebar-client_connection_status-template').html()
 
-        initialize: ->
-            log_initial '(initializing) client connection status view'
-            connection_status.on 'all', => @render()
-            datacenters.on 'all', => @render()
-            machines.on 'all', => @render()
+        initialize: =>
+            connection_status.on 'all', @render
+            datacenters.on 'all', @render
+            machines.on 'all', @render
 
-        render: ->
+        render: =>
             log_render '(rendering) status panel view'
             connected_machine = machines.get(connection_status.get('contact_machine_id'))
             json =
@@ -179,6 +181,11 @@ module 'Sidebar', ->
 
             return @
 
+        destroy: =>
+            connection_status.off 'all', @render
+            datacenters.off 'all', @render
+            machines.off 'all', @render
+
     # Sidebar.ConnectivityStatus
     class @ConnectivityStatus extends Backbone.View
         className: 'connectivity-status'
@@ -186,9 +193,9 @@ module 'Sidebar', ->
 
         initialize: =>
             # Rerender every time some relevant info changes
-            directory.on 'all', (model, collection) => @render()
-            machines.on 'all', (model, collection) => @render()
-            datacenters.on 'all', (model, collection) => @render()
+            directory.on 'all', @render
+            machines.on 'all', @render
+            datacenters.on 'all', @render
 
         compute_connectivity: =>
             # data centers visible
@@ -209,6 +216,12 @@ module 'Sidebar', ->
             @.$el.html @template @compute_connectivity()
             return @
 
+        destroy: =>
+            # Rerender every time some relevant info changes
+            directory.off 'all', @render
+            machines.off 'all', @render
+            datacenters.off 'all', @render
+
     # Sidebar.Issues
     class @Issues extends Backbone.View
         className: 'issues'
@@ -217,7 +230,7 @@ module 'Sidebar', ->
 
         initialize: =>
             log_initial '(initializing) sidebar view: issues'
-            issues.on 'all', => @render()
+            issues.on 'all', @render
 
         render: =>
             # Group critical issues by type
@@ -247,3 +260,6 @@ module 'Sidebar', ->
                     )
                 no_issues: _.keys(critical_issues).length is 0 and _.keys(other_issues).length is 0
             return @
+
+        destroy: =>
+            issues.off 'all', @render
