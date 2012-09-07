@@ -1024,6 +1024,21 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
     }
 }
 
+point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t ns_access,
+                                    const std::string &pk, cJSON *id, point_modify::op_t op,
+                                    runtime_environment_t *env, const Mapping &m, const backtrace_t &backtrace) {
+    try {
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_modify_t(pk, store_key_t(cJSON_print_std_string(id)), op, env->scopes, m));
+        rdb_protocol_t::write_response_t response;
+        ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+        rdb_protocol_t::point_modify_response_t mod_res = boost::get<rdb_protocol_t::point_modify_response_t>(response.response);
+        if (mod_res.result == point_modify::ERROR) throw mod_res.exc;
+        return mod_res.result;
+    } catch (cannot_perform_query_exc_t e) {
+        throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
+    }
+}
+
 void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace, int *out_num_deletes=0) {
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_std_string(id))));
@@ -1327,49 +1342,16 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
             }
             break;
         case WriteQuery::POINTMUTATE: {
-            int deleted = 0;
-            int inserted = 0;
-            int modified = 0;
-            //First we need to grab the value the easiest way to do this is to just construct a term and evaluate it.
-            Term get;
-            get.set_type(Term::GETBYKEY);
-            Term::GetByKey get_by_key;
-            *get_by_key.mutable_table_ref() = w->point_mutate().table_ref();
-            get_by_key.set_attrname(w->point_mutate().attrname());
-            *get_by_key.mutable_key() = w->point_mutate().key();
-            *get.mutable_get_by_key() = get_by_key;
-
-            boost::shared_ptr<scoped_cJSON_t> original_val = eval(&get, env, backtrace);
-
-            new_val_scope_t scope_maker(&env->scopes.scope, w->point_mutate().mapping().arg(), original_val);
-            implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, original_val);
-            boost::shared_ptr<scoped_cJSON_t> new_val = eval(w->mutable_point_mutate()->mutable_mapping()->mutable_body(), env, backtrace.with("mapping"));
-
             namespace_repo_t<rdb_protocol_t>::access_t ns_access =
                 eval(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
-            /* Get the primary key */
             std::string pk = get_primary_key(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
-            if (new_val->type() == cJSON_NULL) {
-                if (original_val->type() != cJSON_NULL) {
-                    deleted = 1;
-                    point_delete(ns_access, cJSON_GetObjectItem(original_val->get(), pk.c_str()), env, backtrace);
-                }
-            } else if (new_val->type() != cJSON_Object) {
-                throw runtime_exc_t(strprintf("Mutate returned a non-object: %s", new_val->Print().c_str()), backtrace);
-            } else {
-                if (original_val->type() == cJSON_NULL) {
-                    inserted = 1;
-                } else {
-                    /* Make sure that the primary key wasn't changed. */
-                    if (!cJSON_Equal(cJSON_GetObjectItem(original_val->get(), pk.c_str()),
-                                     cJSON_GetObjectItem(new_val->get(), pk.c_str()))) {
-                        throw runtime_exc_t(strprintf("Mutates musn't change the primary key (%s).", pk.c_str()), backtrace);
-                    }
-                    modified = 1;
-                }
-                insert(ns_access, pk, new_val, env, backtrace);
-            }
-            res->add_response(strprintf("{\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d}", modified, inserted, deleted, 0));
+            boost::shared_ptr<scoped_cJSON_t> id = eval(w->mutable_point_mutate()->mutable_key(), env, backtrace);
+            point_modify::result_t mres =
+                point_modify(ns_access, pk, id->get(), point_modify::MUTATE, env, w->point_mutate().mapping(), backtrace);
+            rassert(mres == point_modify::MODIFIED || mres == point_modify::INSERTED ||
+                    mres == point_modify::DELETED  || mres == point_modify::NOP);
+            res->add_response(strprintf("{\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d}",
+                mres == point_modify::MODIFIED, mres == point_modify::INSERTED, mres == point_modify::DELETED, 0));
         } break;
         default:
             unreachable();
@@ -2260,6 +2242,11 @@ boost::shared_ptr<scoped_cJSON_t> map(std::string arg, Term *term, runtime_envir
     variable_val_scope_t::new_scope_t scope_maker(&env.scopes.scope, arg, val);
     implicit_value_setter_t impliciter(&env.scopes.implicit_attribute_value, val);
     return eval(term, &env, backtrace);
+}
+
+boost::shared_ptr<scoped_cJSON_t> eval_mapping(Mapping m, const runtime_environment_t &env,
+                                               boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {
+    return map(m.arg(), m.mutable_body(), env, val, backtrace);
 }
 
 boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {

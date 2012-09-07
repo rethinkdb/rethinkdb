@@ -793,6 +793,8 @@ class ClientTest < Test::Unit::TestCase
     #assert_equal(rdb.get(0).mutate{|row| r.if(row.eq(nil), $data[0], $data[1])}.run,
     assert_equal(rdb.get(0).mutate{$data[0]}.run,
                  {'deleted' => 0, 'inserted' => 1, 'modified' => 0, 'errors' => 0})
+    assert_raise(RuntimeError){rdb.get(-1).mutate{{:id => []}}.run}
+    assert_raise(RuntimeError){rdb.get(-1).mutate{{:id => 0}}.run}
     assert_equal(rdb.orderby(:id).run, $data)
     assert_raise(RuntimeError) {
       rdb.get(0).mutate{|row| r.if(row.eq(nil), $data[0], $data[1])}.run

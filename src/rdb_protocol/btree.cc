@@ -119,20 +119,19 @@ point_read_response_t rdb_get(const store_key_t &store_key, btree_slice_t *slice
     return point_read_response_t(data);
 }
 
-// point_write_response_t rdb_update(const store_key_t &key, query_language::runtime_environment_t env, Mapping mapping,
-//                                   btree_slice_t *slice, repli_timestamp_t timestamp,
-//                                   transaction *txn, superblock_t *superblock) {
+void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
+                        btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
+    rassert(kv_location->value.has());
+    blob_t blob(kv_location->value->value_ref(), blob::btree_maxreflen);
+    blob.clear(txn);
+    kv_location->value.reset();
+    null_key_modification_callback_t<rdb_value_t> null_cb;
+    apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
+}
 
-// }
-
-point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data,
-                       btree_slice_t *slice, repli_timestamp_t timestamp,
-                       transaction_t *txn, superblock_t *superblock) {
-    //block_size_t block_size = slice->cache()->get_block_size();
-
-    keyvalue_location_t<rdb_value_t> kv_location;
-    find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
-    bool already_existed = kv_location.value.has();
+void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
+                     boost::shared_ptr<scoped_cJSON_t> data,
+                     btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
 
     scoped_malloc_t<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
     bzero(new_value.get(), MAX_RDB_VALUE_SIZE);
@@ -152,12 +151,110 @@ point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_
     blob.write_from_string(sered_data, txn, 0);
 
     // Actually update the leaf, if needed.
-    kv_location.value.reinterpret_swap(new_value);
+    kv_location->value.reinterpret_swap(new_value);
     null_key_modification_callback_t<rdb_value_t> null_cb;
-    apply_keyvalue_change(txn, &kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
-    //                                                                     ^-- That means the key isn't expired.
+    apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
+    //                                                                  ^^^^^ That means the key isn't expired.
+}
 
-    return point_write_response_t(already_existed ? DUPLICATE : STORED);
+point_modify_response_t rdb_modify(const std::string &primary_key, const store_key_t &key, point_modify::op_t op,
+                                   query_language::runtime_environment_t *env, const Mapping &mapping,
+                                   btree_slice_t *slice, repli_timestamp_t timestamp,
+                                   transaction_t *txn, superblock_t *superblock) {
+    query_language::backtrace_t bt; //TODO get this from somewhere
+    try {
+        keyvalue_location_t<rdb_value_t> kv_location;
+        find_keyvalue_location_for_write(txn,superblock,key.btree_key(),&kv_location,&slice->root_eviction_priority,&slice->stats);
+        debugf("Got location!\n");
+
+        boost::shared_ptr<scoped_cJSON_t> lhs;
+        if (!kv_location.value.has()) {
+            switch(op) {
+            case point_modify::MUTATE: lhs.reset(new scoped_cJSON_t(cJSON_CreateNull())); break;
+            case point_modify::UPDATE: return point_modify_response_t(point_modify::SKIPPED); //TODO: err?
+            default:                   unreachable("Bad point_modify::op_t.");
+            }
+        } else {
+            lhs = get_data(kv_location.value.get(), txn);
+            rassert(lhs->GetObjectItem(primary_key.c_str()));
+        }
+        rassert(lhs && ((lhs->type() == cJSON_NULL && op == point_modify::MUTATE) || lhs->type() == cJSON_Object));
+        debugf("lhs: %s\n", lhs->Print().c_str());
+
+        boost::shared_ptr<scoped_cJSON_t> rhs(query_language::eval_mapping(mapping, *env, lhs, bt));
+        rassert(rhs);
+        debugf("rhs: %s\n", rhs->Print().c_str());
+        if (rhs->type() == cJSON_NULL) {
+            switch (op) {
+            case point_modify::MUTATE: {
+                if (lhs->type() == cJSON_NULL) return point_modify_response_t(point_modify::NOP);
+                kv_location_delete(&kv_location, key, slice, timestamp, txn);
+                return point_modify_response_t(point_modify::DELETED);
+            } break;
+            case point_modify::UPDATE: return point_modify_response_t(point_modify::SKIPPED);
+            default:                   unreachable("Bad point_modify::op_t.");
+            }
+        } else if (rhs->type() != cJSON_Object) {
+            throw query_language::runtime_exc_t(strprintf("Got %s, but expected Object.", rhs->Print().c_str()), bt);
+        }
+        rassert(rhs->type() == cJSON_Object);
+
+        boost::shared_ptr<scoped_cJSON_t> val;
+        switch(op) {
+        case point_modify::MUTATE: val = rhs;                                                          break;
+        case point_modify::UPDATE: val.reset(new scoped_cJSON_t(cJSON_merge(lhs->get(), rhs->get()))); break;
+        default:                   unreachable("Bad point_modify::op_t.");
+        }
+        rassert(val && val->type() == cJSON_Object);
+        debugf("val: %s\n", val->Print().c_str());
+
+        cJSON *val_pk = val->GetObjectItem(primary_key.c_str());
+        if (!val_pk) {
+            rassert(op == point_modify::MUTATE);
+            throw query_language::runtime_exc_t(strprintf("Object provided by mutate (%s) must contain primary key %s.",
+                                                          val->Print().c_str(), primary_key.c_str()), bt);
+        }
+
+        if (lhs->type() == cJSON_NULL) {
+            rassert(op == point_modify::MUTATE);
+            if (val_pk->type != cJSON_Number && val_pk->type != cJSON_String) {
+                throw query_language::runtime_exc_t(strprintf("Cannot create new row with non-number, non-string primary key (%s).",
+                                                              val->Print().c_str()), bt);
+            }
+            store_key_t new_key(cJSON_print_std_string(val_pk));
+            if (key != new_key) {
+                throw query_language::runtime_exc_t(strprintf("Mutate cannot insert a row with a different primary key."), bt);
+            }
+            debugf("inserting...\n");
+            kv_location_set(&kv_location, key, val, slice, timestamp, txn);
+            return point_modify_response_t(point_modify::INSERTED);
+        }
+
+        rassert(lhs->type() == cJSON_Object);
+        cJSON *lhs_pk = lhs->GetObjectItem(primary_key.c_str());
+        rassert(lhs_pk && val_pk);
+        if (!cJSON_Equal(lhs_pk, val_pk)) {
+            throw query_language::runtime_exc_t(strprintf("Cannot modify primary key (%s -> %s).",
+                                                          cJSON_Print(lhs_pk), cJSON_Print(val_pk)), bt);
+        }
+
+        debugf("modifying...\n");
+        kv_location_set(&kv_location, key, val, slice, timestamp, txn);
+        return point_modify_response_t(point_modify::MODIFIED);
+    } catch (const query_language::runtime_exc_t &e) {
+        debugf("caught exception...\n");
+        return point_modify_response_t(e);
+    }
+}
+
+point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data,
+                               btree_slice_t *slice, repli_timestamp_t timestamp,
+                               transaction_t *txn, superblock_t *superblock) {
+    //block_size_t block_size = slice->cache()->get_block_size();
+    keyvalue_location_t<rdb_value_t> kv_location;
+    find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
+    kv_location_set(&kv_location, key, data, slice, timestamp, txn);
+    return point_write_response_t(kv_location.value.has() ? DUPLICATE : STORED);
 }
 
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
@@ -199,18 +296,12 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
     do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p, interruptor);
 }
 
-point_delete_response_t rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock) {
+point_delete_response_t rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp,
+                                   transaction_t *txn, superblock_t *superblock) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
     bool exists = kv_location.value.has();
-    if(exists) {
-        blob_t blob(kv_location.value->value_ref(), blob::btree_maxreflen);
-        blob.clear(txn);
-        kv_location.value.reset();
-        null_key_modification_callback_t<rdb_value_t> null_cb;
-        apply_keyvalue_change(txn, &kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
-    }
-
+    if (exists) kv_location_delete(&kv_location, key, slice, timestamp, txn);
     return point_delete_response_t(exists ? DELETED : MISSING);
 }
 
