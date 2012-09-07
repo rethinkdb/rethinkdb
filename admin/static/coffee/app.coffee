@@ -128,7 +128,7 @@ set_last_seen = (last_seen_from_server) ->
     for machine_uuid, timestamp of last_seen_from_server
         _m = machines.get machine_uuid
         if _m
-            _m.set('last_seen_from_server', timestamp)
+            _m.set('last_seen', timestamp)
 
 set_stats = (stat_data) ->
     for machine_id, data of stat_data
