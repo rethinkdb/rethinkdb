@@ -39,7 +39,7 @@ need_update_objects = (new_data, old_data) ->
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
         if data isnt null
-            if data.protocol? and data.protocol is 'memcached'  # We check that the machines in the blueprint do exist
+            if data.protocol? and (data.protocol is 'memcached' or data.protocol is 'rdb')  # We check that the machines in the blueprint do exist
                 if collection_data[id].blueprint? and collection_data[id].blueprint.peers_roles?
                     for machine_uuid of collection_data[id].blueprint.peers_roles
                         if !machines.get(machine_uuid)?
@@ -55,6 +55,7 @@ apply_to_collection = (collection, collection_data) ->
             else
                 data.id = id
                 collection.add(new collection.model(data))
+            #TODO remove not found object
         else
             if collection.get(id)
                 collection.remove(id)
