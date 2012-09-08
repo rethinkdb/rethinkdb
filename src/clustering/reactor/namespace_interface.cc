@@ -3,13 +3,15 @@
 template <class protocol_t>
 cluster_namespace_interface_t<protocol_t>::cluster_namespace_interface_t(
         mailbox_manager_t *mm,
-        clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > dv)
+        clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > > dv,
+        typename protocol_t::context_t *_ctx)
     : mailbox_manager(mm),
       directory_view(dv),
+      ctx(_ctx),
       start_count(0),
       watcher_subscription(boost::bind(&cluster_namespace_interface_t::update_registrants, this, false)) {
     {
-        typename watchable_t< std::map<peer_id_t, reactor_business_card_t<protocol_t> > >::freeze_t freeze(directory_view);
+        typename watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > >::freeze_t freeze(directory_view);
         update_registrants(true);
         watcher_subscription.reset(directory_view, &freeze);
     }
@@ -122,7 +124,7 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
         }
     }
 
-    op.unshard(results, response, &temporary_cache);
+    op.unshard(results, response, ctx);
 }
 
 template <class protocol_t>
@@ -214,7 +216,7 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
         }
     }
 
-    op.unshard(results, response, &temporary_cache);
+    op.unshard(results, response, ctx);
 }
 
 template <class protocol_t>
@@ -261,23 +263,26 @@ void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
 template <class protocol_t>
 void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start) {
     ASSERT_NO_CORO_WAITING;
-    std::map<peer_id_t, reactor_business_card_t<protocol_t> > existings = directory_view->get();
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > existings = directory_view->get();
 
-    for (typename std::map<peer_id_t, reactor_business_card_t<protocol_t> >::const_iterator it = existings.begin(); it != existings.end(); ++it) {
-        for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator amit = it->second.activities.begin(); amit != it->second.activities.end(); ++amit) {
-            bool has_anything_useful, is_primary;
+    for (typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = existings.begin(); it != existings.end(); ++it) {
+        for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator amit = it->second->activities.begin(); amit != it->second->activities.end(); ++amit) {
+            bool has_anything_useful;
+            bool is_primary;
             if (const reactor_business_card_details::primary_t<protocol_t> *primary = boost::get<reactor_business_card_details::primary_t<protocol_t> >(&amit->second.second)) {
                 if (primary->master) {
                     has_anything_useful = true;
                     is_primary = true;
                 } else {
                     has_anything_useful = false;
+                    is_primary = false;  // Appease -Wconditional-uninitialized
                 }
             } else if (boost::get<reactor_business_card_details::secondary_up_to_date_t<protocol_t> >(&amit->second.second)) {
                 has_anything_useful = true;
                 is_primary = false;
             } else {
                 has_anything_useful = false;
+                is_primary = false;  // Appease -Wconditional-uninitialized
             }
             if (has_anything_useful) {
                 reactor_activity_id_t id = amit->first;
@@ -290,11 +295,9 @@ void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start
                     }
 
                     /* Now handle it. */
-                    coro_t::spawn_sometime(boost::bind(
-                                                       &cluster_namespace_interface_t::relationship_coroutine, this,
+                    coro_t::spawn_sometime(boost::bind(&cluster_namespace_interface_t::relationship_coroutine, this,
                                                        it->first, id, is_start, is_primary, amit->second.first,
-                                                       auto_drainer_t::lock_t(&relationship_coroutine_auto_drainer)
-                                                       ));
+                                                       auto_drainer_t::lock_t(&relationship_coroutine_auto_drainer)));
                 }
             }
         }
@@ -303,13 +306,13 @@ void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start
 
 template <class protocol_t>
 boost::optional<boost::optional<master_business_card_t<protocol_t> > >
-cluster_namespace_interface_t<protocol_t>:: extract_master_business_card(const std::map<peer_id_t, reactor_business_card_t<protocol_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
+cluster_namespace_interface_t<protocol_t>:: extract_master_business_card(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<master_business_card_t<protocol_t> > > ret;
-    typename std::map<peer_id_t, reactor_business_card_t<protocol_t> >::const_iterator it = map.find(peer);
+    typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = map.find(peer);
     if (it != map.end()) {
         ret = boost::optional<master_business_card_t<protocol_t> >();
-        typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second.activities.find(activity_id);
-        if (jt != it->second.activities.end()) {
+        typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
+        if (jt != it->second->activities.end()) {
             if (const reactor_business_card_details::primary_t<protocol_t> *primary_record =
                 boost::get<reactor_business_card_details::primary_t<protocol_t> >(&jt->second.second)) {
                 if (primary_record->master) {
@@ -323,13 +326,13 @@ cluster_namespace_interface_t<protocol_t>:: extract_master_business_card(const s
 
 template <class protocol_t>
 boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > >
-cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, reactor_business_card_t<protocol_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
+cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > ret;
-    typename std::map<peer_id_t, reactor_business_card_t<protocol_t> >::const_iterator it = map.find(peer);
+    typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = map.find(peer);
     if (it != map.end()) {
         ret = boost::optional<direct_reader_business_card_t<protocol_t> >();
-        typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second.activities.find(activity_id);
-        if (jt != it->second.activities.end()) {
+        typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
+        if (jt != it->second->activities.end()) {
             if (const reactor_business_card_details::primary_t<protocol_t> *primary_record =
                 boost::get<reactor_business_card_details::primary_t<protocol_t> >(&jt->second.second)) {
                 if (primary_record->direct_reader) {
@@ -343,13 +346,13 @@ cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_f
 
 template <class protocol_t>
 boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > >
-cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary_up_to_date(const std::map<peer_id_t, reactor_business_card_t<protocol_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
+cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary_up_to_date(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > ret;
-    typename std::map<peer_id_t, reactor_business_card_t<protocol_t> >::const_iterator it = map.find(peer);
+    typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = map.find(peer);
     if (it != map.end()) {
         ret = boost::optional<direct_reader_business_card_t<protocol_t> >();
-        typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second.activities.find(activity_id);
-        if (jt != it->second.activities.end()) {
+        typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
+        if (jt != it->second->activities.end()) {
             if (const reactor_business_card_details::secondary_up_to_date_t<protocol_t> *secondary_up_to_date_record =
                 boost::get<reactor_business_card_details::secondary_up_to_date_t<protocol_t> >(&jt->second.second)) {
                 ret.get() = secondary_up_to_date_record->direct_reader;
@@ -368,18 +371,12 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
         scoped_ptr_t<master_access_t<protocol_t> > master_access;
         scoped_ptr_t<resource_access_t<direct_reader_business_card_t<protocol_t> > > direct_reader_access;
         if (is_primary) {
-            master_access.init(new master_access_t<protocol_t>(
-                                                               mailbox_manager,
+            master_access.init(new master_access_t<protocol_t>(mailbox_manager,
                                                                directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_master_business_card, _1, peer_id, activity_id)),
-                                                               lock.get_drain_signal()
-                                                               ));
-            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(
-                                                                                                        directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary, _1, peer_id, activity_id))
-                                                                                                        ));
+                                                               lock.get_drain_signal()));
+            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary, _1, peer_id, activity_id))));
         } else {
-            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(
-                                                                                                        directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary_up_to_date, _1, peer_id, activity_id))
-                                                                                                        ));
+            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary_up_to_date, _1, peer_id, activity_id))));
         }
 
         relationship_t relationship_record;
@@ -388,8 +385,7 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
         relationship_record.master_access = master_access.has() ? master_access.get() : NULL;
         relationship_record.direct_reader_access = direct_reader_access.has() ? direct_reader_access.get() : NULL;
 
-        region_map_set_membership_t<protocol_t, relationship_t *> relationship_map_insertion(
-                                                                                             &relationships,
+        region_map_set_membership_t<protocol_t, relationship_t *> relationship_map_insertion(&relationships,
                                                                                              region,
                                                                                              &relationship_record);
 

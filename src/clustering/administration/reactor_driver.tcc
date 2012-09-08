@@ -6,9 +6,6 @@
 #include <map>
 #include <set>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/reactor/blueprint.hpp"
@@ -52,8 +49,10 @@ public:
                             reactor_driver_t<protocol_t> *parent_,
                             namespace_id_t _namespace_id,
                             const blueprint_t<protocol_t> &bp,
-                            svs_by_namespace_t<protocol_t> *_svs_by_namespace) :
+                            svs_by_namespace_t<protocol_t> *_svs_by_namespace,
+                            typename protocol_t::context_t *_ctx) :
         watchable(bp),
+        ctx(_ctx),
         parent(parent_),
         namespace_id(_namespace_id),
         svs_by_namespace(_svs_by_namespace)
@@ -80,6 +79,8 @@ public:
     }
 
     watchable_variable_t<blueprint_t<protocol_t> > watchable;
+
+    typename protocol_t::context_t *ctx;
 
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) {
         /* There are a bunch of weird corner cases: what if the namespace was
@@ -119,16 +120,16 @@ public:
     }
 
 private:
-    std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > extract_reactor_directory(
+    std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > extract_reactor_directory(
             const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &nss) {
-        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > out;
+        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > out;
         for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it = nss.begin(); it != nss.end(); it++) {
-            typename std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::const_iterator jt =
+            typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::const_iterator jt =
                 it->second.reactor_bcards.find(namespace_id);
             if (jt == it->second.reactor_bcards.end()) {
-                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >()));
+                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >()));
             } else {
-                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(jt->second)));
+                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(jt->second)));
             }
         }
         return out;
@@ -147,7 +148,7 @@ private:
         perfmon_collection_t *serializers_collection = &perfmon_collections->serializers_collection;
 
         // TODO: We probably shouldn't have to pass in this perfmon collection.
-        svs_by_namespace->get_svs(serializers_collection, namespace_id, &stores_lifetimer, &svs);
+        svs_by_namespace->get_svs(serializers_collection, namespace_id, &stores_lifetimer, &svs, ctx);
 
         reactor.init(new reactor_t<protocol_t>(
             io_backender,
@@ -156,15 +157,14 @@ private:
             parent->directory_view->subview(boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1)),
             parent->branch_history_manager,
             watchable.get_watchable(),
-            svs.get(), namespace_collection));
+            svs.get(), namespace_collection, ctx));
 
         {
-            typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::freeze_t reactor_directory_freeze(reactor->get_reactor_directory());
+            typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::freeze_t reactor_directory_freeze(reactor->get_reactor_directory());
             reactor_directory_subscription.init(
-                new typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t(
+                new typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t(
                     boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
-                    reactor->get_reactor_directory(), &reactor_directory_freeze
-                ));
+                    reactor->get_reactor_directory(), &reactor_directory_freeze));
             mutex_assertion_t::acq_t acq(&parent->watchable_variable_lock);
             namespaces_directory_metadata_t<protocol_t> directory = parent->watchable_variable.get_watchable()->get();
             rassert(directory.reactor_bcards.count(namespace_id) == 0);
@@ -185,7 +185,7 @@ private:
     scoped_ptr_t<multistore_ptr_t<protocol_t> > svs;
     scoped_ptr_t<reactor_t<protocol_t> > reactor;
 
-    scoped_ptr_t<typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t> reactor_directory_subscription;
+    scoped_ptr_t<typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t> reactor_directory_subscription;
 
     DISABLE_COPYING(watchable_and_reactor_t);
 };
@@ -199,7 +199,8 @@ reactor_driver_t<protocol_t>::reactor_driver_t(io_backender_t *_io_backender,
                                                boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                                                const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
                                                svs_by_namespace_t<protocol_t> *_svs_by_namespace,
-                                               perfmon_collection_repo_t *_perfmon_collection_repo)
+                                               perfmon_collection_repo_t *_perfmon_collection_repo,
+                                               typename protocol_t::context_t *_ctx)
     : io_backender(_io_backender),
       mbox_manager(_mbox_manager),
       directory_view(_directory_view),
@@ -207,6 +208,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(io_backender_t *_io_backender,
       machine_id_translation_table(_machine_id_translation_table),
       namespaces_view(_namespaces_view),
       machines_view(machines_view_),
+      ctx(_ctx),
       svs_by_namespace(_svs_by_namespace),
       watchable_variable(namespaces_directory_metadata_t<protocol_t>()),
       semilattice_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), namespaces_view),
@@ -257,8 +259,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                 auto_drainer_t::lock_t(&drainer),
                 new typename
                     reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))),
-                it->first
-            ));
+                it->first));
         } else {
             persistable_blueprint_t<protocol_t> pbp;
 
@@ -278,7 +279,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                  * existing reactor. */
                 if (!std_contains(reactor_data, it->first)) {
                     namespace_id_t tmp = it->first;
-                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(io_backender, this, it->first, bp, svs_by_namespace));
+                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(io_backender, this, it->first, bp, svs_by_namespace, ctx));
                 } else {
                     reactor_data.find(it->first)->second->watchable.set_value(bp);
                 }

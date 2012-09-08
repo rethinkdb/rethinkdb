@@ -13,6 +13,7 @@
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
+#include "containers/cow_ptr.hpp"
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 
@@ -101,7 +102,7 @@ public:
 template <class T>
 class standard_subfield_change_functor_t : public subfield_change_functor_t {
 public:
-    standard_subfield_change_functor_t(T *target);
+    explicit standard_subfield_change_functor_t(T *target);
     void on_change();
 private:
     T *target;
@@ -158,7 +159,7 @@ class json_adapter_t : public json_adapter_if_t {
 private:
     typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
 public:
-    json_adapter_t(T *);
+    explicit json_adapter_t(T *);
 
 private:
     json_adapter_map_t get_subfields_impl();
@@ -202,7 +203,7 @@ private:
 template <class T>
 class json_read_only_adapter_t : public json_adapter_t<T> {
 public:
-    json_read_only_adapter_t(T *);
+    explicit json_read_only_adapter_t(T *);
 
 private:
     void apply_impl(cJSON *);
@@ -232,7 +233,7 @@ private:
 template <class T>
 class json_temporary_adapter_t : public json_read_only_adapter_t<T> {
 public:
-    json_temporary_adapter_t(const T &value);
+    explicit json_temporary_adapter_t(const T &value);
 
 private:
     T value_;
@@ -539,6 +540,21 @@ template <class V>
 void on_subfield_change(std::vector<V> *);
 
 } //namespace std
+
+
+// ctx-less JSON adapter for cow_ptr_t
+template <class T>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(cow_ptr_t<T> *);
+
+template <class T>
+cJSON *render_as_json(cow_ptr_t<T> *);
+
+template <class T>
+void apply_json_to(cJSON *, cow_ptr_t<T> *);
+
+template <class T>
+void on_subfield_change(cow_ptr_t<T> *);
+
 
 //some convenience functions
 template <class T, class ctx_t>

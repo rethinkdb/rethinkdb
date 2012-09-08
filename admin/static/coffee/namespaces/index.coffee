@@ -8,23 +8,13 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#database_list-template').html()
         className: 'databases_list-container'
         error_template: Handlebars.compile $('#error_adding_namespace-template').html()
+        alert_message_template: Handlebars.compile $('#alert_message-template').html()
 
         events: ->
             'click .add-database': 'add_database'
             'click .add-namespace': 'add_namespace'
             'click .remove-namespace': 'remove_namespace'
             'click .close': 'remove_parent_alert'
-        ###
-        'mouseenter .contains_info': 'display_popover'
-        'mouseleave .contains_info': 'hide_popover'
-        ###
-
-
-        ###
-        # For sparkline/bars currently hidden
-        display_popover: (event) ->
-            $(event.currentTarget).tooltip('show')
-        ###
 
         initialize: ->
             log_initial '(initializing) namespace list view'
@@ -35,9 +25,42 @@ module 'NamespaceView', ->
 
             super databases, NamespaceView.DatabaseListElement, '.collapsible-list'
 
-        render: =>
+            @datacenters_length = -1
+            @databases_length = -1
+            datacenters.on 'all', @update_button_create_namespace
+            databases.on 'all', @update_button_create_namespace
+        
+        update_button_create_namespace: =>
+            need_update = false
+            if (datacenters.models.length>0) isnt (@datacenters_length>0) or @datacenters_length is -1
+                need_update = true
+                @datacenters_length = datacenters.models.length
+            if (databases.models.length>0) isnt (@databases_length>0) or @databases_length is -1
+                need_update = true
+                @databases_length = databases.models.length
+            
+            if need_update
+                if @datacenters_length isnt 0 and @databases_length isnt 0
+                    @.$('.user_alert_space-cannot_create_namespace').html ''
+                    @.$('.user_alert_space-cannot_create_namespace').css 'display', 'none'
+                    @.$('.add-namespace').removeProp 'disabled'
+                else
+                    @.$('.user_alert_space-cannot_create_namespace').html @error_template
+                        need_datacenter: @datacenters_length is 0
+                        need_database: @databases_length is 0
+                        need_something: @datacenters_length is 0 or @databases_length is 0
+                    @.$('.user_alert_space-cannot_create_namespace').css 'display', 'block'
+                    @.$('.add-namespace').prop 'disabled', 'disabled'
+
+
+        render: (message) =>
             super
             @update_toolbar_buttons()
+
+            if message?
+                @.$('#user-alert-space').append @alert_message_template
+                    message: message
+            @update_button_create_namespace()
             return @
 
         remove_parent_alert: (event) ->
@@ -55,13 +78,8 @@ module 'NamespaceView', ->
 
         add_namespace: (event) =>
             event.preventDefault()
-            if datacenters.length is 0
-                @.$('#user-alert-space').html @error_template
-                @.$('#user-alert-space').alert()
-            else
-                log_action 'add namespace button clicked'
-                @add_namespace_dialog.render()
-                $('#focus_namespace_name').focus()
+            @add_namespace_dialog.render()
+            $('#focus_namespace_name').focus()
 
         remove_namespace: (event) =>
             log_action 'remove namespace button clicked'
@@ -74,6 +92,7 @@ module 'NamespaceView', ->
         add_element: (element) =>
             namespaces_list_element = super element
             namespaces_list_element.register_namespace_callback [@update_toolbar_buttons]
+            #TODO destroy this listener
 
         # Count up the number of namespaces checked off across all machine lists
         get_selected_namespaces: =>
@@ -89,12 +108,15 @@ module 'NamespaceView', ->
 
         # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
         update_toolbar_buttons: =>
-            # We need to check how many namespaces have been checked off to decide which buttons to enable/disable
-            $remove_namespaces_button = @.$('.btn.remove-namespace')
-            $remove_namespaces_button.toggleClass 'disabled', @get_selected_namespaces().length < 1
+            @.$('.btn.remove-namespace').prop 'disabled', @get_selected_namespaces().length < 1
 
         destroy: =>
-             super()
+            super
+            datacenters.off 'all', @update_button_create_namespace
+            databases.off 'all', @update_button_create_namespace
+            @add_database_dialog.destroy()
+            @add_namespace_dialog.destroy()
+            @remove_namespace_dialog.destroy()
 
     class @DatabaseListElement extends UIComponents.CollapsibleListElement
         template: Handlebars.compile $('#database_list_element-template').html()
@@ -112,7 +134,6 @@ module 'NamespaceView', ->
             @no_namespace = true
 
             @model.on 'change', @render_summary
-
             @namespace_list.on 'size_changed', @nl_size_changed
 
         nl_size_changed: =>
@@ -150,17 +171,17 @@ module 'NamespaceView', ->
 
         register_namespace_callback: (callbacks) =>
             @callbacks = callbacks
-            @namespace_list.register_namespace_callbacks callbacks
+            @namespace_list.register_namespace_callbacks @callbacks
 
         rename_datacenter: (event) ->
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'datacenter'
             rename_modal.render()
 
-        ###
-        destroy: ->
-            #TODO
-        ###
+        destroy: =>
+            @model.off 'change', @render_summary
+            @namespace_list.off 'size_changed', @nl_size_changed
+            @namespace_list.destroy()
 
     # Show a list of namespaces
     class @NamespaceList extends UIComponents.AbstractList
@@ -178,8 +199,10 @@ module 'NamespaceView', ->
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
         
             super namespaces, NamespaceView.NamespaceListElement, 'tbody.list',
+                {
                 filter: (model) -> model.get('database') is database_id
-
+                }
+                , 'table', 'database'
 
         remove_parent_alert: (event) ->
             event.preventDefault()
@@ -217,8 +240,9 @@ module 'NamespaceView', ->
             namespace_list_element.on 'selected', => callback() for callback in @callbacks
 
         destroy: =>
-             super()
-
+            super()
+            @add_namespace_dialog.destroy()
+            @remove_namespace_dialog.destroy()
 
     # Namespace list element
     class @NamespaceListElement extends UIComponents.CheckboxListElement
@@ -233,62 +257,19 @@ module 'NamespaceView', ->
             log_initial '(initializing) list view: namespace'
             super @template
 
-            ###
-            # Initialize history
-            for i in [0..40]
-                @history_opsec.push 0
-            @model.on 'change', @render
-            machines.on 'all', @render
-            ###
-        ###
-        update_history_opsec: =>
-            @history_opsec.shift()
-            @history_opsec.push @model.get_stats().keys_read + @model.get_stats().keys_set
-        ###
-
         json_for_template: =>
             json = _.extend super(), DataUtils.get_namespace_status(@model.get('id'))
             json.nreplicas += json.nshards
 
-            ###
-            # TODO remove if we don't use bars anymore
-            data_in_memory = 0
-            data_total = 0
-            for machine in machines.models
-                if machine.get('stats')? and @model.get('id') of machine.get('stats') and machine.get('stats')[@model.get('id')].cache?
-                    data_in_memory += machine.get('stats')[@model.get('id')].cache.block_size*machine.get('stats')[@model.get('id')].cache.blocks_in_memory
-                    data_total += machine.get('stats')[@model.get('id')].cache.block_size*machine.get('stats')[@model.get('id')].cache.blocks_total
-            json.data_in_memory_percent = Math.floor(data_in_memory/data_total*100)
-            json.data_in_memory = human_readable_units(data_in_memory, units_space)
-            json.data_total = human_readable_units(data_total, units_space)
-
-            @update_history_opsec()
-            json.opsec = @history_opsec[@history_opsec.length-1]
-            ###
-            
             return json
 
         render: =>
-            super()
-            ###
-            # TOOO remove if we decide to remove the sparkline
-            sparkline_attr =
-                fillColor: false
-                spotColor: false
-                minSpotColor: false
-                maxSpotColor: false
-                chartRangeMin: 0
-                width: '75px'
-                height: '15px'
-
-            @.$('.opsec_sparkline').sparkline @history_opsec, sparkline_attr
-            ###
+            super
 
             return @
 
         destroy: =>
-            @model.off 'change', @render
-            machines.off 'all', @render
+            super
 
 
     class @AddDatabaseModal extends UIComponents.AbstractModal
@@ -393,6 +374,8 @@ module 'NamespaceView', ->
                 $('.alert_modal').alert()
                 @reset_buttons()
             else
+                ack = {}
+                ack[formdata.primary_datacenter] = 1
                 $.ajax
                     processData: false
                     url: '/ajax/semilattice/rdb_namespaces/new'
@@ -402,6 +385,7 @@ module 'NamespaceView', ->
                         name: formdata.name
                         primary_uuid: formdata.primary_datacenter
                         database: formdata.database
+                        ack_expectations: ack
                         )
                     success: @on_success
                     error: @on_error

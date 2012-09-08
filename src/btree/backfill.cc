@@ -15,7 +15,7 @@
 #include "protocol_api.hpp"
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
-    void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null, DEBUG_ONLY_VAR int *population_change_out) {
+    void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null, DEBUG_VAR int *population_change_out, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         assert_thread();
         rassert(*population_change_out == 0);
         const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
@@ -24,34 +24,35 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             left_exclusive_or_null ? key_range_t::open : key_range_t::none,
             left_exclusive_or_null ? store_key_t(left_exclusive_or_null) : store_key_t(),
             right_inclusive_or_null ? key_range_t::closed : key_range_t::none,
-            right_inclusive_or_null ? store_key_t(right_inclusive_or_null) : store_key_t()
-            );
+            right_inclusive_or_null ? store_key_t(right_inclusive_or_null) : store_key_t());
         clipped_range = clipped_range.intersection(key_range_);
 
         struct : public leaf::entry_reception_callback_t {
             void lost_deletions() {
-                cb->on_delete_range(range);
+                cb->on_delete_range(range, interruptor);
             }
 
             void deletion(const btree_key_t *k, repli_timestamp_t tstamp) {
                 if (range.contains_key(k->contents, k->size)) {
-                    cb->on_deletion(k, tstamp);
+                    cb->on_deletion(k, tstamp, interruptor);
                 }
             }
 
             void key_value(const btree_key_t *k, const void *value, repli_timestamp_t tstamp) {
                 if (range.contains_key(k->contents, k->size)) {
-                    cb->on_pair(txn, tstamp, k, value);
+                    cb->on_pair(txn, tstamp, k, value, interruptor);
                 }
             }
 
             agnostic_backfill_callback_t *cb;
             transaction_t *txn;
             key_range_t range;
+            signal_t *interruptor;
         } x;
         x.cb = callback_;
         x.txn = txn;
         x.range = clipped_range;
+        x.interruptor = interruptor;
 
         leaf::dump_entries_since_time(sizer_, data, since_when_, leaf_node_buf->get_recency(), &x);
     }

@@ -110,8 +110,11 @@ module RethinkDB
 
     # Construct a protobuf query from an RQL query by inferring the query type.
     def query(sexp)
-      if   sexp.class == Array and enum_type(WriteQuery::WriteQueryType, sexp[0])
+      raise TypeError, "Cannot build query from #{sexp.inspect}" if sexp.class != Array
+      if enum_type(WriteQuery::WriteQueryType, sexp[0])
       then q = comp(Query, [:write, *sexp])
+      elsif enum_type(MetaQuery::MetaQueryType, sexp[0])
+      then q = comp(Query, [:meta, *sexp])
       else q = comp(Query, [:read, sexp])
       end
       q.token = (@@token += 1)

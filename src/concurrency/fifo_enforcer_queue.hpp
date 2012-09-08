@@ -1,6 +1,9 @@
 #ifndef CONCURRENCY_FIFO_ENFORCER_QUEUE_HPP_
 #define CONCURRENCY_FIFO_ENFORCER_QUEUE_HPP_
 
+#include <map>
+#include <utility>
+
 #include "concurrency/fifo_enforcer.hpp"
 
 namespace unittest {
@@ -18,10 +21,10 @@ public:
     fifo_enforcer_queue_t(perfmon_counter_t *_read_counter, perfmon_counter_t *_write_counter);
     ~fifo_enforcer_queue_t();
 
-    void push(fifo_enforcer_read_token_t token, const T &t); 
-    void finish_read(fifo_enforcer_read_token_t read_token); 
-    void push(fifo_enforcer_write_token_t token, const T &t); 
-    void finish_write(fifo_enforcer_write_token_t write_token); 
+    void push(fifo_enforcer_read_token_t token, const T &t);
+    void finish_read(fifo_enforcer_read_token_t read_token);
+    void push(fifo_enforcer_write_token_t token, const T &t);
+    void finish_write(fifo_enforcer_write_token_t write_token);
 
 private:
     typedef std::multimap<state_timestamp_t, T> read_queue_t;
@@ -39,15 +42,15 @@ private:
 private:
 friend void unittest::run_queue_equivalence_test();
     //passive produce api
-    T produce_next_value(); 
+    T produce_next_value();
 
     availability_control_t control;
 
-    void consider_changing_available(); 
+    void consider_changing_available();
 
     DISABLE_COPYING(fifo_enforcer_queue_t);
 };
 
 #include "concurrency/fifo_enforcer_queue.tcc"
 
-#endif /* CONCURRENCY_FIFO_ENFORCER_HPP_ */
+#endif /* CONCURRENCY_FIFO_ENFORCER_QUEUE_HPP_ */

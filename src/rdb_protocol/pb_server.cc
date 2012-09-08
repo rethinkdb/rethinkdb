@@ -4,12 +4,18 @@
 #include <boost/make_shared.hpp>
 
 #include "rdb_protocol/stream_cache.hpp"
+#include "rpc/semilattice/view/field.hpp"
+#include "concurrency/watchable.hpp"
 
-query_server_t::query_server_t(int port, extproc::pool_group_t *_pool_group, const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata, namespace_repo_t<rdb_protocol_t> * _ns_repo)
-    : pool_group(_pool_group),
-      server(port, boost::bind(&query_server_t::handle, this, _1, _2), &on_unparsable_query, INLINE),
-      semilattice_metadata(_semilattice_metadata), ns_repo(_ns_repo)
+query_server_t::query_server_t(int port, rdb_protocol_t::context_t *_ctx) :
+    server(port, boost::bind(&query_server_t::handle, this, _1, _2),
+           &on_unparsable_query, INLINE),
+    ctx(_ctx)
 { }
+
+http_app_t *query_server_t::get_http_app() {
+    return &server;
+}
 
 static void put_backtrace(const query_language::backtrace_t &bt, Response *res_out) {
     std::vector<std::string> frames = bt.get_frames();
@@ -18,16 +24,11 @@ static void put_backtrace(const query_language::backtrace_t &bt, Response *res_o
     }
 }
 
-Response on_unparsable_query(Query *q) {
+Response on_unparsable_query(Query *q, std::string msg) {
     Response res;
-    if (q->has_token()) {
-        res.set_token(q->token());
-    } else {
-        res.set_token(-1);
-    }
-
     res.set_status_code(Response::BROKEN_CLIENT);
-    res.set_error_message("bad protocol buffer (failed to deserialize); client is buggy");
+    res.set_token( (q && q->has_token()) ? q->token() : -1);
+    res.set_error_message(msg);
     return res;
 }
 
@@ -56,8 +57,14 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
     cond_t interruptor;
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
     {
+        int thread = get_thread_id();
         query_language::runtime_environment_t runtime_environment(
-            pool_group, ns_repo, semilattice_metadata, js_runner, &interruptor);
+            ctx->pool_group, ctx->ns_repo,
+            ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
+            ctx->cross_thread_database_watchables[thread]->get_watchable(),
+            ctx->semilattice_metadata,
+            ctx->directory_read_manager,
+            js_runner, &interruptor, ctx->machine_id);
         try {
             //[execute] will set the status code unless it throws
             execute(q, &runtime_environment, &res, root_backtrace, stream_cache);

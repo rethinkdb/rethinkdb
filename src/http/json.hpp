@@ -10,6 +10,8 @@
 class http_res_t;
 
 http_res_t http_json_res(cJSON *json);
+cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs);
+std::string cJSON_Print_std(cJSON *json);
 
 class scoped_cJSON_t {
 private:
@@ -30,6 +32,9 @@ public:
     std::string Print() const THROWS_NOTHING;
     /* Render a cJSON entity to text for transfer/storage without any formatting. */
     std::string PrintUnformatted() const THROWS_NOTHING;
+    /* Render a cJSON entitiy to text for lexicographic sorting.  MUST
+       be a number or a string. */
+    std::string PrintLexicographic() const THROWS_NOTHING;
 
     /* Returns the number of items in an array (or object). */
     int GetArraySize() const {
@@ -52,7 +57,8 @@ public:
         return cJSON_AddItemToArray(val, item);
     }
     void AddItemToObject(const char *string, cJSON *item) {
-        rassert(string); rassert(item);
+        rassert(string);
+        rassert(item);
         return cJSON_AddItemToObject(val, string, item);
     }
 
@@ -76,11 +82,13 @@ public:
 
     /* Update array items. */
     void ReplaceItemInArray(int which, cJSON *newitem) {
-        rassert(which >= 0); rassert(newitem);
+        rassert(which >= 0);
+        rassert(newitem);
         return cJSON_ReplaceItemInArray(val, which, newitem);
     }
     void ReplaceItemInObject(const char *string, cJSON *newitem) {
-        rassert(string); rassert(newitem);
+        rassert(string);
+        rassert(newitem);
         return cJSON_ReplaceItemInObject(val, string, newitem);
     }
 
@@ -134,7 +142,8 @@ public:
         return cJSON_AddItemToArray(val, item);
     }
     void AddItemToObject(const char *string, cJSON *item) {
-        rassert(string); rassert(item);
+        rassert(string);
+        rassert(item);
         return cJSON_AddItemToObject(val, string, item);
     }
 
@@ -158,11 +167,13 @@ public:
 
     /* Update array items. */
     void ReplaceItemInArray(int which, cJSON *newitem) {
-        rassert(which >= 0); rassert(newitem);
+        rassert(which >= 0);
+        rassert(newitem);
         return cJSON_ReplaceItemInArray(val, which, newitem);
     }
     void ReplaceItemInObject(const char *string, cJSON *newitem) {
-        rassert(string); rassert(newitem);
+        rassert(string);
+        rassert(newitem);
         return cJSON_ReplaceItemInObject(val, string, newitem);
     }
 };
@@ -193,6 +204,8 @@ void project(cJSON *json, std::set<std::string> keys);
 
 //Merge two cJSON objects, crashes if there are overlapping keys
 cJSON *merge(cJSON *, cJSON *);
+
+std::string cJSON_type_to_string(int type);
 
 /* Json serialization */
 write_message_t &operator<<(write_message_t &msg, const cJSON &cjson);

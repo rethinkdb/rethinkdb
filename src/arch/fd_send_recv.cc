@@ -3,7 +3,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include <cstring>              // memcpy
+#include <string.h>
+
+#include "containers/scoped.hpp"
 
 // The code for {send,recv}_fds was determined by careful reading of the man
 // pages for sendmsg(2), recvmsg(2), unix(7), and particularly cmsg(3), which
@@ -26,10 +28,9 @@ int send_fds(int socket_fd, size_t num_fds, int *fds) {
     iov.iov_len = 1;
 
     // The control message is the important part for sending fds.
-    // TODO(rntz): what if num_fds is very large?
-    char control[CMSG_SPACE(sizeof(int) * num_fds)];
-    msg.msg_control = control;
-    msg.msg_controllen = sizeof control;
+    scoped_array_t<char> control(CMSG_SPACE(sizeof(int) * num_fds));
+    msg.msg_control = control.data();
+    msg.msg_controllen = control.size();
 
     struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
     cmsg->cmsg_level = SOL_SOCKET; // see unix(7) for explanation
@@ -63,10 +64,9 @@ fd_recv_result_t recv_fds(int socket_fd, size_t num_fds, int *fds) {
     iov.iov_len = 1;
 
     // The control message.
-    // TODO(rntz): what if num_fds is very large?
-    char control[CMSG_SPACE(sizeof(int) * num_fds)];
-    msg.msg_control = control;
-    msg.msg_controllen = sizeof control;
+    scoped_array_t<char> control(CMSG_SPACE(sizeof(int) * num_fds));
+    msg.msg_control = control.data();
+    msg.msg_controllen = control.size();
 
     // Read it in.
     ssize_t res = recvmsg(socket_fd, &msg, 0);

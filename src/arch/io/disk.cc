@@ -244,8 +244,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
                     "\n- the database block device cannot be opened with O_DIRECT flag" :
                     "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. in case when the filesystem is working in journaled mode)"
                 ) : "",
-            !is_block ? "\n- user which was used to start the database is not an owner of the file" : ""
-        );
+            !is_block ? "\n- user which was used to start the database is not an owner of the file" : "");
     }
 
     file_exists = true;
@@ -364,7 +363,7 @@ linux_file_t::~linux_file_t() {
     // scoped_fd_t's destructor takes care of close()ing the file
 }
 
-void linux_file_t::verify(UNUSED size_t offset, UNUSED size_t length, UNUSED const void *buf) {
+void linux_file_t::verify(DEBUG_VAR size_t offset, DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
     rassert(buf);
     rassert(offset + length <= file_size);
     rassert(divides(DEVICE_BLOCK_SIZE, intptr_t(buf)));

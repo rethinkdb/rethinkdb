@@ -269,7 +269,7 @@ class _Process(object):
             self.check()
             self.process.send_signal(signal.SIGINT)
             start_time = time.time()
-            grace_period = 15
+            grace_period = 300
             while time.time() < start_time + grace_period:
                 if self.process.poll() is not None:
                     break

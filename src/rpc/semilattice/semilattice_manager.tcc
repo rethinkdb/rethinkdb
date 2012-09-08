@@ -70,8 +70,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::join(const metadata_t &adde
             coro_t::spawn_sometime(boost::bind(
                 &semilattice_manager_t<metadata_t>::send_metadata_to_peer, parent,
                 *it, added_metadata, new_version,
-                auto_drainer_t::lock_t(parent->drainers.get())
-                ));
+                auto_drainer_t::lock_t(parent->drainers.get())));
         }
     }
 }
@@ -198,8 +197,7 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream
             }
             coro_t::spawn_sometime(boost::bind(
                 &semilattice_manager_t<metadata_t>::deliver_metadata_on_home_thread, this,
-                sender, added_metadata, change_version, auto_drainer_t::lock_t(drainers.get())
-                ));
+                sender, added_metadata, change_version, auto_drainer_t::lock_t(drainers.get())));
             break;
         }
         case message_code_sync_from_query: {
@@ -210,8 +208,7 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream
             }
             coro_t::spawn_sometime(boost::bind(
                 &semilattice_manager_t<metadata_t>::deliver_sync_from_query_on_home_thread, this,
-                sender, query_id, auto_drainer_t::lock_t(drainers.get())
-                ));
+                sender, query_id, auto_drainer_t::lock_t(drainers.get())));
             break;
         }
         case message_code_sync_from_reply: {
@@ -225,8 +222,7 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream
             }
             coro_t::spawn_sometime(boost::bind(
                 &semilattice_manager_t<metadata_t>::deliver_sync_from_reply_on_home_thread, this,
-                sender, query_id, version, auto_drainer_t::lock_t(drainers.get())
-                ));
+                sender, query_id, version, auto_drainer_t::lock_t(drainers.get())));
             break;
         }
         case message_code_sync_to_query: {
@@ -240,8 +236,7 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream
             }
             coro_t::spawn_sometime(boost::bind(
                 &semilattice_manager_t<metadata_t>::deliver_sync_to_query_on_home_thread, this,
-                sender, query_id, version, auto_drainer_t::lock_t(drainers.get())
-                ));
+                sender, query_id, version, auto_drainer_t::lock_t(drainers.get())));
             break;
         }
         case message_code_sync_to_reply: {
@@ -252,8 +247,7 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream
             }
             coro_t::spawn_sometime(boost::bind(
                 &semilattice_manager_t<metadata_t>::deliver_sync_to_reply_on_home_thread, this,
-                sender, query_id, auto_drainer_t::lock_t(drainers.get())
-                ));
+                sender, query_id, auto_drainer_t::lock_t(drainers.get())));
             break;
         }
         default: {
@@ -273,8 +267,7 @@ void semilattice_manager_t<metadata_t>::on_connect(peer_id_t peer) {
     not supposed to block. */
     coro_t::spawn_sometime(boost::bind(
         &semilattice_manager_t<metadata_t>::send_metadata_to_peer, this,
-        peer, metadata, metadata_version, auto_drainer_t::lock_t(drainers.get())
-        ));
+        peer, metadata, metadata_version, auto_drainer_t::lock_t(drainers.get())));
 }
 
 template<class metadata_t>

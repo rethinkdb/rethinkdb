@@ -7,6 +7,7 @@
 #include "arch/arch.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "containers/archive/archive.hpp"
+#include "http/http.hpp"
 
 enum protob_server_callback_mode_t {
     INLINE, //protobs that arrive will be called inline
@@ -15,20 +16,59 @@ enum protob_server_callback_mode_t {
 };
 
 template <class request_t, class response_t, class context_t>
-class protob_server_t {
+class protob_server_t : public http_app_t, public repeating_timer_callback_t {
 public:
-    protob_server_t(int port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*on_unparsable_query)(request_t *), protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
+    // TODO: Function pointers?  Really?
+    protob_server_t(int port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *, std::string), protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
     ~protob_server_t();
+    static const int32_t magic_number;
 private:
 
-    void handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t, response_t (*on_unparsable_query)(request_t *));
+    void handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t);
     void send(const response_t &, tcp_conn_t *conn, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t);
 
+    // For HTTP server
+    http_res_t handle(const http_req_t &);
+    void on_ring();
+
+    boost::function<response_t(request_t *, context_t *)> f;
+    response_t (*on_unparsable_query)(request_t *, std::string);
+    protob_server_callback_mode_t cb_mode;
     auto_drainer_t auto_drainer;
     scoped_ptr_t<tcp_listener_t> tcp_listener;
-    boost::function<response_t(request_t *, context_t *)> f;
-    protob_server_callback_mode_t cb_mode;
+
+    // For HTTP server
+    class http_context_t {
+    public:
+        //TODO make this configurable?
+        static const int TIMEOUT_SEC = 5*60;
+        static const int TIMEOUT_MS = TIMEOUT_SEC*1000;
+
+        http_context_t();
+        context_t *getContext();
+        bool isExpired();
+        void grab();
+        void release();
+        bool isFree();
+
+    private:
+        context_t ctx;
+        time_t last_accessed;
+        int users_count;
+
+        // Update last_accessed to current time
+        void touch();
+    };
+
+    std::map<int32_t, http_context_t> http_conns;
+    int32_t next_http_conn_id;
+    int next_thread;
+    repeating_timer_t http_timeout_timer;
 };
+
+template<class request_t, class response_t, class context_t>
+const int32_t protob_server_t<request_t, response_t, context_t>::magic_number
+    = 0xaf61ba35;
 
 //TODO figure out how to do 0 copy serialization with this.
 

@@ -18,7 +18,7 @@ replier_t<protocol_t>::replier_t(listener_t<protocol_t> *l) :
     backfiller(listener->mailbox_manager(),
                listener->branch_history_manager(),
                listener->svs()) {
-    rassert(listener->svs()->get_multistore_joined_region() ==
+    rassert(listener->svs()->get_region() ==
             listener->branch_history_manager()->get_branch(listener->branch_id()).region,
             "Even though you can have a listener that only watches some subset "
             "of a branch, you can't have a replier for some subset of a "
@@ -37,8 +37,7 @@ replier_t<protocol_t>::~replier_t() {
         send(listener->mailbox_manager(),
              listener->registration_done_cond_value().downgrade_mailbox,
              /* We don't want a confirmation */
-             mailbox_addr_t<void()>()
-             );
+             mailbox_addr_t<void()>());
     }
 }
 

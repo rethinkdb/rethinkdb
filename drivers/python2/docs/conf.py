@@ -241,6 +241,11 @@ texinfo_documents = [
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 #texinfo_show_urls = 'footnote'
 
+
+# -- Options for Autodoc -------------------------------------------------------
+
 # Use both class and __init__ docstrings for class documentation.
 autoclass_content = 'both'
 
+# Order in documentation should be the same as order in source file
+autodoc_member_order = 'bysource'

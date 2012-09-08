@@ -55,7 +55,7 @@ public:
         // Candidate to be GCed. It is in gc_pq.
         state_old,
         // Currently being GCed. It is equal to gc_state.current_entry.
-        state_in_gc,
+        state_in_gc
     } state;
 
 public:
@@ -248,7 +248,7 @@ private:
         gc_reconstruct, /* reconstructing on startup */
         gc_ready, /* ready to start */
         gc_read,  /* waiting for reads, acquiring main_mutex */
-        gc_write, /* waiting for writes */
+        gc_write /* waiting for writes */
     };
 
     /* Buffer used during GC. */

@@ -158,6 +158,12 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                     "rethinkdb/build/packages/rethinkdb-%s-%s-1.x86_64.rpm" % (rethinkdb_shortversion, (rethinkdb_version+"-unstripped-1").replace("-", "_"))
                     ]
                 }
+            builds["drivers"] = {
+                "command_line": "cd rethinkdb/src; make drivers",
+                "products": [
+                    "rethinkdb/build/drivers"
+                    ]
+                }
             config_bits = [
                 ("DEBUG",            [(0, "release"), (1, "debug")     ]),
                 ("MOCK_CACHE_CHECK", [(0, ""),        (1, "-mockcache")]),

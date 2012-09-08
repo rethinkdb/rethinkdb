@@ -9,6 +9,7 @@
 #include <boost/optional.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
+#include "containers/cow_ptr.hpp"
 #include "containers/scoped.hpp"
 
 
@@ -40,6 +41,8 @@ public:
 
     std::map<std::string, std::string> inserter_state;
 
+    typename protocol_t::context_t ctx;
+
     explicit test_cluster_group_t(int n_machines);
     ~test_cluster_group_t();
 
@@ -51,15 +54,15 @@ public:
 
     void set_all_blueprints(const blueprint_t<protocol_t> &bp);
 
-    static std::map<peer_id_t, reactor_business_card_t<protocol_t> > extract_reactor_business_cards_no_optional(
-                                                                                                                const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input);
+    static std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > extract_reactor_business_cards_no_optional(
+            const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input);
 
     void make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t<protocol_t> > *out);
 
     void run_queries();
 
-    static std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > extract_reactor_business_cards(
-                                                                                                                      const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input);
+    static std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<protocol_t> > > > extract_reactor_business_cards(
+            const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input);
 
     void wait_until_blueprint_is_satisfied(const blueprint_t<protocol_t> &bp);
 

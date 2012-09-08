@@ -68,7 +68,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 
 /* Handlers for various signals and for unexpected exceptions or calls to std::terminate() */
 
-void generic_crash_handler(int signum) {
+NORETURN void generic_crash_handler(int signum) {
     if (signum == SIGSEGV) {
         crash("Segmentation fault.");
     } else {
@@ -78,7 +78,7 @@ void generic_crash_handler(int signum) {
 
 void ignore_crash_handler(UNUSED int signum) { }
 
-void terminate_handler() {
+NORETURN void terminate_handler() {
     std::type_info *t = abi::__cxa_current_exception_type();
     if (t) {
         std::string name;
@@ -136,4 +136,18 @@ void assertion_failed_msg(char const * expr, char const * msg, char const * func
     BREAKPOINT;
 }
 
+}
+
+// The following piece of code is needed to fix some unpleasant bug in
+// libstdc++ which shows up during linking if <cxxabi.h> is included and
+// `-fkeep-inline-functions` is on:
+//
+//     /usr/include/c++/4.6/cxxabi.h:618: error: undefined reference to 'vtable for __gnu_cxx::recursive_init_error'
+//
+// This happens because the destructor's body for `recursive_init_error` is not
+// defined.
+//
+// See also <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=43863>.
+namespace __gnu_cxx {
+recursive_init_error::~recursive_init_error() throw () { }
 }

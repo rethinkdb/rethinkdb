@@ -41,7 +41,8 @@ static void run_read_write_test() {
     /* Set up a branch */
     mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
-    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
+    dummy_protocol_t::context_t ctx;
+    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1, &ctx); //null ctx nothing copmlicated can happen
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(),
                                                 &branch_history_manager,
@@ -100,13 +101,14 @@ static void run_read_write_test() {
         dummy_protocol_t::read_t r;
         dummy_protocol_t::read_response_t rr;
         r.keys.keys.insert((*it).first);
-        cond_t interruptor;
+        // TODO: What's with this fake interruptor?
+        cond_t fake_interruptor;
         fifo_enforcer_sink_t::exit_read_t read_token;
         master_access.new_read_token(&read_token);
         master_access.read(r, &rr,
                            order_source.check_in("unittest::run_read_write_test(clustering_query.cc)").with_read_mode(),
                            &read_token,
-                           &interruptor);
+                           &fake_interruptor);
         EXPECT_EQ((*it).second, rr.values[(*it).first]);
     }
 }
@@ -131,7 +133,8 @@ static void run_broadcaster_problem_test() {
     /* Set up a branch */
     mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
-    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
+    dummy_protocol_t::context_t ctx;
+    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1, &ctx); //null ctx nothing complicated
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(),
                                                 &branch_history_manager,

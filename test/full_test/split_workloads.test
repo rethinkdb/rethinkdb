@@ -1,18 +1,18 @@
 two_phase_workloads = [
-    ("$RETHINKDB/test/workloads/many_keys.py $HOST:$PORT --phase w",
-     "$RETHINKDB/test/workloads/many_keys.py $HOST:$PORT --phase r"),
+    ("$RETHINKDB/test/memcached_workloads/many_keys.py $HOST:$PORT --phase w",
+     "$RETHINKDB/test/memcached_workloads/many_keys.py $HOST:$PORT --phase r"),
     ]
 
 n_phase_workloads = [
-    ("$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d 10000q",
+    ("$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d 10000q",
      "true",
      "true"),
-    ("$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT --save values",
-     "$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT --load values --save values",
-     "$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT --load values"),
-    ("$RETHINKDB/test/workloads/multi_serial_mix.py $HOST:$PORT --save values",
-     "$RETHINKDB/test/workloads/multi_serial_mix.py $HOST:$PORT --load values --save values",
-     "$RETHINKDB/test/workloads/multi_serial_mix.py $HOST:$PORT --load values"),
+    ("$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT --save values",
+     "$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT --load values --save values",
+     "$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT --load values"),
+    ("$RETHINKDB/test/memcached_workloads/multi_serial_mix.py $HOST:$PORT --save values",
+     "$RETHINKDB/test/memcached_workloads/multi_serial_mix.py $HOST:$PORT --load values --save values",
+     "$RETHINKDB/test/memcached_workloads/multi_serial_mix.py $HOST:$PORT --load values"),
     ]
 
 two_phase_scenarios = [
@@ -36,13 +36,13 @@ for scenario in two_phase_scenarios:
         do_test(
             scenario % {"before": before, "after": after},
             repeat = 3,
-            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "bench/stress-client/stress"]
+            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]
             )
     for before, between, after in n_phase_workloads:
         do_test(
             scenario % {"before": before, "after": after},
             repeat = 3,
-            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "bench/stress-client/stress"]
+            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]
             )
 
 for scenario in n_phase_scenarios:
@@ -50,5 +50,5 @@ for scenario in n_phase_scenarios:
         do_test(
             scenario % {"before": before, "between": between, "after": after},
             repeat = 3,
-            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "bench/stress-client/stress"]
+            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]
             )

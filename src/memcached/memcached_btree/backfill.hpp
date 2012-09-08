@@ -1,5 +1,5 @@
-#ifndef MEMCACHED_BTREE_BACKFILL_HPP_
-#define MEMCACHED_BTREE_BACKFILL_HPP_
+#ifndef MEMCACHED_MEMCACHED_BTREE_BACKFILL_HPP_
+#define MEMCACHED_MEMCACHED_BTREE_BACKFILL_HPP_
 
 #include "btree/backfill.hpp"
 #include "btree/keys.hpp"
@@ -29,9 +29,9 @@ void debug_print(append_only_printf_buffer_t *buf, const backfill_atom_t& atom);
 // on_keyvalue calls for keys within that range.
 class backfill_callback_t {
 public:
-    virtual void on_delete_range(const key_range_t &range) = 0;
-    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency) = 0;
-    virtual void on_keyvalue(const backfill_atom_t& atom) = 0;
+    virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_keyvalue(const backfill_atom_t& atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 protected:
     virtual ~backfill_callback_t() { }
 };
@@ -42,4 +42,4 @@ void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range,
         parallel_traversal_progress_t *p,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-#endif /* MEMCACHED_BTREE_BACKFILL_HPP_ */
+#endif /* MEMCACHED_MEMCACHED_BTREE_BACKFILL_HPP_ */

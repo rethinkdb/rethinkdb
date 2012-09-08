@@ -9,8 +9,7 @@ void check(const std::string &object_type, const uuid_t &object_id,
 
     if (vector_clock.in_conflict()) {
         out->push_back(clone_ptr_t<vector_clock_conflict_issue_t>(
-            new vector_clock_conflict_issue_t(object_type, object_id, field)
-            ));
+            new vector_clock_conflict_issue_t(object_type, object_id, field)));
     }
 }
 

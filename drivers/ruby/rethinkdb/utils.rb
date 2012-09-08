@@ -16,20 +16,24 @@ module RethinkDB
     # and to get their corresponding enums.
     def class_types
       { Query => Query::QueryType, WriteQuery => WriteQuery::WriteQueryType,
-        Term => Term::TermType, Builtin => Builtin::BuiltinType } end
+        Term => Term::TermType, Builtin => Builtin::BuiltinType,
+        MetaQuery => MetaQuery::MetaQueryType} end
 
     # The protobuf spec often has a field with a slightly different name from
     # the enum constant, which we list here.
     def query_rewrites
       { :getattr => :attr, :implicit_getattr => :attr,
         :hasattr => :attr, :implicit_hasattr => :attr,
+        :without => :attrs, :implicit_without => :attrs,
         :pickattrs => :attrs, :implicit_pickattrs => :attrs,
         :string => :valuestring, :json => :jsonstring, :bool => :valuebool,
         :if => :if_, :getbykey => :get_by_key, :groupedmapreduce => :grouped_map_reduce,
         :insertstream => :insert_stream, :foreach => :for_each, :orderby => :order_by,
         :pointupdate => :point_update, :pointdelete => :point_delete,
         :pointmutate => :point_mutate, :concatmap => :concat_map,
-        :read => :read_query, :write => :write_query } end
+        :read => :read_query, :write => :write_query, :meta => :meta_query,
+        :create_db => :db_name, :drop_db => :db_name, :list_tables => :db_name
+      } end
 
     # These classes go through a useless intermediate type.
     def trampolines; [:table, :map, :concatmap, :filter] end
@@ -39,7 +43,8 @@ module RethinkDB
 
     # These classes reference a tableref directly, rather than a term.
     def table_directs
-      [:insert, :insertstream, :pointupdate, :pointdelete, :pointmutate] end
+      [:insert, :insertstream, :pointupdate, :pointdelete, :pointmutate,
+       :create, :drop] end
   end
   module C; extend C_Mixin; end
 
@@ -58,7 +63,7 @@ module RethinkDB
     @@gensym_counter = 0
     def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
     def with_var; sym = gensym; yield sym, RQL.var(sym); end
-    def _ x; RQL_Query.new x; end
+    def r x; RQL.expr(x); end
   end
   module S; extend S_Mixin; end
 end

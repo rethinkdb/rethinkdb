@@ -9,7 +9,7 @@
  * blueprint has activity primary_t and every peer listed as a secondary has
  * activity secondary_up_to_date_t. */
 template <class protocol_t>
-bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
+bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &_reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                                          const typename protocol_t::region_t &region)
 {
     typedef reactor_business_card_t<protocol_t> rb_t;
@@ -19,8 +19,8 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_
     for (typename blueprint_t<protocol_t>::role_map_t::const_iterator p_it =  blueprint.peers_roles.begin();
                                                                       p_it != blueprint.peers_roles.end();
                                                                       p_it++) {
-        typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > >::const_iterator bcard_it = reactor_directory.find(p_it->first);
-        if (bcard_it == reactor_directory.end() || !bcard_it->second) {
+        typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator bcard_it = _reactor_directory.find(p_it->first);
+        if (bcard_it == _reactor_directory.end()) {
             //The peer is down or has no reactor
             return false;
         }
@@ -30,8 +30,8 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_
 
         /* Whether or not we found a directory entry for this peer */
         bool found = false;
-        for (typename rb_t::activity_map_t::const_iterator it =  (*bcard_it->second).internal.activities.begin();
-                                                           it != (*bcard_it->second).internal.activities.end();
+        for (typename rb_t::activity_map_t::const_iterator it =  bcard_it->second->activities.begin();
+                                                           it != bcard_it->second->activities.end();
                                                            it++) {
             if (it->second.first == region) {
                 if (r_it->second == blueprint_details::role_primary) {
@@ -74,10 +74,10 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
              * offering backfilling until we do. */
             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
             svs->new_read_token(&read_token);
+            region_map_t<protocol_t, binary_blob_t> metainfo_blob;
+            svs->do_get_metainfo(order_source.check_in("be_nothing").with_read_mode(), &read_token, interruptor, &metainfo_blob);
             typename reactor_business_card_t<protocol_t>::nothing_when_safe_t
-                activity(svs->get_all_metainfos(order_source.check_in("be_nothing").with_read_mode(),
-                                                &read_token, interruptor),
-                         backfiller.get_business_card());
+                activity(to_version_range_map(metainfo_blob), backfiller.get_business_card());
             directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
 
             /* Make sure everyone sees that we're trying to erase our data,
@@ -103,7 +103,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
             /* Make sure we don't go down and delete the data on our machine
              * before every who needs a copy has it. */
             run_until_satisfied_2(
-                reactor_directory,
+                directory_echo_mirror.get_internal(),
                 blueprint,
                 boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_nothing, this, _1, _2, region),
                 interruptor);
@@ -118,7 +118,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
             svs->new_write_token(&write_token);
 
-            svs->reset_all_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), &write_token, interruptor);
+            svs->reset_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), &write_token, interruptor);
         }
 
         /* Tell the other peers that we are officially nothing for this region,

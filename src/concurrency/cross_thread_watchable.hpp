@@ -61,7 +61,7 @@ private:
     be run after `drainer`'s destructor. */
     class rethreader_t {
     public:
-        rethreader_t(cross_thread_watchable_variable_t *p) :
+        explicit rethreader_t(cross_thread_watchable_variable_t *p) :
             parent(p)
         {
             parent->rwi_lock_assertion.rethread(parent->dest_thread);
@@ -87,4 +87,4 @@ private:
 
 #include "concurrency/cross_thread_watchable.tcc"
 
-#endif 
+#endif  // CONCURRENCY_CROSS_THREAD_WATCHABLE_HPP_

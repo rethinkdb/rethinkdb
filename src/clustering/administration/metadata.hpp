@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <utility>
 
 // TODO: Probably some of these headers could be moved to the .cc.
 #include "clustering/administration/datacenter_metadata.hpp"
@@ -123,4 +124,72 @@ cJSON *render_as_json(cluster_directory_peer_type_t *peer_type);
 void apply_json_to(cJSON *, cluster_directory_peer_type_t *);
 void on_subfield_change(cluster_directory_peer_type_t *);
 
+
+const char *const METADATA_SUCCESS = 0;
+const char *const METADATA_ERR_NONE = "No entry with that name.";
+const char *const METADATA_ERR_MULTIPLE = "Multiple entries with that name.";
+const char *const METADATA_ERR_CONFLICT = "Entry with that name is in conflict.";
+
+/* A helper class to search through metadata in various ways.  Can be
+   constructed from a pointer to the internal map of the metadata,
+   e.g. `metadata.databases.databases`.  Look in rdb_protocol/query_language.cc
+   for examples on how to use. */
+template<class T>
+class metadata_searcher_t {
+public:
+    typedef std::map<uuid_t, deletable_t<T> > metamap_t;
+    typedef typename metamap_t::iterator iterator;
+    iterator begin() {return map->begin();}
+    iterator end() {return map->end();}
+
+    explicit metadata_searcher_t(metamap_t *_map): map(_map) { }
+
+    template<class callable_t>
+    /* Find the next iterator >= [start] matching [predicate]. */
+    iterator find_next(iterator start, callable_t predicate) {
+        iterator it;
+        for (it = start; it != end(); ++it) {
+            if (it->second.is_deleted()) continue;
+            if (predicate(it->second.get())) break;
+        }
+        return it;
+    }
+    /* Find the next iterator >= [start] (as above, but predicate always true). */
+    iterator find_next(iterator start) {
+        iterator it;
+        for (it = start; it != end(); ++it) if (!it->second.is_deleted()) break;
+        return it;
+    }
+
+    /* Find the unique entry matching [predicate].  If there is no unique entry,
+       return [end()] and set the optional status parameter appropriately. */
+    template<class callable_t>
+    iterator find_uniq(callable_t predicate, const char **out=0) {
+        iterator it, retval;
+        if (out) *out = METADATA_SUCCESS;
+        retval = it = find_next(begin(), predicate);
+        if (it == end()) {
+            if (out) *out = METADATA_ERR_NONE;
+        } else if (find_next(++it, predicate) != end()) {
+            if (out) *out = METADATA_ERR_MULTIPLE;
+            retval = end();
+        }
+        return retval;
+    }
+    /* As above, but matches by name instead of a predicate. */
+    iterator find_uniq(const std::string &name, const char **out=0) {
+        return find_uniq(name_predicate_t(name), out);
+    }
+
+    struct name_predicate_t {
+        bool operator()(T metadata) {
+            return !metadata.name.in_conflict() && metadata.name.get() == name;
+        }
+        name_predicate_t(const std::string &_name): name(_name) { }
+    private:
+        const std::string &name;
+    };
+private:
+    metamap_t *map;
+};
 #endif  // CLUSTERING_ADMINISTRATION_METADATA_HPP_

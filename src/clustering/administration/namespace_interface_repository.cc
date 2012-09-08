@@ -1,22 +1,26 @@
 #include "clustering/administration/namespace_interface_repository.hpp"
-#include "concurrency/cross_thread_signal.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+
+#include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 
 #define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
 
 template <class protocol_t>
 namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
-                                               clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > _namespaces_directory_metadata)
+                                               clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > _namespaces_directory_metadata,
+                                               typename protocol_t::context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
-      namespaces_directory_metadata(_namespaces_directory_metadata)
+      namespaces_directory_metadata(_namespaces_directory_metadata),
+      ctx(_ctx)
 { }
 
 template <class protocol_t>
-std::map<peer_id_t, reactor_business_card_t<protocol_t> > get_reactor_business_cards(
+std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > get_reactor_business_cards(
         const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &ns_directory_metadata, namespace_id_t n_id) {
-    std::map<peer_id_t, reactor_business_card_t<protocol_t> > res;
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > res;
     for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it  = ns_directory_metadata.begin();
                                                                                                     it != ns_directory_metadata.end();
                                                                                                     it++) {
@@ -25,7 +29,7 @@ std::map<peer_id_t, reactor_business_card_t<protocol_t> > get_reactor_business_c
         if (jt != it->second.reactor_bcards.end()) {
             res[it->first] = jt->second.internal;
         } else {
-            res[it->first] = reactor_business_card_t<protocol_t>();
+            res[it->first] = cow_ptr_t<reactor_business_card_t<protocol_t> >();
         }
     }
 
@@ -55,8 +59,7 @@ namespace_repo_t<protocol_t>::access_t::access_t(namespace_repo_t *parent, names
             coro_t::spawn_sometime(boost::bind(
                 &namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface, parent,
                 cache, namespace_id,
-                auto_drainer_t::lock_t(&cache->drainer)
-                ));
+                auto_drainer_t::lock_t(&cache->drainer)));
         } else {
             cache_entry = &cache->entries[namespace_id];
             ref_handler.init(cache_entry);
@@ -146,14 +149,15 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
     `cross_thread_watchable`, then switch back. In destruction we need to do the
     reverse. Fortunately RAII works really nicely here. */
     on_thread_t switch_to_home_thread(home_thread());
-    clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > subview =
+    clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > > subview =
         namespaces_directory_metadata->subview(boost::bind(&get_reactor_business_cards<protocol_t>, _1, namespace_id));
-    cross_thread_watchable_variable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > cross_thread_watchable(subview, thread);
+    cross_thread_watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > cross_thread_watchable(subview, thread);
     on_thread_t switch_back(thread);
 
     cluster_namespace_interface_t<protocol_t> namespace_interface(
         mailbox_manager,
-        cross_thread_watchable.get_watchable());
+        cross_thread_watchable.get_watchable(),
+        ctx);
 
     try {
         wait_interruptible(namespace_interface.get_initial_ready_signal(),

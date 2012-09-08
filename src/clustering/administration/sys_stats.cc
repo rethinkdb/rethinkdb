@@ -1,14 +1,15 @@
 #include "clustering/administration/sys_stats.hpp"
-#include "errors.hpp"
 
 #include <sys/statvfs.h>
+
+#include "errors.hpp"
 
 struct disk_stat_t {
     uint64_t disk_space_free;
     uint64_t disk_space_used;
     uint64_t disk_space_total;
 
-    disk_stat_t(const std::string &filepath) {
+    explicit disk_stat_t(const std::string &filepath) {
         int res;
         // get disk space data using statvfs
         struct statvfs fsdata;
@@ -19,12 +20,13 @@ struct disk_stat_t {
             res = statvfs(filepath.c_str(), &fsdata);
         }
         if (res < 0) {
-            throw std::runtime_error(strprintf("Failed to statvfs with filepath '%s': %s "
-                "(errno = %d)", filepath.c_str(), strerror(errno), errno));
+            disk_space_total = -1;
+            disk_space_free = -1;
+            disk_space_used = -1;
         }
 
-        disk_space_total = fsdata.f_bsize * fsdata.f_blocks / KILOBYTE;
-        disk_space_free = fsdata.f_bsize * fsdata.f_bfree / KILOBYTE;
+        disk_space_total = fsdata.f_bsize * fsdata.f_blocks;
+        disk_space_free = fsdata.f_bsize * fsdata.f_bfree;
         disk_space_used = disk_space_total - disk_space_free;
     }
 };

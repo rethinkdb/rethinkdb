@@ -46,8 +46,7 @@ public:
                 disk_queue_in_use = true;
                 coro_t::spawn_sometime(boost::bind(
                     &disk_backed_queue_wrapper_t<T>::copy_from_disk_queue_to_memory_queue,
-                    this, auto_drainer_t::lock_t(&drainer)
-                    ));
+                    this, auto_drainer_t::lock_t(&drainer)));
             } else {
                 memory_queue.push_back(value);
                 available_control.set_available(true);

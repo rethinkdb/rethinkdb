@@ -10,16 +10,16 @@
     </div>
 
     <ul class="nav nav-tabs">
-        <li class="active"><a href="#machines/{{server_id}}/statistics" data-target="#machine-statistics" id="machine-statistics-link" data-toggle="tab" class="tab-link">Statistics</a></li>
-        <li><a href="#machines/{{server_id}}/data" data-target="#machine-data" id="machine-data-link" data-toggle="tab" class="tab-link">Data</a></li>
-        <li><a href="#machines/{{server_id}}/assignments" data-target="#machine-assignments" id="machine-assignments-link" data-toggle="tab" class="tab-link">Assignments</a></li>
-        <li><a href="#machines/{{server_id}}/operations" data-target="#machine-operations" id="machine-operations-link" data-toggle="tab" class="tab-link">Operations</a></li>
-        <li><a href="#machines/{{server_id}}/logs" data-target="#machine-log_entries" id="machine-log_entries-link" data-toggle="tab" class="tab-link">Recent log entries</a></li>
+        <li class="active"><a href="#servers/{{server_id}}/overview" data-target="#machine-overview" id="machine-overview-link" data-toggle="tab" class="tab-link">Statistics</a></li>
+        <li><a href="#servers/{{server_id}}/data" data-target="#machine-data" id="machine-data-link" data-toggle="tab" class="tab-link">Data on this server</a></li>
+        <li><a href="#servers/{{server_id}}/assignments" data-target="#machine-assignments" id="machine-assignments-link" data-toggle="tab" class="tab-link">Assignments</a></li>
+        <li><a href="#servers/{{server_id}}/operations" data-target="#machine-operations" id="machine-operations-link" data-toggle="tab" class="tab-link">Operations</a></li>
+        <li><a href="#servers/{{server_id}}/logs" data-target="#machine-log_entries" id="machine-log_entries-link" data-toggle="tab" class="tab-link">Recent log entries</a></li>
     </ul>
     <div class="tab-content">  
         <div id="user-alert-space"></div>
-        <div class="tab-pane active" id="machine-statistics">
-            <div class="section machine-stats"></div>
+        <div class="tab-pane active" id="machine-overview">
+            <div class="section overview"></div>
         </div>
         <div class="tab-pane" id="machine-data">
             <div class="section data"></div>
@@ -38,20 +38,25 @@
     </div>
 </script>
 
-<script id="machine_view-not_found-template" type="text/x-handlebars-template">
-    <p>Machine {{id}} could not be found.</p>
+<script id="machine_view-ghost-template" type="text/x-handlebars-template">
+    <h1>Error</h1>
+    <p>This server has been previously killed but is not reconnected.<br/>
+    Please kill the rethinkDB instance on this server.</p>
+    <p>List of IPs: {{comma_separated_simple ips}}</p>
+    <p></p>
 </script>
 
 <script id="machine_view_profile-template" type="text/x-handlebars-template">
-  <h3 class="title">Machine profile</h3>
+  <h3 class="title">Server profile</h3>
   <div class="section summary">
     <p class="datacenter-name">Datacenter:
       {{#if assigned_to_datacenter}}
       <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
       {{else}}
-      Unassigned 
+      Unassigned
       {{/if}}
     </p>
+
     <p>Status: {{humanize_machine_reachability status}}</p>
     <p>IP {{pluralize_noun "address" nips}}: {{#if ips}} {{html_list ips}} {{else}} N/A {{/if}}</p>
     <p class="uptime">Uptime: {{uptime}}</p>
@@ -63,17 +68,79 @@
 </script>
 
 <script id="machine_view_title-template" type="text/x-handlebars-template">
-    <h1>Machine overview for {{name}}</h1>
+    <h1>Server overview for {{name}}</h1>
+</script>
+
+<script id="machine_overview-container-template" type="text/x-handlebars-template">
+    {{#unless is_assigned}}
+    <h3>Information</h3>
+    <p>This server is not assigned to any datacenter, and therefore its ressources are not used.<br/>
+    You can assign a datacenter <a href="#servers/{{machine_id}}/operations">here</a>.</p>
+    {{/unless}}
+    <h3 class="title">Disk usage</h3>
+    <div class="pie_disk-container"></div>
+
+    <h3 class="title">RAM usage</h3>
+    <div class="pie_ram-container"></div>
+</script>
+
+<script id="machine_overview-pie_disk-container-template" type="text/x-handlebars-template">
+    <div class="two-panel-section">
+        <div class="disk_usage-container panel-left">
+            <svg class="pie_chart-disk" width="300" height="200">
+                <text x="100" y="135" class="loading_text-pie_disk">Loading data...</text>
+            </svg>
+        </div>
+        <div class="pie_legend panel-right">
+            <ul class="legend">
+                <li class="title-legend"><h4>Legend</h4></li>
+                <li class="disk_used-legend">Used disk: {{disk_used}}</li>
+                <li class="disk_free-legend">Free disk: {{disk_free}}</li>
+            </ul>
+            <ul class="legend">
+                <li class="title-legend"><h4>More statistics</h4></li>
+                <li class="more_statistics">Disk space: {{disk_total}}</li>
+                <li class="more_statistics">Used disk / disk space: {{disk_used_percent}}</li>
+                <li class="more_statistics">Disk space used by RethinkDB: {{disk_rdb}}</li>
+                <li class="more_statistics">Disk used by RethinkDB / disk used: {{disk_rdb_used_percent}}</li>
+            </ul>
+        </div>
+    </div>
+</script>
+
+
+<script id="machine_overview-pie_ram-container-template" type="text/x-handlebars-template">
+    <div class="two-panel-section">
+        <div class="ram_usage-container panel-left">
+            <svg class="pie_chart-ram" width="300" height="200">
+                <text x="100" y="135" class="loading_text-pie_ram">Loading data...</text>
+            </svg>
+        </div>
+        <div class="pie_legend panel-right">
+            <ul class="legend">
+                <li class="title-legend"><h4>Legend</h4></li>
+                <li class="ram_used-legend">Used RAM: {{ram_used}}</li>
+                <li class="ram_free-legend">Free RAM: {{ram_free}}</li>
+            </ul>
+            <ul class="legend">
+                <li class="title-legend"><h4>More statistics</h4></li>
+                <li class="more_statistics">Total RAM: {{ram_total}}</li>
+                <li class="more_statistics">Used RAM / total RAM: {{ram_used_percent}}</li>
+                <li class="more_statistics">RAM used by RethinkDB: {{ram_rdb}}</li>
+                <li class="more_statistics">RAM used by RethinkDB / used ram: {{ram_rdb_used_percent}}</li>
+            </ul>
+        </div>
+    </div>
 </script>
 
 <script id="machine_view_data-template" type="text/x-handlebars-template">
-    <h3 class="title">Data on this machine</h3>
+    <h3 class="title">Data on this server</h3>
     {{#unless data.namespaces}}
-    <p>No data found on this machine.</p>
+    <p>No data found on this server.</p>
     {{/unless}}
     {{#each data.namespaces}}
     <div class="namespace">
-        <h4>Namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
+        <h4>Table <a href="/#tables/{{uuid}}">{{name}}</a>:</h4>
         <ul class="shard_ul">
             {{#each shards}}
             <li class="shard_li">
@@ -92,13 +159,13 @@
 
 
 <script id="machine_view-assignments-template" type="text/x-handlebars-template">
-    <h3 class="title">Assignments for this machine</h3>
+    <h3 class="title">Assignments for this server</h3>
     {{#unless data.namespaces}}
-    <p>No data found on this machine.</p>
+    <p>No data found on this server.</p>
     {{/unless}}
     {{#each data.namespaces}}
     <div class="namespace">
-        <h4>Namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
+        <h4>Table <a href="/#tables/{{uuid}}">{{name}}</a>:</h4>
         <ul class="shard_ul">
             {{#each shards}}
             <li class="shard_li">
@@ -154,7 +221,7 @@
 
 
 <script id="reason-set_secondary-need_replica-template" type="text/x-handlebars-template">
-    You need a replica to replace this master, please <a href="#namespaces/{{namespace_id}}/replication">increase</a> your number of replicas.
+    You need a replica to replace this master, please <a href="#tables/{{namespace_id}}/replication">increase</a> your number of replicas.
 </script>
 
 <script id="reason-set_nothing-set_secondary_first-template" type="text/x-handlebars-template">
@@ -162,12 +229,12 @@
 </script>
 
 <script id="reason-set_master-datacenter_not_primary-template" type="text/x-handlebars-template">
-    You have to <a href="#namespaces/{{namespace_id}}/replication">set</a> this server's datacenter as the primary one first.
+    You have to <a href="#tables/{{namespace_id}}/replication">set</a> this server's datacenter as the primary one first.
 </script>
 
 
 <script id="reason-set_nothing-unsatisfiable_goals-template" type="text/x-handlebars-template">
-    <a href="#namespaces/{{namespace_id}}/replication">Lower</a> the number of replicas or <a href="#servers">add a machine</a> in this datacenter to avoid unsatisfiable goals.
+    <a href="#tables/{{namespace_id}}/replication">Lower</a> the number of replicas or <a href="#servers">add a server</a> in this datacenter to avoid unsatisfiable goals.
 </script>
 
 <script id="reason-set_primary-set_secondary_first-template" type="text/x-handlebars-template">
@@ -175,7 +242,7 @@
 </script>
 
 <script id="reason-set_primary-set_datecenter_as_primary-template" type="text/x-handlebars-template">
-    You have to <a href="#namespaces/{{namespace_id}}/replication">set</a> this server's datacenter as the primary one first.
+    You have to <a href="#tables/{{namespace_id}}/replication">set</a> this server's datacenter as the primary one first.
 </script>
 
 <script id="reason-set_primary-no_datacenter-template" type="text/x-handlebars-template">
@@ -183,7 +250,7 @@
 </script>
 
 <script id="reason-set_secondary-increase_replicas-template" type="text/x-handlebars-template">
-    You have to <a href="#namespaces/{{namespace_id}}/replication">increase</a> your number of replicas first.
+    You have to <a href="#tables/{{namespace_id}}/replication">increase</a> your number of replicas first.
 </script>
 
 
@@ -192,7 +259,7 @@
 <script id="alert-set_server-template" type="text/x-handlebars-template">
     <div class="alert" data-alert="alert">
         <a class="close" href="#">&times;</a>
-        <p>You successfully set this server as a {{role}} for the shard {{shard}} of the namespace {{namespace_name}}</p>
+        <p>You successfully set this server as a {{role}} for the shard {{shard}} of the table {{namespace_name}}</p>
     </div>
 </script>
 
@@ -219,10 +286,10 @@
 </script>
 
 <script id="reason-cannot_unassign-master-template" type="text/x-handlebars-template">
-    This server is master for some data. Please <a href="#machines/{{server_id}}/assignments" class="to_assignments-link">make</a> it at least secondary.
+    This server is master for some data. Please <a href="#servers/{{server_id}}/assignments" class="to_assignments-link">make</a> it at least secondary.
 </script>
 <script id="reason-cannot_unassign-goals-template" type="text/x-handlebars-template">
-    You have to lower the number of replicas of the following namespaces to avoid unsatisfiable goals: {{links_to_namespaces_inline namespaces_need_less_replicas "replication"}}
+    You have to lower the number of replicas of the following tables to avoid unsatisfiable goals: {{links_to_namespaces_inline namespaces_need_less_replicas "replication"}}
 </script>
 
 <script id="machine_view-recent_log_entry-template" type="text/x-handlebars-template">
@@ -243,9 +310,9 @@
 </script>
 
 <script id="unassign-modal-template" type="text/x-handlebars-template">
-  <div class="alert alert-error">Removing this machine from its datacenter will remove all its responsabilities.</div>
+  <div class="alert alert-error">Removing this server from its datacenter will remove all its responsabilities.</div>
   <div class="alert alert-error error_answer"></div>
-  <p>Are you sure you want to remove this machine <a href="#servers/{{id}}">{{name}}</a> from its datacenter?</p>
+  <p>Are you sure you want to remove this server <a href="#servers/{{id}}">{{name}}</a> from its datacenter?</p>
 </script>
 
 <script id="unassign-alert-template" type="text/x-handlebars-template">

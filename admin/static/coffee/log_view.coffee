@@ -113,7 +113,7 @@ module 'LogView', ->
 
 
         check_for_new_updates: =>
-            min_timestamp = @current_logs[0].get('timestamp')
+            min_timestamp = @current_logs[0]?.get('timestamp')
             if min_timestamp?
                 route = @route+"&min_timestamp=#{min_timestamp}"
 
@@ -256,7 +256,7 @@ module 'LogView', ->
         render: =>
             json = _.extend @model.toJSON(), @format_msg(@model)
             json = _.extend json,
-                machine_name: machines.get(@model.get('machine_uuid')).get('name')
+                machine_name: if machines.get(@model.get('machine_uuid'))? then machines.get(@model.get('machine_uuid')).get('name') else 'Unknown machine'
                 datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
         
             @.$el.html @template json
@@ -268,7 +268,7 @@ module 'LogView', ->
         render_small: =>
             json = _.extend @model.toJSON(), @format_msg_small(@model)
             json = _.extend json,
-                machine_name: machines.get(@model.get('machine_uuid')).get('name')
+                machine_name: if machines.get(@model.get('machine_uuid'))? then machines.get(@model.get('machine_uuid')).get('name') else 'Unknown machine'
                 datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
         
             @.$el.html @template_small json
@@ -426,7 +426,6 @@ module 'LogView', ->
                                             database_id: database_id
                                             database_id_trunked: database_id.slice 24
 
-                    #TODO logs for databases
                     else
                         msg += "We were unable to parse this log. Click on 'More details' to see the raw log"
                 return {
@@ -546,8 +545,6 @@ module 'LogView', ->
 
                     else
                         msg += "We were unable to parse this log. Click on 'More details' to see the raw log"
-
-                        #TODO logs for databases
                 return {
                     msg: msg
                     raw_data: JSON.stringify $.parseJSON(data), undefined, 2

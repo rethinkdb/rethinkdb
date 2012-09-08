@@ -43,6 +43,8 @@
 #define NON_NULL_ATTR(arg) __attribute__((nonnull(arg)))
 #endif
 
+#define NORETURN __attribute__((noreturn))
+
 /* Error handling
  *
  * There are several ways to report errors in RethinkDB:
@@ -73,9 +75,9 @@
  */
 
 #ifndef NDEBUG
-#define DEBUG_ONLY_VAR
+#define DEBUG_VAR
 #else
-#define DEBUG_ONLY_VAR __attribute__((unused))
+#define DEBUG_VAR __attribute__((unused))
 #endif
 
 #define UNUSED __attribute__((unused))
@@ -84,6 +86,7 @@
 // TODO: Abort probably is not the right thing to do here.
 #define fail_due_to_user_error(msg, ...) do {                           \
         report_user_error(msg, ##__VA_ARGS__);                          \
+        BREAKPOINT;                                                     \
         exit(-1);                                                       \
     } while (0)
 
