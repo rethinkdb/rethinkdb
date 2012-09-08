@@ -817,7 +817,8 @@ module 'DataExplorerView', ->
             $('.dataexplorer_container').css 'margin', '0px 0px 0px 20px'
             $('.change_size').val 'Smaller view'
 
-       destroy: =>
+        destroy: =>
+            @display_normal()
             @input_query.destroy()
             @data_container.destroy()
             window.conn.close()
