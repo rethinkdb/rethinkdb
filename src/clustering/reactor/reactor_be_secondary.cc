@@ -4,6 +4,8 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/direct_reader.hpp"
+#include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 
 template <class protocol_t>
 bool reactor_t<protocol_t>::find_broadcaster_in_directory(
@@ -25,8 +27,8 @@ bool reactor_t<protocol_t>::find_broadcaster_in_directory(
             for (typename rb_t::activity_map_t::const_iterator a_it  = p_it->second->activities.begin();
                                                                a_it != p_it->second->activities.end();
                                                                a_it++) {
-                if (a_it->second.first == region) {
-                    if (boost::get<typename rb_t::primary_t>(&a_it->second.second)) {
+                if (a_it->second.region == region) {
+                    if (boost::get<typename rb_t::primary_t>(&a_it->second.activity)) {
                         if (!found_broadcaster) {
                             //This is the first viable broadcaster we've found
                             //so we set the output variable.
@@ -97,23 +99,23 @@ bool reactor_t<protocol_t>::find_replier_in_directory(
     typedef reactor_business_card_t<protocol_t> rb_t;
     typedef std::map<peer_id_t, cow_ptr_t<rb_t> > reactor_directory_t;
 
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
-                                                                      it != bp.peers_roles.end();
-                                                                      it++) {
+    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it = bp.peers_roles.begin();
+         it != bp.peers_roles.end();
+         ++it) {
         typename reactor_directory_t::const_iterator p_it = _reactor_directory.find(it->first);
         if (p_it != _reactor_directory.end()) {
-            for (typename rb_t::activity_map_t::const_iterator a_it  = p_it->second->activities.begin();
-                                                               a_it != p_it->second->activities.end();
-                                                               a_it++) {
-                if (a_it->second.first == region) {
-                    if (const typename rb_t::primary_t *primary = boost::get<typename rb_t::primary_t>(&a_it->second.second)) {
+            for (typename rb_t::activity_map_t::const_iterator a_it = p_it->second->activities.begin();
+                 a_it != p_it->second->activities.end();
+                 ++a_it) {
+                if (a_it->second.region == region) {
+                    if (const typename rb_t::primary_t *primary = boost::get<typename rb_t::primary_t>(&a_it->second.activity)) {
                         if (primary->replier && primary->broadcaster.branch_id == b_id) {
                             backfill_candidates.push_back(get_directory_entry_view<typename rb_t::primary_t>(it->first, a_it->first)->
                                 subview(&extract_replier_from_reactor_business_card_primary<protocol_t>));
                             peer_ids.push_back(it->first);
                             activity_ids.push_back(a_it->first);
                         }
-                    } else if (const typename rb_t::secondary_up_to_date_t *secondary = boost::get<typename rb_t::secondary_up_to_date_t>(&a_it->second.second)) {
+                    } else if (const typename rb_t::secondary_up_to_date_t *secondary = boost::get<typename rb_t::secondary_up_to_date_t>(&a_it->second.activity)) {
                         if (secondary->branch_id == b_id) {
                             backfill_candidates.push_back(get_directory_entry_view<typename rb_t::secondary_up_to_date_t>(it->first, a_it->first)->
                                 subview(&extract_replier_from_reactor_business_card_secondary<protocol_t>));
@@ -141,9 +143,9 @@ bool reactor_t<protocol_t>::find_replier_in_directory(
 }
 
 template<class protocol_t>
-void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
+void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
-        order_source_t order_source;  // TODO: order_token_t::ignore
+        order_source_t order_source(svs->home_thread());  // TODO: order_token_t::ignore
 
         /* Tell everyone that we're backfilling so that we can get up to
          * date. */
@@ -156,6 +158,9 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
             reactor_activity_id_t activity_id;
 
             {
+                cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+                on_thread_t th(svs->home_thread());
+
                 /* First we construct a backfiller which offers backfills to
                  * the rest of the cluster, this is necessary because if a new
                  * primary is coming up it may need data from us before it can
@@ -170,7 +175,9 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                 svs->new_read_token(&read_token);
 
                 region_map_t<protocol_t, binary_blob_t> metainfo_blob;
-                svs->do_get_metainfo(order_source.check_in("reactor_t::be_secondary").with_read_mode(), &read_token, interruptor, &metainfo_blob);
+                svs->do_get_metainfo(order_source.check_in("reactor_t::be_secondary").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
+
+                on_thread_t th2(this->home_thread());
 
                 typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
                     activity(to_version_range_map(metainfo_blob), backfiller.get_business_card());
@@ -220,26 +227,35 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                  * need to backfill to get up to date. */
                 directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_backfilling_t(backfill_location));
 
-                std::string region_name(render_region_as_string(&region));
+                cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+                cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > ct_broadcaster(broadcaster, svs->home_thread());
+                cross_thread_watchable_variable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > ct_location_to_backfill_from(location_to_backfill_from, svs->home_thread());
+                on_thread_t th(svs->home_thread());
+
+                // TODO: Don't use local stack variable for name.
+                std::string region_name = strprintf("be_secondary_%p", &region);
                 perfmon_collection_t region_perfmon_collection;
                 perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
-                listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster, branch_history_manager, svs, location_to_backfill_from, backfill_session_id, &regions_perfmon_collection, interruptor, &order_source);
+                listener_t<protocol_t> listener(io_backender, mailbox_manager, ct_broadcaster.get_watchable(), branch_history_manager, svs, ct_location_to_backfill_from.get_watchable(), backfill_session_id, &regions_perfmon_collection, &ct_interruptor, &order_source);
 
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use
                  * us for backfills. */
-                replier_t<protocol_t> replier(&listener);
+                replier_t<protocol_t> replier(&listener, mailbox_manager, branch_history_manager);
 
                 direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
+
+                cross_thread_signal_t ct_broadcaster_lost_signal(listener.get_broadcaster_lost_signal(), this->home_thread());
+                on_thread_t th2(this->home_thread());
 
                 /* Make the directory reflect the new role that we are filling.
                  * (Being a secondary). */
                 directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t(branch_id, replier.get_business_card(), direct_reader.get_business_card()));
 
                 /* Wait for something to change. */
-                wait_interruptible(listener.get_broadcaster_lost_signal(), interruptor);
+                wait_interruptible(&ct_broadcaster_lost_signal, interruptor);
             } catch (typename listener_t<protocol_t>::backfiller_lost_exc_t) {
                 /* We lost the replier which means we should retry, just
                  * going back to the top of the while loop accomplishes this.

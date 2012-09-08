@@ -5,7 +5,9 @@
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
-#include "protocol_api.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
+#include "concurrency/cross_thread_signal.hpp"
+
 
 /* `WRITE_QUEUE_CORO_POOL_SIZE` is the number of coroutines that will be used
 when draining the write queue after completing a backfill. */
@@ -51,8 +53,8 @@ template <class protocol_t>
 listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-                                   branch_history_manager_t<protocol_t> *bhm,
-                                   multistore_ptr_t<protocol_t> *svs,
+                                   branch_history_manager_t<protocol_t> *branch_history_manager,
+                                   store_view_t<protocol_t> *svs,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
                                    backfill_session_id_t backfill_session_id,
                                    perfmon_collection_t *backfill_stats_parent,
@@ -61,7 +63,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
     mailbox_manager_(mm),
-    branch_history_manager_(bhm),
     svs_(svs),
     uuid_(generate_uuid()),
     perfmon_collection_(),
@@ -88,7 +89,17 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     }
 
     branch_id_ = business_card.get().get().branch_id;
-    branch_history_manager_->import_branch_history(business_card.get().get().branch_id_associated_branch_history, interruptor);
+
+    branch_birth_certificate_t<protocol_t> this_branch_history;
+
+    {
+        cross_thread_signal_t ct_interruptor(interruptor, branch_history_manager->home_thread());
+        on_thread_t th(branch_history_manager->home_thread());
+        branch_history_manager->import_branch_history(business_card.get().get().branch_id_associated_branch_history, interruptor);
+        this_branch_history = branch_history_manager->get_branch(branch_id_);
+    }
+
+    our_branch_region_ = this_branch_history.region;
 
 #ifndef NDEBUG
     /* Sanity-check to make sure we're on the same timeline as the thing
@@ -96,8 +107,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
        but if there's an error it would be nice to catch it where the action
        was initiated. */
 
-    branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager_->get_branch(branch_id_);
-    guarantee(region_is_superset(this_branch_history.region, svs_->get_region()));
+    guarantee(region_is_superset(our_branch_region_, svs_->get_region()));
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs_->new_read_token(&read_token);
@@ -105,16 +115,19 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     svs_->do_get_metainfo(order_source->check_in("listener_t(A)").with_read_mode(), &read_token, interruptor, &start_point_blob);
     region_map_t<protocol_t, version_range_t> start_point = to_version_range_map(start_point_blob);
 
-    for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
-         it != start_point.end();
-         ++it) {
+    {
+        on_thread_t th(branch_history_manager->home_thread());
+        for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
+             it != start_point.end();
+             ++it) {
 
-        version_t version = it->second.latest;
-        rassert(version.branch == branch_id_ ||
-                version_is_ancestor(branch_history_manager_,
-                                    version,
-                                    version_t(branch_id_, this_branch_history.initial_timestamp),
-                                    it->first));
+            version_t version = it->second.latest;
+            rassert(version.branch == branch_id_ ||
+                    version_is_ancestor(branch_history_manager,
+                                        version,
+                                        version_t(branch_id_, this_branch_history.initial_timestamp),
+                                        it->first));
+        }
     }
 #endif
 
@@ -144,7 +157,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
         /* Backfill */
         backfillee<protocol_t>(mailbox_manager_,
-                               branch_history_manager_,
+                               branch_history_manager,
                                svs_,
                                svs_->get_region(),
                                replier->subview(&listener_t<protocol_t>::get_backfiller_from_replier_bcard),
@@ -217,13 +230,12 @@ template <class protocol_t>
 listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-                                   branch_history_manager_t<protocol_t> *bhm,
+                                   branch_history_manager_t<protocol_t> *branch_history_manager,
                                    broadcaster_t<protocol_t> *broadcaster,
                                    perfmon_collection_t *backfill_stats_parent,
                                    signal_t *interruptor,
                                    DEBUG_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager_(mm),
-    branch_history_manager_(bhm),
     svs_(broadcaster->release_bootstrap_svs_for_listener()),
     branch_id_(broadcaster->get_branch_id()),
     uuid_(generate_uuid()),
@@ -244,6 +256,14 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline)
 {
+    branch_birth_certificate_t<protocol_t> this_branch_history;
+    {
+        on_thread_t th(branch_history_manager->home_thread());
+        this_branch_history = branch_history_manager->get_branch(branch_id_);
+    }
+
+    our_branch_region_ = this_branch_history.region;
+
 #ifndef NDEBUG
     /* Confirm that `broadcaster_metadata` corresponds to `broadcaster` */
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
@@ -255,7 +275,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     that we're using the same `branch_history_manager_t` as the broadcaster, so
     an entry should already be present for the branch we're trying to join, and
     we skip calling `import_branch_history()`. */
-    branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager_->get_branch(branch_id_);
     rassert(svs_->get_region() == this_branch_history.region);
 
     /* Snapshot the metainfo before we start receiving writes */
@@ -331,13 +350,9 @@ template <class protocol_t>
 class intro_receiver_t : public signal_t {
 public:
     listener_intro_t<protocol_t> intro;
-    void fill(state_timestamp_t its,
-              typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t um,
-              typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
+    void fill(listener_intro_t<protocol_t> _intro) {
         guarantee(!is_pulsed());
-        intro.broadcaster_begin_timestamp = its;
-        intro.upgrade_mailbox = um;
-        intro.downgrade_mailbox = dm;
+        intro = _intro;
         pulse();
     }
 };
@@ -351,7 +366,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
     intro_receiver_t<protocol_t> intro_receiver;
     typename listener_business_card_t<protocol_t>::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
-                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1, _2, _3),
+                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1),
                       mailbox_callback_mode_inline);
 
     try {
@@ -380,7 +395,7 @@ void listener_t<protocol_t>::on_write(const typename protocol_t::write_t &write,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
-    guarantee(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, write.get_region()));
+    guarantee(region_is_superset(our_branch_region_, write.get_region()));
     guarantee(!region_is_empty(write.get_region()));
     order_token.assert_write_mode();
 
@@ -464,7 +479,7 @@ void listener_t<protocol_t>::on_writeread(const typename protocol_t::write_t &wr
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
         THROWS_NOTHING
 {
-    rassert(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, write.get_region()));
+    rassert(region_is_superset(our_branch_region_, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
     rassert(region_is_superset(svs_->get_region(), write.get_region()));
     order_token.assert_write_mode();
@@ -545,7 +560,7 @@ void listener_t<protocol_t>::on_read(const typename protocol_t::read_t &read,
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
         THROWS_NOTHING
 {
-    rassert(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, read.get_region()));
+    rassert(region_is_superset(our_branch_region_, read.get_region()));
     rassert(!region_is_empty(read.get_region()));
     rassert(region_is_superset(svs_->get_region(), read.get_region()));
     order_token.assert_read_mode();

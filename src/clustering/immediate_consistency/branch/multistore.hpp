@@ -47,8 +47,6 @@ public:
     // deletes the store_subview_t objects.
     ~multistore_ptr_t();
 
-    int num_stores() const { return store_views_.size(); }
-
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token_out);
     void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token_out);
 
@@ -56,8 +54,6 @@ public:
                          object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                          signal_t *interruptor,
                          region_map_t<protocol_t, binary_blob_t> *out) THROWS_ONLY(interrupted_exc_t);
-
-    typename protocol_t::region_t get_a_region(int i) const;
 
     void set_metainfo(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
                       order_token_t order_token,
@@ -100,8 +96,13 @@ public:
                     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
+    store_view_t<protocol_t> *get_store(int i) const;
+
+    int num_stores() const { return store_views_.size(); }
+
 private:
     struct switch_read_token_t;
+    typename protocol_t::region_t get_a_region(int i) const;
 
     // Used by send_multistore_backfill.
     void single_shard_backfill(int i,

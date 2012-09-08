@@ -169,6 +169,11 @@ std::vector<dummy_protocol_t::region_t> region_subtract_many(const dummy_protoco
     return result;
 }
 
+dummy_protocol_t::region_t drop_cpu_sharding(const dummy_protocol_t::region_t &r) {
+    // TODO: This implementation is actually broken.
+    return r;
+}
+
 bool operator==(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
     return a.keys == b.keys;
 }

@@ -12,7 +12,7 @@ public:
     subview_watchable_t(const callable_type &l, watchable_t<outer_type> *p) :
         lens(l), parent(p->clone()) { }
 
-    subview_watchable_t *clone() {
+    subview_watchable_t *clone() const {
         return new subview_watchable_t(lens, parent.get());
     }
 

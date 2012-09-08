@@ -5,20 +5,19 @@
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
 
-namespace blueprint_details {
-json_adapter_if_t::json_adapter_map_t get_json_subfields(role_t *) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(blueprint_role_t *) {
     return json_adapter_if_t::json_adapter_map_t();
 }
 
-cJSON *render_as_json(role_t *target) {
+cJSON *render_as_json(blueprint_role_t *target) {
     switch (*target) {
-    case role_primary:
+    case blueprint_role_primary:
         return cJSON_CreateString("role_primary");
         break;
-    case role_secondary:
+    case blueprint_role_secondary:
         return cJSON_CreateString("role_secondary");
         break;
-    case role_nothing:
+    case blueprint_role_nothing:
         return cJSON_CreateString("role_nothing");
         break;
     default:
@@ -27,24 +26,23 @@ cJSON *render_as_json(role_t *target) {
     };
 }
 
-void apply_json_to(cJSON *change, role_t *target) {
+void apply_json_to(cJSON *change, blueprint_role_t *target) {
     std::string val = get_string(change);
 
     if (val == "role_primary" || val == "P") {
-        *target = role_primary;
+        *target = blueprint_role_primary;
     } else if (val == "role_secondary" || val == "S") {
-        *target = role_secondary;
+        *target = blueprint_role_secondary;
     } else if (val == "role_nothing" || val == "N") {
-        *target = role_nothing;
+        *target = blueprint_role_nothing;
     } else {
-        throw schema_mismatch_exc_t("Cannot set a role_t object using %s."
+        throw schema_mismatch_exc_t("Cannot set a blueprint_role_t object using %s."
                 "Acceptable values are: \"role_primary\", \"role_secondary\","
                 "\"role_nothing\".\n");
     }
 }
 
-void on_subfield_change(role_t *) { }
-}  // namespace blueprint_details
+void on_subfield_change(blueprint_role_t *) { }
 
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *target) {

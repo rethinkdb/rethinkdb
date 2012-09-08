@@ -4,7 +4,6 @@
 #include <map>
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
@@ -37,15 +36,6 @@ There are four ways a `listener_t` can go wrong:
     pulsed when it loses touch.
 */
 
-template <class protocol_t>
-class listener_intro_t {
-public:
-    typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
-    typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
-    state_timestamp_t broadcaster_begin_timestamp;
-};
-
-
 template<class protocol_t>
 class listener_t {
 public:
@@ -73,7 +63,7 @@ public:
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
             branch_history_manager_t<protocol_t> *branch_history_manager,
-            multistore_ptr_t<protocol_t> *svs,
+            store_view_t<protocol_t> *svs,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
             backfill_session_id_t backfill_session_id,
             perfmon_collection_t *backfill_stats_parent,
@@ -101,9 +91,7 @@ public:
 
     // Getters used by the replier :(
     // TODO: Some of these can and should be passed directly to the replier?
-    mailbox_manager_t *mailbox_manager() const { return mailbox_manager_; }
-    branch_history_manager_t<protocol_t> *branch_history_manager() const { return branch_history_manager_; }
-    multistore_ptr_t<protocol_t> *svs() const {
+    store_view_t<protocol_t> *svs() const {
         rassert(svs_ != NULL);
         return svs_;
     }
@@ -214,11 +202,11 @@ private:
 
     mailbox_manager_t *const mailbox_manager_;
 
-    branch_history_manager_t<protocol_t> *const branch_history_manager_;
-
-    multistore_ptr_t<protocol_t> *const svs_;
+    store_view_t<protocol_t> *const svs_;
 
     branch_id_t branch_id_;
+
+    typename protocol_t::region_t our_branch_region_;
 
     /* `upgrade_mailbox` and `broadcaster_begin_timestamp` are valid only if we
     successfully registered with the broadcaster at some point. As a sanity

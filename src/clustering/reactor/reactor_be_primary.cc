@@ -12,6 +12,8 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/direct_reader.hpp"
+#include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 
 template <class protocol_t>
 reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
@@ -125,9 +127,9 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
 
     /* Iterator through the peers the blueprint claims we should be able to
      * see. */
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator p_it =  blueprint.peers_roles.begin();
-                                                                      p_it != blueprint.peers_roles.end();
-                                                                      p_it++) {
+    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator p_it = blueprint.peers_roles.begin();
+         p_it != blueprint.peers_roles.end();
+         ++p_it) {
         //The peer we are currently checking
         peer_id_t peer = p_it->first;
 
@@ -141,14 +143,14 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
         }
 
         std::vector<typename protocol_t::region_t> regions;
-        for (typename rb_t::activity_map_t::const_iterator it =  bcard_it->second->activities.begin();
-                                                           it != bcard_it->second->activities.end();
-                                                           it++) {
-            typename protocol_t::region_t intersection = region_intersection(it->second.first, region);
+        for (typename rb_t::activity_map_t::const_iterator it = bcard_it->second->activities.begin();
+             it != bcard_it->second->activities.end();
+             ++it) {
+            typename protocol_t::region_t intersection = region_intersection(it->second.region, region);
             if (!region_is_empty(intersection)) {
                 regions.push_back(intersection);
                 try {
-                    if (const typename rb_t::secondary_without_primary_t * secondary_without_primary = boost::get<typename rb_t::secondary_without_primary_t>(&it->second.second)) {
+                    if (const typename rb_t::secondary_without_primary_t * secondary_without_primary = boost::get<typename rb_t::secondary_without_primary_t>(&it->second.activity)) {
                         update_best_backfiller(secondary_without_primary->current_state,
                                                typename backfill_candidate_t::backfill_location_t(
                                                    get_directory_entry_view<typename rb_t::secondary_without_primary_t>(peer, it->first)->subview(
@@ -156,7 +158,7 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
                                                    peer,
                                                    it->first),
                                                &res);
-                    } else if (const typename rb_t::nothing_when_safe_t * nothing_when_safe = boost::get<typename rb_t::nothing_when_safe_t>(&it->second.second)) {
+                    } else if (const typename rb_t::nothing_when_safe_t * nothing_when_safe = boost::get<typename rb_t::nothing_when_safe_t>(&it->second.activity)) {
                         update_best_backfiller(nothing_when_safe->current_state,
                                                typename backfill_candidate_t::backfill_location_t(
                                                    get_directory_entry_view<typename rb_t::nothing_when_safe_t>(peer, it->first)->subview(
@@ -164,9 +166,9 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
                                                    peer,
                                                    it->first),
                                                &res);
-                    } else if(boost::get<typename rb_t::nothing_t>(&it->second.second)) {
+                    } else if(boost::get<typename rb_t::nothing_t>(&it->second.activity)) {
                         //Everything's fine this peer cannot obstruct us so we shall proceed
-                    } else if(boost::get<typename rb_t::nothing_when_done_erasing_t>(&it->second.second)) {
+                    } else if(boost::get<typename rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
                         //Everything's fine this peer cannot obstruct us so we shall proceed
                     } else {
                         return false;
@@ -200,9 +202,7 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
      * then we don't backfill it automatically. The admin must explicit "bless"
      * the incoherent data making it coherent or get rid of all incoherent data
      * until the most up to date data for a region is coherent. */
-    for (typename best_backfiller_map_t::iterator it =  res.begin();
-                                                  it != res.end();
-                                                  it++) {
+    for (typename best_backfiller_map_t::iterator it = res.begin(); it != res.end(); ++it) {
         if (!it->second.version_range.is_coherent()) {
             return false;
         }
@@ -227,14 +227,22 @@ template <class protocol_t>
 void do_backfill(
         mailbox_manager_t *mailbox_manager,
         branch_history_manager_t<protocol_t> *branch_history_manager,
-        multistore_ptr_t<protocol_t> *svs,
+        store_view_t<protocol_t> *svs,
         typename protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
         promise_t<bool> *success,
         signal_t *interruptor) THROWS_NOTHING {
+
     try {
-        backfillee<protocol_t>(mailbox_manager, branch_history_manager, svs, region, backfiller_metadata, backfill_session_id, interruptor);
+        {
+            cross_thread_watchable_variable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > ct_backfiller_metadata(backfiller_metadata, svs->home_thread());
+            cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+            on_thread_t th(svs->home_thread());
+
+            backfillee<protocol_t>(mailbox_manager, branch_history_manager, svs, region, ct_backfiller_metadata.get_watchable(), backfill_session_id, &ct_interruptor);
+
+        }
         success->pulse(true);
     } catch (interrupted_exc_t) {
         success->pulse(false);
@@ -250,114 +258,122 @@ bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<bro
     return maybe_a_business_card.get();
 }
 
-template<class protocol_t>
-void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
-    try {
-        order_source_t order_source;  // TODO: order_token_t::ignore
+template <class protocol_t>
+bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *directory_entry, order_source_t *order_source, const typename protocol_t::region_t &region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    directory_echo_version_t version_to_wait_on = directory_entry->set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t());
 
+    /* block until all peers have acked `directory_entry` */
+    wait_for_directory_acks(version_to_wait_on, interruptor);
+
+    cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+    on_thread_t th(svs->home_thread());
+
+    /* Figure out what version of the data is already present in our
+     * store so we don't backfill anything prior to it. */
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    svs->new_read_token(&read_token);
+    region_map_t<protocol_t, binary_blob_t> metainfo_blob;
+    svs->do_get_metainfo(order_source->check_in("reactor_t::be_primary").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
+    region_map_t<protocol_t, version_range_t> metainfo = to_version_range_map(metainfo_blob);
+    region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);
+
+    on_thread_t th2(this->home_thread());
+
+    /* This waits until every other peer is ready to accept us as the
+     * primary and there is a unique coherent latest verstion of the
+     * data available. Note best_backfillers is passed as an
+     * input/output parameter, after this call returns best_backfillers
+     * will describe how to fill the store with the most up-to-date
+     * data. */
+    run_until_satisfied_2(directory_echo_mirror.get_internal(),
+                          blueprint,
+                          boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, _2, region, &best_backfillers),
+                          interruptor);
+
+    /* We may be backfilling from several sources, each requires a
+     * promise be passed in which gets pulsed with a value indicating
+     * whether or not the backfill succeeded. */
+    boost::ptr_vector<promise_t<bool> > promises;
+
+    std::vector<reactor_business_card_details::backfill_location_t> backfills;
+
+    for (typename best_backfiller_map_t::iterator it =  best_backfillers.begin();
+         it != best_backfillers.end();
+         ++it) {
+        if (it->second.present_in_our_store) {
+            continue;
+        } else {
+            backfill_session_id_t backfill_session_id = generate_uuid();
+            promise_t<bool> *p = new promise_t<bool>;
+            promises.push_back(p);
+            coro_t::spawn_sometime(boost::bind(&do_backfill<protocol_t>,
+                                               mailbox_manager,
+                                               branch_history_manager,
+                                               svs,
+                                               it->first,
+                                               it->second.places_to_get_this_version[0].backfiller,
+                                               backfill_session_id,
+                                               p,
+                                               interruptor));
+            reactor_business_card_details::backfill_location_t backfill_location(backfill_session_id,
+                                                                                 it->second.places_to_get_this_version[0].peer_id,
+                                                                                 it->second.places_to_get_this_version[0].activity_id);
+
+            backfills.push_back(backfill_location);
+        }
+    }
+
+    /* Tell the other peers which backfills we're waiting on. */
+    directory_entry->set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t(backfills));
+
+    /* Since these don't actually modify peers behavior, just allow
+     * them to query the backfiller for progress reports there's no
+     * need to wait for acks. */
+
+    bool all_succeeded = true;
+    for (typename boost::ptr_vector<promise_t<bool> >::iterator it = promises.begin();
+         it != promises.end();
+         ++it) {
+        //DO NOT switch the order of it->wait() and all_succeeded
+        all_succeeded = it->wait() && all_succeeded;
+    }
+
+    /* If the interruptor was pulsed the interrupted_exc_t would have
+     * been caugh in the do_backfill coro, we need to check if that's
+     * how we got here and rethrow the exception. */
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+
+    // Return whether we have the most up to date version of the data in our store.
+    return all_succeeded;
+}
+
+template<class protocol_t>
+void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
+    try {
         //Tell everyone that we're looking to become the primary
         directory_entry_t directory_entry(this, region);
+
+        order_source_t order_source(svs->home_thread());  // TODO: order_token_t::ignore
 
         /* In this loop we repeatedly attempt to find peers to backfill from
          * and then perform the backfill. We exit the loop either when we get
          * interrupted or we have backfilled the most up to date data. */
-        while (true) {
-            directory_echo_version_t version_to_wait_on = directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t());
+        while (!attempt_backfill_from_peers(&directory_entry, &order_source, region, svs, blueprint, interruptor)) { }
 
-            /* block until all peers have acked `directory_entry` */
-            wait_for_directory_acks(version_to_wait_on, interruptor);
+        // TODO: Don't use local stack variable.
+        std::string region_name = strprintf("be_primary_%p", &region);
 
-            /* Figure out what version of the data is already present in our
-             * store so we don't backfill anything prior to it. */
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
-            svs->new_read_token(&read_token);
-            region_map_t<protocol_t, binary_blob_t> metainfo_blob;
-            svs->do_get_metainfo(order_source.check_in("reactor_t::be_primary").with_read_mode(), &read_token, interruptor, &metainfo_blob);
-            region_map_t<protocol_t, version_range_t> metainfo = to_version_range_map(metainfo_blob);
-            region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);
+        cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+        on_thread_t th(svs->home_thread());
 
-            /* This waits until every other peer is ready to accept us as the
-             * primary and there is a unique coherent latest verstion of the
-             * data available. Note best_backfillers is passed as an
-             * input/output parameter, after this call returns best_backfillers
-             * will describe how to fill the store with the most up-to-date
-             * data. */
-            run_until_satisfied_2(
-                directory_echo_mirror.get_internal(),
-                blueprint,
-                boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, _2, region, &best_backfillers),
-                interruptor);
-
-            /* We may be backfilling from several sources, each requires a
-             * promise be passed in which gets pulsed with a value indicating
-             * whether or not the backfill succeeded. */
-            boost::ptr_vector<promise_t<bool> > promises;
-
-            std::vector<reactor_business_card_details::backfill_location_t> backfills;
-
-            for (typename best_backfiller_map_t::iterator it =  best_backfillers.begin();
-                                                          it != best_backfillers.end();
-                                                          it++) {
-                if (it->second.present_in_our_store) {
-                    continue;
-                } else {
-                    backfill_session_id_t backfill_session_id = generate_uuid();
-                    promise_t<bool> *p = new promise_t<bool>;
-                    promises.push_back(p);
-                    coro_t::spawn_sometime(boost::bind(&do_backfill<protocol_t>,
-                                                       mailbox_manager,
-                                                       branch_history_manager,
-                                                       svs,
-                                                       it->first,
-                                                       it->second.places_to_get_this_version[0].backfiller,
-                                                       backfill_session_id,
-                                                       p,
-                                                       interruptor));
-                    reactor_business_card_details::backfill_location_t backfill_location(backfill_session_id,
-                                                                                         it->second.places_to_get_this_version[0].peer_id,
-                                                                                         it->second.places_to_get_this_version[0].activity_id);
-
-                    backfills.push_back(backfill_location);
-                }
-            }
-
-            /* Tell the other peers which backfills we're waiting on. */
-            directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t(backfills));
-
-            /* Since these don't actually modify peers behavior, just allow
-             * them to query the backfiller for progress reports there's no
-             * need to wait for acks. */
-
-            bool all_succeeded = true;
-            for (typename boost::ptr_vector<promise_t<bool> >::iterator it =  promises.begin();
-                                                                        it != promises.end();
-                                                                        it++) {
-                //DO NOT switch the order of it->wait() and all_succeeded
-                all_succeeded = it->wait() && all_succeeded;
-            }
-
-            /* If the interruptor was pulsed the interrupted_exc_t would have
-             * been caugh in the do_backfill coro, we need to check if that's
-             * how we got here and rethrow the exception. */
-            if (interruptor->is_pulsed()) {
-                throw interrupted_exc_t();
-            }
-
-            if (all_succeeded) {
-                /* We have the most up to date version of the data in our
-                 * store. */
-                break;
-            } else {
-                /* one or more backfills failed so we start the whole process
-                 * over again..... */
-            }
-        }
-
-        std::string region_name(render_region_as_string(&region));
         perfmon_collection_t region_perfmon_collection;
         perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
-        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history_manager, svs, &region_perfmon_collection, &order_source, interruptor);
+        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history_manager, svs, &region_perfmon_collection, &order_source, &ct_interruptor);
+
+        on_thread_t th2(this->home_thread());
 
         directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card()));
 
@@ -370,10 +386,15 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
          * ourselves after we've put it in the directory. */
         broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
 
-        listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster_business_card, branch_history_manager, &broadcaster, &region_perfmon_collection, interruptor, &order_source);
-        replier_t<protocol_t> replier(&listener);
+        cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > ct_broadcaster_business_card(broadcaster_business_card, svs->home_thread());
+
+        on_thread_t th3(svs->home_thread());
+        listener_t<protocol_t> listener(io_backender, mailbox_manager, ct_broadcaster_business_card.get_watchable(), branch_history_manager, &broadcaster, &region_perfmon_collection, &ct_interruptor, &order_source);
+        replier_t<protocol_t> replier(&listener, mailbox_manager, branch_history_manager);
         master_t<protocol_t> master(mailbox_manager, ack_checker, region, &broadcaster);
         direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
+
+        on_thread_t th4(this->home_thread());
 
         directory_entry.update_without_changing_id(
             typename reactor_business_card_t<protocol_t>::primary_t(

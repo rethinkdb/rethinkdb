@@ -4,7 +4,7 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 
 template <class protocol_t>
-class branch_history_manager_t : public home_thread_mixin_debug_only_t {
+class branch_history_manager_t : public home_thread_mixin_t {
 public:
     /* Returns information about one specific branch. Crashes if we don't have a
     record for this branch. */

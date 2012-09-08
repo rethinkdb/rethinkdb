@@ -70,7 +70,7 @@ btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
 
 template <class protocol_t>
 btree_store_t<protocol_t>::~btree_store_t() {
-    home_thread_mixin_t::assert_thread();
+    assert_thread();
 }
 
 template <class protocol_t>
@@ -81,8 +81,8 @@ void btree_store_t<protocol_t>::read(
         UNUSED order_token_t order_token,  // TODO
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
         signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t)
-{
+        THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor);
@@ -107,6 +107,7 @@ void btree_store_t<protocol_t>::write(
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
@@ -127,6 +128,7 @@ bool btree_store_t<protocol_t>::send_backfill(
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
@@ -148,6 +150,7 @@ void btree_store_t<protocol_t>::receive_backfill(
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
@@ -165,6 +168,7 @@ void btree_store_t<protocol_t>::reset_data(
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
@@ -192,6 +196,7 @@ void btree_store_t<protocol_t>::check_and_update_metainfo(
         transaction_t *txn,
         real_superblock_t *superblock) const
         THROWS_NOTHING {
+    assert_thread();
     metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn, superblock);
     update_metainfo(old_metainfo, new_metainfo, txn, superblock);
 }
@@ -202,6 +207,7 @@ typename btree_store_t<protocol_t>::metainfo_t btree_store_t<protocol_t>::check_
         transaction_t *txn,
         real_superblock_t *superblock) const
         THROWS_NOTHING {
+    assert_thread();
     region_map_t<protocol_t, binary_blob_t> old_metainfo;
     get_metainfo_internal(txn, superblock->get(), &old_metainfo);
 #ifndef NDEBUG
@@ -212,6 +218,7 @@ typename btree_store_t<protocol_t>::metainfo_t btree_store_t<protocol_t>::check_
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superblock) const THROWS_NOTHING {
+    assert_thread();
     region_map_t<protocol_t, binary_blob_t> updated_metadata = old_metainfo;
     updated_metadata.update(new_metainfo);
 
@@ -239,6 +246,7 @@ void btree_store_t<protocol_t>::do_get_metainfo(UNUSED order_token_t order_token
                                                 object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                                 signal_t *interruptor,
                                                 metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor);
@@ -248,6 +256,7 @@ void btree_store_t<protocol_t>::do_get_metainfo(UNUSED order_token_t order_token
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING {
+    assert_thread();
     std::vector<std::pair<std::vector<char>, std::vector<char> > > kv_pairs;
     get_superblock_metainfo(txn, sb_buf, &kv_pairs);   // FIXME: this is inefficient, cut out the middleman (vector)
 
@@ -274,6 +283,7 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
                                              UNUSED order_token_t order_token,  // TODO
                                              object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid, 1, token, &txn, &superblock, interruptor);
@@ -292,6 +302,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
+    assert_thread();
     btree->assert_thread();
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
@@ -311,6 +322,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
+    assert_thread();
     btree->assert_thread();
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
@@ -333,6 +345,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
+    assert_thread();
     btree->assert_thread();
 
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
@@ -347,12 +360,14 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
 /* store_view_t interface */
 template <class protocol_t>
 void btree_store_t<protocol_t>::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
+    assert_thread();
     fifo_enforcer_read_token_t token = token_source.enter_read();
     token_out->create(&token_sink, token);
 }
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
+    assert_thread();
     fifo_enforcer_write_token_t token = token_source.enter_write();
     token_out->create(&token_sink, token);
 }

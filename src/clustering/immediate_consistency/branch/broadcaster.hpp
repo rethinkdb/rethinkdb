@@ -50,7 +50,7 @@ public:
     broadcaster_t(
             mailbox_manager_t *mm,
             branch_history_manager_t<protocol_t> *bhm,
-            multistore_ptr_t<protocol_t> *initial_svs,
+            store_view_t<protocol_t> *initial_svs,
             perfmon_collection_t *parent_perfmon_collection,
             order_source_t *order_source,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
@@ -69,7 +69,7 @@ public:
 
     broadcaster_business_card_t<protocol_t> get_business_card();
 
-    MUST_USE multistore_ptr_t<protocol_t> *release_bootstrap_svs_for_listener();
+    MUST_USE store_view_t<protocol_t> *release_bootstrap_svs_for_listener();
 
 private:
     class incomplete_write_ref_t;
@@ -98,9 +98,9 @@ private:
     branch_id_t branch_id;
 
     /* Until our initial listener has been constructed, this holds the
-    multistore_ptr that was passed to our constructor. After that,
-    it's `NULL`. */
-    multistore_ptr_t<protocol_t> *bootstrap_svs;
+    store_view that was passed to our constructor. After that, it's
+    `NULL`. */
+    store_view_t<protocol_t> *bootstrap_svs;
 
     branch_history_manager_t<protocol_t> *branch_history_manager;
 

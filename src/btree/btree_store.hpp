@@ -15,17 +15,9 @@ class real_superblock_t;
 
 template <class protocol_t>
 class btree_store_t : public store_view_t<protocol_t> {
-private:
-    scoped_ptr_t<standard_serializer_t> serializer;
-    mirrored_cache_config_t cache_dynamic_config;
-    scoped_ptr_t<cache_t> cache;
-    scoped_ptr_t<btree_slice_t> btree;
-    order_source_t order_source;
-
-    fifo_enforcer_source_t token_source;
-    fifo_enforcer_sink_t token_sink;
-
 public:
+    using home_thread_mixin_t::assert_thread;
+
     btree_store_t(io_backender_t *io_backender,
                   const std::string& filename,
                   bool create,
@@ -171,6 +163,15 @@ private:
         THROWS_NOTHING;
 
     void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
+
+    scoped_ptr_t<standard_serializer_t> serializer;
+    mirrored_cache_config_t cache_dynamic_config;
+    scoped_ptr_t<cache_t> cache;
+    scoped_ptr_t<btree_slice_t> btree;
+    order_source_t order_source;
+
+    fifo_enforcer_source_t token_source;
+    fifo_enforcer_sink_t token_sink;
 
     perfmon_collection_t perfmon_collection;
     perfmon_membership_t perfmon_collection_membership;

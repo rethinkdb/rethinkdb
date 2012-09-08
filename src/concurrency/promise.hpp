@@ -12,24 +12,33 @@ template <class val_t>
 struct promise_t : public home_thread_mixin_debug_only_t {
 
     promise_t() { }
+
     void pulse(const val_t &v) {
         assert_thread();
         value.create(v);
         cond.pulse();
     }
+
     const val_t &wait() {
         assert_thread();
         cond.wait_lazily_unordered();
         return *value.get();
     }
+
     signal_t *get_ready_signal() {
         return &cond;
     }
+
+    const signal_t *get_ready_signal() const {
+        return &cond;
+    }
+
     // TODO: get_value is very questionable.
     const val_t &get_value() const {
         assert_thread();
         return *value.get();
     }
+
     bool is_pulsed() {
         return cond.is_pulsed();
     }

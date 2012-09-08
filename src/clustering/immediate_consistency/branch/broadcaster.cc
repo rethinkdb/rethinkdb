@@ -4,6 +4,7 @@
 #include <boost/make_shared.hpp>
 
 #include "concurrency/coro_fifo.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
@@ -30,7 +31,7 @@ broadcaster_t<protocol_t>::write_callback_t::~write_callback_t() {
 template <class protocol_t>
 broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
         branch_history_manager_t<protocol_t> *bhm,
-        multistore_ptr_t<protocol_t> *initial_svs,
+        store_view_t<protocol_t> *initial_svs,
         perfmon_collection_t *parent_perfmon_collection,
         order_source_t *order_source,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
@@ -77,7 +78,10 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
         birth_certificate.initial_timestamp = initial_timestamp;
         birth_certificate.origin = origins;
 
-        branch_history_manager->create_branch(branch_id, birth_certificate, interruptor);
+        cross_thread_signal_t ct_interruptor(interruptor, branch_history_manager->home_thread());
+        on_thread_t th(branch_history_manager->home_thread());
+
+        branch_history_manager->create_branch(branch_id, birth_certificate, &ct_interruptor);
     }
 
     /* Reset the store metadata. We should do this after making the branch
@@ -112,9 +116,9 @@ broadcaster_business_card_t<protocol_t> broadcaster_t<protocol_t>::get_business_
 }
 
 template <class protocol_t>
-multistore_ptr_t<protocol_t> *broadcaster_t<protocol_t>::release_bootstrap_svs_for_listener() {
+store_view_t<protocol_t> *broadcaster_t<protocol_t>::release_bootstrap_svs_for_listener() {
     rassert(bootstrap_svs != NULL);
-    multistore_ptr_t<protocol_t> *tmp = bootstrap_svs;
+    store_view_t<protocol_t> *tmp = bootstrap_svs;
     bootstrap_svs = NULL;
     return tmp;
 }
@@ -248,46 +252,22 @@ public:
         return write_mailbox.get_peer();
     }
 
-    typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
-    bool is_readable;
-    typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t writeread_mailbox;
-    typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
-
-    /* This is used to enforce that operations are performed on the
-       destination machine in the same order that we send them, even if the
-       network layer reorders the messages. */
-    fifo_enforcer_source_t fifo_source;
-
-    // Accompanies the fifo_source.  It is questionable that we have a
-    // separate order source just for the background writes.  What
-    // about other writes that could interact with the background
-    // writes?
-    // TODO: Is something wrong with the ordering guarantees between background writes and other writes?
-    order_source_t order_source;
-
-    perfmon_counter_t queue_count;
-    perfmon_membership_t queue_count_membership;
-    unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
-    calling_callback_t background_write_caller;
-    coro_pool_t<boost::function<void()> > background_write_workers;
-
 private:
     /* The constructor spawns `send_intro()` in the background. */
-    void send_intro(
-                    listener_business_card_t<protocol_t> to_send_intro_to,
+    void send_intro(listener_business_card_t<protocol_t> to_send_intro_to,
                     state_timestamp_t intro_timestamp,
                     auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING {
         keepalive.assert_is_holding(&drainer);
+
         send(controller->mailbox_manager, to_send_intro_to.intro_mailbox,
-            intro_timestamp,
-            upgrade_mailbox.get_address(),
-            downgrade_mailbox.get_address());
+             listener_intro_t<protocol_t>(intro_timestamp,
+                                          upgrade_mailbox.get_address(),
+                                          downgrade_mailbox.get_address()));
     }
 
     /* `upgrade()` and `downgrade()` are mailbox callbacks. */
-    void upgrade(
-                 typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t wrm,
+    void upgrade(typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t wrm,
                  typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t rm,
                  auto_drainer_t::lock_t)
             THROWS_NOTHING {
@@ -313,11 +293,38 @@ private:
         }
     }
 
+public:
+    typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
+    bool is_readable;
+    typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t writeread_mailbox;
+    typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
+
+    /* This is used to enforce that operations are performed on the
+       destination machine in the same order that we send them, even if the
+       network layer reorders the messages. */
+    fifo_enforcer_source_t fifo_source;
+
+    // Accompanies the fifo_source.  It is questionable that we have a
+    // separate order source just for the background writes.  What
+    // about other writes that could interact with the background
+    // writes?
+    // TODO: Is something wrong with the ordering guarantees between background writes and other writes?
+    order_source_t order_source;
+
+    perfmon_counter_t queue_count;
+    perfmon_membership_t queue_count_membership;
+    unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
+    calling_callback_t background_write_caller;
+
+private:
+    coro_pool_t<boost::function<void()> > background_write_workers;
     broadcaster_t *controller;
     auto_drainer_t drainer;
 
     typename listener_business_card_t<protocol_t>::upgrade_mailbox_t upgrade_mailbox;
     typename listener_business_card_t<protocol_t>::downgrade_mailbox_t downgrade_mailbox;
+
+    DISABLE_COPYING(dispatchee_t);
 };
 
 /* Functions to send a read or write to a mirror and wait for a response.

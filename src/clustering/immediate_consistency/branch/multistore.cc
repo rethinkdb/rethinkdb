@@ -19,6 +19,12 @@ struct multistore_ptr_t<protocol_t>::switch_read_token_t {
 };
 
 template <class protocol_t>
+store_view_t<protocol_t> *multistore_ptr_t<protocol_t>::get_store(int i) const {
+    guarantee(0 <= i && i < num_stores());
+    return store_views_[i];
+}
+
+template <class protocol_t>
 region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_t<protocol_t, binary_blob_t> &blob_map) {
     return region_map_transform<protocol_t, binary_blob_t, version_range_t>(blob_map,
                                                                             &binary_blob_t::get<version_range_t>);
@@ -30,6 +36,7 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **store_
                                                const typename protocol_t::region_t &region)
     : store_view_t<protocol_t>(region),
       store_views_(num_store_views),
+      // TODO: region_ is redundant with superclass's region.
       region_(region),
       external_checkpoint_("multistore_ptr_t"),
       internal_sources_(num_store_views),
@@ -62,7 +69,8 @@ void multistore_ptr_t<protocol_t>::do_initialize(int i, store_view_t<protocol_t>
 
     // We do a region intersection because store_subview_t requires that the region mask be a subset of the store region.
     store_views_[i] = new store_subview_t<protocol_t>(store_views[i],
-                                                      region_intersection(region_, store_views[i]->get_region()));
+                                                      region_intersection(protocol_t::cpu_sharding_subspace(i, num_stores()),
+ region_intersection(region_, store_views[i]->get_region())));
 
     // We have an internal sink for each thread of internal_sources.
     // However really one of them goes unused, because
@@ -179,7 +187,7 @@ template <class protocol_t>
 typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_a_region(int i) const {
     guarantee(0 <= i && i < num_stores());
 
-    return region_intersection(region_, protocol_t::cpu_sharding_subspace(i, num_stores()));
+    return store_views_[i]->get_region();
 }
 
 template <class protocol_t>
