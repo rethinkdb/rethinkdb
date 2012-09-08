@@ -5,7 +5,7 @@
 template<class protocol_t>
 persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
         const namespace_semilattice_metadata_t<protocol_t> &ns_goals,
-        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > > &reactor_directory_view,
+        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
         THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t) {
@@ -18,7 +18,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
         if (peer.is_nil()) {
             throw missing_machine_exc_t();
         }
-        typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > >::const_iterator jt =
+        typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > >::const_iterator jt =
             reactor_directory_view.find(peer);
         if (jt != reactor_directory_view.end() && jt->second) {
             directory.insert(std::make_pair(machine, *jt->second->internal));
@@ -59,19 +59,19 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
                                                                                                  it != ns_goals.namespaces.end();
                                                                                                  ++it) {
         if (!it->second.is_deleted()) {
-            std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > > > reactor_directory;
+            std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > reactor_directory;
             for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator jt =
                     namespaces_directory.begin(); jt != namespaces_directory.end(); jt++) {
-                typename std::map<namespace_id_t, directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > >::const_iterator kt =
+                typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::const_iterator kt =
                     jt->second.reactor_bcards.find(it->first);
                 if (kt != jt->second.reactor_bcards.end()) {
                     reactor_directory.insert(std::make_pair(
                         jt->first,
-                        boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > >(kt->second)));
+                        boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(kt->second)));
                 } else {
                     reactor_directory.insert(std::make_pair(
                         jt->first,
-                        boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<protocol_t> > > >()));
+                        boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >()));
                 }
             }
             try {
@@ -154,7 +154,7 @@ void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
 template
 persistable_blueprint_t<mock::dummy_protocol_t> suggest_blueprint_for_namespace<mock::dummy_protocol_t>(
         const namespace_semilattice_metadata_t<mock::dummy_protocol_t> &ns_goals,
-        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<mock::dummy_protocol_t> > > > > &reactor_directory_view,
+        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<mock::dummy_protocol_t> > > > > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
         THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t);
@@ -182,7 +182,7 @@ void fill_in_blueprints_for_protocol<mock::dummy_protocol_t>(
 template
 persistable_blueprint_t<memcached_protocol_t> suggest_blueprint_for_namespace<memcached_protocol_t>(
         const namespace_semilattice_metadata_t<memcached_protocol_t> &ns_goals,
-        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<memcached_protocol_t> > > > > &reactor_directory_view,
+        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<memcached_protocol_t> > > > > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
         THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t);
@@ -209,7 +209,7 @@ void fill_in_blueprints_for_protocol<memcached_protocol_t>(
 template
 persistable_blueprint_t<rdb_protocol_t> suggest_blueprint_for_namespace<rdb_protocol_t>(
         const namespace_semilattice_metadata_t<rdb_protocol_t> &ns_goals,
-        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<boost::shared_ptr<const reactor_business_card_t<rdb_protocol_t> > > > > &reactor_directory_view,
+        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
         THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t);

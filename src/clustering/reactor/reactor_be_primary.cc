@@ -116,7 +116,7 @@ boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > extra
  * Otherwise it will return false and best_backfiller_out will be unmodified.
  */
 template <class protocol_t>
-bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_t, boost::shared_ptr<const reactor_business_card_t<protocol_t> > > &_reactor_directory, const blueprint_t<protocol_t> &blueprint,
+bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &_reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                                          const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out)
 {
     typedef reactor_business_card_t<protocol_t> rb_t;
@@ -135,7 +135,7 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
             continue;
         }
 
-        typename std::map<peer_id_t, boost::shared_ptr<const reactor_business_card_t<protocol_t> > >::const_iterator bcard_it = _reactor_directory.find(p_it->first);
+        typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator bcard_it = _reactor_directory.find(p_it->first);
         if (bcard_it == _reactor_directory.end()) {
             return false;
         }
