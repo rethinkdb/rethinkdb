@@ -173,7 +173,7 @@ module 'DataExplorerView', ->
             r:[
                 {
                     suggestion: 'dbCreate()'
-                    description: 'dbCreate( database_name, primary_datacenter )'
+                    description: 'dbCreate( database_name )'
                     has_argument: true
                 }
                 {
