@@ -258,7 +258,7 @@ void with_ctx_on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t<protocol_t> *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["reactor_bcards"] = boost::shared_ptr<json_adapter_if_t>(new json_read_only_adapter_t<std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > >(&target->reactor_bcards));
+    res["reactor_bcards"] = boost::shared_ptr<json_adapter_if_t>(new json_read_only_adapter_t<std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > >(&target->reactor_bcards));
     return res;
 }
 

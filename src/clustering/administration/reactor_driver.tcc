@@ -6,9 +6,6 @@
 #include <map>
 #include <set>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
@@ -185,16 +182,16 @@ public:
     }
 
 private:
-    std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > extract_reactor_directory(
+    std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > extract_reactor_directory(
             const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &nss) {
-        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > out;
+        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > out;
         for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it = nss.begin(); it != nss.end(); it++) {
-            typename std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::const_iterator jt =
+            typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::const_iterator jt =
                 it->second.reactor_bcards.find(namespace_id_);
             if (jt == it->second.reactor_bcards.end()) {
-                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >()));
+                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >()));
             } else {
-                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(jt->second)));
+                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(jt->second)));
             }
         }
         return out;
@@ -225,9 +222,9 @@ private:
             svs_.get(), namespace_collection, ctx));
 
         {
-            typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::freeze_t reactor_directory_freeze(reactor_->get_reactor_directory());
+            typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::freeze_t reactor_directory_freeze(reactor_->get_reactor_directory());
             reactor_directory_subscription_.init(
-                new typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t(
+                new typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t(
                     boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
                     reactor_->get_reactor_directory(), &reactor_directory_freeze));
             mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
@@ -256,7 +253,7 @@ private:
     scoped_ptr_t<multistore_ptr_t<protocol_t> > svs_;
     scoped_ptr_t<reactor_t<protocol_t> > reactor_;
 
-    scoped_ptr_t<typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t> reactor_directory_subscription_;
+    scoped_ptr_t<typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t> reactor_directory_subscription_;
 
     DISABLE_COPYING(watchable_and_reactor_t);
 };

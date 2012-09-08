@@ -31,7 +31,15 @@
 #include "rdb_protocol/query_language.pb.h"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rpc/semilattice/watchable.hpp"
+#include "rpc/directory/read_manager.hpp"
 #include "rdb_protocol/serializable_environment.hpp"
+
+using query_language::scopes_t;
+using query_language::backtrace_t;
+using query_language::shared_scoped_less_t;
+using query_language::runtime_exc_t;
+
+class cluster_directory_metadata_t;
 
 enum point_write_result_t {
     STORED,
@@ -101,14 +109,19 @@ struct rdb_protocol_t {
         context_t(extproc::pool_group_t *_pool_group,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+                  directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
                   machine_id_t _machine_id);
+        ~context_t();
 
         extproc::pool_group_t *pool_group;
         namespace_repo_t<rdb_protocol_t> *ns_repo;
 
+        /* These arrays contain a watchable for each thread.
+         * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
         scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > cross_thread_namespace_watchables;
         scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<databases_semilattice_metadata_t> > > cross_thread_database_watchables;
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+        directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
         cond_t interruptor; //TODO figure out where we're going to want to interrupt this from and put this there instead
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
         machine_id_t machine_id;
@@ -126,7 +139,7 @@ struct rdb_protocol_t {
 
     struct rget_read_response_t {
         typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
-        typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, query_language::shared_scoped_less_t> groups_t; //Present if the terminal was a groupedmapreduce
+        typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups_t; //Present if the terminal was a groupedmapreduce
         typedef boost::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
 
         struct length_t {
@@ -139,7 +152,6 @@ struct rdb_protocol_t {
             RDB_MAKE_ME_SERIALIZABLE_1(inserted);
         };
 
-        typedef query_language::runtime_exc_t runtime_exc_t;
 
         typedef boost::variant<stream_t, groups_t, atom_t, length_t, inserted_t, runtime_exc_t> result_t;
 
@@ -197,38 +209,44 @@ struct rdb_protocol_t {
     class rget_read_t {
     public:
         rget_read_t() { }
-        rget_read_t(const key_range_t &_key_range)
-            : key_range(_key_range) { }
+        rget_read_t(const key_range_t &_key_range, int _maximum)
+            : key_range(_key_range), maximum(_maximum) { }
 
-        rget_read_t(const key_range_t &_key_range,
+        rget_read_t(const key_range_t &_key_range, int _maximum,
                     const rdb_protocol_details::transform_t &_transform,
-                    const query_language::scopes_t &_scopes)
-            : key_range(_key_range),
-              transform(_transform), scopes(_scopes)
+                    const scopes_t &_scopes,
+                    const backtrace_t &_backtrace)
+            : key_range(_key_range), maximum(_maximum),
+              transform(_transform), scopes(_scopes), backtrace(_backtrace)
         { }
 
-        rget_read_t(const key_range_t &_key_range,
+        rget_read_t(const key_range_t &_key_range, int _maximum,
                     const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
-                    const query_language::scopes_t &_scopes)
-            : key_range(_key_range), terminal(_terminal),
-              scopes(_scopes)
+                    const scopes_t &_scopes,
+                    const backtrace_t &_backtrace)
+            : key_range(_key_range), maximum(_maximum),
+              terminal(_terminal), scopes(_scopes), backtrace(_backtrace)
         { }
 
-        rget_read_t(const key_range_t &_key_range,
+        rget_read_t(const key_range_t &_key_range, int _maximum,
                     const rdb_protocol_details::transform_t &_transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
-                    const query_language::scopes_t &_scopes)
-            : key_range(_key_range), transform(_transform),
-              terminal(_terminal), scopes(_scopes)
+                    const scopes_t &_scopes,
+                    const backtrace_t &_backtrace)
+            : key_range(_key_range), maximum(_maximum),
+              transform(_transform), terminal(_terminal), scopes(_scopes),
+              backtrace(_backtrace)
         { }
 
         key_range_t key_range;
+        size_t maximum;
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
-        query_language::scopes_t scopes;
+        scopes_t scopes;
+        backtrace_t backtrace;
 
-        RDB_MAKE_ME_SERIALIZABLE_4(key_range, transform, terminal, scopes);
+        RDB_MAKE_ME_SERIALIZABLE_6(key_range, maximum, transform, terminal, scopes, backtrace);
     };
 
     class distribution_read_t {

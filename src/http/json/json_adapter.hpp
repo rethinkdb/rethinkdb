@@ -13,6 +13,7 @@
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
+#include "containers/cow_ptr.hpp"
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 
@@ -539,6 +540,21 @@ template <class V>
 void on_subfield_change(std::vector<V> *);
 
 } //namespace std
+
+
+// ctx-less JSON adapter for cow_ptr_t
+template <class T>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(cow_ptr_t<T> *);
+
+template <class T>
+cJSON *render_as_json(cow_ptr_t<T> *);
+
+template <class T>
+void apply_json_to(cJSON *, cow_ptr_t<T> *);
+
+template <class T>
+void on_subfield_change(cow_ptr_t<T> *);
+
 
 //some convenience functions
 template <class T, class ctx_t>

@@ -2,9 +2,10 @@
 #define CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_
 
 #include "errors.hpp"
+#include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
-#include <boost/variant.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
+#include <boost/variant.hpp>
 
 #include "containers/archive/archive.hpp"
 
@@ -205,6 +206,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
         return ARCHIVE_SUCCESS;
     }
 }
+
 
 template <class K, class V>
 write_message_t &operator<<(write_message_t &msg, const boost::ptr_map<K, V> &x) {

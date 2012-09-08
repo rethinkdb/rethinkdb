@@ -294,7 +294,10 @@ module 'NamespaceView', ->
             @namespace.set(response)
             $('#user-alert-space').html @alert_tmpl({})
             @suggest_shards_view = false
-            @original_shard_set = @shard_set
+
+            @original_shard_set = []
+            for key in @shard_set
+                @original_shard_set.push key
             @render()
 
         destroy: =>
@@ -395,8 +398,16 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#shard_name-shard_keys-template').html()
         className: 'shard_name'
         render: (shard) =>
+            keys = shard.name.split(' to ')
+            pattern = /^(%22).*(%22)$/
+            for key, i in keys
+                if pattern.test(key) is true
+                    keys[i] = key.slice(3, key.length-3)
+
+            name = keys[0]+' to '+keys[1]
+
             @.$el.html @template
-                name: shard.name
+                name: name
                 shard_stats:
                     rows_approx: shard.shard_stats.rows_approx if shard?.shard_stats?.rows_approx?
             return @

@@ -58,8 +58,7 @@ void run_directory_echo_test() {
     }
     directory_echo_writer_t<std::string>::ack_waiter_t waiter(&cluster1.echo_writer, cluster2.connectivity_cluster.get_me(), version);
     waiter.wait_lazily_unordered();
-    std::string cluster2_sees_cluster1_directory_as =
-        cluster2.directory_read_manager.get_root_view()->get().find(cluster1.connectivity_cluster.get_me())->second.internal;
+    std::string cluster2_sees_cluster1_directory_as = cluster2.echo_mirror.get_internal()->get().find(cluster1.connectivity_cluster.get_me())->second;
     EXPECT_EQ("Hello", cluster2_sees_cluster1_directory_as);
 }
 TEST(ClusteringDirectoryEcho, DirectoryEcho) {

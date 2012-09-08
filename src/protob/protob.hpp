@@ -31,11 +31,11 @@ private:
     http_res_t handle(const http_req_t &);
     void on_ring();
 
-    auto_drainer_t auto_drainer;
-    scoped_ptr_t<tcp_listener_t> tcp_listener;
     boost::function<response_t(request_t *, context_t *)> f;
     response_t (*on_unparsable_query)(request_t *, std::string);
     protob_server_callback_mode_t cb_mode;
+    auto_drainer_t auto_drainer;
+    scoped_ptr_t<tcp_listener_t> tcp_listener;
 
     // For HTTP server
     class http_context_t {
@@ -62,6 +62,7 @@ private:
 
     std::map<int32_t, http_context_t> http_conns;
     int32_t next_http_conn_id;
+    int next_thread;
     repeating_timer_t http_timeout_timer;
 };
 

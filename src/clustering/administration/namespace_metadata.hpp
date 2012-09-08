@@ -17,6 +17,9 @@
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/reactor_json_adapters.hpp"
 #include "clustering/reactor/metadata.hpp"
+#include "containers/archive/boost_types.hpp"
+#include "containers/archive/cow_ptr_type.hpp"
+#include "containers/cow_ptr.hpp"
 #include "containers/uuid.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
@@ -147,7 +150,12 @@ void with_ctx_on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *
 template <class protocol_t>
 class namespaces_directory_metadata_t {
 public:
-    typedef std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > reactor_bcards_map_t;
+    /* This used to say `reactor_business_card_t<protocol_t>` instead of
+    `cow_ptr_t<reactor_business_card_t<protocol_t> >`, but that
+    was extremely slow because the size of the data structure grew linearly with
+    the number of tables and so copying it became a major cost. Using a
+    `boost::shared_ptr` instead makes it significantly faster. */
+    typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > reactor_bcards_map_t;
 
     reactor_bcards_map_t reactor_bcards;
 

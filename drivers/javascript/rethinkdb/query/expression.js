@@ -5,18 +5,24 @@ goog.require('rethinkdb.query2');
 goog.require('Query');
 
 /**
+ * Base for all ReQL expression objects
  * @constructor
  * @extends {rethinkdb.query.ReadQuery}
  */
 rethinkdb.query.Expression = function() { };
 goog.inherits(rethinkdb.query.Expression, rethinkdb.query.ReadQuery);
 
-/** @return {!Term} */
+/**
+ * @function
+ * @return {!Term}
+ * @ignore
+ */
 rethinkdb.query.Expression.prototype.compile = goog.abstractMethod;
 
 /**
  * @constructor
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.JSONExpression = function(json_value) {
     this.value_ = json_value;
@@ -38,6 +44,7 @@ rethinkdb.query.JSONExpression.prototype.compile = function() {
  * @constructor
  * @param {number=} number
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.NumberExpression = function(number) {
     this.value_ = (typeof number === 'undefined') ? null : number;
@@ -58,8 +65,107 @@ rethinkdb.query.NumberExpression.prototype.compile = function() {
 
 /**
  * @constructor
+ * @param {boolean} bool
+ * @extends {rethinkdb.query.Expression}
+ * @ignore
+ */
+rethinkdb.query.BooleanExpression = function(bool) {
+    this.value_ = bool;
+};
+goog.inherits(rethinkdb.query.BooleanExpression, rethinkdb.query.Expression);
+
+rethinkdb.query.BooleanExpression.prototype.compile = function() {
+    var term = new Term();
+    term.setType(Term.TermType.BOOL);
+    term.setValuebool(this.value_);
+
+    return term;
+};
+
+/**
+ * @constructor
+ * @param {string} string
+ * @extends {rethinkdb.query.Expression}
+ * @ignore
+ */
+rethinkdb.query.StringExpression = function(string) {
+    this.value_ = string;
+};
+goog.inherits(rethinkdb.query.StringExpression, rethinkdb.query.Expression);
+
+rethinkdb.query.StringExpression.prototype.compile = function() {
+    var term = new Term();
+    term.setType(Term.TermType.STRING);
+    term.setValuestring(this.value_);
+
+    return term;
+};
+
+/**
+ * @constructor
+ * @param {Array} array
+ * @extends {rethinkdb.query.Expression}
+ * @ignore
+ */
+rethinkdb.query.ArrayExpression = function(array) {
+    this.value_ = [];
+
+    for (var i = 0; i < array.length; i++) {
+        var val = wrapIf_(array[i]);
+        this.value_.push(val);
+    }
+};
+goog.inherits(rethinkdb.query.ArrayExpression, rethinkdb.query.Expression);
+
+rethinkdb.query.ArrayExpression.prototype.compile = function() {
+    var term = new Term();
+    term.setType(Term.TermType.ARRAY);
+
+    for (var i = 0; i < this.value_.length; i++) {
+        term.addArray(this.value_[i].compile());
+    }
+
+    return term;
+};
+
+/**
+ * @constructor
+ * @param {Object} object
+ * @extends {rethinkdb.query.Expression}
+ * @ignore
+ */
+rethinkdb.query.ObjectExpression = function(object) {
+    this.value_ = {};
+
+    for (var key in object) {
+        if (object.hasOwnProperty(key)) {
+            var val = wrapIf_(object[key]);
+            this.value_[key] = val;
+        }
+    }
+};
+goog.inherits(rethinkdb.query.ObjectExpression, rethinkdb.query.Expression);
+
+rethinkdb.query.ObjectExpression.prototype.compile = function() {
+    var term = new Term();
+    term.setType(Term.TermType.OBJECT);
+
+    for (var key in this.value_) {
+        var tuple = new VarTermTuple();
+        tuple.setVar(key);
+        tuple.setTerm(this.value_[key].compile());
+
+        term.addObject(tuple);
+    }
+
+    return term;
+};
+
+/**
+ * @constructor
  * @param {string} expr
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.JSExpression = function(expr) {
     this.src_ = expr;
@@ -78,6 +184,7 @@ rethinkdb.query.JSExpression.prototype.compile = function() {
  * @param {Array.<string>} args
  * @param {rethinkdb.query.Expression} body
  * @constructor
+ * @ignore
  */
 rethinkdb.query.FunctionExpression = function(args, body) {
     /** @type {Array.<string>} */
@@ -91,6 +198,7 @@ rethinkdb.query.FunctionExpression = function(args, body) {
  * @param {function(...)} fun
  * @constructor
  * @extends {rethinkdb.query.FunctionExpression}
+ * @ignore
  */
 rethinkdb.query.JSFunctionExpression = function(fun) {
     var match = rethinkdb.query.JSFunctionExpression.parseRegexp_.exec(fun.toString());
@@ -128,6 +236,7 @@ rethinkdb.query.fn = function(var_args) {
  * @param {function(Builtin)=} opt_additional
  * @constructor
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.BuiltinExpression = function(builtinType, args, opt_additional) {
     this.builtinType_ = builtinType;
@@ -264,6 +373,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'between',
  * @param {rethinkdb.query.Expression} leftExpr
  * @param {number} leftExtent
  * @param {number=} opt_rightExtent
+ * @ignore
  */
 rethinkdb.query.SliceExpression = function(leftExpr, leftExtent, opt_rightExtent) {
     goog.base(this, Builtin.BuiltinType.SLICE, [
@@ -436,6 +546,42 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'reduce',
                     rethinkdb.query.Expression.prototype.reduce);
 
 /**
+ * Divides the stream into sets and then performs a map reduce per set
+ */
+rethinkdb.query.Expression.prototype.groupedMapReduce = function(grouping, mapping, base, reduce) {
+    grouping = functionWrap_(grouping);
+    mapping  = functionWrap_(mapping);
+    base     = wrapIf_(base);
+    reduce   = functionWrap_(reduce);
+
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.GROUPEDMAPREDUCE, [this],
+        function(builtin) {
+            var groupMapping = new Mapping();
+            groupMapping.setArg(grouping.args[0]);
+            groupMapping.setBody(grouping.body.compile());
+
+            var valueMapping = new Mapping();
+            valueMapping.setArg(mapping.args[0]);
+            valueMapping.setBody(mapping.body.compile());
+
+            var reduction = new Reduction();
+            reduction.setBase(base.compile());
+            reduction.setVar1(reduce.args[0]);
+            reduction.setVar2(reduce.args[1]);
+            reduction.setBody(reduce.body.compile());
+
+            var groupedMapReduce = new Builtin.GroupedMapReduce();
+            groupedMapReduce.setGroupMapping(groupMapping);
+            groupedMapReduce.setValueMapping(valueMapping);
+            groupedMapReduce.setReduction(reduction);
+
+            builtin.setGroupedMapReduce(groupedMapReduce);
+        });
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'groupedMapReduce',
+                    rethinkdb.query.Expression.prototype.groupedMapReduce);
+
+/**
  * Returns true if expression has given attribute
  */
 rethinkdb.query.Expression.prototype.hasAttr = function(attr) {
@@ -508,6 +654,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'pluck',
  * @param {string} varName
  * @constructor
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.VarExpression = function(varName) {
     this.varName_ = varName;
@@ -527,6 +674,7 @@ rethinkdb.query.VarExpression.prototype.compile = function() {
  * @param {string} attrName
  * @constructor
  * @extends {rethinkdb.query.BuiltinExpression}
+ * @ignore
  */
 rethinkdb.query.AttrExpression = function(leftExpr, attrName) {
     goog.base(this, Builtin.BuiltinType.GETATTR, [leftExpr], function(builtin) {
@@ -539,6 +687,7 @@ goog.inherits(rethinkdb.query.AttrExpression, rethinkdb.query.BuiltinExpression)
  * @param {string} attrName
  * @constructor
  * @extends {rethinkdb.query.BuiltinExpression}
+ * @ignore
  */
 rethinkdb.query.ImplicitAttrExpression = function(attrName) {
     goog.base(this, Builtin.BuiltinType.IMPLICIT_GETATTR, [], function(builtin) {
@@ -604,6 +753,7 @@ rethinkdb.query.Expression.prototype.concatMap = function(mapFun) {
 /**
  * @constructor
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.IfExpression = function(test, trueBranch, falseBranch) {
     this.test_ = test;
@@ -639,6 +789,7 @@ rethinkdb.query.ifThenElse = function(test, trueBranch, falseBranch) {
 /**
  * @constructor
  * @extends {rethinkdb.query.Expression}
+ * @ignore
  */
 rethinkdb.query.LetExpression = function(bindings, body) {
     this.bindings_ = bindings;
@@ -675,3 +826,65 @@ rethinkdb.query.let = function(var_args) {
     var body = arguments[arguments.length - 1];
     return new rethinkdb.query.LetExpression(bindings, body);
 };
+
+/**
+ * @constructor
+ * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
+ */
+rethinkdb.query.ForEachQuery = function(leftExpr, fun) {
+    this.leftExpr_ = leftExpr;
+    this.fun_ = fun;
+};
+goog.inherits(rethinkdb.query.ForEachQuery, rethinkdb.query.BaseQuery);
+
+rethinkdb.query.ForEachQuery.prototype.buildQuery = function() {
+    var foreach = new WriteQuery.ForEach();
+    foreach.setStream(this.leftExpr_.compile());
+    foreach.setVar(this.fun_.args[0]);
+
+    var sub = this.fun_.body.buildQuery().getWriteQuery();
+    if (!sub) {
+        throw new rethinkdb.errors.ClientError("For each requires a write query to execute");
+    }
+
+    foreach.addQueries(sub);
+
+    var write = new WriteQuery();
+    write.setType(WriteQuery.WriteQueryType.FOREACH);
+    write.setForEach(foreach);
+
+    var query = new Query();
+    query.setType(Query.QueryType.WRITE);
+    query.setWriteQuery(write);
+
+    return query;
+};
+
+/**
+ * Execute a query for every element of this sequence
+ */
+rethinkdb.query.Expression.prototype.forEach = function(fun) {
+    fun = functionWrap_(fun);
+    return new rethinkdb.query.ForEachQuery(this, fun);
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'forEach',
+                    rethinkdb.query.Expression.prototype.forEach);
+
+/**
+ * Convert a stream to an array
+ */
+rethinkdb.query.Expression.prototype.streamToArray = function() {
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.STREAMTOARRAY, [this]);
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'streamToArray',
+                    rethinkdb.query.Expression.prototype.streamToArray);
+
+/**
+ * Convert an array to a stream
+ */
+rethinkdb.query.Expression.prototype.arrayToStream = function() {
+    return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ARRAYTOSTREAM, [this]);
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'arrayToStream',
+                    rethinkdb.query.Expression.prototype.arrayToStream);

@@ -132,7 +132,6 @@ module 'NamespaceView', ->
                 {},
                 undefined)
             confirmation_modal.on_submit = =>
-                debugger
                 # Because Coffeescript doesn't want me to access this and I need _this
                 `this.$('.btn-primary').button('loading');
                 this.$('.cancel').button('loading');`
@@ -360,10 +359,10 @@ module 'NamespaceView', ->
             $('.tooltip').remove()
             shards = []
             total_keys = 0
-            for shard in namespaces.models[0].get('computed_shards').models
+            for shard in @model.get('shards')
                 new_shard =
-                    boundaries: shard.get('shard_boundaries')
-                    num_keys: parseInt @model.compute_shard_rows_approximation shard.get 'shard_boundaries'
+                    boundaries: shard
+                    num_keys: parseInt @model.compute_shard_rows_approximation shard
                 shards.push new_shard
                 total_keys += new_shard.num_keys
 
@@ -435,7 +434,18 @@ module 'NamespaceView', ->
                         .attr('y', (d) -> return svg_height-y(d.num_keys)-margin_height-1) #-1 not to overlap with axe
                         .attr('width', width)
                         .attr( 'height', (d) -> return y(d.num_keys))
-                        .attr( 'title', (d) -> return 'Shard:'+d.boundaries+'<br />'+d.num_keys+' keys')
+                        .attr( 'title', (d) ->
+                            pattern = /^(%22).*(%22)$/
+                            keys = $.parseJSON(d.boundaries)
+                            for key, i in keys
+                                if pattern.test(key) is true
+                                    keys[i] = key.slice(3, key.length-3)
+
+                            result = 'Shard: '
+                            result += '[ '+keys[0]+', '+keys[1]+']'
+                            result += '<br />'+d.num_keys+' keys'
+                            return result
+                        )
                 
 
                     arrow_width = 4
@@ -470,7 +480,7 @@ module 'NamespaceView', ->
                     axe_legend.push
                         x: Math.floor(svg_width/2)
                         y: svg_height
-                        string: if json.shards_length > 1 then 'Shards' else 'Data'
+                        string: 'Shards'
                         anchor: 'middle'
 
                     svg.selectAll('.legend')

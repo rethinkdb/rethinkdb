@@ -5,8 +5,16 @@ goog.require('goog.asserts');
 
 /** @export */
 rethinkdb.query.expr = function(value) {
-    if (typeof value === 'number') {
+    if (goog.isNumber(value)) {
         return new rethinkdb.query.NumberExpression(value);
+    } else if (goog.isBoolean(value)) {
+        return new rethinkdb.query.BooleanExpression(value);
+    } else if (goog.isString(value)) {
+        return new rethinkdb.query.StringExpression(value);
+    } else if (goog.isArray(value)) {
+        return new rethinkdb.query.ArrayExpression(value);
+    } else if (goog.isObject(value)) {
+        return new rethinkdb.query.ObjectExpression(value);
     } else {
         return new rethinkdb.query.JSONExpression(value);
     }
@@ -33,6 +41,7 @@ rethinkdb.query.table = function(table_identifier) {
 
 /**
  * @constructor
+ * @ignore
  */
 rethinkdb.query.BaseQuery = function() { };
 
@@ -64,6 +73,7 @@ rethinkdb.query.BaseQuery.prototype.buildQuery = goog.abstractMethod;
 /**
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
+ * @ignore
  */
 rethinkdb.query.ReadQuery = function() { };
 goog.inherits(rethinkdb.query.ReadQuery, rethinkdb.query.BaseQuery);
