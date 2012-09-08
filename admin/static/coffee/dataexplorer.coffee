@@ -130,8 +130,8 @@ module 'DataExplorerView', ->
             ]
             view:[
                 {
-                    suggestion: 'pluck()'
-                    description: 'pluck( expression )'
+                    suggestion: 'pickAttrs()'
+                    description: 'pickAttrs( key )'
                     has_argument: true
                 }
                 {
