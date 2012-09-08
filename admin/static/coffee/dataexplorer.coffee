@@ -850,7 +850,7 @@ module 'DataExplorerView', ->
             window.app.current_view.display_home(event)
 
         render: (query, result) =>
-            if query? and result?
+            if query? and result isnt undefined
                 @.$el.html @result_view.render(query, result).el
                 @result_view.delegateEvents()
             else
@@ -1226,7 +1226,7 @@ module 'DataExplorerView', ->
             @.$el.html @template
                 query: query
             
-            if @current_result.length is 0
+            if @current_result is null or @current_result.length is 0
                 @.$('.results').html @template_no_result
                 @.$('#tree_view').addClass 'active'
                 return @
