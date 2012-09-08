@@ -146,8 +146,6 @@ module 'DatabaseView', ->
                     namespace_status = DataUtils.get_namespace_status(namespace.get('id'))
                     if namespace_status.reachability isnt 'Live'
                         data.reachability = false
-                        console.log namespace.get('id')
-                        console.log namespace_status
 
 
 

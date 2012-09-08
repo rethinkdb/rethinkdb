@@ -301,7 +301,7 @@ module 'NamespaceView', ->
             @render()
 
         destroy: =>
-            issues.off()
+            issues.on 'all', @check_has_unsatisfiable_goals
 
 
 

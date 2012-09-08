@@ -39,7 +39,7 @@ need_update_objects = (new_data, old_data) ->
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
         if data isnt null
-            if data.protocol? and data.protocol is 'memcached'  # We check that the machines in the blueprint do exist
+            if data.protocol? and (data.protocol is 'memcached' or data.protocol is 'rdb')  # We check that the machines in the blueprint do exist
                 if collection_data[id].blueprint? and collection_data[id].blueprint.peers_roles?
                     for machine_uuid of collection_data[id].blueprint.peers_roles
                         if !machines.get(machine_uuid)?
@@ -55,6 +55,7 @@ apply_to_collection = (collection, collection_data) ->
             else
                 data.id = id
                 collection.add(new collection.model(data))
+            #TODO remove not found object
         else
             if collection.get(id)
                 collection.remove(id)
@@ -101,7 +102,7 @@ apply_diffs = (updates) ->
                 apply_to_collection(machines, collection_data)
             when 'me' then continue
             else
-                console.log "Unhandled element update: " + collection_id
+                console.log "Unhandled element update: " + collection_id + "."
     return
 
 set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
@@ -128,7 +129,7 @@ set_last_seen = (last_seen_from_server) ->
     for machine_uuid, timestamp of last_seen_from_server
         _m = machines.get machine_uuid
         if _m
-            _m.set('last_seen_from_server', timestamp)
+            _m.set('last_seen', timestamp)
 
 set_stats = (stat_data) ->
     for machine_id, data of stat_data
@@ -206,7 +207,7 @@ collect_stat_data = ->
             set_stats(data)
         error: ->
             #TODO
-            console.log 'Could not retrieve stats'
+            #console.log 'Could not retrieve stats'
 
 $ ->
     render_loading()
@@ -235,7 +236,6 @@ $ ->
     Backbone.sync = (method, model, success, error) ->
         if method is 'read'
             collect_server_data()
-            console.log 'call'
         else
             legacy_sync method, model, success, error
 
