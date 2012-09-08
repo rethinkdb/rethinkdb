@@ -103,7 +103,8 @@ struct scs_block_info_t {
 };
 
 template <class inner_serializer_t>
-struct scs_block_token_t {
+struct scs_block_token_t : public slow_shared_mixin_t {
+public:
     scs_block_token_t(block_id_t _block_id, const scs_block_info_t& _info,
                       const intrusive_ptr_t<typename serializer_traits_t<inner_serializer_t>::block_token_type>& tok)
         : block_id(_block_id), info(_info), inner_token(tok), ref_count_(0) {
@@ -113,31 +114,7 @@ struct scs_block_token_t {
     block_id_t block_id;    // NULL_BLOCK_ID if not associated with a block id
     scs_block_info_t info;      // invariant: info.state != scs_block_info_t::state_deleted
     intrusive_ptr_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token;
-
-    template <class T>
-    friend void intrusive_ptr_add_ref(scs_block_token_t<T> *p);
-    template <class T>
-    friend void intrusive_ptr_release(scs_block_token_t<T> *p);
-private:
-    int ref_count_;
 };
-
-template <class inner_serializer_t>
-void intrusive_ptr_add_ref(scs_block_token_t<inner_serializer_t> *p) {
-    UNUSED int64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
-    rassert(res > 0);
-}
-
-template <class inner_serializer_t>
-void intrusive_ptr_release(scs_block_token_t<inner_serializer_t> *p) {
-    int64_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
-    rassert(res >= 0);
-    if (res == 0) {
-        delete p;
-    }
-}
-
-
 
 template <>
 template <class inner_serializer_type>
