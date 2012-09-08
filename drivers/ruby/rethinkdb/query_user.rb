@@ -6,12 +6,8 @@ module RethinkDB
   class RQL_Query
     # Run the invoking query using the most recently opened connection.  See
     # Connection#run for more details.
-    def run; connection_send :run; end
-    # Run the invoking query and iterate over the results using the most
-    # recently opened connection.  See Connection#iter for more details.
-    def iter; connection_send :iter; end
-
-    #TODO: doc
-    def run_async; connection_send :run_async; end
+    def run
+      Connection.last.send(:run, self)
+    end
   end
 end

@@ -56,7 +56,7 @@ module RethinkDB
     #   table.map{|row| [row[:id], row[:id]*2]}.reduce([]){|a,b| r.union(a,b)}
     def concatmap
       S.with_var { |vname,v|
-        Stream_Expression.new [:call, [:concatmap, vname, S.r(yield(v))], [@body]]}
+        self.class.new [:call, [:concatmap, vname, S.r(yield(v))], [@body]]}
     end
 
     # Gets all rows of <b>+stream+</b> with keys between <b>+start_key+</b> and
@@ -86,7 +86,7 @@ module RethinkDB
     #   table.map {r[:id]} # uses implicit variable
     def map
       S.with_var{|vname,v|
-        Stream_Expression.new [:call, [:map, vname, S.r(yield(v))], [@body]]}
+        self.class.new [:call, [:map, vname, S.r(yield(v))], [@body]]}
     end
 
     # Order <b>+stream+</b> by the attributes in <b>+orderings+</b>.  May also
@@ -103,7 +103,7 @@ module RethinkDB
     # order.
     def orderby(*orderings)
       orderings.map!{|x| x.class == Array ? x : [x, true]}
-      Stream_Expression.new [:call, [:orderby, *orderings], [@body]]
+      self.class.new [:call, [:orderby, *orderings], [@body]]
     end
 
     # Reduce a function over a stream.  Note that unlike Ruby's reduce, you

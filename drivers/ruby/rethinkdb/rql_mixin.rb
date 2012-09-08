@@ -105,7 +105,7 @@ module RethinkDB
     # will only run the error query if 1 is greater than 2.  If an error query
     # does get run, it will be received as a RuntimeError in Ruby, so be
     # prepared to handle it.
-    def error(err); Untyped_Query.new [:error, err]; end
+    def error(err); JSON_Expression.new [:error, err]; end
 
     # Construct a query that runs a subquery <b>+test+</b> which returns a
     # boolean, then branches into either <b>+t_branch+</b> if <b>+test+</b>
@@ -116,8 +116,14 @@ module RethinkDB
     def if(test, t_branch, f_branch)
       tb = S.r(t_branch)
       fb = S.r(f_branch)
-      resulting_class = tb.class == fb.class ? tb.class : Untyped_Query
-      resulting_class.new [:if, S.r(test), S.r(t_branch), S.r(f_branch)]
+      if tb.kind_of? fb.class
+        resclass = fb.class
+      elsif fb.kind_of? tb.class
+        resclass = tb.class
+      else
+        raise TypeError, "Both branches of IF must be of compatible types."
+      end
+      resclass.new [:if, S.r(test), S.r(t_branch), S.r(f_branch)]
     end
 
     # Construct a query that binds some values to variable (as specified by
@@ -295,6 +301,7 @@ module RethinkDB
       JSON_Expression.new [:call, [:all], [S.r(pred), *(rest.map{|x| S.r x})]];
     end
 
+    #TODO: union works for arrays too
     # Take the union of 0 or more sequences <b>+seqs+</b>.  Note that unlike
     # normal set union, duplicate values are preserved.  May be called on only
     # on streams; use <b>+add+</b> for arrays.  May also be called as if it were
@@ -303,9 +310,13 @@ module RethinkDB
     #   r.union(table.map{r[:id]}, table.map{r[:num]})
     #   table.map{r[:id]}.union(table.map{r[:num]})
     def union(*seqs)
-      if seqs[0].class and seqs[0].class.instance_of? Expression
-      then resclass = seqs[0].class
-      else resclass = Untyped_Query
+      #TODO: this looks wrong...
+      if seqs.all? {|x| x.kind_of? JSON_Expression}
+        resclass = JSON_Expression
+      elsif seqs.all? {|x| x.kind_of? Stream_Expression}
+        resclass = Stream_Expression
+      else
+        raise TypeError, "All arguments to UNION must be of the same type."
       end
       resclass.new [:call, [:union], seqs.map{|x| S.r x}];
     end

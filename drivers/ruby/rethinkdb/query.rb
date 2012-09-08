@@ -25,14 +25,6 @@ module RethinkDB
     def as _class; RQL_Protob.comp(_class, sexp); end
     def query; RQL_Protob.query sexp; end
 
-    # Sed a message to the last connection with `self` as an argument.
-    def connection_send m
-      if Connection.last
-      then return Connection.last.send(m, self)
-      else raise RuntimeError, "No last connection, open a new one."
-      end
-    end
-
     # Dereference aliases (see utils.rb) and possibly dispatch to RQL
     # (because the caller may be trying to use the more convenient
     # inline version of an RQL function).
@@ -56,19 +48,6 @@ module RethinkDB
   end
 
   class Meta_Query < RQL_Query; end
-
-  # A query of unknown or generic type.
-  class Untyped_Query < RQL_Query
-    def method_missing(m, *args, &block)
-      if (m2 = C.method_aliases[m]); return self.send(m2, *args, &block); end
-      if    JSON_Expression.instance_methods.include? m.to_s
-      then  JSON_Expression.new(@body).send(m, *args, &block)
-      elsif Stream_Expression.instance_methods.include? m.to_s
-      then  Stream_Expression.new(@body).send(m, *args, &block)
-      else super(m, *args, &block)
-      end
-    end
-  end
 
   class Table
     def method_missing(m, *args, &block)

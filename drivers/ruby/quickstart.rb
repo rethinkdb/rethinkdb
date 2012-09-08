@@ -1,3 +1,4 @@
+$LOAD_PATH.unshift('./rethinkdb')
 load 'rethinkdb_shortcuts.rb'
 extend RethinkDB::Shortcuts_Mixin
 port_offset = ENV['PORT_OFFSET'].to_i || 0 if not port_offset
