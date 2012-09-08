@@ -2,18 +2,23 @@ require 'socket'
 require 'thread'
 require 'json'
 
-#TODO: Make sure tokens don't overflow.
-
 module RethinkDB
+  # The result of a calling Connection#run on a query that returns a stream.
+  # This class is <b>+Enumerable+</b>.  You can find documentation on Enumerable
+  # classes at http://ruby-doc.org/core-1.9.3/Enumerable.html .
+  #
+  # <b>NOTE:</b> unlike most enumerable objects, you can only iterate over Query
+  # results once.  The results are fetched lazily from the server in chunks
+  # of 1000.  If you need to access to values multiple times, use the <b>+to_a+</b>
+  # instance method to get an Array, and then work with that.
   class Query_Results
-    include Enumerable
-    def initialize(connection, token)
+    def initialize(connection, token) # :nodoc:
       @run = false
       @connection = connection
       @token = token
     end
 
-    def each (&block)
+    def each (&block) # :nodoc:
       raise RuntimeError, "Can only iterate over Query_Results once!" if @run
       @connection.token_iter(@token, &block)
       @run = true
@@ -21,6 +26,16 @@ module RethinkDB
     end
   end
 
+  # TODO: Make sure tokens don't overflow.
+  #
+  # A connection to the RethinkDB
+  # cluster.  You need to create at least one connection before you can run
+  # queries.  After creating a connection <b>+conn+</b> and constructing a
+  # query <b>+q+</b>, the following are equivalent:
+  #  conn.run(q)
+  #  q.run
+  # (This is because by default, invoking the <b>+run+</b> instance method on a
+  # query runs it on the most-recently-opened connection.)
   class Connection
     @@last = nil
     @@magic_number = 0xaf61ba35
@@ -127,7 +142,13 @@ module RethinkDB
       start_listener
     end
 
-    #TODO: doc
+    # Run a query over the connection.  If you run a query that returns a JSON
+    # expression (e.g. a reduce), you get back that JSON expression.  If you run
+    # a query that returns a stream of results (e.g. filtering a table), you get
+    # back an enumerable object of class RethinkDB::Query_Results.
+    #
+    # <b>NOTE:</b> unlike most enumerably objects, you can only iterate over the
+    # result once.  See RethinkDB::Query_Results for more details.
     def run (query)
       is_atomic = (query.kind_of?(JSON_Expression) ||
                    query.kind_of?(Meta_Query) ||
@@ -139,34 +160,6 @@ module RethinkDB
       else
         return Query_Results.new(self, dispatch(protob))
       end
-    end
-
-    #TODO: doc
-    def run_async query
-      dispatch query
-    end
-
-    #TODO: doc
-    def block token
-      a = []
-      token_iter(token){|row| a.push row} ? a : a[0]
-    end
-
-    # Run the RQL query <b>+query+</b> and iterate over the results.  The
-    # <b>+block+</b> you provide should take a single argument, which will be
-    # bound to a single JSON value each time your block is invoked.  Returns
-    # <b>+true+</b> if your query returned a sequence of values or
-    # <b>+false+</b> if your query returned a single value.  (Note that JSON
-    # values will be converted to Ruby datatypes by the time you receive them.)
-    # Example (assuming a connection <b>+c+</b> and that you've mixed in
-    # shortcut <b>+r+</b>):
-    #   a = []
-    #   c.iter(r.add(1,2)) {|val| a.push val}                    => false
-    #   a                                                        => [3]
-    #   c.iter(r[[r.add(10,20)]]) {|val| a.push val} => true
-    #   a                                                        => [3, 30]
-    def iter(query, &block)
-      token_iter(dispatch(query), &block)
     end
 
     # Close the connection.

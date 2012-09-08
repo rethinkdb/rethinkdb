@@ -1,10 +1,10 @@
 module RethinkDB
-  # This module may be included/extended to gain access to the RQL query
-  # construction functions.  By far the most common way of gaining access to
-  # those functions, however, is to include/extend RethinkDB::Shortcuts_Mixin to
-  # gain access to the shortcut <b>+r+</b>.  That shortcut is used in all the
-  # examples below.
-  module RQL_Mixin
+  # This module contains the RQL query construction functions.  By far
+  # the most common way of gaining access to those functions, however,
+  # is to include/extend RethinkDB::Shortcuts to gain access to the
+  # shortcut <b>+r+</b>.  That shortcut is used in all the examples
+  # below.
+  module RQL
     # Construct a javascript expression, which may refer to variables in scope
     # (use <b>+to_s+</b> to get the name of a variable query, or simply splice
     # it in).  Defaults to a javascript expression, but if the optional second
@@ -25,24 +25,25 @@ module RethinkDB
     #   r.let([['a', 1],
     #          ['b', 2]],
     #         r.js('a+b+1'))
-    def javascript(str, type=:expr);
+    def self.javascript(str, type=:expr);
       if    type == :expr then JSON_Expression.new [:javascript, "return #{str}"]
       elsif type == :func then JSON_Expression.new [:javascript, str]
       else  raise TypeError, 'Type of javascript must be either :expr or :func.'
       end
     end
 
-    # Construct a new database reference.  Usually used as a stepping stone to
-    # ta table.  For instance, to access the table <b>+Welcome+</b>, either of
-    # these works:
-    #   db('').table('Welcome')
-    #   db('').Welcome
-    def db(db_name); Database.new db_name; end
+    # Refer to the database named <b>+db_name+</b>.  Usually used as a
+    # stepping stone to a table reference.  For instance, to refer to
+    # the table 'tbl' in the database 'db1', either of the following
+    # work:
+    #   db('db1').table('tbl')
+    #   db('db1').tbl
+    def self.db(db_name); Database.new db_name; end
 
-    # A shortcut for RQL_Mixin#expr.  The following are equivalent:
+    # A shortcut for RQL::expr.  The following are equivalent:
     #   r.expr(5)
     #   r[5]
-    def [](ind); expr ind; end
+    def self.[](ind); expr ind; end
 
     # Convert from a Ruby datatype to an RQL query.  More commonly accessed
     # with its shortcut, <b><tt>[]</tt></b>.  Numbers, strings, booleans,
@@ -62,14 +63,14 @@ module RethinkDB
     # your variables the same as global ruby variables, which makes them stand
     # out nicely in queries.)
     #
-    # Note: this function is idempotent, so the following are equivalent:
+    # <b>Note:</b> this function is idempotent, so the following are equivalent:
     #   r[5]
     #   r[r[5]]
-    # Note 2: the implicit variable can be dangerous.  Never pass it to a
+    # <b>Note 2:</b> the implicit variable can be dangerous.  Never pass it to a
     # Ruby function, as it might enter a different scope without your
     # knowledge.  In general, if you're doing something complicated, consider
     # naming your variables.
-    def expr x
+    def self.expr x
       return x if x.kind_of? RQL_Query
       case x.class().hash
       when Table.hash      then x.to_mrs
@@ -91,13 +92,15 @@ module RethinkDB
     # equivalent:
     #   r[:$varname]
     #   r.var('varname')
-    def var(varname); Var_Expression.new [:var, varname]; end
+    # You want to use the second version if the variable name contains
+    # funny characters that aren't easily expressed in a symbol.
+    def self.var(varname); Var_Expression.new [:var, varname]; end
 
     # Provide a literal JSON string that will be parsed by the server.  For
     # example, the following are equivalent:
     #   r.expr([1,2,3])
     #   r.json('[1,2,3]')
-    def json(str); JSON_Expression.new [:json, str]; end
+    def self.json(str); JSON_Expression.new [:json, str]; end
 
     # Construct an error.  This is usually used in the branch of an <b>+if+</b>
     # expression.  For example:
@@ -105,15 +108,14 @@ module RethinkDB
     # will only run the error query if 1 is greater than 2.  If an error query
     # does get run, it will be received as a RuntimeError in Ruby, so be
     # prepared to handle it.
-    def error(err); JSON_Expression.new [:error, err]; end
+    def self.error(err); JSON_Expression.new [:error, err]; end
 
-    # Construct a query that runs a subquery <b>+test+</b> which returns a
-    # boolean, then branches into either <b>+t_branch+</b> if <b>+test+</b>
-    # returned true or <b>+f_branch+</b> if <b>+test+</b> returned false.  For
-    # example, if we have a table <b>+table+</b>:
-    #   table.update{|row| if(row[:score] < 10, {:score => 10}, {})}
+    # Test a predicate and execute one of two branches (just like
+    # Ruby's <b>+if+</b>).  For example, if we have a table
+    # <b>+table+</b>:
+    #   table.update{|row| r.if(row[:score] < 10, {:score => 10}, {})}
     # will change every row with score below 10 in <b>+table+</b> to have score 10.
-    def if(test, t_branch, f_branch)
+    def self.if(test, t_branch, f_branch)
       tb = S.r(t_branch)
       fb = S.r(f_branch)
       if tb.kind_of? fb.class
@@ -139,7 +141,7 @@ module RethinkDB
     # on previous variables, because the order is not guaranteed.  For example:
     #   r.let({:a => 2, :b => 3}, r[:$b]*2) # legal
     #   r.let({:a => 2, :b => r[:$a]+1}, r[:$b]*2) #legality not guaranteed
-    def let(varbinds, body);
+    def self.let(varbinds, body);
       varbinds.map! { |pair|
         raise SyntaxError,"Malformed LET expression #{body}" if pair.length != 2
         [pair[0].to_s, expr(pair[1])]}
@@ -147,14 +149,14 @@ module RethinkDB
       res.class.new [:let, varbinds, res]
     end
 
-    # Negate a predicate.  May also be called as if it were a instance method of
+    # Negate a boolean.  May also be called as if it were a instance method of
     # JSON_Expression for convenience.  The following are equivalent:
     #   r.not(true)
     #   r[true].not
-    def not(pred); JSON_Expression.new [:call, [:not], [S.r pred]]; end
+    def self.not(pred); JSON_Expression.new [:call, [:not], [S.r pred]]; end
 
     # Get an attribute of the implicit variable (usually done with
-    # RQL_Mixin#expr).  Getting an attribute explicitly is useful if it has an
+    # RQL::expr).  Getting an attribute explicitly is useful if it has an
     # odd name that can't be expressed as a symbol (or a name that starts with a
     # $).  Synonyms are <b>+get+</b> and <b>+attr+</b>.  The following are all
     # equivalent:
@@ -163,7 +165,7 @@ module RethinkDB
     #   r.getattr('id')
     #   r.get('id')
     #   r.attr('id')
-    def getattr(attrname)
+    def self.getattr(attrname)
       JSON_Expression.new [:call, [:implicit_getattr, attrname], []]
     end
 
@@ -172,7 +174,7 @@ module RethinkDB
     #   r.hasattr('name')
     #   r.has('name')
     #   r.attr?('name')
-    def hasattr(attrname)
+    def self.hasattr(attrname)
       JSON_Expression.new [:call, [:implicit_hasattr, attrname], []]
     end
 
@@ -183,19 +185,23 @@ module RethinkDB
     #   r.pickattrs(:id, :name)
     #   r.pick(:id, :name)
     #   r.attrs(:id, :name)
-    def pickattrs(*attrnames)
+    def self.pickattrs(*attrnames)
       JSON_Expression.new [:call, [:implicit_pickattrs, *attrnames], []]
     end
 
-    #TODO: doc
-    def without(*attrnames)
+    # Construct an object that is a subset of the object stored in the
+    # implicit variable by removing certain attributes.  The following
+    # are equivalent:
+    #   r[[{:a => 1, :b => 2}]].map{r.without(:b)}
+    #   r[[{:a => 1}]]
+    def self.without(*attrnames)
       JSON_Expression.new [:call, [:implicit_without, *attrnames], []]
     end
 
-    # Add the results of two or more queries together.  (Those queries should
-    # return numbers.)  May also be called as if it were a instance method of
-    # RQL_Query for convenience, and overloads <b><tt>+</tt></b> if the lefthand
-    # side is a query.  The following are all equivalent:
+    # Add two or more numbers together.  May also be called as if it
+    # were a instance method of JSON_Expression for convenience, and
+    # overloads <b><tt>+</tt></b> if the lefthand side is a query.
+    # The following are all equivalent:
     #   r.add(1,2)
     #   r[1].add(2)
     #   (r[1] + 2) # Note that (1 + r[2]) is *incorrect* because Ruby only
@@ -205,12 +211,12 @@ module RethinkDB
     # Add may also be used to concatenate arrays.  The following are equivalent:
     #   r[[1,2,3]]
     #   r.add([1, 2], [3])
-    def add(a, b, *rest)
+    def self.add(a, b, *rest)
       JSON_Expression.new [:call, [:add], [S.r(a), S.r(b), *(rest.map{|x| expr x})]];
     end
 
-    # Subtract one query from another.  (Those queries should return numbers.)
-    # May also be called as if it were a instance method of RQL_Query for
+    # Subtract one number from another.
+    # May also be called as if it were a instance method of JSON_Expression for
     # convenience, and overloads <b><tt>-</tt></b> if the lefthand side is a
     # query.  Also has the shorter synonym <b>+sub+</b>. The following are all
     # equivalent:
@@ -220,13 +226,13 @@ module RethinkDB
     #   r[1].sub(2)
     #   (r[1] - 2) # Note that (1 - r[2]) is *incorrect* because Ruby only
     #              # overloads based on the lefthand side.
-    def subtract(a, b); JSON_Expression.new [:call, [:subtract], [S.r(a), S.r(b)]]; end
+    def self.subtract(a, b); JSON_Expression.new [:call, [:subtract], [S.r(a), S.r(b)]]; end
 
-    # Multiply the results of two or more queries together.  (Those queries should
-    # return numbers.)  May also be called as if it were a instance method of
-    # RQL_Query for convenience, and overloads <b><tt>+</tt></b> if the lefthand
-    # side is a query.  Also has the shorter synonym <b>+mul+</b>.  The
-    # following are all equivalent:
+    # Multiply two numbers together.  May also be called as if it were
+    # a instance method of JSON_Expression for convenience, and
+    # overloads <b><tt>+</tt></b> if the lefthand side is a query.
+    # Also has the shorter synonym <b>+mul+</b>.  The following are
+    # all equivalent:
     #   r.multiply(1,2)
     #   r[1].multiply(2)
     #   r.mul(1,2)
@@ -235,27 +241,28 @@ module RethinkDB
     #              # overloads based on the lefthand side.
     # The following is also legal:
     #   r.multiply(1,2,3)
-    def multiply(a, b, *rest)
+    def self.multiply(a, b, *rest)
       JSON_Expression.new [:call, [:multiply], [S.r(a), S.r(b), *(rest.map{|x| S.r x})]];
     end
 
-    # Divide one query by another.  (Those queries should return numbers.)
-    # May also be called as if it were a instance method of RQL_Query for
-    # convenience, and overloads <b><tt>/</tt></b> if the lefthand side is a
-    # query.  Also has the shorter synonym <b>+div+</b>. The following are all
-    # equivalent:
+    # Divide one number by another.  May also be called as if it were
+    # a instance method of JSON_Expression for convenience, and
+    # overloads <b><tt>/</tt></b> if the lefthand side is a query.
+    # Also has the shorter synonym <b>+div+</b> and overloads
+    # <b>+/+</b> if the lefthand side is a query. The following are
+    # all equivalent:
     #   r.divide(1,2)
     #   r[1].divide(2)
     #   r.div(1,2)
     #   r[1].div(2)
     #   (r[1] / 2) # Note that (1 / r[2]) is *incorrect* because Ruby only
     #              # overloads based on the lefthand side.
-    def divide(a, b); JSON_Expression.new [:call, [:divide], [S.r(a), S.r(b)]]; end
+    def self.divide(a, b); JSON_Expression.new [:call, [:divide], [S.r(a), S.r(b)]]; end
 
-    # Take one query modulo another.  (Those queries should return numbers.)
-    # May also be called as if it were a instance method of RQL_Query for
-    # convenience, and overloads <b><tt>%</tt></b> if the lefthand side is a
-    # query.  Also has the shorter synonym <b>+mod+</b>. The following are all
+    # Take one number modulo another.  May also be called as if it
+    # were a instance method of JSON_Expression for convenience, and
+    # overloads <b><tt>%</tt></b> if the lefthand side is a query.
+    # Also has the shorter synonym <b>+mod+</b>. The following are all
     # equivalent:
     #   r.modulo(1,2)
     #   r[1].modulo(2)
@@ -263,15 +270,15 @@ module RethinkDB
     #   r[1].mod(2)
     #   (r[1] % 2) # Note that (1 % r[2]) is *incorrect* because Ruby only
     #              # overloads based on the lefthand side.
-    def modulo(a, b); JSON_Expression.new [:call, [:modulo], [S.r(a), S.r(b)]]; end
+    def self.modulo(a, b); JSON_Expression.new [:call, [:modulo], [S.r(a), S.r(b)]]; end
 
-    # Take one or more predicate queries and construct a query that returns true
-    # if any of them evaluate to true.  Sort of like <b>+or+</b> in ruby, but
-    # takes arbitrarily many arguments and is *not* guaranteed to
-    # short-circuit.  May also be called as if it were a instance method of
-    # RQL_Query for convenience, and overloads <b><tt>|</tt></b> if the lefthand
-    # side is a query.  Also has the synonym <b>+or+</b>.  The following are
-    # all equivalent:
+    # Returns true if any of its arguments are true.  Sort of like
+    # <b>+or+</b> in ruby, but takes arbitrarily many arguments and is
+    # *not* guaranteed to short-circuit.  May also be called as if it
+    # were a instance method of JSON_Expression for convenience, and
+    # overloads <b><tt>|</tt></b> if the lefthand side is a query.
+    # Also has the synonym <b>+or+</b>.  The following are all
+    # equivalent:
     #   r[true]
     #   r.any(false, true)
     #   r.or(false, true)
@@ -279,17 +286,17 @@ module RethinkDB
     #   r[false].or(true)
     #   (r[false] | true) # Note that (false | r[true]) is *incorrect* because
     #                     # Ruby only overloads based on the lefthand side
-    def any(pred, *rest)
+    def self.any(pred, *rest)
       JSON_Expression.new [:call, [:any], [S.r(pred), *(rest.map{|x| S.r x})]];
     end
 
-    # Take one or more predicate queries and construct a query that returns true
-    # if all of them evaluate to true.  Sort of like <b>+and+</b> in ruby, but
-    # takes arbitrarily many arguments and is *not* guaranteed to
-    # short-circuit.  May also be called as if it were a instance method of
-    # RQL_Query for convenience, and overloads <b><tt>&</tt></b> if the lefthand
-    # side is a query.  Also has the synonym <b>+and+</b>.  The following are
-    # all equivalent:
+    # Returns true if all of its arguments are true.  Sort of like
+    # <b>+and+</b> in ruby, but takes arbitrarily many arguments and
+    # is *not* guaranteed to short-circuit.  May also be called as if
+    # it were a instance method of JSON_Expression for convenience,
+    # and overloads <b><tt>&</tt></b> if the lefthand side is a query.
+    # Also has the synonym <b>+and+</b>.  The following are all
+    # equivalent:
     #   r[false]
     #   r.all(false, true)
     #   r.and(false, true)
@@ -297,19 +304,20 @@ module RethinkDB
     #   r[false].and(true)
     #   (r[false] & true) # Note that (false & r[true]) is *incorrect* because
     #                     # Ruby only overloads based on the lefthand side
-    def all(pred, *rest)
+    def self.all(pred, *rest)
       JSON_Expression.new [:call, [:all], [S.r(pred), *(rest.map{|x| S.r x})]];
     end
 
-    #TODO: union works for arrays too
-    # Take the union of 0 or more sequences <b>+seqs+</b>.  Note that unlike
-    # normal set union, duplicate values are preserved.  May be called on only
-    # on streams; use <b>+add+</b> for arrays.  May also be called as if it were
-    # a instance method of Read_Query, for convenience.  For example, if we have
-    # a table <b>+table+</b>, the following are equivalent:
+    # TODO: make union work for arrays too
+    #
+    # Take the union of 0 or more sequences <b>+seqs+</b>.  Note that
+    # unlike normal set union, duplicate values are preserved.  May
+    # also be called as if it were a instance method of Read_Query,
+    # for convenience.  For example, if we have a table
+    # <b>+table+</b>, the following are equivalent:
     #   r.union(table.map{r[:id]}, table.map{r[:num]})
     #   table.map{r[:id]}.union(table.map{r[:num]})
-    def union(*seqs)
+    def self.union(*seqs)
       #TODO: this looks wrong...
       if seqs.all? {|x| x.kind_of? JSON_Expression}
         resclass = JSON_Expression
@@ -323,19 +331,19 @@ module RethinkDB
 
     # Merge two objects together with a preference for the object on the right.
     # The resulting object has all the attributes in both objects, and if the
-    # two objects share an attribute, the value from the object on the left
+    # two objects share an attribute, the value from the object on the right
     # "wins" and is included in the final object.  May also be called as if it
-    # were an instance method of RQL_Query, for convenience.  The following are
+    # were an instance method of JSON_Expression, for convenience.  The following are
     # equivalent:
     #   r[{:a => 10, :b => 2, :c => 30}]
     #   r.mapmerge({:a => 1, :b => 2}, {:a => 10, :c => 30})
     #   r[{:a => 1, :b => 2}].mapmerge({:a => 10, :c => 30})
-    def mapmerge(obj1, obj2)
+    def self.mapmerge(obj1, obj2)
       JSON_Expression.new [:call, [:mapmerge], [S.r(obj1), S.r(obj2)]]
     end
 
-    # Check whether the results of two queries are equal.  May also be called as
-    # if it were a member function of RQL_Query for convenience.  Has the
+    # Check whether two JSON expressions are equal.  May also be called as
+    # if it were a member function of JSON_Expression for convenience.  Has the
     # synonym <b>+equals+</b>.  The following are all equivalent:
     #   r[true]
     #   r.eq 1,1
@@ -346,12 +354,12 @@ module RethinkDB
     # equivalent:
     #   r[false]
     #   r.eq(1, 1, 2)
-    def eq(*args)
+    def self.eq(*args)
       JSON_Expression.new [:call, [:compare, :eq], args.map{|x| S.r x}]
     end
 
-    # Check whether the results of two queries are *not* equal.  May also be
-    # called as if it were a member function of RQL_Query for convenience.  The
+    # Check whether two JSON expressions are *not* equal.  May also be
+    # called as if it were a member function of JSON_Expression for convenience.  The
     # following are all equivalent:
     #   r[true]
     #   r.ne 1,2
@@ -362,14 +370,14 @@ module RethinkDB
     # equivalent:
     #   r[true]
     #   r.ne(1, 1, 2)
-    def ne(*args)
+    def self.ne(*args)
       JSON_Expression.new [:call, [:compare, :ne], args.map{|x| S.r x}]
     end
 
-    # Check whether the result of one query is less than another.  May also be
-    # called as if it were a member function of RQL_Query for convenience.  May
+    # Check whether one JSON expression is less than another.  May also be
+    # called as if it were a member function of JSON_Expression for convenience.  May
     # also be called as the infix operator <b><tt> < </tt></b> if the lefthand
-    # side is an RQL query.  The following are all equivalent:
+    # side is a query.  The following are all equivalent:
     #   r[true]
     #   r.lt 1,2
     #   r[1].lt(2)
@@ -381,14 +389,14 @@ module RethinkDB
     # equivalent:
     #   r[true]
     #   r.lt(1, 2, 3)
-    def lt(*args)
+    def self.lt(*args)
       JSON_Expression.new [:call, [:compare, :lt], args.map{|x| S.r x}]
     end
 
-    # Check whether the result of one query is less than or equal to another.
-    # May also be called as if it were a member function of RQL_Query for
+    # Check whether one JSON expression is less than or equal to another.
+    # May also be called as if it were a member function of JSON_Expression for
     # convenience.  May also be called as the infix operator <b><tt> <= </tt></b>
-    # if the lefthand side is an RQL query.  The following are all equivalent:
+    # if the lefthand side is a query.  The following are all equivalent:
     #   r[true]
     #   r.le 1,1
     #   r[1].le(1)
@@ -400,12 +408,12 @@ module RethinkDB
     # equivalent:
     #   r[true]
     #   r.le(1, 2, 2)
-    def le(*args)
+    def self.le(*args)
       JSON_Expression.new [:call, [:compare, :le], args.map{|x| S.r x}]
     end
 
-    # Check whether the result of one query is greater than another.
-    # May also be called as if it were a member function of RQL_Query for
+    # Check whether one JSON expression is greater than another.
+    # May also be called as if it were a member function of JSON_Expression for
     # convenience.  May also be called as the infix operator <b><tt> > </tt></b>
     # if the lefthand side is an RQL query.  The following are all equivalent:
     #   r[true]
@@ -419,14 +427,14 @@ module RethinkDB
     # equivalent:
     #   r[true]
     #   r.gt(3, 2, 1)
-    def gt(*args)
+    def self.gt(*args)
       JSON_Expression.new [:call, [:compare, :gt], args.map{|x| S.r x}]
     end
 
-    # Check whether the result of one query is greater than or equal to another.
-    # May also be called as if it were a member function of RQL_Query for
+    # Check whether one JSON expression is greater than or equal to another.
+    # May also be called as if it were a member function of JSON_Expression for
     # convenience.  May also be called as the infix operator <b><tt> >= </tt></b>
-    # if the lefthand side is an RQL query.  The following are all equivalent:
+    # if the lefthand side is a query.  The following are all equivalent:
     #   r[true]
     #   r.ge 1,1
     #   r[1].ge(1)
@@ -438,17 +446,24 @@ module RethinkDB
     # equivalent:
     #   r[true]
     #   r.ge(2, 2, 1)
-    def ge(*args)
+    def self.ge(*args)
       JSON_Expression.new [:call, [:compare, :ge], args.map{|x| S.r x}]
     end
 
-    # Create a new database
-    def create_db(db_name); Meta_Query.new [:create_db, db_name]; end
+    # Create a new database with name <b>+db_name+</b>.  Either
+    # returns <b>+nil+</b> or raises an error.
+    def self.create_db(db_name); Meta_Query.new [:create_db, db_name]; end
 
-    # List all databases
-    def list_dbs(); Meta_Query.new [:list_dbs]; end
+    # List all databases.  Either returns an array of strings or raises an error.
+    def self.list_dbs(); Meta_Query.new [:list_dbs]; end
 
-    # Drop a database
-    def drop_db(db_name); Meta_Query.new [:drop_db, db_name]; end
+    # Drop the database with name <b>+db_name+</b>.  Either returns
+    # <b>+nil+</b> or raises an error.
+    def self.drop_db(db_name); Meta_Query.new [:drop_db, db_name]; end
+
+    # Dereference aliases (seet utils.rb)
+    def self.method_missing(m, *args, &block) # :nodoc:
+      (m2 = C.method_aliases[m]) ? self.send(m2, *args, &block) : super(m, *args, &block)
+    end
   end
 end

@@ -1,6 +1,39 @@
 module RethinkDB
-  # A query returning a JSON object
-  class JSON_Expression < Expression
+  # A query returning a JSON expression.  Most of the functions that you
+  # can run on a JSON object are found in RethinkDB::RQL and accessed
+  # with the <b>+r+</b> shortcut.  For convenience, may of the
+  # functions in Rethinkdb::RQL can be run as if they were instance
+  # methods of JSON_Expression.  For example, the following are
+  # equivalent:
+  #   r.add(1, 2)
+  #   r[1].add(2)
+  #   r[3]
+  #
+  # Running a JSON_Expression query will return a literal Ruby
+  # representation of the resulting JSON, rather than a stream or a
+  # string.  For example, the following are equivalent:
+  #   r.add(1,2).run
+  #   3
+  # As are:
+  #   r[{:a => 1, :b => 2}].pickattrs(:a).run
+  #   {'a' => 1}
+  # (Note that the symbol keys were coerced into string keys in the
+  # object.  JSON doesn't distinguish between keys and strings.)
+  class JSON_Expression
+    # If <b>+ind+</b> is a symbol or a string, gets the corresponding
+    # attribute of an object.  For example, the following are equivalent:
+    #   r[{:id => 1}][:id]
+    #   r[{:id => 1}]['id']
+    #   r[1]
+    # Otherwise, if <b>+ind+</b> is a number or a range, invokes RQL::[]
+    def [](ind)
+      if ind.class == Symbol || ind.class == String
+        JSON_Expression.new [:call, [:getattr, ind], [@body]]
+      else
+        super
+      end
+    end
+
     # Append a single element to an array.  Has the shorter synonym
     # <b>+append+</b> The following are equivalent:
     #   r[[1,2,3,4]]
@@ -10,22 +43,33 @@ module RethinkDB
       JSON_Expression.new [:call, [:arrayappend], [@body, S.r(el)]]
     end
 
-    # Get an attribute of the invoking query.
+    # Get an attribute of a JSON object.  The following are equivalent:
+    #   r[{:id => 1}].getattr(:id)
+    #   r[1]
     def getattr(attrname)
       JSON_Expression.new [:call, [:getattr, attrname], [@body]]
     end
 
-    # Check whether the invoking query has a particular attribute.
+    # Check whether a JSON object has a particular attribute.  The
+    # following are equivalent:
+    #   r[{:id => 1}].hasattr(:id)
+    #   r[true]
     def hasattr(attrname)
       JSON_Expression.new [:call, [:hasattr, attrname], [@body]]
     end
 
-    # Construct an object that has a subet of the attributes of the invoking query.
+    # Construct a JSON object that has a subset of the attributes of
+    # another JSON object by specifying which to keep.  The following are equivalent:
+    #   r[{:a => 1, :b => 2, :c => 3}].pickattrs(:a, :c)
+    #   r[{:a => 1, :c => 3}]
     def pickattrs(*attrnames)
       JSON_Expression.new [:call, [:pickattrs, *attrnames], [@body]]
     end
 
-    #TODO: doc
+    # Construct a JSON object that has a subset of the attributes of
+    # another JSON object by specifying which to drop.  The following are equivalent:
+    #   r[{:a => 1, :b => 2, :c => 3}].without(:a, :c)
+    #   r[{:b => 2}]
     def without(*attrnames)
       JSON_Expression.new [:call, [:without, *attrnames], [@body]]
     end
@@ -40,12 +84,19 @@ module RethinkDB
     #   r[[1,2,3]].to_stream
     def arraytostream(); Stream_Expression.new [:call, [:arraytostream], [@body]]; end
 
-    # Prefix -
+    # Prefix numeric -.  The following are equivalent:
+    #   -r[1]
+    #   r[-1]
     def -@; JSON_Expression.new [:call, [:subtract], [@body]]; end
-    # Prefix + (inverse of prefix -)
+    # Prefix numeric +.  The following are equivalent:
+    #   +r[-1]
+    #   r[-1]
     def +@; JSON_Expression.new [:call, [:add], [@body]]; end
   end
-  # A query representing a variable.
+
+  # A query representing a variable.  Produced by e.g. RQL::var.  This
+  # is its own class because it needs to behave correctly when spliced
+  # into a string (see RQL::javascript).
   class Var_Expression < JSON_Expression
     # Convert from an RQL query representing a variable to the name of that
     # variable.  Used e.g. in constructing javascript functions.
@@ -57,21 +108,23 @@ module RethinkDB
     end
   end
 
-  # A query that refers to a single row of a table
+  # Like Multi_Row_Selection, but for a single row.  E.g.:
+  #   table.get(0)
+  # yields a Single_Row_Selection
   class Single_Row_Selection < JSON_Expression
-    # Analagous to Stream_Query#update
+    # Analagous to Multi_Row_Selection#update
     def update
       S.with_var {|vname,v|
         Write_Query.new [:pointupdate, *(@body[1..-1] + [[vname, S.r(yield(v))]])]}
     end
 
-    # Analagous to Stream_Query#mutate
+    # Analagous to Multi_Row_Selection#mutate
     def mutate
       S.with_var {|vname,v|
         Write_Query.new [:pointmutate, *(@body[1..-1] + [[vname, S.r(yield(v))]])]}
     end
 
-    # Analagous to Stream_Query#delete
+    # Analagous to Multi_Row_Selection#delete
     def delete
       Write_Query.new [:pointdelete, *(@body[1..-1])]
     end
