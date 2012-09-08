@@ -3,24 +3,33 @@
 
 #include "containers/cow_ptr.hpp"
 
-#include "errors.hpp"
-#include <boost/make_shared.hpp>
+template <class T>
+struct cow_pointee_t : public slow_shared_mixin_t {
+    T value;
+
+    cow_pointee_t() { }
+    cow_pointee_t(const T &copyee) : value(copyee) { }
+
+private:
+    DISABLE_COPYING(cow_pointee_t);
+};
+
 
 template <class T>
-cow_ptr_t<T>::cow_ptr_t() : value(boost::make_shared<T>()), change_count(0) { }
+cow_ptr_t<T>::cow_ptr_t() : ptr(new cow_pointee_t<T>), change_count(0) { }
 
 template <class T>
-cow_ptr_t<T>::cow_ptr_t(const T &t) : value(boost::make_shared<T>(t)), change_count(0) { }
+cow_ptr_t<T>::cow_ptr_t(const T &t) : ptr(new cow_pointee_t<T>(t)), change_count(0) { }
 
 template <class T>
 cow_ptr_t<T>::cow_ptr_t(const cow_ptr_t &other) : change_count(0) {
     if (other.change_count == 0) {
-        value = other.value;
+        ptr = other.ptr;
     } else {
-        /* We can't just copy `ref.value` because then we would share a buffer
+        /* We can't just copy `ref.ptr` because then we would share a buffer
         with it, but its buffer is currently being modified. We have to allocate
         our own buffer. */
-        value = boost::make_shared<T>(*other);
+        ptr.reset(new cow_pointee_t<T>(*other));
     }
 }
 
@@ -32,7 +41,7 @@ cow_ptr_t<T>::~cow_ptr_t() {
 template <class T>
 cow_ptr_t<T> &cow_ptr_t<T>::operator=(const cow_ptr_t &other) {
     if (change_count == 0 && other.change_count == 0) {
-        value = other.value;
+        ptr = other.ptr;
     } else {
         set(*other);
     }
@@ -41,34 +50,34 @@ cow_ptr_t<T> &cow_ptr_t<T>::operator=(const cow_ptr_t &other) {
 
 template <class T>
 const T &cow_ptr_t<T>::operator*() const {
-    return *value;
+    return ptr->value;
 }
 
 template <class T>
 const T *cow_ptr_t<T>::operator->() const {
-    return value.get();
+    return &ptr->value;
 }
 
 template <class T>
 const T *cow_ptr_t<T>::get() const {
-    return value.get();
+    return &ptr->value;
 }
 
 template <class T>
 void cow_ptr_t<T>::set(const T &new_value) {
-    if (value.unique()) {
-        *value = new_value;
+    if (ptr.unique()) {
+        ptr->value = new_value;
     } else {
         rassert(change_count == 0);
-        value = boost::make_shared<T>(new_value);
+        ptr.reset(new cow_pointee_t<T>(new_value));
     }
 }
 
 template <class T>
 cow_ptr_t<T>::change_t::change_t(cow_ptr_t *p) : parent(p) {
-    if (!parent->value.unique()) {
+    if (!parent->ptr.unique()) {
         rassert(parent->change_count == 0);
-        parent->value = boost::make_shared<T>(*parent->value);
+        parent->ptr.reset(new cow_pointee_t<T>(parent->ptr->value));
     }
     ++parent->change_count;
 }
@@ -80,7 +89,7 @@ cow_ptr_t<T>::change_t::~change_t() {
 
 template <class T>
 T *cow_ptr_t<T>::change_t::get() {
-    return parent->value.get();
+    return &parent->ptr->value;
 }
 
 #endif   /* CONTAINERS_COW_PTR_TCC_ */
