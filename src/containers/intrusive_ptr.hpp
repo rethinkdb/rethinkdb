@@ -6,14 +6,8 @@
 
 #include "errors.hpp"
 
-// Yes, this is a clone of boost::intrusive_ptr.  This will probably
+// Yes, this is a clone of intrusive_ptr_t.  This will probably
 // not be the case in the future.
-
-// You must implement intrusive_ptr_add_ref, intrusive_ptr_release,
-// and the RethinkDB-specific intrusive_ptr_unique, which returns true
-// if there is one reference to the object.  (Note that an
-// intrusive_ptr_unique implementation should probably use the word
-// "volatile" somewhere.)
 
 template <class T>
 class intrusive_ptr_t {
@@ -69,10 +63,6 @@ public:
         return p_ != NULL;
     }
 
-    bool unique() const {
-        return p_ != NULL && intrusive_ptr_unique(p_);
-    }
-
     class hidden_t {
         hidden_t();
     };
@@ -91,15 +81,13 @@ private:
 class slow_shared_mixin_t {
 public:
     slow_shared_mixin_t() : refcount_(0) { }
-
-    virtual ~slow_shared_mixin_t() {
+    ~slow_shared_mixin_t() {
         rassert(refcount_ == 0);
     }
 
 private:
     friend void intrusive_ptr_add_ref(slow_shared_mixin_t *p);
     friend void intrusive_ptr_release(slow_shared_mixin_t *p);
-    friend bool intrusive_ptr_unique(const slow_shared_mixin_t *p);
 
     intptr_t refcount_;
 
@@ -117,12 +105,6 @@ inline void intrusive_ptr_release(slow_shared_mixin_t *p) {
     if (res == 0) {
         delete p;
     }
-}
-
-inline bool intrusive_ptr_unique(const slow_shared_mixin_t *p) {
-    intptr_t tmp = static_cast<const volatile intptr_t &>(p->refcount_);
-    rassert(tmp >= 1);  // We wouldn't be asking, otherwise.
-    return tmp == 1;
 }
 
 

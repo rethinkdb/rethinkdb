@@ -1,8 +1,8 @@
 #ifndef CONTAINERS_COW_PTR_HPP_
 #define CONTAINERS_COW_PTR_HPP_
 
-#include "containers/intrusive_ptr.hpp"
 #include "errors.hpp"
+#include <boost/shared_ptr.hpp>
 
 /* `cow_ptr_t<T>` (short for [c]opy-[o]n-[w]rite pointer) acts like a container
 that holds a single `T`, but it internally shares references to the `T` so that
@@ -10,10 +10,7 @@ copying a `cow_ptr_t<T>` is fast even if copying a `T` is not.
 
 Even though it has `ptr_t` in its name, it's not like most smart pointers.
 `cow_ptr_t` is never empty, and it's impossible to make `cow_ptr_t` take
-ownership of an object you allocated on the heap.
-*/
-
-template <class T> struct cow_pointee_t;
+ownership of an object you allocated on the heap. */
 
 template <class T>
 class cow_ptr_t {
@@ -40,10 +37,10 @@ public:
     };
 
 private:
-    intrusive_ptr_t<cow_pointee_t<T> > ptr;
+    boost::shared_ptr<T> value;
 
     /* Number of outstanding `change_t` objects for us. */
-    intptr_t change_count;
+    int change_count;
 };
 
 #include "containers/cow_ptr.tcc"
