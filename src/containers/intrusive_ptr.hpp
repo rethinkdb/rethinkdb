@@ -2,9 +2,6 @@
 #define CONTAINERS_INTRUSIVE_PTR_HPP_
 
 #include <stddef.h>
-#include <stdint.h>
-
-#include "errors.hpp"
 
 // Yes, this is a clone of intrusive_ptr_t.  This will probably
 // not be the case in the future.
@@ -77,37 +74,6 @@ private:
 
     T *p_;
 };
-
-class slow_shared_mixin_t {
-public:
-    slow_shared_mixin_t() : refcount_(0) { }
-    ~slow_shared_mixin_t() {
-        rassert(refcount_ == 0);
-    }
-
-private:
-    friend void intrusive_ptr_add_ref(slow_shared_mixin_t *p);
-    friend void intrusive_ptr_release(slow_shared_mixin_t *p);
-
-    intptr_t refcount_;
-
-    DISABLE_COPYING(slow_shared_mixin_t);
-};
-
-inline void intrusive_ptr_add_ref(slow_shared_mixin_t *p) {
-    UNUSED intptr_t res = __sync_add_and_fetch(&p->refcount_, 1);
-    rassert(res > 0);
-}
-
-inline void intrusive_ptr_release(slow_shared_mixin_t *p) {
-    intptr_t res = __sync_sub_and_fetch(&p->refcount_, 1);
-    rassert(res >= 0);
-    if (res == 0) {
-        delete p;
-    }
-}
-
-
 
 
 #endif  // CONTAINERS_INTRUSIVE_PTR_HPP_
