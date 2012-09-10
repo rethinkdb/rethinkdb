@@ -21,7 +21,7 @@ template <class protocol_t>
 class replier_t {
 
 public:
-    explicit replier_t(listener_t<protocol_t> *l);
+    explicit replier_t(listener_t<protocol_t> *l, mailbox_manager_t *mm, branch_history_manager_t<protocol_t> *bhm);
 
     /* The destructor immediately stops responding to queries. If there was an
     outstanding write or read that the broadcaster was expecting us to respond
@@ -37,13 +37,15 @@ public:
 private:
     void on_synchronize(state_timestamp_t timestamp, mailbox_addr_t<void()> ack_mbox, auto_drainer_t::lock_t keepalive);
 
-    listener_t<protocol_t> *listener;
+    mailbox_manager_t *mailbox_manager_;
 
-    auto_drainer_t drainer;
+    listener_t<protocol_t> *listener_;
 
-    typename replier_business_card_t<protocol_t>::synchronize_mailbox_t synchronize_mailbox;
+    auto_drainer_t drainer_;
 
-    backfiller_t<protocol_t> backfiller;
+    typename replier_business_card_t<protocol_t>::synchronize_mailbox_t synchronize_mailbox_;
+
+    backfiller_t<protocol_t> backfiller_;
 
     DISABLE_COPYING(replier_t);
 };

@@ -63,17 +63,28 @@ connectivity_service_t *message_multiplexer_t::client_t::get_connectivity_servic
     return parent->message_service->get_connectivity_service();
 }
 
-void write_tagged_message(write_stream_t *os, message_multiplexer_t::tag_t tag, const boost::function<void(write_stream_t *)> &subwriter) {
-    write_message_t msg;
-    msg << tag;
-    int res = send_write_message(os, &msg);
-    if (res) { throw fake_archive_exc_t(); }
-    subwriter(os);
-}
+class tagged_message_writer_t : public send_message_write_callback_t {
+public:
+    tagged_message_writer_t(message_multiplexer_t::tag_t _tag, send_message_write_callback_t *_subwriter) :
+        tag(_tag), subwriter(_subwriter) { }
+    virtual ~tagged_message_writer_t() { }
 
-void message_multiplexer_t::client_t::send_message(peer_id_t dest, const boost::function<void(write_stream_t *)> &subwriter) {
-    parent->message_service->send_message(dest,
-                                          boost::bind(&write_tagged_message, _1, tag, boost::cref(subwriter)));
+    void write(write_stream_t *os) {
+        write_message_t msg;
+        msg << tag;
+        int res = send_write_message(os, &msg);
+        if (res) { throw fake_archive_exc_t(); }
+        subwriter->write(os);
+    }
+
+private:
+    message_multiplexer_t::tag_t tag;
+    send_message_write_callback_t *subwriter;
+};
+
+void message_multiplexer_t::client_t::send_message(peer_id_t dest, send_message_write_callback_t *callback) {
+    tagged_message_writer_t writer(tag, callback);
+    parent->message_service->send_message(dest, &writer);
 }
 
 message_multiplexer_t::message_multiplexer_t(message_service_t *super_ms) :

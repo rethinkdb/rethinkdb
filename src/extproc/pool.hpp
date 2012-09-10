@@ -50,7 +50,7 @@ class pool_group_t
 
 // A per-thread worker pool.
 class pool_t :
-        public home_thread_mixin_t
+        public home_thread_mixin_debug_only_t
 {
     friend class job_handle_t;
 

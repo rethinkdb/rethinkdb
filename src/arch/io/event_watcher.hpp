@@ -6,7 +6,7 @@
 #include "concurrency/signal.hpp"
 
 class linux_event_watcher_t :
-    public home_thread_mixin_t,
+    public home_thread_mixin_debug_only_t,
     private linux_event_callback_t
 {
 public:

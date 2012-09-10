@@ -6,7 +6,7 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "btree/internal_node.hpp"
 
-class get_distribution_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
+class get_distribution_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_debug_only_t {
 public:
     get_distribution_traversal_helper_t(int _depth_limit, std::vector<store_key_t> *_keys)
         : depth_limit(_depth_limit), key_count(0), keys(_keys)
