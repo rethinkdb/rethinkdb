@@ -117,7 +117,7 @@ def generate_async_message_template(nargs):
         print "template<" + csep("class arg#_t") + ">"
     print "void send(mailbox_manager_t *src, " + ("typename " if nargs > 0 else "") + "mailbox_t< void(" + csep("arg#_t") + ") >::address_t dest" + cpre("const arg#_t &arg#") + ") {"
     if nargs == 0:
-        print "    typename mailbox_t< void(" + csep("arg#_t") + ") >::write_impl_t writer;"
+        print "    mailbox_t< void(" + csep("arg#_t") + ") >::write_impl_t writer;"
     else:
         print "    typename mailbox_t< void(" + csep("arg#_t") + ") >::write_impl_t writer(" + csep("arg#") + ");"
     print "    send(src, dest.addr, &writer);"
