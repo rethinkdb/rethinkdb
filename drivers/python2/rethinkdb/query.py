@@ -518,7 +518,7 @@ class JSONExpression(ReadQuery):
         """
         if not isinstance(mapping, JSONFunction):
             mapping = JSONFunction(mapping)
-        return self._make_transform(internal.Map(self, mapping))
+        return JSONExpression(internal.Map(self, mapping))
 
     def concat_map(self, mapping):
         """Applies the given function to each element of an array. The result of
@@ -539,7 +539,7 @@ class JSONExpression(ReadQuery):
         """
         if not isinstance(mapping, StreamFunction):
             mapping = StreamFunction(mapping)
-        return self._make_transform(internal.ConcatMap(self, mapping))
+        return JSONExpression(internal.ConcatMap(self, mapping))
 
     def reduce(self, base, func):
         """Combines all the elements of an array into one value by repeatedly
@@ -591,7 +591,7 @@ class JSONExpression(ReadQuery):
         >>> expr([1, 9, 1, 1, 3, 8, 3]).distinct().run()
         [1, 9, 3, 8]
         """
-        return self._make_transform(internal.Distinct(self))
+        return JSONExpression(internal.Distinct(self))
 
     def pluck(self, attr_or_attrs):
         """For each element of an array, picks out the specified attribute or
