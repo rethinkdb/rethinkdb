@@ -35,6 +35,7 @@ end
 
 print "Connecting to cluster on port: #{options[:port]}+12346...\n"
 $sock = TCPSocket.open('localhost', (options[:port].to_i)+12346)
+$sock.send([0xaf61ba35].pack('L<'), 0)
 print "Connection established.\n"
 
 def bsend s
