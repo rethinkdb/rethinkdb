@@ -214,44 +214,43 @@ struct rdb_protocol_t {
     class rget_read_t {
     public:
         rget_read_t() { }
-        rget_read_t(const key_range_t &_key_range, int _maximum)
-            : key_range(_key_range), maximum(_maximum) { }
+        rget_read_t(const key_range_t &_key_range)
+            : key_range(_key_range) { }
 
-        rget_read_t(const key_range_t &_key_range, int _maximum,
+        rget_read_t(const key_range_t &_key_range,
                     const rdb_protocol_details::transform_t &_transform,
                     const scopes_t &_scopes,
                     const backtrace_t &_backtrace)
-            : key_range(_key_range), maximum(_maximum),
-              transform(_transform), scopes(_scopes), backtrace(_backtrace)
+            : key_range(_key_range), transform(_transform),
+              scopes(_scopes), backtrace(_backtrace)
         { }
 
-        rget_read_t(const key_range_t &_key_range, int _maximum,
+        rget_read_t(const key_range_t &_key_range,
                     const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
                     const scopes_t &_scopes,
                     const backtrace_t &_backtrace)
-            : key_range(_key_range), maximum(_maximum),
-              terminal(_terminal), scopes(_scopes), backtrace(_backtrace)
+            : key_range(_key_range), terminal(_terminal),
+              scopes(_scopes), backtrace(_backtrace)
         { }
 
-        rget_read_t(const key_range_t &_key_range, int _maximum,
+        rget_read_t(const key_range_t &_key_range,
                     const rdb_protocol_details::transform_t &_transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
                     const scopes_t &_scopes,
                     const backtrace_t &_backtrace)
-            : key_range(_key_range), maximum(_maximum),
-              transform(_transform), terminal(_terminal), scopes(_scopes),
+            : key_range(_key_range), transform(_transform),
+              terminal(_terminal), scopes(_scopes),
               backtrace(_backtrace)
         { }
 
         key_range_t key_range;
-        size_t maximum;
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
         scopes_t scopes;
         backtrace_t backtrace;
 
-        RDB_MAKE_ME_SERIALIZABLE_6(key_range, maximum, transform, terminal, scopes, backtrace);
+        RDB_MAKE_ME_SERIALIZABLE_5(key_range, transform, terminal, scopes, backtrace);
     };
 
     class distribution_read_t {

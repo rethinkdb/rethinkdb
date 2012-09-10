@@ -447,19 +447,12 @@ public:
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
 
-                    const stream_t *stream = boost::get<stream_t>(&(_rr->result));
-                    guarantee(stream);
-
-
-                    if (stream->size() == rg.maximum) {
-                        if (_rr->last_considered_key < rg_response.last_considered_key) {
-                            rg_response.last_considered_key = _rr->last_considered_key;
-                        }
+                    if (_rr-> truncated && _rr->last_considered_key < rg_response.last_considered_key) {
+                        rg_response.last_considered_key = _rr->last_considered_key;
                     }
                 }
 
                 for (size_t i = 0; i < count; ++i) {
-                    // TODO: we're ignoring the limit when recombining.
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     rassert(_rr);
 
@@ -701,7 +694,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
 
     read_response_t operator()(const rget_read_t &rget) {
         env.scopes = rget.scopes;
-        return read_response_t(rdb_rget_slice(btree, rget.key_range, 1000, txn, superblock, &env, rget.transform, rget.terminal));
+        return read_response_t(rdb_rget_slice(btree, rget.key_range, txn, superblock, &env, rget.transform, rget.terminal));
     }
 
     read_response_t operator()(const distribution_read_t &dg) {
