@@ -455,7 +455,7 @@ class All(ExpressionInner):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.ALL, *self.args)
     def pretty_print(self, printer):
-        return ("(" + " | ".join(printer.expr_wrapped(a, ["arg:%d" % i]) for i, a in enumerate(self.args)) + ")",
+        return ("(" + " & ".join(printer.expr_wrapped(a, ["arg:%d" % i]) for i, a in enumerate(self.args)) + ")",
             PRETTY_PRINT_EXPR_WRAPPED)
 
 class Has(ExpressionInner):
@@ -496,7 +496,7 @@ class ImplicitAttr(ExpressionInner):
         self._write_call(parent, p.Builtin.IMPLICIT_GETATTR)
         parent.call.builtin.attr = self.attr
     def pretty_print(self, printer):
-        return ("R(%r)" % self.attr, PRETTY_PRINT_EXPR_WRAPPED)
+        return ("R(%s)" % printer.simple_string(repr(self.attr), ["attr"]), PRETTY_PRINT_EXPR_WRAPPED)
 
 class ToStream(ExpressionInner):
     def __init__(self, array):

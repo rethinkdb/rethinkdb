@@ -637,7 +637,7 @@ class JSONExpression(ReadQuery):
         # This is a hack for the demo
         assert isinstance(attribute, str)
         assert isinstance(table, Table)
-        return self.concat_map(fn("left_row", let(("right_row_maybe", table.get(R("$left_row.%s" % attribute))), if_then_else(R("$right_row_maybe") == None, [], [R("$left_row").map_merge(R("$right_row_maybe"))]).to_string())))
+        return self.concat_map(fn("left_row", let(("right_row_maybe", table.get(R("$left_row.%s" % attribute))), if_then_else(R("$right_row_maybe") == None, [], [R("$left_row").extend(R("$right_row_maybe"))]).to_string())))
 
     def to_stream(self):
         """Converts a JSON array to a stream. This is the reverse of
@@ -933,7 +933,7 @@ class StreamExpression(ReadQuery):
         # This is a hack for the demo
         assert isinstance(attribute, str)
         assert isinstance(table, Table)
-        return self.concat_map(fn("left_row", let(("right_row_maybe", table.get(R("$left_row.%s" % attribute))), if_then_else(R("$right_row_maybe") == None, [], [R("$left_row").map_merge(R("$right_row_maybe"))]).to_string())))
+        return self.concat_map(fn("left_row", let(("right_row_maybe", table.get(R("$left_row.%s" % attribute))), if_then_else(R("$right_row_maybe") == None, [], [R("$left_row").extend(R("$right_row_maybe"))]).to_stream())))
 
 def expr(val):
     """Converts a python value to a ReQL :class:`JSONExpression`.
@@ -999,7 +999,7 @@ def if_then_else(test, true_branch, false_branch):
         t = JSONExpression
     return t(internal.If(test, true_branch, false_branch))
 
-def R(name):
+def R(string):
     """Get the value of a variable or attribute.
 
     To get a variable, prefix the name with `$`.
@@ -1053,15 +1053,16 @@ def R(name):
     >>> table('users').filter(fn('row', R('$age') == 30)) # error - no variable 'age' is defined
     >>> table('users').filter(R('$age') == 30) # error - no variable '$age' is defined, use 'age'
     """
-    if name.startswith('$'):
-        if '.' not in name:
-            return JSONExpression(internal.Var(name[1:]))
-        raise NotImplementedError("$ with . not handled")
-    if name.startswith('@'):
-        raise NotImplementedError("@ not handled")
-    if '.' in name:
-        raise NotImplementedError(". not handled")
-    return JSONExpression(internal.ImplicitAttr(name))
+    parts = string.split(".")
+    if parts[0] == "@":
+        raise NotImplementedError("R('@') is not implemented")
+    elif parts[0].startswith("$"):
+        expr_so_far = JSONExpression(internal.Var(parts[0][1:]))
+    else:
+        expr_so_far = JSONExpression(internal.ImplicitAttr(parts[0]))
+    for part in parts[1:]:
+        expr_so_far = expr_so_far[part]
+    return expr_so_far
 
 def js(expr=None, body=None):
     if (expr is not None) + (body is not None) != 1:
