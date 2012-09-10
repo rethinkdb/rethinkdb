@@ -633,12 +633,6 @@ class JSONExpression(ReadQuery):
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
 
-    def eq_join(self, attribute, table):
-        # This is a hack for the demo
-        assert isinstance(attribute, str)
-        assert isinstance(table, Table)
-        return self.concat_map(fn("left_row", let(("right_row_maybe", table.get(R("$left_row.%s" % attribute))), if_then_else(R("$right_row_maybe") == None, [], [R("$left_row").extend(R("$right_row_maybe"))]).to_string())))
-
     def to_stream(self):
         """Converts a JSON array to a stream. This is the reverse of
         :meth:`StreamExpression.to_array()`.
@@ -928,12 +922,6 @@ class StreamExpression(ReadQuery):
             "`expr.length()`. (We couldn't overload `len(expr)` because it's "
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
-
-    def eq_join(self, attribute, table):
-        # This is a hack for the demo
-        assert isinstance(attribute, str)
-        assert isinstance(table, Table)
-        return self.concat_map(fn("left_row", let(("right_row_maybe", table.get(R("$left_row.%s" % attribute))), if_then_else(R("$right_row_maybe") == None, [], [R("$left_row").extend(R("$right_row_maybe"))]).to_stream())))
 
 def expr(val):
     """Converts a python value to a ReQL :class:`JSONExpression`.
