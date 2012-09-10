@@ -370,7 +370,7 @@ class JSONExpression(ReadQuery):
 
     def __ror__(self, other):
         return JSONExpression(internal.Any(other, self))
-    def __rand__(self, othe):
+    def __rand__(self, other):
         return JSONExpression(internal.All(other, self))
 
     def __invert__(self):
@@ -1205,19 +1205,23 @@ class WriteQuery(BaseQuery):
         root.type = p.Query.WRITE
         self._inner._write_write_query(root.write_query)
 
-    def _write_write_query(self, parent):
-        raise NotImplementedError()
-
 class MetaQuery(BaseQuery):
     """Queries that create, destroy, or examine databases or tables rather than
     working with actual data are instances of :class:`MetaQuery`."""
     def __init__(self, inner):
         self._inner = inner
-    def _finalize_query(self, root):
-        root.type = p.Query.TABLEOP
-        self._inner._write_tableop_query(root.tableop_query)
 
-def db_create(db_name, primary_datacenter=None):
+    def __str__(self):
+        return internal.ReprPrettyPrinter().meta_query(self, [])
+
+    def __repr__(self):
+        return "<MetaQuery %s>" % str(self)
+
+    def _finalize_query(self, root):
+        root.type = p.Query.META
+        self._inner._write_meta_query(root.meta_query)
+
+def db_create(db_name):
     """Create a ReQL expression that creates a database within a
     RethinkDB cluster. A RethinkDB database is an object that contains
     related tables as well as configuration options that apply to
@@ -1229,20 +1233,14 @@ def db_create(db_name, primary_datacenter=None):
 
     :param db_name: The name of the database to be created.
     :type db_name: str
-    :param primary_datacenter: An optional name of the primary
-      datacenter to be used for this database. If this argument is
-      omitted, the cluster-level default datacenter will be used as
-      primary for this database.
-    :type primary_datacenter: str
     :returns: :class:`MetaQuery` -- a ReQL expression that encodes the database
      creation operation.
 
     :Example:
 
-    >>> q = db_create('db_name')
-    >>> q = db_create('db_name', primary_datacenter='us_west')
+    >>> q = db_create('my_database_name')
     """
-    return MetaQuery(internal.DBCreate(db_name, primary_datacenter))
+    return MetaQuery(internal.DBCreate(db_name))
 
 def db_drop(db_name):
     """Create a ReQL expression that drops a database within a
@@ -1259,7 +1257,7 @@ def db_drop(db_name):
 
     :Example:
 
-    >>> q = db_drop('db_name')
+    >>> q = db_drop('testing')
     """
     return MetaQuery(internal.DBDrop(db_name))
 
@@ -1277,7 +1275,8 @@ def db_list():
 
     :Example:
 
-    >>> q = db_list() # returns a list of names, e.g. ['db1', 'db2', 'db3']
+    >>> db_list().run()
+    ['Personnel', 'Grades', 'Financial']
     """
     return MetaQuery(internal.DBList())
 
@@ -1296,7 +1295,7 @@ class Database(object):
     def __repr__(self):
         return "<Database %r>" % self.db_name
 
-    def create(self, table_name, primary_key="id"):
+    def table_create(self, table_name, primary_datacenter, primary_key="id"):
         """Create a ReQL expression that creates a table within this
         RethinkDB database. A RethinkDB table is an object that
         contains JSON documents.
@@ -1308,6 +1307,9 @@ class Database(object):
 
         :param table_name: The name of the table to be created.
         :type table_name: str
+        :param primary_datacenter: The name of the datacenter to use as the
+            primary datacenter for the new table.
+        :type primary_datacenter: str
         :param primary_key: An optional name of the JSON attribute
           that will be used as a primary key for the document. If
           missing, defaults to 'id'.
@@ -1317,12 +1319,12 @@ class Database(object):
 
         :Example:
 
-        >>> q = db('db_name').create('posts') # uses primary key 'id'
-        >>> q = db('db_name').create('users', primary_key='user_id')
+        >>> q = db('db_name').create('posts', primary_datacenter = "us-west") # uses primary key 'id'
+        >>> q = db('db_name').create('users', primary_datacenter = "us-west", primary_key='user_id')
         """
-        return MetaQuery(internal.TableCreate(table_name, self, primary_key))
+        return MetaQuery(internal.TableCreate(table_name, self, primary_datacenter, primary_key))
 
-    def drop(self, table_name):
+    def table_drop(self, table_name):
         """Create a ReQL expression that drops a table within this
         RethinkDB database.
 
@@ -1342,7 +1344,7 @@ class Database(object):
         """
         return MetaQuery(internal.TableDrop(table_name, self))
 
-    def list(self):
+    def table_list(self):
         """Create a ReQL expression that lists all tables within this
         RethinkDB database.
 

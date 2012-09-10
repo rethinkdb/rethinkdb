@@ -844,8 +844,8 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         std::string table_name = m->create_table().table_ref().table_name();
         std::string primary_key = m->create_table().primary_key();
 
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt);
-        uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name, bt);
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("table_ref").with("db_name"));
+        uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name, bt.with("datacenter"));
 
         /* Ensure table doesn't already exist. */
         ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
@@ -892,12 +892,12 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         std::string table_name = m->drop_table().table_name();
 
         // Get namespace metadata.
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt);
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("db_name"));
         metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
             ns_metadata =
             ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
         std::string op=strprintf("FIND_TABLE %s.%s", db_name.c_str(), table_name.c_str());
-        meta_check(status, METADATA_SUCCESS, op, bt);
+        meta_check(status, METADATA_SUCCESS, op, bt.with("table_name"));
         rassert(!ns_metadata->second.is_deleted());
 
         // Delete namespace
@@ -907,7 +907,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
     } break;
     case MetaQuery::LIST_TABLES: {
         std::string db_name = m->db_name();
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt);
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("db_name"));
         namespace_predicate_t pred(db_id);
         for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
                  ::iterator it = ns_searcher.find_next(ns_searcher.begin(), pred);

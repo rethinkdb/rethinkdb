@@ -68,6 +68,10 @@ class BacktracePrettyPrinter(internal.PrettyPrinter):
         string = wq._inner.pretty_print(BacktracePrettyPrinter(self.current_backtrace + backtrace_steps, self.target_backtrace))
         return self.consider_backtrace(string, backtrace_steps)
 
+    def meta_query(self, mq, backtrace_steps):
+        string = mq._inner.pretty_print(BacktracePrettyPrinter(self.current_backtrace + backtrace_steps, self.target_backtrace))
+        return self.consider_backtrace(string, backtrace_steps)
+
     def simple_string(self, string, backtrace_steps):
         return self.consider_backtrace(string, backtrace_steps)
 
@@ -84,7 +88,9 @@ class QueryError(StandardError):
         elif isinstance(self.query, query.WriteQuery):
             query_str = printer.write_query(self.query, [])
         elif isinstance(self.query, query.MetaQuery):
-            raise NotImplementedError()
+            query_str = printer.meta_query(self.query, [])
+        else:
+            raise ValueError("weird value for query: %r" % self.query)
 
         # Draw a row of carets under the part of `query_str` that is bracketed
         # by `PRETTY_PRINT_BEGIN_TARGET` and `PRETTY_PRINT_END_TARGET`.
