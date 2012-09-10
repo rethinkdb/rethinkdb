@@ -2224,7 +2224,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
         case Builtin::MAP:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
-                stream->add_transformation(c->builtin().map());
+                stream->add_transformation(c->builtin().map().mapping());
                 return stream;
             }
             break;

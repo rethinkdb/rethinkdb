@@ -26,7 +26,7 @@ public:
 
     void operator()(const Builtin_Filter &filter) const;
 
-    void operator()(const Builtin_Map &map) const;
+    void operator()(const Mapping &mapping) const;
 
     void operator()(const Builtin_ConcatMap &concatmap) const;
 

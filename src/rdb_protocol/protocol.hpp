@@ -54,7 +54,6 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(op_t, int8_t, UPDATE, MUTATE);
 
 RDB_DECLARE_SERIALIZABLE(Builtin_Range);
 RDB_DECLARE_SERIALIZABLE(Builtin_Filter);
-RDB_DECLARE_SERIALIZABLE(Builtin_Map);
 RDB_DECLARE_SERIALIZABLE(Builtin_ConcatMap);
 RDB_DECLARE_SERIALIZABLE(Builtin_GroupedMapReduce);
 RDB_DECLARE_SERIALIZABLE(Mapping);
@@ -76,7 +75,7 @@ struct backfill_atom_t {
     RDB_MAKE_ME_SERIALIZABLE_3(key, value, recency);
 };
 
-typedef boost::variant<Builtin_Filter, Builtin_Map, Builtin_ConcatMap, Builtin_Range>  transform_atom_t;
+typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range>  transform_atom_t;
 
 typedef std::list<transform_atom_t> transform_t;
 
