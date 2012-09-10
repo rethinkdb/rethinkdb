@@ -43,6 +43,9 @@ typedef rdb_protocol_t::write_response_t write_response_t;
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
+typedef rdb_protocol_t::point_modify_t point_modify_t;
+typedef rdb_protocol_t::point_modify_response_t point_modify_response_t;
+
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
@@ -63,6 +66,7 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Filter);
 RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Map);
 RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_ConcatMap);
 RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
+RDB_IMPL_PROTOB_SERIALIZABLE(Mapping);
 RDB_IMPL_PROTOB_SERIALIZABLE(Reduction);
 RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
 
@@ -621,6 +625,10 @@ struct w_get_region_visitor : public boost::static_visitor<region_t> {
         return rdb_protocol_t::monokey_region(pw.key);
     }
 
+    region_t operator()(const point_modify_t &pw) const {
+        return rdb_protocol_t::monokey_region(pw.key);
+    }
+
     region_t operator()(const point_delete_t &pd) const {
         return rdb_protocol_t::monokey_region(pd.key);
     }
@@ -642,6 +650,10 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     { }
 
     write_t operator()(const point_write_t &pw) const {
+        rassert(rdb_protocol_t::monokey_region(pw.key) == region);
+        return write_t(pw);
+    }
+    write_t operator()(const point_modify_t &pw) const {
         rassert(rdb_protocol_t::monokey_region(pw.key) == region);
         return write_t(pw);
     }
@@ -747,19 +759,36 @@ struct write_visitor_t : public boost::static_visitor<write_response_t> {
             rdb_set(w.key, w.data, btree, timestamp, txn, superblock));
     }
 
+    write_response_t operator()(const point_modify_t &m) {
+        env.scopes = m.scopes;
+        write_response_t res(rdb_modify(m.primary_key, m.key, m.op, &env, m.mapping, btree, timestamp, txn, superblock));
+        return res;
+    }
+
     write_response_t operator()(const point_delete_t &d) {
         return write_response_t(
             rdb_delete(d.key, btree, timestamp, txn, superblock));
     }
 
-    write_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, repli_timestamp_t timestamp_) :
-      btree(btree_), txn(txn_), superblock(superblock_), timestamp(timestamp_) { }
+    write_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_,
+                    repli_timestamp_t timestamp_, rdb_protocol_t::context_t *ctx) :
+        btree(btree_), txn(txn_), superblock(superblock_), timestamp(timestamp_),
+        env(ctx->pool_group,
+            ctx->ns_repo,
+            ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
+            ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
+            ctx->semilattice_metadata,
+            boost::make_shared<js::runner_t>(),
+            ctx->signals[get_thread_id()].get(),
+            ctx->machine_id)
+    { }
 
 private:
     btree_slice_t *btree;
     transaction_t *txn;
     superblock_t *superblock;
     repli_timestamp_t timestamp;
+    query_language::runtime_environment_t env;
 };
 
 }   /* anonymous namespace */
@@ -770,7 +799,7 @@ void store_t::protocol_write(const write_t &write,
                              btree_slice_t *btree,
                              transaction_t *txn,
                              superblock_t *superblock) {
-    write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp());
+    write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx);
     *response = boost::apply_visitor(v, write.write);
 }
 

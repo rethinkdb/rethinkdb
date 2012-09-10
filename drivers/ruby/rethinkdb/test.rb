@@ -82,6 +82,11 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r[{}].without(:b).run, {})
   end
 
+  def test_arr_ordering
+    assert_equal(r.lt([1,2,3],[1,2,3,4]).run, true)
+    assert_equal(r.lt([1,2,3],[1,2,3]).run, false)
+  end
+
   def test_junctions # from python tests
     assert_equal(r.any(false).run, false)
     assert_equal(r.any(true, false).run, true)
@@ -788,6 +793,8 @@ class ClientTest < Test::Unit::TestCase
     #assert_equal(rdb.get(0).mutate{|row| r.if(row.eq(nil), $data[0], $data[1])}.run,
     assert_equal(rdb.get(0).mutate{$data[0]}.run,
                  {'deleted' => 0, 'inserted' => 1, 'modified' => 0, 'errors' => 0})
+    assert_raise(RuntimeError){rdb.get(-1).mutate{{:id => []}}.run}
+    assert_raise(RuntimeError){rdb.get(-1).mutate{{:id => 0}}.run}
     assert_equal(rdb.orderby(:id).run, $data)
     assert_raise(RuntimeError) {
       rdb.get(0).mutate{|row| r.if(row.eq(nil), $data[0], $data[1])}.run
@@ -804,7 +811,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.get(11).update{nil}.run,
                  {'skipped' => 1, 'updated' => 0, 'errors' => 0})
     assert_equal(rdb.get(11).update{{}}.run,
-                 {'skipped' => 0, 'updated' => 0, 'errors' => 0})
+                 {'skipped' => 1, 'updated' => 0, 'errors' => 0})
     assert_equal(rdb.orderby(:id).run, $data)
   end
 
