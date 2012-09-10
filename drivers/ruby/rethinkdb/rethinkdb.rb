@@ -7,10 +7,7 @@ load 'utils.rb'
 load 'protob_compiler.rb'
 
 load 'net.rb'
-load 'connection.rb'
 
+load 'base_classes.rb'
 load 'query.rb'
-load 'query_user.rb'
-load 'rql_mixin.rb'
-
-load 'rethinkdb_shortcuts.rb'
+load 'rql.rb'

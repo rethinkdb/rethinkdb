@@ -130,9 +130,14 @@ module 'DataExplorerView', ->
             ]
             view:[
                 {
-                    suggestion: 'pluck()'
-                    description: 'pluck( expression )'
+                    suggestion: 'pickAttrs()'
+                    description: 'pickAttrs( key )'
                     has_argument: true
+                }
+                {
+                    suggestion: 'del()'
+                    description: 'del()'
+                    has_argument: false
                 }
             ]
             db:[
@@ -168,7 +173,7 @@ module 'DataExplorerView', ->
             r:[
                 {
                     suggestion: 'dbCreate()'
-                    description: 'dbCreate( database_name, primary_datacenter )'
+                    description: 'dbCreate( database_name )'
                     has_argument: true
                 }
                 {
@@ -645,6 +650,7 @@ module 'DataExplorerView', ->
 
         clear_query: =>
             #TODO remove when not testing
+            ###
             welcome = r.db('Welcome-db').table('Welcome-rdb')
             welcome.insert({
                 id: generate_id(25)
@@ -658,6 +664,7 @@ module 'DataExplorerView', ->
                     mobile: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
                 website: 'http://www.'+generate_string(12)+'.com'
                 }).run()
+            ###
             @codemirror.setValue ''
             @codemirror.focus()
 
@@ -681,6 +688,24 @@ module 'DataExplorerView', ->
             @codemirror.setCursor
                 line: Infinity
                 ch: Infinity
+        connect: =>
+            try
+                if window.conn?
+                    window.conn.close()
+            catch err
+                #TODO
+                #console.log err
+            host = window.location.hostname
+            port = window.location.port
+            if port is ''
+                port = 13457
+            try
+                window.conn = new rethinkdb.net.HttpConnection 
+                    host: host
+                    port: port
+            catch err
+                #TODO
+                #console.log err
 
         initialize: =>
             if @has_been_initialized.value is false
@@ -688,16 +713,11 @@ module 'DataExplorerView', ->
                     @suggestions.table.push suggestion
                 @has_been_initialized.value = true
             
-            host = window.location.hostname
-            port = window.location.port
-            if port is ''
-                port = 13457
-
-            window.conn = new rethinkdb.net.HttpConnection 
-                host: host
-                port: port
+            @connect()
             window.r = rethinkdb.query
             window.R = r.R
+
+            @interval = setInterval @connect, 60*5*1000
 
             # We escape the last function because we are building a regex on top of it.
             @unsafe_to_safe_regexstr = []
@@ -797,10 +817,12 @@ module 'DataExplorerView', ->
             $('.dataexplorer_container').css 'margin', '0px 0px 0px 20px'
             $('.change_size').val 'Smaller view'
 
-       destroy: =>
+        destroy: =>
+            @display_normal()
             @input_query.destroy()
             @data_container.destroy()
             window.conn.close()
+            clearInterval @interval
 
     
     class @InputQuery extends Backbone.View
@@ -828,7 +850,7 @@ module 'DataExplorerView', ->
             window.app.current_view.display_home(event)
 
         render: (query, result) =>
-            if query? and result?
+            if query? and result isnt undefined
                 @.$el.html @result_view.render(query, result).el
                 @result_view.delegateEvents()
             else
@@ -1204,7 +1226,7 @@ module 'DataExplorerView', ->
             @.$el.html @template
                 query: query
             
-            if @current_result.length is 0
+            if @current_result is null or @current_result.length is 0
                 @.$('.results').html @template_no_result
                 @.$('#tree_view').addClass 'active'
                 return @

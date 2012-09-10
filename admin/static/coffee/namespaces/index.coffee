@@ -374,6 +374,8 @@ module 'NamespaceView', ->
                 $('.alert_modal').alert()
                 @reset_buttons()
             else
+                ack = {}
+                ack[formdata.primary_datacenter] = 1
                 $.ajax
                     processData: false
                     url: '/ajax/semilattice/rdb_namespaces/new'
@@ -383,6 +385,7 @@ module 'NamespaceView', ->
                         name: formdata.name
                         primary_uuid: formdata.primary_datacenter
                         database: formdata.database
+                        ack_expectations: ack
                         )
                     success: @on_success
                     error: @on_error
