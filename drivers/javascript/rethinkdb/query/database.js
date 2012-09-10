@@ -3,8 +3,10 @@ goog.provide('rethinkdb.query.Database');
 goog.require('rethinkdb.query');
 
 /**
- * @param {MetaQuery.MetaQueryType} type
- * @param {string=} opt_dbName
+ * Construct a new metaquery node of the given type on the given database
+ * @class A query to perform operations on top level databases
+ * @param {MetaQuery.MetaQueryType} type The metaquery type to perform
+ * @param {string=} opt_dbName The database to perform this query on
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
  * @ignore
@@ -30,39 +32,54 @@ rethinkdb.query.MetaQuery.prototype.buildQuery = function() {
     return query;
 };
 
-/** @export */
-rethinkdb.query.dbCreate = function(dbName, primary_datacenter) {
-    //TODO how to get cluster level default?
-    primary_datacenter = primary_datacenter || 'cluster-level-default?';
-
+/**
+ * Create a new database with the given name.
+ * @param {string} dbName
+ * @export
+ */
+rethinkdb.query.dbCreate = function(dbName) {
     return new rethinkdb.query.MetaQuery(MetaQuery.MetaQueryType.CREATE_DB, dbName);
 };
 
-/** @export */
+/**
+ * Drop the given database.
+ * @param {string} dbName
+ * @export
+ */
 rethinkdb.query.dbDrop = function(dbName) {
     return new rethinkdb.query.MetaQuery(MetaQuery.MetaQueryType.DROP_DB, dbName);
 };
 
-/** @export */
+/**
+ * List all databases.
+ * @export
+ */
 rethinkdb.query.dbList = function() {
     return new rethinkdb.query.MetaQuery(MetaQuery.MetaQueryType.LIST_DBS);
 };
 
 /**
+ * @class A reference to a database.
+ * @param {string} dbName
  * @constructor
  */
-rethinkdb.query.Database = function(db_name) {
-    this.name_ = db_name;
+rethinkdb.query.Database = function(dbName) {
+    this.name_ = dbName;
 };
 
 /**
+ * Construct a database reference.
+ * @param {string} dbName
  * @return {rethinkdb.query.Database}
  * @export
  */
-rethinkdb.query.db = function(db_name) {
-     return new rethinkdb.query.Database(db_name);
+rethinkdb.query.db = function(dbName) {
+     return new rethinkdb.query.Database(dbName);
 };
 
+/**
+ * List all tables in this database
+ */
 rethinkdb.query.Database.prototype.list = function() {
     return new rethinkdb.query.MetaQuery(MetaQuery.MetaQueryType.LIST_TABLES, this.name_);
 };
@@ -70,6 +87,7 @@ goog.exportProperty(rethinkdb.query.Database.prototype, 'list',
                     rethinkdb.query.Database.prototype.list);
 
 /**
+ * @class A query that creates a table in a database
  * @param {string} dataCenter
  * @param {string} dbName
  * @param {string} tableName
@@ -82,10 +100,11 @@ rethinkdb.query.CreateTableQuery = function(dataCenter, dbName, tableName, opt_p
     this.dataCenter_ = dataCenter;
     this.dbName_ = dbName;
     this.tableName_ = tableName;
-    this.primaryKey = opt_primaryKey || null;
+    this.primaryKey_ = opt_primaryKey || 'id';
 };
 goog.inherits(rethinkdb.query.CreateTableQuery, rethinkdb.query.BaseQuery);
 
+/** @override */
 rethinkdb.query.CreateTableQuery.prototype.buildQuery = function() {
     var tableref = new TableRef();
     tableref.setDbName(this.dbName_);
@@ -94,8 +113,7 @@ rethinkdb.query.CreateTableQuery.prototype.buildQuery = function() {
     var createtable = new MetaQuery.CreateTable();
     createtable.setDatacenter(this.dataCenter_);
     createtable.setTableRef(tableref);
-    if (this.primaryKey_)
-        createtable.setPrimaryKey(this.primaryKey_);
+    createtable.setPrimaryKey(this.primaryKey_);
 
     var meta = new MetaQuery();
     meta.setType(MetaQuery.MetaQueryType.CREATE_TABLE);
@@ -109,6 +127,7 @@ rethinkdb.query.CreateTableQuery.prototype.buildQuery = function() {
 };
 
 /**
+ * Create a new table in the database
  * @param {string} tableName
  * @param {string=} opt_primaryKey
  */
@@ -119,6 +138,7 @@ goog.exportProperty(rethinkdb.query.Database.prototype, 'create',
                     rethinkdb.query.Database.prototype.create);
 
 /**
+ * @class A query that drops a table from a database
  * @param {string} dbName
  * @param {string} tableName
  * @constructor
@@ -131,6 +151,7 @@ rethinkdb.query.DropTableQuery = function(dbName, tableName) {
 };
 goog.inherits(rethinkdb.query.DropTableQuery, rethinkdb.query.BaseQuery);
 
+/** @override */
 rethinkdb.query.DropTableQuery.prototype.buildQuery = function() {
     var tableref = new TableRef();
     tableref.setDbName(this.dbName_);
@@ -148,7 +169,8 @@ rethinkdb.query.DropTableQuery.prototype.buildQuery = function() {
 };
 
 /**
- * drop table from this database
+ * Drop a table from this database
+ * @param {string} tableName
  */
 rethinkdb.query.Database.prototype.drop = function(tableName) {
     return new rethinkdb.query.DropTableQuery(this.name_, tableName);
@@ -156,6 +178,10 @@ rethinkdb.query.Database.prototype.drop = function(tableName) {
 goog.exportProperty(rethinkdb.query.Database.prototype, 'drop',
                     rethinkdb.query.Database.prototype.drop);
 
+/**
+ * Construct a table reference for a table in this database
+ * @param {string} tableName
+ */
 rethinkdb.query.Database.prototype.table = function(tableName) {
     return new rethinkdb.query.Table(tableName, this.name_);
 };

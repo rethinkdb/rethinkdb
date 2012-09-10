@@ -7,12 +7,13 @@ goog.provide('rethinkdb.query');
 goog.provide('rethinkdb.errors');
 
 /**
- * This is defined here so that it is defined first, before
- * any thing defined on the rethinkdb.query namespace is.
+ * @fileoverview This file is somewhat of a hack, designed to be included
+ * first by the dependency generator so that we can provide the query
+ * shortcut function.
  */
 
 /**
- * A shortcut function for wrapping values with RethinkDB expressions.
+ * A shortcut function for wrapping values with ReQL expressions.
  * @namespace namespace for all ReQL query generating functions
  * @export
  */
@@ -53,7 +54,8 @@ function wrapIf_(val) {
 /**
  * Internal utility for wrapping API function arguments that
  * are expected to be function expressions.
- * @param {rethinkdb.query.FunctionExpression|function(...)} fun The function to wrap
+ * @param {*} fun
+        The function to wrap
  * @returns rethinkdb.query.FunctionExpression
  * @ignore
  */

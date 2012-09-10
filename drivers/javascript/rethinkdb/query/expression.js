@@ -5,7 +5,7 @@ goog.require('rethinkdb.query2');
 goog.require('Query');
 
 /**
- * Base for all ReQL expression objects
+ * @class Base for all ReQL expression objects
  * @constructor
  * @extends {rethinkdb.query.ReadQuery}
  */
@@ -29,10 +29,7 @@ rethinkdb.query.JSONExpression = function(json_value) {
 };
 goog.inherits(rethinkdb.query.JSONExpression, rethinkdb.query.Expression);
 
-/**
- * @override
- * @return {!Term}
- */
+/** @override */
 rethinkdb.query.JSONExpression.prototype.compile = function() {
     var term = new Term();
     term.setType(Term.TermType.JSON);
@@ -51,6 +48,7 @@ rethinkdb.query.NumberExpression = function(number) {
 };
 goog.inherits(rethinkdb.query.NumberExpression, rethinkdb.query.Expression);
 
+/** @override */
 rethinkdb.query.NumberExpression.prototype.compile = function() {
     var term = new Term();
     if (this.value_ === null) {
@@ -74,6 +72,7 @@ rethinkdb.query.BooleanExpression = function(bool) {
 };
 goog.inherits(rethinkdb.query.BooleanExpression, rethinkdb.query.Expression);
 
+/** @override */
 rethinkdb.query.BooleanExpression.prototype.compile = function() {
     var term = new Term();
     term.setType(Term.TermType.BOOL);
@@ -93,6 +92,7 @@ rethinkdb.query.StringExpression = function(string) {
 };
 goog.inherits(rethinkdb.query.StringExpression, rethinkdb.query.Expression);
 
+/** @override */
 rethinkdb.query.StringExpression.prototype.compile = function() {
     var term = new Term();
     term.setType(Term.TermType.STRING);
@@ -103,7 +103,7 @@ rethinkdb.query.StringExpression.prototype.compile = function() {
 
 /**
  * @constructor
- * @param {Array} array
+ * @param {*} array
  * @extends {rethinkdb.query.Expression}
  * @ignore
  */
@@ -117,6 +117,7 @@ rethinkdb.query.ArrayExpression = function(array) {
 };
 goog.inherits(rethinkdb.query.ArrayExpression, rethinkdb.query.Expression);
 
+/** @override */
 rethinkdb.query.ArrayExpression.prototype.compile = function() {
     var term = new Term();
     term.setType(Term.TermType.ARRAY);
@@ -146,6 +147,7 @@ rethinkdb.query.ObjectExpression = function(object) {
 };
 goog.inherits(rethinkdb.query.ObjectExpression, rethinkdb.query.Expression);
 
+/** @override */
 rethinkdb.query.ObjectExpression.prototype.compile = function() {
     var term = new Term();
     term.setType(Term.TermType.OBJECT);
@@ -172,6 +174,7 @@ rethinkdb.query.JSExpression = function(expr) {
 };
 goog.inherits(rethinkdb.query.JSExpression, rethinkdb.query.Expression);
 
+/** @override */
 rethinkdb.query.JSExpression.prototype.compile = function() {
     var term = new Term();
     term.setType(Term.TermType.JAVASCRIPT);
@@ -212,10 +215,14 @@ rethinkdb.query.JSFunctionExpression = function(fun) {
 goog.inherits(rethinkdb.query.JSFunctionExpression, rethinkdb.query.FunctionExpression);
 
 rethinkdb.query.JSFunctionExpression.parseRegexp_ = /function [^(]*\(([^)]*)\) *{([^]*)}/m;
-//rethinkdb.query.JSFunctionExpression.parseRegexp_.compile();
 
 /**
- * @param {...*} var_args
+ * Constructs a ReQL expression representing a function of some number of variables.
+ * This may be invoked with either some number of strings with a body given as a ReQL
+ * expression or as a JavaScript function expression.
+ * @param {...*} var_args The first N-1 args are strings giving the formal parameters
+        of the function. The last gives the body of the function. Alternatively, a
+        single JavaScript function expression may be provided.
  * @return {rethinkdb.query.FunctionExpression}
  * @export
  */
@@ -245,6 +252,7 @@ rethinkdb.query.BuiltinExpression = function(builtinType, args, opt_additional) 
 };
 goog.inherits(rethinkdb.query.BuiltinExpression, rethinkdb.query.Expression);
 
+/** @override */
 rethinkdb.query.BuiltinExpression.prototype.compile = function() {
     var builtin = new Builtin();
     builtin.setType(this.builtinType_);
@@ -266,8 +274,10 @@ rethinkdb.query.BuiltinExpression.prototype.compile = function() {
 };
 
 /**
+ * Shortcut to construct the many binary operator functions available in ReQL
  * @param {!Builtin.BuiltinType} builtinType
  * @param {!string} chainName
+ * @ignore
  */
 function makeBinary(builtinType, chainName) {
     rethinkdb.query.Expression.prototype[chainName] = function(other) {
@@ -277,8 +287,10 @@ function makeBinary(builtinType, chainName) {
 }
 
 /**
+ * Shortcut to construct the many binary comparison functions available in ReQL
  * @param {!Builtin.Comparison} comparison
  * @param {!string} chainName
+ * @ignore
  */
 function makeComparison(comparison, chainName) {
     rethinkdb.query.Expression.prototype[chainName] = function(other) {
@@ -290,21 +302,109 @@ function makeComparison(comparison, chainName) {
     };
 }
 
+/**
+ * Arithmetic addition
+ * @name rethinkdb.query.Expression.prototype.add
+ * @function
+ * @param {*} other The value to add to this one
+ * @return {rethinkdb.query.Expression}
+ */
 makeBinary(Builtin.BuiltinType.ADD, 'add');
+
+/**
+ * Arithmetic subtraction
+ * @name rethinkdb.query.Expression.prototype.sub
+ * @function
+ * @param {*} other The value to subtract from this one
+ * @return {rethinkdb.query.Expression}
+ */
 makeBinary(Builtin.BuiltinType.SUBTRACT, 'sub');
+
+/**
+ * Arithmetic multiplication
+ * @name rethinkdb.query.Expression.prototype.mul
+ * @function
+ * @param {*} other The value to multiply by this one
+ * @return {rethinkdb.query.Expression}
+ */
 makeBinary(Builtin.BuiltinType.MULTIPLY, 'mul');
+
+/**
+ * Arithmetic division
+ * @name rethinkdb.query.Expression.prototype.div
+ * @function
+ * @param {*} other The value to divide into this one
+ * @return {rethinkdb.query.Expression}
+ */
 makeBinary(Builtin.BuiltinType.DIVIDE, 'div');
+
+/**
+ * Arithmetic modulo
+ * @name rethinkdb.query.Expression.prototype.mod
+ * @function
+ * @param {*} other The modulus
+ * @return {rethinkdb.query.Expression}
+ */
 makeBinary(Builtin.BuiltinType.MODULO, 'mod');
 
+
+/**
+ * Equality comparison
+ * @name rethinkdb.query.Expression.prototype.eq
+ * @function
+ * @param {*} other
+ * @return {rethinkdb.query.Expression}
+ */
 makeComparison(Builtin.Comparison.EQ, 'eq');
+
+/**
+ * Inverse equality comparison
+ * @name rethinkdb.query.Expression.prototype.ne
+ * @function
+ * @param {*} other
+ * @return {rethinkdb.query.Expression}
+ */
 makeComparison(Builtin.Comparison.NE, 'ne');
+
+/**
+ * Less than comparison
+ * @name rethinkdb.query.Expression.prototype.lt
+ * @function
+ * @param {*} other
+ * @return {rethinkdb.query.Expression}
+ */
 makeComparison(Builtin.Comparison.LT, 'lt');
+
+/**
+ * Less than or equals comparison
+ * @name rethinkdb.query.Expression.prototype.le
+ * @function
+ * @param {*} other
+ * @return {rethinkdb.query.Expression}
+ */
 makeComparison(Builtin.Comparison.LE, 'le');
+
+/**
+ * Greater than comparison
+ * @name rethinkdb.query.Expression.prototype.gt
+ * @function
+ * @param {*} other
+ * @return {rethinkdb.query.Expression}
+ */
 makeComparison(Builtin.Comparison.GT, 'gt');
+
+/**
+ * Greater than or equals comparison
+ * @name rethinkdb.query.Expression.prototype.eq
+ * @function
+ * @param {*} other
+ * @return {rethinkdb.query.Expression}
+ */
 makeComparison(Builtin.Comparison.GE, 'ge');
 
 /**
  * Boolean inverse
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.not = function() {
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.NOT, [this]);
@@ -313,7 +413,8 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'not',
                     rethinkdb.query.Expression.prototype.not);
 
 /**
- * Length of array or stream
+ * Length of this sequence.
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.length = function() {
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.LENGTH, [this]);
@@ -323,6 +424,8 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'length',
 
 /**
  * Boolean and
+ * @param {*} predicate
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.and = function(predicate) {
     predicate = wrapIf_(predicate);
@@ -333,6 +436,8 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'and',
 
 /**
  * Boolean or
+ * @param {*} predicate
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.or = function(predicate) {
     predicate = wrapIf_(predicate);
@@ -343,24 +448,24 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'or',
                     rethinkdb.query.Expression.prototype.or);
 
 /**
- * Grabs values between two keys
+ * Grabs a range of rows between two primary key values
  * @return {rethinkdb.query.Expression}
- * @param {*} start_key
- * @param {*} end_key
+ * @param {*} startKey The first key in the range, inclusive
+ * @param {*} endKey The last key in the range, inclusive
  * @param {string=} opt_keyName
  */
 rethinkdb.query.Expression.prototype.between =
-        function(start_key, end_key, opt_keyName) {
-    start_key = wrapIf_(start_key);
-    end_key = wrapIf_(end_key);
+        function(startKey, endKey, opt_keyName) {
+    startKey = wrapIf_(startKey);
+    endKey = wrapIf_(endKey);
     var keyName = opt_keyName ? opt_keyName : 'id';
 
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.RANGE, [this],
                     function(builtin) {
                         var range = new Builtin.Range();
                         range.setAttrname(keyName);
-                        range.setLowerbound(start_key.compile());
-                        range.setUpperbound(end_key.compile());
+                        range.setLowerbound(startKey.compile());
+                        range.setUpperbound(endKey.compile());
                         builtin.setRange(range);
                     });
 };
@@ -385,7 +490,9 @@ rethinkdb.query.SliceExpression = function(leftExpr, leftExtent, opt_rightExtent
 goog.inherits(rethinkdb.query.SliceExpression, rethinkdb.query.BuiltinExpression);
 
 /**
- * Double ended slice
+ * Grab a slice of this sequence from start index to end index (if given) or the end of the sequence.
+ * @param {number} startIndex First index to include
+ * @param {number} opt_endIndex Last index to include
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.slice = function(startIndex, opt_endIndex) {
@@ -395,26 +502,30 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'slice',
     rethinkdb.query.Expression.prototype.slice);
 
 /**
- * Right ended slice
+ * Restrict the results to only the first limit elements. Equivalent to a right ended slice.
+ * @param {number} limit The number of results to include
  * @return {rethinkdb.query.Expression}
  */
-rethinkdb.query.Expression.prototype.limit = function(index) {
-    return new rethinkdb.query.SliceExpression(this, 0, index);
+rethinkdb.query.Expression.prototype.limit = function(limit) {
+    return new rethinkdb.query.SliceExpression(this, 0, limit);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'limit',
     rethinkdb.query.Expression.prototype.limit);
 
 /**
- * Left ended slice
+ * Skip the first hop elements of the result. Equivalent to a left ended slice.
+ * @param {number} hop The number of elements to hop over before returning results.
  * @return {rethinkdb.query.Expression}
  */
-rethinkdb.query.Expression.prototype.skip = function(index) {
-    return new rethinkdb.query.SliceExpression(this, index);
+rethinkdb.query.Expression.prototype.skip = function(hop) {
+    return new rethinkdb.query.SliceExpression(this, hop);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'skip',
     rethinkdb.query.Expression.prototype.skip);
 
 /**
+ * Return the nth result of the sequence.
+ * @param {number} index The index of the element to return.
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.nth = function(index) {
@@ -425,7 +536,16 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'nth',
     rethinkdb.query.Expression.prototype.nth);
 
 /**
- * Filter a list or stream accoring to the selector
+ * Filter this sequence based on the results of the given selector function as evaluated on each row.
+ * @param {*} selector The selector can be given in any one of a number of formats. In each case,
+ *  the result is a function expression that takes an element of this sequence and returns a boolean
+ *  indicating true if the value is to be kept or false if it is to be filtered out. The
+ *  possibilities are:
+ *      A javascript function - this is sent directly to the server and may only refer to locally
+ *                              bound variables, the implicit variable, or the single argument.
+ *      A ReQL function expression - binding one variable and evaluating to a boolean.
+ *      A ReQL expression - expected to reference the implicit variable and evaluate to a boolean.
+ *      An object - shortcut for (@.key1 == val1) && (@.key2 == val2) etc.
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.filter = function(selector) {
@@ -463,7 +583,13 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'filter',
                     rethinkdb.query.Expression.prototype.filter);
 
 /**
- * Map a function over a list or a stream
+ * Returns a new sequence that is the result of evaluating mapFun on each element of this sequence.
+ * @param {*} mapFun The mapping function. This may be expressed in a number of ways.
+ *  A ReQL function expression - binds one argument and evaluates to any ReQL value.
+ *  Any ReQL expression - assumed to reference the implicit variable.
+ *  A JavaScript function - this is sent directly to the server and may only refer to locally
+ *                          bound variables, the implicit variable, or the single argument.
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.map = function(mapFun) {
     mapFun = functionWrap_(mapFun);
@@ -483,8 +609,12 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'map',
                     rethinkdb.query.Expression.prototype.map);
 
 /**
- * Order the stream by the value of the key
- * @param {...string} var_args
+ * Order the elements of the sequence by their values of the specified attributes.
+ * @param {...string} var_args Some number of strings giving the fields to orderby.
+ *  Values are first orderd by the first field given, then by the second, etc. Prefix
+ *  a field name with a '-' to request a decending order. Attributes without prefixes
+ *  will be given in ascending order.
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.orderby = function(var_args) {
     var orderings = Array.prototype.slice.call(arguments, 0);
@@ -512,8 +642,9 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'orderby',
                     rethinkdb.query.Expression.prototype.orderby);
 
 /**
- * Remove duplicates
- * @param {string=} opt_attr
+ * Remove duplicate values in this sequence.
+ * @param {string=} opt_attr If given, returns distinct values of just this attribute
+ * @returns {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.distinct = function(opt_attr) {
     var leftExpr = opt_attr ? this.map(rethinkdb.query.R(opt_attr)) : this;
@@ -523,9 +654,12 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'distinct',
                     rethinkdb.query.Expression.prototype.distinct);
 
 /**
- * A reduction
- * @param {rethinkdb.query.Expression} base
- * @param {rethinkdb.query.FunctionExpression|function(...)} reduce
+ * Reduce this sequence to a single value by repeatedly applying the given reduction function.
+ * @param {*} base The initial value to seed the accumulater. Must be of the same type as the
+ *  the values of this sequence and the return type of the reduction function.
+ * @param {*} reduce A function of two variables of the same type that returns a value of
+ *  that type. May be expressed as a JavaScript function or a ReQL function expression.
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.reduce = function(base, reduce) {
     base = wrapIf_(base);
@@ -546,7 +680,14 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'reduce',
                     rethinkdb.query.Expression.prototype.reduce);
 
 /**
- * Divides the stream into sets and then performs a map reduce per set
+ * Divides the sequence into sets and then performs a map reduce per set.
+ * @param {*} grouping A mapping function that returns a group id for each row.
+ * @param {*} mapping The mapping function to apply on each set.
+    See {@link rethinkdb.query.Expression#map}.
+ * @param {*} base The base of the reduction. See {@link rethinkdb.query.Expression#reduce}.
+ * @param {*} reduce The reduction function. See {@link rethinkdb.query.Expression#reduce}.o
+ *  Each group is reduced separately to produce one final value per group.
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.groupedMapReduce = function(grouping, mapping, base, reduce) {
     grouping = functionWrap_(grouping);
@@ -582,7 +723,9 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'groupedMapReduce',
                     rethinkdb.query.Expression.prototype.groupedMapReduce);
 
 /**
- * Returns true if expression has given attribute
+ * Returns true if this has the given attribute.
+ * @param {string} attr Attribute to test.
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.hasAttr = function(attr) {
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.HASATTR, [this],
@@ -594,7 +737,9 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'hasAttr',
                     rethinkdb.query.Expression.prototype.hasAttr);
 
 /**
- * Select only the given attribute
+ * Returns the value of the given attribute from this.
+ * @param {string} attr Attribute to get.
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.getAttr = function(attr) {
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.GETATTR, [this],
@@ -606,7 +751,9 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'getAttr',
                     rethinkdb.query.Expression.prototype.getAttr);
 
 /**
- * Select only the given attributes from an object
+ * Returns a new object containing only the requested attributes from this.
+ * @param {string|Array.<string>} attrs An attribute to pick or a list of attributes to pick.
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.pickAttrs = function(attrs) {
     if (!goog.isArray(attrs)) {
@@ -624,7 +771,10 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'pickAttrs',
                     rethinkdb.query.Expression.prototype.pickAttrs);
 
 /**
- * Inverse of pickattrs
+ * Inverse of pickattrs. Returns an object consisting of all the attributes in this not
+ * given by attrs.
+ * @param {string|Array.<string>} attrs The attributes NOT to include in the result.
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.without = function(attrs) {
     if (!goog.isArray(attrs)) {
@@ -642,7 +792,9 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'without',
                     rethinkdb.query.Expression.prototype.without);
 
 /**
- * Shortcut to map a pick attrs over stream
+ * Shortcut to map a pick attrs over a sequence.
+ * @param {string|Array.<string>} attrs An attribute to pick or a list of attributes to pick.
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.pluck = function(attrs) {
     return this.map(rethinkdb.query.fn('a', rethinkdb.query.R('$a').pickAttrs(attrs)));
@@ -697,6 +849,11 @@ rethinkdb.query.ImplicitAttrExpression = function(attrName) {
 goog.inherits(rethinkdb.query.ImplicitAttrExpression, rethinkdb.query.BuiltinExpression);
 
 /**
+ * Reference the value of a bound variable or a field of a bound variable.
+ * @param {string} varString The variable or field to reference. The special name @ references
+ *  the implicit variable. If prefixed with a '$', references a free variable with that name.
+ *  Otherwise references a field of the implicit variable. In any case, subfields can be
+ *  referenced with dot notation.
  * @return {rethinkdb.query.Expression}
  * @export
  */
@@ -723,7 +880,11 @@ rethinkdb.query.R = function(varString) {
 };
 
 /**
- * Extend this object with properties from another
+ * Returns a new object this the union of the properties of this object with properties
+ * of another. Properties of the same same give preference to other.
+ * @param {*} other Some other object. Properties of other are given preference over the base
+ *  object when conflicts exist.
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.extend = function(other) {
     other = wrapIf_(other);
@@ -733,7 +894,10 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'extend',
                     rethinkdb.query.Expression.prototype.extend);
 
 /**
- * Apply mapping and then concat to an array.
+ * For each element of this sequence evaluate mapFun and concat the resulting sequences.
+ * @param {*} mapFun A JavaScript function, ReQL function expression or ReQL expression
+ *  referencing the implicit variable that evaluates to a sequence.
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.concatMap = function(mapFun) {
     mapFun = functionWrap_(mapFun);
@@ -749,6 +913,8 @@ rethinkdb.query.Expression.prototype.concatMap = function(mapFun) {
             builtin.setConcatMap(concatmap);
         });
 };
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'concatMap',
+                    rethinkdb.query.Expression.prototype.concatMap);
 
 /**
  * @constructor
@@ -778,7 +944,12 @@ rethinkdb.query.IfExpression.prototype.compile = function() {
 };
 
 /**
- * If then else
+ * Evaluate test, then evaluate and return the result of trueBranch if test evaluates to true,
+ * or evaluate and return the result of falseBranch of test evaluates to false.
+ * @param {rethinkdb.query.Expression} test ReQL expression that evaluates to a boolean.
+ * @param {rethinkdb.query.Expression} trueBranch Expression to evaluate if true.
+ * @param {rethinkdb.query.Expression} falseBranch Expression to evaluate if false.
+ * @return {rethinkdb.query.Expression}
  * @export
  */
 rethinkdb.query.ifThenElse = function(test, trueBranch, falseBranch) {
@@ -797,6 +968,7 @@ rethinkdb.query.LetExpression = function(bindings, body) {
 };
 goog.inherits(rethinkdb.query.LetExpression, rethinkdb.query.Expression);
 
+/** @override */
 rethinkdb.query.LetExpression.prototype.compile = function() {
     var let_ = new Term.Let();
     for (var key in this.bindings_) {
@@ -818,7 +990,11 @@ rethinkdb.query.LetExpression.prototype.compile = function() {
 };
 
 /**
- * Bind values to variables in body
+ * Bind the result of an ReQL expression to a variable within an expression.
+ * @param {...*} var_args The first N-1 arguments are expected to be tuples (expressed as
+ *  JavaScript lists) of string ReQL expression pairs to bind. The last argument is a
+ *  ReQL expression to evaluate within which those variables will be bound.
+ * @return {rethinkdb.query.Expression}
  * @export
  */
 rethinkdb.query.let = function(var_args) {
@@ -838,6 +1014,7 @@ rethinkdb.query.ForEachQuery = function(leftExpr, fun) {
 };
 goog.inherits(rethinkdb.query.ForEachQuery, rethinkdb.query.BaseQuery);
 
+/** @override */
 rethinkdb.query.ForEachQuery.prototype.buildQuery = function() {
     var foreach = new WriteQuery.ForEach();
     foreach.setStream(this.leftExpr_.compile());
@@ -862,7 +1039,11 @@ rethinkdb.query.ForEachQuery.prototype.buildQuery = function() {
 };
 
 /**
- * Execute a query for every element of this sequence
+ * Evaluate a ReQL query for each element of this sequence.
+ * @param {rethinkdb.query.FunctionExpression|rethinkdb.query.Expression} fun A ReQL function
+ *  expression binding a row or a ReQL expression relying on the implicit variable to evaluate
+ *  for each row of this sequence.
+ * @return {rethinkdb.query.BaseQuery}
  */
 rethinkdb.query.Expression.prototype.forEach = function(fun) {
     fun = functionWrap_(fun);
@@ -872,7 +1053,8 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'forEach',
                     rethinkdb.query.Expression.prototype.forEach);
 
 /**
- * Convert a stream to an array
+ * Convert a stream to an array.
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.streamToArray = function() {
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.STREAMTOARRAY, [this]);
@@ -882,6 +1064,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'streamToArray',
 
 /**
  * Convert an array to a stream
+ * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.arrayToStream = function() {
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ARRAYTOSTREAM, [this]);
