@@ -58,7 +58,7 @@ public:
     };
 
     virtual ~watchable_t() { }
-    virtual watchable_t *clone() = 0;
+    virtual watchable_t *clone() const = 0;
     virtual value_t get() = 0;
     virtual publisher_t<boost::function<void()> > *get_publisher() = 0;
     virtual rwi_lock_assertion_t *get_rwi_lock_assertion() = 0;
@@ -104,7 +104,7 @@ private:
     class w_t : public watchable_t<value_t> {
     public:
         explicit w_t(watchable_variable_t<value_t> *p) : parent(p) { }
-        w_t *clone() {
+        w_t *clone() const {
             return new w_t(parent);
         }
         value_t get() {

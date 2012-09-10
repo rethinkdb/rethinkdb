@@ -8,10 +8,7 @@
 continue_on_thread() is. */
 
 template<class callable_t>
-struct thread_doer_t :
-    public thread_message_t,
-    public home_thread_mixin_t
-{
+struct thread_doer_t : public thread_message_t, public home_thread_mixin_t {
     const callable_t callable;
     int thread;
     enum state_t {

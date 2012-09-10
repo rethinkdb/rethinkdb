@@ -10,7 +10,7 @@
 #include "memcached/parser.hpp"
 #include "perfmon/perfmon.hpp"
 
-struct tcp_conn_memcached_interface_t : public memcached_interface_t, public home_thread_mixin_t {
+struct tcp_conn_memcached_interface_t : public memcached_interface_t, public home_thread_mixin_debug_only_t {
     explicit tcp_conn_memcached_interface_t(tcp_conn_t *c) : conn(c) { }
 
     tcp_conn_t *conn;

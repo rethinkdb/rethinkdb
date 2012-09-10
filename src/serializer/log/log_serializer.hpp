@@ -55,7 +55,7 @@ class log_serializer_t :
 #ifndef SEMANTIC_SERIALIZER_CHECK
     public serializer_t,
 #else
-    public home_thread_mixin_t,
+    public home_thread_mixin_debug_t,
 #endif  // SEMANTIC_SERIALIZER_CHECK
     private data_block_manager_t::shutdown_callback_t,
     private lba_index_t::shutdown_callback_t
