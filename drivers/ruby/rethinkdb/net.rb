@@ -77,6 +77,7 @@ module RethinkDB
 
     def dispatch msg # :nodoc:
       payload = msg.serialize_to_string
+      #File.open('payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
       packet = [payload.length].pack('L<') + payload
       @socket.send(packet, 0)
       return msg.token

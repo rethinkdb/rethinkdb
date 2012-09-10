@@ -12,7 +12,7 @@ of memory. */
 
 struct mc_cache_stats_t;
 
-class array_free_list_t : public home_thread_mixin_t {
+class array_free_list_t : public home_thread_mixin_debug_only_t {
 public:
     array_free_list_t(serializer_t *, mc_cache_stats_t *);
     ~array_free_list_t();

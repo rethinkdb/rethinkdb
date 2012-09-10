@@ -52,7 +52,7 @@ public:
         client_t(message_multiplexer_t *, tag_t tag);
         ~client_t();
         connectivity_service_t *get_connectivity_service();
-        void send_message(peer_id_t, const boost::function<void(write_stream_t *)> &);
+        void send_message(peer_id_t, send_message_write_callback_t *callback);
     private:
         friend class message_multiplexer_t;
         message_multiplexer_t *const parent;

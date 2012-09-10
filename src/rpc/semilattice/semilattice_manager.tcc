@@ -75,6 +75,108 @@ void semilattice_manager_t<metadata_t>::root_view_t::join(const metadata_t &adde
     }
 }
 
+static const char message_code_metadata = 'M';
+static const char message_code_sync_from_query = 'F';
+static const char message_code_sync_from_reply = 'f';
+static const char message_code_sync_to_query = 'T';
+static const char message_code_sync_to_reply = 't';
+
+template <class metadata_t>
+class semilattice_manager_t<metadata_t>::metadata_writer_t : public send_message_write_callback_t {
+public:
+    metadata_writer_t(const metadata_t &_md, metadata_version_t _mdv) :
+        md(_md), mdv(_mdv) { }
+
+    void write(write_stream_t *stream) {
+        write_message_t msg;
+        uint8_t code = message_code_metadata;
+        msg << code;
+        msg << md;
+        msg << mdv;
+        int res = send_write_message(stream, &msg);
+        if (res) { throw fake_archive_exc_t(); }
+    }
+private:
+    const metadata_t &md;
+    metadata_version_t mdv;
+};
+
+template <class metadata_t>
+class semilattice_manager_t<metadata_t>::sync_from_query_writer_t : public send_message_write_callback_t {
+public:
+    sync_from_query_writer_t(sync_from_query_id_t _query_id) :
+        query_id(_query_id) { }
+
+    void write(write_stream_t *stream) {
+        write_message_t msg;
+        uint8_t code = message_code_sync_from_query;
+        msg << code;
+        msg << query_id;
+        int res = send_write_message(stream, &msg);
+        if (res) { throw fake_archive_exc_t(); }
+    }
+private:
+    sync_from_query_id_t query_id;
+};
+
+template <class metadata_t>
+class semilattice_manager_t<metadata_t>::sync_from_reply_writer_t : public send_message_write_callback_t {
+public:
+    sync_from_reply_writer_t(sync_from_query_id_t _query_id, metadata_version_t _version) :
+        query_id(_query_id), version(_version) { }
+
+    void write(write_stream_t *stream) {
+        write_message_t msg;
+        uint8_t code = message_code_sync_from_reply;
+        msg << code;
+        msg << query_id;
+        msg << version;
+        int res = send_write_message(stream, &msg);
+        if (res) { throw fake_archive_exc_t(); }
+    }
+private:
+    sync_from_query_id_t query_id;
+    metadata_version_t version;
+};
+
+template <class metadata_t>
+class semilattice_manager_t<metadata_t>::sync_to_query_writer_t : public send_message_write_callback_t {
+public:
+    sync_to_query_writer_t(sync_to_query_id_t _query_id, metadata_version_t _version) :
+        query_id(_query_id), version(_version) { }
+
+    void write(write_stream_t *stream) {
+        write_message_t msg;
+        uint8_t code = message_code_sync_to_query;
+        msg << code;
+        msg << query_id;
+        msg << version;
+        int res = send_write_message(stream, &msg);
+        if (res) { throw fake_archive_exc_t(); }
+    }
+private:
+    sync_to_query_id_t query_id;
+    metadata_version_t version;
+};
+
+template <class metadata_t>
+class semilattice_manager_t<metadata_t>::sync_to_reply_writer_t : public send_message_write_callback_t {
+public:
+    sync_to_reply_writer_t(sync_to_query_id_t _query_id) :
+        query_id(_query_id) { }
+
+    void write(write_stream_t *stream) {
+        write_message_t msg;
+        uint8_t code = message_code_sync_to_reply;
+        msg << code;
+        msg << query_id;
+        int res = send_write_message(stream, &msg);
+        if (res) { throw fake_archive_exc_t(); }
+    }
+private:
+    sync_to_query_id_t query_id;
+};
+
 template<class metadata_t>
 void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
     rassert(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
@@ -83,8 +185,8 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, s
     promise_t<metadata_version_t> response_cond;
     map_insertion_sentry_t<sync_from_query_id_t, promise_t<metadata_version_t> *> response_listener(&parent->sync_from_waiters, query_id, &response_cond);
     disconnect_watcher_t watcher(parent->message_service->get_connectivity_service(), peer);
-    parent->message_service->send_message(peer,
-        boost::bind(&semilattice_manager_t<metadata_t>::write_sync_from_query, _1, query_id));
+    sync_from_query_writer_t writer(query_id);
+    parent->message_service->send_message(peer, &writer);
     wait_any_t waiter(response_cond.get_ready_signal(), &watcher);
     wait_interruptible(&waiter, interruptor);   /* May throw `interrupted_exc_t` */
     if (watcher.is_pulsed()) {
@@ -101,8 +203,8 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, sig
     cond_t response_cond;
     map_insertion_sentry_t<sync_to_query_id_t, cond_t *> response_listener(&parent->sync_to_waiters, query_id, &response_cond);
     disconnect_watcher_t watcher(parent->message_service->get_connectivity_service(), peer);
-    parent->message_service->send_message(peer,
-        boost::bind(&semilattice_manager_t<metadata_t>::write_sync_to_query, _1, query_id, parent->metadata_version));
+    sync_to_query_writer_t writer(query_id, parent->metadata_version);
+    parent->message_service->send_message(peer, &writer);
     wait_any_t waiter(&response_cond, &watcher);
     wait_interruptible(&waiter, interruptor);   /* May throw `interrupted_exc_t` */
     if (watcher.is_pulsed()) {
@@ -116,65 +218,6 @@ publisher_t<boost::function<void()> > *semilattice_manager_t<metadata_t>::root_v
     rassert(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
     return parent->metadata_publisher.get_publisher();
-}
-
-static const char message_code_metadata = 'M';
-static const char message_code_sync_from_query = 'F';
-static const char message_code_sync_from_reply = 'f';
-static const char message_code_sync_to_query = 'T';
-static const char message_code_sync_to_reply = 't';
-
-template<class metadata_t>
-void semilattice_manager_t<metadata_t>::write_metadata(write_stream_t *stream, metadata_t md, metadata_version_t mdv) {
-    write_message_t msg;
-    uint8_t code = message_code_metadata;
-    msg << code;
-    msg << md;
-    msg << mdv;
-    int res = send_write_message(stream, &msg);
-    if (res) { throw fake_archive_exc_t(); }
-}
-
-template<class metadata_t>
-void semilattice_manager_t<metadata_t>::write_sync_from_query(write_stream_t *stream, sync_from_query_id_t query_id) {
-    write_message_t msg;
-    uint8_t code = message_code_sync_from_query;
-    msg << code;
-    msg << query_id;
-    int res = send_write_message(stream, &msg);
-    if (res) { throw fake_archive_exc_t(); }
-}
-
-template<class metadata_t>
-void semilattice_manager_t<metadata_t>::write_sync_from_reply(write_stream_t *stream, sync_from_query_id_t query_id, metadata_version_t version) {
-    write_message_t msg;
-    uint8_t code = message_code_sync_from_reply;
-    msg << code;
-    msg << query_id;
-    msg << version;
-    int res = send_write_message(stream, &msg);
-    if (res) { throw fake_archive_exc_t(); }
-}
-
-template<class metadata_t>
-void semilattice_manager_t<metadata_t>::write_sync_to_query(write_stream_t *stream, sync_to_query_id_t query_id, metadata_version_t version) {
-    write_message_t msg;
-    uint8_t code = message_code_sync_to_query;
-    msg << code;
-    msg << query_id;
-    msg << version;
-    int res = send_write_message(stream, &msg);
-    if (res) { throw fake_archive_exc_t(); }
-}
-
-template<class metadata_t>
-void semilattice_manager_t<metadata_t>::write_sync_to_reply(write_stream_t *stream, sync_to_query_id_t query_id) {
-    write_message_t msg;
-    uint8_t code = message_code_sync_to_reply;
-    msg << code;
-    msg << query_id;
-    int res = send_write_message(stream, &msg);
-    if (res) { throw fake_archive_exc_t(); }
 }
 
 template<class metadata_t>
@@ -279,8 +322,8 @@ void semilattice_manager_t<metadata_t>::on_disconnect(peer_id_t) {
 
 template<class metadata_t>
 void semilattice_manager_t<metadata_t>::send_metadata_to_peer(peer_id_t peer, metadata_t m, metadata_version_t mv, auto_drainer_t::lock_t) {
-    message_service->send_message(peer,
-        boost::bind(&semilattice_manager_t<metadata_t>::write_metadata, _1, m, mv));
+    metadata_writer_t writer(m, mv);
+    message_service->send_message(peer, &writer);
 }
 
 template<class metadata_t>
@@ -304,8 +347,8 @@ void semilattice_manager_t<metadata_t>::deliver_metadata_on_home_thread(peer_id_
 template<class metadata_t>
 void semilattice_manager_t<metadata_t>::deliver_sync_from_query_on_home_thread(peer_id_t sender, sync_from_query_id_t query_id, auto_drainer_t::lock_t) {
     on_thread_t thread_switcher(home_thread());
-    message_service->send_message(sender,
-        boost::bind(&semilattice_manager_t<metadata_t>::write_sync_from_reply, _1, query_id, metadata_version));
+    sync_from_reply_writer_t writer(query_id, metadata_version);
+    message_service->send_message(sender, &writer);
 }
 
 template<class metadata_t>
@@ -332,8 +375,8 @@ void semilattice_manager_t<metadata_t>::deliver_sync_to_query_on_home_thread(pee
     } catch (sync_failed_exc_t) {
         return;
     }
-    message_service->send_message(sender,
-        boost::bind(&semilattice_manager_t<metadata_t>::write_sync_to_reply, _1, query_id));
+    sync_to_reply_writer_t writer(query_id);
+    message_service->send_message(sender, &writer);
 }
 
 template<class metadata_t>

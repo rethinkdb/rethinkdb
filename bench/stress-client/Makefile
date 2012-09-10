@@ -30,7 +30,7 @@ EXEC_NAME = stress
 SO_NAME = libstress.so
 CXX = g++
 CFLAGS = -fPIC
-CXXFLAGS = $(INCLUDE) -I . $(DEFINES) -fPIC # -O3
+CXXFLAGS = $(INCLUDE) -I . $(DEFINES) -fPIC -g # -O3
 PROTO_DIR = ../../src/rdb_protocol
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))

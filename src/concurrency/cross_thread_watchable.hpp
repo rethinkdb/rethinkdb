@@ -30,7 +30,7 @@ private:
     public:
         explicit w_t(cross_thread_watchable_variable_t<value_t> *p) : parent(p) { }
 
-        w_t *clone() {
+        w_t *clone() const {
             return new w_t(parent);
         }
         value_t get() {

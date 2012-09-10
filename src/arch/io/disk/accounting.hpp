@@ -31,7 +31,7 @@ private:
 number of different "accounts". */
 
 template<class payload_t>
-class accounting_diskmgr_t : home_thread_mixin_t {
+class accounting_diskmgr_t : public home_thread_mixin_t {
 public:
 
     explicit accounting_diskmgr_t(int batch_factor)

@@ -21,7 +21,7 @@ template <class> class multistore_ptr_t;
 struct mailbox_manager_t;
 
 template<class protocol_t>
-class broadcaster_t : public home_thread_mixin_t {
+class broadcaster_t : public home_thread_mixin_debug_only_t {
 private:
     class incomplete_write_t;
 
@@ -50,12 +50,12 @@ public:
     broadcaster_t(
             mailbox_manager_t *mm,
             branch_history_manager_t<protocol_t> *bhm,
-            multistore_ptr_t<protocol_t> *initial_svs,
+            store_view_t<protocol_t> *initial_svs,
             perfmon_collection_t *parent_perfmon_collection,
             order_source_t *order_source,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-    void read(typename protocol_t::read_t r, typename protocol_t::read_response_t *response, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
+    void read(const typename protocol_t::read_t &r, typename protocol_t::read_response_t *response, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
 
     /* Unlike `read()`, `spawn_write()` returns as soon as the write has begun
     and replies asynchronously via a callback. It may block, so it takes an
@@ -63,13 +63,13 @@ public:
     `write_callback_t` is destroyed while the write is still in progress, its
     destructor will automatically deregister it so that no segfaults will
     happen. */
-    void spawn_write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, order_token_t tok, write_callback_t *cb, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    void spawn_write(const typename protocol_t::write_t &w, fifo_enforcer_sink_t::exit_write_t *lock, order_token_t tok, write_callback_t *cb, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     branch_id_t get_branch_id() const;
 
     broadcaster_business_card_t<protocol_t> get_business_card();
 
-    MUST_USE multistore_ptr_t<protocol_t> *release_bootstrap_svs_for_listener();
+    MUST_USE store_view_t<protocol_t> *release_bootstrap_svs_for_listener();
 
 private:
     class incomplete_write_ref_t;
@@ -98,9 +98,9 @@ private:
     branch_id_t branch_id;
 
     /* Until our initial listener has been constructed, this holds the
-    multistore_ptr that was passed to our constructor. After that,
-    it's `NULL`. */
-    multistore_ptr_t<protocol_t> *bootstrap_svs;
+    store_view that was passed to our constructor. After that, it's
+    `NULL`. */
+    store_view_t<protocol_t> *bootstrap_svs;
 
     branch_history_manager_t<protocol_t> *branch_history_manager;
 

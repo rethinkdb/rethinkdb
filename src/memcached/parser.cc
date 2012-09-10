@@ -36,7 +36,7 @@ static const char *crlf = "\r\n";
 /* txt_memcached_handler_t only exists as a convenient thing to pass around to do_get(),
 do_storage(), and the like. */
 
-struct txt_memcached_handler_t : public home_thread_mixin_t {
+struct txt_memcached_handler_t : public home_thread_mixin_debug_only_t {
     txt_memcached_handler_t(memcached_interface_t *_interface,
                             namespace_interface_t<memcached_protocol_t> *_nsi,
                             int _max_concurrent_queries_per_connection,

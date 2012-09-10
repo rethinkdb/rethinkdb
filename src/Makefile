@@ -165,6 +165,11 @@ NO_OMIT_FRAME_POINTER?=0
 ifeq ($(DEBUG),1)
 SYMBOLS:=1
 CXXFLAGS+=-O0
+
+ifeq ($(KEEP_INLINE),1)
+CXXFLAGS+=-fkeep-inline-functions
+endif
+
 else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
