@@ -582,7 +582,7 @@ class ClientTest < Test::Unit::TestCase
     rdb.delete.run
     docs = (0...4).map{|n| {"id" => 100 + n, "a" => n, "b" => n % 3}}
     assert_equal(rdb.insert(docs).run, {'inserted' => docs.length})
-    assert_equal(rdb.insertstream(r[docs].to_stream).run, {'inserted' => docs.length})
+    assert_equal(rdb.insert(r[docs].to_stream).run, {'inserted' => docs.length})
     docs.each{|doc| assert_equal(rdb.get(doc['id']).run, doc)}
 
     rdb.delete.run
