@@ -45,21 +45,27 @@ enum point_write_result_t {
     STORED,
     DUPLICATE
 };
-
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_write_result_t, int8_t, STORED, DUPLICATE);
 
 enum point_delete_result_t {
     DELETED,
     MISSING
 };
-
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_delete_result_t, int8_t, DELETED, MISSING);
+
+namespace point_modify {
+enum result_t { MODIFIED, INSERTED, SKIPPED, DELETED, NOP, ERROR };
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(result_t, int8_t, MODIFIED, ERROR);
+enum op_t { UPDATE, MUTATE };
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(op_t, int8_t, UPDATE, MUTATE);
+}
 
 RDB_DECLARE_SERIALIZABLE(Builtin_Range);
 RDB_DECLARE_SERIALIZABLE(Builtin_Filter);
 RDB_DECLARE_SERIALIZABLE(Builtin_Map);
 RDB_DECLARE_SERIALIZABLE(Builtin_ConcatMap);
 RDB_DECLARE_SERIALIZABLE(Builtin_GroupedMapReduce);
+RDB_DECLARE_SERIALIZABLE(Mapping);
 RDB_DECLARE_SERIALIZABLE(Reduction);
 RDB_DECLARE_SERIALIZABLE(WriteQuery_ForEach);
 
@@ -305,15 +311,42 @@ struct rdb_protocol_t {
         RDB_MAKE_ME_SERIALIZABLE_1(result);
     };
 
+    struct point_modify_response_t {
+        point_modify::result_t result;
+        query_language::runtime_exc_t exc;
+        point_modify_response_t() { }
+        explicit point_modify_response_t(point_modify::result_t _result)
+            : result(_result) { rassert(result != point_modify::ERROR); }
+        explicit point_modify_response_t(const query_language::runtime_exc_t &_exc)
+            : result(point_modify::ERROR), exc(_exc) { }
+        RDB_MAKE_ME_SERIALIZABLE_2(result, exc);
+    };
+
     struct write_response_t {
-        boost::variant<point_write_response_t, point_delete_response_t> response;
+        boost::variant<point_write_response_t, point_modify_response_t, point_delete_response_t> response;
 
         write_response_t() { }
         write_response_t(const write_response_t& w) : response(w.response) { }
         explicit write_response_t(const point_write_response_t& w) : response(w) { }
+        explicit write_response_t(const point_modify_response_t& m) : response(m) { }
         explicit write_response_t(const point_delete_response_t& d) : response(d) { }
 
         RDB_MAKE_ME_SERIALIZABLE_1(response);
+    };
+
+    class point_modify_t {
+    public:
+        point_modify_t() { }
+        point_modify_t(const std::string &_primary_key, const store_key_t &_key, const point_modify::op_t &_op,
+                       const query_language::scopes_t &_scopes, const Mapping &_mapping)
+            : primary_key(_primary_key), key(_key), op(_op), scopes(_scopes), mapping(_mapping) { }
+
+        std::string primary_key;
+        store_key_t key;
+        point_modify::op_t op;
+        query_language::scopes_t scopes;
+        Mapping mapping;
+        RDB_MAKE_ME_SERIALIZABLE_5(primary_key, key, op, scopes, mapping);
     };
 
     class point_write_t {
@@ -341,7 +374,7 @@ struct rdb_protocol_t {
     };
 
     struct write_t {
-        boost::variant<point_write_t, point_delete_t> write;
+        boost::variant<point_write_t, point_delete_t, point_modify_t> write;
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
@@ -352,6 +385,7 @@ struct rdb_protocol_t {
         write_t(const write_t& w) : write(w.write) { }
         explicit write_t(const point_write_t &w) : write(w) { }
         explicit write_t(const point_delete_t &d) : write(d) { }
+        explicit write_t(const point_modify_t &m) : write(m) { }
 
         RDB_MAKE_ME_SERIALIZABLE_1(write);
     };
