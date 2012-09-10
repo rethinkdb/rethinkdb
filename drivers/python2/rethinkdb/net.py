@@ -133,13 +133,19 @@ class QueryError(StandardError):
 
         return query_str
 
+    def _safe_location(self):
+        try:
+            return self.location()
+        except ValueError, e:
+            return "There was an internal problem that prevented us from formatting the backtrace:\n" + str(e)
+
 class ExecutionError(QueryError):
     def __str__(self):
-        return "Error while executing query on server: %s" % self.message + "\n" + self.location()
+        return "Error while executing query on server: %s" % self.message + "\n" + self._safe_location()
 
 class BadQueryError(QueryError):
     def __str__(self):
-        return "Illegal query: %s" % self.message + "\n" + self.location()
+        return "Illegal query: %s" % self.message + "\n" + self._safe_location()
 
 class BatchedIterator(object):
     """A result stream from the server that lazily fetches results"""
