@@ -129,7 +129,7 @@ private:
 
 inline
 void send(mailbox_manager_t *src, mailbox_t< void() >::address_t dest) {
-    typename mailbox_t< void() >::write_impl_t writer;
+    mailbox_t< void() >::write_impl_t writer;
     send(src, dest.addr, &writer);
 }
 
