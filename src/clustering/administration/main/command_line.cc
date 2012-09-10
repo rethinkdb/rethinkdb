@@ -341,6 +341,13 @@ po::options_description get_disk_options() {
     return desc;
 }
 
+po::options_description get_cpu_options() {
+    po::options_description desc("CPU options");
+    desc.add_options()
+        ("cores,c", po::value<int>()->default_value(get_cpu_count()), "the number of cores to utilize");
+    return desc;
+}
+
 po::options_description get_rethinkdb_create_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
@@ -354,6 +361,7 @@ po::options_description get_rethinkdb_serve_options() {
     desc.add(get_file_options());
     desc.add(get_network_options());
     desc.add(get_disk_options());
+    desc.add(get_cpu_options());
     return desc;
 }
 
@@ -383,6 +391,7 @@ po::options_description get_rethinkdb_porcelain_options() {
     desc.add(get_machine_options());
     desc.add(get_network_options());
     desc.add(get_disk_options());
+    desc.add(get_cpu_options());
     return desc;
 }
 
@@ -482,7 +491,11 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     extproc::spawner_t::info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
 
-    const int num_workers = get_cpu_count();
+    const int num_workers = vm["cores"].as<int>();
+    if (num_workers <= 0 || num_workers > MAX_THREADS) {
+        fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
+        return 1;
+    }
 
     if (!check_existence(filepath)) {
         fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
@@ -627,7 +640,11 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     extproc::spawner_t::info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
 
-    const int num_workers = get_cpu_count();
+    const int num_workers = vm["cores"].as<int>();
+    if (num_workers <= 0 || num_workers > MAX_THREADS) {
+        fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
+        return 1;
+    }
 
     bool new_directory = false;
     // Attempt to create the directory early so that the log file can use it.
