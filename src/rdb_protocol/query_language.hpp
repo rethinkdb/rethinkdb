@@ -90,6 +90,9 @@ private:
     backtrace_t backtrace;
 };
 
+boost::shared_ptr<scoped_cJSON_t> eval_mapping(Mapping m, const runtime_environment_t &env,
+                                               boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace);
+
 boost::shared_ptr<scoped_cJSON_t> map(std::string arg, Term *term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace);
 
 boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace);

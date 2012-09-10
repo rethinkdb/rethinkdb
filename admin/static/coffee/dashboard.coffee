@@ -203,10 +203,11 @@ module 'DashboardView', ->
 
 
         destroy: ->
-            issues.off()
-            issues_redundancy.off()
-            machines.off()
-            $('.popover').off()
+            issues.off 'all', @render
+            issues_redundancy.off 'all', @render # when issues_redundancy is reset
+            machines.off 'stats_updated', @render # when the stats of the machines are updated
+            directory.off 'all', @render
+            namespaces.off 'all', @render
 
 
     class @ClusterPerformance extends Backbone.View

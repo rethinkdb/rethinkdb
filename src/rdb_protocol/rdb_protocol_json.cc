@@ -91,7 +91,8 @@ int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace) {
                         return cmp;
                     }
                 }
-                return -1;  // e.g. cmp([0], [0, 1]);
+                if (rsize > lsize) return -1;  // e.g. cmp([0], [0, 1]);
+                return 0;
             }
             break;
         case cJSON_Object:
