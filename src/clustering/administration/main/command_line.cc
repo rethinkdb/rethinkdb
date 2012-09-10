@@ -88,6 +88,8 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     if (!joins.empty())
         host_port = strprintf("%s:%d", joins[0].host.c_str(), joins[0].port);
 
+    // TODO(sam): Wtf is host_port for?
+
     try {
         if (command_args.empty())
             admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).run_console(exit_on_failure);
@@ -102,6 +104,14 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
         logERR("%s\n", ex.what());
         *result_out = false;
     }
+}
+
+void run_rethinkdb_import(std::vector<host_and_port_t> joins, io_backend_t io_backend, int client_port, std::string db_table, std::string separators, std::string input_filepath, UNUSED bool *result_out) {
+    os_signal_cond_t sigint_cond;
+    guarantee(!joins.empty());
+
+    printf("run_rethinkdb_import with io backend %d, client_port %d, db_table '%s', separators '%s', input_filepath '%s'\n",
+           io_backend, client_port, db_table.c_str(), separators.c_str(), input_filepath.c_str());
 }
 
 void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
@@ -275,7 +285,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
 void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
-    rassert(!joins.empty());
+    guarantee(!joins.empty());
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
@@ -374,6 +384,26 @@ po::options_description get_rethinkdb_admin_options() {
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
     desc.add(get_disk_options());
+    // TODO(sam): The admin client doesn't use the io-backend option!  So why are we calling get_disk_options()?
+    return desc;
+}
+
+po::options_description get_rethinkdb_import_options() {
+    po::options_description desc("Allowed options");
+    // TODO(sam): What is the client-port option?
+    desc.add_options()
+        DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes"))
+        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
+        // Default value of empty string?  Because who knows what the fuck it returns with
+        // no default value.  Or am I supposed to wade my way back into the
+        // program_options documentation again?
+        ("table", po::value<std::string>()->default_value(""), "the database table to which to import")
+        ("separators,s", po::value<std::string>()->default_value(" \t,"), "list of characters to be used as whitespace -- uses \" \t,\" by default")
+        ("input-file", po::value<std::string>()->default_value(""), "the csv input file");
+    desc.add(get_disk_options());
+
+    // TODO: log-file option?
+
     return desc;
 }
 
@@ -476,6 +506,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
+        // TODO(sam): Is this the proper way to exit?
         return EXIT_FAILURE;
     }
 
@@ -502,7 +533,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 }
 
 int main_rethinkdb_admin(int argc, char *argv[]) {
-    bool result(false);
+    bool result = false;
     po::variables_map vm;
     po::options_description options;
     options.add(get_rethinkdb_admin_options());
@@ -593,6 +624,72 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
     return result ? 0 : 1;
 }
+
+int main_rethinkdb_import(int argc, char *argv[]) {
+    try {
+    po::variables_map vm;
+    int res = parse_commands(argc - 1, argv + 1, &vm, get_rethinkdb_import_options());
+    if (res) {
+        return res;
+    }
+
+    debugf("successfully parsed commands\n");
+
+    // TODO(sam): Does this not work with a zero count?
+    std::vector<host_and_port_t> joins;
+    if (vm.count("join") > 0) {
+        joins = vm["join"].as<std::vector<host_and_port_t> >();
+    }
+    debugf("got joins\n");
+    // TODO(sam): I think we and rethinkdb_admin handle client_port differently?  Why?
+#ifndef NDEBUG
+    int client_port = vm["client-port"].as<int>();
+#else
+    int client_port = port_defaults::client_port;
+#endif
+    debugf("got client-port\n");
+    std::string db_table = vm["table"].as<std::string>();
+    debugf("got table\n");
+    if (db_table.empty()) {
+        // TODO(sam): handle error gracefully.
+        return EXIT_FAILURE;
+    }
+    std::string separators = vm["separators"].as<std::string>();
+    debugf("got separators\n");
+    if (separators.empty()) {
+        // TODO(sam): Pardon me, are we returning EXIT_FAILURE where
+        // elsewhere we used numeric constants 0 and 1?
+        return EXIT_FAILURE;
+    }
+    std::string input_filepath = vm["input-file"].as<std::string>();
+    if (input_filepath.empty()) {
+        // TODO(sam): handle error gracefully.
+        return EXIT_FAILURE;
+    }
+    debugf("got input-file\n");
+    io_backend_t io_backend;
+    if (!pull_io_backend_option(vm, &io_backend)) {
+        return EXIT_FAILURE;
+    }
+
+    debugf("successfully got the commands\n");
+
+
+    // TODO(sam): Add CPU parsing to the end.
+
+    const int num_workers = get_cpu_count();
+    bool result;
+    run_in_thread_pool(boost::bind(&run_rethinkdb_import, joins, io_backend, client_port, db_table, separators, input_filepath, &result),
+                       num_workers);
+
+    return result ? 0 : 1;
+    } catch (const std::exception& ex) {
+        // TODO(sam): This generic exception handler is complete fucking bullshit and so are the other ones in this file.
+        logERR("%s\n", ex.what());
+        return EXIT_FAILURE;
+    }
+}
+
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
     po::variables_map vm;
