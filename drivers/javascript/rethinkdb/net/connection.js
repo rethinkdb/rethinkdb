@@ -4,25 +4,41 @@ goog.require('goog.math.Long');
 goog.require('goog.proto2.WireFormatSerializer');
 
 /**
- * Connection, a connection over which queries may be sent.
+ * As this is an abstract class you cannot use this constructor directly.
+ * Construct instances of TcpConnection or HttpConnection instead.
+ * @class A connection over which queries may be sent.
  * This is an abstract base class for two different kinds of connections,
  * a tcp connection or an http connection (for use by browsers).
+ * @param {?string=} opt_dbName optional default db to use for this connection
  * @constructor
  */
-rethinkdb.net.Connection = function(db_name) {
-	this.defaultDbName_ = db_name || 'Welcome-db';
+rethinkdb.net.Connection = function(opt_dbName) {
+	this.defaultDbName_ = opt_dbName || 'Welcome-db';
     this.outstandingQueries_ = {};
     this.nextToken_ = 1;
 
     rethinkdb.net.last_connection = this;
 };
 
+/**
+ * Send the protobuf over the underlying connection. Implemented by subclasses.
+ * @param {ArrayBuffer} data The protocol buffer to send
+ * @private
+ */
 rethinkdb.net.Connection.prototype.send_ = goog.abstractMethod;
 
-rethinkdb.net.Connection.prototype.close = goog.nullFunction;
+/**
+ * Close the underlying connection. Implemented by subclass.
+ * @private
+ */
+rethinkdb.net.Connection.prototype.close = goog.abstractMethod;
 
 /**
- * Internal run used by external run and iter
+ * Construct and run the given query, used by public run and iter methods
+ * @param {rethinkdb.query.BaseQuery} expr The expression to run
+ * @param {boolean} iterate Iterate callback over results
+ * @param {function(...)=} opt_callback Callback to which results are returned
+ * @private
  */
 rethinkdb.net.Connection.prototype.run_ = function(expr, iterate, opt_callback) {
     var query = expr.buildQuery();
@@ -40,7 +56,9 @@ rethinkdb.net.Connection.prototype.run_ = function(expr, iterate, opt_callback) 
 };
 
 /**
- * Internal helper that takes a google closure protobuf object and sends it to the server
+ * Serializes and sends protocol buffer object on this connection.
+ * @param {goog.proto2.Message} pbObj
+ * @private
  */
 rethinkdb.net.Connection.prototype.sendProtoBuf_ = function(pbObj) {
     var serializer = new goog.proto2.WireFormatSerializer();
@@ -59,7 +77,7 @@ rethinkdb.net.Connection.prototype.sendProtoBuf_ = function(pbObj) {
  * Evaluates the given ReQL expression on the server and invokes
  * callback with the result.
  * @param {rethinkdb.query.BaseQuery} expr The expression to run.
- * @param {function(ArrayBuffer)} opt_callback Function to invoke with response.
+ * @param {function(...)} opt_callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.run = function(expr, opt_callback) {
     this.run_(expr, false, opt_callback);
@@ -73,7 +91,7 @@ goog.exportProperty(rethinkdb.net.Connection.prototype, 'run',
  * over run is that results are lazily loaded as they are returned from the
  * server. Use anytime the result is expected to be very large.
  * @param {rethinkdb.query.BaseQuery} expr The expression to run.
- * @param {function(ArrayBuffer)} opt_callback Function to invoke with response.
+ * @param {function(...)} opt_callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.iter = function(expr, opt_callback) {
     this.run_(expr, true, opt_callback);
@@ -118,7 +136,8 @@ rethinkdb.errors.BadQuery = function(opt_msg) {
 goog.inherits(rethinkdb.errors.BadQuery, Error);
 
 /**
- * Called when data is received on underlying connection.
+ * Called by subclass when data is received on the underlying connection.
+ * @param {Uint8Array} data Received data from the connection
  * @private
  */
 rethinkdb.net.Connection.prototype.recv_ = function(data) {
@@ -196,10 +215,18 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
     } // else no matching request
 };
 
-rethinkdb.net.Connection.prototype.use = function(db_name) {
-	this.defaultDbName_ = db_name;
+/**
+ * Set the default db to use for this connection
+ * @param {string} dbName
+ */
+rethinkdb.net.Connection.prototype.use = function(dbName) {
+	this.defaultDbName_ = dbName;
 };
 
+/**
+ * Return the current default db for this connection
+ * @return {string}
+ */
 rethinkdb.net.Connection.prototype.getDefaultDb = function() {
     return this.defaultDbName_;
 };
