@@ -769,8 +769,10 @@ static uuid_t meta_get_uuid(T searcher, U predicate,
 
 void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const backtrace_t &bt) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     // This must be performed on the semilattice_metadata's home thread,
-    int metadata_home_thread = env->semilattice_metadata->get_publisher()->home_thread();
+    int original_thread = get_thread_id();
+    int metadata_home_thread = env->semilattice_metadata->home_thread();
     rassert(env->directory_read_manager->home_thread() == metadata_home_thread);
+    cross_thread_signal_t ct_interruptor(env->interruptor, metadata_home_thread);
     on_thread_t rethreader(metadata_home_thread);
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > directory_metadata =
         env->directory_read_manager->get_root_view();
@@ -847,7 +849,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
         /* Ensure table doesn't already exist. */
         ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
-        meta_check(status, METADATA_ERR_NONE, "CREATE_TABLE "+table_name, bt);
+        meta_check(status, METADATA_ERR_NONE, "CREATE_TABLE " + table_name, bt);
 
         /* Create namespace, insert into metadata, then join into real metadata. */
         uuid_t namespace_id = generate_uuid();
@@ -869,6 +871,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         //This read won't succeed, but we care whether it fails with an exception.
         rdb_protocol_t::read_t bad_read(rdb_protocol_t::point_read_t(store_key_t("")));
         try {
+            on_thread_t switcher(original_thread);
             for (;;) {
                 signal_timer_t start_poll(poll_ms);
                 wait_interruptible(&start_poll, env->interruptor);
@@ -889,11 +892,11 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         std::string table_name = m->drop_table().table_name();
 
         // Get namespace metadata.
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE "+db_name, bt);
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt);
         metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
             ns_metadata =
             ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
-        std::string op=strprintf("FIND_TABLE %s.%s",db_name.c_str(),table_name.c_str());
+        std::string op=strprintf("FIND_TABLE %s.%s", db_name.c_str(), table_name.c_str());
         meta_check(status, METADATA_SUCCESS, op, bt);
         rassert(!ns_metadata->second.is_deleted());
 
@@ -904,7 +907,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
     } break;
     case MetaQuery::LIST_TABLES: {
         std::string db_name = m->db_name();
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE "+db_name, bt);
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt);
         namespace_predicate_t pred(db_id);
         for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
                  ::iterator it = ns_searcher.find_next(ns_searcher.begin(), pred);
@@ -935,11 +938,11 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
     metadata_searcher_t<database_semilattice_metadata_t>
         db_searcher(&db_metadata.databases);
 
-    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DB "+db_name, bt);
+    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DB " + db_name, bt);
     namespace_predicate_t pred(table_name, db_id);
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
         ns_metadata_it = ns_searcher.find_uniq(pred, &status);
-    meta_check(status, METADATA_SUCCESS, "FIND_TABLE "+table_name, bt);
+    meta_check(status, METADATA_SUCCESS, "FIND_TABLE " + table_name, bt);
     rassert(!ns_metadata_it->second.is_deleted());
     if (ns_metadata_it->second.get().primary_key.in_conflict()) {
         throw runtime_exc_t(strprintf(
@@ -1099,7 +1102,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
                                      scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
             }
-            res->add_response("{"+res_list+"}");
+            res->add_response("{" + res_list + "}");
         } break;
         case WriteQuery::MUTATE: {
             view_t view = eval_view(w->mutable_mutate()->mutable_view(), env, backtrace.with("view"));
@@ -1130,7 +1133,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                 res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
                                      scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
             }
-            res->add_response("{"+res_list+"}");
+            res->add_response("{" + res_list + "}");
         } break;
         case WriteQuery::DELETE:
             {
@@ -2386,11 +2389,11 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(
     metadata_searcher_t<database_semilattice_metadata_t>
         db_searcher(&databases_metadata.databases);
 
-    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "EVAL_DB "+db_name, bt);
+    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "EVAL_DB " + db_name, bt);
     namespace_predicate_t pred(table_name, db_id);
-    uuid_t id = meta_get_uuid(ns_searcher, pred, "EVAL_TABLE "+table_name, bt);
+    uuid_t id = meta_get_uuid(ns_searcher, pred, "EVAL_TABLE " + table_name, bt);
 
-    return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo,id,env->interruptor);
+    return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, id, env->interruptor);
 }
 
 view_t eval_view(Term::Call *c, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
