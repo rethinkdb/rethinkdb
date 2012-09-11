@@ -2,6 +2,7 @@
 #define CLUSTERING_ADMINISTRATION_MAIN_JSON_IMPORT_HPP_
 
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 
