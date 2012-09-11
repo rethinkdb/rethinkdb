@@ -92,9 +92,9 @@ rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
       machine_id(_machine_id)
 {
     for (int thread = 0; thread < get_num_threads(); ++thread) {
-        cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(
-                                                    clone_ptr_t<semilattice_watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >
-                                                        (new semilattice_watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(
+        cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
+                                                    clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > >
+                                                        (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
                                                             metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _semilattice_metadata))), thread));
 
         cross_thread_database_watchables[thread].init(new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
@@ -124,7 +124,7 @@ struct r_get_region_visitor : public boost::static_visitor<region_t> {
 
     region_t operator()(const rget_read_t &rg) const {
         // TODO: Sam bets this causes problems
-        return region_t(rg.key_range);
+        return rg.region;
     }
 
     region_t operator()(const distribution_read_t &dg) const {
@@ -153,10 +153,9 @@ struct r_shard_visitor : public boost::static_visitor<read_t> {
     }
 
     read_t operator()(const rget_read_t &rg) const {
-        rassert(region_is_superset(region_t(rg.key_range), region));
         // TODO: Reevaluate this code.  Should rget_query_t really have a region_t range?
         rget_read_t _rg(rg);
-        _rg.key_range = region.inner;
+        _rg.region = region_intersection(region, rg.region);
         return read_t(_rg);
     }
 
@@ -447,19 +446,12 @@ public:
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
 
-                    const stream_t *stream = boost::get<stream_t>(&(_rr->result));
-                    guarantee(stream);
-
-
-                    if (stream->size() == rg.maximum) {
-                        if (_rr->last_considered_key < rg_response.last_considered_key) {
-                            rg_response.last_considered_key = _rr->last_considered_key;
-                        }
+                    if (_rr-> truncated && _rr->last_considered_key < rg_response.last_considered_key) {
+                        rg_response.last_considered_key = _rr->last_considered_key;
                     }
                 }
 
                 for (size_t i = 0; i < count; ++i) {
-                    // TODO: we're ignoring the limit when recombining.
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     rassert(_rr);
 
@@ -701,7 +693,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
 
     read_response_t operator()(const rget_read_t &rget) {
         env.scopes = rget.scopes;
-        return read_response_t(rdb_rget_slice(btree, rget.key_range, 1000, txn, superblock, &env, rget.transform, rget.terminal));
+        return read_response_t(rdb_rget_slice(btree, rget.region.inner, txn, superblock, &env, rget.transform, rget.terminal));
     }
 
     read_response_t operator()(const distribution_read_t &dg) {

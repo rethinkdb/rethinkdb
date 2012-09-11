@@ -79,8 +79,9 @@ std::list<clone_ptr_t<global_issue_t> > name_conflict_issue_tracker_t::get_issue
     std::list<clone_ptr_t<global_issue_t> > issues;
 
     name_map_t namespaces;
-    namespaces.file_away(metadata.dummy_namespaces.namespaces);
-    namespaces.file_away(metadata.memcached_namespaces.namespaces);
+    namespaces.file_away(metadata.rdb_namespaces->namespaces);
+    namespaces.file_away(metadata.dummy_namespaces->namespaces);
+    namespaces.file_away(metadata.memcached_namespaces->namespaces);
     namespaces.report("namespace", &issues);
 
     name_map_t datacenters;

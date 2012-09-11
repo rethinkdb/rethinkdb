@@ -110,7 +110,7 @@ private:
                                const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
                                traversal_progress_combiner_t *progress,
-                               const switch_read_token_t *internal_tokens,
+                               const scoped_array_t<switch_read_token_t> *internal_tokens,
                                signal_t *interruptor) THROWS_NOTHING;
 
     void single_shard_receive_backfill(int i, const typename protocol_t::backfill_chunk_t &chunk,
@@ -143,7 +143,7 @@ private:
 
     void do_get_a_metainfo(int i,
                            order_token_t order_token,
-                           const switch_read_token_t *internal_tokens,
+                           const scoped_array_t<switch_read_token_t> *internal_tokens,
                            signal_t *interruptor,
                            region_map_t<protocol_t, binary_blob_t> *updatee,
                            mutex_t *updatee_mutex) THROWS_NOTHING;
@@ -159,7 +159,7 @@ private:
     // Used by the constructors.
     void initialize(store_view_t<protocol_t> **_store_views) THROWS_NOTHING;
 
-    void switch_read_tokens(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, switch_read_token_t *internal_array_out);
+    void switch_read_tokens(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<switch_read_token_t> *internal_out);
 
     void switch_write_tokens(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_write_token_t> *internal_out);
 

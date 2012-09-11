@@ -45,11 +45,11 @@ class per_thread_ack_info_t {
 public:
     per_thread_ack_info_t(const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table,
                           const semilattice_watchable_t<machines_semilattice_metadata_t> &machines_view,
-                          const semilattice_watchable_t<namespaces_semilattice_metadata_t<protocol_t> > &namespaces_view,
+                          const semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > &namespaces_view,
                           int dest_thread)
         : machine_id_translation_table_(machine_id_translation_table, dest_thread),
           machines_view_(clone_ptr_t<watchable_t<machines_semilattice_metadata_t> >(machines_view.clone()), dest_thread),
-          namespaces_view_(clone_ptr_t<watchable_t<namespaces_semilattice_metadata_t<protocol_t> > >(namespaces_view.clone()), dest_thread) { }
+          namespaces_view_(clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > >(namespaces_view.clone()), dest_thread) { }
 
     // TODO: Just get the value directly.
     std::map<peer_id_t, machine_id_t> get_machine_id_translation_table() {
@@ -60,14 +60,14 @@ public:
         return machines_view_.get_watchable()->get();
     }
 
-    namespaces_semilattice_metadata_t<protocol_t> get_namespaces_view() {
+    cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > get_namespaces_view() {
         return namespaces_view_.get_watchable()->get();
     }
 
 private:
     cross_thread_watchable_variable_t<std::map<peer_id_t, machine_id_t> > machine_id_translation_table_;
     cross_thread_watchable_variable_t<machines_semilattice_metadata_t> machines_view_;
-    cross_thread_watchable_variable_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces_view_;
+    cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view_;
     DISABLE_COPYING(per_thread_ack_info_t);
 };
 
@@ -76,7 +76,7 @@ class ack_info_t : public home_thread_mixin_t {
 public:
     ack_info_t(const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table,
                const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machines_view,
-               const boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > &namespaces_view)
+               const boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > &namespaces_view)
         : machine_id_translation_table_(machine_id_translation_table),
           machines_view_(machines_view),
           namespaces_view_(namespaces_view),
@@ -93,7 +93,7 @@ public:
 private:
     clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table_;
     semilattice_watchable_t<machines_semilattice_metadata_t> machines_view_;
-    semilattice_watchable_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces_view_;
+    semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view_;
 
     scoped_array_t<scoped_ptr_t<per_thread_ack_info_t<protocol_t> > > per_thread_info_;
 
@@ -151,7 +151,7 @@ public:
         std::multiset<datacenter_id_t> acks_by_dc;
         std::map<peer_id_t, machine_id_t> translation_table_snapshot = ack_info->get_machine_id_translation_table();
         machines_semilattice_metadata_t mmd = ack_info->get_machines_view();
-        namespaces_semilattice_metadata_t<protocol_t> nmd = ack_info->get_namespaces_view();
+        cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > nmd = ack_info->get_namespaces_view();
 
         for (std::set<peer_id_t>::const_iterator it = acks.begin(); it != acks.end(); it++) {
             std::map<peer_id_t, machine_id_t>::iterator tt_it = translation_table_snapshot.find(*it);
@@ -164,8 +164,8 @@ public:
             acks_by_dc.insert(dc);
         }
         typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
-            nmd.namespaces.find(namespace_id);
-        if (it == nmd.namespaces.end()) return false;
+            nmd->namespaces.find(namespace_id);
+        if (it == nmd->namespaces.end()) return false;
         if (it->second.is_deleted()) return false;
         if (it->second.get().ack_expectations.in_conflict()) return false;
         std::map<datacenter_id_t, int> expected_acks = it->second.get().ack_expectations.get();
@@ -263,7 +263,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(io_backender_t *_io_backender,
                                                mailbox_manager_t *_mbox_manager,
                                                const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
                                                branch_history_manager_t<protocol_t> *_branch_history_manager,
-                                               boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
+                                               boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _namespaces_view,
                                                boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                                                const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
                                                svs_by_namespace_t<protocol_t> *_svs_by_namespace,
@@ -308,11 +308,10 @@ void reactor_driver_t<protocol_t>::delete_reactor_data(
 
 template<class protocol_t>
 void reactor_driver_t<protocol_t>::on_change() {
-    typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t 
-            namespaces = namespaces_view->get().namespaces;
+    cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = namespaces_view->get();
 
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator 
-                it =  namespaces.begin(); it != namespaces.end(); it++) {
+                it =  namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
         if (it->second.is_deleted() && std_contains(reactor_data, it->first)) {
             /* on_change cannot block because it is called as part of
              * semilattice subscription, however the
