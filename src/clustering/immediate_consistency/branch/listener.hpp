@@ -21,8 +21,10 @@ template <class T> class semilattice_read_view_t;
 template <class T> class semilattice_readwrite_view_t;
 
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
-backfills from an existing mirror on a branch into the store, and as long as it
-exists the store will receive real-time updates.
+contacts a `broadcaster_t` to sign up for real-time updates, and also backfills
+from a `replier_t` to get a copy of all the existing data. As long as the
+`listener_t` exists and nothing goes wrong, it will keep in sync with the
+branch.
 
 There are four ways a `listener_t` can go wrong:
  *  You can interrupt the constructor. It will throw `interrupted_exc_t`. The
