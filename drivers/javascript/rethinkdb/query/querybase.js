@@ -72,3 +72,26 @@ function functionWrap_(fun) {
 
     return fun;
 }
+
+/**
+ * Internal utility to enforce API types
+ * @ignore
+ */
+function typeCheck_(value, types) {
+    if (!value) return;
+
+    var type_array = types;
+    if (!(goog.isArray(types))) {
+        type_array = [type_array];
+    }
+
+    if (!type_array.every(function(type) {
+        return (typeof(value) === type) || (value instanceof type);
+    })) {
+        if (goog.isArray(types)) {
+            throw TypeError("Function argument "+value+" must be one of the types "+types);
+        } else {
+            throw TypeError("Function argument "+value+" must be of the type "+types);
+        }
+    };
+}
