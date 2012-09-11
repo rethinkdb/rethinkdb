@@ -812,7 +812,6 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'without',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.pluck = function(attrs) {
-    attrs.forEach(function(attr){typeCheck_(attr, 'string')});
     return this.map(rethinkdb.query.fn('a', rethinkdb.query.R('$a').pickAttrs(attrs)));
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'pluck',
@@ -1078,6 +1077,28 @@ rethinkdb.query.Expression.prototype.forEach = function(fun) {
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'forEach',
                     rethinkdb.query.Expression.prototype.forEach);
+
+/**
+ * Hack for demo
+ */
+rethinkdb.query.Expression.prototype.eqJoin = function(attr, table) {
+    typeCheck_(attr, 'string');
+
+    if (!(table instanceof rethinkdb.query.Table)) {
+        table = rethinkdb.query.table(table);
+    }
+
+    var q = rethinkdb.query;
+    return this.concatMap(q.fn('leftRow',
+        q([table.get(q('$leftRow.'+attr))]).filter(q.fn('x',
+            q('$x')['ne'](null))
+        ).map(q.fn('rightRow',
+            q('$rightRow').extend(q('$leftRow')))
+        )
+    ));
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'eqJoin',
+                    rethinkdb.query.Expression.prototype.eqJoin);
 
 /**
  * Convert a stream to an array.

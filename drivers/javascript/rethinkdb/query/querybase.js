@@ -86,7 +86,7 @@ function typeCheck_(value, types) {
     }
 
     if (!type_array.some(function(type) {
-        return (typeof(value) === type) || (value instanceof type);
+        return (typeof type === 'string') ? (typeof value === type) : (value instanceof type);
     })) {
         if (goog.isArray(types)) {
             throw new TypeError("Function argument "+value+" must be one of the types "+types);
