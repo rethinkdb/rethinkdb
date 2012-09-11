@@ -9,6 +9,12 @@
 #include "clustering/immediate_consistency/query/master_metadata.hpp"
 #include "protocol_api.hpp"
 
+/* `master_access_t` is responsible for sending queries to `master_t`. It is
+instantiated by `cluster_namespace_interface_t`. The `master_access_t`
+internally contains a `multi_throttling_client_t` that works with the
+`multi_throttling_server_t` in the `master_t` to throttle read and write queries
+that are being sent to the master. */
+
 template <class protocol_t>
 class master_access_t : public home_thread_mixin_debug_only_t {
 public:

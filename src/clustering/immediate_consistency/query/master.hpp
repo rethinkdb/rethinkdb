@@ -10,6 +10,15 @@
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/master_metadata.hpp"
 
+/* Each shard has a `master_t` on its primary machine. The `master_t` is
+responsible for receiving queries from the machines that the clients connect to
+and forwarding those queries to the `broadcaster_t`. Specifically, the class
+`master_access_t`, which is instantiated by `cluster_namespace_interface_t`,
+sends the queries to the `master_t`.
+
+`master_t` internally contains a `multi_throttling_server_t`, which is
+responsible for throttling queries from the different `master_access_t`s. */
+
 template<class protocol_t>
 class master_t {
 public:
