@@ -233,7 +233,7 @@ rethinkdb.query.fn = function(var_args) {
         var body = arguments[arguments.length - 1];
         var args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
 
-        typeCheck_(body, rethinkdb.query.BaseQuery);
+        typeCheck_(body, rethinkdb.query.Query);
         args.forEach(function(arg) {return typeCheck_(arg, 'string')});
 
         return new rethinkdb.query.FunctionExpression(args, body);
@@ -969,8 +969,8 @@ rethinkdb.query.IfExpression.prototype.compile = function() {
  * @export
  */
 rethinkdb.query.ifThenElse = function(test, trueBranch, falseBranch) {
-    typeCheck_(trueBranch, rethinkdb.query.BaseQuery);
-    typeCheck_(falseBranch, rethinkdb.query.BaseQuery);
+    typeCheck_(trueBranch, rethinkdb.query.Query);
+    typeCheck_(falseBranch, rethinkdb.query.Query);
     test = wrapIf_(test);
     return new rethinkdb.query.IfExpression(test, trueBranch, falseBranch);
 };
@@ -1024,21 +1024,21 @@ rethinkdb.query.let = function(var_args) {
     })) {
         throw new TypeError("Let bindings must be string, ReQL expression tuples");
     };
-    typeCheck_(body, rethinkdb.query.BaseQuery);
+    typeCheck_(body, rethinkdb.query.Query);
 
     return new rethinkdb.query.LetExpression(bindings, body);
 };
 
 /**
  * @constructor
- * @extends {rethinkdb.query.BaseQuery}
+ * @extends {rethinkdb.query.Query}
  * @ignore
  */
 rethinkdb.query.ForEachQuery = function(leftExpr, fun) {
     this.leftExpr_ = leftExpr;
     this.fun_ = fun;
 };
-goog.inherits(rethinkdb.query.ForEachQuery, rethinkdb.query.BaseQuery);
+goog.inherits(rethinkdb.query.ForEachQuery, rethinkdb.query.Query);
 
 /** @override */
 rethinkdb.query.ForEachQuery.prototype.buildQuery = function() {
@@ -1069,7 +1069,7 @@ rethinkdb.query.ForEachQuery.prototype.buildQuery = function() {
  * @param {rethinkdb.query.FunctionExpression|rethinkdb.query.Expression} fun A ReQL function
  *  expression binding a row or a ReQL expression relying on the implicit variable to evaluate
  *  for each row of this sequence.
- * @return {rethinkdb.query.BaseQuery}
+ * @return {rethinkdb.query.Query}
  */
 rethinkdb.query.Expression.prototype.forEach = function(fun) {
     fun = functionWrap_(fun);

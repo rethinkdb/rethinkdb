@@ -37,7 +37,7 @@ rethinkdb.net.Connection.prototype.close = goog.abstractMethod;
 
 /**
  * Construct and run the given query, used by public run and iter methods
- * @param {rethinkdb.query.BaseQuery} expr The expression to run
+ * @param {rethinkdb.query.Query} expr The expression to run
  * @param {boolean} iterate Iterate callback over results
  * @param {function(...)=} opt_callback Callback to which results are returned
  * @private
@@ -78,11 +78,11 @@ rethinkdb.net.Connection.prototype.sendProtoBuf_ = function(pbObj) {
 /**
  * Evaluates the given ReQL expression on the server and invokes
  * callback with the result.
- * @param {rethinkdb.query.BaseQuery} expr The expression to run.
+ * @param {rethinkdb.query.Query} expr The expression to run.
  * @param {function(...)} opt_callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.run = function(expr, opt_callback) {
-    typeCheck_(expr, rethinkdb.query.BaseQuery);
+    typeCheck_(expr, rethinkdb.query.Query);
     typeCheck_(opt_callback, 'function');
     this.run_(expr, false, opt_callback);
 };
@@ -94,11 +94,11 @@ goog.exportProperty(rethinkdb.net.Connection.prototype, 'run',
  * callback with each element of the result. The main advantage of using iter
  * over run is that results are lazily loaded as they are returned from the
  * server. Use anytime the result is expected to be very large.
- * @param {rethinkdb.query.BaseQuery} expr The expression to run.
+ * @param {rethinkdb.query.Query} expr The expression to run.
  * @param {function(...)} opt_callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.iter = function(expr, opt_callback) {
-    typeCheck_(expr, rethinkdb.query.BaseQuery);
+    typeCheck_(expr, rethinkdb.query.Query);
     typeCheck_(opt_callback, 'function');
     this.run_(expr, true, opt_callback);
 };
