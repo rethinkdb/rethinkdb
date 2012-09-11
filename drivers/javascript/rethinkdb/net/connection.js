@@ -97,7 +97,7 @@ goog.exportProperty(rethinkdb.net.Connection.prototype, 'run',
  * @param {function(...)} opt_callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.iter = function(expr, opt_callback) {
-    typeCheck_(expr, rethinkdb.query.Expression);
+    typeCheck_(expr, rethinkdb.query.BaseQuery);
     typeCheck_(opt_callback, 'function');
     this.run_(expr, true, opt_callback);
 };

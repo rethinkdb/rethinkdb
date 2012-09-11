@@ -233,6 +233,9 @@ rethinkdb.query.fn = function(var_args) {
         var body = arguments[arguments.length - 1];
         var args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
 
+        typeCheck_(body, rethinkdb.query.BaseQuery);
+        args.forEach(function(arg) {return typeCheck_(arg, 'string')});
+
         return new rethinkdb.query.FunctionExpression(args, body);
     }
 };
@@ -458,6 +461,7 @@ rethinkdb.query.Expression.prototype.between =
         function(startKey, endKey, opt_keyName) {
     startKey = wrapIf_(startKey);
     endKey = wrapIf_(endKey);
+    typeCheck_(opt_keyName, 'string');
     var keyName = opt_keyName ? opt_keyName : 'id';
 
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.RANGE, [this],
@@ -507,6 +511,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'slice',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.limit = function(limit) {
+    typeCheck_(limit, 'number');
     return new rethinkdb.query.SliceExpression(this, 0, limit);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'limit',
@@ -518,6 +523,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'limit',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.skip = function(hop) {
+    typeCheck_(hop, 'number');
     return new rethinkdb.query.SliceExpression(this, hop);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'skip',
@@ -529,6 +535,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'skip',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.nth = function(index) {
+    typeCheck_(index, 'number');
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.NTH,
             [this, new rethinkdb.query.NumberExpression(index)]);
 };
@@ -556,7 +563,7 @@ rethinkdb.query.Expression.prototype.filter = function(selector) {
         predicateFunction = selector;
     } else if (selector instanceof rethinkdb.query.Expression) {
         predicateFunction = new rethinkdb.query.FunctionExpression([''], selector);
-    } else {
+    } else if (typeof selector === 'object') {
         var ands = [];
         var q = rethinkdb.query;
         for (var key in selector) {
@@ -566,6 +573,8 @@ rethinkdb.query.Expression.prototype.filter = function(selector) {
         }
         predicateFunction = new rethinkdb.query.FunctionExpression([''],
             new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ALL, ands));
+    } else {
+        throw new TypeError("Filter selector of type "+ typeof(selector));
     }
 
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.FILTER, [this],
@@ -618,6 +627,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'map',
  */
 rethinkdb.query.Expression.prototype.orderby = function(var_args) {
     var orderings = Array.prototype.slice.call(arguments, 0);
+    orderings.forEach(function(order) {typeCheck_(order, 'string')});
 
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ORDERBY, [this],
         function(builtin) {
@@ -647,6 +657,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'orderby',
  * @returns {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.distinct = function(opt_attr) {
+    typeCheck_(opt_attr, 'string');
     var leftExpr = opt_attr ? this.map(rethinkdb.query.R(opt_attr)) : this;
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.DISTINCT, [leftExpr]);
 };
@@ -728,6 +739,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'groupedMapReduce',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.hasAttr = function(attr) {
+    typeCheck_(attr, 'string');
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.HASATTR, [this],
         function(builtin) {
             builtin.setAttr(attr);
@@ -742,6 +754,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'hasAttr',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.getAttr = function(attr) {
+    typeCheck_(attr, 'string');
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.GETATTR, [this],
         function(builtin) {
             builtin.setAttr(attr);
@@ -759,6 +772,7 @@ rethinkdb.query.Expression.prototype.pickAttrs = function(attrs) {
     if (!goog.isArray(attrs)) {
         attrs = [attrs];
     }
+    attrs.forEach(function(attr){typeCheck_(attr, 'string')});
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.PICKATTRS, [this],
         function(builtin) {
             for (var key in attrs) {
@@ -780,6 +794,7 @@ rethinkdb.query.Expression.prototype.without = function(attrs) {
     if (!goog.isArray(attrs)) {
         attrs = [attrs];
     }
+    attrs.forEach(function(attr){typeCheck_(attr, 'string')});
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.WITHOUT, [this],
         function(builtin) {
             for (var key in attrs) {
@@ -797,6 +812,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'without',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.pluck = function(attrs) {
+    attrs.forEach(function(attr){typeCheck_(attr, 'string')});
     return this.map(rethinkdb.query.fn('a', rethinkdb.query.R('$a').pickAttrs(attrs)));
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'pluck',
@@ -858,6 +874,7 @@ goog.inherits(rethinkdb.query.ImplicitAttrExpression, rethinkdb.query.BuiltinExp
  * @export
  */
 rethinkdb.query.R = function(varString) {
+    typeCheck_(varString, 'string');
     var attrChain = varString.split('.');
 
     var curName = attrChain.shift();
@@ -953,6 +970,8 @@ rethinkdb.query.IfExpression.prototype.compile = function() {
  * @export
  */
 rethinkdb.query.ifThenElse = function(test, trueBranch, falseBranch) {
+    typeCheck_(trueBranch, rethinkdb.query.BaseQuery);
+    typeCheck_(falseBranch, rethinkdb.query.BaseQuery);
     test = wrapIf_(test);
     return new rethinkdb.query.IfExpression(test, trueBranch, falseBranch);
 };
@@ -1000,6 +1019,14 @@ rethinkdb.query.LetExpression.prototype.compile = function() {
 rethinkdb.query.let = function(var_args) {
     var bindings = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
     var body = arguments[arguments.length - 1];
+
+    if (!bindings.every(function(tuple) {
+        return (typeof tuple[0] === 'string') && (tuple[1] instanceof rethinkdb.query.Expression);
+    })) {
+        throw new TypeError("Let bindings must be string, ReQL expression tuples");
+    };
+    typeCheck_(body, rethinkdb.query.BaseQuery);
+
     return new rethinkdb.query.LetExpression(bindings, body);
 };
 

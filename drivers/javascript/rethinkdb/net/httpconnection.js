@@ -25,6 +25,9 @@ goog.require('rethinkdb.net.Connection');
  * @export
  */
 rethinkdb.net.HttpConnection = function(host_or_list, onConnect, onFailure) {
+    typeCheck_(onConnect, 'function');
+    typeCheck_(onFailure, 'function');
+
     /**
      * @const
      * @type {number}
