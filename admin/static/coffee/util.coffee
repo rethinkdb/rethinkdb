@@ -54,7 +54,7 @@ Handlebars.registerHelper 'links_to_machines_inline', (machines) ->
 Handlebars.registerHelper 'links_to_namespaces', (namespaces) ->
     out = ""
     for i in [0...namespaces.length]
-        out += '<p><a href="#namespaces/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a></p>'
+        out += '<p><a href="#tables/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a></p>'
     return out
 
 #Returns a list of links to namespaces on one line
@@ -62,9 +62,9 @@ Handlebars.registerHelper 'links_to_namespaces_inline', (namespaces, tab) ->
     out = ""
     for i in [0...namespaces.length]
         if tab?
-            out += '<a href="#namespaces/'+namespaces[i].id+'/'+tab+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
+            out += '<a href="#tables/'+namespaces[i].id+'/'+tab+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
         else
-            out += '<a href="#namespaces/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
+            out += '<a href="#tables/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
         out += ", " if i isnt namespaces.length-1
     return new Handlebars.SafeString(out)
 
@@ -80,7 +80,7 @@ Handlebars.registerHelper 'links_to_datacenters_inline', (datacenters) ->
 Handlebars.registerHelper 'links_to_masters_and_namespaces', (machines) ->
     out = ""
     for i in [0...machines.length]
-        out += '<p><a href="#namespaces/'+machines[i].namespace_id+'" class="links_to_other_view">'+machines[i].namespace_name+'</a> (<a href="#servers/'+machines[i].machine_id+'" class="links_to_other_view">'+machines[i].machine_name+'</a>)</p>'
+        out += '<p><a href="#tables/'+machines[i].namespace_id+'" class="links_to_other_view">'+machines[i].namespace_name+'</a> (<a href="#servers/'+machines[i].machine_id+'" class="links_to_other_view">'+machines[i].machine_name+'</a>)</p>'
     return out
 
 
@@ -89,7 +89,7 @@ Handlebars.registerHelper 'links_to_masters_and_namespaces', (machines) ->
 Handlebars.registerHelper 'links_to_replicas_and_namespaces', (machines) ->
     out = ""
     for i in [0...machines.length]
-        out += '<p><a href="#namespaces/'+machines[i].get('namespace_uuid')+'" class="links_to_other_view">'+machines[i].get('namespace_name')+'</a> (<a href="#servers/'+machines[i].get('machine_id')+'" class="links_to_other_view">'+machines[i].get('machine_name')+'</a>)</p>'
+        out += '<p><a href="#tables/'+machines[i].get('namespace_uuid')+'" class="links_to_other_view">'+machines[i].get('namespace_name')+'</a> (<a href="#servers/'+machines[i].get('machine_id')+'" class="links_to_other_view">'+machines[i].get('machine_name')+'</a>)</p>'
         out += '<ul><li>Shard: '+machines[i].get('shard')+'</li>'
         out += '<li>Blueprint: '+machines[i].get('blueprint')+'</li>'
         out += '<li>Directory: '+machines[i].get('directory')+'</li></ul>'

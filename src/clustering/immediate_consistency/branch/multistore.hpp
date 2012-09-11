@@ -47,32 +47,28 @@ public:
     // deletes the store_subview_t objects.
     ~multistore_ptr_t();
 
-    int num_stores() const { return store_views_.size(); }
-
-    void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token_out);
-    void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token_out);
+    void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token_out);
+    void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token_out);
 
     void do_get_metainfo(order_token_t order_token,
-                         scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                          signal_t *interruptor,
                          region_map_t<protocol_t, binary_blob_t> *out) THROWS_ONLY(interrupted_exc_t);
 
-    typename protocol_t::region_t get_a_region(int i) const;
-
     void set_metainfo(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
                       order_token_t order_token,
-                      scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                      object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     bool send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                        send_backfill_callback_t<protocol_t> *send_backfill_cb,
                        traversal_progress_combiner_t *progress,
-                       scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
+                       object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                        signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(const typename protocol_t::backfill_chunk_t &chunk,
-                          scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                          object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                           signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -81,7 +77,7 @@ public:
               const typename protocol_t::read_t &read,
               typename protocol_t::read_response_t *response,
               order_token_t order_token,
-              scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
+              object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
               signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -91,38 +87,44 @@ public:
                typename protocol_t::write_response_t *response,
                transition_timestamp_t timestamp,
                order_token_t order_token,
-               scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+               object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(const typename protocol_t::region_t &subregion,
                     const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
+    store_view_t<protocol_t> *get_store(int i) const;
+
+    int num_stores() const { return store_views_.size(); }
+
 private:
+    struct switch_read_token_t;
+    typename protocol_t::region_t get_a_region(int i) const;
+
     // Used by send_multistore_backfill.
     void single_shard_backfill(int i,
                                multistore_send_backfill_should_backfill_t<protocol_t> *helper,
                                const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
                                traversal_progress_combiner_t *progress,
-                               const scoped_array_t<fifo_enforcer_read_token_t> &internal_tokens,
+                               const scoped_array_t<switch_read_token_t> *internal_tokens,
                                signal_t *interruptor) THROWS_NOTHING;
 
     void single_shard_receive_backfill(int i, const typename protocol_t::backfill_chunk_t &chunk,
                                        const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
                                        signal_t *interruptor) THROWS_NOTHING;
 
-    void single_shard_read(int i,
-                           DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
-                           const typename protocol_t::read_t &read,
+    void single_shard_read(DEBUG_ONLY(const metainfo_checker_t<protocol_t> &metainfo_checker,)
+                           const typename protocol_t::read_t *read,
                            order_token_t order_token,
-                           const scoped_array_t<fifo_enforcer_read_token_t> &internal_tokens,
-                           std::vector<typename protocol_t::read_response_t> *responses,
+                           const typename multistore_ptr_t<protocol_t>::switch_read_token_t *read_info,
+                           typename protocol_t::read_response_t *response,
+                           size_t *reads_left,
+                           cond_t *done,
                            signal_t *interruptor) THROWS_NOTHING;
-
-
 
     void single_shard_write(int i,
                             const new_and_metainfo_checker_t<protocol_t> &metainfo,
@@ -141,7 +143,7 @@ private:
 
     void do_get_a_metainfo(int i,
                            order_token_t order_token,
-                           const scoped_array_t<fifo_enforcer_read_token_t> &internal_tokens,
+                           const scoped_array_t<switch_read_token_t> *internal_tokens,
                            signal_t *interruptor,
                            region_map_t<protocol_t, binary_blob_t> *updatee,
                            mutex_t *updatee_mutex) THROWS_NOTHING;
@@ -157,13 +159,13 @@ private:
     // Used by the constructors.
     void initialize(store_view_t<protocol_t> **_store_views) THROWS_NOTHING;
 
-    void switch_read_tokens(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_read_token_t> *internal_out);
+    void switch_read_tokens(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<switch_read_token_t> *internal_out);
 
-    void switch_write_tokens(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_write_token_t> *internal_out);
+    void switch_write_tokens(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token, signal_t *interruptor, order_token_t *order_token_ref, scoped_array_t<fifo_enforcer_write_token_t> *internal_out);
 
-    void switch_inner_read_token(int i, fifo_enforcer_read_token_t internal_token, signal_t *interruptor, scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *store_token);
+    void switch_inner_read_token(int i, fifo_enforcer_read_token_t internal_token, signal_t *interruptor, object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *store_token);
 
-    void switch_inner_write_token(int i, fifo_enforcer_write_token_t internal_token, signal_t *interruptor, scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *store_token);
+    void switch_inner_write_token(int i, fifo_enforcer_write_token_t internal_token, signal_t *interruptor, object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *store_token);
 
     // We _own_ these pointers and must delete them at destruction.
     const scoped_array_t<store_view_t<protocol_t> *> store_views_;

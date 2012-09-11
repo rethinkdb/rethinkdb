@@ -16,7 +16,7 @@ void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t
 /* Listens for TCP connections on the given port and serves memcache queries over those
 connections until the destructor is called. */
 
-struct memcache_listener_t : public home_thread_mixin_t {
+struct memcache_listener_t : public home_thread_mixin_debug_only_t {
     memcache_listener_t(int _port,
                         namespace_repo_t<memcached_protocol_t> *_ns_repo,
                         const namespace_id_t& _ns_id,

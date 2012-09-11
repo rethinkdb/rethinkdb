@@ -58,8 +58,11 @@ void master_t<protocol_t>::client_t::perform_request(
             explicit write_callback_t(ack_checker_t *ac) : ack_checker(ac) { }
             void on_response(peer_id_t peer, const typename protocol_t::write_response_t &response) {
                 if (!response_promise.get_ready_signal()->is_pulsed()) {
+                    ASSERT_NO_CORO_WAITING;
                     ack_set.insert(peer);
-                    if (ack_checker->is_acceptable_ack_set(ack_set)) {
+                    // TODO: Having this centralized ack checker is horrible?  But maybe it's ok.
+                    bool is_acceptable = ack_checker->is_acceptable_ack_set(ack_set);
+                    if (is_acceptable) {
                         response_promise.pulse(response);
                     }
                 }

@@ -72,6 +72,10 @@ public:
         printf("%*.*s", size(), size(), contents());
     }
 
+    void debug_print() const {
+        debugf("%*.*s\n", size(), size(), contents());
+    }
+
     static store_key_t min() {
         return store_key_t(0, NULL);
     }

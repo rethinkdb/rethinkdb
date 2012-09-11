@@ -31,7 +31,7 @@ public:
 
     template<class obj_t>
     static const obj_t &get(const binary_blob_t &blob) {
-        rassert(blob.size() == sizeof(obj_t));
+        rassert(blob.size() == sizeof(obj_t), "blob.size() = %zu, sizeof(obj_t) = %zu", blob.size(), sizeof(obj_t));
         return *reinterpret_cast<const obj_t *>(blob.data());
     }
 

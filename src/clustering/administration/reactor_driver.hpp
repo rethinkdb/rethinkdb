@@ -62,6 +62,8 @@ protected:
     virtual ~svs_by_namespace_t() { }
 };
 
+template <class> class ack_info_t;
+
 template <class protocol_t>
 class reactor_driver_t {
 public:
@@ -103,6 +105,8 @@ private:
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;
     typename protocol_t::context_t *ctx;
     svs_by_namespace_t<protocol_t> *const svs_by_namespace;
+
+    scoped_ptr_t<ack_info_t<protocol_t> > ack_info;
 
     watchable_variable_t<namespaces_directory_metadata_t<protocol_t> > watchable_variable;
     mutex_assertion_t watchable_variable_lock;

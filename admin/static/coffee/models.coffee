@@ -671,6 +671,14 @@ module 'DataUtils', ->
                         value: activity
                         machine_id: machine.get('id')
                         namespace_id: namespace_id
+            bcards = machine.get('rdb_namespaces')['reactor_bcards']
+            for namespace_id, activity_map of bcards
+                activity_map = activity_map['activity_map']
+                for activity_id, activity of activity_map
+                    activities[activity_id] =
+                        value: activity
+                        machine_id: machine.get('id')
+                        namespace_id: namespace_id
         return activities
 
     @get_directory_activities_by_namespaces = ->

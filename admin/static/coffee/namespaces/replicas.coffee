@@ -197,6 +197,10 @@ module 'NamespaceView', ->
                 msg_error.push('The number of acks must be an integer.')
                 nreplicas_input = formdata.num_replicas
                 nacks_input = formdata.num_acks
+            if formdata.num_acks is "0"
+                msg_error.push('The number of acks must be greater than 0')
+                nreplicas_input = formdata.num_replicas
+                nacks_input = formdata.num_acks
             if msg_error.length isnt 0
                 @render_inner msg_error, nreplicas_input, nacks_input
                 return

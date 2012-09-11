@@ -48,6 +48,13 @@ class ReprPrettyPrinter(PrettyPrinter):
         assert "\n" not in string
         return string
 
+    def meta_query(self, mq, backtrace_steps):
+        assert isinstance(mq, query.MetaQuery)
+        assert isinstance(backtrace_steps, list)
+        string = mq._inner.pretty_print(self)
+        assert "\n" not in string
+        return string
+
     def simple_string(self, string, backtrace_steps):
         assert "\n" not in string
         return string
@@ -57,32 +64,87 @@ class ReprPrettyPrinter(PrettyPrinter):
 #####################################
 
 class MetaQueryInner(object):
-    def _write_table_op_query(self, parent):
+    def _write_meta_query(self, parent):
+        raise NotImplementedError()
+    def pretty_print(self, printer):
         raise NotImplementedError()
 
 class DBCreate(MetaQueryInner):
-    def __init__(self, db_name, primary_datacenter):
-        raise NotImplementedError()
+    def __init__(self, db_name):
+        assert isinstance(db_name, str)
+        self.db_name = db_name
+    def _write_meta_query(self, parent):
+        parent.type = p.MetaQuery.CREATE_DB
+        parent.db_name = self.db_name
+    def pretty_print(self, printer):
+        return "db_create(%r)" % self.db_name
 
 class DBDrop(MetaQueryInner):
     def __init__(self, db_name):
-        raise NotImplementedError()
+        assert isinstance(db_name, str)
+        self.db_name = db_name
+    def _write_meta_query(self, parent):
+        parent.type = p.MetaQuery.DROP_DB
+        parent.db_name = self.db_name
+    def pretty_print(self, printer):
+        return "db_drop(%r)" % self.db_name
 
 class DBList(MetaQueryInner):
-    def __init__(self):
-        raise NotImplementedError()
+    def _write_meta_query(self, parent):
+        parent.type = p.MetaQuery.LIST_DBS
+    def pretty_print(self, printer):
+        return "db_list()"
 
 class TableCreate(MetaQueryInner):
-    def __init__(table_name, db_expr, primary_key='id'):
-        raise NotImplementedError()
+    def __init__(self, table_name, db_expr, primary_datacenter, primary_key='id'):
+        assert isinstance(table_name, str)
+        assert isinstance(db_expr, query.Database)
+        assert isinstance(primary_datacenter, str)
+        assert isinstance(primary_key, str)
+        self.table_name = table_name
+        self.db_expr = db_expr
+        self.primary_datacenter = primary_datacenter
+        self.primary_key = primary_key
+    def _write_meta_query(self, parent):
+        parent.type = p.MetaQuery.CREATE_TABLE
+        parent.create_table.datacenter = self.primary_datacenter
+        parent.create_table.table_ref.db_name = self.db_expr.db_name
+        parent.create_table.table_ref.table_name = self.table_name
+        parent.create_table.primary_key = self.primary_key
+    def pretty_print(self, printer):
+        return "db(%s).table_create(%r, primary_datacenter=%s, primary_key=%r)" % (
+            printer.simple_string(repr(self.db_expr.db_name), ["table_ref", "db_name"]),
+            self.table_name,
+            printer.simple_string(repr(self.primary_datacenter), ["datacenter"]),
+            self.primary_key)
 
 class TableDrop(MetaQueryInner):
-    def __init__(table_name, db_expr):
-        raise NotImplementedError()
+    def __init__(self, table_name, db_expr):
+        assert isinstance(table_name, str)
+        assert isinstance(db_expr, query.Database)
+        self.table_name = table_name
+        self.db_expr = db_expr
+    def _write_meta_query(self, parent):
+        parent.type = p.MetaQuery.DROP_TABLE
+        parent.drop_table.db_name = self.db_expr.db_name
+        parent.drop_table.table_name = self.table_name
+    def pretty_print(self, printer):
+        return "db(%s).table_drop(%s)" % (
+            printer.simple_string(repr(self.db_expr.db_name), ["db_name"]),
+            printer.simple_string(repr(self.table_name), ["table_name"])
+            )
 
 class TableList(MetaQueryInner):
-    def __init__(db_expr):
-        raise NotImplementedError()
+    def __init__(self, db_expr):
+        assert isinstance(db_expr, query.Database)
+        self.db_expr = db_expr
+    def _write_meta_query(self, parent):
+        parent.type = p.MetaQuery.LIST_TABLES
+        parent.db_name = self.db_expr.db_name
+    def pretty_print(self, printer):
+        return "db(%s).table_list()" % (
+            printer.simple_string(repr(self.db_expr.db_name), ["db_name"])
+            )
 
 #################
 # WRITE QUERIES #
@@ -393,7 +455,7 @@ class All(ExpressionInner):
     def _write_ast(self, parent):
         self._write_call(parent, p.Builtin.ALL, *self.args)
     def pretty_print(self, printer):
-        return ("(" + " | ".join(printer.expr_wrapped(a, ["arg:%d" % i]) for i, a in enumerate(self.args)) + ")",
+        return ("(" + " & ".join(printer.expr_wrapped(a, ["arg:%d" % i]) for i, a in enumerate(self.args)) + ")",
             PRETTY_PRINT_EXPR_WRAPPED)
 
 class Has(ExpressionInner):
@@ -434,7 +496,7 @@ class ImplicitAttr(ExpressionInner):
         self._write_call(parent, p.Builtin.IMPLICIT_GETATTR)
         parent.call.builtin.attr = self.attr
     def pretty_print(self, printer):
-        return ("R(%r)" % self.attr, PRETTY_PRINT_EXPR_WRAPPED)
+        return ("R(%s)" % printer.simple_string(repr(self.attr), ["attr"]), PRETTY_PRINT_EXPR_WRAPPED)
 
 class ToStream(ExpressionInner):
     def __init__(self, array):

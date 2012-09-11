@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 require 'pp'
-require 'rethinkdb_shortcuts.rb'
+require 'rethinkdb/rethinkdb_shortcuts.rb'
 require 'optparse'
 include RethinkDB::Shortcuts_Mixin
 

@@ -1,7 +1,10 @@
 module RethinkDB
-  # A query that doesn't modify any data.
-  class Expression < RQL_Query
-    # For each row in the invoking query, execute 1 or more write queries (to
+  # A "Sequence" is either a JSON array or a stream.  The functions in
+  # this module may be invoked as instance methods of both JSON_Expression and
+  # Stream_Expression, but you will get a runtime error if you invoke
+  # them on a JSON_Expression that turns out not to be an array.
+  module Sequence
+    # For each element of the sequence, execute 1 or more write queries (to
     # execute more than 1, yield a list of write queries in the block).  For
     # example:
     #   table.foreach{|row| [table2.get(row[:id]).delete, table3.insert(row)]}
@@ -19,19 +22,19 @@ module RethinkDB
       }
     end
 
-    # Filter a stream, based on a predicate.  The provided block should take a
-    # single variable, a row in the stream, and return either <b>+true+</b> if
-    # it should be in the resulting stream of <b>+false+</b> otherwise.  If you
+    # Filter the sequence based on a predicate.  The provided block should take a
+    # single variable, an element of the sequence, and return either <b>+true+</b> if
+    # it should be in the resulting sequence or <b>+false+</b> otherwise.  If you
     # have a table <b>+table+</b>, the following are all equivalent:
     #   table.filter {|row| row[:id] < 5}
     #   table.filter {r[:id] < 5} # uses implicit variable
-    # Alternately, you may provide an object as an argument, in which case the
-    # <b>+filter+</b> will match JSON objects match the provided object's
+    # Alternatively, you may provide an object as an argument, in which case the
+    # <b>+filter+</b> will match JSON objects which match the provided object's
     # attributes.  For example, if we have a table <b>+people+</b>, the
     # following are equivalent:
     #   people.filter{|row| row[:name].eq('Bob') & row[:age].eq(50)}
     #   people.filter({:name => 'Bob', :age => 50})
-    # Note that the values of attributes may themselves be rdb queries.  For
+    # Note that the values of attributes may themselves be queries.  For
     # instance, here is a query that matches anyone whose age is double their height:
     #   people.filter({:age => r.mul(:height, 2)})
     def filter(obj=nil)
@@ -47,19 +50,19 @@ module RethinkDB
       end
     end
 
-    # Map a function over a stream, then concatenate the results together.  The
-    # provided block should take a single variable, a row in the stream, and
-    # return a list of rows to include in the resulting stream.  If you have a
+    # Map a function over the sequence, then concatenate the results together.  The
+    # provided block should take a single variable, an element in the sequence, and
+    # return a list of elements to include in the resulting sequence.  If you have a
     # table <b>+table+</b>, the following are all equivalent:
     #   table.concatmap {|row| [row[:id], row[:id]*2]}
     #   table.concatmap {[r[:id], r[:id]*2]} # uses implicit variable
     #   table.map{|row| [row[:id], row[:id]*2]}.reduce([]){|a,b| r.union(a,b)}
     def concatmap
       S.with_var { |vname,v|
-        Stream_Expression.new [:call, [:concatmap, vname, S.r(yield(v))], [@body]]}
+        self.class.new [:call, [:concatmap, vname, S.r(yield(v))], [@body]]}
     end
 
-    # Gets all rows of <b>+stream+</b> with keys between <b>+start_key+</b> and
+    # Gets all rows with keys between <b>+start_key+</b> and
     # <b>+end_key+</b> (inclusive).  You may also optionally specify the name of
     # the attribute to use as your key (<b>+keyname+</b>), but note that your
     # table must be indexed by that attribute.  Either <b>+start_key+</b> or
@@ -74,26 +77,25 @@ module RethinkDB
     #   table.filter{|row| row[:index] <= 7}
     def between(start_key, end_key, keyname=:id)
       opts = {:attrname => keyname}
-      opts[:lowerbound] = (S.r start_key).sexp if start_key != nil
-      opts[:upperbound] = (S.r end_key).sexp   if end_key   != nil
+      opts[:lowerbound] = (S.r start_key).sexp if not start_key.nil?
+      opts[:upperbound] = (S.r end_key).sexp   if not end_key.nil?
       self.class.new [:call, [:range, opts], [@body]]
     end
 
-    # Map a function over a stream.  The provided block should take a single
-    # variable, a row in the stream, and return a row in the resulting stream.
-    # If you have a table <b>+table+</b>, the following are all equivalent:
+    # Map a function over a sequence.  The provided block should take
+    # a single variable, an element of the sequence, and return an
+    # element of the resulting sequence.  If you have a table
+    # <b>+table+</b>, the following are all equivalent:
     #   table.map {|row| row[:id]}
     #   table.map {r[:id]} # uses implicit variable
     def map
       S.with_var{|vname,v|
-        Stream_Expression.new [:call, [:map, vname, S.r(yield(v))], [@body]]}
+        self.class.new [:call, [:map, vname, S.r(yield(v))], [@body]]}
     end
 
-    # Order <b>+stream+</b> by the attributes in <b>+orderings+</b>.  May also
-    # be called as if it were an instance method of RQL_Query, for convenience.
-    # For example, to sort first by name and then by social security number for
-    # the table <b>+people+</b>, both of these work:
-    #   r.orderby(people, :name, :ssn)
+    # Order a sequence of objects by one or more attributes.  For
+    # example, to sort first by name and then by social security
+    # number for the table <b>+people+</b>, you could do:
     #   people.orderby(:name, :ssn)
     # In place of an attribute name, you may provide a tuple of an attribute
     # name and a boolean specifying whether to sort in ascending order (which is
@@ -103,16 +105,22 @@ module RethinkDB
     # order.
     def orderby(*orderings)
       orderings.map!{|x| x.class == Array ? x : [x, true]}
-      Stream_Expression.new [:call, [:orderby, *orderings], [@body]]
+      self.class.new [:call, [:orderby, *orderings], [@body]]
     end
 
-    # Reduce a function over a stream.  Note that unlike Ruby's reduce, you
-    # cannot omit the base case.  The block you privide should take two
+    # Reduce a function over the sequence.  Note that unlike Ruby's reduce, you
+    # cannot omit the base case.  The block you provide should take two
     # arguments, just like Ruby's reduce.  For example, if we have a table
     # <b>+table+</b>, the following will add up the <b>+count+</b> attribute of
     # all the rows:
     #   table.map{|row| row[:count]}.reduce(0) {|a,b| a+b}
-    # TODO: actual tests (reduce unimplemented right now)
+    # <b>NOTE:</b> unlike Ruby's reduce, this reduce only works on
+    # sequences with elements of the same type as the base case.  For
+    # example, the following is incorrect:
+    #   table.reduce(0){|a,b| a + b[:count]}
+    # because the base case is a number but the sequence contains
+    # objects.  RQL reduce has this limitation so that it can be
+    # distributed across shards efficiently.
     def reduce(base)
       S.with_var { |aname,a|
         S.with_var { |bname,b|
@@ -121,7 +129,21 @@ module RethinkDB
                                [@body]]}}
     end
 
-    # TODO: doc
+    # This one is a little complicated.  The logic is as follows:
+    # 1. Use <b>+grouping+</b> sort the elements into groups.  <b>+grouping+</b> should be a callable that takes one argument, the current element of the sequence, and returns a JSON expression representing its group.
+    # 2. Map <b>+mapping+</b> over each of the groups.  Mapping should be a callable that behaves the same as the block passed to Sequence#map.
+    # 3. Reduce the groups with <b>+base+</b> and <b>+reduction+</b>.  Base should be the base term of the reduction, and <b>+reduction+</b> should be a callable that behaves the same as the block passed to Sequence#reduce.
+    #
+    # For example, the following are equivalent:
+    #   table.groupedmapreduce(lambda {|row| row[:id] % 4},
+    #                          lambda {|row| row[:id]},
+    #                          0,
+    #                          lambda {|a,b| a+b})
+    #   r[[0,1,2,3]].map {|n|
+    #     table.filter{|row| row[:id].eq(n)}.map{|row| row[:id]}.reduce(0){|a,b| a+b}
+    #   }
+    # Groupedmapreduce is more efficient than the second form because
+    # it only has to traverse <b>+table+</b> once.
     def groupedmapreduce(grouping, mapping, base, reduction)
       grouping_term = S.with_var{|vname,v| [vname, S.r(grouping.call(v))]}
       mapping_term = S.with_var{|vname,v| [vname, S.r(mapping.call(v))]}
@@ -134,10 +156,7 @@ module RethinkDB
                            [@body]]
     end
 
-    # Much like the [] operator in normal Ruby, [] can be used on either objects
-    # (e.g. rows, to get their attributes) or on sequences (e.g. arrays).  In
-    # the latter case, you may provide either a single number in order to get an
-    # element of the sequence, or a range in order to get a subsequence.
+    # Gets one or more elements from the sequence, much like [] in Ruby.
     # The following are all equivalent:
     #   r[[1,2,3]]
     #   r[[0,1,2,3]][1...4]
@@ -149,7 +168,7 @@ module RethinkDB
     # And:
     #   r[2]
     #   r[{:a => 2}][:a]
-    # NOTE: If you are slicing an array, you can provide any negative index you
+    # <b>NOTE:</b> If you are slicing an array, you can provide any negative index you
     # want, but if you're slicing a stream then for efficiency reasons the only
     # allowable negative index is '-1', and you must be using a closed range
     # ('..', not '...').
@@ -159,59 +178,56 @@ module RethinkDB
         JSON_Expression.new [:call, [:nth], [@body, RQL.expr(ind)]]
       when Range.hash then
         b = RQL.expr(ind.begin)
-        #PP.pp ind.exclude_end?
         if ind.exclude_end? then e = ind.end
                             else e = (ind.end == -1 ? nil : RQL.expr(ind.end+1))
         end
         self.class.new [:call, [:slice], [@body, RQL.expr(b), RQL.expr(e)]]
-      when Symbol.hash, String.hash then
-        JSON_Expression.new [:call, [:getattr, ind], [@body]]
-      else raise SyntaxError, "RQL_Query#[] can't handle #{ind}."
+      else raise SyntaxError, "RQL_Query#[] can't handle #{ind.inspect}."
       end
     end
 
-    # Return at most <b>+n+</b> elements from the invoking query, which must be
-    # a sequence.  The following are equivalent:
-    #   r[[1,2,3]].to_stream
-    #   r[[1,2,3,4]].to_stream.limit(3)
-    #   r[[1,2,3,4]].to_stream[0...3]
+    # Return at most <b>+n+</b> elements from the sequence.  The
+    # following are equivalent:
+    #   r[[1,2,3]]
+    #   r[[1,2,3,4]].limit(3)
+    #   r[[1,2,3,4]][0...3]
     def limit(n); self[0...n]; end
 
-    # Skip the first <b>+n+</b> elements of the invoking query, which must be a
-    # sequence.  The following are equivalent:
-    #   r[[2,3,4]].to_stream
-    #   r[[1,2,3,4]].to_stream.skip(1)
-    #   r[[1,2,3,4]].to_stream[1..-1]
+    # Skip the first <b>+n+</b> elements of the sequence.  The following are equivalent:
+    #   r[[2,3,4]]
+    #   r[[1,2,3,4]].skip(1)
+    #   r[[1,2,3,4]][1..-1]
     def skip(n); self[n..-1]; end
 
-    # Removes duplicate items from invoking sequence, which may be either a JSON
-    # array or a stream (similar to the *nix <b>+uniq+</b> function).  Does not
-    # work for sequences of compound data types like objects or arrays, but in
-    # the case of objects (e.g. rows of a table), you may provide an attribute
-    # and it will first maps the selector for that attribute over the object.
-    # If we have a table <b>+table+</b>, the following are equivalent:
-    #   table.distinct
+    # Removes duplicate values from the sequence (similar to the *nix
+    # <b>+uniq+</b> function).  Does not work for sequences of
+    # compound data types like objects or arrays, but in the case of
+    # objects (e.g. rows of a table), you may provide an attribute and
+    # it will first map the selector for that attribute over the
+    # sequence.  If we have a table <b>+table+</b>, the following are
+    # equivalent:
+    #   table.map{|row| row[:id]}.distinct
     #   table.distinct(:id)
     # As are:
     #   r[[1,2,3]]
     #   r[[1,2,3,1]].distinct
     # And:
     #   r[[1,2]]
-    #   r[[{:x => 1}, {:x => 2}, {:x => 1}]].to_stream.distinct(:x)
+    #   r[[{:x => 1}, {:x => 2}, {:x => 1}]].distinct(:x)
     def distinct(attr=nil);
       if attr then self.map{|row| row[attr]}.distinct
               else self.class.new [:call, [:distinct], [@body]];
       end
     end
 
-    # Get the length of <b>+seq+</b>, which may be either a JSON array or a
-    # stream.  If we have a table <b>+table+</b> with at least 5 elements, the
-    # following are equivalent:
+    # Get the length of the sequence.  If we have a table
+    # <b>+table+</b> with at least 5 elements, the following are
+    # equivalent:
     #   table[0...5].length
     #   r[[1,2,3,4,5]].length
     def length(); JSON_Expression.new [:call, [:length], [@body]]; end
 
-    # Get element <b>+n+</b> of invoking query.  For example, the following are
+    # Get element <b>+n+</b> of the sequence.  For example, the following are
     # equivalent:
     #   r[2]
     #   r[[0,1,2,3]].nth(2)
@@ -221,6 +237,3 @@ module RethinkDB
     end
   end
 end
-
-load 'streams.rb'
-load 'jsons.rb'

@@ -165,13 +165,12 @@ NO_OMIT_FRAME_POINTER?=0
 ifeq ($(DEBUG),1)
 SYMBOLS:=1
 CXXFLAGS+=-O0
-ifneq ($(COMPILER), INTEL)
+
+ifeq ($(KEEP_INLINE),1)
 CXXFLAGS+=-fkeep-inline-functions
 endif
-ifeq ($(COMPILER), GCC)
-CXXFLAGS+=-fkeep-static-consts
-endif
-else # DEBUG=0
+
+else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
 CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native

@@ -15,10 +15,10 @@ void transform_visitor_t::operator()(const Builtin_Filter &filter) const {
     }
 }
 
-void transform_visitor_t::operator()(const Builtin_Map &map) const {
+void transform_visitor_t::operator()(const Mapping &mapping) const {
     query_language::backtrace_t b; //TODO get this from somewhere
-    Term t = map.mapping().body();
-    out->push_back(query_language::map(map.mapping().arg(), &t, *env, json, b));
+    Term t = mapping.body();
+    out->push_back(query_language::map(mapping.arg(), &t, *env, json, b));
 }
 
 void transform_visitor_t::operator()(const Builtin_ConcatMap &concatmap) const {
