@@ -12,6 +12,8 @@
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
+#include "clustering/administration/main/import.hpp"
+#include "clustering/administration/main/json_import.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -110,8 +112,12 @@ void run_rethinkdb_import(std::vector<host_and_port_t> joins, io_backend_t io_ba
     os_signal_cond_t sigint_cond;
     guarantee(!joins.empty());
 
-    printf("run_rethinkdb_import with io backend %d, client_port %d, db_table '%s', separators '%s', input_filepath '%s'\n",
-           io_backend, client_port, db_table.c_str(), separators.c_str(), input_filepath.c_str());
+    scoped_ptr_t<io_backender_t> io_backender;
+    make_io_backender(io_backend, &io_backender);
+
+    csv_to_json_importer_t importer(separators, input_filepath);
+
+    *result_out = run_json_import(io_backender.get(), look_up_peers_addresses(joins), client_port, db_table, &importer);
 }
 
 void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
@@ -633,29 +639,23 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         return res;
     }
 
-    debugf("successfully parsed commands\n");
-
     // TODO(sam): Does this not work with a zero count?
     std::vector<host_and_port_t> joins;
     if (vm.count("join") > 0) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
     }
-    debugf("got joins\n");
     // TODO(sam): I think we and rethinkdb_admin handle client_port differently?  Why?
 #ifndef NDEBUG
     int client_port = vm["client-port"].as<int>();
 #else
     int client_port = port_defaults::client_port;
 #endif
-    debugf("got client-port\n");
     std::string db_table = vm["table"].as<std::string>();
-    debugf("got table\n");
     if (db_table.empty()) {
         // TODO(sam): handle error gracefully.
         return EXIT_FAILURE;
     }
     std::string separators = vm["separators"].as<std::string>();
-    debugf("got separators\n");
     if (separators.empty()) {
         // TODO(sam): Pardon me, are we returning EXIT_FAILURE where
         // elsewhere we used numeric constants 0 and 1?
@@ -666,16 +666,10 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         // TODO(sam): handle error gracefully.
         return EXIT_FAILURE;
     }
-    debugf("got input-file\n");
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
         return EXIT_FAILURE;
     }
-
-    debugf("successfully got the commands\n");
-
-
-    // TODO(sam): Add CPU parsing to the end.
 
     const int num_workers = get_cpu_count();
     bool result;
