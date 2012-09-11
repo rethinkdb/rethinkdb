@@ -217,7 +217,7 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
                 throw query_language::runtime_exc_t(strprintf("Cannot create new row with non-number, non-string primary key (%s).",
                                                               val->Print().c_str()), bt);
             }
-            store_key_t new_key(cJSON_print_std_string(val_pk));
+            store_key_t new_key(cJSON_Print_lexicographic(val_pk));
             if (key != new_key) {
                 throw query_language::runtime_exc_t(strprintf("Mutate cannot insert a row with a different primary key."), bt);
             }

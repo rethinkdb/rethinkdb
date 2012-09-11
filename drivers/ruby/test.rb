@@ -363,7 +363,7 @@ class ClientTest < Test::Unit::TestCase
     query = rdb.orderby(:id).map { |outer_row|
       rdb.filter{r[:id] < outer_row[:id]}.to_array
     }
-    assert_equal(query.run.to_a[2], $data[0..1])
+    assert_equal(id_sort(query.run.to_a[2]), $data[0..1])
   end
 
   def test_reduce # REDUCE, HASATTR, IMPLICIT_HASATTR
@@ -744,7 +744,7 @@ class ClientTest < Test::Unit::TestCase
     rdb.insert({:id => 11, :broken => true}).run
     rdb.insert({:id => 12, :broken => true}).run
     rdb.insert({:id => 13, :broken => true}).run
-    query = rdb.foreach { |row|
+    query = rdb.orderby(:id).foreach { |row|
       [rdb.update { |row2|
          r.if(row[:id].eq(row2[:id]),
               {:num => row2[:num]*2},
