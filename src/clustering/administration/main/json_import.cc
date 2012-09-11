@@ -11,22 +11,71 @@
 #include "arch/types.hpp"
 #include "containers/archive/file_stream.hpp"
 #include "containers/bitset.hpp"
+#include "http/json.hpp"
 
 csv_to_json_importer_t::csv_to_json_importer_t(std::string separators, std::string filepath)
     : position_(0) {
     thread_pool_t::run_in_blocker_pool(boost::bind(&csv_to_json_importer_t::import_json_from_file, this, separators, filepath));
 }
 
+bool detect_number(const char *s, double *out) {
+    char *endptr;
+    errno = 0;
+    double res = strtod(s, &endptr);
+    if (errno != 0) {
+        return false;
+    }
+
+    if (endptr == s) {
+        return false;
+    }
+
+    // Make sure the rest of the string is whitespace.
+    while (isspace(*endptr)) {
+        ++endptr;
+    }
+
+    if (*endptr == '\0') {
+        *out = res;
+        return true;
+    }
+
+    return false;
+}
+
 bool csv_to_json_importer_t::get_json(UNUSED scoped_cJSON_t *out) {
+    guarantee(out->get() == NULL);
+
+ try_next_row:
     if (position_ == rows_.size()) {
         return false;
     }
 
-    // TODO: Implement.
-    return false;
+    const std::vector<std::string> &row = rows_[position_];
+    ++ position_;
+    // TODO(sam): Handle this more gracefully?
+    if (row.size() > column_names_.size()) {
+        goto try_next_row;
+    }
+
+    out->reset(cJSON_CreateObject());
+
+    for (size_t i = 0; i < row.size(); ++i) {
+        cJSON *item;
+        double number;
+        if (detect_number(row[i].c_str(), &number)) {
+            item = cJSON_CreateNumber(number);
+        } else {
+            item = cJSON_CreateString(row[i].c_str());
+        }
+        out->AddItemToObject(column_names_[i].c_str(), item);
+    }
+
+    return true;
 }
 
 std::vector<std::string> split_buf(const bitset_t &seps, const char *buf, int64_t size) {
+    // TODO(sam): Support quotating.
     std::vector<std::string> ret;
     int64_t p = 0;
     for (int64_t i = 0; i < size; ++i) {
@@ -92,6 +141,8 @@ std::string rltrim(const std::string &s) {
 }
 
 std::vector<std::string> reprocess_column_names(std::vector<std::string> cols) {
+    // TODO(sam): Avoid allowing super-weird characters in column names like \0.
+
     // Trim spaces.
     for (size_t i = 0; i < cols.size(); ++i) {
         cols[i] = rltrim(cols[i]);
