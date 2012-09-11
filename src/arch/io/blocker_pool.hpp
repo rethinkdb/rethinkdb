@@ -44,4 +44,6 @@ private:
     void on_event(int);
 };
 
+bool i_am_in_blocker_pool_thread();
+
 #endif /* ARCH_IO_BLOCKER_POOL_HPP_ */

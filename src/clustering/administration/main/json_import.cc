@@ -12,6 +12,7 @@
 #include "containers/archive/file_stream.hpp"
 #include "containers/bitset.hpp"
 #include "http/json.hpp"
+#include "stl_utils.hpp"
 
 csv_to_json_importer_t::csv_to_json_importer_t(std::string separators, std::string filepath)
     : position_(0) {
@@ -43,7 +44,7 @@ bool detect_number(const char *s, double *out) {
     return false;
 }
 
-bool csv_to_json_importer_t::get_json(UNUSED scoped_cJSON_t *out) {
+bool csv_to_json_importer_t::get_json(scoped_cJSON_t *out) {
     guarantee(out->get() == NULL);
 
  try_next_row:
@@ -96,7 +97,7 @@ void separators_to_bitset(const std::string &separators, bitset_t *out) {
 }
 
 std::vector<std::string> read_lines_from_file(std::string filepath) {
-    rassert(coro_t::self() == NULL);
+    rassert(i_am_in_blocker_pool_thread());
 
     blocking_read_file_stream_t file;
     bool success = file.init(filepath.c_str());
@@ -135,13 +136,15 @@ std::vector<std::string> read_lines_from_file(std::string filepath) {
 std::string rltrim(const std::string &s) {
     size_t i = 0, j = s.size();
     while (i < s.size() && isspace(s[i])) { ++i; }
-    while (j > 0 && isspace(s[j - 1])) { --j; }
+    while (j > i && isspace(s[j - 1])) { --j; }
 
     return std::string(s.data() + i, s.data() + j);
 }
 
 std::vector<std::string> reprocess_column_names(std::vector<std::string> cols) {
     // TODO(sam): Avoid allowing super-weird characters in column names like \0.
+
+    debugf_print("reprocess_column_names input", cols);
 
     // Trim spaces.
     for (size_t i = 0; i < cols.size(); ++i) {
@@ -165,6 +168,8 @@ std::vector<std::string> reprocess_column_names(std::vector<std::string> cols) {
 
             cols[i] = candidate;
             used.insert(candidate);
+        } else {
+            used.insert(cols[i]);
         }
     }
 

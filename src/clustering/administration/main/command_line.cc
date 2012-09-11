@@ -414,7 +414,7 @@ po::options_description get_rethinkdb_import_options() {
         // no default value.  Or am I supposed to wade my way back into the
         // program_options documentation again?
         ("table", po::value<std::string>()->default_value(""), "the database table to which to import")
-        ("separators,s", po::value<std::string>()->default_value(" \t,"), "list of characters to be used as whitespace -- uses \" \t,\" by default")
+        ("separators,s", po::value<std::string>()->default_value("\t,"), "list of characters to be used as whitespace -- uses \" \t,\" by default")
         ("input-file", po::value<std::string>()->default_value(""), "the csv input file");
     desc.add(get_disk_options());
 

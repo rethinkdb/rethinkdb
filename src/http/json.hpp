@@ -19,11 +19,12 @@ private:
     cJSON *val;
 
 public:
-    explicit scoped_cJSON_t(cJSON *);
+    scoped_cJSON_t() : val(NULL) { }
+    explicit scoped_cJSON_t(cJSON *v);
     ~scoped_cJSON_t();
     cJSON *get() const;
     cJSON *release();
-    void reset(cJSON *);
+    void reset(cJSON *v);
 
     int type() const {
         return val->type;
