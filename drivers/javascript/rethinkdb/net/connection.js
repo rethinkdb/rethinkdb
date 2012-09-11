@@ -13,6 +13,7 @@ goog.require('goog.proto2.WireFormatSerializer');
  * @constructor
  */
 rethinkdb.net.Connection = function(opt_dbName) {
+    typeCheck_(opt_dbName, 'string');
 	this.defaultDbName_ = opt_dbName || 'Welcome-db';
     this.outstandingQueries_ = {};
     this.nextToken_ = 1;
@@ -80,6 +81,8 @@ rethinkdb.net.Connection.prototype.sendProtoBuf_ = function(pbObj) {
  * @param {function(...)} opt_callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.run = function(expr, opt_callback) {
+    typeCheck_(expr, rethinkdb.query.BaseQuery);
+    typeCheck_(opt_callback, 'function');
     this.run_(expr, false, opt_callback);
 };
 goog.exportProperty(rethinkdb.net.Connection.prototype, 'run',
@@ -94,6 +97,8 @@ goog.exportProperty(rethinkdb.net.Connection.prototype, 'run',
  * @param {function(...)} opt_callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.iter = function(expr, opt_callback) {
+    typeCheck_(expr, rethinkdb.query.Expression);
+    typeCheck_(opt_callback, 'function');
     this.run_(expr, true, opt_callback);
 };
 goog.exportProperty(rethinkdb.net.Connection.prototype, 'iter',
@@ -220,6 +225,7 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
  * @param {string} dbName
  */
 rethinkdb.net.Connection.prototype.use = function(dbName) {
+    typeCheck_(dbName, 'string');
 	this.defaultDbName_ = dbName;
 };
 
