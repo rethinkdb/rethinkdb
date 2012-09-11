@@ -85,13 +85,13 @@ function typeCheck_(value, types) {
         type_array = [type_array];
     }
 
-    if (!type_array.every(function(type) {
+    if (!type_array.some(function(type) {
         return (typeof(value) === type) || (value instanceof type);
     })) {
         if (goog.isArray(types)) {
-            throw TypeError("Function argument "+value+" must be one of the types "+types);
+            throw new TypeError("Function argument "+value+" must be one of the types "+types);
         } else {
-            throw TypeError("Function argument "+value+" must be of the type "+types);
+            throw new TypeError("Function argument "+value+" must be of the type "+types);
         }
     };
 }

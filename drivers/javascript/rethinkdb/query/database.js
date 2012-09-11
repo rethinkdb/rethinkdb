@@ -38,6 +38,7 @@ rethinkdb.query.MetaQuery.prototype.buildQuery = function() {
  * @export
  */
 rethinkdb.query.dbCreate = function(dbName) {
+    typeCheck_(dbName, 'string');
     return new rethinkdb.query.MetaQuery(MetaQuery.MetaQueryType.CREATE_DB, dbName);
 };
 
@@ -47,6 +48,7 @@ rethinkdb.query.dbCreate = function(dbName) {
  * @export
  */
 rethinkdb.query.dbDrop = function(dbName) {
+    typeCheck_(dbName, 'string');
     return new rethinkdb.query.MetaQuery(MetaQuery.MetaQueryType.DROP_DB, dbName);
 };
 
@@ -74,7 +76,8 @@ rethinkdb.query.Database = function(dbName) {
  * @export
  */
 rethinkdb.query.db = function(dbName) {
-     return new rethinkdb.query.Database(dbName);
+    typeCheck_(dbName, 'string');
+    return new rethinkdb.query.Database(dbName);
 };
 
 /**
@@ -132,6 +135,8 @@ rethinkdb.query.CreateTableQuery.prototype.buildQuery = function() {
  * @param {string=} opt_primaryKey
  */
 rethinkdb.query.Database.prototype.create = function(tableName, opt_primaryKey) {
+    typeCheck_(tableName, 'string');
+    typeCheck_(opt_primaryKey, 'string');
     return new rethinkdb.query.CreateTableQuery('Welcome-dc', this.name_, tableName, opt_primaryKey);
 };
 goog.exportProperty(rethinkdb.query.Database.prototype, 'create',
@@ -173,6 +178,7 @@ rethinkdb.query.DropTableQuery.prototype.buildQuery = function() {
  * @param {string} tableName
  */
 rethinkdb.query.Database.prototype.drop = function(tableName) {
+    typeCheck_(tableName, 'string');
     return new rethinkdb.query.DropTableQuery(this.name_, tableName);
 };
 goog.exportProperty(rethinkdb.query.Database.prototype, 'drop',
@@ -183,6 +189,7 @@ goog.exportProperty(rethinkdb.query.Database.prototype, 'drop',
  * @param {string} tableName
  */
 rethinkdb.query.Database.prototype.table = function(tableName) {
+    typeCheck_(tableName, 'string');
     return new rethinkdb.query.Table(tableName, this.name_);
 };
 goog.exportProperty(rethinkdb.query.Database.prototype, 'table',

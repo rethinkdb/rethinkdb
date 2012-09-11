@@ -40,7 +40,7 @@ rethinkdb.query.Table.prototype.compile = function() {
  */
 rethinkdb.query.GetExpression = function(table, key) {
     this.table_ = table;
-    this.key_ = new rethinkdb.query.JSONExpression(key);
+    this.key_ = key;
 };
 goog.inherits(rethinkdb.query.GetExpression, rethinkdb.query.Expression);
 
@@ -63,9 +63,10 @@ rethinkdb.query.GetExpression.prototype.compile = function() {
 
 /**
  * Return a single row of this table by key
- * @param {string} key
+ * @param {*} key
  */
 rethinkdb.query.Table.prototype.get = function(key) {
+    key = wrapIf_(key);
     return new rethinkdb.query.GetExpression(this, key);
 };
 goog.exportProperty(rethinkdb.query.Table.prototype, 'get',
