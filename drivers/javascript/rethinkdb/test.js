@@ -93,8 +93,15 @@ function testMap() {
 }
 
 function testReduce() {
-    // Awaiting changes on server
-    //arr.reduce(q(0), q.fn('a', 'b', q.R('$a').add(q.R('$b')))).run(aeq(21));
+    arr.reduce(q(0), q.fn('a', 'b', q.R('$a').add(q.R('$b')))).run(aeq(21));
+}
+
+function testFilter() {
+    arr.filter(function(val) {
+        return val < 3;
+    }).length().run(objeq(2));
+
+    arr.filter(q.fn('a', q.R('$a').lt(3))).length().run(objeq(2));
 }
 
 var tobj = q({a:1,b:2,c:3});
@@ -132,9 +139,14 @@ function testR() {
 
 var tab = q.table('Welcome-rdb');
 function testInsert() {
-    for (var i = 0; i < 10; i++) {
-        tab.insert({id:i, num:20-i}).run(objeq({inserted:1}));
+    tab.insert({id:0, num:20}).run(objeq({inserted:1}));
+
+    var others = [];
+    for (var i = 1; i < 10; i++) {
+        others.push({id:i, num:20-i});
     }
+
+    tab.insert(others).run(objeq({inserted:9}));
 }
 
 function testGet() {
@@ -150,6 +162,20 @@ function testOrderby() {
 
 function testPluck() {
     tab.orderby('num').pluck('num').nth(0).run(objeq({num:11}));
+}
+
+function testTabFilter() {
+    tab.filter(function(row) {
+        return row.num > 16;
+    }).length().run(aeq(4));
+
+    tab.filter(q.fn('row', q.R('$row.num').gt(16))).length().run(aeq(4));
+
+    tab.filter(q.R('num').gt(16)).length().run(aeq(4));
+
+    tab.filter({num:16}).nth(0).run(objeq({id:4,num:16}))
+
+    tab.filter({num:q(20).sub(q.R('id'))}).length().run(aeq(10));
 }
 
 function testTabMap() {
@@ -204,6 +230,10 @@ function testGroupedMapReduce() {
             {group:0, reduction:90},
             {group:1, reduction:65}
     ]));
+}
+
+function testConcatMap() {
+    tab.concatMap(q([1,2])).length().run(aeq(20));
 }
 
 function testUpdate1() {
@@ -338,19 +368,23 @@ runTests([
     testDistinct,
     testMap,
     testReduce,
+    testFilter,
     testHasAttr,
     testGetAttr,
     testPickAttrs,
     testWithout,
+    testR,
     testInsert,
     testGet,
     testOrderby,
     testPluck,
+    testTabFilter,
     testTabMap,
     testTabReduce,
     testJS,
     testBetween,
     testGroupedMapReduce,
+    testConcatMap,
     testUpdate1,
     testUpdate2,
     testPointUpdate1,

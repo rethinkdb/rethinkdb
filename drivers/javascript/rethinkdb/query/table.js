@@ -3,6 +3,9 @@ goog.provide('rethinkdb.query.Table');
 goog.require('rethinkdb.query.Expression');
 
 /**
+ * @class A table in a database
+ * @param {string} tableName
+ * @param {string=} opt_dbName
  * @constructor
  * @extends {rethinkdb.query.Expression}
  */
@@ -12,6 +15,10 @@ rethinkdb.query.Table = function(tableName, opt_dbName) {
 };
 goog.inherits(rethinkdb.query.Table, rethinkdb.query.Expression);
 
+/**
+ * @override
+ * @ignore
+ */
 rethinkdb.query.Table.prototype.compile = function() {
     var term = new Term();
     term.setType(Term.TermType.TABLE);
@@ -33,10 +40,11 @@ rethinkdb.query.Table.prototype.compile = function() {
  */
 rethinkdb.query.GetExpression = function(table, key) {
     this.table_ = table;
-    this.key_ = new rethinkdb.query.JSONExpression(key);
+    this.key_ = key;
 };
 goog.inherits(rethinkdb.query.GetExpression, rethinkdb.query.Expression);
 
+/** @override */
 rethinkdb.query.GetExpression.prototype.compile = function() {
     var tableTerm = this.table_.compile();
     var tableRef = tableTerm.getTable().getTableRefOrDefault();
@@ -55,8 +63,10 @@ rethinkdb.query.GetExpression.prototype.compile = function() {
 
 /**
  * Return a single row of this table by key
+ * @param {*} key
  */
 rethinkdb.query.Table.prototype.get = function(key) {
+    key = wrapIf_(key);
     return new rethinkdb.query.GetExpression(this, key);
 };
 goog.exportProperty(rethinkdb.query.Table.prototype, 'get',
@@ -64,18 +74,14 @@ goog.exportProperty(rethinkdb.query.Table.prototype, 'get',
 
 /**
  * @param {rethinkdb.query.Table} table
- * @param {*} docs
+ * @param {Array.<rethinkdb.query.Expression>} docs
  * @constructor
  * @extends {rethinkdb.query.BaseQuery}
  * @ignore
  */
 rethinkdb.query.InsertQuery = function(table, docs) {
     this.table_ = table;
-
-    if (!goog.isArray(docs))
-        docs = [docs];
-
-    this.docs_ = docs.map(rethinkdb.query.expr);
+    this.docs_ = docs;
 };
 goog.inherits(rethinkdb.query.InsertQuery, rethinkdb.query.BaseQuery);
 
@@ -103,9 +109,13 @@ rethinkdb.query.InsertQuery.prototype.buildQuery = function() {
 };
 
 /**
- * Insert a json document into a table
+ * Insert a json document into this table
+ * @param {*} docs An object or list of objects to insert
  */
 rethinkdb.query.Table.prototype.insert = function(docs) {
+    if (!goog.isArray(docs))
+        docs = [docs];
+    docs = docs.map(rethinkdb.query.expr);
     return new rethinkdb.query.InsertQuery(this, docs);
 };
 goog.exportProperty(rethinkdb.query.Table.prototype, 'insert',
@@ -122,6 +132,7 @@ rethinkdb.query.DeleteQuery = function(view) {
 };
 goog.inherits(rethinkdb.query.DeleteQuery, rethinkdb.query.BaseQuery);
 
+/** @override */
 rethinkdb.query.DeleteQuery.prototype.buildQuery = function() {
     var del = new WriteQuery.Delete();
     del.setView(this.view_.compile());
@@ -150,6 +161,7 @@ rethinkdb.query.PointDeleteQuery = function(table, key) {
 };
 goog.inherits(rethinkdb.query.PointDeleteQuery, rethinkdb.query.BaseQuery);
 
+/** @override */
 rethinkdb.query.PointDeleteQuery.prototype.buildQuery = function() {
     var pointdelete = new WriteQuery.PointDelete();
     pointdelete.setTableRef(this.table_.compile().getTableOrDefault().getTableRefOrDefault());
@@ -193,6 +205,7 @@ rethinkdb.query.UpdateQuery = function(view, mapping) {
 };
 goog.inherits(rethinkdb.query.UpdateQuery, rethinkdb.query.BaseQuery);
 
+/** @override */
 rethinkdb.query.UpdateQuery.prototype.buildQuery = function() {
     var mapping = new Mapping();
     mapping.setArg(this.mapping_.args[0]);
@@ -228,6 +241,7 @@ rethinkdb.query.PointUpdateQuery = function(table, key, mapping) {
 };
 goog.inherits(rethinkdb.query.PointUpdateQuery, rethinkdb.query.BaseQuery);
 
+/** @override */
 rethinkdb.query.PointUpdateQuery.prototype.buildQuery = function() {
     var mapping = new Mapping();
     mapping.setArg(this.mapping_.args[0]);
@@ -251,7 +265,9 @@ rethinkdb.query.PointUpdateQuery.prototype.buildQuery = function() {
 };
 
 /**
- * Updates all rows according to the given mapping function
+ * Updates each row in the current view by merging in the result
+ * of the given mapping function applied to that row
+ * @param {function(...)|rethinkdb.query.FunctionExpression|rethinkdb.query.Expression} mapping
  */
 rethinkdb.query.Expression.prototype.update = function(mapping) {
     mapping = functionWrap_(mapping);
@@ -277,6 +293,7 @@ rethinkdb.query.MutateQuery = function(view, mapping) {
 };
 goog.inherits(rethinkdb.query.MutateQuery, rethinkdb.query.BaseQuery);
 
+/** @override */
 rethinkdb.query.MutateQuery.prototype.buildQuery = function() {
     var mapping = new Mapping();
     mapping.setArg(this.mapping_.args[0]);
@@ -312,6 +329,7 @@ rethinkdb.query.PointMutateQuery = function(table, key, mapping) {
 };
 goog.inherits(rethinkdb.query.PointMutateQuery, rethinkdb.query.BaseQuery);
 
+/** @override */
 rethinkdb.query.PointMutateQuery.prototype.buildQuery = function() {
     var mapping = new Mapping();
     mapping.setArg(this.mapping_.args[0]);
@@ -335,7 +353,9 @@ rethinkdb.query.PointMutateQuery.prototype.buildQuery = function() {
 };
 
 /**
- * Replcaces each row the the result of the mapping expression
+ * Replcaces each row of the current view with the result of the
+ * mapping function as applied to the current row.
+ * @param {function(...)|rethinkdb.query.FunctionExpression|rethinkdb.query.Expression} mapping
  */
 rethinkdb.query.Expression.prototype.mutate = function(mapping) {
     mapping = functionWrap_(mapping);
