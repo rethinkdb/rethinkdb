@@ -17,7 +17,7 @@ public:
     runtime_environment_t(
         extproc::pool_group_t *_pool_group,
         namespace_repo_t<rdb_protocol_t> *_ns_repo,
-        clone_ptr_t<watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >
+        clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > >
              _namespaces_semilattice_metadata,
         clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
              _databases_semilattice_metadata,
@@ -41,7 +41,7 @@ public:
     runtime_environment_t(
         extproc::pool_group_t *_pool_group,
         namespace_repo_t<rdb_protocol_t> *_ns_repo,
-        clone_ptr_t<watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >
+        clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > >
              _namespaces_semilattice_metadata,
         clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
              _databases_semilattice_metadata,
@@ -67,7 +67,7 @@ public:
     extproc::pool_t *pool;      // for running external JS jobs
     namespace_repo_t<rdb_protocol_t> *ns_repo;
 
-    clone_ptr_t<watchable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > namespaces_semilattice_metadata;
+    clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > namespaces_semilattice_metadata;
     clone_ptr_t<watchable_t<databases_semilattice_metadata_t> > databases_semilattice_metadata;
     //TODO this should really just be the namespace metadata... but
     //constructing views is too hard :-/

@@ -632,6 +632,31 @@ void on_subfield_change(std::vector<V> *) { }
 
 } //namespace std
 
+// ctx-ful JSON adapter for cow_ptr_t
+template <class T, class ctx_t>
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cow_ptr_t<T> *ptr, const ctx_t &ctx) {
+    typename cow_ptr_t<T>::change_t change(ptr);
+    return with_ctx_get_json_subfields(change.get(), ctx);
+}
+
+template <class T, class ctx_t>
+cJSON *with_ctx_render_as_json(cow_ptr_t<T> *ptr, const ctx_t &ctx) {
+    typename cow_ptr_t<T>::change_t change(ptr);
+    return with_ctx_render_as_json(change.get(), ctx);
+}
+
+template <class T, class ctx_t>
+void with_ctx_apply_json_to(cJSON *json, cow_ptr_t<T> *ptr, const ctx_t &ctx) {
+    typename cow_ptr_t<T>::change_t change(ptr);
+    return with_ctx_apply_json_to(json, change.get(), ctx);
+}
+
+template <class T, class ctx_t>
+void with_ctx_on_subfield_change(cow_ptr_t<T> *ptr, const ctx_t &ctx) {
+    typename cow_ptr_t<T>::change_t change(ptr);
+    return with_ctx_on_subfield_change(change.get(), ctx);
+}
+
 // ctx-less JSON adapter for cow_ptr_t
 template <class T>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(cow_ptr_t<T> *ptr) {

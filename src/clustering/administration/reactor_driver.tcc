@@ -104,10 +104,10 @@ public:
             datacenter_id_t dc = jt->second.get().datacenter.get();
             acks_by_dc.insert(dc);
         }
-        namespaces_semilattice_metadata_t<protocol_t> nmd = parent->namespaces_view->get();
+        cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > nmd = parent->namespaces_view->get();
         typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
-            nmd.namespaces.find(namespace_id);
-        if (it == nmd.namespaces.end()) return false;
+            nmd->namespaces.find(namespace_id);
+        if (it == nmd->namespaces.end()) return false;
         if (it->second.is_deleted()) return false;
         if (it->second.get().ack_expectations.in_conflict()) return false;
         std::map<datacenter_id_t, int> expected_acks = it->second.get().ack_expectations.get();
@@ -195,7 +195,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(io_backender_t *_io_backender,
                                                mailbox_manager_t *_mbox_manager,
                                                const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
                                                branch_history_manager_t<protocol_t> *_branch_history_manager,
-                                               boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
+                                               boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _namespaces_view,
                                                boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                                                const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
                                                svs_by_namespace_t<protocol_t> *_svs_by_namespace,
@@ -239,11 +239,10 @@ void reactor_driver_t<protocol_t>::delete_reactor_data(
 
 template<class protocol_t>
 void reactor_driver_t<protocol_t>::on_change() {
-    typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t 
-            namespaces = namespaces_view->get().namespaces;
+    cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = namespaces_view->get();
 
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator 
-                it =  namespaces.begin(); it != namespaces.end(); it++) {
+                it =  namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
         if (it->second.is_deleted() && std_contains(reactor_data, it->first)) {
             /* on_change cannot block because it is called as part of
              * semilattice subscription, however the

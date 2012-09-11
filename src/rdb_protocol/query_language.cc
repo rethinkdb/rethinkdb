@@ -776,8 +776,9 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         env->directory_read_manager->get_root_view();
 
     cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t ns_change(&metadata.rdb_namespaces);
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
-        ns_searcher(&metadata.rdb_namespaces.namespaces);
+        ns_searcher(&ns_change.get()->namespaces);
     metadata_searcher_t<database_semilattice_metadata_t>
         db_searcher(&metadata.databases.databases);
     metadata_searcher_t<datacenter_semilattice_metadata_t>
@@ -855,7 +856,10 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
             new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, table_name,
                                           primary_key, port_constants::namespace_port);
-        metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, ns));
+        {
+            cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
+            change.get()->namespaces.insert(std::make_pair(namespace_id, ns));
+        }
         fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
         env->semilattice_metadata->join(metadata);
 
@@ -927,11 +931,12 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
     const char *status;
     std::string db_name = t->db_name();
     std::string table_name = t->table_name();
-    namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata = env->namespaces_semilattice_metadata->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > ns_metadata = env->namespaces_semilattice_metadata->get();
     databases_semilattice_metadata_t db_metadata = env->databases_semilattice_metadata->get();
 
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t ns_metadata_change(&ns_metadata);
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
-        ns_searcher(&ns_metadata.namespaces);
+        ns_searcher(&ns_metadata_change.get()->namespaces);
     metadata_searcher_t<database_semilattice_metadata_t>
         db_searcher(&db_metadata.databases);
 
@@ -2464,11 +2469,12 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(
     std::string table_name = t->table_name();
     std::string db_name = t->db_name();
 
-    namespaces_semilattice_metadata_t<rdb_protocol_t> namespaces_metadata = env->namespaces_semilattice_metadata->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > namespaces_metadata = env->namespaces_semilattice_metadata->get();
     databases_semilattice_metadata_t databases_metadata = env->databases_semilattice_metadata->get();
 
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t namespaces_metadata_change(&namespaces_metadata);
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
-        ns_searcher(&namespaces_metadata.namespaces);
+        ns_searcher(&namespaces_metadata_change.get()->namespaces);
     metadata_searcher_t<database_semilattice_metadata_t>
         db_searcher(&databases_metadata.databases);
 
