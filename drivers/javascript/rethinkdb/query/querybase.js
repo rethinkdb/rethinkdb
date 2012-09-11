@@ -7,12 +7,13 @@ goog.provide('rethinkdb.query');
 goog.provide('rethinkdb.errors');
 
 /**
- * This is defined here so that it is defined first, before
- * any thing defined on the rethinkdb.query namespace is.
+ * @fileoverview This file is somewhat of a hack, designed to be included
+ * first by the dependency generator so that we can provide the query
+ * shortcut function.
  */
 
 /**
- * A shortcut function for wrapping values with RethinkDB expressions.
+ * A shortcut function for wrapping values with ReQL expressions.
  * @namespace namespace for all ReQL query generating functions
  * @export
  */
@@ -53,7 +54,8 @@ function wrapIf_(val) {
 /**
  * Internal utility for wrapping API function arguments that
  * are expected to be function expressions.
- * @param {rethinkdb.query.FunctionExpression|function(...)} fun The function to wrap
+ * @param {*} fun
+        The function to wrap
  * @returns rethinkdb.query.FunctionExpression
  * @ignore
  */
@@ -69,4 +71,27 @@ function functionWrap_(fun) {
     }
 
     return fun;
+}
+
+/**
+ * Internal utility to enforce API types
+ * @ignore
+ */
+function typeCheck_(value, types) {
+    if (!value) return;
+
+    var type_array = types;
+    if (!(goog.isArray(types))) {
+        type_array = [type_array];
+    }
+
+    if (!type_array.some(function(type) {
+        return (typeof(value) === type) || (value instanceof type);
+    })) {
+        if (goog.isArray(types)) {
+            throw new TypeError("Function argument "+value+" must be one of the types "+types);
+        } else {
+            throw new TypeError("Function argument "+value+" must be of the type "+types);
+        }
+    };
 }
