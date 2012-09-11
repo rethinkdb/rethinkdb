@@ -5,6 +5,12 @@
 #include "clustering/immediate_consistency/query/direct_reader_metadata.hpp"
 #include "concurrency/fifo_checker.hpp"
 
+/* For each primary and secondary of each shard, there is a `direct_reader_t`.
+The `direct_reader_t` allows the `cluster_namespace_interface_t` to bypass the
+`broadcaster_t` and read directly from the B-tree itself. This reduces network
+traffic and is possible even when the primary is down, but the data it returns
+might be out of date. */
+
 template <class protocol_t>
 class direct_reader_t {
 public:
