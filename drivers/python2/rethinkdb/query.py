@@ -923,13 +923,33 @@ class StreamExpression(ReadQuery):
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
 
-    def eq_join(self, attribute, table, table_key):
+    def eq_join(self, left_attr_name, right_table, right_attr_name):
+        """For each row in the input, look for a row in `right_table` whose
+        value for `right_attr_name` is the same as the input row's value for
+        `left_attr_name`. If such a row is found, merge the rows together.
+        Returns a stream with all the merged rows.
+
+        Currently, `right_attr_name` must be the primary key name for
+        `right_table`.
+
+        If a field is in both the row from the input stream and the row from
+        `right_table`, the value from the input stream will be taken.
+
+        :param left_attr_name: The attribute to match in the input
+        :type left_attr_name: str
+        :param right_table: The table to join against
+        :type right_table: :class:`Table`
+        :param right_attr_name: The attribute to match in `right_table` (must
+            be the primary key)
+        :type right_attr_name: str
+        :returns: :class:`StreamExpression`
+        """
         # This is a hack for the demo
-        assert isinstance(attribute, str)
-        assert isinstance(table, Table)
-        assert isinstance(table_key, str)
+        assert isinstance(left_attr_name, str)
+        assert isinstance(right_table, Table)
+        assert isinstance(right_attr_name, str)
         return self.concat_map(fn("left_row",
-            expr([table.get(R("$left_row.%s" % attribute), table_key)]).to_stream() \
+            expr([right_table.get(R("$left_row.%s" % left_attr_name), right_attr_name)]).to_stream() \
                 .filter(fn("x", R("$x") != None)) \
                 .map(fn("right_row", R("$right_row").extend(R("$left_row"))))
             ))
@@ -1443,8 +1463,10 @@ class Table(MultiRowSelection):
         return WriteQuery(internal.InsertStream(self, stream))
 
     def get(self, key, attr_name = "id"):
-        """Select a row by primary key. `attr_name` must be the name of the
-        primary key for the table.
+        """Select the row whose value for `attr_name` is equal to `key`. If no
+        row is found, return `null`.
+
+        Currently, `attr_name` must be the primary key for the table.
 
         :param key: the key to look for
         :type key: JSON value
