@@ -25,7 +25,7 @@ rethinkdb.query.Table.prototype.compile = function() {
 
     var table = new Term.Table();
     var tableRef = new TableRef();
-    tableRef.setDbName(this.db_ || rethinkdb.net.last_connection.getDefaultDb());
+    tableRef.setDbName(this.db_ || rethinkdb.net.last_connection_.getDefaultDb());
     tableRef.setTableName(this.name_);
     table.setTableRef(tableRef);
 

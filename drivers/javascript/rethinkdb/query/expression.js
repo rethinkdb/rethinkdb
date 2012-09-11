@@ -398,7 +398,7 @@ makeComparison(Builtin.Comparison.GT, 'gt');
 
 /**
  * Greater than or equals comparison
- * @name rethinkdb.query.Expression.prototype.eq
+ * @name rethinkdb.query.Expression.prototype.ge
  * @function
  * @param {*} other
  * @return {rethinkdb.query.Expression}

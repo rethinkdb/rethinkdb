@@ -19,7 +19,7 @@ rethinkdb.net.Connection = function(opt_dbName) {
     this.outstandingQueries_ = {};
     this.nextToken_ = 1;
 
-    rethinkdb.net.last_connection = this;
+    rethinkdb.net.last_connection_ = this;
 };
 
 /**

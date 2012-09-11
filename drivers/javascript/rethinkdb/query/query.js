@@ -72,7 +72,7 @@ rethinkdb.query.Query = function() { };
  * @param {rethinkdb.net.Connection=} opt_conn The connection to run this expression on.
  */
 rethinkdb.query.Query.prototype.run = function(callback, opt_conn) {
-    opt_conn = opt_conn || rethinkdb.net.last_connection;
+    opt_conn = opt_conn || rethinkdb.net.last_connection_;
     opt_conn.run(this, callback);
 };
 goog.exportProperty(rethinkdb.query.Query.prototype, 'run',
@@ -85,7 +85,7 @@ goog.exportProperty(rethinkdb.query.Query.prototype, 'run',
  * @param {rethinkdb.net.Connection=} conn The connection to run this expression on.
  */
 rethinkdb.query.Query.prototype.iter = function(callback, conn) {
-    conn = conn || rethinkdb.net.last_connection;
+    conn = conn || rethinkdb.net.last_connection_;
     conn.iter(this, callback);
 };
 goog.exportProperty(rethinkdb.query.Query.prototype, 'iter',
