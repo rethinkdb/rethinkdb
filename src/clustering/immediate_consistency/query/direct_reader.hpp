@@ -10,7 +10,7 @@ class direct_reader_t {
 public:
     direct_reader_t(
             mailbox_manager_t *mm,
-            multistore_ptr_t<protocol_t> *svs);
+            store_view_t<protocol_t> *svs);
 
     direct_reader_business_card_t<protocol_t> get_business_card();
 
@@ -24,7 +24,7 @@ private:
             auto_drainer_t::lock_t);
 
     mailbox_manager_t *mailbox_manager;
-    multistore_ptr_t<protocol_t> *svs;
+    store_view_t<protocol_t> *svs;
 
     order_source_t order_source;  // TODO: order_token_t::ignore
     auto_drainer_t drainer;

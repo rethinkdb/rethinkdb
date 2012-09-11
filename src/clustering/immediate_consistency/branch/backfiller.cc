@@ -17,7 +17,7 @@ inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_r
 template <class protocol_t>
 backfiller_t<protocol_t>::backfiller_t(mailbox_manager_t *mm,
                                        branch_history_manager_t<protocol_t> *bhm,
-                                       multistore_ptr_t<protocol_t> *_svs)
+                                       store_view_t<protocol_t> *_svs)
     : mailbox_manager(mm), branch_history_manager(bhm),
       svs(_svs),
       backfill_mailbox(mailbox_manager,
@@ -50,18 +50,21 @@ bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<p
     /* Confirm that `start_point` is a point in our past */
     typedef region_map_t<protocol_t, version_range_t> version_map_t;
 
-    for (typename version_map_t::const_iterator it = start_point.begin();
-         it != start_point.end();
-         ++it) {
-        for (typename version_map_t::const_iterator jt = end_point.begin();
-             jt != end_point.end();
-             ++jt) {
-            typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
-            if (!region_is_empty(ixn)) {
-                version_t start = it->second.latest;
-                version_t end = jt->second.earliest;
-                rassert(start.timestamp <= end.timestamp);
-                rassert(version_is_ancestor(branch_history_manager, start, end, ixn));
+    {
+        on_thread_t th(branch_history_manager->home_thread());
+        for (typename version_map_t::const_iterator it = start_point.begin();
+             it != start_point.end();
+             ++it) {
+            for (typename version_map_t::const_iterator jt = end_point.begin();
+                 jt != end_point.end();
+                 ++jt) {
+                typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
+                if (!region_is_empty(ixn)) {
+                    version_t start = it->second.latest;
+                    version_t end = jt->second.earliest;
+                    rassert(start.timestamp <= end.timestamp);
+                    rassert(version_is_ancestor(branch_history_manager, start, end, ixn));
+                }
             }
         }
     }
@@ -70,7 +73,10 @@ bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<p
     /* Package a subset of the branch history graph that includes every branch
     that `end_point` mentions and all their ancestors recursively */
     branch_history_t<protocol_t> branch_history;
-    branch_history_manager->export_branch_history(end_point, &branch_history);
+    {
+        on_thread_t th(branch_history_manager->home_thread());
+        branch_history_manager->export_branch_history(end_point, &branch_history);
+    }
 
     /* Transmit `end_point` to the backfillee */
     send(mailbox_manager, end_point_cont, end_point, branch_history);
@@ -158,12 +164,15 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
     send(mailbox_manager, allocation_registration_box, receive_allocations_mbox.get_address());
 
     try {
-        branch_history_manager->import_branch_history(start_point_associated_branch_history, keepalive.get_drain_signal());
+        {
+            on_thread_t th(branch_history_manager->home_thread());
+            branch_history_manager->import_branch_history(start_point_associated_branch_history, keepalive.get_drain_signal());
+        }
 
         // TODO: Describe this fifo source's purpose a bit.  It's for ordering backfill operations, right?
         fifo_enforcer_source_t fifo_src;
 
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> send_backfill_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> send_backfill_token;
         svs->new_read_token(&send_backfill_token);
 
         backfiller_send_backfill_callback_t<protocol_t>

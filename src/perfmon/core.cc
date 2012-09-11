@@ -18,7 +18,7 @@ perfmon_t::perfmon_t() {
 perfmon_t::~perfmon_t() {
 }
 
-struct stats_collection_context_t : public home_thread_mixin_t {
+struct stats_collection_context_t : public home_thread_mixin_debug_only_t {
     stats_collection_context_t(rwi_lock_t *constituents_lock, size_t size)
         : contexts(new void *[size]), lock_sentry(constituents_lock) { }
 

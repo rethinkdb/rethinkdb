@@ -39,7 +39,7 @@ module RethinkDB
     #   r.db('a').table('b')
     #   r.db('a').b
     def method_missing(m, *a, &b)
-      self.table(m, *a, &b)
+      self.table(m.to_s, *a, &b)
     end
   end
 

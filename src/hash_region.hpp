@@ -133,6 +133,11 @@ bool region_overlaps(const hash_region_t<inner_region_t> &r1, const hash_region_
 }
 
 template <class inner_region_t>
+hash_region_t<inner_region_t> drop_cpu_sharding(const hash_region_t<inner_region_t> &r) {
+    return hash_region_t<inner_region_t>(0, HASH_REGION_HASH_SIZE, r.inner);
+}
+
+template <class inner_region_t>
 std::vector< hash_region_t<inner_region_t> > region_subtract_many(const hash_region_t<inner_region_t> &minuend,
                                                                   const std::vector< hash_region_t<inner_region_t> >& subtrahends) {
     std::vector< hash_region_t<inner_region_t> > buf;

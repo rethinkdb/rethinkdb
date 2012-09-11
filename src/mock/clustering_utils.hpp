@@ -28,7 +28,7 @@ public:
             store(io_backender, temp_file.name(), true, &get_global_perfmon_collection(), &ctx) {
         /* Initialize store metadata */
         cond_t non_interruptor;
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
         store.new_write_token(&token);
         region_map_t<protocol_t, binary_blob_t> new_metainfo(
                 store.get_region(),

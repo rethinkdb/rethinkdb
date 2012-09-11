@@ -123,7 +123,7 @@ struct rdb_protocol_t {
 
         /* These arrays contain a watchable for each thread.
          * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
-        scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > cross_thread_namespace_watchables;
+        scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > > cross_thread_namespace_watchables;
         scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<databases_semilattice_metadata_t> > > cross_thread_database_watchables;
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
@@ -214,44 +214,43 @@ struct rdb_protocol_t {
     class rget_read_t {
     public:
         rget_read_t() { }
-        rget_read_t(const key_range_t &_key_range, int _maximum)
-            : key_range(_key_range), maximum(_maximum) { }
+        rget_read_t(const region_t &_region)
+            : region(_region) { }
 
-        rget_read_t(const key_range_t &_key_range, int _maximum,
+        rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
                     const scopes_t &_scopes,
                     const backtrace_t &_backtrace)
-            : key_range(_key_range), maximum(_maximum),
-              transform(_transform), scopes(_scopes), backtrace(_backtrace)
+            : region(_region), transform(_transform),
+              scopes(_scopes), backtrace(_backtrace)
         { }
 
-        rget_read_t(const key_range_t &_key_range, int _maximum,
+        rget_read_t(const region_t &_region,
                     const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
                     const scopes_t &_scopes,
                     const backtrace_t &_backtrace)
-            : key_range(_key_range), maximum(_maximum),
-              terminal(_terminal), scopes(_scopes), backtrace(_backtrace)
+            : region(_region), terminal(_terminal),
+              scopes(_scopes), backtrace(_backtrace)
         { }
 
-        rget_read_t(const key_range_t &_key_range, int _maximum,
+        rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
                     const scopes_t &_scopes,
                     const backtrace_t &_backtrace)
-            : key_range(_key_range), maximum(_maximum),
-              transform(_transform), terminal(_terminal), scopes(_scopes),
+            : region(_region), transform(_transform),
+              terminal(_terminal), scopes(_scopes),
               backtrace(_backtrace)
         { }
 
-        key_range_t key_range;
-        size_t maximum;
+        region_t region;
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
         scopes_t scopes;
         backtrace_t backtrace;
 
-        RDB_MAKE_ME_SERIALIZABLE_6(key_range, maximum, transform, terminal, scopes, backtrace);
+        RDB_MAKE_ME_SERIALIZABLE_5(region, transform, terminal, scopes, backtrace);
     };
 
     class distribution_read_t {
@@ -278,8 +277,8 @@ struct rdb_protocol_t {
 
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
-        void multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void multistore_unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : read(r.read) { }
@@ -377,8 +376,8 @@ struct rdb_protocol_t {
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(std::vector<write_response_t> responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
-        void multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache) const THROWS_NOTHING;
+        void multistore_unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : write(w.write) { }

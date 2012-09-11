@@ -7,7 +7,7 @@
 
 template<class protocol_t, class parser_t>
 parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox_manager,
-                               boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_semilattice_metadata,
+                               boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _namespaces_semilattice_metadata,
                                int _port_offset,
                                namespace_repo_t<protocol_t> *_repo,
                                local_issue_tracker_t *_local_issue_tracker,
@@ -37,11 +37,11 @@ template<class protocol_t, class parser_t>
 void parser_maker_t<protocol_t, parser_t>::on_change() {
     ASSERT_NO_CORO_WAITING;
 
-    namespaces_semilattice_metadata_t<protocol_t> snapshot = namespaces_semilattice_metadata->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > snapshot = namespaces_semilattice_metadata->get();
 
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::iterator it  = snapshot.namespaces.begin();
-                                                                                           it != snapshot.namespaces.end();
-                                                                                           it++) {
+    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it  = snapshot->namespaces.begin();
+                                                                                                 it != snapshot->namespaces.end();
+                                                                                                 ++it) {
         typename boost::ptr_map<namespace_id_t, ns_record_t>::iterator handled_ns = namespaces_being_handled.find(it->first);
 
         /* Destroy parsers as necessary, by pulsing the `stopper` cond on the

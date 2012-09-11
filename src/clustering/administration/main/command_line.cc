@@ -217,8 +217,8 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
                 persistable_blueprint_t<memcached_protocol_t> blueprint;
                 {
-                    std::map<hash_region_t<key_range_t>, blueprint_details::role_t> roles;
-                    roles.insert(std::make_pair(hash_region_t<key_range_t>::universe(), blueprint_details::role_primary));
+                    std::map<hash_region_t<key_range_t>, blueprint_role_t> roles;
+                    roles.insert(std::make_pair(hash_region_t<key_range_t>::universe(), blueprint_role_primary));
                     blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
                 }
                 namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<memcached_protocol_t> >(blueprint, our_machine_id);
@@ -245,7 +245,8 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
                 namespace_metadata.database = vclock_t<datacenter_id_t>(database_id, our_machine_id);
 
-                semilattice_metadata.memcached_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
+                cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&semilattice_metadata.memcached_namespaces);
+                change.get()->namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
             }
 
             {
@@ -256,12 +257,13 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                     new_namespace<rdb_protocol_t>(our_machine_id, database_id, datacenter_id, "Welcome-rdb", "id", port_constants::namespace_port);
 
                 persistable_blueprint_t<rdb_protocol_t> blueprint;
-                std::map<rdb_protocol_t::region_t, blueprint_details::role_t> roles;
-                roles.insert(std::make_pair(rdb_protocol_t::region_t::universe(), blueprint_details::role_primary));
+                std::map<rdb_protocol_t::region_t, blueprint_role_t> roles;
+                roles.insert(std::make_pair(rdb_protocol_t::region_t::universe(), blueprint_role_primary));
                 blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
                 namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<rdb_protocol_t> >(blueprint, our_machine_id);
 
-                semilattice_metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
+                cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&semilattice_metadata.rdb_namespaces);
+                change.get()->namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
             }
 
         } else {
@@ -357,6 +359,13 @@ po::options_description get_disk_options() {
     return desc;
 }
 
+po::options_description get_cpu_options() {
+    po::options_description desc("CPU options");
+    desc.add_options()
+        ("cores,c", po::value<int>()->default_value(get_cpu_count()), "the number of cores to utilize");
+    return desc;
+}
+
 po::options_description get_rethinkdb_create_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
@@ -370,6 +379,7 @@ po::options_description get_rethinkdb_serve_options() {
     desc.add(get_file_options());
     desc.add(get_network_options());
     desc.add(get_disk_options());
+    desc.add(get_cpu_options());
     return desc;
 }
 
@@ -419,6 +429,7 @@ po::options_description get_rethinkdb_porcelain_options() {
     desc.add(get_machine_options());
     desc.add(get_network_options());
     desc.add(get_disk_options());
+    desc.add(get_cpu_options());
     return desc;
 }
 
@@ -519,7 +530,11 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     extproc::spawner_t::info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
 
-    const int num_workers = get_cpu_count();
+    const int num_workers = vm["cores"].as<int>();
+    if (num_workers <= 0 || num_workers > MAX_THREADS) {
+        fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
+        return 1;
+    }
 
     if (!check_existence(filepath)) {
         fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
@@ -718,7 +733,11 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     extproc::spawner_t::info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
 
-    const int num_workers = get_cpu_count();
+    const int num_workers = vm["cores"].as<int>();
+    if (num_workers <= 0 || num_workers > MAX_THREADS) {
+        fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
+        return 1;
+    }
 
     bool new_directory = false;
     // Attempt to create the directory early so that the log file can use it.

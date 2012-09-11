@@ -778,8 +778,9 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         env->directory_read_manager->get_root_view();
 
     cluster_semilattice_metadata_t metadata = env->semilattice_metadata->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t ns_change(&metadata.rdb_namespaces);
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
-        ns_searcher(&metadata.rdb_namespaces.namespaces);
+        ns_searcher(&ns_change.get()->namespaces);
     metadata_searcher_t<database_semilattice_metadata_t>
         db_searcher(&metadata.databases.databases);
     metadata_searcher_t<datacenter_semilattice_metadata_t>
@@ -844,8 +845,8 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         std::string table_name = m->create_table().table_ref().table_name();
         std::string primary_key = m->create_table().primary_key();
 
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt);
-        uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name, bt);
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("table_ref").with("db_name"));
+        uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name, bt.with("datacenter"));
 
         /* Ensure table doesn't already exist. */
         ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
@@ -857,7 +858,10 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
             new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, table_name,
                                           primary_key, port_constants::namespace_port);
-        metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, ns));
+        {
+            cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
+            change.get()->namespaces.insert(std::make_pair(namespace_id, ns));
+        }
         fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
         env->semilattice_metadata->join(metadata);
 
@@ -892,12 +896,12 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         std::string table_name = m->drop_table().table_name();
 
         // Get namespace metadata.
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt);
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("db_name"));
         metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
             ns_metadata =
             ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
         std::string op=strprintf("FIND_TABLE %s.%s", db_name.c_str(), table_name.c_str());
-        meta_check(status, METADATA_SUCCESS, op, bt);
+        meta_check(status, METADATA_SUCCESS, op, bt.with("table_name"));
         rassert(!ns_metadata->second.is_deleted());
 
         // Delete namespace
@@ -907,7 +911,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
     } break;
     case MetaQuery::LIST_TABLES: {
         std::string db_name = m->db_name();
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt);
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("db_name"));
         namespace_predicate_t pred(db_id);
         for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
                  ::iterator it = ns_searcher.find_next(ns_searcher.begin(), pred);
@@ -930,11 +934,12 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
     const char *status;
     std::string db_name = t->db_name();
     std::string table_name = t->table_name();
-    namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata = env->namespaces_semilattice_metadata->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > ns_metadata = env->namespaces_semilattice_metadata->get();
     databases_semilattice_metadata_t db_metadata = env->databases_semilattice_metadata->get();
 
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t ns_metadata_change(&ns_metadata);
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
-        ns_searcher(&ns_metadata.namespaces);
+        ns_searcher(&ns_metadata_change.get()->namespaces);
     metadata_searcher_t<database_semilattice_metadata_t>
         db_searcher(&db_metadata.databases);
 
@@ -1026,7 +1031,7 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
     }
 
     try {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(data->GetObjectItem(pk.c_str()))), data));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_Print_lexicographic(data->GetObjectItem(pk.c_str()))), data));
         rdb_protocol_t::write_response_t response;
         ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
     } catch (cannot_perform_query_exc_t e) {
@@ -1038,7 +1043,7 @@ point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t n
                                     const std::string &pk, cJSON *id, point_modify::op_t op,
                                     runtime_environment_t *env, const Mapping &m, const backtrace_t &backtrace) {
     try {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_modify_t(pk, store_key_t(cJSON_print_std_string(id)), op, env->scopes, m));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_modify_t(pk, store_key_t(cJSON_Print_lexicographic(id)), op, env->scopes, m));
         rdb_protocol_t::write_response_t response;
         ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
         rdb_protocol_t::point_modify_response_t mod_res = boost::get<rdb_protocol_t::point_modify_response_t>(response.response);
@@ -1051,7 +1056,7 @@ point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t n
 
 void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace, int *out_num_deletes=0) {
     try {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_std_string(id))));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_Print_lexicographic(id))));
         rdb_protocol_t::write_response_t response;
         ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
         if (out_num_deletes) {
@@ -1431,7 +1436,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
                 boost::shared_ptr<scoped_cJSON_t> key = eval(t->mutable_get_by_key()->mutable_key(), env, backtrace.with("key"));
 
                 try {
-                    rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(key->Print())));
+                    rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(key->PrintLexicographic())));
                     rdb_protocol_t::read_response_t res;
                     ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
 
@@ -2381,11 +2386,12 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(
     std::string table_name = t->table_name();
     std::string db_name = t->db_name();
 
-    namespaces_semilattice_metadata_t<rdb_protocol_t> namespaces_metadata = env->namespaces_semilattice_metadata->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > namespaces_metadata = env->namespaces_semilattice_metadata->get();
     databases_semilattice_metadata_t databases_metadata = env->databases_semilattice_metadata->get();
 
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t namespaces_metadata_change(&namespaces_metadata);
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
-        ns_searcher(&namespaces_metadata.namespaces);
+        ns_searcher(&namespaces_metadata_change.get()->namespaces);
     metadata_searcher_t<database_semilattice_metadata_t>
         db_searcher(&databases_metadata.databases);
 
