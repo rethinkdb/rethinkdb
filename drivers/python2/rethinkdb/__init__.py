@@ -10,7 +10,11 @@ in an intuitive way. Following SQLAlchemy conventions, as many of
 Python's facilities as possible have been overloaded in order to make
 expressing queries friendly and convenient."""
 
-__all__ = ['connect', 'expr', 'table', 'R', 'js', 'let', 'fn', 'if_then_else', 'ExecutionError', 'BadQueryError']
+__all__ = [
+    'connect',
+    'db_create', 'db_drop', 'db_list', 'db', 'table',
+    'expr', 'R', 'js', 'let', 'fn', 'if_then_else',
+    'ExecutionError', 'BadQueryError']
 
 from query import *
 from net import connect, ExecutionError, BadQueryError
