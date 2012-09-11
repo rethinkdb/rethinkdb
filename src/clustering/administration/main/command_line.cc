@@ -108,7 +108,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     }
 }
 
-void run_rethinkdb_import(std::vector<host_and_port_t> joins, io_backend_t io_backend, int client_port, std::string db_table, std::string separators, std::string input_filepath, UNUSED bool *result_out) {
+void run_rethinkdb_import(std::vector<host_and_port_t> joins, io_backend_t io_backend, int client_port, std::string db_table, std::string separators, std::string input_filepath, bool *result_out) {
     os_signal_cond_t sigint_cond;
     guarantee(!joins.empty());
 

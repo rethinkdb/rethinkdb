@@ -17,7 +17,7 @@ bool csv_to_json_importer_t::get_json(UNUSED scoped_cJSON_t *out) {
     return true;
 }
 
-void csv_to_json_importer_t::import_json_from_file(UNUSED std::string separators, UNUSED std::string filepath) {
+void csv_to_json_importer_t::import_json_from_file(UNUSED std::string separators, std::string filepath) {
     blocking_read_file_stream_t file;
     bool success = file.init(filepath.c_str());
     // TODO(sam): Fail more cleanly.
