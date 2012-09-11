@@ -32,6 +32,26 @@ cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
     return obj;
 }
 
+std::string cJSON_Print_lexicographic(const cJSON *json) {
+    std::string acc;
+    rassert(json->type == cJSON_Number || json->type == cJSON_String);
+    if (json->type == cJSON_Number) {
+        acc += "N";
+
+        union {double d; int64_t u;} packed;
+        rassert(sizeof(packed.d) == sizeof(packed.u));
+        rassert((void *)&packed.d == (void *)&packed.u);
+        packed.d = json->valuedouble;
+        acc += strprintf("%.*lx", (int)(sizeof(double)*2), packed.u);
+        return acc;
+    } else {
+        rassert(json->type == cJSON_String);
+        acc += "S";
+        acc += json->valuestring;
+    }
+    return acc;
+}
+
 scoped_cJSON_t::scoped_cJSON_t(cJSON *_val)
     : val(_val)
 { }
@@ -65,23 +85,7 @@ std::string scoped_cJSON_t::PrintUnformatted() const THROWS_NOTHING {
 }
 
 std::string scoped_cJSON_t::PrintLexicographic() const THROWS_NOTHING {
-    std::string acc;
-    rassert(type() == cJSON_Number || type() == cJSON_String);
-    if (type() == cJSON_Number) {
-        acc += "N";
-
-        union {double d; int64_t u;} packed;
-        rassert(sizeof(packed.d) == sizeof(packed.u));
-        rassert((void *)&packed.d == (void *)&packed.u);
-        packed.d = val->valuedouble;
-        acc += strprintf("%.*lx", (int)(sizeof(double)*2), packed.u);
-        return acc;
-    } else {
-        rassert(type() == cJSON_String);
-        acc += "S";
-        acc += val->valuestring;
-    }
-    return acc;
+    return cJSON_Print_lexicographic(val);
 }
 
 cJSON *scoped_cJSON_t::get() const {
