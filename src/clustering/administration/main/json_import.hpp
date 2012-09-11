@@ -28,7 +28,7 @@ private:
     std::vector<std::string> column_names_;
     std::vector<std::vector<std::string> > rows_;
 
-    int position_;
+    size_t position_;
 
     DISABLE_COPYING(csv_to_json_importer_t);
 };
