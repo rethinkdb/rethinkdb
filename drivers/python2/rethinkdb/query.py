@@ -923,6 +923,17 @@ class StreamExpression(ReadQuery):
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
 
+    def eq_join(self, attribute, table, table_key):
+        # This is a hack for the demo
+        assert isinstance(attribute, str)
+        assert isinstance(table, Table)
+        assert isinstance(table_key, str)
+        return self.concat_map(fn("left_row",
+            expr([table.get(R("$left_row.%s" % attribute), table_key)]).to_stream() \
+                .filter(fn("x", R("$x") != None)) \
+                .map(fn("right_row", R("$right_row").extend(R("$left_row"))))
+            ))
+
 def expr(val):
     """Converts a python value to a ReQL :class:`JSONExpression`.
 
@@ -1431,16 +1442,19 @@ class Table(MultiRowSelection):
     def insert_stream(self, stream):
         return WriteQuery(internal.InsertStream(self, stream))
 
-    def get(self, key):
-        """Select a row by primary key. If the key doesn't exist, returns null.
+    def get(self, key, attr_name = "id"):
+        """Select a row by primary key. `attr_name` must be the name of the
+        primary key for the table.
 
         :param key: the key to look for
         :type key: JSON value
+        :param attr_name: the field to check against `key`
+        :type attr_name: str
         :rtype: :class:`RowSelection`
 
         >>> q = table('users').get(10)  # get user with primary key 10
         """
-        return RowSelection(internal.Get(self, key))
+        return RowSelection(internal.Get(self, key, attr_name))
 
     def _write_ref_ast(self, parent):
         parent.db_name = self.db_expr.db_name

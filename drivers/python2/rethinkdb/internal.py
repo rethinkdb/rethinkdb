@@ -600,21 +600,22 @@ class Range(ExpressionInner):
             PRETTY_PRINT_EXPR_WRAPPED)
 
 class Get(ExpressionInner):
-    def __init__(self, table, value):
+    def __init__(self, table, key, attr_name):
         self.table = table
-        self.key = "id"
-        self.value = query.expr(value)
+        self.key = query.expr(key)
+        self.attr_name = attr_name
 
     def _write_ast(self, parent):
         parent.type = p.Term.GETBYKEY
         self.table._write_ref_ast(parent.get_by_key.table_ref)
-        parent.get_by_key.attrname = self.key
-        self.value._inner._write_ast(parent.get_by_key.key)
+        parent.get_by_key.attrname = self.attr_name
+        self.key._inner._write_ast(parent.get_by_key.key)
 
     def pretty_print(self, printer):
-        return ("%s.get(%s)" % (
+        return ("%s.get(%s, attr_name = %r)" % (
                 printer.expr_wrapped(self.table, ["table_ref"]),
-                printer.expr_unwrapped(self.value, ["key"])),
+                printer.expr_unwrapped(self.key, ["key"]),
+                self.attr_name),
             PRETTY_PRINT_EXPR_WRAPPED)
 
 class If(ExpressionInner):
