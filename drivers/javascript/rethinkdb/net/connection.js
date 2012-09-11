@@ -122,9 +122,9 @@ goog.inherits(rethinkdb.errors.RuntimeError, Error);
  * @constructor
  * @extends {Error}
  */
-rethinkdb.errors.BrokenClient = function() {
+rethinkdb.errors.BrokenClient = function(msg) {
     this.name = "Broken Client";
-    this.message = "The client sent the server an incorrectly formatted message";
+    this.message = msg || "The client sent the server an incorrectly formatted message";
 };
 goog.inherits(rethinkdb.errors.BrokenClient, Error);
 
@@ -167,7 +167,7 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
 
         switch(responseStatus) {
         case Response.StatusCode.BROKEN_CLIENT:
-            throw new rethinkdb.errors.BrokenClient();
+            throw new rethinkdb.errors.BrokenClient(response.getErrorMessage());
             break;
         case Response.StatusCode.RUNTIME_ERROR:
             throw new rethinkdb.errors.RuntimeError(response.getErrorMessage());
