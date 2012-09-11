@@ -76,15 +76,40 @@ bool csv_to_json_importer_t::get_json(scoped_cJSON_t *out) {
 }
 
 std::vector<std::string> split_buf(const bitset_t &seps, const char *buf, int64_t size) {
-    // TODO(sam): Support quotating.
     std::vector<std::string> ret;
     int64_t p = 0;
-    for (int64_t i = 0; i < size; ++i) {
-        if (seps.test(buf[i])) {
+
+    for (;;) {
+        int64_t i = p;
+        if (i == size) {
             ret.push_back(std::string(buf + p, buf + i));
+            break;
+        } else if (buf[i] == '"') {
+            ++i;
+            // TODO(sam): support \" escapes?
+            while (i < size && (buf[i] != '"' || (buf[i] == '"' && i + 1 < size && !seps.test(buf[i + 1])))) { ++i; }
+
+            if (i == size) {
+                ret.push_back(std::string(buf + p, buf + i));
+                break;
+            } else if (i + 1 == size) {
+                ret.push_back(std::string(buf + p + 1, buf + i));
+                break;
+            } else {
+                ret.push_back(std::string(buf + p + 1, buf + i));
+                rassert(seps.test(buf[i + 1]));
+                p = i + 2;
+            }
+        } else {
+            while (i < size && !seps.test(buf[i])) { ++i; }
+            ret.push_back(std::string(buf + p, buf + i));
+            if (i == size) {
+                break;
+            }
             p = i + 1;
         }
     }
+
     return ret;
 }
 
