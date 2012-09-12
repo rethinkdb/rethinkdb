@@ -11,7 +11,7 @@ class peer_address_t;
 class json_importer_t;
 
 
-bool run_json_import(io_backender_t *backender, std::set<peer_address_t> peers, int client_port, std::string db_table, json_importer_t *importer);
+bool run_json_import(io_backender_t *backender, std::set<peer_address_t> peers, int ports_port, int ports_client_port, std::string db_table, json_importer_t *importer);
 
 
 
