@@ -233,7 +233,7 @@ rethinkdb.query.fn = function(var_args) {
         var body = arguments[arguments.length - 1];
         var args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
 
-        typeCheck_(body, rethinkdb.query.BaseQuery);
+        typeCheck_(body, rethinkdb.query.Query);
         args.forEach(function(arg) {return typeCheck_(arg, 'string')});
 
         return new rethinkdb.query.FunctionExpression(args, body);
@@ -398,7 +398,7 @@ makeComparison(Builtin.Comparison.GT, 'gt');
 
 /**
  * Greater than or equals comparison
- * @name rethinkdb.query.Expression.prototype.eq
+ * @name rethinkdb.query.Expression.prototype.ge
  * @function
  * @param {*} other
  * @return {rethinkdb.query.Expression}
@@ -812,7 +812,6 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'without',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.pluck = function(attrs) {
-    attrs.forEach(function(attr){typeCheck_(attr, 'string')});
     return this.map(rethinkdb.query.fn('a', rethinkdb.query.R('$a').pickAttrs(attrs)));
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'pluck',
@@ -970,8 +969,8 @@ rethinkdb.query.IfExpression.prototype.compile = function() {
  * @export
  */
 rethinkdb.query.ifThenElse = function(test, trueBranch, falseBranch) {
-    typeCheck_(trueBranch, rethinkdb.query.BaseQuery);
-    typeCheck_(falseBranch, rethinkdb.query.BaseQuery);
+    typeCheck_(trueBranch, rethinkdb.query.Query);
+    typeCheck_(falseBranch, rethinkdb.query.Query);
     test = wrapIf_(test);
     return new rethinkdb.query.IfExpression(test, trueBranch, falseBranch);
 };
@@ -1025,21 +1024,21 @@ rethinkdb.query.let = function(var_args) {
     })) {
         throw new TypeError("Let bindings must be string, ReQL expression tuples");
     };
-    typeCheck_(body, rethinkdb.query.BaseQuery);
+    typeCheck_(body, rethinkdb.query.Query);
 
     return new rethinkdb.query.LetExpression(bindings, body);
 };
 
 /**
  * @constructor
- * @extends {rethinkdb.query.BaseQuery}
+ * @extends {rethinkdb.query.Query}
  * @ignore
  */
 rethinkdb.query.ForEachQuery = function(leftExpr, fun) {
     this.leftExpr_ = leftExpr;
     this.fun_ = fun;
 };
-goog.inherits(rethinkdb.query.ForEachQuery, rethinkdb.query.BaseQuery);
+goog.inherits(rethinkdb.query.ForEachQuery, rethinkdb.query.Query);
 
 /** @override */
 rethinkdb.query.ForEachQuery.prototype.buildQuery = function() {
@@ -1070,7 +1069,7 @@ rethinkdb.query.ForEachQuery.prototype.buildQuery = function() {
  * @param {rethinkdb.query.FunctionExpression|rethinkdb.query.Expression} fun A ReQL function
  *  expression binding a row or a ReQL expression relying on the implicit variable to evaluate
  *  for each row of this sequence.
- * @return {rethinkdb.query.BaseQuery}
+ * @return {rethinkdb.query.Query}
  */
 rethinkdb.query.Expression.prototype.forEach = function(fun) {
     fun = functionWrap_(fun);
@@ -1078,6 +1077,28 @@ rethinkdb.query.Expression.prototype.forEach = function(fun) {
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'forEach',
                     rethinkdb.query.Expression.prototype.forEach);
+
+/**
+ * Hack for demo
+ */
+rethinkdb.query.Expression.prototype.eqJoin = function(attr, table) {
+    typeCheck_(attr, 'string');
+
+    if (!(table instanceof rethinkdb.query.Table)) {
+        table = rethinkdb.query.table(table);
+    }
+
+    var q = rethinkdb.query;
+    return this.concatMap(q.fn('leftRow',
+        q([table.get(q('$leftRow.'+attr))]).filter(q.fn('x',
+            q('$x')['ne'](null))
+        ).map(q.fn('rightRow',
+            q('$rightRow').extend(q('$leftRow')))
+        )
+    ));
+};
+goog.exportProperty(rethinkdb.query.Expression.prototype, 'eqJoin',
+                    rethinkdb.query.Expression.prototype.eqJoin);
 
 /**
  * Convert a stream to an array.

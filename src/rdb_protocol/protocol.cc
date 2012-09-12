@@ -263,10 +263,10 @@ public:
                         Term base = gmr->reduction().base(),
                              body = gmr->reduction().body();
 
-                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, rg.backtrace)));
+                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval_term_as_json(&base, &env, rg.backtrace)));
                         env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
 
-                        (*res_groups)[j->first] = eval(&body, &env, rg.backtrace);
+                        (*res_groups)[j->first] = eval_term_as_json(&body, &env, rg.backtrace);
                     }
                 }
             } else if (const Reduction *r = boost::get<Reduction>(&*rg.terminal)) {
@@ -275,7 +275,7 @@ public:
                 atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
 
                 Term base = r->base();
-                *res_atom = eval(&base, &env, rg.backtrace);
+                *res_atom = eval_term_as_json(&base, &env, rg.backtrace);
 
                 for(rri_t i = responses.begin(); i != responses.end(); ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
@@ -287,7 +287,7 @@ public:
                     env.scopes.scope.put_in_scope(r->var1(), *res_atom);
                     env.scopes.scope.put_in_scope(r->var2(), *atom);
                     Term body = r->body();
-                    *res_atom = eval(&body, &env, rg.backtrace);
+                    *res_atom = eval_term_as_json(&body, &env, rg.backtrace);
                 }
             } else if (boost::get<rdb_protocol_details::Length>(&*rg.terminal)) {
                 rg_response.result = atom_t();
@@ -487,10 +487,10 @@ public:
                         Term base = gmr->reduction().base(),
                              body = gmr->reduction().body();
 
-                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, rg.backtrace)));
+                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval_term_as_json(&base, &env, rg.backtrace)));
                         env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
 
-                        (*res_groups)[j->first] = eval(&body, &env, rg.backtrace);
+                        (*res_groups)[j->first] = eval_term_as_json(&body, &env, rg.backtrace);
                     }
                 }
             } else if (const Reduction *r = boost::get<Reduction>(&*rg.terminal)) {
@@ -499,7 +499,7 @@ public:
                 atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
 
                 Term base = r->base();
-                *res_atom = eval(&base, &env, rg.backtrace);
+                *res_atom = eval_term_as_json(&base, &env, rg.backtrace);
 
                 for(rri_t i = responses.begin(); i != responses.end(); ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
@@ -511,7 +511,7 @@ public:
                     env.scopes.scope.put_in_scope(r->var1(), *res_atom);
                     env.scopes.scope.put_in_scope(r->var2(), *atom);
                     Term body = r->body();
-                    *res_atom = eval(&body, &env, rg.backtrace);
+                    *res_atom = eval_term_as_json(&body, &env, rg.backtrace);
                 }
             } else if (boost::get<rdb_protocol_details::Length>(&*rg.terminal)) {
                 rg_response.result = atom_t();

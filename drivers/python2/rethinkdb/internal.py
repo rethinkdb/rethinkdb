@@ -715,7 +715,7 @@ class Reduce(ExpressionInner):
         return ("%s.reduce(%s, %s)" % (
                 printer.expr_wrapped(self.parent, ["arg:0"]),
                 printer.expr_unwrapped(self.base, ["reduce", "base"]),
-                self.reduce._pretty_print(printer, ["reduce", "body"])),
+                self.reduction._pretty_print(printer, ["reduce", "body"])),
             PRETTY_PRINT_EXPR_WRAPPED)
 
 class Let(ExpressionInner):
