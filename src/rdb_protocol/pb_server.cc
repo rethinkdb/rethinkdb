@@ -66,8 +66,8 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
             ctx->directory_read_manager,
             js_runner, &interruptor, ctx->machine_id);
         try {
-            //[execute] will set the status code unless it throws
-            execute(q, &runtime_environment, &res, root_backtrace, stream_cache);
+            //[execute_query] will set the status code unless it throws
+            execute_query(q, &runtime_environment, &res, root_backtrace, stream_cache);
         } catch (const query_language::runtime_exc_t &e) {
             res.set_status_code(Response::RUNTIME_ERROR);
             res.set_error_message(e.message);
