@@ -524,8 +524,8 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             }
             break;
         case Builtin::UNION: {
-            check_function_args(c, TERM_TYPE_STREAM, 2, env, &deterministic, backtrace);
             term_info_t res = get_term_type(c.args(0), env, backtrace);
+            check_function_args(c, res.type, 2, env, &deterministic, backtrace);
             res.deterministic &= deterministic;
             return res;
         } break;
