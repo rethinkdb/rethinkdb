@@ -1,14 +1,15 @@
 class Casper
     constructor: ->
         casper = require('casper').create
+            #verbose: true
             logLevel: 'debug'
             viewportSize:
                 width: 940
                 height: 400
+            clientScripts: ["jquery.js"]
         @casper = casper
       
         if @casper.cli.options['rdb-server']?
-            console.log @casper.cli.options['rdb-server']
             casper._rdb_server = @casper.cli.options['rdb-server']
         else casper._rdb_server = 'http://localhost:6001/'
 
@@ -18,7 +19,6 @@ class Casper
             # If an output directory was specified, save the images to that directory (prepend the output filename with the directory)
             filename = "#{images}/#{filename}" if images isnt true
 
-            console.log filename
             @casper.captureSelector(filename, selector)
 
         casper._run = =>
@@ -30,7 +30,12 @@ class Casper
 
             @casper.test.done()
 
-        @print_options()
+        # To help debug, capture remote messages (console.log in the application)
+        casper._logRemote = =>
+            @casper.on "remote.message", (message) =>
+                  @casper.echo("remote console.log: " + message)
+            
+
         return casper
 
     print_options: =>
