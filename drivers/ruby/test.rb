@@ -361,7 +361,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.filter({'num' => 1}).run.to_a, [$data[1]])
     assert_equal(id_sort(rdb.filter({'num' => :num}).run.to_a), $data)
     query = rdb.orderby(:id).map { |outer_row|
-      rdb.filter{r[:id] < outer_row[:id]}.to_array
+      rdb.filter{|row| row[:id] < outer_row[:id]}.to_array
     }
     assert_equal(id_sort(query.run.to_a[2]), $data[0..1])
   end
@@ -391,12 +391,16 @@ class ClientTest < Test::Unit::TestCase
     assert_raise(RuntimeError){r[1].filter{true}.run.to_a}
     query_5 = rdb.filter{r[:name].eq('5')}
     assert_equal(query_5.run.to_a, [$data[5]])
-    query_2345 = rdb.filter{|row| r.and r[:id] >= 2,row[:id] <= 5}
-    query_234 = query_2345.filter{r[:num].neq(5)}
+    query_2345 = rdb.filter{|row| r.and row[:id] >= 2,row[:id] <= 5}
+    query_234 = query_2345.filter{|row| row[:num].neq(5)}
     query_23 = query_234.filter{|row| r.any row[:num].eq(2),row[:num].equals(3)}
     assert_equal(id_sort(query_2345.run.to_a), $data[2..5])
     assert_equal(id_sort(query_234.run.to_a), $data[2..4])
     assert_equal(id_sort(query_23.run.to_a), $data[2..3])
+  end
+
+  def test_implicit_nesting
+    assert_raise(SyntaxError){rdb.filter{rdb.filter{r[:id]}.to_array.eq([])}.run.to_a}
   end
 
   def test_slice_streams # SLICE

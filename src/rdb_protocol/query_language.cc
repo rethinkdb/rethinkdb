@@ -402,6 +402,8 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             check_arg_count(c, 0, backtrace);
             if (!env->implicit_type.has_value() || env->implicit_type.get_value().type != TERM_TYPE_JSON) {
                 throw bad_query_exc_t("No implicit variable in scope", backtrace);
+            } else if (!env->implicit_type.depth_is_legal()) {
+                throw bad_query_exc_t("Cannot use implicit variable in nested queries.  Name your variables!", backtrace);
             }
             deterministic &= env->implicit_type.get_value().deterministic;
             return term_info_t(TERM_TYPE_JSON, deterministic);
