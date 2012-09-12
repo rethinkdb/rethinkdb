@@ -82,6 +82,7 @@ rethinkdb.net.Connection.prototype.sendProtoBuf_ = function(pbObj) {
  * @param {function(...)} opt_callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.run = function(expr, opt_callback) {
+    argCheck_(arguments, 1);
     typeCheck_(expr, rethinkdb.query.Query);
     typeCheck_(opt_callback, 'function');
     this.run_(expr, false, opt_callback);
@@ -98,6 +99,7 @@ goog.exportProperty(rethinkdb.net.Connection.prototype, 'run',
  * @param {function(...)} opt_callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.iter = function(expr, opt_callback) {
+    argCheck_(arguments, 1);
     typeCheck_(expr, rethinkdb.query.Query);
     typeCheck_(opt_callback, 'function');
     this.run_(expr, true, opt_callback);
@@ -190,6 +192,7 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
  * @param {string} dbName
  */
 rethinkdb.net.Connection.prototype.use = function(dbName) {
+    argCheck_(arguments, 1);
     typeCheck_(dbName, 'string');
 	this.defaultDbName_ = dbName;
 };

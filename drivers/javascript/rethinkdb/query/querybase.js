@@ -79,3 +79,13 @@ function typeCheck_(value, types) {
         }
     };
 }
+
+/**
+ * Internal utility to verify min arg counts
+ */
+function argCheck_(args, expected) {
+    if (args.length < expected) {
+        throw new TypeError("Function requires at least "+expected+" argument"+
+                            (expected > 1 ? 's.' : '.'));
+    }
+}
