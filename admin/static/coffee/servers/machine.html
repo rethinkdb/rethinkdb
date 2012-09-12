@@ -38,8 +38,12 @@
     </div>
 </script>
 
-<script id="machine_view-not_found-template" type="text/x-handlebars-template">
-    <p>Server {{id}} could not be found.</p>
+<script id="machine_view-ghost-template" type="text/x-handlebars-template">
+    <h1>Error</h1>
+    <p>This server has been previously killed but is not reconnected.<br/>
+    Please kill the rethinkDB instance on this server.</p>
+    <p>List of IPs: {{comma_separated_simple ips}}</p>
+    <p></p>
 </script>
 
 <script id="machine_view_profile-template" type="text/x-handlebars-template">

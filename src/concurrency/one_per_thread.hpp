@@ -4,6 +4,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/scoped.hpp"
+#include "containers/object_buffer.hpp"
 
 template<class inner_t>
 class one_per_thread_t {
@@ -13,7 +14,7 @@ public:
         explicit construct_0_t(one_per_thread_t *p) : parent_(p) { }
         void operator()(int thread) const {
             on_thread_t th(thread);
-            parent_->array[thread].init(new inner_t);
+            parent_->array[thread].create();
         }
     };
 
@@ -29,7 +30,7 @@ public:
 
         void operator()(int thread) const {
             on_thread_t th(thread);
-            parent_->array[thread].init(new inner_t(arg1_));
+            parent_->array[thread].create(arg1_);
         }
     };
 
@@ -48,7 +49,7 @@ public:
 
         void operator()(int thread) const {
             on_thread_t th(thread);
-            parent_->array[thread].init(new inner_t(arg1_, arg2_));
+            parent_->array[thread].create(arg1_, arg2_);
         }
     };
 
@@ -76,11 +77,11 @@ public:
     }
 
 private:
-    // An array of pointer-to-inner_t of size get_num_threads(), the
-    // array is allocated and then the pointers are allocated (on
-    // their respective threads) and both the pointees and arrays
-    // owned by this object.
-    scoped_array_t<scoped_ptr_t<inner_t> > array;
+    // An array of buffers of inner_t of size get_num_threads(), the
+    // array is allocated and then the buffers are initialized (on
+    // their respective threads).  The array and buffers are owned by
+    // this object.
+    scoped_array_t<object_buffer_t<inner_t> > array;
 
     DISABLE_COPYING(one_per_thread_t);
 };

@@ -76,6 +76,7 @@ Manipulating databases and tables
 """
 
 import query_language_pb2 as p
+import net
 
 class BaseQuery(object):
     """A base class for all ReQL queries. Queries can be run by calling the
@@ -92,7 +93,7 @@ class BaseQuery(object):
     def _finalize_query(self, root):
         raise NotImplementedError()
 
-    def run(conn=None):
+    def run(self, conn=None):
         """Evaluate the expression on the server using the connection
         specified by `conn`. If `conn` is empty, uses the last created
         connection (located in :data:`rethinkdb.net.last_connection`).
@@ -110,7 +111,11 @@ class BaseQuery(object):
         >>> res = table('db_name.table_name').insert({ 'a': 1, 'b': 2 }).run(conn)
         >>> res = table('db_name.table_name').run() # uses conn since it's the last created connection
         """
-        raise NotImplementedError()
+        if conn is None:
+            if net.last_connection is None:
+                raise StandardError("Call rethinkdb.net.connect() to connect to a server before calling run()")
+            conn = net.last_connection
+        return conn.run(self)
 
 class ReadQuery(BaseQuery):
     """Base class for expressions"""
@@ -118,6 +123,9 @@ class ReadQuery(BaseQuery):
     def __init__(self, inner):
         assert isinstance(inner, internal.ExpressionInner)
         self._inner = inner
+
+    def __str__(self):
+        return internal.ReprPrettyPrinter().expr_wrapped(self, [])
 
     def _finalize_query(self, root):
         root.type = p.Query.READ
@@ -145,6 +153,9 @@ class JSONExpression(ReadQuery):
     :class:`JSONExpression` overloads Python operators wherever possible to
     implement arithmetic, attribute access, and so on.
     """
+
+    def __repr__(self):
+        return "<JSONExpression %s>" % str(self)
 
     def __getitem__(self, index):
         """If `index` is a string, expects `self` to evaluate to an object and
@@ -327,7 +338,7 @@ class JSONExpression(ReadQuery):
 
         :returns: :class:`JSONExpression`
         """
-        return JSONExpression(internal.Sub(self))
+        return JSONExpression(internal.Negate(self))
 
     def __or__(self, other):
         """Computes the boolean "or" of `self` and `other`.
@@ -359,7 +370,7 @@ class JSONExpression(ReadQuery):
 
     def __ror__(self, other):
         return JSONExpression(internal.Any(other, self))
-    def __rand__(self, othe):
+    def __rand__(self, other):
         return JSONExpression(internal.All(other, self))
 
     def __invert__(self):
@@ -507,7 +518,7 @@ class JSONExpression(ReadQuery):
         """
         if not isinstance(mapping, JSONFunction):
             mapping = JSONFunction(mapping)
-        return self._make_transform(internal.Map(self, mapping))
+        return JSONExpression(internal.Map(self, mapping))
 
     def concat_map(self, mapping):
         """Applies the given function to each element of an array. The result of
@@ -528,7 +539,7 @@ class JSONExpression(ReadQuery):
         """
         if not isinstance(mapping, StreamFunction):
             mapping = StreamFunction(mapping)
-        return self._make_transform(internal.ConcatMap(self, mapping))
+        return JSONExpression(internal.ConcatMap(self, mapping))
 
     def reduce(self, base, func):
         """Combines all the elements of an array into one value by repeatedly
@@ -580,7 +591,7 @@ class JSONExpression(ReadQuery):
         >>> expr([1, 9, 1, 1, 3, 8, 3]).distinct().run()
         [1, 9, 3, 8]
         """
-        return self._make_transform(internal.Distinct(self))
+        return JSONExpression(internal.Distinct(self))
 
     def pluck(self, attr_or_attrs):
         """For each element of an array, picks out the specified attribute or
@@ -613,7 +624,7 @@ class JSONExpression(ReadQuery):
         >>> expr([1, 2, 3]).length().run()
         3
         """
-        return JSONExpression(internal.Count(self))
+        return JSONExpression(internal.Length(self))
 
     def __len__(self):
         raise ValueError("To construct a `rethinkdb.JSONExpression` "
@@ -634,6 +645,10 @@ class JSONExpression(ReadQuery):
 
 class StreamExpression(ReadQuery):
     """A sequence of JSON values which can be read."""
+
+    def __repr__(self):
+        return "<StreamExpression %s>" % str(self)
+
     def _make_selector(self, inner):
         if isinstance(self, MultiRowSelection):
             return MultiRowSelection(inner)
@@ -899,7 +914,7 @@ class StreamExpression(ReadQuery):
 
         >>> table("users").length()   # Total number of users in the system
         """
-        return JSONExpression(internal.Count(self))
+        return JSONExpression(internal.Length(self))
 
     def __len__(self):
         raise ValueError("To construct a `rethinkdb.JSONExpression` "
@@ -925,7 +940,20 @@ def expr(val):
     """
     if isinstance(val, JSONExpression):
         return val
-    return JSONExpression(internal.JSONLiteral(val))
+    elif val is None:
+        return JSONExpression(internal.LiteralNull())
+    elif isinstance(val, bool):
+        return JSONExpression(internal.LiteralBool(val))
+    elif isinstance(val, (int, float)):
+        return JSONExpression(internal.LiteralNumber(val))
+    elif isinstance(val, (str, unicode)):
+        return JSONExpression(internal.LiteralString(val))
+    elif isinstance(val, list):
+        return JSONExpression(internal.LiteralArray(val))
+    elif isinstance(val, object):
+        return JSONExpression(internal.LiteralObject(val))
+    else:
+        raise TypeError("%r is not a valid JSONExpression" % val)
 
 def if_then_else(test, true_branch, false_branch):
     """If `test` returns `true`, evaluates to `true_branch`. If `test` returns
@@ -959,7 +987,7 @@ def if_then_else(test, true_branch, false_branch):
         t = JSONExpression
     return t(internal.If(test, true_branch, false_branch))
 
-def R(name):
+def R(string):
     """Get the value of a variable or attribute.
 
     To get a variable, prefix the name with `$`.
@@ -1013,15 +1041,16 @@ def R(name):
     >>> table('users').filter(fn('row', R('$age') == 30)) # error - no variable 'age' is defined
     >>> table('users').filter(R('$age') == 30) # error - no variable '$age' is defined, use 'age'
     """
-    if name.startswith('$'):
-        if '.' not in name:
-            return JSONExpression(internal.Var(name[1:]))
-        raise NotImplementedError("$ with . not handled")
-    if name.startswith('@'):
-        raise NotImplementedError("@ not handled")
-    if '.' in name:
-        raise NotImplementedError(". not handled")
-    return JSONExpression(internal.ImplicitAttr(name))
+    parts = string.split(".")
+    if parts[0] == "@":
+        raise NotImplementedError("R('@') is not implemented")
+    elif parts[0].startswith("$"):
+        expr_so_far = JSONExpression(internal.Var(parts[0][1:]))
+    else:
+        expr_so_far = JSONExpression(internal.ImplicitAttr(parts[0]))
+    for part in parts[1:]:
+        expr_so_far = expr_so_far[part]
+    return expr_so_far
 
 def js(expr=None, body=None):
     if (expr is not None) + (body is not None) != 1:
@@ -1076,6 +1105,12 @@ class JSONFunction(object):
         self.body = expr(body)
         self.args = args
 
+    def __str__(self):
+        return self._pretty_print(internal.ReprPrettyPrinter(), [])
+
+    def __repr__(self):
+        return "<JSONFunction %s>" % str(self)
+
     def write_mapping(self, mapping):
         assert len(self.args) <= 1
         if self.args:
@@ -1091,6 +1126,9 @@ class JSONFunction(object):
         reduction.var2 = self.args[1]
         self.body._inner._write_ast(reduction.body)
 
+    def _pretty_print(self, printer, backtrace_steps):
+        return "fn(%s)" % (", ".join([repr(x) for x in self.args] + [printer.expr_unwrapped(self.body, backtrace_steps)]))
+
 class StreamFunction(object):
     """TODO document me"""
     def __init__(self, body, *args):
@@ -1098,12 +1136,21 @@ class StreamFunction(object):
         self.body = body
         self.args = args
 
+    def __str__(self):
+        return self._pretty_print(internal.ReprPrettyPrinter(), [])
+
+    def __repr__(self):
+        return "<StreamFunction %s>" % str(self)
+
     def write_mapping(self, mapping):
         if self.args:
             mapping.arg = self.args[0]
         else:
             mapping.arg = 'row'     # TODO: GET RID OF THIS
         self.body._inner._write_ast(mapping.body)
+
+    def _pretty_print(self, printer, backtrace_steps):
+        return "fn(%s)" % (", ".join([repr(x) for x in self.args] + [printer.expr_unwrapped(self.body, backtrace_steps)]))
 
 class BaseSelection(object):
     """Something which can be read or written."""
@@ -1133,8 +1180,14 @@ class BaseSelection(object):
 class RowSelection(JSONExpression, BaseSelection):
     """A single row from a table which can be read or written."""
 
+    def __repr__(self):
+        return "<RowSelection %s>" % str(self)
+
 class MultiRowSelection(StreamExpression, BaseSelection):
     """A sequence of rows which can be read or written."""
+
+    def __repr__(self):
+        return "<MultiRowSelection %s>" % str(self)
 
 class WriteQuery(BaseQuery):
     """All queries that modify the database are instances of
@@ -1143,23 +1196,33 @@ class WriteQuery(BaseQuery):
         assert isinstance(inner, internal.WriteQueryInner)
         self._inner = inner
 
+    def __str__(self):
+        return internal.ReprPrettyPrinter().write_query(self, [])
+
+    def __repr__(self):
+        return "<WriteQuery %s>" % str(self)
+
     def _finalize_query(self, root):
         root.type = p.Query.WRITE
         self._inner._write_write_query(root.write_query)
-
-    def _write_write_query(self, parent):
-        raise NotImplementedError()
 
 class MetaQuery(BaseQuery):
     """Queries that create, destroy, or examine databases or tables rather than
     working with actual data are instances of :class:`MetaQuery`."""
     def __init__(self, inner):
         self._inner = inner
-    def _finalize_query(self, root):
-        root.type = p.Query.TABLEOP
-        self._inner._write_tableop_query(root.tableop_query)
 
-def db_create(db_name, primary_datacenter=None):
+    def __str__(self):
+        return internal.ReprPrettyPrinter().meta_query(self, [])
+
+    def __repr__(self):
+        return "<MetaQuery %s>" % str(self)
+
+    def _finalize_query(self, root):
+        root.type = p.Query.META
+        self._inner._write_meta_query(root.meta_query)
+
+def db_create(db_name):
     """Create a ReQL expression that creates a database within a
     RethinkDB cluster. A RethinkDB database is an object that contains
     related tables as well as configuration options that apply to
@@ -1171,20 +1234,14 @@ def db_create(db_name, primary_datacenter=None):
 
     :param db_name: The name of the database to be created.
     :type db_name: str
-    :param primary_datacenter: An optional name of the primary
-      datacenter to be used for this database. If this argument is
-      omitted, the cluster-level default datacenter will be used as
-      primary for this database.
-    :type primary_datacenter: str
     :returns: :class:`MetaQuery` -- a ReQL expression that encodes the database
      creation operation.
 
     :Example:
 
-    >>> q = db_create('db_name')
-    >>> q = db_create('db_name', primary_datacenter='us_west')
+    >>> q = db_create('my_database_name')
     """
-    return MetaQuery(internal.DBCreate(db_name, primary_datacenter))
+    return MetaQuery(internal.DBCreate(db_name))
 
 def db_drop(db_name):
     """Create a ReQL expression that drops a database within a
@@ -1201,7 +1258,7 @@ def db_drop(db_name):
 
     :Example:
 
-    >>> q = db_drop('db_name')
+    >>> q = db_drop('testing')
     """
     return MetaQuery(internal.DBDrop(db_name))
 
@@ -1219,7 +1276,8 @@ def db_list():
 
     :Example:
 
-    >>> q = db_list() # returns a list of names, e.g. ['db1', 'db2', 'db3']
+    >>> db_list().run()
+    ['Personnel', 'Grades', 'Financial']
     """
     return MetaQuery(internal.DBList())
 
@@ -1235,7 +1293,10 @@ class Database(object):
         """
         self.db_name = db_name
 
-    def create(self, table_name, primary_key="id"):
+    def __repr__(self):
+        return "<Database %r>" % self.db_name
+
+    def table_create(self, table_name, primary_datacenter, primary_key="id"):
         """Create a ReQL expression that creates a table within this
         RethinkDB database. A RethinkDB table is an object that
         contains JSON documents.
@@ -1247,6 +1308,9 @@ class Database(object):
 
         :param table_name: The name of the table to be created.
         :type table_name: str
+        :param primary_datacenter: The name of the datacenter to use as the
+            primary datacenter for the new table.
+        :type primary_datacenter: str
         :param primary_key: An optional name of the JSON attribute
           that will be used as a primary key for the document. If
           missing, defaults to 'id'.
@@ -1256,12 +1320,12 @@ class Database(object):
 
         :Example:
 
-        >>> q = db('db_name').create('posts') # uses primary key 'id'
-        >>> q = db('db_name').create('users', primary_key='user_id')
+        >>> q = db('db_name').create('posts', primary_datacenter = "us-west") # uses primary key 'id'
+        >>> q = db('db_name').create('users', primary_datacenter = "us-west", primary_key='user_id')
         """
-        return MetaQuery(internal.TableCreate(table_name, self, primary_key))
+        return MetaQuery(internal.TableCreate(table_name, self, primary_datacenter, primary_key))
 
-    def drop(self, table_name):
+    def table_drop(self, table_name):
         """Create a ReQL expression that drops a table within this
         RethinkDB database.
 
@@ -1281,7 +1345,7 @@ class Database(object):
         """
         return MetaQuery(internal.TableDrop(table_name, self))
 
-    def list(self):
+    def table_list(self):
         """Create a ReQL expression that lists all tables within this
         RethinkDB database.
 
@@ -1345,6 +1409,12 @@ class Table(MultiRowSelection):
         ReadQuery.__init__(self, internal.Table(self))
         self.table_name = table_name
         self.db_expr = db_expr
+
+    def __repr__(self):
+        if self.db_expr is not None:
+            return "<Table %r>" % (self.db_expr.db_name + "." + self.table_name)
+        else:
+            return "<Table %r>" % self.table_name
 
     def insert(self, docs):
         """Insert documents into the table.

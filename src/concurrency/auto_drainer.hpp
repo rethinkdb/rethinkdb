@@ -17,9 +17,7 @@ The signal returned by `lock_t::get_drain_signal()` will be pulsed when the
 `auto_drainer_t`'s destructor is called. You can use this to interrupt the
 running processes if it makes sense for your situation. */
 
-class auto_drainer_t :
-    public home_thread_mixin_t
-{
+class auto_drainer_t : public home_thread_mixin_t {
 public:
     auto_drainer_t();
     ~auto_drainer_t();

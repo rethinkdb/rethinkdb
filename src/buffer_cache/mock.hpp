@@ -86,7 +86,7 @@ private:
 };
 
 class mock_transaction_t :
-    public home_thread_mixin_t
+    public home_thread_mixin_debug_only_t
 {
     typedef mock_buf_lock_t buf_lock_t;
 
@@ -122,7 +122,7 @@ class mock_cache_account_t {
     DISABLE_COPYING(mock_cache_account_t);
 };
 
-class mock_cache_t : public home_thread_mixin_t, public serializer_read_ahead_callback_t {
+class mock_cache_t : public home_thread_mixin_debug_only_t, public serializer_read_ahead_callback_t {
 public:
     typedef mock_buf_lock_t buf_lock_type;
     typedef mock_transaction_t transaction_type;

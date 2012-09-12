@@ -9,6 +9,8 @@
 #include <boost/lexical_cast.hpp>
 
 #include "arch/arch.hpp"
+#include "concurrency/cross_thread_signal.hpp"
+#include "db_thread_info.hpp"
 
 template <class request_t, class response_t, class context_t>
 protob_server_t<request_t, response_t, context_t>::protob_server_t(
@@ -19,6 +21,7 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
       on_unparsable_query(_on_unparsable_query),
       cb_mode(_cb_mode),
       next_http_conn_id(0),
+      next_thread(0),
       http_timeout_timer(http_context_t::TIMEOUT_MS, this) {
     tcp_listener.init(new tcp_listener_t(port, boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
 }
@@ -28,16 +31,19 @@ protob_server_t<request_t, response_t, context_t>::~protob_server_t() { }
 
 template <class request_t, class response_t, class context_t>
 void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t keepalive) {
+    int chosen_thread = (next_thread++) % get_num_db_threads();
+    cross_thread_signal_t ct_keepalive(keepalive.get_drain_signal(), chosen_thread);
+    on_thread_t rethreader(chosen_thread);
     context_t ctx;
     scoped_ptr_t<tcp_conn_t> conn;
     nconn->ennervate(&conn);
 
     try {
         int32_t client_magic_number;
-        conn->read(&client_magic_number, sizeof(int32_t), keepalive.get_drain_signal());
+        conn->read(&client_magic_number, sizeof(int32_t), &ct_keepalive);
         if (client_magic_number != magic_number) {
             const char *msg = "ERROR: This is the rdb protocol port! (bad magic number)\n";
-            conn->write(msg, strlen(msg), keepalive.get_drain_signal());
+            conn->write(msg, strlen(msg), &ct_keepalive);
             conn->shutdown_write();
             return;
         }
@@ -53,14 +59,14 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
         std::string err;
         try {
             int32_t size;
-            conn->read(&size, sizeof(int32_t), keepalive.get_drain_signal());
+            conn->read(&size, sizeof(int32_t), &ct_keepalive);
             if (size < 0) {
                 err = strprintf("Negative protobuf size (%d).", size);
                 forced_response = on_unparsable_query(0, err);
                 force_response = true;
             } else {
                 scoped_array_t<char> data(size);
-                conn->read(data.data(), size, keepalive.get_drain_signal());
+                conn->read(data.data(), size, &ct_keepalive);
 
                 bool res = request.ParseFromArray(data.data(), size);
                 if (!res) {
@@ -79,9 +85,9 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
             switch (cb_mode) {
                 case INLINE:
                     if (force_response) {
-                        send(forced_response, conn.get(), keepalive.get_drain_signal());
+                        send(forced_response, conn.get(), &ct_keepalive);
                     } else {
-                        send(f(&request, &ctx), conn.get(), keepalive.get_drain_signal());
+                        send(f(&request, &ctx), conn.get(), &ct_keepalive);
                     }
                     break;
                 case CORO_ORDERED:
@@ -132,9 +138,9 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         res.add_header_line("Access-Control-Allow-Origin", "*");
 
         return res;
-    } else if (req.method == GET && req.resource.as_string() == "/open-new-connection") {
+    } else if (req.method == GET && req.resource.as_string().find("open-new-connection")) {
         int32_t conn_id = ++next_http_conn_id;
-        http_conns.insert(std::pair<int32_t,http_context_t>(++conn_id, http_context_t()));
+        http_conns.insert(std::pair<int32_t,http_context_t>(conn_id, http_context_t()));
 
         http_res_t res(HTTP_OK);
         res.version = "HTTP/1.1";
@@ -145,7 +151,6 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
 
         return res;
     } else {
-
         boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
 
         if (!optional_conn_id) {

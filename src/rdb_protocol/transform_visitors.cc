@@ -15,10 +15,10 @@ void transform_visitor_t::operator()(const Builtin_Filter &filter) const {
     }
 }
 
-void transform_visitor_t::operator()(const Builtin_Map &map) const {
+void transform_visitor_t::operator()(const Mapping &mapping) const {
     query_language::backtrace_t b; //TODO get this from somewhere
-    Term t = map.mapping().body();
-    out->push_back(query_language::map(map.mapping().arg(), &t, *env, json, b));
+    Term t = mapping.body();
+    out->push_back(query_language::map(mapping.arg(), &t, *env, json, b));
 }
 
 void transform_visitor_t::operator()(const Builtin_ConcatMap &concatmap) const {
@@ -64,17 +64,30 @@ void transform_visitor_t::operator()(Builtin_Range range) const {
     }
 }
 
-terminal_initializer_visitor_t::terminal_initializer_visitor_t(rget_read_response_t::result_t *_out)
-    : out(_out)
+terminal_initializer_visitor_t::terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,
+                                                               query_language::runtime_environment_t *_env)
+    : out(_out), env(_env)
 { }
 
 void terminal_initializer_visitor_t::operator()(const Builtin_GroupedMapReduce &) const { *out = rget_read_response_t::groups_t(); }
 
-void terminal_initializer_visitor_t::operator()(const Reduction &) const { *out = rget_read_response_t::atom_t(); }
+void terminal_initializer_visitor_t::operator()(const Reduction &r) const {
+    query_language::backtrace_t b; //TODO get this from somewhere
+    Term base = r.base();
+    *out = eval(&base, env, b);
+}
 
-void terminal_initializer_visitor_t::operator()(const rdb_protocol_details::Length &) const { *out = rget_read_response_t::length_t(); }
+void terminal_initializer_visitor_t::operator()(const rdb_protocol_details::Length &) const {
+    rget_read_response_t::length_t l;
+    l.length = 0;
+    *out = l;
+}
 
-void terminal_initializer_visitor_t::operator()(const WriteQuery_ForEach &) const { *out = rget_read_response_t::inserted_t(); }
+void terminal_initializer_visitor_t::operator()(const WriteQuery_ForEach &) const {
+    rget_read_response_t::inserted_t i;
+    i.inserted = 0;
+    *out = i;
+}
 
 terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                    query_language::runtime_environment_t *_env,
@@ -126,10 +139,7 @@ void terminal_visitor_t::operator()(const Reduction &r) const {
     //we assume the result has already been set to groups_t
     rget_read_response_t::atom_t *res_atom = boost::get<rget_read_response_t::atom_t>(out);
     guarantee(res_atom);
-    if (!*res_atom) {
-        Term base = r.base();
-        *res_atom = eval(&base, env, b);
-    }
+    guarantee(*res_atom);
 
     query_language::new_val_scope_t scope(&env->scopes.scope);
     env->scopes.scope.put_in_scope(r.var1(), *res_atom);

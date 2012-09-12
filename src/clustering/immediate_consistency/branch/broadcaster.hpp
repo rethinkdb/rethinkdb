@@ -20,8 +20,19 @@ template <class> class semilattice_readwrite_view_t;
 template <class> class multistore_ptr_t;
 struct mailbox_manager_t;
 
+/* Each shard has a `broadcaster_t` on its primary machine. Each machine sends
+queries via `cluster_namespace_interface_t` over the network to the `master_t`
+on the primary machine, which forwards the queries to the `broadcaster_t`. From
+there, the `broadcaster_t` distributes them to one or more `listener_t`s.
+
+When the `broadcaster_t` is first created, it generates a new unique branch ID.
+The `broadcaster_t` is the authority on what sequence of operations is performed
+on that branch. The order in which write and read operations pass through the
+`broadcaster_t` is the order in which they are performed at the B-trees
+themselves. */
+
 template<class protocol_t>
-class broadcaster_t : public home_thread_mixin_t {
+class broadcaster_t : public home_thread_mixin_debug_only_t {
 private:
     class incomplete_write_t;
 
@@ -50,12 +61,12 @@ public:
     broadcaster_t(
             mailbox_manager_t *mm,
             branch_history_manager_t<protocol_t> *bhm,
-            multistore_ptr_t<protocol_t> *initial_svs,
+            store_view_t<protocol_t> *initial_svs,
             perfmon_collection_t *parent_perfmon_collection,
             order_source_t *order_source,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-    void read(typename protocol_t::read_t r, typename protocol_t::read_response_t *response, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
+    void read(const typename protocol_t::read_t &r, typename protocol_t::read_response_t *response, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
 
     /* Unlike `read()`, `spawn_write()` returns as soon as the write has begun
     and replies asynchronously via a callback. It may block, so it takes an
@@ -63,13 +74,13 @@ public:
     `write_callback_t` is destroyed while the write is still in progress, its
     destructor will automatically deregister it so that no segfaults will
     happen. */
-    void spawn_write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, order_token_t tok, write_callback_t *cb, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    void spawn_write(const typename protocol_t::write_t &w, fifo_enforcer_sink_t::exit_write_t *lock, order_token_t tok, write_callback_t *cb, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     branch_id_t get_branch_id() const;
 
     broadcaster_business_card_t<protocol_t> get_business_card();
 
-    MUST_USE multistore_ptr_t<protocol_t> *release_bootstrap_svs_for_listener();
+    MUST_USE store_view_t<protocol_t> *release_bootstrap_svs_for_listener();
 
 private:
     class incomplete_write_ref_t;
@@ -85,6 +96,7 @@ private:
     void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);
 
     void background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING;
+    void background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING;
     void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
 
     /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
@@ -97,9 +109,9 @@ private:
     branch_id_t branch_id;
 
     /* Until our initial listener has been constructed, this holds the
-    multistore_ptr that was passed to our constructor. After that,
-    it's `NULL`. */
-    multistore_ptr_t<protocol_t> *bootstrap_svs;
+    store_view that was passed to our constructor. After that, it's
+    `NULL`. */
+    store_view_t<protocol_t> *bootstrap_svs;
 
     branch_history_manager_t<protocol_t> *branch_history_manager;
 

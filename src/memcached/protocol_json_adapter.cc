@@ -80,7 +80,7 @@ void apply_json_to(cJSON *change, key_range_t *target) {
         apply_json_to(first, &left);
         if (second->type == cJSON_NULL) {
             *target = key_range_t(key_range_t::closed, left,
-                                  key_range_t::none,   store_key_t(""));
+                                  key_range_t::none, store_key_t());
         } else {
             store_key_t right;
             apply_json_to(second, &right);
@@ -106,7 +106,8 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(UNUSED hash_region_t<ke
 
 std::string render_region_as_string(hash_region_t<key_range_t> *target) {
     // TODO: ghetto low level hash_region_t assertion.
-    guarantee(target->beg == 0 && target->end == HASH_REGION_HASH_SIZE);
+    // TODO: Reintroduce this ghetto low level hash_region_t assertion.
+    // guarantee(target->beg == 0 && target->end == HASH_REGION_HASH_SIZE);
 
     return render_region_as_string(&target->inner);
 }

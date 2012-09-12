@@ -68,6 +68,7 @@ directory_echo_mirror_t<internal_t>::directory_echo_mirror_t(
         mailbox_manager_t *mm,
         const clone_ptr_t<watchable_t<std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > > > &p) :
     mailbox_manager(mm), peers(p),
+    subview(std::map<peer_id_t, internal_t>()),
     sub(boost::bind(&directory_echo_mirror_t::on_change, this)) {
 
     typename watchable_t<std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > >::freeze_t freeze(peers);
@@ -77,16 +78,27 @@ directory_echo_mirror_t<internal_t>::directory_echo_mirror_t(
 
 template<class internal_t>
 void directory_echo_mirror_t<internal_t>::on_change() {
+    ASSERT_FINITE_CORO_WAITING;
+
+    bool anything_changed = false;
+
     std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > snapshot = peers->get();
     for (typename std::map<peer_id_t, directory_echo_wrapper_t<internal_t> >::iterator it = snapshot.begin(); it != snapshot.end(); it++) {
         int version = it->second.version;
         std::map<peer_id_t, directory_echo_version_t>::iterator jt = last_seen.find(it->first);
         if (jt == last_seen.end() || jt->second < version) {
             last_seen[it->first] = version;
+            /* Because `spawn_sometime()` won't run its function until after
+            `on_change()` has returned, we will call `subview.set_value()`
+            before the acks are sent. That guarantees that whatever is watching
+            our subview will see the change before we tell the other peer that
+            we saw the change. */
             coro_t::spawn_sometime(boost::bind(
                 &directory_echo_mirror_t<internal_t>::ack_version, this,
                 it->second.ack_mailbox, version,
                 auto_drainer_t::lock_t(&drainer)));
+            subview_value[it->first] = it->second.internal;
+            anything_changed = true;
         }
     }
     /* Erase `last_seen` table entries for now-disconnected peers. This serves
@@ -100,10 +112,18 @@ void directory_echo_mirror_t<internal_t>::on_change() {
     for (typename std::map<peer_id_t, directory_echo_version_t>::iterator it = last_seen.begin();
             it != last_seen.end();) {
         if (snapshot.find(it->first) == snapshot.end()) {
+            subview_value.erase(it->first);
+            anything_changed = true;
             last_seen.erase(it++);
         } else {
             ++it;
         }
+    }
+
+    /* If nothing actually changed, don't bother sending out a spurious update
+    to our sub-listeners. */
+    if (anything_changed) {
+        subview.set_value(subview_value);
     }
 }
 

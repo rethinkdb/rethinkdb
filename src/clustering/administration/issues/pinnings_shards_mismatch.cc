@@ -57,13 +57,11 @@ template <class protocol_t>
 std::list<clone_ptr_t<global_issue_t> > pinnings_shards_mismatch_issue_tracker_t<protocol_t>::get_issues() {
     std::list<clone_ptr_t<global_issue_t> > res;
 
-    typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > namespace_map_t;
+    cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = semilattice_view->get();
 
-    namespace_map_t namespaces = semilattice_view->get().namespaces;
-
-    for (typename namespace_map_t::iterator it  = namespaces.begin();
-                                            it != namespaces.end();
-                                            ++it) {
+    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it  = namespaces->namespaces.begin();
+                                                                                                 it != namespaces->namespaces.end();
+                                                                                                 ++it) {
         if (it->second.is_deleted()) {
             continue;
         }

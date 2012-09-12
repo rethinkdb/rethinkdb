@@ -40,7 +40,7 @@ class mc_cache_account_t;
 // references evictable_t's cache field.
 class mc_inner_buf_t : public evictable_t,
                        private writeback_t::local_buf_t, /* This local_buf_t has state used by the writeback. */
-                       public home_thread_mixin_t {
+                       public home_thread_mixin_debug_only_t {
     friend class mc_cache_t;
     friend class mc_transaction_t;
     friend class mc_buf_lock_t;
@@ -243,7 +243,7 @@ private:
 
 /* Transaction class. */
 class mc_transaction_t :
-    public home_thread_mixin_t
+    public home_thread_mixin_debug_only_t
 {
     friend class mc_buf_lock_t;
     friend class mc_cache_t;

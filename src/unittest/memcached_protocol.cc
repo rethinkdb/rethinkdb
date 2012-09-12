@@ -18,8 +18,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     /* Pick shards */
     std::vector< hash_region_t<key_range_t> > shards;
-    shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::none,   store_key_t(""),  key_range_t::open, store_key_t("n"))));
-    shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") )));
+    shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::none,   store_key_t(),  key_range_t::open, store_key_t("n"))));
+    shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t() )));
 
     boost::ptr_vector<mock::temp_file_t> temp_files;
     for (size_t i = 0; i < shards.size(); ++i) {

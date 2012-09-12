@@ -26,7 +26,7 @@ public:
 
     void operator()(const Builtin_Filter &filter) const;
 
-    void operator()(const Builtin_Map &map) const;
+    void operator()(const Mapping &mapping) const;
 
     void operator()(const Builtin_ConcatMap &concatmap) const;
 
@@ -41,7 +41,8 @@ private:
 /* A visitor for setting the result type based on a terminal. */
 class terminal_initializer_visitor_t : public boost::static_visitor<void> {
 public:
-    explicit terminal_initializer_visitor_t(rget_read_response_t::result_t *_out);
+    terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,
+                                            query_language::runtime_environment_t *_env);
 
     void operator()(const Builtin_GroupedMapReduce &) const;
 
@@ -52,6 +53,7 @@ public:
     void operator()(const WriteQuery_ForEach &) const;
 private:
     rget_read_response_t::result_t *out;
+    query_language::runtime_environment_t *env;
 };
 
 /* A visitor for applying a terminal to a bit of json. */

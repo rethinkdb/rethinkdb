@@ -44,9 +44,15 @@ no further messages are delivered. This gives a natural way to make sure that no
 messages are still being delivered at the time that the `application_t`
 destructor is called. */
 
+class send_message_write_callback_t {
+public:
+    virtual ~send_message_write_callback_t() { }
+    virtual void write(write_stream_t *stream) = 0;
+};
+
 class message_service_t  {
 public:
-    virtual void send_message(peer_id_t dest_peer, const boost::function<void(write_stream_t *)> &writer) = 0;
+    virtual void send_message(peer_id_t dest_peer, send_message_write_callback_t *callback) = 0;
     virtual connectivity_service_t *get_connectivity_service() = 0;
 protected:
     virtual ~message_service_t() { }

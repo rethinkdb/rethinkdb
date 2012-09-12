@@ -5,10 +5,10 @@ template <class T>
 class semilattice_watchable_t : public watchable_t<T> {
 public:
     semilattice_watchable_t() { }
-    semilattice_watchable_t(boost::shared_ptr<semilattice_read_view_t<T> > _view) :
-        view(_view) { }
+    explicit semilattice_watchable_t(const boost::shared_ptr<semilattice_read_view_t<T> > &_view)
+        : view(_view) { }
 
-    semilattice_watchable_t *clone() {
+    semilattice_watchable_t *clone() const {
         return new semilattice_watchable_t(view);
     }
 
@@ -27,6 +27,8 @@ public:
 private:
     boost::shared_ptr<semilattice_read_view_t<T> > view;
     rwi_lock_assertion_t rwi_lock_assertion;
+
+    DISABLE_COPYING(semilattice_watchable_t);
 };
 
 template<class T>

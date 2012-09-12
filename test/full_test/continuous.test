@@ -1,5 +1,5 @@
 continuous_workloads = [
-    "$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity",
+    "$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d infinity",
     "$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT --duration forever",
     ]
 

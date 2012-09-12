@@ -1,7 +1,9 @@
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
+
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/coro_pool.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/fifo_enforcer_queue.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
@@ -42,9 +44,9 @@ void push_finish_on_queue(fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_
    time to start actually performing backfill chunks */
 template <class protocol_t>
 class chunk_callback_t : public coro_pool_t<backfill_queue_entry_t<protocol_t> >::callback_t,
-                         public home_thread_mixin_t {
+                         public home_thread_mixin_debug_only_t {
 public:
-    chunk_callback_t(multistore_ptr_t<protocol_t> *_svs,
+    chunk_callback_t(store_view_t<protocol_t> *_svs,
                      fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > *_chunk_queue, mailbox_manager_t *_mbox_manager,
                      mailbox_addr_t<void(int)> _allocation_mailbox) :
         svs(_svs), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
@@ -53,7 +55,7 @@ public:
     { }
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const typename protocol_t::backfill_chunk_t& chunk, signal_t *interruptor) {
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         svs->new_write_token(&write_token);
         chunk_queue->finish_write(chunk_token);
 
@@ -121,7 +123,7 @@ public:
     cond_t done_cond;
 
 private:
-    multistore_ptr_t<protocol_t> *svs;
+    store_view_t<protocol_t> *svs;
     fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > *chunk_queue;
     mailbox_manager_t *mbox_manager;
     mailbox_addr_t<void(int)> allocation_mailbox;
@@ -143,31 +145,34 @@ template<class protocol_t>
 void backfillee(
         mailbox_manager_t *mailbox_manager,
         branch_history_manager_t<protocol_t> *branch_history_manager,
-        multistore_ptr_t<protocol_t> *svs,
+        store_view_t<protocol_t> *svs,
         typename protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
-    rassert(region_is_superset(svs->get_multistore_joined_region(), region));
+    rassert(region_is_superset(svs->get_region(), region));
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs->new_read_token(&read_token);
 
     // TODO: This is bs.  order_token_t::ignore.  The svs needs an order checkpoint with its fifo enforcers.
     order_source_t order_source;
 
-    region_map_t<protocol_t, version_range_t> start_point
-        = svs->get_all_metainfos(order_source.check_in("backfillee(A)").with_read_mode(),
-                                 &read_token, interruptor);
+    region_map_t<protocol_t, binary_blob_t> start_point_blob;
+    svs->do_get_metainfo(order_source.check_in("backfillee(A)").with_read_mode(), &read_token, interruptor, &start_point_blob);
+    region_map_t<protocol_t, version_range_t> start_point = to_version_range_map(start_point_blob);
 
     start_point = start_point.mask(region);
 
     branch_history_t<protocol_t> start_point_associated_history;
-    branch_history_manager->export_branch_history(start_point, &start_point_associated_history);
+    {
+        on_thread_t th(branch_history_manager->home_thread());
+        branch_history_manager->export_branch_history(start_point, &start_point_associated_history);
+    }
 
     /* The backfiller will send a message to `end_point_mailbox` before it sends
     any other messages; that message will tell us what the version will be when
@@ -254,7 +259,12 @@ void backfillee(
         metainfo, because otherwise if we crashed at a bad time the data might
         make it to disk as part of the metainfo but not as part of the branch
         history, and that would lead to crashes. */
-        branch_history_manager->import_branch_history(end_point_cond.get_value().second, interruptor);
+        {
+            cross_thread_signal_t ct_interruptor(interruptor, branch_history_manager->home_thread());
+            branch_history_t<protocol_t> branch_history = end_point_cond.get_value().second;
+            on_thread_t th(branch_history_manager->home_thread());
+            branch_history_manager->import_branch_history(branch_history, &ct_interruptor);
+        }
 
         /* Indicate in the metadata that a backfill is happening. We do this by
         marking every region as indeterminate between the current state and the
@@ -267,36 +277,40 @@ void backfillee(
 
         std::vector<std::pair<typename protocol_t::region_t, version_range_t> > span_parts;
 
-        for (typename version_map_t::const_iterator it  = start_point.begin();
-                                                    it != start_point.end();
-                                                    it++) {
-            for (typename version_map_t::const_iterator jt  = end_point.begin();
-                                                        jt != end_point.end();
-                                                        jt++) {
-                typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
-                if (!region_is_empty(ixn)) {
-                    rassert(version_is_ancestor(branch_history_manager,
-                        it->second.earliest,
-                        jt->second.latest,
-                        ixn),
-                        "We're on a different timeline than the backfiller, "
-                        "but it somehow failed to notice.");
-                    span_parts.push_back(std::make_pair(
-                        ixn,
-                        version_range_t(it->second.earliest, jt->second.latest)));
+        {
+#ifndef NDEBUG
+            on_thread_t th(branch_history_manager->home_thread());
+#endif
+            for (typename version_map_t::const_iterator it  = start_point.begin();
+                 it != start_point.end();
+                 it++) {
+                for (typename version_map_t::const_iterator jt  = end_point.begin();
+                     jt != end_point.end();
+                     jt++) {
+                    typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
+                    if (!region_is_empty(ixn)) {
+                        rassert(version_is_ancestor(branch_history_manager,
+                                                    it->second.earliest,
+                                                    jt->second.latest,
+                                                    ixn),
+                                "We're on a different timeline than the backfiller, "
+                                "but it somehow failed to notice.");
+                        span_parts.push_back(std::make_pair(
+                                                            ixn,
+                                                            version_range_t(it->second.earliest, jt->second.latest)));
+                    }
                 }
             }
         }
 
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
 
         svs->new_write_token(&write_token);
 
-        svs->set_all_metainfos(
+        svs->set_metainfo(
             region_map_transform<protocol_t, version_range_t, binary_blob_t>(
                 region_map_t<protocol_t, version_range_t>(span_parts.begin(), span_parts.end()),
-                &binary_blob_t::make<version_range_t>
-                ),
+                &binary_blob_t::make<version_range_t>),
             order_source.check_in("backfillee(B)"),
             &write_token,
             interruptor);
@@ -321,15 +335,12 @@ void backfillee(
     }
 
     /* Update the metadata to indicate that the backfill occurred */
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
-
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
     svs->new_write_token(&write_token);
 
-    svs->set_all_metainfos(
-        region_map_transform<protocol_t, version_range_t, binary_blob_t>(
-            end_point_cond.get_value().first,
-            &binary_blob_t::make<version_range_t>
-            ),
+    svs->set_metainfo(
+        region_map_transform<protocol_t, version_range_t, binary_blob_t>(end_point_cond.get_value().first,
+                                                                         &binary_blob_t::make<version_range_t>),
         order_source.check_in("backfillee(C)"),
         &write_token,
         interruptor);
@@ -343,7 +354,7 @@ void backfillee(
 template void backfillee<mock::dummy_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         branch_history_manager_t<mock::dummy_protocol_t> *branch_history_manager,
-        multistore_ptr_t<mock::dummy_protocol_t> *svs,
+        store_view_t<mock::dummy_protocol_t> *svs,
         mock::dummy_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<mock::dummy_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
@@ -353,7 +364,7 @@ template void backfillee<mock::dummy_protocol_t>(
 template void backfillee<memcached_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         branch_history_manager_t<memcached_protocol_t> *branch_history_manager,
-        multistore_ptr_t<memcached_protocol_t> *svs,
+        store_view_t<memcached_protocol_t> *svs,
         memcached_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<memcached_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
@@ -363,7 +374,7 @@ template void backfillee<memcached_protocol_t>(
 template void backfillee<rdb_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
-        multistore_ptr_t<rdb_protocol_t> *svs,
+        store_view_t<rdb_protocol_t> *svs,
         rdb_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,

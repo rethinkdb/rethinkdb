@@ -20,8 +20,9 @@ struct disk_stat_t {
             res = statvfs(filepath.c_str(), &fsdata);
         }
         if (res < 0) {
-            throw std::runtime_error(strprintf("Failed to statvfs with filepath '%s': %s "
-                "(errno = %d)", filepath.c_str(), strerror(errno), errno));
+            disk_space_total = -1;
+            disk_space_free = -1;
+            disk_space_used = -1;
         }
 
         disk_space_total = fsdata.f_bsize * fsdata.f_blocks;

@@ -10,18 +10,45 @@
 #include "concurrency/signal.hpp"
 #include "containers/clone_ptr.hpp"
 
-// TODO: Put comments here explaining how to use this.
+/* `watchable_t` represents a variable that you can get the value of and also
+subscribe to further changes to the value. To get the value of a `watchable_t`,
+just call `get()`. To subscribe to further changes to the value, construct a
+`watchable_t::freeze_t` and then construct a `watchable_t::subscription_t`,
+passing it the `watchable_t` and the `freeze_t`.
+
+To create a `watchable_t`, construct a `watchable_variable_t` and then call its
+`get_watchable()` method. You can change the value of the `watchable_t` by
+calling `watchable_variable_t::set_value()`.
+
+`watchable_t` has a home thread; it can only be accessed from that thread. If
+you need to access it from another thread, consider using
+`cross_thread_watchable_variable_t` to create a proxy-watchable with a different
+home thread. */
 
 template <class value_t>
-class watchable_t {
+class watchable_t : public home_thread_mixin_t {
 public:
     class subscription_t;
 
+    /* The purpose of the `freeze_t` is to assert that the value of the
+    `watchable_t` doesn't change for as long as it exists. You should not block
+    while the `freeze_t` exists. It's kind of like `mutex_assertion_t`.
+
+    A common pattern is to construct a `freeze_t`, then call `get()` to
+    initialize some object or objects that mirrors the `watchable_t`'s value,
+    then construct a `subscription_t` to continually keep in sync with the
+    `watchable_t`, then destroy the `freeze_t`. If it weren't for the
+    `freeze_t`, a change might "slip through the cracks" if it happened after
+    `get()` but before constructing the `subscription_t`. If you constructed the
+    `subscription_t` before calling `get()`, then the callback might get run
+    before the objects were first initialized. */
     class freeze_t {
     public:
         explicit freeze_t(const clone_ptr_t<watchable_t> &watchable)
             : rwi_lock_acquisition(watchable->get_rwi_lock_assertion())
-        { }
+        {
+            watchable->assert_thread();
+        }
 
         void assert_is_holding(const clone_ptr_t<watchable_t> &watchable) {
             rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
@@ -34,6 +61,10 @@ public:
 
     class subscription_t {
     public:
+        /* The `boost::function<void()>` passed to the constructor is a callback
+        that will be called whenever the value changes. The callback must not
+        block, and it must not create or destroy `subscription_t` objects. */
+
         explicit subscription_t(boost::function<void()> f)
             : subscription(f)
         { }
@@ -41,6 +72,7 @@ public:
         subscription_t(boost::function<void()> f, const clone_ptr_t<watchable_t> &watchable, freeze_t *freeze)
             : subscription(f, watchable->get_publisher())
         {
+            watchable->assert_thread();
             freeze->rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
         }
 
@@ -49,6 +81,7 @@ public:
         }
 
         void reset(const clone_ptr_t<watchable_t> &watchable, freeze_t *freeze) {
+            watchable->assert_thread();
             freeze->rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
             subscription.reset(watchable->get_publisher());
         }
@@ -58,14 +91,23 @@ public:
     };
 
     virtual ~watchable_t() { }
-    virtual watchable_t *clone() = 0;
+    virtual watchable_t *clone() const = 0;
+
     virtual value_t get() = 0;
+
+    /* These are internal; the reason they're public is so that `subview()` and
+    similar things can be implemented. */
     virtual publisher_t<boost::function<void()> > *get_publisher() = 0;
     virtual rwi_lock_assertion_t *get_rwi_lock_assertion() = 0;
 
+    /* `subview()` returns another `watchable_t` whose value is derived from
+    this one by calling `lens` on it. */
     template<class callable_type>
     clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_t)>::type> > subview(const callable_type &lens);
 
+    /* `run_until_satisfied()` repeatedly calls `fun` on the current value of
+    `this` until either `fun` returns `true` or `interruptor` is pulsed. It's
+    efficient because it only retries `fun` when the value changes. */
     template<class callable_type>
     void run_until_satisfied(const callable_type &fun, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
@@ -76,6 +118,9 @@ private:
     DISABLE_COPYING(watchable_t);
 };
 
+/* `run_until_satisfied_2()` repeatedly calls `fun(a->get(), b->get())` until
+`fun` returns `true` or `interruptor` is pulsed. It's efficient because it only
+retries `fun` when the value of `a` or `b` changes. */
 template<class a_type, class b_type, class callable_type>
 void run_until_satisfied_2(
         const clone_ptr_t<watchable_t<a_type> > &a,
@@ -104,7 +149,7 @@ private:
     class w_t : public watchable_t<value_t> {
     public:
         explicit w_t(watchable_variable_t<value_t> *p) : parent(p) { }
-        w_t *clone() {
+        w_t *clone() const {
             return new w_t(parent);
         }
         value_t get() {

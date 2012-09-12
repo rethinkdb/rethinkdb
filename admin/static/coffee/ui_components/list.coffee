@@ -5,7 +5,7 @@ module 'UIComponents', ->
     class @AbstractList extends Backbone.View
         # Use a generic template by default for a list
         template: Handlebars.compile $('#abstract_list-template').html()
-
+        empty_list_template: Handlebars.compile $('#empty_list-template').html()
         # Abstract lists take several arguments:
         #   collection: Backbone collection that backs the list
         #   element_view_class: Backbone view that each element in the list will be rendered with
@@ -14,14 +14,15 @@ module 'UIComponents', ->
         #   filter: optional filter that defines what elements to use from the collection using a truth test
         #           (function whose argument is a Backbone model and whose output is true/false)
         #   sort: optional function that defines a sort order for the lista (defaults to Array.prototype.sort)
-        initialize: (collection, element_view_class, container, options) ->
-            #log_initial '(initializing) list view: ' + class_name @collection
+        initialize: (collection, element_view_class, container, options, element_name, container_name) =>
             @collection = collection
             @element_views = []
             @container = container
             @element_view_class = element_view_class
             @options = options
             @size = 0
+            @element_name = element_name
+            @container_name = container_name
 
             # This filter defines which models from the collection should be represented by this list.
             # If one was not provided, define a filter that allows all models
@@ -39,21 +40,27 @@ module 'UIComponents', ->
             @render()
 
             # Collection is reset, create all new views
-            @collection.on 'reset', (collection) =>
-                @reset_element_views()
+            @collection.on 'reset', @on_reset
+            @collection.on 'add', @on_add
+            @collection.on 'remove', @on_remove
+
+            return true
+
+        on_reset: (collection) =>
+            @reset_element_views()
+            @render()
+
+        on_add: (model, collection) =>
+            # When an element is added to the collection, create a view for it
+            # Make sure the model is relevant for this list before we add it
+            if @filter model
+                @add_element model
                 @render()
 
-            # When an element is added to the collection, create a view for it
-            @collection.on 'add', (model, collection) =>
-                # Make sure the model is relevant for this list before we add it
-                if @filter model
-                    @add_element model
-                    @render()
-
-            @collection.on 'remove', (model, collection) =>
-                # Make sure the model is relevant for this list before we remove it
-                if @filter model
-                    @remove_elements model
+        on_remove: (model, collection) =>
+            # Make sure the model is relevant for this list before we remove it
+            if @filter model
+                @remove_elements model
 
         render: =>
             @element_views.sort @sort
@@ -64,6 +71,11 @@ module 'UIComponents', ->
             #log_action '#render_elements of collection ' + class_name @collection
             # Render the view for each element in the list
             @.$(@container).append(view.render().$el) for view in @element_views
+
+            if @element_views.length is 0 and @element_name? and @container_name?
+                @.$(@container).html @empty_list_template
+                    element: @element_name
+                    container: @container_name
 
             @.delegateEvents()
             return @
@@ -119,7 +131,9 @@ module 'UIComponents', ->
         get_callbacks: -> []
 
         destroy: =>
-            @collection.off()
+            @collection.off 'reset', @on_reset
+            @collection.off 'add', @on_add
+            @collection.off 'remove', @on_remove
             for view in @element_views
                 view.destroy()
 

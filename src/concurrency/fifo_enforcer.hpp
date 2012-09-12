@@ -77,7 +77,7 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_2(timestamp, num_reads);
 };
 
-class fifo_enforcer_source_t : public home_thread_mixin_t {
+class fifo_enforcer_source_t : public home_thread_mixin_debug_only_t {
 public:
     fifo_enforcer_source_t() THROWS_NOTHING :
         state(state_timestamp_t::zero(), 0) { }
@@ -98,7 +98,7 @@ private:
     DISABLE_COPYING(fifo_enforcer_source_t);
 };
 
-class fifo_enforcer_sink_t : public home_thread_mixin_t {
+class fifo_enforcer_sink_t : public home_thread_mixin_debug_only_t {
 public:
     /* `internal_exit_{read,write}_t` represents any thing that waits in line to
     go through the FIFO enforcer. It's responsible for adding itself to the FIFO

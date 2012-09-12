@@ -43,24 +43,33 @@ class BackboneCluster extends Backbone.Router
             $.cookie('rethinkdb-admin', new Date())
             @render_walkthrough_popup()
 
+        @.bind 'all', (route, router) ->
+            @navbar.set_active_tab route
+
     render_sidebar: -> @$sidebar.html @sidebar.render().el
     render_navbar: -> $('#navbar-container').html @navbar.render().el
     render_walkthrough_popup: -> $('.walkthrough-popup').html (new Walkthrough).render().el
 
-    index_namespaces: ->
+    index_namespaces: (data) ->
         log_router '/index_namespaces'
         clear_modals()
         @current_view.destroy()
         @current_view = new NamespaceView.DatabaseList
-        @$container.html @current_view.render().el
+        if data?.alert_message?
+            @$container.html @current_view.render(data.alert_message).el
+        else
+            @$container.html @current_view.render().el
         @sidebar.set_type_view()
 
-    index_servers: ->
+    index_servers: (data) ->
         log_router '/index_servers'
         clear_modals()
         @current_view.destroy()
         @current_view = new ServerView.DatacenterList
-        @$container.html @current_view.render().el
+        if data?.alert_message?
+            @$container.html @current_view.render(data.alert_message).el
+        else
+            @$container.html @current_view.render().el
         @sidebar.set_type_view()
 
     dashboard: ->
@@ -93,6 +102,7 @@ class BackboneCluster extends Backbone.Router
         @current_view.destroy()
         @current_view = new DataExplorerView.Container
         @$container.html @current_view.render().el
+        @current_view.call_codemirror()
         @sidebar.set_type_view('dataexplorer')
 
     database: (id, tab) ->
@@ -117,13 +127,19 @@ class BackboneCluster extends Backbone.Router
         namespace = namespaces.get(id)
         
         @current_view.destroy()
-        if namespace? then @current_view = new NamespaceView.Container model:namespace
-        else @current_view = new NamespaceView.NotFound id
+        if namespace?
+            @current_view = new NamespaceView.Container model:namespace
+        else
+            @current_view = new NamespaceView.NotFound id
 
         if tab?
             @$container.html @current_view.render(tab).el
         else
             @$container.html @current_view.render().el
+        
+        if namespace?
+            @current_view.overview.render_data_repartition()
+            @current_view.overview.render_data_in_memory()
 
         @sidebar.set_type_view()
 
@@ -133,13 +149,19 @@ class BackboneCluster extends Backbone.Router
         datacenter = datacenters.get(id)
         
         @current_view.destroy()
-        if datacenter? then @current_view = new DatacenterView.Container model: datacenter
-        else @current_view = new DatacenterView.NotFound id
+        if datacenter?
+            @current_view = new DatacenterView.Container model: datacenter
+        else
+            @current_view = new DatacenterView.NotFound id
 
         if tab?
             @$container.html @current_view.render(tab).el
         else
             @$container.html @current_view.render().el
+
+        if datacenter?
+            @current_view.overview.render_ram_repartition()
+            @current_view.overview.render_disk_repartition()
 
         @sidebar.set_type_view()
 
@@ -149,12 +171,17 @@ class BackboneCluster extends Backbone.Router
         machine = machines.get(id)
 
         @current_view.destroy()
-        if machine? then @current_view = new MachineView.Container model: machine
-        else @current_view = new MachineView.NotFound id
+        if machine?
+            @current_view = new MachineView.Container model: machine
+        else
+            @current_view = new MachineView.NotFound id
         
         if tab?
             @$container.html @current_view.render(tab).el
         else
             @$container.html @current_view.render().el
+        if machine?
+            @current_view.overview.render_pie_disk()
+            @current_view.overview.render_pie_ram()
 
         @sidebar.set_type_view()

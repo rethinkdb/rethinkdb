@@ -38,6 +38,44 @@ class Namespace extends Backbone.Model
             clearInterval @set_interval
             @interval = 0
 
+
+    compare_keys: (a, b) ->
+        pattern = /^(%22).*(%22)$/
+        if pattern.test(a) is true
+            a_new = a.slice(3, a.length-3)
+        else if _.isNaN(parseFloat(a)) is false
+            a_new = parseFloat(a)
+        else if a is ""
+            a_new = -Infinity
+        else
+            a_new = a
+
+        if pattern.test(b) is true
+            b_new = b.slice(3, b.length-3)
+        else if _.isNaN(parseFloat(b)) is false
+            b_new = parseFloat(b)
+        else if b is ""
+            b_new = -Infinity
+        else
+            b_new = b
+        if typeof a_new is 'number' and typeof b_new is 'number'
+            return a_new-b_new
+        else if typeof a_new is 'string' and typeof b_new is 'string'
+            if a_new > b_new
+                return 1
+            else if a_new < b_new
+                return -1
+            else
+                return 0
+        else if typeof a_new isnt typeof b_new
+            if typeof a_new is 'number' and typeof b_new is 'string'
+                return -1
+            else if typeof a_new is 'string' and typeof b_new is 'number'
+                return 1
+            else if a_new is null
+                return 1
+        return 0
+
     # Cache key distribution info.
     load_key_distr: =>
         $.ajax
@@ -51,7 +89,7 @@ class Namespace extends Backbone.Model
                 distr_keys = []
                 for key, count of distr_data
                     distr_keys.push(key)
-                distr_keys = _.sortBy(distr_keys, _.identity)
+                distr_keys.sort(@compare_keys)
 
                 @set('key_distr_sorted', distr_keys)
                 @set('key_distr', distr_data)
@@ -78,7 +116,7 @@ class Namespace extends Backbone.Model
                 distr_keys = []
                 for key, count of distr_data
                     distr_keys.push(key)
-                distr_keys = _.sortBy(distr_keys, _.identity)
+                distr_keys.sort(@compare_keys)
 
                 @set('key_distr_sorted', distr_keys)
                 @set('key_distr', distr_data)
@@ -100,16 +138,16 @@ class Namespace extends Backbone.Model
         start_key = shard[0]
         end_key = shard[1]
 
-        # TODO: we should probably support interpolation here, but
-        # fuck it for now.
+        # TODO: we should interpolate once we will have decided how to order different type of keys
 
         # find the first key greater than the beginning of our shard
         # and keep summing until we get past our shard boundary.
         count = 0
 
         for key in @get('key_distr_sorted')
-            if key >= start_key or start_key is ""
-                if end_key is null or key < end_key
+            # TODO Might be unsafe when comparing string and integers. Need to be checked when the back end will have decided what to do.
+            if @compare_keys(key, start_key) >= 0
+                if @compare_keys(key, end_key) <= 0
                     if @get('key_distr')[key]?
                         count += @get('key_distr')[key]
 
@@ -592,9 +630,9 @@ module 'DataUtils', ->
     @get_ack_expectations = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
         datacenter = datacenters.get(datacenter_uuid)
-        acks = namespace.get('ack_expectations')[datacenter.get('id')]
+        acks = namespace?.get('ack_expectations')?[datacenter?.get('id')]?
         if acks?
-            return acks
+            return namespace.get('ack_expectations')[datacenter.get('id')]
         else
             return 0
 
@@ -626,6 +664,14 @@ module 'DataUtils', ->
         activities = {}
         for machine in directory.models
             bcards = machine.get('memcached_namespaces')['reactor_bcards']
+            for namespace_id, activity_map of bcards
+                activity_map = activity_map['activity_map']
+                for activity_id, activity of activity_map
+                    activities[activity_id] =
+                        value: activity
+                        machine_id: machine.get('id')
+                        namespace_id: namespace_id
+            bcards = machine.get('rdb_namespaces')['reactor_bcards']
             for namespace_id, activity_map of bcards
                 activity_map = activity_map['activity_map']
                 for activity_id, activity of activity_map

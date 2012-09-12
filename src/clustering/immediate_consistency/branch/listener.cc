@@ -5,7 +5,9 @@
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
-#include "protocol_api.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
+#include "concurrency/cross_thread_signal.hpp"
+
 
 /* `WRITE_QUEUE_CORO_POOL_SIZE` is the number of coroutines that will be used
 when draining the write queue after completing a backfill. */
@@ -51,8 +53,8 @@ template <class protocol_t>
 listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-                                   branch_history_manager_t<protocol_t> *bhm,
-                                   multistore_ptr_t<protocol_t> *svs,
+                                   branch_history_manager_t<protocol_t> *branch_history_manager,
+                                   store_view_t<protocol_t> *svs,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
                                    backfill_session_id_t backfill_session_id,
                                    perfmon_collection_t *backfill_stats_parent,
@@ -61,7 +63,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
     mailbox_manager_(mm),
-    branch_history_manager_(bhm),
     svs_(svs),
     uuid_(generate_uuid()),
     perfmon_collection_(),
@@ -88,7 +89,17 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     }
 
     branch_id_ = business_card.get().get().branch_id;
-    branch_history_manager_->import_branch_history(business_card.get().get().branch_id_associated_branch_history, interruptor);
+
+    branch_birth_certificate_t<protocol_t> this_branch_history;
+
+    {
+        cross_thread_signal_t ct_interruptor(interruptor, branch_history_manager->home_thread());
+        on_thread_t th(branch_history_manager->home_thread());
+        branch_history_manager->import_branch_history(business_card.get().get().branch_id_associated_branch_history, interruptor);
+        this_branch_history = branch_history_manager->get_branch(branch_id_);
+    }
+
+    our_branch_region_ = this_branch_history.region;
 
 #ifndef NDEBUG
     /* Sanity-check to make sure we're on the same timeline as the thing
@@ -96,24 +107,27 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
        but if there's an error it would be nice to catch it where the action
        was initiated. */
 
-    branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager_->get_branch(branch_id_);
-    guarantee(region_is_superset(this_branch_history.region, svs_->get_multistore_joined_region()));
+    guarantee(region_is_superset(our_branch_region_, svs_->get_region()));
 
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs_->new_read_token(&read_token);
-    region_map_t<protocol_t, version_range_t> start_point
-        = svs_->get_all_metainfos(order_source->check_in("listener_t(A)").with_read_mode(), &read_token, interruptor);
+    region_map_t<protocol_t, binary_blob_t> start_point_blob;
+    svs_->do_get_metainfo(order_source->check_in("listener_t(A)").with_read_mode(), &read_token, interruptor, &start_point_blob);
+    region_map_t<protocol_t, version_range_t> start_point = to_version_range_map(start_point_blob);
 
-    for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
-         it != start_point.end();
-         ++it) {
+    {
+        on_thread_t th(branch_history_manager->home_thread());
+        for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
+             it != start_point.end();
+             ++it) {
 
-        version_t version = it->second.latest;
-        rassert(version.branch == branch_id_ ||
-                version_is_ancestor(branch_history_manager_,
-                                    version,
-                                    version_t(branch_id_, this_branch_history.initial_timestamp),
-                                    it->first));
+            version_t version = it->second.latest;
+            rassert(version.branch == branch_id_ ||
+                    version_is_ancestor(branch_history_manager,
+                                        version,
+                                        version_t(branch_id_, this_branch_history.initial_timestamp),
+                                        it->first));
+        }
     }
 #endif
 
@@ -143,9 +157,9 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
         /* Backfill */
         backfillee<protocol_t>(mailbox_manager_,
-                               branch_history_manager_,
+                               branch_history_manager,
                                svs_,
-                               svs_->get_multistore_joined_region(),
+                               svs_->get_region(),
                                replier->subview(&listener_t<protocol_t>::get_backfiller_from_replier_bcard),
                                backfill_session_id,
                                interruptor);
@@ -153,22 +167,43 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         throw backfiller_lost_exc_t();
     }
 
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token2;
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token2;
     svs_->new_read_token(&read_token2);
 
-    region_map_t<protocol_t, version_range_t> backfill_end_point
-        = svs_->get_all_metainfos(order_source->check_in("listener_t(B)").with_read_mode(), &read_token2, interruptor);
+    region_map_t<protocol_t, binary_blob_t> backfill_end_point_blob;
+    svs_->do_get_metainfo(order_source->check_in("listener_t(B)").with_read_mode(), &read_token2, interruptor, &backfill_end_point_blob);
+
+    region_map_t<protocol_t, version_range_t> backfill_end_point = to_version_range_map(backfill_end_point_blob);
 
     /* Sanity checking. */
 
     /* Make sure the region is not empty. */
     guarantee(backfill_end_point.begin() != backfill_end_point.end());
 
-    // The end timestamp is the maximum of the timestamps we've seen.
+    /* The end timestamp is the maximum of the timestamps we've seen. If you've
+    been following closely (which you probably haven't because this is
+    confusing) you should be thinking "How is that correct? If the region map
+    says that we're at timestamp 900 on region A and 901 on region B, then that
+    means we're missing the updates for the write with timestamp 900->901 on
+    region A. If the region map has different timestamps for different regions,
+    then it's not possible to boil down the current timestamp to a single
+    number, right?" But this is wrong. Our backfill was, in fact, serialized
+    with respect to all the writes. In fact, the reason why region A has
+    timestamp 900 is that the write with timestamp 900->901 didn't touch any
+    keys in region A. We didn't update the timestamp for region A because
+    regions A and B were on separate threads, and we didn't want to send the
+    operation to region A unnecessarily if we weren't actually updating any keys
+    there. That's why it's OK to just take the maximum of all the timestamps
+    that we see.
+    TODO: If we change the way we shard such that each listener_t maps to a
+    single B-tree on the same machine, then replace this loop with a strict
+    assertion that requires everything to be at the same timestamp. */
     state_timestamp_t backfill_end_timestamp = backfill_end_point.begin()->second.earliest.timestamp;
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = backfill_end_point.begin();
          it != backfill_end_point.end();
          ++it) {
+        rassert(it->second.is_coherent());
+        rassert(it->second.earliest.branch == branch_id_);
         backfill_end_timestamp = std::max(backfill_end_timestamp, it->second.earliest.timestamp);
     }
 
@@ -195,13 +230,12 @@ template <class protocol_t>
 listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
                                    mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-                                   branch_history_manager_t<protocol_t> *bhm,
+                                   branch_history_manager_t<protocol_t> *branch_history_manager,
                                    broadcaster_t<protocol_t> *broadcaster,
                                    perfmon_collection_t *backfill_stats_parent,
                                    signal_t *interruptor,
                                    DEBUG_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager_(mm),
-    branch_history_manager_(bhm),
     svs_(broadcaster->release_bootstrap_svs_for_listener()),
     branch_id_(broadcaster->get_branch_id()),
     uuid_(generate_uuid()),
@@ -222,6 +256,14 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline)
 {
+    branch_birth_certificate_t<protocol_t> this_branch_history;
+    {
+        on_thread_t th(branch_history_manager->home_thread());
+        this_branch_history = branch_history_manager->get_branch(branch_id_);
+    }
+
+    our_branch_region_ = this_branch_history.region;
+
 #ifndef NDEBUG
     /* Confirm that `broadcaster_metadata` corresponds to `broadcaster` */
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
@@ -233,14 +275,14 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     that we're using the same `branch_history_manager_t` as the broadcaster, so
     an entry should already be present for the branch we're trying to join, and
     we skip calling `import_branch_history()`. */
-    branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager_->get_branch(branch_id_);
-    rassert(svs_->get_multistore_joined_region() == this_branch_history.region);
+    rassert(svs_->get_region() == this_branch_history.region);
 
     /* Snapshot the metainfo before we start receiving writes */
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs_->new_read_token(&read_token);
-    region_map_t<protocol_t, version_range_t> initial_metainfo
-        = svs_->get_all_metainfos(order_source->check_in("listener_t(C)").with_read_mode(), &read_token, interruptor);
+    region_map_t<protocol_t, binary_blob_t> initial_metainfo_blob;
+    svs_->do_get_metainfo(order_source->check_in("listener_t(C)").with_read_mode(), &read_token, interruptor, &initial_metainfo_blob);
+    region_map_t<protocol_t, version_range_t> initial_metainfo = to_version_range_map(initial_metainfo_blob);
 #endif
 
     /* Attempt to register for writes */
@@ -248,7 +290,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     guarantee(registration_done_cond_.get_ready_signal()->is_pulsed());
 
 #ifndef NDEBUG
-    region_map_t<protocol_t, version_range_t> expected_initial_metainfo(svs_->get_multistore_joined_region(),
+    region_map_t<protocol_t, version_range_t> expected_initial_metainfo(svs_->get_region(),
                                                                         version_range_t(version_t(branch_id_,
                                                                                                   registration_done_cond_.get_value().broadcaster_begin_timestamp)));
 
@@ -308,13 +350,9 @@ template <class protocol_t>
 class intro_receiver_t : public signal_t {
 public:
     listener_intro_t<protocol_t> intro;
-    void fill(state_timestamp_t its,
-              typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t um,
-              typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
+    void fill(listener_intro_t<protocol_t> _intro) {
         guarantee(!is_pulsed());
-        intro.broadcaster_begin_timestamp = its;
-        intro.upgrade_mailbox = um;
-        intro.downgrade_mailbox = dm;
+        intro = _intro;
         pulse();
     }
 };
@@ -328,7 +366,8 @@ void listener_t<protocol_t>::try_start_receiving_writes(
     intro_receiver_t<protocol_t> intro_receiver;
     typename listener_business_card_t<protocol_t>::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
-                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1, _2, _3));
+                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1),
+                      mailbox_callback_mode_inline);
 
     try {
         registrant_.init(new registrant_t<listener_business_card_t<protocol_t> >(
@@ -351,12 +390,12 @@ void listener_t<protocol_t>::try_start_receiving_writes(
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
+void listener_t<protocol_t>::on_write(const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
-    guarantee(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, write.get_region()));
+    guarantee(region_is_superset(our_branch_region_, write.get_region()));
     guarantee(!region_is_empty(write.get_region()));
     order_token.assert_write_mode();
 
@@ -367,7 +406,7 @@ void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::enqueue_write(typename protocol_t::write_t write,
+void listener_t<protocol_t>::enqueue_write(const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
@@ -402,7 +441,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         write_queue_has_drained_.pulse_if_not_already_pulsed();
     }
 
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink_, qe.fifo_token);
         if (qe.transition_timestamp.timestamp_before() < backfill_end_timestamp) {
@@ -415,16 +454,16 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
 
 #ifndef NDEBUG
         version_leq_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(qe.transition_timestamp.timestamp_before());
-        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs_->get_multistore_joined_region());
+        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs_->get_region());
 #endif
 
     typename protocol_t::write_response_t response;
 
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )
-        region_map_t<protocol_t, binary_blob_t>(svs_->get_multistore_joined_region(),
+        region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
             binary_blob_t(version_range_t(version_t(branch_id_, qe.transition_timestamp.timestamp_after())))),
-        qe.write.shard(region_intersection(qe.write.get_region(), svs_->get_multistore_joined_region())),
+        qe.write.shard(region_intersection(qe.write.get_region(), svs_->get_region())),
         &response,
         qe.transition_timestamp,
         qe.order_token,
@@ -433,16 +472,16 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::on_writeread(typename protocol_t::write_t write,
+void listener_t<protocol_t>::on_writeread(const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
         THROWS_NOTHING
 {
-    rassert(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, write.get_region()));
+    rassert(region_is_superset(our_branch_region_, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
-    rassert(region_is_superset(svs_->get_multistore_joined_region(), write.get_region()));
+    rassert(region_is_superset(svs_->get_region(), write.get_region()));
     order_token.assert_write_mode();
 
     coro_t::spawn_sometime(boost::bind(
@@ -452,7 +491,7 @@ void listener_t<protocol_t>::on_writeread(typename protocol_t::write_t write,
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t write,
+void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
@@ -464,7 +503,7 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
         /* Make sure the broadcaster isn't sending us too many writes */
         semaphore_assertion_t::acq_t sem_acq(&enforce_max_outstanding_writes_from_broadcaster_);
 
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -482,19 +521,19 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
 
         // Make sure we can serve the entire operation without masking it.
         // (We shouldn't have been signed up for writereads if we couldn't.)
-        rassert(region_is_superset(svs_->get_multistore_joined_region(), write.get_region()));
+        rassert(region_is_superset(svs_->get_region(), write.get_region()));
 
 
 #ifndef NDEBUG
         version_leq_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(transition_timestamp.timestamp_before());
-        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs_->get_multistore_joined_region());
+        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs_->get_region());
 #endif
 
         // Perform the operation
         cond_t non_interruptor;
         typename protocol_t::write_response_t response;
         svs_->write(DEBUG_ONLY(metainfo_checker, )
-                    region_map_t<protocol_t, binary_blob_t>(svs_->get_multistore_joined_region(),
+                    region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
                                                             binary_blob_t(version_range_t(version_t(branch_id_, transition_timestamp.timestamp_after())))),
                     write,
                     &response,
@@ -514,16 +553,16 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::on_read(typename protocol_t::read_t read,
+void listener_t<protocol_t>::on_read(const typename protocol_t::read_t &read,
         state_timestamp_t expected_timestamp,
         order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
         THROWS_NOTHING
 {
-    rassert(region_is_superset(branch_history_manager_->get_branch(branch_id_).region, read.get_region()));
+    rassert(region_is_superset(our_branch_region_, read.get_region()));
     rassert(!region_is_empty(read.get_region()));
-    rassert(region_is_superset(svs_->get_multistore_joined_region(), read.get_region()));
+    rassert(region_is_superset(svs_->get_region(), read.get_region()));
     order_token.assert_read_mode();
 
     coro_t::spawn_sometime(boost::bind(
@@ -533,7 +572,7 @@ void listener_t<protocol_t>::on_read(typename protocol_t::read_t read,
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
+void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &read,
         DEBUG_VAR state_timestamp_t expected_timestamp,
         order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,
@@ -541,7 +580,7 @@ void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING
 {
     try {
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -559,7 +598,7 @@ void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
 
 #ifndef NDEBUG
         version_leq_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(expected_timestamp);
-        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs_->get_multistore_joined_region());
+        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs_->get_region());
 #endif
 
         // Perform the operation
