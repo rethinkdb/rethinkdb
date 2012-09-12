@@ -8,9 +8,10 @@
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
-#include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/unittest_utils.hpp"
+
+class memcached_protocol_t;
 
 namespace mock {
 
@@ -22,53 +23,56 @@ struct fake_fifo_enforcement_t {
 template<class protocol_t>
 class test_store_t {
 public:
-    explicit test_store_t(io_backender_t *io_backender, order_source_t *order_source) :
+    test_store_t(io_backender_t *io_backender, order_source_t *order_source) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
-            store(io_backender, temp_file.name(), true, &get_global_perfmon_collection())
-    {
+            store(io_backender, temp_file.name(), true, &get_global_perfmon_collection(), &ctx) {
         /* Initialize store metadata */
         cond_t non_interruptor;
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
         store.new_write_token(&token);
         region_map_t<protocol_t, binary_blob_t> new_metainfo(
                 store.get_region(),
-                binary_blob_t(version_range_t(version_t::zero()))
-            );
+                binary_blob_t(version_range_t(version_t::zero())));
         store.set_metainfo(new_metainfo, order_source->check_in("test_store_t"), &token, &non_interruptor);
     }
 
     temp_file_t temp_file;
+    typename protocol_t::context_t ctx;
     typename protocol_t::store_t store;
 };
 
 inline void test_inserter_write_master_access(master_access_t<dummy_protocol_t> *ma, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
     dummy_protocol_t::write_t w;
+    dummy_protocol_t::write_response_t response;
     w.values[key] = value;
     fifo_enforcer_sink_t::exit_write_t write_token;
     ma->new_write_token(&write_token);
-    ma->write(w, otok, &write_token, interruptor);
+    ma->write(w, &response, otok, &write_token, interruptor);
 }
 
 inline std::string test_inserter_read_master_access(master_access_t<dummy_protocol_t> *ma, const std::string &key, order_token_t otok, signal_t *interruptor) {
     dummy_protocol_t::read_t r;
+    dummy_protocol_t::read_response_t response;
     r.keys.keys.insert(key);
     fifo_enforcer_sink_t::exit_read_t read_token;
     ma->new_read_token(&read_token);
-    dummy_protocol_t::read_response_t resp = ma->read(r, otok, &read_token, interruptor);
-    return resp.values.find(key)->second;
+    ma->read(r, &response, otok, &read_token, interruptor);
+    return response.values.find(key)->second;
 }
 
 inline void test_inserter_write_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
     dummy_protocol_t::write_t w;
+    dummy_protocol_t::write_response_t response;
     w.values[key] = value;
-    nif->write(w, otok, interruptor);
+    nif->write(w, &response, otok, interruptor);
 }
 
 inline std::string test_inserter_read_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, const std::string& key, order_token_t otok, signal_t *interruptor) {
     dummy_protocol_t::read_t r;
+    dummy_protocol_t::read_response_t response;
     r.keys.keys.insert(key);
-    dummy_protocol_t::read_response_t resp = nif->read(r, otok, interruptor);
-    return resp.values[key];
+    nif->read(r, &response, otok, interruptor);
+    return response.values[key];
 }
 
 class test_inserter_t {
@@ -83,7 +87,7 @@ public:
         : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), key_gen_fun(_key_gen_fun), osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-                                           this, osource, tag, auto_drainer_t::lock_t(drainer.get())));
+                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     template <class protocol_t>
@@ -96,7 +100,7 @@ public:
           osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-                                           this, osource, tag, auto_drainer_t::lock_t(drainer.get())));
+                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     template <class protocol_t>
@@ -109,7 +113,7 @@ public:
           osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-                                           this, osource, tag, auto_drainer_t::lock_t(drainer.get())));
+                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     void stop() {
@@ -142,10 +146,7 @@ private:
 
     scoped_ptr_t<auto_drainer_t> drainer;
 
-    void insert_forever(
-            order_source_t *osource,
-            const std::string &msg,
-            auto_drainer_t::lock_t keepalive) {
+    void insert_forever(const std::string &msg, auto_drainer_t::lock_t keepalive) {
         try {
             std::string tag = strprintf("insert_forever(%p,%s)", this, msg.c_str());
             for (int i = 0; ; i++) {
@@ -171,7 +172,7 @@ public:
                                it != values_inserted->end();
                                it++) {
             cond_t interruptor;
-            std::string response = rfun((*it).first, osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this)), &interruptor);
+            std::string response = rfun((*it).first, osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this)).with_read_mode(), &interruptor);
             rassert((*it).second == response);
         }
     }
@@ -228,6 +229,7 @@ private:
     connectivity_cluster_t::run_t connectivity_cluster_run;
 };
 
+#ifndef NDEBUG
 template <class protocol_t>
 struct equality_metainfo_checker_callback_t : public metainfo_checker_callback_t<protocol_t> {
     explicit equality_metainfo_checker_callback_t(const binary_blob_t& expected_value)
@@ -246,6 +248,7 @@ private:
 
     DISABLE_COPYING(equality_metainfo_checker_callback_t);
 };
+#endif
 
 }   /* namespace unittest */
 

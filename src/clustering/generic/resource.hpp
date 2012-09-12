@@ -8,8 +8,6 @@
 
 #include "concurrency/wait_any.hpp"
 #include "concurrency/watchable.hpp"
-#include "rpc/mailbox/mailbox.hpp"
-#include "rpc/mailbox/typed.hpp"
 
 /* It's a common paradigm to have some resource that you find out about through
 metadata, and need to monitor in case it goes offline. This type facilitates

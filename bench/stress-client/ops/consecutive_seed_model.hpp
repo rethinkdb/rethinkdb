@@ -151,7 +151,8 @@ public:
 
             /* Fill in with seeds in the class */
             for (int i = 0; i < nseeds; i++) {
-                seeds[i] = seed++;
+                seeds[i] = seed;
+                seed += num_classes;
                 if (seed == max_in_class) seed = min_in_class;
             }
 

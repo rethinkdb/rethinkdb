@@ -8,6 +8,9 @@
 namespace unittest {
 
 static const bool print_log_messages = false;
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunreachable-code"
+#endif
 
 std::string random_existing_key(const std::map<std::string, std::string> &map) {
     int i = random() % map.size();
@@ -43,15 +46,13 @@ void run_metainfo_test() {
     standard_serializer_t::create(
         io_backender.get(),
         standard_serializer_t::private_dynamic_config_t(temp_file.name()),
-        standard_serializer_t::static_config_t()
-        );
+        standard_serializer_t::static_config_t());
 
     standard_serializer_t serializer(
         standard_serializer_t::dynamic_config_t(),
         io_backender.get(),
         standard_serializer_t::private_dynamic_config_t(temp_file.name()),
-        &get_global_perfmon_collection()
-        );
+        &get_global_perfmon_collection());
 
     mirrored_cache_static_config_t cache_static_config;
     cache_t::create(&serializer, &cache_static_config);
@@ -151,18 +152,18 @@ void run_metainfo_test() {
             if (print_log_messages) {
                 puts("scan...");
             }
-            for (int i = 0; i < (int)pairs.size(); i++) {
-                std::map<std::string, std::string>::iterator it = mirror_copy.find(vector_to_string(pairs[i].first));
+            for (size_t j = 0; j < pairs.size(); ++j) {
+                std::map<std::string, std::string>::iterator it = mirror_copy.find(vector_to_string(pairs[j].first));
                 if (it == mirror_copy.end()) {
                     if (print_log_messages) {
-                        printf("    '%s' = '%s' (expected <not found>)\n", vector_to_string(pairs[i].first).c_str(), vector_to_string(pairs[i].second).c_str());
+                        printf("    '%s' = '%s' (expected <not found>)\n", vector_to_string(pairs[j].first).c_str(), vector_to_string(pairs[j].second).c_str());
                     }
                     ADD_FAILURE() << "extra key";
                 } else {
                     if (print_log_messages) {
-                        printf("    '%s' = '%s' (expected '%s')\n", vector_to_string(pairs[i].first).c_str(), vector_to_string(pairs[i].second).c_str(), it->second.c_str());
+                        printf("    '%s' = '%s' (expected '%s')\n", vector_to_string(pairs[j].first).c_str(), vector_to_string(pairs[j].second).c_str(), it->second.c_str());
                     }
-                    EXPECT_EQ(it->second, vector_to_string(pairs[i].second));
+                    EXPECT_EQ(it->second, vector_to_string(pairs[j].second));
                     mirror_copy.erase(it);
                 }
             }

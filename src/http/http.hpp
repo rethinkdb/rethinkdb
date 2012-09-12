@@ -83,7 +83,19 @@ struct http_req_t {
 
 int content_length(http_req_t);
 
-struct http_res_t {
+enum http_status_code_t {
+    HTTP_OK = 200,
+    HTTP_NO_CONTENT = 204,
+    HTTP_BAD_REQUEST = 400,
+    HTTP_FORBIDDEN = 403,
+    HTTP_NOT_FOUND = 404,
+    HTTP_METHOD_NOT_ALLOWED = 405,
+    HTTP_UNSUPPORTED_MEDIA_TYPE = 415,
+    HTTP_INTERNAL_SERVER_ERROR = 500
+};
+
+class http_res_t {
+public:
     std::string version;
     int code;
     std::vector<header_line_t> header_lines;
@@ -93,16 +105,19 @@ struct http_res_t {
     void set_body(const std::string&, const std::string&);
 
     http_res_t();
-    explicit http_res_t(int rescode);
+    explicit http_res_t(http_status_code_t rescode);
+    http_res_t(http_status_code_t rescode, const std::string&, const std::string&);
     void add_last_modified(int);
 };
+http_res_t http_error_res(const std::string &content,
+                          http_status_code_t rescode = HTTP_BAD_REQUEST);
 
 void test_header_parser();
 
 class tcp_http_msg_parser_t {
 public:
     tcp_http_msg_parser_t() {}
-    bool parse(tcp_conn_t *conn, http_req_t *req);
+    bool parse(tcp_conn_t *conn, http_req_t *req, signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t);
 private:
     struct version_parser_t {
         std::string version;

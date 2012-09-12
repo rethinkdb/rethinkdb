@@ -17,12 +17,12 @@ file_http_app_t::file_http_app_t(std::set<std::string> _whitelist, std::string _
 http_res_t file_http_app_t::handle(const http_req_t &req) {
     if (req.method != GET) {
         /* Method not allowed. */
-        return http_res_t(405);
+        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
     std::string resource(req.resource.as_string());
     if (resource != "/" && resource != "" && !std_contains(whitelist, resource)) {
         logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.", resource.c_str());
-        return http_res_t(403);
+        return http_res_t(HTTP_FORBIDDEN);
     }
 
     http_res_t res;

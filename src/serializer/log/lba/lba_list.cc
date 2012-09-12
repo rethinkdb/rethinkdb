@@ -236,7 +236,7 @@ bool lba_list_t::we_want_to_gc(int i) {
     int entries_per_extent = disk_structures[i]->num_entries_that_can_fit_in_an_extent();
     int64_t entries_total = disk_structures[i]->extents_in_superblock.size() * entries_per_extent;
     int64_t entries_live = end_block_id() / LBA_SHARD_FACTOR;
-    if ((entries_live / (float)entries_total) > LBA_MIN_UNGARBAGE_FRACTION) {
+    if ((entries_live / static_cast<double>(entries_total)) > LBA_MIN_UNGARBAGE_FRACTION) {  // TODO: multiply both sides by common denominator
         return false;
     }
 

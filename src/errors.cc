@@ -9,47 +9,66 @@
 
 #include <typeinfo>
 
+#include "logger.hpp"
 #include "utils.hpp"
 #include "backtrace.hpp"
+#include "clustering/administration/logger.hpp"
+
+static __thread bool crashed = false; // to prevent crashing within crashes
 
 void report_user_error(const char *msg, ...) {
-    flockfile(stderr);
+    if (crashed) {
+        va_list args;
+        va_start(args, msg);
+        fprintf(stderr, "Crashing while already crashed. Printing error message to stderr.\n");
+        vfprintf(stderr, msg, args);
+        va_end(args);
+        return;
+    }
+
+    crashed = true;
+
+    thread_log_writer_disabler_t disabler;
 
     va_list args;
     va_start(args, msg);
-    //fprintf(stderr, "\nError: ");
-    vfprintf(stderr, msg, args);
-    fprintf(stderr, "\n");
+    vlogERR(msg, args);
     va_end(args);
-
-    funlockfile(stderr);
 }
 
 void report_fatal_error(const char *file, int line, const char *msg, ...) {
-    flockfile(stderr);
+    if (crashed) {
+        va_list args;
+        va_start(args, msg);
+        fprintf(stderr, "Crashing while already crashed. Printing error message to stderr.\n");
+        vfprintf(stderr, msg, args);
+        va_end(args);
+        return;
+    }
+
+    crashed = true;
+
+    thread_log_writer_disabler_t disabler;
 
     va_list args;
     va_start(args, msg);
-    fprintf(stderr, "\nError in %s at line %d:\n", file, line);
-    vfprintf(stderr, msg, args);
-    fprintf(stderr, "\n");
+    logERR("Error in %s at line %d:", file, line);
+    vlogERR(msg, args);
     va_end(args);
 
     /* Don't print backtraces in valgrind mode because valgrind issues lots of spurious
     warnings when print_backtrace() is run. */
 #if !defined(VALGRIND)
-    fprintf(stderr, "\nBacktrace:\n");
-    print_backtrace();
+    logERR("Backtrace:");
+    logERR("%s", format_backtrace().c_str());
 #endif
 
-    fprintf(stderr, "\nExiting.\n\n");
-
-    funlockfile(stderr);
+    logERR("Exiting.");
 }
 
 /* Handlers for various signals and for unexpected exceptions or calls to std::terminate() */
 
-void generic_crash_handler(int signum) {
+NORETURN void generic_crash_handler(int signum) {
     if (signum == SIGSEGV) {
         crash("Segmentation fault.");
     } else {
@@ -59,7 +78,7 @@ void generic_crash_handler(int signum) {
 
 void ignore_crash_handler(UNUSED int signum) { }
 
-void terminate_handler() {
+NORETURN void terminate_handler() {
     std::type_info *t = abi::__cxa_current_exception_type();
     if (t) {
         std::string name;

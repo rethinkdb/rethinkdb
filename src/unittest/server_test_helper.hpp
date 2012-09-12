@@ -3,7 +3,7 @@
 
 #include "arch/types.hpp"
 #include "utils.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "containers/scoped.hpp"
 
@@ -45,13 +45,9 @@ private:
         access_t mode;
 
         acquiring_coro_t(buf_lock_t *lock, transaction_t *_txn, block_id_t _block_id, access_t _mode)
-            : result(lock), signaled(false), txn(_txn), block_id(_block_id), mode(_mode) { assert(result != NULL); }
+            : result(lock), signaled(false), txn(_txn), block_id(_block_id), mode(_mode) { rassert(result != NULL); }
 
-        void run() {
-            buf_lock_t tmp(txn, block_id, mode);
-            result->swap(tmp);
-            signaled = true;
-        }
+        void run();
     };
 
 private:

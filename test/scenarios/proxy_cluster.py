@@ -27,11 +27,11 @@ with driver.Metacluster() as metacluster:
     dc = http.add_datacenter()
     for machine_id in http.machines:
         http.move_server_to_datacenter(machine_id, dc)
-    ns = http.add_namespace(protocol = "memcached", primary = dc)
+    ns = scenario_common.prepare_table_for_workload(opts, http, primary = dc)
     http.wait_until_blueprint_satisfied(ns)
 
-    workload_ports = scenario_common.get_workload_ports(ns.port, [proxy_process])
-    workload_runner.run(opts["workload"], workload_ports, opts["timeout"])
+    workload_ports = scenario_common.get_workload_ports(opts, ns, [proxy_process])
+    workload_runner.run(opts["protocol"], opts["workload"], workload_ports, opts["timeout"])
 
     cluster.check_and_stop()
 

@@ -4,7 +4,10 @@
 #include <sys/types.h>
 
 #include "arch/runtime/thread_pool.hpp"
+#include "buffer_cache/blob.hpp"
 #include "containers/archive/string_stream.hpp"
+#include "clustering/immediate_consistency/branch/history.hpp"
+#include "serializer/config.hpp"
 
 namespace metadata_persistence {
 
@@ -19,6 +22,7 @@ struct metadata_superblock_t {
     static const int BRANCH_HISTORY_BLOB_MAXREFLEN = 500;
     char dummy_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
     char memcached_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
+    char rdb_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
 
     static const block_magic_t expected_magic;
 };
@@ -40,12 +44,12 @@ static void write_blob(transaction_t *txn, char *ref, int maxreflen, const T &va
     for (write_buffer_t *p = buffers->head(); p != NULL; p = buffers->next(p)) {
         str.append(p->data, p->size);
     }
-    rassert(str.size() == slen);
+    guarantee(str.size() == slen);
     blob_t blob(ref, maxreflen);
     blob.clear(txn);
     blob.append_region(txn, str.size());
     blob.write_from_string(str, txn, 0);
-    rassert(blob.valuesize() == static_cast<int64_t>(slen));
+    guarantee(blob.valuesize() == static_cast<int64_t>(slen));
 }
 
 template<class T>
@@ -65,7 +69,7 @@ persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::st
 persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &initial_metadata) {
     construct_serializer_and_cache(io_backender, true, filename, perfmon_parent);
 
-    transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past);
+    transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
     metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_major_write());
 
@@ -75,6 +79,7 @@ persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::st
     write_blob(&txn, sb->metadata_blob, metadata_superblock_t::METADATA_BLOB_MAXREFLEN, initial_metadata);
     write_blob(&txn, sb->dummy_branch_history_blob, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, branch_history_t<mock::dummy_protocol_t>());
     write_blob(&txn, sb->memcached_branch_history_blob, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, branch_history_t<memcached_protocol_t>());
+    write_blob(&txn, sb->rdb_branch_history_blob, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, branch_history_t<rdb_protocol_t>());
 
     construct_branch_history_managers(true);
 }
@@ -87,14 +92,14 @@ persistent_file_t::~persistent_file_t() {
 }
 
 machine_id_t persistent_file_t::read_machine_id() {
-    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past);
+    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_read);
     const metadata_superblock_t *sb = static_cast<const metadata_superblock_t *>(superblock.get_data_read());
     return sb->machine_id;
 }
 
 cluster_semilattice_metadata_t persistent_file_t::read_metadata() {
-    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past);
+    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_read);
     const metadata_superblock_t *sb = static_cast<const metadata_superblock_t *>(superblock.get_data_read());
     cluster_semilattice_metadata_t metadata;
@@ -103,7 +108,7 @@ cluster_semilattice_metadata_t persistent_file_t::read_metadata() {
 }
 
 void persistent_file_t::update_metadata(const cluster_semilattice_metadata_t &metadata) {
-    transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past);
+    transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
     metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_major_write());
     write_blob(&txn, sb->metadata_blob, metadata_superblock_t::METADATA_BLOB_MAXREFLEN, metadata);
@@ -118,7 +123,7 @@ public:
         /* If we're not creating, we have to load the existing branch history
         database from disk */
         if (!create) {
-            transaction_t txn(parent->cache.get(), rwi_read, 0, repli_timestamp_t::distant_past);
+            transaction_t txn(parent->cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
             buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_read);
             const metadata_superblock_t *sb = static_cast<const metadata_superblock_t *>(superblock.get_data_read());
             read_blob(&txn, sb->*field_name, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, &bh);
@@ -126,18 +131,21 @@ public:
     }
 
     branch_birth_certificate_t<protocol_t> get_branch(branch_id_t branch) THROWS_NOTHING {
+        home_thread_mixin_t::assert_thread();
         typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator it = bh.branches.find(branch);
-        rassert(it != bh.branches.end(), "no such branch");
+        guarantee(it != bh.branches.end(), "no such branch");
         return it->second;
     }
 
     void create_branch(branch_id_t branch_id, const branch_birth_certificate_t<protocol_t> &bc, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(bh.branches.find(branch_id) == bh.branches.end());
+        home_thread_mixin_t::assert_thread();
+        guarantee(bh.branches.find(branch_id) == bh.branches.end());
         bh.branches[branch_id] = bc;
         flush(interruptor);
     }
 
     void export_branch_history(branch_id_t branch, branch_history_t<protocol_t> *out) THROWS_NOTHING {
+        home_thread_mixin_t::assert_thread();
         std::set<branch_id_t> to_process;
         if (out->branches.count(branch) == 0) {
             to_process.insert(branch);
@@ -146,7 +154,7 @@ public:
             branch_id_t next = *to_process.begin();
             to_process.erase(next);
             branch_birth_certificate_t<protocol_t> bc = get_branch(next);
-            rassert(out->branches.count(next) == 0);
+            guarantee(out->branches.count(next) == 0);
             out->branches[next] = bc;
             for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = bc.origin.begin(); it != bc.origin.end(); it++) {
                 if (!it->second.latest.branch.is_nil() && out->branches.count(it->second.latest.branch) == 0) {
@@ -157,6 +165,7 @@ public:
     }
 
     void import_branch_history(const branch_history_t<protocol_t> &new_records, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        home_thread_mixin_t::assert_thread();
         for (typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator it = new_records.branches.begin(); it != new_records.branches.end(); it++) {
             bh.branches.insert(std::make_pair(it->first, it->second));
         }
@@ -165,7 +174,7 @@ public:
 
 private:
     void flush(UNUSED signal_t *interruptor) {
-        transaction_t txn(parent->cache.get(), rwi_write, 1, repli_timestamp_t::distant_past);
+        transaction_t txn(parent->cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
         metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_major_write());
         write_blob(&txn, sb->*field_name, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, bh);
@@ -189,23 +198,23 @@ branch_history_manager_t<memcached_protocol_t> *persistent_file_t::get_memcached
     return memcached_branch_history_manager.get();
 }
 
+branch_history_manager_t<rdb_protocol_t> *persistent_file_t::get_rdb_branch_history_manager() {
+    return rdb_branch_history_manager.get();
+}
+
 void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backender, const bool create, const std::string &filename, perfmon_collection_t *const perfmon_parent) {
     standard_serializer_t::dynamic_config_t serializer_dynamic_config;
 
     if (create) {
-        standard_serializer_t::create(
-            io_backender,
-            standard_serializer_t::private_dynamic_config_t(filename),
-            standard_serializer_t::static_config_t()
-        );
+        standard_serializer_t::create(io_backender,
+                                      standard_serializer_t::private_dynamic_config_t(filename),
+                                      standard_serializer_t::static_config_t());
     }
 
-    serializer.init(new standard_serializer_t(
-        standard_serializer_t::dynamic_config_t(),
-        io_backender,
-        standard_serializer_t::private_dynamic_config_t(filename),
-        perfmon_parent
-    ));
+    serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                              io_backender,
+                                              standard_serializer_t::private_dynamic_config_t(filename),
+                                              perfmon_parent));
 
     if (create) {
         mirrored_cache_static_config_t cache_static_config;
@@ -224,6 +233,8 @@ void persistent_file_t::construct_branch_history_managers(bool create) {
         this, &metadata_superblock_t::dummy_branch_history_blob, create));
     memcached_branch_history_manager.init(new persistent_branch_history_manager_t<memcached_protocol_t>(
         this, &metadata_superblock_t::memcached_branch_history_blob, create));
+    rdb_branch_history_manager.init(new persistent_branch_history_manager_t<rdb_protocol_t>(
+        this, &metadata_superblock_t::rdb_branch_history_blob, create));
 }
 
 semilattice_watching_persister_t::semilattice_watching_persister_t(

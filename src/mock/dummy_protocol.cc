@@ -62,26 +62,23 @@ dummy_protocol_t::read_t dummy_protocol_t::read_t::shard(region_t region) const 
     return r;
 }
 
-dummy_protocol_t::read_response_t dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, UNUSED temporary_cache_t *cache) const {
-    rassert(cache != NULL);
-    read_response_t combined;
-    for (int i = 0; i < (int)resps.size(); i++) {
+void dummy_protocol_t::read_t::unshard(const read_response_t *resps, size_t count, dummy_protocol_t::read_response_t *response, DEBUG_VAR context_t *ctx) const {
+    rassert(ctx != NULL);
+    for (size_t i = 0; i < count; ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].values.begin();
                 it != resps[i].values.end(); it++) {
             rassert(keys.keys.count((*it).first) != 0,
                 "We got a response that doesn't match our request");
-            rassert(combined.values.count((*it).first) == 0,
+            rassert(response->values.count((*it).first) == 0,
                 "Part of the query was run multiple times, or a response was "
                 "duplicated.");
-            combined.values[(*it).first] = (*it).second;
+            response->values[(*it).first] = (*it).second;
         }
     }
-    return combined;
 }
 
-dummy_protocol_t::read_response_t
-dummy_protocol_t::read_t::multistore_unshard(const std::vector<read_response_t>& resps, UNUSED temporary_cache_t *cache) const {
-    return unshard(resps, cache);
+void dummy_protocol_t::read_t::multistore_unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *ctx) const {
+    unshard(resps, count, response, ctx);
 }
 
 dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
@@ -106,26 +103,23 @@ dummy_protocol_t::write_t dummy_protocol_t::write_t::shard(region_t region) cons
     return w;
 }
 
-dummy_protocol_t::write_response_t dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, UNUSED temporary_cache_t *cache) const {
-    rassert(cache != NULL);
-    write_response_t combined;
-    for (int i = 0; i < (int)resps.size(); i++) {
+void dummy_protocol_t::write_t::unshard(const write_response_t* resps, size_t count, write_response_t *response, DEBUG_VAR context_t *ctx) const {
+    rassert(ctx != NULL);
+    for (size_t i = 0; i < count; ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].old_values.begin();
                 it != resps[i].old_values.end(); it++) {
             rassert(values.find((*it).first) != values.end(),
                 "We got a response that doesn't match our request.");
-            rassert(combined.old_values.count((*it).first) == 0,
+            rassert(response->old_values.count((*it).first) == 0,
                 "Part of the query was run multiple times, or a response was "
                 "duplicated.");
-            combined.old_values[(*it).first] = (*it).second;
+            response->old_values[(*it).first] = (*it).second;
         }
     }
-    return combined;
 }
 
-dummy_protocol_t::write_response_t
-dummy_protocol_t::write_t::multistore_unshard(const std::vector<write_response_t>& resps, UNUSED temporary_cache_t *cache) const {
-    return unshard(resps, cache);
+void dummy_protocol_t::write_t::multistore_unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *ctx) const {
+    return unshard(resps, count, response, ctx);
 }
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
@@ -175,6 +169,11 @@ std::vector<dummy_protocol_t::region_t> region_subtract_many(const dummy_protoco
     return result;
 }
 
+dummy_protocol_t::region_t drop_cpu_sharding(const dummy_protocol_t::region_t &r) {
+    // TODO: This implementation is actually broken.
+    return r;
+}
+
 bool operator==(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
     return a.keys == b.keys;
 }
@@ -183,7 +182,7 @@ bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
     return !(a == b);
 }
 
-dummy_protocol_t::region_t dummy_protocol_t::cpu_sharding_subspace(int subregion_number, DEBUG_ONLY_VAR int num_cpu_shards) {
+dummy_protocol_t::region_t dummy_protocol_t::cpu_sharding_subspace(int subregion_number, DEBUG_VAR int num_cpu_shards) {
     rassert(subregion_number >= 0);
     rassert(subregion_number < num_cpu_shards);
 
@@ -200,12 +199,12 @@ dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_prot
     initialize_empty();
 }
 
-dummy_protocol_t::store_t::store_t(UNUSED io_backender_t *io_backend, const std::string& fn, bool create, perfmon_collection_t *) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
+dummy_protocol_t::store_t::store_t(UNUSED io_backender_t *io_backend, const std::string& fn, bool create, perfmon_collection_t *, UNUSED context_t *) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
     if (create) {
         initialize_empty();
     } else {
         blocking_read_file_stream_t stream;
-        DEBUG_ONLY_VAR bool success = stream.init(filename.c_str());
+        DEBUG_VAR bool success = stream.init(filename.c_str());
         rassert(success);
         archive_result_t res = deserialize(&stream, &metainfo);
         if (res) { throw fake_archive_exc_t(); }
@@ -219,7 +218,7 @@ dummy_protocol_t::store_t::store_t(UNUSED io_backender_t *io_backend, const std:
 dummy_protocol_t::store_t::~store_t() {
     if (filename != "") {
         blocking_write_file_stream_t stream;
-        DEBUG_ONLY_VAR bool success = stream.init(filename.c_str());
+        DEBUG_VAR bool success = stream.init(filename.c_str());
         rassert(success);
         write_message_t msg;
         msg << metainfo;
@@ -230,23 +229,23 @@ dummy_protocol_t::store_t::~store_t() {
     }
 }
 
-void dummy_protocol_t::store_t::new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING {
+void dummy_protocol_t::store_t::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING {
     fifo_enforcer_read_token_t token = token_source.enter_read();
-    token_out->init(new fifo_enforcer_sink_t::exit_read_t(&token_sink, token));
+    token_out->create(&token_sink, token);
 }
 
-void dummy_protocol_t::store_t::new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out) THROWS_NOTHING {
+void dummy_protocol_t::store_t::new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) THROWS_NOTHING {
     fifo_enforcer_write_token_t token = token_source.enter_write();
-    token_out->init(new fifo_enforcer_sink_t::exit_write_t(&token_sink, token));
+    token_out->create(&token_sink, token);
 }
 
 void dummy_protocol_t::store_t::do_get_metainfo(order_token_t order_token,
-                                                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                                object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                                 signal_t *interruptor,
                                                 metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
 
-    wait_interruptible(local_token.get(), interruptor);
+    wait_interruptible(token->get(), interruptor);
 
     order_sink.check_out(order_token);
 
@@ -259,13 +258,13 @@ void dummy_protocol_t::store_t::do_get_metainfo(order_token_t order_token,
 
 void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
                                              order_token_t order_token,
-                                             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                                             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
 
-    wait_interruptible(local_token.get(), interruptor);
+    wait_interruptible(token->get(), interruptor);
 
     order_sink.check_out(order_token);
 
@@ -276,20 +275,19 @@ void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
     metainfo.update(new_metainfo);
 }
 
-dummy_protocol_t::read_response_t
-dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
-                                const dummy_protocol_t::read_t &read,
-                                order_token_t order_token,
-                                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
+                                     const dummy_protocol_t::read_t &read,
+                                     dummy_protocol_t::read_response_t *response,
+                                     order_token_t order_token,
+                                     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), read.get_region()));
 
-    dummy_protocol_t::read_response_t resp;
     {
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
 
-        wait_interruptible(local_token.get(), interruptor);
+        wait_interruptible(token->get(), interruptor);
         order_sink.check_out(order_token);
 
         // We allow upper_metainfo domain to be smaller than the metainfo domain
@@ -301,11 +299,10 @@ dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_protoc
         for (std::set<std::string>::iterator it = read.keys.keys.begin();
                 it != read.keys.keys.end(); it++) {
             rassert(get_region().keys.count(*it) != 0);
-            resp.values[*it] = values[*it];
+            response->values[*it] = values[*it];
         }
     }
     if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-    return resp;
 }
 
 void print_region(append_only_printf_buffer_t *buf, const dummy_protocol_t::region_t &region) {
@@ -338,31 +335,30 @@ void print_metainfo(append_only_printf_buffer_t *buf, const region_map_t<dummy_p
     buf->appendf(")");
 }
 
-void debugf_metainfo(DEBUG_ONLY_VAR const char *msg, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
+void debugf_metainfo(DEBUG_VAR const char *msg, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
     printf_buffer_t<2048> buf;
     print_metainfo(&buf, m);
     debugf("%s: %s\n", msg, buf.c_str());
 }
 
 
-dummy_protocol_t::write_response_t
-dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
-                                 const metainfo_t& new_metainfo,
-                                 const dummy_protocol_t::write_t &write,
-                                 transition_timestamp_t timestamp,
-                                 order_token_t order_token,
-                                 scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
+                                      const metainfo_t& new_metainfo,
+                                      const dummy_protocol_t::write_t &write,
+                                      dummy_protocol_t::write_response_t *response,
+                                      transition_timestamp_t timestamp,
+                                      order_token_t order_token,
+                                      object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
     rassert(region_is_superset(get_region(), write.get_region()));
 
-    dummy_protocol_t::write_response_t resp;
     {
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
 
-        wait_interruptible(local_token.get(), interruptor);
+        wait_interruptible(token->get(), interruptor);
 
         order_sink.check_out(order_token);
 
@@ -375,7 +371,7 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_proto
         if (rng.randint(2) == 0) nap(rng.randint(10));
         for (std::map<std::string, std::string>::const_iterator it = write.values.begin();
                 it != write.values.end(); it++) {
-            resp.old_values[(*it).first] = values[(*it).first];
+            response->old_values[(*it).first] = values[(*it).first];
             values[(*it).first] = (*it).second;
             timestamps[(*it).first] = timestamp.timestamp_after();
         }
@@ -383,26 +379,33 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_proto
         metainfo.update(new_metainfo);
     }
     if (rng.randint(2) == 0) nap(rng.randint(10));
-    return resp;
 }
 
-bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
-        const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, backfill_progress_t *, scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
+                                              send_backfill_callback_t<dummy_protocol_t> *send_backfill_cb,
+                                              traversal_progress_combiner_t *progress,
+                                              object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    {
+        scoped_ptr_t<traversal_progress_t> progress_owner(new dummy_protocol_t::backfill_progress_t(get_thread_id()));
+        progress->add_constituent(&progress_owner);
+    }
+
     rassert(region_is_superset(get_region(), start_point.get_domain()));
 
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
 
-    wait_interruptible(local_token.get(), interruptor);
+    wait_interruptible(token->get(), interruptor);
 
     metainfo_t masked_metainfo = metainfo.mask(start_point.get_domain());
-    if (should_backfill(masked_metainfo)) {
+    if (send_backfill_cb->should_backfill(masked_metainfo)) {
         /* Make a copy so we can sleep and still have the correct semantics */
         std::map<std::string, std::string> values_snapshot = values;
         std::map<std::string, state_timestamp_t> timestamps_snapshot = timestamps;
 
         if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
 
-        local_token.reset();
+        token->reset();
 
         if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
         for (region_map_t<dummy_protocol_t, state_timestamp_t>::const_iterator r_it  = start_point.begin();
@@ -415,7 +418,7 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
                     chunk.key = *it;
                     chunk.value = values_snapshot[*it];
                     chunk.timestamp = timestamps_snapshot[*it];
-                    chunk_fun(chunk);
+                    send_backfill_cb->send_chunk(chunk, interruptor);
                 }
                 if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
             }
@@ -426,8 +429,8 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
     }
 }
 
-void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
+void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
 
     rassert(get_region().keys.count(chunk.key) != 0);
 
@@ -439,14 +442,14 @@ void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfil
 
 void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &subregion,
                                            const metainfo_t &new_metainfo,
-                                           scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                                           object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
 
-    wait_interruptible(local_token.get(), interruptor);
+    wait_interruptible(token->get(), interruptor);
 
     rassert(region_is_superset(get_region(), subregion));
     for (std::set<std::string>::iterator it = subregion.keys.begin(); it != subregion.keys.end(); it++) {

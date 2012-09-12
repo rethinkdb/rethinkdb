@@ -11,6 +11,7 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"
+#include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
 
 struct btree_superblock_t;
@@ -107,7 +108,8 @@ struct btree_traversal_helper_t {
     virtual void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                                 const btree_key_t *left_exclusive_or_null,
                                 const btree_key_t *right_inclusive_or_null,
-                                int *population_change_out) = 0;
+                                int *population_change_out,
+                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
     virtual void postprocess_internal_node(buf_lock_t *internal_node_buf) = 0;
 
@@ -122,7 +124,12 @@ struct btree_traversal_helper_t {
     parallel_traversal_progress_t *progress;
 };
 
-void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper);
+void btree_parallel_traversal(transaction_t *txn,
+        superblock_t *superblock,
+        btree_slice_t *slice,
+        btree_traversal_helper_t *helper,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
 
 
 class parallel_traversal_progress_t : public traversal_progress_t {

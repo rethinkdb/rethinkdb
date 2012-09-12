@@ -1,8 +1,10 @@
 #include "clustering/administration/main/command_line.hpp"
 
-#include <signal.h>             // sigaction
+#include <signal.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
 
@@ -10,15 +12,17 @@
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
+#include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/logger.hpp"
 #include "clustering/administration/persist.hpp"
+#include "logger.hpp"
 #include "extproc/spawner.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "utils.hpp"
 
 namespace po = boost::program_options;
-
-static const int default_peer_port = 20300;
 
 class host_and_port_t {
 public:
@@ -29,6 +33,10 @@ public:
 
 std::string metadata_file(const std::string& file_path) {
     return file_path + "/metadata";
+}
+
+std::string get_logfilepath(const std::string& file_path) {
+    return file_path + "/log_file";
 }
 
 std::string errno_to_string(int err) {
@@ -42,26 +50,15 @@ bool check_existence(const std::string& file_path) {
 }
 
 void run_rethinkdb_create(const std::string &filepath, const std::string &machine_name, const io_backend_t io_backend, bool *result_out) {
-    if (check_existence(filepath)) {
-        printf("ERROR: The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
-        *result_out = false;
-        return;
-    }
-
     machine_id_t our_machine_id = generate_uuid();
-    printf("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
+    logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
 
     cluster_semilattice_metadata_t metadata;
 
     machine_semilattice_metadata_t machine_semilattice_metadata;
     machine_semilattice_metadata.name = machine_semilattice_metadata.name.make_new_version(machine_name, our_machine_id);
+    machine_semilattice_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
     metadata.machines.machines.insert(std::make_pair(our_machine_id, machine_semilattice_metadata));
-
-    int res = mkdir(filepath.c_str(), 0755);
-    if (res != 0) {
-        printf("Could not create directory: %s\n", errno_to_string(errno).c_str());
-        return;
-    }
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
@@ -70,14 +67,14 @@ void run_rethinkdb_create(const std::string &filepath, const std::string &machin
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
     metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, metadata);
 
-    printf("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
+    logINF("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
 
     *result_out = true;
 }
 
 std::set<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t> names) {
     std::set<peer_address_t> peers;
-    for (int i = 0; i < (int)names.size(); i++) {
+    for (size_t i = 0; i < names.size(); ++i) {
         peers.insert(peer_address_t(ip_address_t(names[i].host), names[i].port));
     }
     return peers;
@@ -99,10 +96,10 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
         else
             admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).parse_and_run_command(command_args);
     } catch (const admin_no_connection_exc_t& ex) {
-        fprintf(stderr, "%s\n", ex.what());
-        fprintf(stderr, "valid --join option required to handle command, run 'rethinkdb admin help' for more information\n");
+        logERR("%s\n", ex.what());
+        logERR("valid --join option required to handle command, run 'rethinkdb admin help' for more information\n");
     } catch (const std::exception& ex) {
-        fprintf(stderr, "%s\n", ex.what());
+        logERR("%s\n", ex.what());
         *result_out = false;
     }
 }
@@ -111,7 +108,7 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
     os_signal_cond_t sigint_cond;
 
     if (!check_existence(filepath)) {
-        printf("ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
+        logERR("ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
         *result_out = false;
         return;
     }
@@ -134,12 +131,12 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
                         &sigint_cond);
 }
 
-void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets, bool new_directory) {
     os_signal_cond_t sigint_cond;
 
-    printf("Checking if directory '%s' already exists...\n", filepath.c_str());
-    if (check_existence(filepath)) {
-        printf("It already exists.  Loading data...\n");
+    logINF("Checking if directory '%s' already existed...\n", filepath.c_str());
+    if (!new_directory) {
+        logINF("It already existed.  Loading data...\n");
 
         scoped_ptr_t<io_backender_t> io_backender;
         make_io_backender(io_backend, &io_backender);
@@ -158,31 +155,24 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                             &sigint_cond);
 
     } else {
-        printf("It does not already exist. Creating it...\n");
-
-        int res = mkdir(filepath.c_str(), 0755);
-        if (res != 0) {
-            printf("Could not create directory: %s\n", errno_to_string(errno).c_str());
-            return;
-        }
+        logINF("It did not already exist. It has been created.\n");
 
         machine_id_t our_machine_id = generate_uuid();
 
         cluster_semilattice_metadata_t semilattice_metadata;
 
         if (joins.empty()) {
-            printf("Creating a default namespace and default data center "
+            logINF("Creating a default namespace and default data center "
                    "for your convenience. (This is because you ran 'rethinkdb' "
                    "without 'create', 'serve', or '--join', and the directory '%s' did not already exist.)\n",
                    filepath.c_str());
 
             datacenter_id_t datacenter_id = generate_uuid();
             datacenter_semilattice_metadata_t datacenter_metadata;
-            datacenter_metadata.name = vclock_t<std::string>("Welcome", our_machine_id);
+            datacenter_metadata.name = vclock_t<std::string>("Welcome-dc", our_machine_id);
             semilattice_metadata.datacenters.datacenters.insert(std::make_pair(
                 datacenter_id,
-                deletable_t<datacenter_semilattice_metadata_t>(datacenter_metadata)
-                ));
+                deletable_t<datacenter_semilattice_metadata_t>(datacenter_metadata)));
 
             /* Add ourselves as a member of the "Welcome" datacenter. */
             machine_semilattice_metadata_t our_machine_metadata;
@@ -191,44 +181,74 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
             semilattice_metadata.machines.machines.insert(std::make_pair(
                 our_machine_id,
-                deletable_t<machine_semilattice_metadata_t>(our_machine_metadata)
-                ));
+                deletable_t<machine_semilattice_metadata_t>(our_machine_metadata)));
 
-            namespace_id_t namespace_id = generate_uuid();
-            namespace_semilattice_metadata_t<memcached_protocol_t> namespace_metadata;
 
-            namespace_metadata.name = vclock_t<std::string>("Welcome", our_machine_id);
-            namespace_metadata.port = vclock_t<int>(11213, our_machine_id);
-
-            persistable_blueprint_t<memcached_protocol_t> blueprint;
+            /* Create a welcome database. */
+            database_id_t database_id = generate_uuid();
+            database_semilattice_metadata_t database_metadata;
+            database_metadata.name = vclock_t<std::string>("Welcome-db", our_machine_id);
+            semilattice_metadata.databases.databases.insert(std::make_pair(
+                database_id,
+                deletable_t<database_semilattice_metadata_t>(database_metadata)));
             {
-                std::map<hash_region_t<key_range_t>, blueprint_details::role_t> roles;
-                roles.insert(std::make_pair(hash_region_t<key_range_t>::universe(), blueprint_details::role_primary));
-                blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
+                /* add an mc namespace */
+                namespace_id_t namespace_id = generate_uuid();
+                namespace_semilattice_metadata_t<memcached_protocol_t> namespace_metadata;
+
+                namespace_metadata.name = vclock_t<std::string>("Welcome-memcached", our_machine_id);
+                namespace_metadata.port = vclock_t<int>(port_constants::namespace_port, our_machine_id);
+
+                persistable_blueprint_t<memcached_protocol_t> blueprint;
+                {
+                    std::map<hash_region_t<key_range_t>, blueprint_role_t> roles;
+                    roles.insert(std::make_pair(hash_region_t<key_range_t>::universe(), blueprint_role_primary));
+                    blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
+                }
+                namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<memcached_protocol_t> >(blueprint, our_machine_id);
+
+                namespace_metadata.primary_datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);
+
+                std::map<datacenter_id_t, int> affinities;
+                affinities.insert(std::make_pair(datacenter_id, 0));
+                namespace_metadata.replica_affinities = vclock_t<std::map<datacenter_id_t, int> >(affinities, our_machine_id);
+
+                std::map<datacenter_id_t, int> ack_expectations;
+                ack_expectations.insert(std::make_pair(datacenter_id, 1));
+                namespace_metadata.ack_expectations = vclock_t<std::map<datacenter_id_t, int> >(ack_expectations, our_machine_id);
+
+                std::set< hash_region_t<key_range_t> > shards;
+                shards.insert(hash_region_t<key_range_t>::universe());
+                namespace_metadata.shards = vclock_t<std::set<hash_region_t<key_range_t> > >(shards, our_machine_id);
+
+                region_map_t<memcached_protocol_t, machine_id_t> primary_pinnings(hash_region_t<key_range_t>::universe(), nil_uuid());
+                namespace_metadata.primary_pinnings = vclock_t<region_map_t<memcached_protocol_t, machine_id_t> >(primary_pinnings, our_machine_id);
+
+                region_map_t<memcached_protocol_t, std::set<machine_id_t> > secondary_pinnings(hash_region_t<key_range_t>::universe(), std::set<machine_id_t>());
+                namespace_metadata.secondary_pinnings = vclock_t<region_map_t<memcached_protocol_t, std::set<machine_id_t> > >(secondary_pinnings, our_machine_id);
+
+                namespace_metadata.database = vclock_t<datacenter_id_t>(database_id, our_machine_id);
+
+                cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&semilattice_metadata.memcached_namespaces);
+                change.get()->namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
             }
-            namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<memcached_protocol_t> >(blueprint, our_machine_id);
 
-            namespace_metadata.primary_datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);
+            {
+                /* add an rdb namespace */
+                namespace_id_t namespace_id = generate_uuid();
 
-            std::map<datacenter_id_t, int> affinities;
-            affinities.insert(std::make_pair(datacenter_id, 0));
-            namespace_metadata.replica_affinities = vclock_t<std::map<datacenter_id_t, int> >(affinities, our_machine_id);
+                namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata =
+                    new_namespace<rdb_protocol_t>(our_machine_id, database_id, datacenter_id, "Welcome-rdb", "id", port_constants::namespace_port);
 
-            std::map<datacenter_id_t, int> ack_expectations;
-            ack_expectations.insert(std::make_pair(datacenter_id, 1));
-            namespace_metadata.ack_expectations = vclock_t<std::map<datacenter_id_t, int> >(ack_expectations, our_machine_id);
+                persistable_blueprint_t<rdb_protocol_t> blueprint;
+                std::map<rdb_protocol_t::region_t, blueprint_role_t> roles;
+                roles.insert(std::make_pair(rdb_protocol_t::region_t::universe(), blueprint_role_primary));
+                blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
+                namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<rdb_protocol_t> >(blueprint, our_machine_id);
 
-            std::set< hash_region_t<key_range_t> > shards;
-            shards.insert(hash_region_t<key_range_t>::universe());
-            namespace_metadata.shards = vclock_t<std::set<hash_region_t<key_range_t> > >(shards, our_machine_id);
-
-            region_map_t<memcached_protocol_t, machine_id_t> primary_pinnings(hash_region_t<key_range_t>::universe(), nil_uuid());
-            namespace_metadata.primary_pinnings = vclock_t<region_map_t<memcached_protocol_t, machine_id_t> >(primary_pinnings, our_machine_id);
-
-            region_map_t<memcached_protocol_t, std::set<machine_id_t> > secondary_pinnings(hash_region_t<key_range_t>::universe(), std::set<machine_id_t>());
-            namespace_metadata.secondary_pinnings = vclock_t<region_map_t<memcached_protocol_t, std::set<machine_id_t> > >(secondary_pinnings, our_machine_id);
-
-            semilattice_metadata.memcached_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
+                cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&semilattice_metadata.rdb_namespaces);
+                change.get()->namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
+            }
 
         } else {
             machine_semilattice_metadata_t our_machine_metadata;
@@ -255,7 +275,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
     }
 }
 
-void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::string &logfilepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
     rassert(!joins.empty());
 
@@ -264,7 +284,6 @@ void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::st
 
     *result_out = serve_proxy(spawner_info,
                               io_backender.get(),
-                              logfilepath,
                               look_up_peers_addresses(joins),
                               ports,
                               generate_uuid(), cluster_semilattice_metadata_t(),
@@ -309,11 +328,10 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
 po::options_description get_network_options() {
     po::options_description desc("Network options");
     desc.add_options()
-        ("port", po::value<int>()->default_value(default_peer_port), "port for receiving connections from other nodes")
-        DEBUG_ONLY(
-            ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes")
-            ("port-offset,o", po::value<int>()->default_value(0), "set up parsers for namespaces on the namespace's port + this value"))
-        ("http-port", po::value<int>()->default_value(0), "port for http admin console (defaults to `port + 1000`)")
+        ("port", po::value<int>()->default_value(port_defaults::peer_port), "port for receiving connections from other nodes")
+        ("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)")
+        ("port-offset,o", po::value<int>()->default_value(port_defaults::port_offset), "set up parsers for namespaces on the namespace's port + this value (for development)")
+        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console (defaults to `port + 1000`)")
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
     return desc;
 }
@@ -322,6 +340,13 @@ po::options_description get_disk_options() {
     po::options_description desc("Disk I/O options");
     desc.add_options()
         ("io-backend", po::value<std::string>()->default_value("pool"), "event backend to use: native or pool.  Defaults to native.");
+    return desc;
+}
+
+po::options_description get_cpu_options() {
+    po::options_description desc("CPU options");
+    desc.add_options()
+        ("cores,c", po::value<int>()->default_value(get_cpu_count()), "the number of cores to utilize");
     return desc;
 }
 
@@ -338,6 +363,7 @@ po::options_description get_rethinkdb_serve_options() {
     desc.add(get_file_options());
     desc.add(get_network_options());
     desc.add(get_disk_options());
+    desc.add(get_cpu_options());
     return desc;
 }
 
@@ -354,7 +380,7 @@ po::options_description get_rethinkdb_admin_options() {
     po::options_description desc("Allowed options");
     desc.add_options()
         DEBUG_ONLY(
-            ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes"))
+            ("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
     desc.add(get_disk_options());
@@ -367,6 +393,7 @@ po::options_description get_rethinkdb_porcelain_options() {
     desc.add(get_machine_options());
     desc.add(get_network_options());
     desc.add(get_disk_options());
+    desc.add(get_cpu_options());
     return desc;
 }
 
@@ -390,7 +417,7 @@ int parse_commands(int argc, char *argv[], po::variables_map *vm, const po::opti
         po::notify(*vm);
         return 0;
     } catch (const po::unknown_option& ex) {
-        fprintf(stderr, "%s\n", ex.what());
+        logERR("%s\n", ex.what());
         return 1;
     }
 }
@@ -408,9 +435,24 @@ int main_rethinkdb_create(int argc, char *argv[]) {
     }
 
     std::string filepath = vm["directory"].as<std::string>();
+    std::string logfilepath = get_logfilepath(filepath);
+
     std::string machine_name = vm["name"].as<std::string>();
 
     const int num_workers = get_cpu_count();
+
+    if (check_existence(filepath)) {
+        fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
+        return 1;
+    }
+
+    res = mkdir(filepath.c_str(), 0755);
+    if (res != 0) {
+        fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
+        return 1;
+    }
+
+    install_fallback_log_writer(logfilepath);
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, machine_name, io_backend, &result),
@@ -427,17 +469,16 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     }
 
     std::string filepath = vm["directory"].as<std::string>();
+    std::string logfilepath = get_logfilepath(filepath);
+
     std::vector<host_and_port_t> joins;
     if (vm.count("join") > 0) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
     }
     int port = vm["port"].as<int>();
     int http_port = vm["http-port"].as<int>();
-#ifndef NDEBUG
     int client_port = vm["client-port"].as<int>();
-#else
-    int client_port = 0;
-#endif
+    int port_offset = vm["port-offset"].as<int>();
 
     path_t web_path = parse_as_path(argv[0]);
     web_path.nodes.pop_back();
@@ -452,12 +493,22 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     extproc::spawner_t::info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
 
-    const int num_workers = get_cpu_count();
+    const int num_workers = vm["cores"].as<int>();
+    if (num_workers <= 0 || num_workers > MAX_THREADS) {
+        fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
+        return 1;
+    }
+
+    if (!check_existence(filepath)) {
+        fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
+        return 1;
+    }
+
+    install_fallback_log_writer(logfilepath);
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, &spawner_info, filepath, joins,
-                                   service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())
-                                   ),
+                                   service_ports_t(port, client_port, http_port, port_offset),
                                    io_backend,
                                    &result, render_as_path(web_path)),
                        num_workers);
@@ -486,7 +537,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 #ifndef NDEBUG
         int client_port = vm["client-port"].as<int>();
 #else
-        int client_port = 0;
+        int client_port = port_defaults::client_port;
 #endif
         bool exit_on_failure = false;
         if (vm.count("exit-failure") > 0)
@@ -504,7 +555,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
                            num_workers);
 
     } catch (const std::exception& ex) {
-        fprintf(stderr, "%s\n", ex.what());
+        logERR("%s\n", ex.what());
         result = false;
     }
 
@@ -525,14 +576,13 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
      }
 
     std::string logfilepath = vm["log-file"].as<std::string>();
+    install_fallback_log_writer(logfilepath);
+
     std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
     int port = vm["port"].as<int>();
     int http_port = vm["http-port"].as<int>();
-#ifndef NDEBUG
     int client_port = vm["client-port"].as<int>();
-#else
-    int client_port = 0;
-#endif
+    int port_offset = vm["port-offset"].as<int>();
 
     path_t web_path = parse_as_path(argv[0]);
     web_path.nodes.pop_back();
@@ -550,8 +600,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     const int num_workers = get_cpu_count();
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, logfilepath, joins,
-                                   service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
+    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, joins,
+                                   service_ports_t(port, client_port, http_port, port_offset),
                                    io_backend,
                                    &result, render_as_path(web_path)),
                        num_workers);
@@ -567,6 +617,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     }
 
     std::string filepath = vm["directory"].as<std::string>();
+    std::string logfilepath = get_logfilepath(filepath);
+
     std::string machine_name = vm["name"].as<std::string>();
     std::vector<host_and_port_t> joins;
     if (vm.count("join") > 0) {
@@ -574,11 +626,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     }
     int port = vm["port"].as<int>();
     int http_port = vm["http-port"].as<int>();
-#ifndef NDEBUG
     int client_port = vm["client-port"].as<int>();
-#else
-    int client_port = 0;
-#endif
+    int port_offset = vm["port-offset"].as<int>();
 
     path_t web_path = parse_as_path(argv[0]);
     web_path.nodes.pop_back();
@@ -593,13 +642,30 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     extproc::spawner_t::info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
 
-    const int num_workers = get_cpu_count();
+    const int num_workers = vm["cores"].as<int>();
+    if (num_workers <= 0 || num_workers > MAX_THREADS) {
+        fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
+        return 1;
+    }
+
+    bool new_directory = false;
+    // Attempt to create the directory early so that the log file can use it.
+    if (!check_existence(filepath)) {
+        new_directory = true;
+        int mkdir_res = mkdir(filepath.c_str(), 0755);
+        if (mkdir_res != 0) {
+            fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
+            return 1;
+        }
+    }
+
+    install_fallback_log_writer(logfilepath);
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, &spawner_info, filepath, machine_name, joins,
-                                   service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
+                                   service_ports_t(port, client_port, http_port, port_offset),
                                    io_backend,
-                                   &result, render_as_path(web_path)),
+                                   &result, render_as_path(web_path), new_directory),
                        num_workers);
 
     return result ? 0 : 1;

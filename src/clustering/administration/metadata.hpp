@@ -5,7 +5,9 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <utility>
 
+// TODO: Probably some of these headers could be moved to the .cc.
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/issues/local.hpp"
@@ -14,11 +16,15 @@
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/stat_manager.hpp"
 #include "clustering/administration/metadata_change_handler.hpp"
+#include "containers/archive/cow_ptr_type.hpp"
+#include "containers/cow_ptr.hpp"
 #include "http/json/json_adapter.hpp"
 #include "memcached/protocol.hpp"
 #include "memcached/protocol_json_adapter.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_json_adapter.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "rpc/semilattice/joins/cow_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -26,43 +32,25 @@ class cluster_semilattice_metadata_t {
 public:
     cluster_semilattice_metadata_t() { }
 
-    namespaces_semilattice_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
-    namespaces_semilattice_metadata_t<memcached_protocol_t> memcached_namespaces;
+    cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> > dummy_namespaces;
+    cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > memcached_namespaces;
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > rdb_namespaces;
+
     machines_semilattice_metadata_t machines;
     datacenters_semilattice_metadata_t datacenters;
     databases_semilattice_metadata_t databases;
 
-    RDB_MAKE_ME_SERIALIZABLE_5(dummy_namespaces, memcached_namespaces, machines, datacenters, databases);
+    RDB_MAKE_ME_SERIALIZABLE_6(dummy_namespaces, memcached_namespaces, rdb_namespaces, machines, datacenters, databases);
 };
 
-RDB_MAKE_SEMILATTICE_JOINABLE_5(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, machines, datacenters, databases);
-RDB_MAKE_EQUALITY_COMPARABLE_5(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, machines, datacenters, databases);
+RDB_MAKE_SEMILATTICE_JOINABLE_6(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, rdb_namespaces, machines, datacenters, databases);
+RDB_MAKE_EQUALITY_COMPARABLE_6(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, rdb_namespaces, machines, datacenters, databases);
 
 //json adapter concept for cluster_semilattice_metadata_t
-template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster_semilattice_metadata_t *target, const ctx_t &ctx) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t>, ctx_t>(&target->dummy_namespaces));
-    res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces));
-    res["machines"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machines_semilattice_metadata_t, ctx_t>(&target->machines));
-    res["datacenters"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<datacenters_semilattice_metadata_t, ctx_t>(&target->datacenters));
-    res["databases"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<databases_semilattice_metadata_t, ctx_t>(&target->databases));
-    res["me"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<uuid_t, ctx_t>(ctx.us));
-    return res;
-}
-
-template <class ctx_t>
-cJSON *render_as_json(cluster_semilattice_metadata_t *target, const ctx_t &ctx) {
-    return render_as_directory(target, ctx);
-}
-
-template <class ctx_t>
-void apply_json_to(cJSON *change, cluster_semilattice_metadata_t *target, const ctx_t &ctx) {
-    apply_as_directory(change, target, ctx);
-}
-
-template <class ctx_t>
-void on_subfield_change(cluster_semilattice_metadata_t *, const ctx_t &) { }
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
+cJSON *with_ctx_render_as_json(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
+void with_ctx_apply_json_to(cJSON *change, cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
+void with_ctx_on_subfield_change(cluster_semilattice_metadata_t *, const vclock_ctx_t &);
 
 enum cluster_directory_peer_type_t {
     ADMIN_PEER,
@@ -87,6 +75,7 @@ public:
 
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
+    namespaces_directory_metadata_t<rdb_protocol_t> rdb_namespaces;
 
     /* Tell the other peers what our machine ID is */
     machine_id_t machine_id;
@@ -100,84 +89,110 @@ public:
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_9(dummy_namespaces, memcached_namespaces, machine_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, log_mailbox, local_issues, peer_type);
+    RDB_MAKE_ME_SERIALIZABLE_10(dummy_namespaces, memcached_namespaces, rdb_namespaces, machine_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, log_mailbox, local_issues, peer_type);
 };
 
-// json adapter concept for directory_echo_wrapper_t
-template <typename T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
-    return get_json_subfields(&target->internal, ctx);
+// ctx-less json adapter for directory_echo_wrapper_t
+template <typename T>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(directory_echo_wrapper_t<T> *target) {
+    return get_json_subfields(&target->internal);
 }
 
-template <typename T, class ctx_t>
-cJSON *render_as_json(directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
-    return render_as_json(&target->internal, ctx);
+template <typename T>
+cJSON *render_as_json(directory_echo_wrapper_t<T> *target) {
+    return render_as_json(&target->internal);
 }
 
-template <typename T, class ctx_t>
-void apply_json_to(cJSON *change, directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
-    apply_json_to(change, &target->internal, ctx);
+template <typename T>
+void apply_json_to(cJSON *change, directory_echo_wrapper_t<T> *target) {
+    apply_json_to(change, &target->internal);
 }
 
-template <typename T, class ctx_t>
-void on_subfield_change(directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
-    on_subfield_change(&target->internal, ctx);
+template <typename T>
+void on_subfield_change(directory_echo_wrapper_t<T> *target) {
+    on_subfield_change(&target->internal);
 }
 
-//  json adapter concept for cluster_directory_metadata_t
-template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target, const ctx_t &) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_read_only_adapter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, ctx_t>(&target->dummy_namespaces));
-    res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_directory_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces));
-    res["machine_id"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machine_id_t, ctx_t>(&target->machine_id)); // TODO: should be 'me'?
-    res["ips"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<std::vector<std::string>, ctx_t>(&target->ips));
-    res["peer_type"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<cluster_directory_peer_type_t, ctx_t>(&target->peer_type));
-    return res;
-}
 
-template <class ctx_t>
-cJSON *render_as_json(cluster_directory_metadata_t *target, const ctx_t &ctx) {
-    return render_as_directory(target, ctx);
-}
+// ctx-less json adapter concept for cluster_directory_metadata_t
+json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target);
+cJSON *render_as_json(cluster_directory_metadata_t *target);
+void apply_json_to(cJSON *change, cluster_directory_metadata_t *target);
+void on_subfield_change(cluster_directory_metadata_t *);
 
-template <class ctx_t>
-void apply_json_to(cJSON *change, cluster_directory_metadata_t *target, const ctx_t &ctx) {
-    apply_as_directory(change, target, ctx);
-}
 
-template <class ctx_t>
-void on_subfield_change(cluster_directory_metadata_t *, const ctx_t &) { }
+// ctx-less json adapter for cluster_directory_peer_type_t
+json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_peer_type_t *);
+cJSON *render_as_json(cluster_directory_peer_type_t *peer_type);
+void apply_json_to(cJSON *, cluster_directory_peer_type_t *);
+void on_subfield_change(cluster_directory_peer_type_t *);
 
-// json adapter for cluster_directory_peer_type_t
-template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster_directory_peer_type_t *, const ctx_t &)
-{
-    return std::map<std::string, boost::shared_ptr<json_adapter_if_t<ctx_t> > >();
-}
 
-template <class ctx_t>
-cJSON *render_as_json(cluster_directory_peer_type_t *peer_type, const ctx_t &)
-{
-    switch (*peer_type) {
-    case ADMIN_PEER:
-        return cJSON_CreateString("admin");
-    case SERVER_PEER:
-        return cJSON_CreateString("server");
-    case PROXY_PEER:
-        return cJSON_CreateString("proxy");
-    default:
-        break;
+const char *const METADATA_SUCCESS = 0;
+const char *const METADATA_ERR_NONE = "No entry with that name.";
+const char *const METADATA_ERR_MULTIPLE = "Multiple entries with that name.";
+const char *const METADATA_ERR_CONFLICT = "Entry with that name is in conflict.";
+
+/* A helper class to search through metadata in various ways.  Can be
+   constructed from a pointer to the internal map of the metadata,
+   e.g. `metadata.databases.databases`.  Look in rdb_protocol/query_language.cc
+   for examples on how to use. */
+template<class T>
+class metadata_searcher_t {
+public:
+    typedef std::map<uuid_t, deletable_t<T> > metamap_t;
+    typedef typename metamap_t::iterator iterator;
+    iterator begin() {return map->begin();}
+    iterator end() {return map->end();}
+
+    explicit metadata_searcher_t(metamap_t *_map): map(_map) { }
+
+    template<class callable_t>
+    /* Find the next iterator >= [start] matching [predicate]. */
+    iterator find_next(iterator start, callable_t predicate) {
+        iterator it;
+        for (it = start; it != end(); ++it) {
+            if (it->second.is_deleted()) continue;
+            if (predicate(it->second.get())) break;
+        }
+        return it;
     }
-    return cJSON_CreateString("unknown");
-}
+    /* Find the next iterator >= [start] (as above, but predicate always true). */
+    iterator find_next(iterator start) {
+        iterator it;
+        for (it = start; it != end(); ++it) if (!it->second.is_deleted()) break;
+        return it;
+    }
 
-template <class ctx_t>
-void apply_json_to(cJSON *, cluster_directory_peer_type_t *, const ctx_t &)
-{ }
+    /* Find the unique entry matching [predicate].  If there is no unique entry,
+       return [end()] and set the optional status parameter appropriately. */
+    template<class callable_t>
+    iterator find_uniq(callable_t predicate, const char **out=0) {
+        iterator it, retval;
+        if (out) *out = METADATA_SUCCESS;
+        retval = it = find_next(begin(), predicate);
+        if (it == end()) {
+            if (out) *out = METADATA_ERR_NONE;
+        } else if (find_next(++it, predicate) != end()) {
+            if (out) *out = METADATA_ERR_MULTIPLE;
+            retval = end();
+        }
+        return retval;
+    }
+    /* As above, but matches by name instead of a predicate. */
+    iterator find_uniq(const std::string &name, const char **out=0) {
+        return find_uniq(name_predicate_t(name), out);
+    }
 
-template <class ctx_t>
-void  on_subfield_change(cluster_directory_peer_type_t *, const ctx_t &)
-{ }
-
+    struct name_predicate_t {
+        bool operator()(T metadata) {
+            return !metadata.name.in_conflict() && metadata.name.get() == name;
+        }
+        name_predicate_t(const std::string &_name): name(_name) { }
+    private:
+        const std::string &name;
+    };
+private:
+    metamap_t *map;
+};
 #endif  // CLUSTERING_ADMINISTRATION_METADATA_HPP_

@@ -3,38 +3,39 @@
 
 #include <string>
 
-#include "memcached/protocol.hpp"
 #include "http/json/json_adapter.hpp"
 
-//json adapter concept for store_key_t
-template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(store_key_t *, const ctx_t &);
+struct cJSON;
+struct store_key_t;
+template <class> class hash_region_t;
+struct key_range_t;
 
-template <class ctx_t>
-cJSON *render_as_json(store_key_t *, const ctx_t &);
+// json adapter concept for store_key_t
+json_adapter_if_t::json_adapter_map_t get_json_subfields(store_key_t *);
+cJSON *render_as_json(store_key_t *);
+void apply_json_to(cJSON *, store_key_t *);
+void  on_subfield_change(store_key_t *);
 
-template <class ctx_t>
-void apply_json_to(cJSON *, store_key_t *, const ctx_t &);
 
-template <class ctx_t>
-void  on_subfield_change(store_key_t *, const ctx_t &);
+// json adapter concept for key_range_t
+json_adapter_if_t::json_adapter_map_t get_json_subfields(key_range_t *target);
 
-//json adapter concept for memcached_protocol_t::region_t
-template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(memcached_protocol_t::region_t *, const ctx_t &);
+// this is not part of the json adapter concept.
+std::string render_region_as_string(key_range_t *target);
 
-template <class ctx_t>
-cJSON *render_as_json(memcached_protocol_t::region_t *, const ctx_t &);
+cJSON *render_as_json(key_range_t *target);
 
-template <class ctx_t>
-void apply_json_to(cJSON *, memcached_protocol_t::region_t *, const ctx_t &);
+void apply_json_to(cJSON *change, key_range_t *target);
 
-template <class ctx_t>
-void  on_subfield_change(memcached_protocol_t::region_t *, const ctx_t &);
+void on_subfield_change(key_range_t *target);
 
-template <class ctx_t>
-std::string render_region_as_string(memcached_protocol_t::region_t *target, const ctx_t &ctx);
 
-#include "memcached/protocol_json_adapter.tcc"
+
+// json adapter concept for hash_region_t<key_range_t>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(hash_region_t<key_range_t> *);
+cJSON *render_as_json(hash_region_t<key_range_t> *);
+void apply_json_to(cJSON *, hash_region_t<key_range_t> *);
+void  on_subfield_change(hash_region_t<key_range_t> *);
+std::string render_region_as_string(hash_region_t<key_range_t> *target);
 
 #endif /* MEMCACHED_PROTOCOL_JSON_ADAPTER_HPP_ */

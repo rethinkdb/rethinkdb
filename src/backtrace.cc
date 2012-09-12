@@ -14,7 +14,8 @@
 #include <boost/ptr_container/ptr_map.hpp>
 
 #include "containers/scoped.hpp"
-
+#include "logger.hpp"
+#include "utils.hpp"
 
 
 
@@ -192,7 +193,7 @@ static bool run_addr2line(boost::ptr_map<std::string, addr2line_t> *procs, const
     return true;
 }
 
-void print_backtrace(FILE *out, bool use_addr2line) {
+std::string format_backtrace(bool use_addr2line) {
     boost::ptr_map<std::string, addr2line_t> procs;
 
     // Get a backtrace
@@ -201,43 +202,48 @@ void print_backtrace(FILE *out, bool use_addr2line) {
     int size = backtrace(stack_frames, max_frames);
     char **symbols = backtrace_symbols(stack_frames, size);
 
+    std::string output;
     if (symbols) {
         for (int i = 0; i < size; i ++) {
             // Parse each line of the backtrace
             scoped_malloc_t<char> line(symbols[i], symbols[i] + (strlen(symbols[i]) + 1));
             char *executable, *function, *offset, *address;
 
-            fprintf(out, "%d: ", i+1);
+            output.append(strprintf("%d: ", i+1));
 
             if (!parse_backtrace_line(line.get(), &executable, &function, &offset, &address)) {
-                fprintf(out, "%s\n", symbols[i]);
+                output.append(strprintf("%s\n", symbols[i]));
             } else {
                 if (function) {
                     try {
                         std::string demangled = demangle_cpp_name(function);
-                        fprintf(out, "%s", demangled.c_str());
+                        output.append(demangled);
                     } catch (demangle_failed_exc_t) {
-                        fprintf(out, "%s+%s", function, offset);
+                        output.append(strprintf("%s+%s", function, offset));
                     }
                 } else {
-                    fprintf(out, "?");
+                    output.append("?");
                 }
 
-                fprintf(out, " at ");
+                output.append(" at ");
 
-                char line[255] = {0};
-                if (use_addr2line && run_addr2line(&procs, executable, address, line, sizeof(line))) {
-                    fprintf(out, "%s", line);
+                char some_other_line[255] = {0};
+                if (use_addr2line && run_addr2line(&procs, executable, address, some_other_line, sizeof(some_other_line))) {
+                    output.append(some_other_line);
                 } else {
-                    fprintf(out, "%s (%s)", address, executable);
+                    output.append(strprintf("%s (%s)", address, executable));
                 }
 
-                fprintf(out, "\n");
+                output.append("\n");
             }
         }
 
         free(symbols);
+
+        return output;
     } else {
-        fprintf(out, "(too little memory for backtrace)\n");
+        output = "(too little memory for backtrace)";
+
+        return output;
     }
 }

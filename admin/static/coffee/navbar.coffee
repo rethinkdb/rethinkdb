@@ -16,7 +16,7 @@ class NavBarView extends Backbone.View
                 _machines = _.map machines.models, (machine) ->
                     uuid: machine.get('id')
                     name: machine.get('name') + ' (machine)'
-                    type: 'machines'
+                    type: 'servers'
                 _datacenters = _.map datacenters.models, (datacenter) ->
                     uuid: datacenter.get('id')
                     name: datacenter.get('name') + ' (datacenter)'
@@ -24,8 +24,12 @@ class NavBarView extends Backbone.View
                 _namespaces = _.map namespaces.models, (namespace) ->
                     uuid: namespace.get('id')
                     name: namespace.get('name') + ' (namespace)'
-                    type: 'namespaces'
-                return _machines.concat(_datacenters).concat(_namespaces)
+                    type: 'tables'
+                _databases = _.map databases.models, (database) ->
+                    uuid: database.get('id')
+                    name: database.get('name') + ' (database)'
+                    type: 'databases'
+                return _machines.concat(_datacenters).concat(_namespaces).concat(_databases)
             property: 'name'
             onselect: (obj) ->
                 window.app.navigate('#' + obj.type + '/' + obj.uuid , { trigger: true })
@@ -34,16 +38,7 @@ class NavBarView extends Backbone.View
         log_render '(rendering) NavBarView'
         @.$el.html @template()
         # set active tab
-        if route?
-            @.$('ul.nav li').removeClass('active')
-            if route is 'route:dashboard'
-                $('ul.nav li#nav-dashboard').addClass('active')
-            else if route is 'route:index_namespaces'
-                $('ul.nav li#nav-namespaces').addClass('active')
-            else if route is 'route:index_servers'
-                $('ul.nav li#nav-servers').addClass('active')
-            else if route is 'route:logs'
-                $('ul.nav li#nav-logs').addClass('active')
+        @set_active_tab route
 
         if @first_render is true
             # Initialize typeahead
@@ -52,3 +47,16 @@ class NavBarView extends Backbone.View
 
         return @
 
+    set_active_tab: (route) =>
+        if route?
+            @.$('ul.nav li').removeClass('active')
+            switch route 
+                when 'route:dashboard' then $('ul.nav li#nav-dashboard').addClass('active')
+                when 'route:index_namespaces' then $('ul.nav li#nav-namespaces').addClass('active')
+                when 'route:namespace' then $('ul.nav li#nav-namespaces').addClass('active')
+                when 'route:database' then $('ul.nav li#nav-namespaces').addClass('active')
+                when 'route:index_servers' then $('ul.nav li#nav-servers').addClass('active')
+                when 'route:server' then $('ul.nav li#nav-servers').addClass('active')
+                when 'route:datacenter' then $('ul.nav li#nav-servers').addClass('active')
+                when 'route:dataexplorer' then $('ul.nav li#nav-dataexplorer').addClass('active')
+                when 'route:logs' then $('ul.nav li#nav-logs').addClass('active')

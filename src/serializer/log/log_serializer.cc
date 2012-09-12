@@ -110,7 +110,7 @@ struct ls_start_existing_fsm_t :
     bool next_starting_up_step() {
         if (state == state_read_static_header) {
             if (static_header_read(ser->dbfile,
-                    (log_serializer_on_disk_static_config_t *)&ser->static_config,
+                    &ser->static_config,
                     sizeof(log_serializer_on_disk_static_config_t),
                     this)) {
                 state = state_find_metablock;
@@ -603,7 +603,7 @@ void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t
 // The block_id is there to keep the interface independent from the serializer
 // implementation. This method should work even if there's no block sequence id in
 // buf.
-block_sequence_id_t log_serializer_t::get_block_sequence_id(UNUSED block_id_t block_id, const void* buf) {
+block_sequence_id_t log_serializer_t::get_block_sequence_id(DEBUG_VAR block_id_t block_id, const void* buf) {
     const ls_buf_data_t *ser_data = reinterpret_cast<const ls_buf_data_t *>(buf);
     ser_data--;
     rassert(ser_data->block_id == block_id);
@@ -848,7 +848,7 @@ void adjust_ref(ls_block_token_pointee_t *p, int adjustment) {
         adjuster_t *adjuster = new adjuster_t;
         adjuster->p = p;
         adjuster->adjustment = adjustment;
-        UNUSED bool res = continue_on_thread(p->serializer_->home_thread(), adjuster);
+        DEBUG_VAR bool res = continue_on_thread(p->serializer_->home_thread(), adjuster);
         rassert(!res);
     }
 }

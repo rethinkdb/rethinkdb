@@ -38,10 +38,8 @@ linux_diskmgr_aio_t::linux_diskmgr_aio_t(
       queue(_queue),
       source(_source),
       aio_context(MAX_CONCURRENT_IO_REQUESTS) {
-    submitter.init(new linux_aio_submit_sync_t(
-        &aio_context,
-        static_cast<passive_producer_t<iocb *>*>(this)
-        ));
+    submitter.init(new linux_aio_submit_sync_t(&aio_context,
+                                               static_cast<passive_producer_t<iocb *> *>(this)));
 
 #ifdef NO_EVENTFD
     getter.init(new linux_aio_getevents_noeventfd_t(this));

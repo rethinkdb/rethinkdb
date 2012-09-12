@@ -24,11 +24,11 @@ cJSON *name_conflict_issue_t::get_json_description() {
     json.type = "NAME_CONFLICT_ISSUE";
     json.time = get_secs();
 
-    cJSON *res = render_as_json(&json, 0);
+    cJSON *res = render_as_json(&json);
 
-    cJSON_AddItemToObject(res, "contested_type", render_as_json(&type, 0));
-    cJSON_AddItemToObject(res, "contested_name", render_as_json(&contested_name, 0));
-    cJSON_AddItemToObject(res, "contestants", render_as_json(&contestants, 0));
+    cJSON_AddItemToObject(res, "contested_type", render_as_json(&type));
+    cJSON_AddItemToObject(res, "contested_name", render_as_json(&contested_name));
+    cJSON_AddItemToObject(res, "contestants", render_as_json(&contestants));
 
     return res;
 }
@@ -57,8 +57,7 @@ public:
                 by_name.begin(); it != by_name.end(); it++) {
             if (it->second.size() > 1) {
                 out->push_back(clone_ptr_t<global_issue_t>(
-                    new name_conflict_issue_t(type, it->first, it->second)
-                    ));
+                    new name_conflict_issue_t(type, it->first, it->second)));
             }
         }
     }
@@ -80,8 +79,9 @@ std::list<clone_ptr_t<global_issue_t> > name_conflict_issue_tracker_t::get_issue
     std::list<clone_ptr_t<global_issue_t> > issues;
 
     name_map_t namespaces;
-    namespaces.file_away(metadata.dummy_namespaces.namespaces);
-    namespaces.file_away(metadata.memcached_namespaces.namespaces);
+    namespaces.file_away(metadata.rdb_namespaces->namespaces);
+    namespaces.file_away(metadata.dummy_namespaces->namespaces);
+    namespaces.file_away(metadata.memcached_namespaces->namespaces);
     namespaces.report("namespace", &issues);
 
     name_map_t datacenters;

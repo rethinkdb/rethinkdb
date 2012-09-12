@@ -240,17 +240,17 @@ TEST(MergeIteratorsTest, iterators_get_deleted) {
     a_deleted = false;
     b_deleted = false;
     {
-        test_iterator_t *a = new delete_check_iterator_t(a_db, &blocked_without_prefetch_a, &a_deleted);
-        test_iterator_t *b = new delete_check_iterator_t(b_db, &blocked_without_prefetch_b, &b_deleted);
+        test_iterator_t *e = new delete_check_iterator_t(a_db, &blocked_without_prefetch_a, &a_deleted);
+        test_iterator_t *f = new delete_check_iterator_t(b_db, &blocked_without_prefetch_b, &b_deleted);
 
-        merge_ordered_data_iterator_t<int> merge_iterator;
-        merge_iterator.add_mergee(a);
-        merge_iterator.add_mergee(b);
+        merge_ordered_data_iterator_t<int> other_merge_iterator;
+        other_merge_iterator.add_mergee(e);
+        other_merge_iterator.add_mergee(f);
 
         // get some data from the merge iterator, but don't exhaust the iterators
-        (void) merge_iterator.next();
-        (void) merge_iterator.next();
-        (void) merge_iterator.next();
+        (void) other_merge_iterator.next();
+        (void) other_merge_iterator.next();
+        (void) other_merge_iterator.next();
     }
     EXPECT_TRUE(a_deleted && b_deleted) << "merge_ordered_data_iterator_t should delete the iterators on destruction, even when they have not been exhausted";
     ASSERT_EQ(blocked_without_prefetch_a, 0);

@@ -16,29 +16,70 @@ important because every time a new `cluster_namespace_interface_t` is created,
 it must perform a handshake with every `master_t`, which means several network
 round-trips. */
 
+template <class> class watchable_t;
+
+
 template <class protocol_t>
-class namespace_repo_t {
+class namespace_repo_t : public home_thread_mixin_t {
+private:
+    struct namespace_cache_entry_t;
+    struct namespace_cache_t;
+
 public:
     namespace_repo_t(mailbox_manager_t *,
-                     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > >);
+                     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > >,
+                     typename protocol_t::context_t *);
 
-    struct access_t {
-        access_t(namespace_repo_t *repo, namespace_id_t ns_id, signal_t *interruptor);
-        cluster_namespace_interface_t<protocol_t> *get_namespace_if() {
-            return ns_if;
-        }
+    class access_t {
+    public:
+        access_t();
+        access_t(namespace_repo_t *parent, namespace_id_t namespace_id, signal_t *interruptor);
+        access_t(const access_t& access);
+        access_t &operator=(const access_t &access);
+
+        namespace_interface_t<protocol_t> *get_namespace_if();
+
     private:
-        cluster_namespace_interface_t<protocol_t> *ns_if;
-        /* We cut corners by not bothering to clean up namespace interfaces that
-        are dead. If we did clean up dead namespace interfaces, we would have to
-        have a lock here so that they didn't get cleaned up while in use. */
+        struct ref_handler_t {
+        public:
+            ref_handler_t();
+            ~ref_handler_t();
+            void init(namespace_cache_entry_t *_ref_target);
+            void reset();
+        private:
+            namespace_cache_entry_t *ref_target;
+        };
+        namespace_cache_entry_t *cache_entry;
+        ref_handler_t ref_handler;
+        int thread;
     };
 
 private:
+    void create_and_destroy_namespace_interface(
+            namespace_cache_t *cache,
+            namespace_id_t namespace_id,
+            auto_drainer_t::lock_t keepalive)
+            THROWS_NOTHING;
+
+    struct namespace_cache_entry_t {
+    public:
+        promise_t<namespace_interface_t<protocol_t> *> namespace_if;
+        int ref_count;
+        cond_t *pulse_when_ref_count_becomes_zero;
+        cond_t *pulse_when_ref_count_becomes_nonzero;
+    };
+
+    struct namespace_cache_t {
+    public:
+        boost::ptr_map<namespace_id_t, namespace_cache_entry_t> entries;
+        auto_drainer_t drainer;
+    };
+
     mailbox_manager_t *mailbox_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > namespaces_directory_metadata;
+    typename protocol_t::context_t *ctx;
 
-    boost::ptr_map<namespace_id_t, cluster_namespace_interface_t<protocol_t> > interface_map;
+    one_per_thread_t<namespace_cache_t> namespace_caches;
 
     DISABLE_COPYING(namespace_repo_t);
 };

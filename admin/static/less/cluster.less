@@ -77,6 +77,9 @@
     background: #fff; // Need it for full screen
 }
 
+.error-title{
+    margin-bottom: 20px;
+}
 /*
     ----------------------------
     Log view
@@ -99,9 +102,7 @@
             list-style-type: none;
             margin-bottom: 10px;
             padding-bottom: 10px;
-            border-bottom: thin solid @grayLighter;
-
-            p { margin-bottom: 0; }
+            border-bottom: thin solid #BBB;
 
             .entry-metadata {
                 p {
@@ -112,21 +113,27 @@
                 margin-bottom: 6px;
             }
 
-            p.message {
-                margin: 0px 0px 5px 0px;
-                a.json {
-                    color: @gray;
-                    border-bottom: thin dotted @gray;
-                    &:hover {
-                        border-bottom: none;
-                    }
-                }
+            .message {
+                margin: 0px 0px 5px 20px;
+                padding: 0px 0px 0px 10px;
+                border-left: 1px solid @grayLighter;
             }
             .more-details{
                 float: right;
             }
             .details{
                 display: none;
+            }
+
+            .pretty_logs_ul{
+                margin: 0px 0px 0px 30px;
+                padding: 0px;
+                list-style: square;
+                .pretty_logs_li{
+                    .fake-link{
+                        color: #08C;
+                    }
+                }
             }
         }
     }
@@ -238,55 +245,41 @@
             background: url('/images/information-icon_small.png') no-repeat center center;
         }
     }
-    .constrained_li{
-        width: 150px;
-        overflow: hidden;
+    .queries_list{
+        margin: 4px 0px 7px 0px;
+        padding: 0px;
+        list-style: none;
+        .constrained_li{
+            margin: 0px;
+            padding: 0px;
+            width: 150px;
+            overflow: hidden;
+            font-family: monospace;
+        }
+    }
+    .no_query{
+        margin: 4px 0px 7px 0px;
     }
 
-    .recent-log-entry {
+    .recent-log-entries {
         padding: 7px 0px;
-
-        .level {
-            width: 24px;
-            height: 24px;
-            float: left;
-            margin-top: 4px;
-            margin-bottom: 4px;
-            margin-right: 15px;
-            &.error {
-                background: url('/images/alert-icon_small.png') no-repeat center center;
-            }
-            &.info, &.debug {
-                background: url('/images/information-icon_small.png') no-repeat center center;
-            }
-        }
-
-        .message {
-            display: table-cell;
-            height: 32px;
+        margin: 0px;
+        list-style: none;
+        .log-entry{
+            padding: 7px 0px;
+            border-bottom: 1px solid #DDD;
             overflow: hidden;
-            padding: 0 0;
-            vertical-align: middle;
-            width: 100%;
-            a.json {
+            .message{
+                padding: 0;
+                text-align: justify;
+           }
+            .datetime, .from-machine {
+                color: @gray;
+                text-align: right;
                 text-transform: uppercase;
                 font-size: 0.75em;
-                color: @gray;
-                border-bottom: thin dotted @gray;
-                &:hover {
-                    border-bottom: none;
-                }
+                margin-bottom: 0;
             }
-        }
-
-
-
-        .datetime, .from-machine {
-            color: @gray;
-            text-align: right;
-            text-transform: uppercase;
-            font-size: 0.75em;
-            margin-bottom: 0;
         }
     }
 }
@@ -395,90 +388,6 @@
 
 /*
     ----------------------------
-    Alerts dropdown
-    ----------------------------
-*/
-
-/*#alerts-dropdown  {
-    .bordered {
-        border-bottom: thin solid @grayLighter;
-    }
-
-    .header {
-        padding: 5px 15px;
-        .bordered;
-    }
-
-    .footer {
-        padding: 10px 15px;
-        font-size: 1.2em;
-        text-align: center;
-        a { font-weight: bold; }
-        .bordered;
-    }
-
-    .alert {
-        background: #F5F5F5;
-        color: #666;
-        height: 32px;
-        padding: 15px;
-        cursor: pointer;
-        .bordered;
-
-        div {
-            display: table-cell;
-            height: 32px;
-            overflow: hidden;
-            padding: 0 0;
-            vertical-align: middle;
-            width: 100%;
-            &.goto {
-                padding-left: 5px;
-                font-size: 2em;
-            }
-        }
-
-        img {
-            float: left;
-            margin-top: 4px;
-            margin-bottom: 4px;
-            margin-right: 15px;
-        }
-
-        &.new {
-            background: #FFF;
-            color: #404040;
-            .element {
-                font-weight: bold;
-            }
-        }
-    }
-*/
-    /* Override Bootstrap */
-/*    padding: 0;
-    max-width: 600px;
-    width: 350px;
-    background-color: @white;
-
-    .border-radius(0 0 0 0);
-
-    a {
-        text-shadow: none;
-        color: @linkColor;
-        &:hover {
-            background: none;
-            text-decoration: underline
-        }
-    }
-
-    color: @black;
-    text-shadow: none;
-
-    p, h1, h2, h3, h4, h5, h6 { padding: 0px 15px; }
-}*/
-
-/*
-    ----------------------------
     Dashboard view
     ----------------------------
 */
@@ -512,6 +421,10 @@
         }
     }
 }
+#cluster_performance_panel_placeholder{
+    margin: 30px 0px 0px 0px;
+}
+
 
 
 .dashboard-view table.status {
@@ -555,54 +468,127 @@
     .panel-gradient;
 }
 
-.namespace-list, .server-list .machine-list {
-    border: @panel_border;
-    .border-radius(0 0 @border_radius @border_radius);
-    margin-top: 10px;
-    margin-bottom: 20px;
+.collapsible-list{
+    margin: 20px 0px 20px 0px;
+    .element-container{
+        margin: 0px 0px 20px 0px;
+        .header_container{
+            overflow: auto;
+            .arrow {
+                width: 16px;
+                height: 16px;
+                float: left;
+                cursor: pointer;
+                &.collapsed {
+                    background: url('/images/right-arrow_16x16.png') no-repeat center top;
+                }
+                &.expanded {
+                    background: url('/images/down-arrow_16x16.png') no-repeat center top;
+                    margin-top: 3px;
+                }
+            }
+            .element-type {
+                float: left;
+                margin: 3px 0px 0px 10px;
+                padding: 2px 4px 2px 4px;
 
-    table {
-        margin-bottom: 0;
-        border: 0;
-        td + td { border-left: 0; }
-        td { vertical-align: top; }
+                line-height: 13px;
 
-        tr.machine-element {
-            &.selected td {
-                background: @selected_color;
-            }
-            &.last-child td {
-                border-bottom: 0;
-            }
-        }
-        tr.element {
-            &.selected td {
-                background: @selected_color;
-            }
-            &.last-child td {
-                border-bottom: 0;
-            }
+                background-color: #333;
 
-            input[type="checkbox"] {
-                margin-left: 10px; 
-            }
-        }
-        .details {
-            padding: 5px;
-
-            h3.name {
-                line-height: 1em;
-                margin-bottom: 0.3em;
+                color: #fff;
                 font-weight: bold;
-                font-size: 1.2em;
-                color: @grayDark;
+                text-transform: uppercase;
+                font-size: 10px;
+
+                -webkit-border-radius: 3px;
+                -moz-border-radius: 3px;
+                border-radius: 3px;
+            }
+            .name{
+                float: left;
+                margin: 0px 0px 0px 10px;
+            }
+        }
+
+        .element-list-container{
+            margin: 0px 0px 0px 26px;
+            table {
+                margin: 10px 0px 7px 0px;
+                border: 1px solid #ddd;
+                width: 100%;
+                tr.element {
+                    border-bottom: 1px solid #ddd;
+                    &.selected td {
+                        background: @selected_color;
+                    }
+                    &.last-child td {
+                        border-bottom: 0;
+                    }
+                    .checkbox-container{
+                        width: 50px;
+                        padding: 12px 8px;
+                        vertical-align: top;
+                        text-align: center;
+                        input{
+                            margin: 10px 0px 0px 0px;
+                        }
+                    }
+                    .element-detail-container{
+                        padding: 12px 8px 12px 0px;
+                        .status{
+                            float: right;
+                        }
+                        .label{
+                            float: left;
+                            margin: 0px 7px 00px 0px;
+                            padding: 2px 4px 2px;
+                            font-size: 11px;
+                            font-weight: bold;
+                            line-height: 13px;
+                            color: white;
+                            -webkit-border-radius: 3px;
+                            -moz-border-radius: 3px;
+                            border-radius: 3px;
+                        }
+                        .label-namespace{
+                            background-color: #999;
+                        }
+                        .label-machine{
+                            background-color: #3A87AD;
+                        }
+                        .name{
+                            margin: 0px 0px 0px 10px;
+                            height: 20px;
+                            font-size: 15px;
+                            font-weight: bold;
+                        }
+                        .quick_info{
+                            margin: 4px 0px;
+                        }
+                    }
+                }
+                tr.element:hover{
+                    background: #f1f1f1;
+                }
+            }
+            .no_element{
+                margin: 12px 0px 12px 67px;
             }
         }
     }
 }
+
+.databases_list-container{
+    .reason_cannot_create_namespace{
+        margin: 10px 0px 0px 0px;
+    }
+    p{
+        margin: 4px 0px;
+    }
+}
 .namespace-list {
     margin-top: 20px;
-
     .datacenter_list{
         padding: 0px;
         margin: 10px;
@@ -693,128 +679,13 @@
         }
     }
 }
-.server-list {
-    margin-top: 20px;
-    .label.element-type {
-        text-transform: uppercase;
-        font-size: 10px;
-        margin-right: 15px;
-        display: inline-block;
-        margin-top: -3px;
-    }
 
-
-    .datacenter.details p, .machine.details p {
-        font-size: 11px;
-        text-transform: uppercase;
-        margin-bottom: 0;
-    }
-
-    .datacenter.details p.status .label {
-        vertical-align: text-top;
-        font-size: 10px;
-        margin-right: 5px;
-    }
-    
-    .list_stats {
-        margin: 0px 0px 0px 0px;
-        float: left;
-        list-style: none;
-        li {
-            display: inline-block;
-        }
-        .stat_name{
-            width: 80px;
-        }
-        .minichart{
-            width: 110px;
-            margin-right: 10px;
-        }
-        .sparkline_container{
-            height: 15px;
-            width: 75px;
-            margin: 0px 5px 0px 5px;
-            padding: 0px;
-        }
-        .progress{
-            height: 10px;
-            width: 75px;
-            margin: 0px 5px 0px 5px;
-            padding: 0px;
-        }
-        canvas{
-            border-bottom: 1px solid #ddd;
-            border-left: 1px solid #ddd;
-        }
-        .bar{
-            background: #a0b0b8;
-        }
-        .bar-alert{
-            background: #E62E2E;
-        }
-    }
-    .machine.details {
-        div.toolbar {
-            float: right;
-            margin-top: -25px;
-            text-align: right;
-        }
-        p.status {
-            .label {
-                vertical-align: text-top;
-                font-size: 10px;
-            }
-        }
-        p.actions {
-            text-transform: none;
-            font-size: 13px;
-        }
-    }
-
-    .header {
-        cursor: pointer;
-    }
-
-    .arrow {
-        width: 16px;
-        height: 16px;
-        float: left;
-        &.collapsed {
-            background: url('/images/right-arrow_16x16.png') no-repeat center top;
-        }
-        &.expanded {
-            background: url('/images/down-arrow_16x16.png') no-repeat center top;
-            margin-top: 3px;
-        }
-    }
-
-    .divider {
-       margin-top: 10px;
-       margin-bottom: 20px;
-       border-bottom: 2px solid #DDD;
-       margin-left: 28px;
-    }
-
-    h3.datacenter.name { 
-        line-height: 1em;
-        margin-left: 28px;
-    }
-
-    .datacenter.actions {
-        text-align: right;
-        padding-right: 13px;
-    }
-
-    .datacenter.details {
-        margin-top: 10px;
-        margin-left: 28px;
-    }
-    .machine-list {
-        margin-left: 28px;
+.datacenters_list-container{
+    #reason_cannot_change_datacenter{
+        margin: 10px 0px 0px 0px;
+        display: none;
     }
 }
-
-
 
 .modal {
     display: none;
@@ -860,7 +731,7 @@
     Generic element view
     ----------------------------
 */
-.namespace-view, .datacenter-view, .machine-view {
+.database-view, .namespace-view, .datacenter-view, .machine-view {
     .two-panel-section {
         padding-bottom: 10px;
         margin-bottom: 10px;
@@ -909,6 +780,191 @@
         margin-top: 15px;
     }
 
+
+    h3.title {
+        margin-bottom: 10px;
+    }
+
+    h1 {
+        margin-bottom: 10px;
+        display: inline-block;
+    }
+
+    .database-overview{
+        table {
+            margin: 10px 0px 7px 0px;
+            border: 1px solid #ddd;
+            width: 100%;
+            tr.element {
+                border-bottom: 1px solid #ddd;
+                &.selected td {
+                    background: @selected_color;
+                }
+                &.last-child td {
+                    border-bottom: 0;
+                }
+                .element-detail-container{
+                    padding: 12px 8px 12px 0px;
+                    .status{
+                        float: right;
+                    }
+                    .label{
+                        float: left;
+                        padding: 2px 4px 2px;
+                        font-size: 11px;
+                        font-weight: bold;
+                        line-height: 13px;
+                        color: white;
+                        -webkit-border-radius: 3px;
+                        -moz-border-radius: 3px;
+                        border-radius: 3px;
+                    }
+                    .label-namespace{
+                        background-color: #999;
+                    }
+                    .label-machine{
+                        background-color: #3A87AD;
+                    }
+                    .name{
+                        margin: 0px 0px 0px 10px;
+                        height: 20px;
+                        font-size: 15px;
+                        font-weight: bold;
+                    }
+                    .quick_info{
+                        margin: 4px 0px;
+                    }
+                }
+            }
+            tr.element:hover{
+                background: #f1f1f1;
+            }
+        }
+    }
+
+    .recent-log-entry {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: thin solid @grayLighter;
+
+        p { margin-bottom: 0; }
+
+        .entry-metadata {
+            p {
+                text-transform: uppercase;
+                color: @gray;
+                text-align: left;
+                font-size: 0.75em;
+                margin-bottom: 0;
+            }
+            margin-bottom: 6px;
+        }
+
+        p.level {
+            text-transform: uppercase;
+            color: @gray;
+            font-size: 0.75em;
+            float: left;
+        }
+
+        p.message {
+            margin-left: 50px;
+            a.json {
+                text-transform: uppercase;
+                font-size: 0.75em;
+                color: @gray;
+                border-bottom: thin dotted @gray;
+                &:hover {
+                    border-bottom: none;
+                }
+            }
+        }
+    }
+
+    .other_section{
+        width: 672px;
+        margin: 10px 0px;
+        overflow: auto;
+        .border-radius(4px);
+        background-color: #F0F2EB;
+        border: thin solid #B9D7D9;
+        padding: 7px 14px;
+        p{
+            padding: 7px 0px;
+            margin: 0px;
+        }
+        .other_button{
+            float: right;
+        }
+        .reason{
+            background: @alert-yellow;
+            border: 1px solid @alert-yellow-border;
+            color: #777; //@alert-text_color;
+            padding: 8px 15px;
+            width: 642px;
+        }
+    }
+}
+
+
+/*
+-----------------
+Database view
+----------------
+*/
+.database-view{
+
+    .database-overview{
+        .namespaces-list{
+            margin: 0px 0px 0px 15px;
+            padding: 0px 0px 0px 15px;
+            border-left: 1px solid #ddd;
+            .element-detail-container{
+                padding: 12px 8px 12px 0px;
+                margin-bottom: 1px solid #ddd;
+                .status{
+                    float: right;
+                }
+                .name{
+                    margin: 0px 0px 0px 0px;
+                    height: 20px;
+                    font-size: 15px;
+                    font-weight: bold;
+                }
+                .quick_info{
+                    margin: 4px 0px 4px 0px;
+                }
+            }
+        }
+    }
+
+
+    .operations_section{
+        height: 30px;
+        margin: 10px 0px;
+        .border-radius(4px);
+        background-color: #F0F2EB;
+        border: thin solid #B9D7D9;
+        padding: 7px 14px;
+        p{
+            padding: 7px 0px;
+        }
+        .other_button{
+            float: right;
+        }
+    }
+
+}
+
+
+/*
+    ----------------------------
+    Namespace view
+    ----------------------------
+*/
+
+.namespace-view {
+
     .pie_legend{
         .legend{
             margin: 40px 0px 0px 0px;
@@ -940,6 +996,7 @@
     }
 
     .data_repartition-graph{
+        text-align: center;
         rect{
             fill: #ed993e;
         }
@@ -1014,78 +1071,6 @@
         margin: 40px 0px 0px 0px;
     }
 
-
-    h3.title {
-        margin-bottom: 10px;
-    }
-
-    h1 {
-        margin-bottom: 10px;
-        display: inline-block;
-    }
-
-    .recent-log-entry {
-        margin-bottom: 10px;
-        padding-bottom: 10px;
-        border-bottom: thin solid @grayLighter;
-
-        p { margin-bottom: 0; }
-
-        .entry-metadata {
-            p {
-                text-transform: uppercase;
-                color: @gray;
-                text-align: left;
-                font-size: 0.75em;
-                margin-bottom: 0;
-            }
-            margin-bottom: 6px;
-        }
-
-        p.level {
-            text-transform: uppercase;
-            color: @gray;
-            font-size: 0.75em;
-            float: left;
-        }
-
-        p.message {
-            margin-left: 50px;
-            a.json {
-                text-transform: uppercase;
-                font-size: 0.75em;
-                color: @gray;
-                border-bottom: thin dotted @gray;
-                &:hover {
-                    border-bottom: none;
-                }
-            }
-        }
-    }
-
-    .other_section{
-        height: 30px;
-        margin: 10px 0px;
-        .border-radius(4px);
-        background-color: #F0F2EB;
-        border: thin solid #B9D7D9;
-        padding: 7px 14px;
-        p{
-            padding: 7px 0px;
-        }
-        .other_button{
-            float: right;
-        }
-    }
-}
-
-/*
-    ----------------------------
-    Namespace view
-    ----------------------------
-*/
-
-.namespace-view {
     table.datacenters {
         margin-bottom: 15px;
         td {
@@ -1265,32 +1250,42 @@
 */
 
 .machine-view {
-    .list_stats {
-        float: left;
-        list-style: none;
-        li {
-            display: inline-block;
-            padding: 5px 0px 0px 0px;
-        }
-        .title{
-            width: 90px;
-        }
-        .minichart{
-            width: 80px;
-            .progress{
-                height: 15px;
-                width: 75px;
-                margin: 0px 0px -3px 0px;
-                padding: 0px;
+    .pie_legend{
+        .legend{
+            margin: 0px 0px 15px 0px;
+            li{
+                list-style: none;
+            }
+            .title-legend{
+                margin: 0px 0px 5px 0px;
+            }
+            .disk_used-legend{
+                border-left: 40px solid #f00;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .disk_free-legend{
+                border-left: 40px solid #1f77b4;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .ram_used-legend{
+                border-left: 40px solid #f00;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .ram_free-legend{
+                border-left: 40px solid #1f77b4;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .more_statistics{
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
             }
         }
-        .value{
-            width: 140px;
-        }
     }
-    .machine-stats{
-        overflow: hidden;
-    }
+
     .label{
         position: relative;
         bottom: 3px;
@@ -1337,7 +1332,6 @@
             margin: 10px 0px;
             overflow: auto;
             .reason{
-                background: #FCF8E3;
                 background: @alert-yellow;
                 border: 1px solid @alert-yellow-border;
                 color: #777; //@alert-text_color;
@@ -1360,6 +1354,105 @@
 */
 
 .datacenter-view {
+    .ram_repartition-graph, .disk_repartition-graph{
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .expandable_graph{
+        float: left;
+    }
+    .ram_legend{
+        overflow: auto;
+        .legend{
+            margin: 40px 0px 0px 0px;
+            li{
+                list-style: none;
+            }
+            .title-legend{
+                margin: 0px 0px 10px 0px;
+            }
+            .used_ram-legend{
+                border-left: 40px solid #f00;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .free_ram-legend{
+                border-left: 40px solid #1f77b4;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .used_ram-legend-inline{
+                float: left;
+                margin: 0px 0px 40px 10px;
+            }
+            .free_ram-legend-inline{
+                float: left;
+                margin: 0px 0px 40px 50px;
+            }
+        }
+        .legend-inline{
+            margin: 0px 0px 30px 0px;
+        }
+     }
+     .ram_repartition-graph{
+        .ram_used_bar{
+            fill: #f00;
+        }
+        .ram_free_bar{
+            fill: #1f77b4;
+        }
+        rect{
+            cursor: pointer;
+        }
+    }   
+
+    .disk_legend{
+        .legend{
+            margin: 40px 0px 0px 0px;
+            li{
+                list-style: none;
+            }
+            .title-legend{
+                margin: 0px 0px 10px 0px;
+            }
+            .used_disk-legend{
+                border-left: 40px solid #f00;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .free_disk-legend{
+                border-left: 40px solid #1f77b4;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .used_disk-legend-inline{
+                float: left;
+                margin: 0px 0px 40px 10px;
+            }
+            .free_disk-legend-inline{
+                float: left;
+                margin: 0px 0px 40px 50px;
+            }
+        }
+        .legend-inline{
+            margin: 0px 0px 30px 0px;
+        }
+    }
+    .disk_repartition-graph{
+        .disk_used_bar{
+            fill: #f00;
+        }
+        .disk_free_bar{
+            fill: #1f77b4;
+        }
+        rect{
+            cursor: pointer;
+        }
+    }
+
+
+
     .profile-expandable{
         height: 285px;
         .more_machines{
@@ -1401,6 +1494,42 @@
         bottom: 3px;
         left: 3px;
     }
+    .shard_ul{
+        border-left: 1px solid #ddd;
+        margin: 10px 0px 30px 20px;
+        .shard_li{
+            margin: 10px 0px;
+            padding: 7px 0px 7px 20px;
+            background: #f3f3f3;
+            list-style: none;
+            overflow: hidden;
+            .responsability{
+                padding: 2px 4px;
+                font-size: 11px;
+                color: #fff;
+                font-weight: bold;
+                float: right;
+                -webkit-border-radius: 3px;
+                -moz-border-radius: 3px;
+            }
+            h4{
+                height: 22px;
+            }
+            .master{
+                background: #3A87AD;
+            }
+            .secondary{
+                background: #809EAB;
+            }
+            .nothing{
+               background: #B3B3B3;
+            }
+            p{
+                margin: 0px;
+            }
+        }
+    }
+
 }
 
 /*
@@ -1813,6 +1942,10 @@
 }
 
 .performance_panel {
+    overflow: auto;
+    .title{
+        margin: 10px 0px 10px 0px;
+    }
     .panel-left {
         float: left;
         width: 50%;
@@ -1820,10 +1953,22 @@
     .panel-right {
         float: left;
     }
-    .two-panel-clear {
-        clear: both;
+}
+
+.more_stats{
+    margin: 0px 0px 0px 50px;
+    p{
+        margin: 2px 0px;
+    }
+    ul{
+        margin: 0px 0px 0px 30px;
+        padding: 0px;
+        li {
+            list-style: square;
+        }
     }
 }
+
 
 .stats_panel {
     margin-left: 1em;
@@ -1949,9 +2094,12 @@
                 overflow: hidden;
             }
             .button_container{
-                float: right;
+                overflow: auto;
+                margin: 0px 0px 5px 0px;
                 .button_query{
+                    float: right;
                     width: 80px;
+                    margin-left: 10px;
                 }
             }
             .suggestion_name_list{
@@ -1996,21 +2144,38 @@
             float: left;
             width: 330px;
             padding: 20px 10px 10px 10px;
+            h4 {
+                margin: 7px 0px 5px 0px;
+            }
         }
         .history_queries{
             float: left;
             width: 330px;
             padding: 20px 10px 10px 10px;
+        }
+        .queries_list{
+            margin: 0px;
+            list-style: none;
+            font-family: monospace;
+            li{
+                padding: 0px 0px 0px 7px;
+                margin: 0px;
+                border-left: 1px solid #ccc;
+            }
             .query_element{
                 width: 300px;
                 overflow: hidden;
             }
             .namespace_element{
+                padding: 0px 0px 0px 7px;
+                margin: 0px;
+                border-left: 1px solid #ccc;
+
                 width: 300px;
                 overflow: hidden;
             }
         }
-        .options_container{
+    .options_container{
             float: right;
         }
         .change_view_container{
@@ -2025,6 +2190,13 @@
         .helper_view{
             overflow: auto;
         }
+    }
+    .query{
+        font-family: monospace;
+        padding: 7px 10px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        background: #eee;
     }
 
     .results{

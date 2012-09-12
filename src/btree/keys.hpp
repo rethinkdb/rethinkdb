@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include <string>
-#include <vector>
 
 #include "config/args.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -71,6 +70,10 @@ public:
 
     void print() const {
         printf("%*.*s", size(), size(), contents());
+    }
+
+    void debug_print() const {
+        debugf("%*.*s\n", size(), size(), contents());
     }
 
     static store_key_t min() {
@@ -190,8 +193,6 @@ struct key_range_t {
         explicit right_bound_t(store_key_t k) : unbounded(false), key(k) { }
         bool unbounded;
         store_key_t key;
-
-        RDB_MAKE_ME_SERIALIZABLE_2(unbounded, key);
     };
 
     enum bound_t {
@@ -201,6 +202,7 @@ struct key_range_t {
     };
 
     key_range_t();   /* creates a range containing no keys */
+    explicit key_range_t(const store_key_t &);
     key_range_t(bound_t, const store_key_t&, bound_t, const store_key_t&);
 
     static key_range_t empty() THROWS_NOTHING {
@@ -228,15 +230,24 @@ struct key_range_t {
         return left_ok && right_ok;
     }
 
+    store_key_t last_key_in_range() {
+        if (right.unbounded) {
+            return store_key_t::max();
+        } else {
+            return right.key;
+        }
+    }
+
     bool is_superset(const key_range_t &other) const;
     bool overlaps(const key_range_t &other) const;
     key_range_t intersection(const key_range_t &other) const;
 
     store_key_t left;
     right_bound_t right;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(left, right);
 };
+
+RDB_DECLARE_SERIALIZABLE(key_range_t::right_bound_t);
+RDB_DECLARE_SERIALIZABLE(key_range_t);
 
 std::string key_range_to_debug_str(const key_range_t &kr);
 

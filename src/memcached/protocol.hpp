@@ -7,11 +7,12 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
-#include "btree/backfill.hpp"
-#include "buffer_cache/mirrored/config.hpp"
+#include "backfill_progress.hpp"
+#include "btree/btree_store.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "hash_region.hpp"
+#include "memcached/memcached_btree/backfill.hpp"
 #include "memcached/queries.hpp"
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
@@ -50,9 +51,10 @@ functions that the query-routing logic needs to know about. */
 
 class memcached_protocol_t {
 public:
+    static const std::string protocol_name;
     typedef hash_region_t<key_range_t> region_t;
 
-    struct temporary_cache_t { };
+    struct context_t { };
 
     struct read_response_t {
         typedef boost::variant<get_result_t, rget_result_t, distribution_result_t> result_t;
@@ -67,10 +69,10 @@ public:
     struct read_t {
         typedef boost::variant<get_query_t, rget_query_t, distribution_get_query_t> query_t;
 
-        hash_region_t<key_range_t> get_region() const THROWS_NOTHING;
-        read_t shard(const hash_region_t<key_range_t> &region) const THROWS_NOTHING;
-        read_response_t unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
-        read_response_t multistore_unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        region_t get_region() const THROWS_NOTHING;
+        read_t shard(const region_t &region) const THROWS_NOTHING;
+        void unshard(const read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void multistore_unshard(const read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : query(r.query), effective_time(r.effective_time) { }
@@ -92,10 +94,10 @@ public:
 
     struct write_t {
         typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> query_t;
-        hash_region_t<key_range_t> get_region() const THROWS_NOTHING;
-        write_t shard(const hash_region_t<key_range_t> &region) const THROWS_NOTHING;
-        write_response_t unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
-        write_response_t multistore_unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        region_t get_region() const THROWS_NOTHING;
+        write_t shard(const region_t &region) const THROWS_NOTHING;
+        void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void multistore_unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : mutation(w.mutation), proposed_cas(w.proposed_cas), effective_time(w.effective_time) { }
@@ -133,12 +135,13 @@ public:
         region_t get_region() const THROWS_NOTHING;
         backfill_chunk_t shard(const region_t &r) const THROWS_NOTHING;
 
-
-
+        /* This is called by `btree_store_t`; it's not part of the ICL protocol
+        API. */
+        repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
 
         boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val;
 
-        static backfill_chunk_t delete_range(const hash_region_t<key_range_t>& range) {
+        static backfill_chunk_t delete_range(const region_t &range) {
             return backfill_chunk_t(delete_range_t(range));
         }
         static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
@@ -153,116 +156,50 @@ public:
 
     static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 
-    class store_t : public store_view_t<memcached_protocol_t> {
-        scoped_ptr_t<standard_serializer_t> serializer;
-        mirrored_cache_config_t cache_dynamic_config;
-        scoped_ptr_t<cache_t> cache;
-        scoped_ptr_t<btree_slice_t> btree;
-        order_source_t order_source;
-
-        fifo_enforcer_source_t token_source;
-        fifo_enforcer_sink_t token_sink;
-
+    class store_t : public btree_store_t<memcached_protocol_t> {
     public:
-        // TODO: This was originally private.  Do we still want it to be private?
-        typedef region_map_t<memcached_protocol_t, binary_blob_t> metainfo_t;
+        store_t(io_backender_t *io_backender,
+                const std::string& filename,
+                bool create,
+                perfmon_collection_t *collection,
+                context_t *);
+        virtual ~store_t();
 
-        store_t(io_backender_t *io_backender, const std::string& filename, bool create, perfmon_collection_t *collection);
-        ~store_t();
-
-        void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
-        void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
-
-        void do_get_metainfo(order_token_t order_token,
-                             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                             signal_t *interruptor,
-                             metainfo_t *out) THROWS_ONLY(interrupted_exc_t);
-
-        void set_metainfo(const metainfo_t &new_metainfo,
-                          order_token_t order_token,
-                          scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                          signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-
-        memcached_protocol_t::read_response_t read(
-                DEBUG_ONLY(const metainfo_checker_t<memcached_protocol_t>& metainfo_checker, )
-                const memcached_protocol_t::read_t &read,
-                order_token_t order_token,
-                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                signal_t *interruptor)
-                THROWS_ONLY(interrupted_exc_t);
-
-        memcached_protocol_t::write_response_t write(
-                DEBUG_ONLY(const metainfo_checker_t<memcached_protocol_t>& metainfo_checker, )
-                const metainfo_t& new_metainfo,
-                const memcached_protocol_t::write_t &write,
-                transition_timestamp_t timestamp,
-                order_token_t order_token,
-                scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                signal_t *interruptor)
-                THROWS_ONLY(interrupted_exc_t);
-
-        bool send_backfill(
-                const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
-                const boost::function<bool(const metainfo_t&)> &should_backfill,
-                const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
-                backfill_progress_t *progress_out,
-                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                signal_t *interruptor)
-                THROWS_ONLY(interrupted_exc_t);
-
-        void receive_backfill(
-                const memcached_protocol_t::backfill_chunk_t &chunk,
-                scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                signal_t *interruptor)
-                THROWS_ONLY(interrupted_exc_t);
-
-        void reset_data(
-                const hash_region_t<key_range_t> &subregion,
-                const metainfo_t &new_metainfo,
-                scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                signal_t *interruptor)
-                THROWS_ONLY(interrupted_exc_t);
     private:
-        void get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf, region_map_t<memcached_protocol_t, binary_blob_t> *out) const THROWS_NOTHING;
+        void protocol_read(const read_t &read,
+                           read_response_t *response,
+                           btree_slice_t *btree,
+                           transaction_t *txn,
+                           superblock_t *superblock);
 
-        void acquire_superblock_for_read(
-                access_t access,
-                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                scoped_ptr_t<transaction_t> *txn_out,
-                scoped_ptr_t<real_superblock_t> *sb_out,
-                signal_t *interruptor)
-                THROWS_ONLY(interrupted_exc_t);
-        void acquire_superblock_for_backfill(
-                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                scoped_ptr_t<transaction_t> *txn_out,
-                scoped_ptr_t<real_superblock_t> *sb_out,
-                signal_t *interruptor)
-                THROWS_ONLY(interrupted_exc_t);
-        void acquire_superblock_for_write(
-                access_t access,
-                int expected_change_count,
-                scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                scoped_ptr_t<transaction_t> *txn_out,
-                scoped_ptr_t<real_superblock_t> *sb_out,
-                signal_t *interruptor)
-                THROWS_ONLY(interrupted_exc_t);
-        void check_and_update_metainfo(
-            DEBUG_ONLY(const metainfo_checker_t<memcached_protocol_t>& expected_checker, )
-            const metainfo_t &new_metainfo,
-            transaction_t *txn,
-            real_superblock_t *superbloc) const
-            THROWS_NOTHING;
-        metainfo_t check_metainfo(
-            DEBUG_ONLY(const metainfo_checker_t<memcached_protocol_t>& metainfo_checker, )
-            transaction_t *txn,
-            real_superblock_t *superbloc) const
-            THROWS_NOTHING;
+        void protocol_write(const write_t &write,
+                            write_response_t *response,
+                            transition_timestamp_t timestamp,
+                            btree_slice_t *btree,
+                            transaction_t *txn,
+                            superblock_t *superblock);
 
-        void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
+        void protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
+                                    chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
+                                    superblock_t *superblock,
+                                    btree_slice_t *btree,
+                                    transaction_t *txn,
+                                    backfill_progress_t *progress,
+                                    signal_t *interruptor)
+                                    THROWS_ONLY(interrupted_exc_t);
 
-        perfmon_collection_t perfmon_collection;
-        perfmon_membership_t perfmon_collection_membership;
+        void protocol_receive_backfill(btree_slice_t *btree,
+                                       transaction_t *txn,
+                                       superblock_t *superblock,
+                                       signal_t *interruptor,
+                                       const backfill_chunk_t &chunk);
+
+        void protocol_reset_data(const region_t& subregion,
+                                 btree_slice_t *btree,
+                                 transaction_t *txn,
+                                 superblock_t *superblock);
     };
+
 };
 
 RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::read_response_t);

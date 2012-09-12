@@ -3,18 +3,13 @@
 
 #include <string>
 
-#include "buffer_cache/blob.hpp"
-#include "buffer_cache/mirrored/config.hpp"
-#include "buffer_cache/mirrored/mirrored.hpp"
-#include "buffer_cache/semantic_checking.hpp"
 #include "buffer_cache/types.hpp"
-#include "clustering/administration/issues/json.hpp"
-#include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/immediate_consistency/branch/history.hpp"
 #include "containers/scoped.hpp"
 #include "rpc/semilattice/view.hpp"
-#include "serializer/log/log_serializer.hpp"
+#include "serializer/types.hpp"
+
+template <class> class branch_history_manager_t;
 
 namespace metadata_persistence {
 
@@ -31,6 +26,7 @@ public:
 
     branch_history_manager_t<mock::dummy_protocol_t> *get_dummy_branch_history_manager();
     branch_history_manager_t<memcached_protocol_t> *get_memcached_branch_history_manager();
+    branch_history_manager_t<rdb_protocol_t> *get_rdb_branch_history_manager();
 
 private:
     template <class protocol_t> class persistent_branch_history_manager_t;
@@ -45,6 +41,7 @@ private:
 
     scoped_ptr_t<persistent_branch_history_manager_t<mock::dummy_protocol_t> > dummy_branch_history_manager;
     scoped_ptr_t<persistent_branch_history_manager_t<memcached_protocol_t> > memcached_branch_history_manager;
+    scoped_ptr_t<persistent_branch_history_manager_t<rdb_protocol_t> > rdb_branch_history_manager;
 };
 
 class semilattice_watching_persister_t {

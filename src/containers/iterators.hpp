@@ -48,7 +48,7 @@ struct transform_iterator_t : public one_way_iterator_t<U> {
 
 template <class T>
 struct filter_iterator_t : public one_way_iterator_t<T> {
-    filter_iterator_t(const boost::function<bool(T&)>& _predicate, one_way_iterator_t<T> *_ownee) : predicate(_predicate), ownee(_ownee) { }
+    filter_iterator_t(const boost::function<bool(T&)>& _predicate, one_way_iterator_t<T> *_ownee) : predicate(_predicate), ownee(_ownee) { }  // NOLINT
     virtual ~filter_iterator_t() { }
 
     virtual typename boost::optional<T> next() {
@@ -73,7 +73,7 @@ struct filter_iterator_t : public one_way_iterator_t<T> {
         ownee->prefetch();
     }
 
-    boost::function<bool(T&)> predicate;
+    boost::function<bool(T&)> predicate;  // NOLINT
     scoped_ptr_t<one_way_iterator_t<T> > ownee;
 };
 

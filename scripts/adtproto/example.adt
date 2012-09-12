@@ -1,0 +1,71 @@
+data Bool { branch True, False; };
+
+data Tree {
+    branch Node { repeated Tree children; };
+    branch Leaf = string;
+};
+
+message VarTermTuple { string var; Term term; };
+
+data Term {
+    branch Var = string;
+    branch Number = int32;
+    branch String = string;
+    branch Json_Null;
+
+    branch Let {
+        repeated VarTermTuple binds;
+        Term expr;
+    };
+
+    branch If_ {
+        Term test;
+        Term true_branch;
+        Term false_branch;
+    };
+
+    branch Array = repeated Term;
+
+    branch Call {
+        Builtin builtin;
+        repeated Term args;
+    };
+};
+
+enum OrderDirection { ASCENDING; DESCENDING; };
+message Mapping { string arg; Term body; };
+message Predicate { string arg; Term body; };
+message Reduction { Term base; string var1; string var2; Term body; };
+
+data Builtin {
+    branch Not;
+    branch Add, Subtract, Multiply, Divide;
+
+    branch Limit = int32;
+
+    branch Filter { Predicate predicate; };
+    branch Map { Mapping mapping; };
+    branch Reduce { Reduction reduction; };
+    branch OrderBy {
+        OrderDirection order_direction;
+        Mapping mapping;
+    };
+
+    // We can declare types inline and use them for branches
+    enum Comparison { EQ; NE; LT; LE; GT; GE; };
+    branch Comparison = Comparison;
+
+    // we can optimize encoding of these branches by reusing the same field for
+    // all of them.
+    branch GetAttr, HasAttr, PickAttrs;
+    repeated string attrs;        // <-- namely, this field
+
+    check {
+        if (self.attrs_size() > 0) {
+            if (self.type != Builtin::GETATTR, HASATTR, PICKATTRS)
+                return false;
+        }
+    };
+
+    // etc, etc...
+};

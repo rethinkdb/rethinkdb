@@ -6,7 +6,6 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "clustering/generic/resource.hpp"
 #include "concurrency/auto_drainer.hpp"
@@ -54,7 +53,7 @@ public:
     class metadata_change_request_t {
     public:
         metadata_change_request_t(mailbox_manager_t *_mailbox_manager,
-                                  typename request_mailbox_t::address_t request_mailbox) :
+                                  typename request_mailbox_t::address_t _request_mailbox) :
             mailbox_manager(_mailbox_manager),
             interest_acquired(true)
         {
@@ -64,8 +63,8 @@ public:
                                                   this, &done, _1, _2),
                                       mailbox_callback_mode_inline);
 
-            send(mailbox_manager, request_mailbox, ack_mailbox.get_address());
-            disconnect_watcher_t dc_watcher(mailbox_manager->get_connectivity_service(), request_mailbox.get_peer());
+            send(mailbox_manager, _request_mailbox, ack_mailbox.get_address());
+            disconnect_watcher_t dc_watcher(mailbox_manager->get_connectivity_service(), _request_mailbox.get_peer());
             wait_any_t waiter(&done, &dc_watcher);
             waiter.wait();
 

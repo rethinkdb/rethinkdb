@@ -6,6 +6,7 @@
 #include "containers/scoped.hpp"
 #include "memcached/protocol.hpp"
 #include "memcached/stats.hpp"
+#include "clustering/administration/namespace_interface_repository.hpp"
 
 /* Serves memcache queries over the given TCP connection until the connection in question
 is closed. */
@@ -15,8 +16,11 @@ void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t
 /* Listens for TCP connections on the given port and serves memcache queries over those
 connections until the destructor is called. */
 
-struct memcache_listener_t : public home_thread_mixin_t {
-    memcache_listener_t(int port, namespace_interface_t<memcached_protocol_t> *namespace_if, perfmon_collection_t *parent);
+struct memcache_listener_t : public home_thread_mixin_debug_only_t {
+    memcache_listener_t(int _port,
+                        namespace_repo_t<memcached_protocol_t> *_ns_repo,
+                        const namespace_id_t& _ns_id,
+                        perfmon_collection_t *_parent);
     ~memcache_listener_t();
 
     signal_t *get_bound_signal();
@@ -24,7 +28,8 @@ struct memcache_listener_t : public home_thread_mixin_t {
     int port;
 
 private:
-    namespace_interface_t<memcached_protocol_t> *namespace_if;
+    namespace_id_t ns_id;
+    namespace_repo_t<memcached_protocol_t> *ns_repo;
 
     int next_thread;
 

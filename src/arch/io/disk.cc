@@ -249,8 +249,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
                     "\n- the database block device cannot be opened with O_DIRECT flag" :
                     "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. in case when the filesystem is working in journaled mode)"
                 ) : "",
-            !is_block ? "\n- user which was used to start the database is not an owner of the file" : ""
-        );
+            !is_block ? "\n- user which was used to start the database is not an owner of the file" : "");
     }
 
     file_exists = true;
@@ -331,11 +330,10 @@ void linux_file_t::write_async(size_t offset, size_t length, const void *buf, li
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
 #ifdef DEBUG_DUMP_WRITES
-    printf("--- WRITE BEGIN ---\n");
-    print_backtrace(stdout);
-    printf("\n");
+    debugf("--- WRITE BEGIN ---\n");
+    debugf("%s", format_backtrace().c_str());
     print_hd(buf, offset, length);
-    printf("---- WRITE END ----\n\n");
+    debugf("---- WRITE END ----\n\n");
 #endif
 
     verify(offset, length, buf);
@@ -370,7 +368,7 @@ linux_file_t::~linux_file_t() {
     // scoped_fd_t's destructor takes care of close()ing the file
 }
 
-void linux_file_t::verify(UNUSED size_t offset, UNUSED size_t length, UNUSED const void *buf) {
+void linux_file_t::verify(DEBUG_VAR size_t offset, DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
     rassert(buf);
     rassert(offset + length <= file_size);
     rassert(divides(DEVICE_BLOCK_SIZE, intptr_t(buf)));

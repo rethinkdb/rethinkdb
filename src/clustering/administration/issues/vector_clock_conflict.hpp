@@ -30,11 +30,11 @@ public:
             " has a vector clock conflict in its field '" + field + "'.";
         json.type = "VCLOCK_CONFLICT";
 
-        cJSON *res = render_as_json(&json, 0);
+        cJSON *res = render_as_json(&json);
 
-        cJSON_AddItemToObject(res, "object_type", render_as_json(&object_type, 0));
-        cJSON_AddItemToObject(res, "object_id", render_as_json(&object_id, 0));
-        cJSON_AddItemToObject(res, "field", render_as_json(&field, 0));
+        cJSON_AddItemToObject(res, "object_type", render_as_json(&object_type));
+        cJSON_AddItemToObject(res, "object_id", render_as_json(&object_id));
+        cJSON_AddItemToObject(res, "field", render_as_json(&field));
 
         return res;
     }

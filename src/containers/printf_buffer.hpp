@@ -113,7 +113,7 @@ inline void alloc_copy_and_format(const char *buf, int64_t length, int append_si
     char *new_ptr = new char[alloc_limit];
     memcpy(new_ptr, buf, length);
 
-    DEBUG_ONLY_VAR int size = vsnprintf(new_ptr + length, size_t(append_size) + 1, fmt, ap);
+    DEBUG_VAR int size = vsnprintf(new_ptr + length, size_t(append_size) + 1, fmt, ap);
     rassert(size == append_size);
 
     *buf_out = new_ptr;
@@ -153,7 +153,7 @@ void printf_buffer_t<N>::vappendf(const char *format, va_list ap) {
 
         int64_t alloc_limit = round_up_to_power_of_two(length_ + 1);
         if (length_ + size + 1 <= alloc_limit) {
-            DEBUG_ONLY_VAR int size2 = vsnprintf(ptr_ + length_, size + 1, format, aq);
+            DEBUG_VAR int size2 = vsnprintf(ptr_ + length_, size + 1, format, aq);
             rassert(size == size2);
             length_ += size;
         } else {

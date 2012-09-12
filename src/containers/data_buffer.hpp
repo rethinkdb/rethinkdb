@@ -1,7 +1,6 @@
 #ifndef CONTAINERS_DATA_BUFFER_HPP_
 #define CONTAINERS_DATA_BUFFER_HPP_
 
-#include "containers/archive/archive.hpp"
 #include "containers/intrusive_ptr.hpp"
 #include "errors.hpp"
 
@@ -38,7 +37,7 @@ public:
 };
 
 inline void intrusive_ptr_add_ref(data_buffer_t *buffer) {
-    UNUSED int64_t res = __sync_add_and_fetch(&buffer->ref_count_, 1);
+    DEBUG_VAR int64_t res = __sync_add_and_fetch(&buffer->ref_count_, 1);
     rassert(res > 0);
 }
 

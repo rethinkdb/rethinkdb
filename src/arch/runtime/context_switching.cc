@@ -2,6 +2,10 @@
 
 #include <sys/mman.h>
 
+#ifndef NDEBUG
+#include <cxxabi.h>   // For __cxa_current_exception_type (see below)
+#endif
+
 #ifdef VALGRIND
 #include <valgrind/valgrind.h>
 #endif
@@ -57,6 +61,12 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     /* Set up the instruction pointer; this will be popped off the stack by ret
     in swapcontext once all the other registers have been "restored". */
     sp--;
+
+    /* This seems to prevent Valgrind from complaining about uninitialized value
+    errors when throwing an uncaught exception. My assembly-fu isn't strong
+    enough to explain why, though. */
+    *sp = 0;
+
     sp--;
 
     // Subtracted 2*sizeof(int64_t), so sp is still 16-byte aligned.
@@ -128,6 +138,18 @@ extern void lightweight_swapcontext(void **current_pointer_out, void *dest_point
 }
 
 void context_switch(context_ref_t *current_context_out, context_ref_t *dest_context_in) {
+
+    /* In the catch-clause of a C++ exception handler, executing a `throw` with
+    no parameter will re-throw the exception that we caught. This works even if
+    the parameter-less `throw` is in a function called by the exception handler.
+    C++ accomplishes this by storing the current exception in a thread-local
+    variable. We have no way to save and restore the value of this variable when
+    switching contexts, so instead we just ban context switching from within a
+    `catch`-block. We use the non-standard GCC-only interface "cxxabi.h" to
+    figure out if we're in the catch clause of an exception handler. In C++0x we
+    will be able to use std::current_exception() instead. */
+    rassert(!abi::__cxa_current_exception_type(), "It's not safe to switch "
+        "coroutine stacks in the catch-clause of an exception handler.");
 
     rassert(current_context_out->is_nil(), "that variable already holds a context");
     rassert(!dest_context_in->is_nil(), "cannot switch to nil context");

@@ -43,8 +43,7 @@ void run_backfill_test() {
         dummy_branch.region = region;
         dummy_branch.initial_timestamp = state_timestamp_t::zero();
         dummy_branch.origin = region_map_t<dummy_protocol_t, version_range_t>(
-            region, version_range_t(version_t(nil_uuid(), state_timestamp_t::zero()))
-            );
+            region, version_range_t(version_t(nil_uuid(), state_timestamp_t::zero())));
         cond_t non_interruptor;
         branch_history_manager.create_branch(dummy_branch_id, dummy_branch, &non_interruptor);
     }
@@ -55,7 +54,7 @@ void run_backfill_test() {
     store_view_t<dummy_protocol_t> *stores[] = { &backfiller_store, &backfillee_store };
     for (size_t i = 0; i < sizeof(stores) / sizeof(stores[0]); i++) {
         cond_t non_interruptor;
-        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> token;
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
         stores[i]->new_write_token(&token);
         stores[i]->set_metainfo(
             region_map_t<dummy_protocol_t, binary_blob_t>(region,
@@ -68,6 +67,7 @@ void run_backfill_test() {
     // Insert 10 values into both stores, then another 10 into only `backfiller_store` and not `backfillee_store`
     for (int i = 0; i < 20; i++) {
         dummy_protocol_t::write_t w;
+        dummy_protocol_t::write_response_t response;
         std::string key = std::string(1, 'a' + randint(26));
         w.values[key] = strprintf("%d", i);
 
@@ -76,7 +76,7 @@ void run_backfill_test() {
             timestamp = ts.timestamp_after();
 
             cond_t non_interruptor;
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> token;
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
             backfiller_store.new_write_token(&token);
 
 #ifndef NDEBUG
@@ -91,11 +91,10 @@ void run_backfill_test() {
                     region,
                     binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
                 ),
-                w, ts,
+                w, &response, ts,
                 order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
                 &token,
-                &non_interruptor
-            );
+                &non_interruptor);
         }
     }
 
@@ -106,7 +105,9 @@ void run_backfill_test() {
     /* Expose the backfiller to the cluster */
 
     store_view_t<dummy_protocol_t> *backfiller_store_ptr = &backfiller_store;
-    multistore_ptr_t<dummy_protocol_t> backfiller_multistore(&backfiller_store_ptr, 1);
+
+    dummy_protocol_t::context_t ctx;
+    multistore_ptr_t<dummy_protocol_t> backfiller_multistore(&backfiller_store_ptr, 1, &ctx);
 
     backfiller_t<dummy_protocol_t> backfiller(
         cluster.get_mailbox_manager(),
@@ -119,8 +120,9 @@ void run_backfill_test() {
     /* Run a backfill */
 
     // Uhh.. hehhehheh... this might be wrong.
+    dummy_protocol_t::context_t ctx2;
     store_view_t<dummy_protocol_t> *backfillee_store_ptr = &backfillee_store;
-    multistore_ptr_t<dummy_protocol_t> backfillee_multistore(&backfillee_store_ptr, 1);
+    multistore_ptr_t<dummy_protocol_t> backfillee_multistore(&backfillee_store_ptr, 1, &ctx2);
 
     cond_t interruptor;
     backfillee<dummy_protocol_t>(
@@ -140,7 +142,7 @@ void run_backfill_test() {
         EXPECT_TRUE(backfiller_store.timestamps[key] == backfillee_store.timestamps[key]);
     }
 
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> token1;
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> token1;
     backfillee_store.new_read_token(&token1);
 
     region_map_t<dummy_protocol_t, binary_blob_t> untransformed_backfillee_metadata;
@@ -150,10 +152,9 @@ void run_backfill_test() {
     region_map_t<dummy_protocol_t, version_range_t> backfillee_metadata =
         region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
             untransformed_backfillee_metadata,
-            &binary_blob_t::get<version_range_t>
-        );
+            &binary_blob_t::get<version_range_t>);
 
-    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> token2;
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> token2;
     backfiller_store.new_read_token(&token2);
 
     region_map_t<dummy_protocol_t, binary_blob_t> untransformed_backfiller_metadata;
@@ -161,10 +162,7 @@ void run_backfill_test() {
                                      &token2, &interruptor, &untransformed_backfiller_metadata);
 
     region_map_t<dummy_protocol_t, version_range_t> backfiller_metadata =
-        region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
-            untransformed_backfiller_metadata,
-            &binary_blob_t::get<version_range_t>
-        );
+        region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(untransformed_backfiller_metadata, &binary_blob_t::get<version_range_t>);
 
     EXPECT_TRUE(backfillee_metadata == backfiller_metadata);
 

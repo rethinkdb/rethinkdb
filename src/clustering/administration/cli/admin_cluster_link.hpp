@@ -96,6 +96,28 @@ private:
     size_t get_machine_count_in_datacenter(const cluster_semilattice_metadata_t& cluster_metadata, const datacenter_id_t& datacenter);
 
     template <class protocol_t>
+    std::string admin_merge_shard_internal(namespaces_semilattice_metadata_t<protocol_t> *ns_map,
+                                           const namespace_id_t &ns_id,
+                                           const std::vector<std::string> &split_points);
+
+    std::string merge_shards(vclock_t<std::set<hash_region_t<key_range_t> > > *shards_vclock,
+                             const std::vector<std::string> &split_points);
+
+    std::string merge_shards(vclock_t<std::set<key_range_t> > *shards_vclock,
+                             const std::vector<std::string> &split_points);
+
+    template <class protocol_t>
+    std::string admin_split_shard_internal(namespaces_semilattice_metadata_t<protocol_t> *ns,
+                                           const namespace_id_t &ns_id,
+                                           const std::vector<std::string> &split_points);
+
+    std::string split_shards(vclock_t<std::set<key_range_t> > *shards_vclock,
+                             const std::vector<std::string> &split_points);
+
+    std::string split_shards(vclock_t<std::set<hash_region_t<key_range_t> > > *shards_vclock,
+                             const std::vector<std::string> &split_points);
+
+    template <class protocol_t>
     void do_admin_set_acks_internal(const datacenter_id_t& datacenter,
                                     int num_acks,
                                     namespace_semilattice_metadata_t<protocol_t> *ns);
@@ -177,8 +199,8 @@ private:
                        const shard_input_t& shard_in,
                        const cluster_semilattice_metadata_t& cluster_metadata);
 
-    template <class bp_type>
-    void list_pinnings_internal(const bp_type& bp,
+    template <class protocol_t>
+    void list_pinnings_internal(const persistable_blueprint_t<protocol_t>& bp,
                                 const key_range_t& shard,
                                 const cluster_semilattice_metadata_t& cluster_metadata);
 
@@ -191,8 +213,8 @@ private:
         size_t namespaces;
     };
 
-    template <class bp_type>
-    void add_machine_info_from_blueprint(const bp_type& bp, std::map<machine_id_t, machine_info_t> *results);
+    template <class protocol_t>
+    void add_machine_info_from_blueprint(const persistable_blueprint_t<protocol_t>& bp, std::map<machine_id_t, machine_info_t> *results);
 
     template <class map_type>
     void build_machine_info_internal(const map_type& ns_map, std::map<machine_id_t, machine_info_t> *results);
@@ -211,8 +233,8 @@ private:
     template <class ns_type>
     namespace_info_t get_namespace_info(const ns_type& ns);
 
-    template <class bp_type>
-    size_t get_replica_count_from_blueprint(const bp_type& bp);
+    template <class protocol_t>
+    size_t get_replica_count_from_blueprint(const persistable_blueprint_t<protocol_t>& bp);
 
     struct datacenter_info_t {
         datacenter_info_t() : machines(0), primaries(0), secondaries(0), namespaces(0) { }
@@ -295,7 +317,7 @@ private:
     metadata_info_t *get_info_from_id(const std::string& id);
 
     local_issue_tracker_t local_issue_tracker;
-    log_writer_t log_writer;
+    thread_pool_log_writer_t log_writer;
     connectivity_cluster_t connectivity_cluster;
     message_multiplexer_t message_multiplexer;
     message_multiplexer_t::client_t mailbox_manager_client;

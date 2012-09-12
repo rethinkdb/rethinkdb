@@ -4,7 +4,7 @@
 
 import time, sys, os, socket, random, time, signal, subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'test', 'common')))
-import driver, workload_common
+import driver, memcached_workload_common
 from vcoptparse import *
 
 op = OptParser()
@@ -18,7 +18,7 @@ base_port = 11213 # port that RethinkDB runs from by default
 
 if opts["pkg_type"] == "rpm":
     def install(path):
-        return "rpm -i %s" % path
+        return "rpm -i %s --nodeps" % path
 
     def get_binary(path):
         return "rpm -qpil %s | grep /usr/bin" % path
@@ -86,7 +86,7 @@ def wait_until_started_up(proc, host, port, timeout = 600):
         raise RuntimeError("Could not connect to process.")
 
 def test_against(host, port, timeout = 600):
-    with workload_common.make_memcache_connection({"address": (host, port), "mclib": "pylibmc", "protocol": "text"}) as mc:
+    with memcached_workload_common.make_memcache_connection({"address": (host, port), "mclib": "pylibmc", "protocol": "text"}) as mc:
         temp = 0
         time_limit = time.time() + timeout
         while not temp and time.time() < time_limit:
@@ -159,7 +159,11 @@ for path in res_paths:
     print "Tests completed. Killing instance now..."
     proc.send_signal(signal.SIGINT)
 
-    time.sleep(2)
+    timeout = 60 # 1 minute to shut down
+    time_limit = time.time() + timeout
+    while proc.poll() is None and time.time() < time_limit:
+        pass
+
     if proc.poll() != 0:
         print "RethinkDB failed to shut down properly. (TEST FAILED)"
         failed_test = False

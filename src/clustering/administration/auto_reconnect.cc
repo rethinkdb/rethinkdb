@@ -27,8 +27,7 @@ void auto_reconnector_t::on_connect_or_disconnect() {
                 it->first,
                 std::make_pair(
                     it->second,
-                    connectivity_cluster->get_peer_address(it->first)
-                )));
+                    connectivity_cluster->get_peer_address(it->first))));
         }
     }
     for (std::map<peer_id_t, std::pair<machine_id_t, peer_address_t> >::iterator it = connected_peers.begin();
@@ -38,8 +37,7 @@ void auto_reconnector_t::on_connect_or_disconnect() {
             ++jt;
             coro_t::spawn_sometime(boost::bind(
                 &auto_reconnector_t::try_reconnect, this,
-                it->second.first, it->second.second, auto_drainer_t::lock_t(&drainer)
-                ));
+                it->second.first, it->second.second, auto_drainer_t::lock_t(&drainer)));
             connected_peers.erase(it);
             it = jt;
         } else {
@@ -50,7 +48,7 @@ void auto_reconnector_t::on_connect_or_disconnect() {
 
 static const int initial_backoff_ms = 50;
 static const int max_backoff_ms = 1000 * 15;
-static const float backoff_growth_rate = 1.5;
+static const double backoff_growth_rate = 1.5;
 
 void auto_reconnector_t::try_reconnect(machine_id_t machine, peer_address_t last_known_address, auto_drainer_t::lock_t keepalive) {
 
@@ -75,8 +73,8 @@ void auto_reconnector_t::try_reconnect(machine_id_t machine, peer_address_t last
             connectivity_cluster_run->join(last_known_address);
             signal_timer_t timer(backoff_ms);
             wait_interruptible(&timer, &interruptor);
-            rassert(int(backoff_ms * backoff_growth_rate) > backoff_ms, "rounding screwed it up");
-            backoff_ms = std::min(int(backoff_ms * backoff_growth_rate), max_backoff_ms);
+            rassert(backoff_ms * backoff_growth_rate > backoff_ms, "rounding screwed it up");
+            backoff_ms = std::min(static_cast<int>(backoff_ms * backoff_growth_rate), max_backoff_ms);
         }
     } catch (interrupted_exc_t) {
         /* ignore; this is how we escape the loop */

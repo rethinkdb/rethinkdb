@@ -33,7 +33,7 @@ uint64_t hash_region_hasher(const uint8_t *s, ssize_t len) {
 }
 
 const hash_region_t<key_range_t> *double_lookup(int i, const std::vector<hash_region_t<key_range_t> > &vec) {
-    rassert(0 <= i && i < int(vec.size() * 2));
+    rassert(0 <= i && i < static_cast<ssize_t>(vec.size() * 2));
     return &vec[i / 2];
 }
 
@@ -64,7 +64,10 @@ public:
         uint64_t ival = double_hash_lookup(i, *vec_);
         uint64_t jval = double_hash_lookup(j, *vec_);
 
-        return int(ival > jval) - int(ival < jval);
+        int greater = ival > jval;
+        int less = ival < jval;
+
+        return greater - less;
     }
 
 private:
@@ -165,8 +168,8 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
     std::sort(hash_beg, hash_splitpoints.end(), hash_less);
 
 #ifdef REGION_JOIN_DEBUG
-    for (int i = 0; i < int(hash_splitpoints.size()); ++i) {
-        debugf("pre-unique hash_splitpoints[%d] = %d\n", i, hash_splitpoints[i]);
+    for (size_t i = 0; i < hash_splitpoints.size(); ++i) {
+        debugf("pre-unique hash_splitpoints[%zu] = %d\n", i, hash_splitpoints[i]);
         uint64_t k = double_hash_lookup(hash_splitpoints[i], vec);
         debugf_print("key", k);
     }
@@ -178,7 +181,7 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
     std::sort(key_beg, key_splitpoints.end(), key_less);
 
 #ifdef REGION_JOIN_DEBUG
-    for (int i = 0; i < int(key_splitpoints.size()); ++i) {
+    for (size_t i = 0; i < key_splitpoints.size(); ++i) {
         debugf("pre-unique key_splitpoints[%d] = %d\n", i, key_splitpoints[i]);
         const store_key_t *k = double_key_lookup(key_splitpoints[i], vec);
         if (k != NULL) {
@@ -209,7 +212,7 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
         }
 
     }
-    for (int i = key_end - key_beg; i < int(key_splitpoints.size()); ++i) {
+    for (ssize_t i = key_end - key_beg; i < static_cast<ssize_t>(key_splitpoints.size()); ++i) {
         debugf("post-end key_splitpoints[%d] = %d\n", i, *(key_beg + i));
         const store_key_t *k = double_key_lookup(*(key_beg + i), vec);
         if (k != NULL) {
@@ -255,7 +258,7 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
                 int y = it - hash_beg;
                 int ix = y * granular_width + x;
 #ifdef REGION_JOIN_DEBUG
-                debugf("gasp i=%d x=%d y=%d ix=%d covered=%d\n", i, x, y, ix, bool(covered[ix]));
+                debugf("gasp i=%d x=%d y=%d ix=%d covered=%d\n", i, x, y, ix, covered[ix]);
 #endif
                 if (covered[ix]) {
                     return REGION_JOIN_BAD_JOIN;

@@ -22,7 +22,19 @@ public:
         sequence_number(0)
         { }
     void send(int message, peer_id_t peer) {
-        service->send_message(peer, boost::bind(&write, message, _1));
+        class writer_t : public send_message_write_callback_t {
+        public:
+            writer_t(int _data) : data(_data) { }
+            virtual ~writer_t() { }
+            void write(write_stream_t *stream) {
+                write_message_t msg;
+                msg << data;
+                int res = send_write_message(stream, &msg);
+                if (res) { throw fake_archive_exc_t(); }
+            }
+            int32_t data;
+        } writer(message);
+        service->send_message(peer, &writer);
     }
     void expect(int message, peer_id_t peer) {
         expect_delivered(message);
@@ -52,13 +64,6 @@ private:
         on_thread_t th(home_thread());
         inbox[i] = peer;
         timing[i] = sequence_number++;
-    }
-    static void write(int i, write_stream_t *stream) {
-        write_message_t msg;
-        int32_t i_32 = i;
-        msg << i_32;
-        int res = send_write_message(stream, &msg);
-        if (res) { throw fake_archive_exc_t(); }
     }
 
     message_service_t *service;
@@ -489,14 +494,18 @@ public:
         service(s),
         got_spectrum(false)
         { }
-    static void dump_spectrum(write_stream_t *stream) {
-        char spectrum[CHAR_MAX - CHAR_MIN + 1];
-        for (int i = CHAR_MIN; i <= CHAR_MAX; i++) spectrum[i - CHAR_MIN] = i;
-        int64_t res = stream->write(spectrum, CHAR_MAX - CHAR_MIN + 1);
-        if (res != CHAR_MAX - CHAR_MIN + 1) { throw fake_archive_exc_t(); }
-    }
     void send_spectrum(peer_id_t peer) {
-        service->send_message(peer, &dump_spectrum);
+        class dump_spectrum_writer_t : public send_message_write_callback_t {
+        public:
+            virtual ~dump_spectrum_writer_t() { }
+            void write(write_stream_t *stream) {
+                char spectrum[CHAR_MAX - CHAR_MIN + 1];
+                for (int i = CHAR_MIN; i <= CHAR_MAX; i++) spectrum[i - CHAR_MIN] = i;
+                int64_t res = stream->write(spectrum, CHAR_MAX - CHAR_MIN + 1);
+                if (res != CHAR_MAX - CHAR_MIN + 1) { throw fake_archive_exc_t(); }
+            }
+        } writer;
+        service->send_message(peer, &writer);
     }
     void on_message(peer_id_t, read_stream_t *stream) {
         char spectrum[CHAR_MAX - CHAR_MIN + 1];
@@ -571,11 +580,11 @@ void run_check_headers_test() {
     // Read & check its header.
     const int64_t len = strlen(cluster_proto_header);
     {
-        char data[len+1];
-        int64_t read = force_read(&conn, data, len);
+        scoped_array_t<char> data(len + 1);
+        int64_t read = force_read(&conn, data.data(), len);
         ASSERT_GE(read, 0);
         data[read] = 0;         // null-terminate
-        ASSERT_STREQ(cluster_proto_header, data);
+        ASSERT_STREQ(cluster_proto_header, data.data());
     }
 
     // Send it an initially okay-looking but ultimately malformed header.

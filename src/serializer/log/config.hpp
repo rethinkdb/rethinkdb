@@ -41,8 +41,8 @@ struct log_serializer_dynamic_config_t {
         gc_low_ratio = DEFAULT_GC_LOW_RATIO;
         gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
         num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
-        file_size = 0;   // Unlimited file size
-        file_zone_size = GIGABYTE;
+        file_size = 0;   // Unlimited file size  // TODO: What?  No, that is a fantasy.
+        file_zone_size = DEFAULT_FILE_ZONE_SIZE;
         read_ahead = true;
         io_batch_factor = DEFAULT_IO_BATCH_FACTOR;
     }

@@ -6,7 +6,6 @@ module 'Sidebar', ->
         template: Handlebars.compile $('#sidebar-container-template').html()
         template_dataexplorer: Handlebars.compile $('#sidebar-dataexplorer_container-template').html()
 
-        max_recent_log_entries: 5
         type_view: 'default'
         previous_queries: []
         events:
@@ -21,20 +20,23 @@ module 'Sidebar', ->
             @issues = new Sidebar.Issues()
             @logs = new Sidebar.Logs()
 
-            recent_log_entries.on 'add', @render
             window.app.on 'all', @render
 
         set_type_view: (type = 'default') =>
             if type isnt @type_view
                 @type_view = type
                 @render()
-                if type is 'default'
-                    recent_log_entries.on 'add', @render
-                else if type is 'dataexplorer'
-                    recent_log_entries.off()
 
         add_query: (query) =>
-            @previous_queries.push query
+            if query.length > 17
+                query_summary = query.slice(0, 5) + '...' + query.slice(query.length-10)
+            else
+                query_summary = query
+
+            @previous_queries.unshift
+                query: query
+                query_summary: query_summary
+
             @render()
 
         write_query_namespace: (event) ->
@@ -42,6 +44,25 @@ module 'Sidebar', ->
 
         write_query_old: (event) ->
             window.router.current_view.write_query_old(event)
+
+        compute_data: =>
+            data_temp = {}
+            for database in databases.models
+                data_temp[database.get('id')] = []
+            for namespace in namespaces.models
+                data_temp[namespace.get('database')].push
+                    name: namespace.get('name')
+                    database: databases.get(namespace.get('database')).get 'name'
+
+            data = {}
+            data['databases'] = []
+            for database_id of data_temp
+                if data_temp[database_id].length > 0
+                    data['databases'].push
+                        name: databases.get(database_id).get 'name'
+                        namespaces: data_temp[database_id] 
+
+            return data
 
         render: =>
             if @type_view is 'default'
@@ -60,30 +81,70 @@ module 'Sidebar', ->
 
                 return @
             else
-                namespaces_data = []
-                for namespace in namespaces.models
-                    namespaces_data.push namespace.get('name')
-
-                
-                @.$el.html @template_dataexplorer
-                    namespaces: namespaces_data
-                    previous_queries: @previous_queries
+                data = @compute_data()
+                data['previous_queries'] = @previous_queries
+                data['has_namespaces'] = data['databases'].length > 0
+                data['has_previous_queries'] = @previous_queries.length > 0
+                @.$el.html @template_dataexplorer data
 
                 # Render issue summary
                 @.$('.issues').html @issues.render().el
 
                 return @
 
+        destroy: =>
+            window.app.off 'all', @render
+
     class @Logs extends Backbone.View
         className: 'recent-log-entries'
+        tagName: 'ul'
+        min_timestamp: 0
+        max_entry_logs: 5
+        interval_update_log: 10000
+
         initialize: ->
-            recent_log_entries.on 'add', @render
+            @fetch_log()
+            @set_interval = setInterval @fetch_log, @interval_update_log
+            @log_entries = []
+
+        fetch_log: =>
+            $.ajax({
+                contentType: 'application/json'
+                url: '/ajax/log/_?max_length='+@max_entry_logs+'&min_timestamp='+@min_timestamp
+                dataType: 'json'
+                success: @set_log_entries
+            })
+
+        set_log_entries: (response) =>
+            need_render = false
+            for machine_id, data of response
+                for new_log_entry in data
+                    for old_log_entry, i in @log_entries
+                        if parseFloat(new_log_entry.timestamp) > parseFloat(old_log_entry.get('timestamp'))
+                            entry = new LogEntry new_log_entry
+                            entry.set('machine_uuid', machine_id)
+                            @log_entries.splice i, 0, entry
+                            need_render = true
+                            break
+
+                    if @log_entries.length < @max_entry_logs
+                        entry = new LogEntry new_log_entry
+                        entry.set('machine_uuid', machine_id)
+                        @log_entries.push entry
+                        need_render = true
+                    else if @log_entries.length > @max_entry_logs
+                        @log_entries.pop()
+
+            if need_render
+                @render()
+
+            @min_timestamp = parseFloat(@log_entries[0].get('timestamp'))+1
 
         render: =>
-            @.$('.recent-log-entries').html ''
-            for log in recent_log_entries.models
-                view = new Sidebar.RecentLogEntry model: log
-                @.$el.append view.render().el
+            @.$el.html ''
+            for log in @log_entries
+                view = new LogView.LogEntry model: log
+                @.$el.append view.render_small().$el
             return @
 
     # Sidebar.ClientConnectionStatus
@@ -92,13 +153,12 @@ module 'Sidebar', ->
         tagName: 'div'
         template: Handlebars.compile $('#sidebar-client_connection_status-template').html()
 
-        initialize: ->
-            log_initial '(initializing) client connection status view'
-            connection_status.on 'all', => @render()
-            datacenters.on 'all', => @render()
-            machines.on 'all', => @render()
+        initialize: =>
+            connection_status.on 'all', @render
+            datacenters.on 'all', @render
+            machines.on 'all', @render
 
-        render: ->
+        render: =>
             log_render '(rendering) status panel view'
             connected_machine = machines.get(connection_status.get('contact_machine_id'))
             json =
@@ -115,6 +175,11 @@ module 'Sidebar', ->
 
             return @
 
+        destroy: =>
+            connection_status.off 'all', @render
+            datacenters.off 'all', @render
+            machines.off 'all', @render
+
     # Sidebar.ConnectivityStatus
     class @ConnectivityStatus extends Backbone.View
         className: 'connectivity-status'
@@ -122,9 +187,9 @@ module 'Sidebar', ->
 
         initialize: =>
             # Rerender every time some relevant info changes
-            directory.on 'all', (model, collection) => @render()
-            machines.on 'all', (model, collection) => @render()
-            datacenters.on 'all', (model, collection) => @render()
+            directory.on 'all', @render
+            machines.on 'all', @render
+            datacenters.on 'all', @render
 
         compute_connectivity: =>
             # data centers visible
@@ -145,6 +210,12 @@ module 'Sidebar', ->
             @.$el.html @template @compute_connectivity()
             return @
 
+        destroy: =>
+            # Rerender every time some relevant info changes
+            directory.off 'all', @render
+            machines.off 'all', @render
+            datacenters.off 'all', @render
+
     # Sidebar.Issues
     class @Issues extends Backbone.View
         className: 'issues'
@@ -153,7 +224,7 @@ module 'Sidebar', ->
 
         initialize: =>
             log_initial '(initializing) sidebar view: issues'
-            issues.on 'all', => @render()
+            issues.on 'all', @render
 
         render: =>
             # Group critical issues by type
@@ -184,41 +255,5 @@ module 'Sidebar', ->
                 no_issues: _.keys(critical_issues).length is 0 and _.keys(other_issues).length is 0
             return @
 
-    # Sidebar.RecentLogEntry
-    class @RecentLogEntry extends Backbone.View
-        className: 'recent-log-entry'
-        template: Handlebars.compile $('#sidebar-recent_log_entry-template').html()
-
-        events:
-            'click a[rel=log_details]': 'show_popover'
-
-        show_popover: (event) =>
-            event.preventDefault()
-            @.$(event.currentTarget).popover('show')
-            $popover = $('.popover')
-
-            $popover.on 'clickoutside', (e) ->
-                if e.target isnt event.target  # so we don't remove the popover when we click on the link
-                    $(e.currentTarget).remove()
-            $('.popover_close').on 'click', (e) ->
-                $(e.target).parent().parent().remove()
-
-
-        render: =>
-            json = _.extend @model.toJSON(), @model.get_formatted_message()
-            # Trim message length
-            MAX_LOG_MSG_DISPLAY_LENGTH = 25
-            if typeof(json.formatted_message) is 'string' and json.formatted_message.length > MAX_LOG_MSG_DISPLAY_LENGTH
-                json.formatted_message = json.formatted_message.slice(0, MAX_LOG_MSG_DISPLAY_LENGTH) + "..."
-
-            if machines? and machines.get(@model.get('machine_uuid'))
-                @.$el.html @template _.extend json,
-                    machine_name: machines.get(@model.get('machine_uuid')).get('name')
-                    timeago_timestamp: @model.get_iso_8601_timestamp()
-
-            @.$('abbr.timeago').timeago()
-            @.$('a[rel=log_details]').popover
-                trigger: 'manual'
-                placement: 'left'
-            return @
-
+        destroy: =>
+            issues.off 'all', @render

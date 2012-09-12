@@ -16,6 +16,7 @@
 #include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "clustering/reactor/metadata.hpp"
+#include "containers/cow_ptr.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
@@ -52,7 +53,8 @@ class cluster_namespace_interface_t :
 public:
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > dv);
+            clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > > dv,
+            typename protocol_t::context_t *);
 
 
     /* Returns a signal that will be pulsed when we have either successfully
@@ -64,15 +66,11 @@ public:
         return &start_cond;
     }
 
-    typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read(const typename protocol_t::read_t &r, typename protocol_t::read_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    typename protocol_t::read_response_t read_outdated(typename protocol_t::read_t r, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read_outdated(const typename protocol_t::read_t &r, typename protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-        return dispatch_immediate_op<typename protocol_t::write_t, fifo_enforcer_sink_t::exit_write_t, typename protocol_t::write_response_t>(
-            &master_access_t<protocol_t>::new_write_token, &master_access_t<protocol_t>::write,
-            w, order_token, interruptor);
-    }
+    void write(const typename protocol_t::write_t &w, typename protocol_t::write_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     std::set<typename protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
@@ -107,46 +105,49 @@ private:
     };
 
     template<class op_type, class fifo_enforcer_token_type, class op_response_type>
-    op_response_type dispatch_immediate_op(
-            /* `how_to_make_token` and `how_to_run_query` have type pointer-to-
-            member-function. */
-            void (master_access_t<protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),
-            op_response_type (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
-            op_type op,
+    void dispatch_immediate_op(
+            /* `how_to_make_token` and `how_to_run_query` have type pointer-to-member-function. */
+            void (master_access_t<protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),  // NOLINT
+            void (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, op_response_type *response, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
+            const op_type &op,
+            op_response_type *response,
             order_token_t order_token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     template<class op_type, class fifo_enforcer_token_type, class op_response_type>
     void perform_immediate_op(
-            op_response_type (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
+            void (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
             boost::ptr_vector<immediate_op_info_t<fifo_enforcer_token_type> > *masters_to_contact,
             const op_type *operation,
+            std::vector<op_response_type> *results,
+            std::vector<std::string> *failures,
             order_token_t order_token,
-            std::vector<boost::variant<op_response_type, std::string> > *results_or_failures,
             int i,
             signal_t *interruptor)
         THROWS_NOTHING;
 
-    typename protocol_t::read_response_t dispatch_outdated_read(
+    void dispatch_outdated_read(
             const typename protocol_t::read_t &op,
+            typename protocol_t::read_response_t *response,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     void perform_outdated_read(
             boost::ptr_vector<outdated_read_info_t> *direct_readers_to_contact,
             const typename protocol_t::read_t *operation,
-            std::vector<boost::variant<typename protocol_t::read_response_t, std::string> > *results_or_failures,
+            std::vector<typename protocol_t::read_response_t> *results,
+            std::vector<std::string> *failures,
             int i,
             signal_t *interruptor)
         THROWS_NOTHING;
 
     void update_registrants(bool is_start);
 
-    static boost::optional<boost::optional<master_business_card_t<protocol_t> > > extract_master_business_card(const std::map<peer_id_t, reactor_business_card_t<protocol_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
-    static boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, reactor_business_card_t<protocol_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<master_business_card_t<protocol_t> > > extract_master_business_card(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
 
-    static boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > extract_direct_reader_business_card_from_secondary_up_to_date(const std::map<peer_id_t, reactor_business_card_t<protocol_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > extract_direct_reader_business_card_from_secondary_up_to_date(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
 
 
     void relationship_coroutine(peer_id_t peer_id, reactor_activity_id_t activity_id,
@@ -154,9 +155,8 @@ private:
                                 auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
     mailbox_manager_t *mailbox_manager;
-    clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > directory_view;
-
-    typename protocol_t::temporary_cache_t temporary_cache;
+    clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > > directory_view;
+    typename protocol_t::context_t *ctx;
 
     rng_t distributor_rng;
 
@@ -171,7 +171,7 @@ private:
 
     auto_drainer_t relationship_coroutine_auto_drainer;
 
-    typename watchable_t< std::map<peer_id_t, reactor_business_card_t<protocol_t> > >::subscription_t watcher_subscription;
+    typename watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t watcher_subscription;
 
     DISABLE_COPYING(cluster_namespace_interface_t);
 };

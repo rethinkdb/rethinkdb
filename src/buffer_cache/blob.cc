@@ -180,7 +180,6 @@ int64_t value_size(const char *ref, int maxreflen) {
         rassert(smallsize == maxreflen);
         return blob::big_size(ref, maxreflen);
     }
-    return 0;
 }
 
 
@@ -239,7 +238,7 @@ void compute_acquisition_offsets(block_size_t block_size, int levels, int64_t of
 
 blob_t::blob_t(char *ref, int maxreflen)
     : ref_(ref), maxreflen_(maxreflen) {
-    rassert(maxreflen >= blob::block_ids_offset(maxreflen) + int(sizeof(block_id_t)));
+    rassert(maxreflen >= blob::block_ids_offset(maxreflen) + static_cast<int>(sizeof(block_id_t)));
 }
 
 
@@ -265,7 +264,7 @@ void blob_t::expose_region(transaction_t *txn, access_t mode, int64_t offset, in
     if (blob::is_small(ref_, maxreflen_)) {
         char *b = blob::small_buffer(ref_, maxreflen_);
 #ifndef NDEBUG
-        UNUSED int n = blob::small_size(ref_, maxreflen_);
+        int n = blob::small_size(ref_, maxreflen_);
         rassert(0 <= offset && offset <= n);
         rassert(0 <= size && size <= n && offset + size <= n);
 #endif
@@ -497,8 +496,8 @@ void blob_t::clear(transaction_t *txn) {
 
 void blob_t::write_from_string(const std::string &val, transaction_t *txn, int64_t offset) {
     buffer_group_t dest;
-    scoped_ptr_t<blob_acq_t> acq(new blob_acq_t);
-    expose_region(txn, rwi_write, offset, val.size(), &dest, acq.get());
+    blob_acq_t acq;
+    expose_region(txn, rwi_write, offset, val.size(), &dest, &acq);
 
     buffer_group_t src;
     src.add_buffer(val.size(), val.c_str());
@@ -512,8 +511,8 @@ std::string blob_t::read_to_string(transaction_t *txn, int64_t offset, int64_t l
     dest.add_buffer(length, s_out.data());
 
     buffer_group_t src;
-    scoped_ptr_t<blob_acq_t> acq(new blob_acq_t);
-    expose_region(txn, rwi_read, offset, length, &src, acq.get());
+    blob_acq_t acq;
+    expose_region(txn, rwi_read, offset, length, &src, &acq);
     buffer_group_copy_data(&dest, const_view(&src));
 
     std::string ret(s_out.begin(), s_out.end());
@@ -619,12 +618,12 @@ bool deep_fsck_region(block_getter_t *getter, block_size_t bs, int levels, int64
         block_magic_t m = *reinterpret_cast<block_magic_t *>(block.get());
         if (levels == 1) {
             if (m != leaf_node_magic) {
-                *msg_out = strprintf("in block %u: bad leaf magic: '%.*s'", ids[i], int(sizeof(block_magic_t)), m.bytes);
+                *msg_out = strprintf("in block %u: bad leaf magic: '%.*s'", ids[i], static_cast<int>(sizeof(block_magic_t)), m.bytes);
                 return false;
             }
         } else {
             if (m != internal_node_magic) {
-                *msg_out = strprintf("in block %u: bad internal magic: '%.*s'", ids[i], int(sizeof(block_magic_t)), m.bytes);
+                *msg_out = strprintf("in block %u: bad internal magic: '%.*s'", ids[i], static_cast<int>(sizeof(block_magic_t)), m.bytes);
                 return false;
             }
 
@@ -670,7 +669,7 @@ bool deep_fsck(block_getter_t *getter, block_size_t bs, const char *ref, int max
 }  // namespace blob
 
 bool blob_t::traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, blob::traverse_helper_t *helper) {
-    UNUSED int64_t old_end = old_offset + old_size;
+    DEBUG_VAR int64_t old_end = old_offset + old_size;
     int64_t new_end = new_offset + new_size;
     rassert(new_offset <= old_offset && new_end >= old_end);
     block_size_t block_size = txn->get_cache()->get_block_size();
@@ -724,7 +723,7 @@ void blob_t::deallocate_to_dimensions(transaction_t *txn, int levels, int64_t ne
         memmove(buf, buf + new_offset, new_size);
         blob::set_small_size(ref_, maxreflen_, new_size);
     } else {
-        UNUSED bool res = traverse_to_dimensions(txn, levels, new_offset, new_size, blob::ref_value_offset(ref_, maxreflen_), valuesize(), &helper);
+        DEBUG_VAR bool res = traverse_to_dimensions(txn, levels, new_offset, new_size, blob::ref_value_offset(ref_, maxreflen_), valuesize(), &helper);
         blob::set_big_offset(ref_, maxreflen_, new_offset);
         blob::set_big_size(ref_, maxreflen_, new_size);
         rassert(res);

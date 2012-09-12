@@ -55,7 +55,7 @@ public:
         // Candidate to be GCed. It is in gc_pq.
         state_old,
         // Currently being GCed. It is equal to gc_state.current_entry.
-        state_in_gc,
+        state_in_gc
     } state;
 
 public:
@@ -248,7 +248,7 @@ private:
         gc_reconstruct, /* reconstructing on startup */
         gc_ready, /* ready to start */
         gc_read,  /* waiting for reads, acquiring main_mutex */
-        gc_write, /* waiting for writes */
+        gc_write /* waiting for writes */
     };
 
     /* Buffer used during GC. */
@@ -321,9 +321,8 @@ private:
     } gc_stats;
 
 public:
-    /* \brief ratio of garbage to blocks in the system
-     */
-    float garbage_ratio() const;
+    // ratio of garbage to blocks in the system
+    double garbage_ratio() const;
 
     int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks.get(); }
     int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks.get(); }

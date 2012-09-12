@@ -11,7 +11,13 @@ do_test(
     )
 
 do_test(
-    "$RETHINKDB/test/regression/issue_676.py '$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d 20s'",
+    "$RETHINKDB/test/regression/issue_676.py '$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d 20s'",
+    repeat = 3,
+    inputs = ["build/debug/rethinkdb", "test/regression", "test/common", "bench/stress-client/stress"]
+    )
+
+do_test(
+    "$RETHINKDB/test/regression/issue_852.py '$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d 10000q'",
     repeat = 3,
     inputs = ["build/debug/rethinkdb", "test/regression", "test/common", "bench/stress-client/stress"]
     )

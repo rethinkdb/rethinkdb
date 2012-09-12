@@ -17,11 +17,11 @@ private:
     void on_disconnect(UNUSED peer_id_t p) { }
     void on_change() THROWS_NOTHING;
 
-    void send_initialization(peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state, auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
+    void send_initialization(peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
     void send_update(peer_id_t peer, const metadata_t &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
-    static void write_initialization(write_stream_t *os, const metadata_t &initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state) THROWS_NOTHING;
-    static void write_update(write_stream_t *os, const metadata_t &new_value, fifo_enforcer_write_token_t metadata_fifo_token) THROWS_NOTHING;
+    class initialization_writer_t;
+    class update_writer_t;
 
     message_service_t *const message_service;
     clone_ptr_t<watchable_t<metadata_t> > value_watchable;

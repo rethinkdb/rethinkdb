@@ -25,7 +25,7 @@
 // This code hopefully will be nice to genericize; you could
 // reimplement rget if you genericized this.
 
-// The Lifecyle of a block_id_t
+// The Lifecycle of a block_id_t
 //
 // Every time we deal with a block_id_t, it goes through these states...
 //
@@ -67,22 +67,35 @@ class parent_releaser_t;
 
 struct acquisition_waiter_callback_t {
     virtual void you_may_acquire() = 0;
+    virtual void cancel() = 0;
 protected:
     virtual ~acquisition_waiter_callback_t() { }
 };
 
 class traversal_state_t {
 public:
-    traversal_state_t(transaction_t *txn, btree_slice_t *_slice, btree_traversal_helper_t *_helper)
+    traversal_state_t(transaction_t *txn, btree_slice_t *_slice, btree_traversal_helper_t *_helper,
+            signal_t *_interruptor)
         : slice(_slice),
-          /* We can't compute the expected change count (we're either
-             doing nothing or deleting the entire tree or something),
-             so we just pass 0.  You could let this be a
-             helper-supplied value, if you cared. */
           transaction_ptr(txn),
           stat_block(NULL_BLOCK_ID),
-          helper(_helper)
-    { }
+          helper(_helper),
+          interruptor(_interruptor),
+          interrupted(false)
+    {
+        interruptor_watcher.parent = this;
+        interruptor_watcher.reset(_interruptor);
+    }
+
+    ~traversal_state_t() {
+        if (!interrupted) {
+            for (size_t i = 0; i < acquisition_waiter_stacks.size(); ++i) {
+                for (size_t j = 0; j < acquisition_waiter_stacks[i].size(); ++j) {
+                    acquisition_waiter_stacks[i][j]->cancel();
+                }
+            }
+        }
+    }
 
     // The slice whose btree we're traversing
     btree_slice_t *const slice;
@@ -96,15 +109,25 @@ public:
     // The helper.
     btree_traversal_helper_t *helper;
 
+    signal_t *interruptor;
+    bool interrupted;
     cond_t finished_cond;
 
     // The number of pending + acquired blocks, by level.
     std::vector<int64_t> level_counts;
 
+    class interruptor_watcher_t : public signal_t::subscription_t {
+    public:
+        void run() {
+            parent->interrupt();
+        }
+        traversal_state_t *parent;
+    } interruptor_watcher;
+
     int64_t& level_count(int level) {
         rassert(level >= 0);
-        if (level >= int(level_counts.size())) {
-            rassert(level == int(level_counts.size()), "Somehow we skipped a level! (level = %d, slice = %p)", level, slice);
+        if (size_t(level) >= level_counts.size()) {
+            rassert(size_t(level) == level_counts.size(), "Somehow we skipped a level! (level = %d, slice = %p)", level, slice);
             level_counts.resize(level + 1, 0);
         }
         return level_counts[level];
@@ -140,21 +163,22 @@ public:
         rassert(level_counts.size() <= acquisition_waiter_stacks.size());
         level_counts.resize(acquisition_waiter_stacks.size(), 0);
 
-        for (int i = level_counts.size() - 1; i >= 0; --i) {
-            if (level_counts[i] < level_max(i)) {
-                int diff = level_max(i) - level_counts[i];
+        // If we're trying to stop, don't spawn any new jobs.
+        if (!interrupted) {
+            for (int i = level_counts.size() - 1; i >= 0; --i) {
+                if (level_counts[i] < level_max(i)) {
+                    int diff = level_max(i) - level_counts[i];
 
-                while (diff > 0 && !acquisition_waiter_stacks[i].empty()) {
-                    acquisition_waiter_callback_t *waiter_cb = acquisition_waiter_stacks[i].back();
-                    acquisition_waiter_stacks[i].pop_back();
+                    while (diff > 0 && !acquisition_waiter_stacks[i].empty()) {
+                        acquisition_waiter_callback_t *waiter_cb = acquisition_waiter_stacks[i].back();
+                        acquisition_waiter_stacks[i].pop_back();
 
-                    // For some reason the buffer cache is broken.  It
-                    // expects transaction_t::acquire to run in a
-                    // coroutine!  So we use coro_t::spawn instead of
-                    // do_later.
-                    level_count(i) += 1;
-                    coro_t::spawn(boost::bind(&acquisition_waiter_callback_t::you_may_acquire, waiter_cb));
-                    diff -= 1;
+                        // Spawn a coroutine so that it's safe to acquire
+                        // blocks.
+                        level_count(i) += 1;
+                        coro_t::spawn(boost::bind(&acquisition_waiter_callback_t::you_may_acquire, waiter_cb));
+                        diff -= 1;
+                    }
                 }
             }
         }
@@ -164,9 +188,19 @@ public:
         }
     }
 
+    void interrupt() {
+        rassert(interrupted == false);
+        interrupted = true;
+        for (size_t i = 0; i < acquisition_waiter_stacks.size(); ++i) {
+            for (size_t j = 0; j < acquisition_waiter_stacks[i].size(); ++j) {
+                acquisition_waiter_stacks[i][j]->cancel();
+            }
+        }
+    }
+
     int64_t total_level_count() {
         int64_t sum = 0;
-        for (int i = 0, n = level_counts.size(); i < n; ++i) {
+        for (size_t i = 0; i < level_counts.size(); ++i) {
             sum += level_counts[i];
         }
         return sum;
@@ -177,8 +211,10 @@ public:
 
     std::vector<acquisition_waiter_callback_t *>& acquisition_waiter_stack(int level) {
         rassert(level >= 0);
-        if (level >= int(acquisition_waiter_stacks.size())) {
-            rassert(level == int(acquisition_waiter_stacks.size()), "Somehow we skipped a level! (level = %d, stacks.size() = %d, slice = %p)", level, int(acquisition_waiter_stacks.size()), slice);
+        if (level >= static_cast<int>(acquisition_waiter_stacks.size())) {
+            rassert(level == static_cast<int>(acquisition_waiter_stacks.size()),
+                    "Somehow we skipped a level! (level = %d, stacks.size() = %d, slice = %p)",
+                    level, static_cast<int>(acquisition_waiter_stacks.size()), slice);
             acquisition_waiter_stacks.resize(level + 1);
         }
         return acquisition_waiter_stacks[level];
@@ -187,7 +223,6 @@ public:
     void wait() {
         finished_cond.wait();
     }
-
 
 private:
     DISABLE_COPYING(traversal_state_t);
@@ -205,6 +240,7 @@ void process_a_internal_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> 
 
 struct node_ready_callback_t {
     virtual void on_node_ready(scoped_ptr_t<buf_lock_t> *buf) = 0;
+    virtual void on_cancel() = 0;
 protected:
     virtual ~node_ready_callback_t() { }
 };
@@ -228,6 +264,17 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
         node_ready_callback_t *local_cb = node_ready_cb;
         delete this;
         local_cb->on_node_ready(&block);
+    }
+
+    void cancel() {
+        /* This is safe because `on_in_line()` is used only to know when it's OK
+        to release the parent, and now that we're not gonna ever acquire the
+        child it's safe to release the parent. */
+        acq_start_cb->on_in_line();
+
+        node_ready_callback_t *local_cb = node_ready_cb;
+        delete this;
+        local_cb->on_cancel();
     }
 };
 
@@ -266,8 +313,8 @@ struct internal_node_releaser_t : public parent_releaser_t {
     virtual ~internal_node_releaser_t() { }
 };
 
-void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper) {
-    traversal_state_t state(txn, slice, helper);
+void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    traversal_state_t state(txn, slice, helper, interruptor);
 
     /* Make sure there's a stat block*/
     if (helper->btree_node_mode() == rwi_write) {
@@ -310,6 +357,11 @@ void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btre
         boost::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(root_id, NULL, NULL, 0));
         subtrees_traverse(&state, &superblock_releaser, 1, ids_source);
         state.wait();
+        /* Wait for `state.wait()` to succeed even if `interruptor` is pulsed,
+        so that we don't abandon running coroutines or FSMs */
+        if (interruptor->is_pulsed()) {
+            throw interrupted_exc_t();
+        }
     }
 }
 
@@ -349,6 +401,10 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
             process_a_internal_node(state, buf, level, left_exclusive_or_null, right_inclusive_or_null);
         }
 
+        delete this;
+    }
+
+    void on_cancel() {
         delete this;
     }
 };
@@ -392,7 +448,13 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf
     //
     int population_change = 0;
 
-    state->helper->process_a_leaf(state->transaction_ptr, buf->get(), left_exclusive_or_null, right_inclusive_or_null, &population_change);
+    try {
+        state->helper->process_a_leaf(state->transaction_ptr, buf->get(), left_exclusive_or_null, right_inclusive_or_null, &population_change, state->interruptor);
+    } catch (interrupted_exc_t) {
+        rassert(state->interruptor->is_pulsed());
+        /* ignore it; the backfill will come to a stop on its own now that
+        `interruptor` has been pulsed */
+    }
 
     if (state->helper->btree_node_mode() != rwi_write) {
         rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
@@ -539,14 +601,15 @@ progress_completion_fraction_t parallel_traversal_progress_t::guess_completion()
      * each level. */
 
     std::vector<double> released_to_acquired_ratios;
-    for (unsigned i = 0; i < learned.size() - 1; i++) {
-        released_to_acquired_ratios.push_back(double(acquired[i + 1]) / std::max(1.0, double(released[i])));
+    for (unsigned i = 0; i + 1 < learned.size(); ++i) {
+        released_to_acquired_ratios.push_back(static_cast<double>(acquired[i + 1]) / std::max<double>(1.0, released[i]));
     }
 
     std::vector<int> population_by_level_guesses;
     population_by_level_guesses.push_back(learned[0]);
 
-    for (unsigned i = 0; i < (learned.size() - 1); i++) {
+    rassert(learned.size() != 0);
+    for (unsigned i = 0; i + 1 < learned.size(); i++) {
         population_by_level_guesses.push_back(static_cast<int>(released_to_acquired_ratios[i] * population_by_level_guesses[i]));
     }
 

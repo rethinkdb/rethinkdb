@@ -12,6 +12,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/object_buffer.hpp"
 #include "containers/uuid.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
@@ -72,8 +73,7 @@ void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING 
         address,
         /* We don't know what `peer_id_t` the peer has until we connect to it */
         boost::none,
-        auto_drainer_t::lock_t(&drainer)
-        ));
+        auto_drainer_t::lock_t(&drainer)));
 }
 
 connectivity_cluster_t::run_t::connection_entry_t::connection_entry_t(run_t *p, peer_id_t id, tcp_conn_stream_t *c, peer_address_t a) THROWS_NOTHING :
@@ -135,9 +135,9 @@ void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<nascent
     // conn gets owned by the tcp_conn_stream_t.
     tcp_conn_t *conn;
     nconn->ennervate(&conn);
-    scoped_ptr_t<tcp_conn_stream_t> conn_stream(new tcp_conn_stream_t(conn));
+    tcp_conn_stream_t conn_stream(conn);
 
-    handle(conn_stream.get(), boost::none, boost::none, lock);
+    handle(&conn_stream, boost::none, boost::none, lock);
 }
 
 void connectivity_cluster_t::run_t::join_blocking(
@@ -305,7 +305,7 @@ void connectivity_cluster_t::run_t::handle(
     established. When there are multiple connections trying to be established,
     this is referred to as a "conflict". */
 
-    scoped_ptr_t<map_insertion_sentry_t<peer_id_t, peer_address_t> >
+    object_buffer_t<map_insertion_sentry_t<peer_id_t, peer_address_t> >
         routing_table_entry_sentry;
 
     /* We pick one side of the connection to be the "leader" and the other side
@@ -346,10 +346,7 @@ void connectivity_cluster_t::run_t::handle(
 
             /* Register ourselves while in the critical section, so that whoever
             comes next will see us */
-            routing_table_entry_sentry.init(
-                new map_insertion_sentry_t<peer_id_t, peer_address_t>(
-                    &routing_table, other_id, other_address
-                    ));
+            routing_table_entry_sentry.create(&routing_table, other_id, other_address);
         }
 
         /* We're good to go! Transmit the routing table to the follower, so it
@@ -391,10 +388,7 @@ void connectivity_cluster_t::run_t::handle(
 
             /* Register ourselves while in the critical section, so that whoever
             comes next will see us */
-            routing_table_entry_sentry.init(
-                new map_insertion_sentry_t<peer_id_t, peer_address_t>(
-                    &routing_table, other_id, other_address
-                    ));
+            routing_table_entry_sentry.create(&routing_table, other_id, other_address);
         }
 
         /* Send our routing table to the leader */
@@ -462,7 +456,7 @@ void connectivity_cluster_t::run_t::handle(
                 just a length and a byte vector. This is obviously slow and we
                 should change it when we care about performance. */
                 std::string message;
-                assert(get_thread_id() == chosen_thread);
+                rassert(get_thread_id() == chosen_thread);
                 if (deserialize_and_check(conn, &message, peername))
                     break;
 
@@ -531,7 +525,7 @@ connectivity_service_t *connectivity_cluster_t::get_connectivity_service() THROW
     return this;
 }
 
-void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<void(write_stream_t *)> &writer) THROWS_NOTHING {
+void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_callback_t *callback) THROWS_NOTHING {
     // We could be on _any_ thread.
 
     rassert(!dest.is_nil());
@@ -543,7 +537,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
     vector_stream_t buffer;
     {
         ASSERT_FINITE_CORO_WAITING;
-        writer(&buffer);
+        callback->write(&buffer);
     }
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING
@@ -578,7 +572,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
     }
 
     if (conn_structure->conn == NULL) {
-        /* We're sending a message to ourself */
+        // We're sending a message to ourself
         rassert(dest == me);
         // We could be on any thread here! Oh no!
         vector_read_stream_t buffer2(&buffer.vector());

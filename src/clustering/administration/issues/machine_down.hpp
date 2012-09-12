@@ -25,8 +25,8 @@ public:
         json.type = "MACHINE_DOWN";
         json.time = get_secs();
 
-        cJSON *res = render_as_json(&json, 0);
-        cJSON_AddItemToObject(res, "victim", render_as_json(&machine_id, 0));
+        cJSON *res = render_as_json(&json);
+        cJSON_AddItemToObject(res, "victim", render_as_json(&machine_id));
 
         return res;
     }
@@ -56,8 +56,8 @@ public:
         json.type = "MACHINE_GHOST";
         json.time = get_secs();
 
-        cJSON *res = render_as_json(&json, 0);
-        cJSON_AddItemToObject(res, "ghost", render_as_json(&machine_id, 0));
+        cJSON *res = render_as_json(&json);
+        cJSON_AddItemToObject(res, "ghost", render_as_json(&machine_id));
 
         return res;
     }

@@ -2,6 +2,7 @@
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
@@ -41,15 +42,15 @@ static void run_read_write_test() {
     /* Set up a branch */
     mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
-    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
+    dummy_protocol_t::context_t ctx;
+    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1, &ctx); //null ctx nothing copmlicated can happen
     cond_t interruptor;
-    broadcaster_t<dummy_protocol_t> broadcaster(
-        cluster.get_mailbox_manager(),
-        &branch_history_manager,
-        &multi_initial_store,
-        &get_global_perfmon_collection(),
-        &interruptor
-        );
+    broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(),
+                                                &branch_history_manager,
+                                                &multi_initial_store,
+                                                &get_global_perfmon_collection(),
+                                                &order_source,
+                                                &interruptor);
 
     watchable_variable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > broadcaster_metadata_controller(
         boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(broadcaster.get_business_card()));
@@ -64,7 +65,7 @@ static void run_read_write_test() {
         &interruptor,
         &order_source);
 
-    replier_t<dummy_protocol_t> initial_replier(&initial_listener);
+    replier_t<dummy_protocol_t> initial_replier(&initial_listener, cluster.get_mailbox_manager(), &branch_history_manager);
 
     /* Set up a master */
     class : public master_t<dummy_protocol_t>::ack_checker_t {
@@ -99,15 +100,17 @@ static void run_read_write_test() {
     for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
             it != inserter.values_inserted->end(); it++) {
         dummy_protocol_t::read_t r;
+        dummy_protocol_t::read_response_t rr;
         r.keys.keys.insert((*it).first);
-        cond_t interruptor;
+        // TODO: What's with this fake interruptor?
+        cond_t fake_interruptor;
         fifo_enforcer_sink_t::exit_read_t read_token;
         master_access.new_read_token(&read_token);
-        dummy_protocol_t::read_response_t resp = master_access.read(r,
-                                                                    order_source.check_in("unittest::run_read_write_test(clustering_query.cc)").with_read_mode(),
-                                                                    &read_token,
-                                                                    &interruptor);
-        EXPECT_EQ((*it).second, resp.values[(*it).first]);
+        master_access.read(r, &rr,
+                           order_source.check_in("unittest::run_read_write_test(clustering_query.cc)").with_read_mode(),
+                           &read_token,
+                           &fake_interruptor);
+        EXPECT_EQ((*it).second, rr.values[(*it).first]);
     }
 }
 
@@ -131,15 +134,15 @@ static void run_broadcaster_problem_test() {
     /* Set up a branch */
     mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
-    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
+    dummy_protocol_t::context_t ctx;
+    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1, &ctx); //null ctx nothing complicated
     cond_t interruptor;
-    broadcaster_t<dummy_protocol_t> broadcaster(
-        cluster.get_mailbox_manager(),
-        &branch_history_manager,
-        &multi_initial_store,
-        &get_global_perfmon_collection(),
-        &interruptor
-        );
+    broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(),
+                                                &branch_history_manager,
+                                                &multi_initial_store,
+                                                &get_global_perfmon_collection(),
+                                                &order_source,
+                                                &interruptor);
 
     watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_controller(
         boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >(broadcaster.get_business_card()));
@@ -154,7 +157,7 @@ static void run_broadcaster_problem_test() {
         &interruptor,
         &order_source);
 
-    replier_t<dummy_protocol_t> initial_replier(&initial_listener);
+    replier_t<dummy_protocol_t> initial_replier(&initial_listener, cluster.get_mailbox_manager(), &branch_history_manager);
 
     /* Set up a master. The ack checker is impossible to satisfy, so every
     write will return an error. */
@@ -177,12 +180,13 @@ static void run_broadcaster_problem_test() {
 
     /* Confirm that it throws an exception */
     dummy_protocol_t::write_t w;
+    dummy_protocol_t::write_response_t wr;
     w.values["a"] = "b";
     cond_t non_interruptor;
     fifo_enforcer_sink_t::exit_write_t write_token;
     master_access.new_write_token(&write_token);
     try {
-        master_access.write(w,
+        master_access.write(w, &wr,
             order_source.check_in("unittest::run_broadcaster_problem_test(clustering_query.cc)"),
             &write_token,
             &non_interruptor);

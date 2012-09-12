@@ -6,7 +6,7 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "btree/internal_node.hpp"
 
-class get_distribution_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
+class get_distribution_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_debug_only_t {
 public:
     get_distribution_traversal_helper_t(int _depth_limit, std::vector<store_key_t> *_keys)
         : depth_limit(_depth_limit), key_count(0), keys(_keys)
@@ -24,7 +24,8 @@ public:
     void process_a_leaf(transaction_t *, buf_lock_t *leaf_node_buf,
                                 const btree_key_t *,
                                 const btree_key_t *,
-                                int *) {
+                                int *,
+                                UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
         leaf::live_iter_t it = iter_for_whole_leaf(node);
@@ -84,6 +85,7 @@ void get_btree_key_distribution(btree_slice_t *slice, transaction_t *txn, superb
     get_distribution_traversal_helper_t helper(depth_limit, keys_out);
     rassert(keys_out->empty(), "Why is this output paremeter not an empty vector\n");
 
-    btree_parallel_traversal(txn, superblock, slice, &helper);
+    cond_t non_interruptor;
+    btree_parallel_traversal(txn, superblock, slice, &helper, &non_interruptor);
     *key_count_out = helper.key_count;
 }

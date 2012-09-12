@@ -3,11 +3,12 @@
 
 #include <string>
 
-#include "btree/buf_patches.hpp"
-#include "btree/node.hpp"
-#include "config/args.hpp"
+#include "buffer_cache/types.hpp"
 #include "errors.hpp"
-#include "repli_timestamp.hpp"
+
+template <class> class value_sizer_t;
+struct btree_key_t;
+class repli_timestamp_t;
 
 // TODO: Could key_modification_proof_t not go in this file?
 
@@ -132,6 +133,10 @@ void erase_presence(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_k
 
 class entry_reception_callback_t {
 public:
+    /* Note: If any of these callbacks throw exceptions, then
+    `dump_entries_since_time()` must pass the exception up and not leak memory
+    or anything. */
+
     // Says that the timestamp was too early, and we can't send accurate deletion history.
     virtual void lost_deletions() = 0;
 

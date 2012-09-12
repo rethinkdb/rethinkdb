@@ -1,35 +1,26 @@
 #ifndef RDB_PROTOCOL_PARSER_HPP_
 #define RDB_PROTOCOL_PARSER_HPP_
 
+#include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "http/http.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "protocol_api.hpp"
-#include "rpc/mailbox/mailbox.hpp"
 
 namespace rdb_protocol {
 
 class query_http_app_t : public http_app_t {
 public:
-    explicit query_http_app_t(namespace_interface_t<rdb_protocol_t> * _namespace_if);
+    query_http_app_t(const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata, namespace_repo_t<rdb_protocol_t> * _ns_repo);
+    ~query_http_app_t();
     http_res_t handle(const http_req_t &);
 
 private:
-    namespace_interface_t<rdb_protocol_t> *namespace_if;
+    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+    namespace_repo_t<rdb_protocol_t> *ns_repo;
     order_source_t order_source;
-};
-
-class protocol_parser_t {
-public:
-    protocol_parser_t(int port, namespace_interface_t<rdb_protocol_t> *nif, perfmon_collection_t *) :
-        query_app(nif),
-        server(port, &query_app)
-        { }
-
-private:
-    query_http_app_t query_app;
-    http_server_t server;
+    cond_t on_destruct;
 };
 
 } //namespace rdb_protocol

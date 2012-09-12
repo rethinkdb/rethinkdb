@@ -122,12 +122,12 @@ scc_buf_lock_t<inner_cache_t>::~scc_buf_lock_t() {
 /* Transaction */
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp) :
-    cache(cache),
-    order_token(order_token_t::ignore),
+scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *_cache, access_t _access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t _order_token) :
+    cache(_cache),
+    order_token(_order_token),
     snapshotted(false),
-    access(access),
-    inner_transaction(&cache->inner_cache, access, expected_change_count, recency_timestamp)
+    access(_access),
+    inner_transaction(&cache->inner_cache, access, expected_change_count, recency_timestamp, _order_token)
     { }
 
 template<class inner_cache_t>

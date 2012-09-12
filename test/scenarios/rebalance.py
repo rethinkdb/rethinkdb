@@ -33,7 +33,8 @@ op["num-nodes"] = IntFlag("--num-nodes", 3)
 op["sequence"] = ValueFlag("--sequence", converter = Sequence.from_string, default = Sequence(2, [(1, 1)]))
 opts = op.parse(sys.argv)
 
-candidate_shard_boundaries = set("abcdefghijklmnopqrstuvwxyz")
+letters = "abcdefghijklmnopqrstuvwxyz"
+candidate_shard_boundaries = set(letters).union([x + "g" for x in letters]).union([x + "m" for x in letters]).union([x + "s" for x in letters])
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
@@ -53,7 +54,7 @@ with driver.Metacluster() as metacluster:
     http.move_server_to_datacenter(machines[0], primary_dc)
     http.move_server_to_datacenter(machines[1], primary_dc)
     http.move_server_to_datacenter(machines[2], secondary_dc)
-    ns = http.add_namespace(protocol = "memcached", primary = primary_dc,
+    ns = scenario_common.prepare_table_for_workload(opts, http, primary = primary_dc,
         affinities = {primary_dc.uuid: 1, secondary_dc.uuid: 1})
     shard_boundaries = set(random.sample(candidate_shard_boundaries, opts["sequence"].initial))
     print "Split points are:", list(shard_boundaries)
@@ -61,8 +62,8 @@ with driver.Metacluster() as metacluster:
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
 
-    workload_ports = scenario_common.get_workload_ports(ns.port, processes)
-    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
+    workload_ports = scenario_common.get_workload_ports(opts, ns, processes)
+    with workload_runner.SplitOrContinuousWorkload(opts, opts["protocol"], workload_ports) as workload:
         workload.run_before()
         cluster.check()
         for i, (num_adds, num_removes) in enumerate(opts["sequence"].steps):
@@ -73,7 +74,7 @@ with driver.Metacluster() as metacluster:
             print "Splitting at", list(adds), "and merging at", list(removes)
             http.change_namespace_shards(ns, adds = list(adds), removes = list(removes))
             shard_boundaries = (shard_boundaries - removes) | adds
-            http.wait_until_blueprint_satisfied(ns)
+            http.wait_until_blueprint_satisfied(ns, timeout = 3600)
             cluster.check()
             http.check_no_issues()
         workload.run_after()

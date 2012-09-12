@@ -1,5 +1,7 @@
 #include "concurrency/auto_drainer.hpp"
 
+#include "arch/runtime/coroutines.hpp"
+
 auto_drainer_t::auto_drainer_t() :
     refcount(0), when_done(NULL) { }
 
@@ -44,7 +46,7 @@ signal_t *auto_drainer_t::lock_t::get_drain_signal() const {
     return &parent->draining;
 }
 
-void auto_drainer_t::lock_t::assert_is_holding(UNUSED auto_drainer_t *p) {
+void auto_drainer_t::lock_t::assert_is_holding(DEBUG_VAR auto_drainer_t *p) {
     rassert(p);
     rassert(parent);
     rassert(p == parent);

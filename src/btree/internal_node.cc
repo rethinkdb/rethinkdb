@@ -3,10 +3,27 @@
 #include <algorithm>
 
 #include "buffer_cache/buffer_cache.hpp"
+#include "btree/node.hpp"
 
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
 namespace internal_node {
+
+class ibuf_t;
+
+// We can't use "internal" for internal stuff obviously.
+namespace impl {
+size_t pair_size_with_key(const btree_key_t *key);
+size_t pair_size_with_key_size(uint8_t size);
+
+void delete_pair(buf_lock_t *node_buf, uint16_t offset);
+uint16_t insert_pair(ibuf_t *node_buf, const btree_internal_pair *pair);
+uint16_t insert_pair(buf_lock_t *node_buf, block_id_t lnode, const btree_key_t *key);
+void delete_offset(buf_lock_t *node_buf, int index);
+void insert_offset(buf_lock_t *node_buf, uint16_t offset, int index);
+void make_last_pair_special(buf_lock_t *node_buf);
+bool is_equal(const btree_key_t *key1, const btree_key_t *key2);
+}  // namespace internal_node::impl
 
 class ibuf_t {
 public:
@@ -305,7 +322,7 @@ bool change_unsafe(const internal_node_t *node) {
     return sizeof(internal_node_t) + node->npairs * sizeof(*node->pair_offsets) + MAX_KEY_SIZE >= node->frontmost_offset;
 }
 
-void validate(UNUSED block_size_t block_size, UNUSED const internal_node_t *node) {
+void validate(DEBUG_VAR block_size_t block_size, DEBUG_VAR const internal_node_t *node) {
 #ifndef NDEBUG
     rassert(reinterpret_cast<const char *>(&(node->pair_offsets[node->npairs])) <= reinterpret_cast<const char *>(get_pair(node, node->frontmost_offset)));
     rassert(node->frontmost_offset > 0);

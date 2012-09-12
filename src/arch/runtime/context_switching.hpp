@@ -52,7 +52,7 @@ public:
     bool address_is_stack_overflow(void *);
 
     /* Returns the base of the stack */
-    void* get_stack_base() { return (void*)((char*)stack + stack_size); }
+    void* get_stack_base() { return static_cast<char*>(stack) + stack_size; }
 
     /* Returns the end of the stack */
     void* get_stack_bound() { return stack; }
@@ -71,7 +71,6 @@ were in when we called `context_switch()`. `destination_context_in` must be
 non-nil; it will be set to nil, and we will switch to it. */
 void context_switch(
     context_ref_t *current_context_out,
-    context_ref_t *dest_context_in
-    );
+    context_ref_t *dest_context_in);
 
 #endif /* ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_ */

@@ -5,10 +5,6 @@
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/log_serializer.hpp"
 
-#define EXTENT_UNRESERVED (off64_t(-2))
-#define EXTENT_IN_USE (off64_t(-3))
-#define EXTENT_FREE_LIST_END (off64_t(-4))
-
 struct extent_info_t {
 
     enum state_t {
@@ -173,7 +169,7 @@ extent_zone_t *extent_manager_t::zone_for_offset(off64_t offset) {
 void extent_manager_t::reserve_extent(off64_t extent) {
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Reserve extent %.8lx\n", this, extent);
-    print_backtrace(stderr, false);
+    debugf("%s", format_backtrace(false).c_str());
 #endif
     rassert(state == state_reserving_extents);
     ++stats->pm_extents_in_use;
@@ -269,7 +265,7 @@ off64_t extent_manager_t::gen_extent() {
 
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Gen extent %.8lx\n", this, extent);
-    print_backtrace(stderr, false);
+    debugf("%s", format_backtrace(false).c_str());
 #endif
     return extent;
 }
@@ -277,7 +273,7 @@ off64_t extent_manager_t::gen_extent() {
 void extent_manager_t::release_extent(off64_t extent) {
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Release extent %.8lx\n", this, extent);
-    print_backtrace(stderr, false);
+    debugf("%s", format_backtrace(false).c_str());
 #endif
     rassert(state == state_running);
     rassert(current_transaction);
@@ -286,7 +282,7 @@ void extent_manager_t::release_extent(off64_t extent) {
     current_transaction->free_queue().push_back(extent);
 }
 
-void extent_manager_t::end_transaction(DEBUG_ONLY_VAR const transaction_t &t) {
+void extent_manager_t::end_transaction(DEBUG_VAR const transaction_t &t) {
     rassert(current_transaction == &t);
     current_transaction = NULL;
 }

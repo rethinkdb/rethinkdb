@@ -4,6 +4,7 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
+#include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 #include "mock/branch_history_manager.hpp"
 #include "mock/clustering_utils.hpp"
@@ -20,33 +21,35 @@ static void run_missing_master_test() {
     mock::simple_mailbox_cluster_t cluster;
 
     /* Set up a reactor directory with no reactors in it */
-    std::map<peer_id_t, reactor_business_card_t<dummy_protocol_t> > empty_reactor_directory;
-    watchable_variable_t<std::map<peer_id_t, reactor_business_card_t<dummy_protocol_t> > > reactor_directory(empty_reactor_directory);
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<dummy_protocol_t> > > empty_reactor_directory;
+    watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<dummy_protocol_t> > > > reactor_directory(empty_reactor_directory);
 
     /* Set up a namespace dispatcher */
     cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(
         cluster.get_mailbox_manager(),
-        reactor_directory.get_watchable()
-        );
+        reactor_directory.get_watchable(),
+        NULL); //<-- this should be a valid context by passing null we're assuming this unit test doesn't do anything complicated enough to need it
     namespace_interface.get_initial_ready_signal()->wait_lazily_unordered();
 
     order_source_t order_source;
 
     /* Confirm that it throws an exception */
     dummy_protocol_t::read_t r;
+    dummy_protocol_t::read_response_t rr;
     r.keys.keys.insert("a");
     cond_t non_interruptor;
     try {
-        namespace_interface.read(r, order_source.check_in("unittest::run_missing_master_test(A)"), &non_interruptor);
+        namespace_interface.read(r, &rr, order_source.check_in("unittest::run_missing_master_test(A)").with_read_mode(), &non_interruptor);
         ADD_FAILURE() << "That was supposed to fail.";
     } catch (cannot_perform_query_exc_t e) {
         /* expected */
     }
 
     dummy_protocol_t::write_t w;
+    dummy_protocol_t::write_response_t wr;
     w.values["a"] = "b";
     try {
-        namespace_interface.write(w, order_source.check_in("unittest::run_missing_master_test(B)"), &non_interruptor);
+        namespace_interface.write(w, &wr, order_source.check_in("unittest::run_missing_master_test(B)"), &non_interruptor);
         ADD_FAILURE() << "That was supposed to fail.";
     } catch (cannot_perform_query_exc_t e) {
         /* expected */
@@ -68,10 +71,11 @@ static void run_read_outdated_test() {
     cluster_group.make_namespace_interface(0, &namespace_if);
 
     dummy_protocol_t::read_t r;
+    dummy_protocol_t::read_response_t rr;
     r.keys.keys.insert("a");
     cond_t non_interruptor;
-    dummy_protocol_t::read_response_t resp = namespace_if->read_outdated(r, &non_interruptor);
-    EXPECT_EQ("", resp.values["a"]);
+    namespace_if->read_outdated(r, &rr, &non_interruptor);
+    EXPECT_EQ("", rr.values["a"]);
 }
 
 TEST(ClusteringNamespaceInterface, ReadOutdated) {

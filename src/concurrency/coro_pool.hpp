@@ -13,10 +13,7 @@ distributes them among the coroutines. It draws its tasks from a
 `passive_producer_t`. */
 
 template <class T>
-class coro_pool_t :
-    private availability_callback_t,
-    public home_thread_mixin_t
-{
+class coro_pool_t : private availability_callback_t, public home_thread_mixin_t {
 public:
     class callback_t {
     public:
@@ -84,8 +81,7 @@ private:
             ++active_worker_count;
             coro_t::spawn_sometime(boost::bind(
                 &coro_pool_t::worker_run, this,
-                source->pop(), auto_drainer_t::lock_t(&coro_drain_semaphore)
-                ));
+                source->pop(), auto_drainer_t::lock_t(&coro_drain_semaphore)));
         }
     }
 

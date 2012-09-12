@@ -51,13 +51,13 @@ with driver.Metacluster() as metacluster:
     replica_dc = http.add_datacenter()
     for replica_process in replica_processes:
         http.move_server_to_datacenter(replica_process.files.machine_name, replica_dc)
-    ns = http.add_namespace(protocol = "memcached", primary = primary_dc, affinities = {primary_dc: 0, replica_dc: opts["sequence"].initial})
+    ns = scenario_common.prepare_table_for_workload(opts, http, primary = primary_dc, affinities = {primary_dc: 0, replica_dc: opts["sequence"].initial})
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
 
-    workload_ports = scenario_common.get_workload_ports(ns.port, [primary_process] + replica_processes)
-    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
+    workload_ports = scenario_common.get_workload_ports(opts, ns, [primary_process] + replica_processes)
+    with workload_runner.SplitOrContinuousWorkload(opts, opts["protocol"], workload_ports) as workload:
         workload.run_before()
         cluster.check()
         http.check_no_issues()

@@ -17,9 +17,10 @@ public:
     { }
 
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
-                        UNUSED const btree_key_t *l_excl,
-                        UNUSED const btree_key_t *r_incl, 
-                        int *population_change_out) {
+                        const btree_key_t *l_excl,
+                        const btree_key_t *r_incl,
+                        int *population_change_out,
+                        UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(*population_change_out == 0);
         leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_major_write());
 
@@ -88,10 +89,10 @@ public:
         if (!key_in_range(k, left_excl, right_incl)) {
             debugf("Assert key in range failing:\n");
             if (left_excl) {
-                debugf("left_excl(%d): %*.*s, key(%d): %*.*s\n", int(left_excl->size), int(left_excl->size), int(left_excl->size), left_excl->contents, int(k->size), int(k->size), int(k->size), k->contents);
+                debugf("left_excl(%d): %*.*s, key(%d): %*.*s\n", left_excl->size, left_excl->size, left_excl->size, left_excl->contents, k->size, k->size, k->size, k->contents);
             }
             if (right_incl) {
-                debugf("right_incl(%d): %*.*s, key(%d): %*.*s\n", int(right_incl->size), int(right_incl->size), int(right_incl->size), right_incl->contents, int(k->size), int(k->size), int(k->size), k->contents);
+                debugf("right_incl(%d): %*.*s, key(%d): %*.*s\n", right_incl->size, right_incl->size, right_incl->size, right_incl->contents, k->size, k->size, k->size, k->contents);
             }
         }
 
@@ -124,5 +125,6 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                transaction_t *txn, superblock_t *superblock) {
 
     erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null);
-    btree_parallel_traversal(txn, superblock, slice, &helper);
+    cond_t non_interruptor;
+    btree_parallel_traversal(txn, superblock, slice, &helper, &non_interruptor);
 }

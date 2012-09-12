@@ -28,7 +28,7 @@ void server_test_helper_t::setup_server_and_run_tests() {
     mock::temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
 
     scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(aio_native, &io_backender);
+    make_io_backender(aio_default, &io_backender);
 
     {
         standard_serializer_t::create(
@@ -107,6 +107,12 @@ void server_test_helper_t::create_two_blocks(transaction_t *txn, block_id_t *blo
     *block_B = buf_B.get_block_id();
     change_value(&buf_A, init_value);
     change_value(&buf_B, init_value);
+}
+
+void server_test_helper_t::acquiring_coro_t::run() {
+    buf_lock_t tmp(txn, block_id, mode);
+    result->swap(tmp);
+    signaled = true;
 }
 
 }  // namespace unittest

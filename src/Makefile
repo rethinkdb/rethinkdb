@@ -10,6 +10,14 @@ ANSI_UL_OFF:=[0m
 
 ##### Configuring stuff
 
+IGNORE_MAKEFILE_CHANGES?=0
+
+ifeq ($(IGNORE_MAKEFILE_CHANGES),1)
+MAKEFILE_DEPENDENCY:=
+else
+MAKEFILE_DEPENDENCY:=Makefile
+endif
+
 # Set SOLO to 0 to build RethinkDB Cache (otherwise, RethinkDB Solo is built)
 SOLO?=1
 ifeq ($(SOLO),1)
@@ -33,8 +41,8 @@ SERVER_UNIT_TEST_NAME:=$(SERVER_EXEC_NAME)-unittest
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
-CTAGS:=ctags
-ETAGS:=$(CTAGS) -e
+CTAGSPROG:=ctags
+ETAGSPROG:=$(CTAGSPROG) -e
 TAGSFILE:=.tags
 ETAGSFILE:=TAGS
 CSCOPE_XREF:=.cscope
@@ -62,6 +70,7 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
+BUILD_DRIVERS?=1
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -90,7 +99,6 @@ RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 
-
 ifeq ($(COMPILER),CLANG)
 CXX:=clang
 else
@@ -100,17 +108,13 @@ endif
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lv8
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lv8 -lcrypto
 else
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lv8
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lv8 -lcrypto
 else
 # GCC
-ifeq ($(LEGACY_GCC), 1)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio # at some point, v8 needs to be installed on the machines with LEGACY_GCC=1
-else
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lv8
-endif
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lv8 -lcrypto
 endif
 endif
 
@@ -133,7 +137,7 @@ ifeq ($(COMPILER), INTEL)
 CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wused-but-marked-unused -Wunused-macros -Wundef -Wvla -Wshadow -Wconditional-uninitialized -Wmissing-noreturn
 else
 ifeq ($(LEGACY_GCC), 1)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
@@ -155,14 +159,32 @@ endif
 
 STRIP_ON_INSTALL?=1
 
+NO_OMIT_FRAME_POINTER?=0
+
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
 SYMBOLS:=1
 CXXFLAGS+=-O0
+
+ifeq ($(KEEP_INLINE),1)
+CXXFLAGS+=-fkeep-inline-functions
+endif
+
 else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
 CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
+# TODO: remove this once memcached is added back in the release (disables memcached from showing up in the admin CLI help or tab-completion)
+CXXFLAGS+=-DNO_MEMCACHE
+ifeq ($(NO_OMIT_FRAME_POINTER),1)
+CXXFLAGS+=-fno-omit-frame-pointer
+else
+CXXFLAGS+=-fomit-frame-pointer
+endif
+endif
+
+ifeq ($(DISABLE_BREAKPOINTS),1)
+CXXFLAGS+=-DDISABLE_BREAKPOINTS
 endif
 
 ifneq ($(TRIAL),0)
@@ -309,6 +331,7 @@ PROTO_HEADERS:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(PROTO_SOUR
 PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(PROTO_SOURCES))
 PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(PROTO_CODE))
 PROTO_OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(PROTO_NAMES))
+PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)
 
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
@@ -332,6 +355,7 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			loading.coffee \
 			body.coffee \
 			ui_components/modals.coffee ui_components/list.coffee \
+			namespaces/database.coffee \
 			namespaces/index.coffee namespaces/replicas.coffee namespaces/shards.coffee namespaces/pins.coffee namespaces/machines.coffee namespaces/namespace.coffee \
 			servers/index.coffee servers/machine.coffee servers/datacenter.coffee \
 			dashboard.coffee \
@@ -368,11 +392,11 @@ CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 
 ##### Build targets
-.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags etags unit valgrind web-assets coffeelint
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint
 
 # High level build targets
 
-all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets
+all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets drivers
 	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
 
 ifeq ($(UNIT_TESTS),1)
@@ -597,7 +621,82 @@ rpm-suse10:
 	$(QUIET) $(MAKE) PACKAGE_FOR_SUSE_10=1 rpm
 endif
 
-# Build rules
+.PHONY: sense
+sense:
+	$(error Make does not make sense)
+
+# Profiling
+OPROF_TARGETS=oprof-start oprof-dump oprof-stop oprof-report oprof-build
+.PHONY: $(OPROF_TARGETS)
+
+oprof-build:
+	$(MAKE) DEBUG=0 SYMBOLS=1 NO_OMIT_FRAME_POINTER=1
+
+oprof-start: OPROF_NO_KERNEL:=0
+oprof-start: OPROF_SESSION:=../oprofile.$(RETHINKDB_VERSION).$(shell date +%F-%T)
+oprof-start:
+	@echo no kernel: $(OPROF_NO_KERNEL)
+ifeq ($(OPROF_NO_KERNEL),1)
+	@echo "    OPROFILE[init] (no kernel profiling)"
+	$(QUIET) opcontrol --no-vmlinux
+else
+	@echo "    OPROFILE[init] (with kernel profiling, set OPROF_NO_KERNEL to 1 to turn off)"
+	$(QUIET) opcontrol --vmlinux=/usr/lib/debug/boot/vmlinux-`uname -r`
+endif
+	@echo "    OPROFILE[start] -> $(abspath $(OPROF_SESSION))"
+	@echo "      (if you want to use a different location, set OPROF_SESSION make variable to a directory path"
+	$(QUIET) opcontrol --start --callgraph=2 --event=CPU_CLK_UNHALTED:90000:0:1:1 --buffer-size=10485760 --buffer-watershed=524288 "--session-dir=$(abspath $(OPROF_SESSION))"
+
+oprof-dump:
+	@echo "    OPROFILE[dump]"
+	$(QUIET) opcontrol --dump
+
+oprof-stop: oprof-dump
+	@echo "    OPROFILE[shutdown]"
+	$(QUIET) opcontrol --shutdown
+
+oprof-report: OPROF_SESSION:=$(shell ls -dt ../oprofile.* 2> /dev/null | head -1)
+oprof-report: OPROF_BINARY:=../build/release/rethinkdb
+oprof-report: OPROF_RESULT:=$(OPROF_SESSION)/report.txt
+oprof-report:
+	@if [ ! -d "$(OPROF_SESSION)" ]; then \
+			echo "error: OPROF_SESSION is not set and no oprofile sessions could be found in the repository root."; \
+			exit 1; \
+		fi
+	@if [ ! -x "$(OPROF_BINARY)" ]; then \
+			echo "error: OPROF_BINARY is not set or '$(OPROF_BINARY)' is not an executable."; \
+			exit 1; \
+		fi
+	@echo "    OPREPORT[$(OPROF_BINARY)] -> $(OPROF_RESULT)"
+	$(QUIET) opreport --merge=lib,unitmask -a --symbols --callgraph --threshold 1 --sort sample "--session-dir=$(realpath $(OPROF_SESSION))" -l "$(realpath $(OPROF_BINARY))" > $(OPROF_RESULT)
+
+PYTHON_PBDIR:=../build/drivers/python
+PYTHON_PBFILE:=query_language_pb2.py
+RUBY_PBDIR:=../build/drivers/ruby
+RUBY_PBFILE:=query_language.pb.rb
+ifeq ($(BUILD_DRIVERS), 1)
+$(PYTHON_PBDIR):
+	$(QUIET) mkdir -p $(PYTHON_PBDIR)
+$(RUBY_PBDIR):
+	$(QUIET) mkdir -p $(RUBY_PBDIR)
+
+drivers: $(PYTHON_PBDIR)/$(PYTHON_PBFILE) $(RUBY_PBDIR)/$(RUBY_PBFILE)
+PROTOFILE:=$(SOURCE_DIR)/rdb_protocol/query_language.proto
+$(PYTHON_PBDIR)/$(PYTHON_PBFILE): $(PYTHON_PBDIR) $(PROTOFILE)
+ifeq ($(VERBOSE),0)
+	@echo "    PROTOC[PY] $(PROTOFILE)"
+endif
+	$(QUIET) protoc $(PROTOCFLAGS) --python_out $(PYTHON_PBDIR) $(PROTOFILE)
+
+$(RUBY_PBDIR)/$(RUBY_PBFILE): $(RUBY_PBDIR) $(PROTOFILE)
+ifeq ($(VERBOSE),0)
+	@echo "    PROTOC[RB] $(PROTOFILE)"
+endif
+	$(QUIET) rprotoc $(PROTOCFLAGS) --out $(RUBY_PBDIR) $(PROTOFILE) | \
+		(grep -v 'writing...' || true)
+else
+drivers:
+endif #BUILD_DRIVERS
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
 rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py
@@ -659,12 +758,16 @@ endif
 	$(QUIET) cp -P $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 
 # Special recipe for the proto buffer generated code
-$(PROTO_DIR)/%.pb.h: $(SOURCE_DIR)/%.proto
+# Need to use a dummy file to avoid calling protoc once for each input file.
+$(PROTO_DIR)/dummy: $(PROTO_SOURCES)
 	$(QUIET) mkdir -p $(PROTO_DIR)
 ifeq ($(VERBOSE),0)
-	@echo "    protoc --cpp_out $(PROTO_DIR) $<"
+	@echo "    PROTOC[CPP] $^"
 endif
-	$(QUIET) protoc --cpp_out $(PROTO_DIR) $<
+	$(QUIET) protoc $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $^
+	$(QUIET) touch $@
+
+$(PROTO_HEADERS) $(PROTO_CODE): $(PROTO_DIR)/dummy
 
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
@@ -757,11 +860,11 @@ endif
 
 TAGFLAGS:=-R --c++-kinds=+p --fields=+iaS --extra=+q --langmap="c++:.cc.tcc.hpp"
 tags:
-	$(QUIET) $(CTAGS) $(TAGFLAGS) -f $(TAGSFILE)
+	$(QUIET) $(CTAGSPROG) $(TAGFLAGS) -f $(TAGSFILE)
 
 etags:
 	$(QUIET) rm -f $(ETAGSFILE)
-	$(QUIET) $(ETAGS) $(TAGFLAGS) -f $(ETAGSFILE)
+	$(QUIET) $(ETAGSPROG) $(TAGFLAGS) -f $(ETAGSFILE)
 
 cscope:
 	$(QUIET) cscope -bR -f $(CSCOPE_XREF)
@@ -800,14 +903,14 @@ $(BUILD_DIR):
 
 # Proto buffers object files
 # This is hacky, as the following rule is just a duplicate of the rule for our own sources
-$(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc Makefile $(PROTO_HEADERS)
+$(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(PROTO_HEADERS)
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
 endif
 	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY)
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
@@ -828,7 +931,7 @@ endif
 # bug in GNU Make, possibly a bug in our Makefile.
 .SECONDARY: $(PROTO_HEADERS)
 
-NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style
+NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style $(OPROF_TARGETS)
 # Include the dependencies into the makefile so that they take effect
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)

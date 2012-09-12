@@ -82,6 +82,18 @@ time_t get_secs();
 int64_t get_ticks_res();
 double ticks_to_secs(ticks_t ticks);
 
+#ifndef NDEBUG
+#define trace_call(fn, args...) do {                                          \
+        debugf("%s:%u: %s: entered\n", __FILE__, __LINE__, stringify(fn));  \
+        fn(args);                                                           \
+        debugf("%s:%u: %s: returned\n", __FILE__, __LINE__, stringify(fn)); \
+    } while (0)
+#define TRACEPOINT debugf("%s:%u reached\n", __FILE__, __LINE__)
+#else
+#define trace_call(fn, args...) fn(args)
+// TRACEPOINT is not defined in release, so that TRACEPOINTS do not linger in the code unnecessarily
+#endif
+
 // HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
 // debugf.hpp (and debugf.cc).
 /* Debugging printing API (prints current thread in addition to message) */
@@ -124,7 +136,9 @@ public:
     int randint(int n);
     explicit rng_t(int seed = -1);
 private:
+#ifndef __MACH__
     struct drand48_data buffer_;
+#endif
     DISABLE_COPYING(rng_t);
 };
 
@@ -167,20 +181,32 @@ int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 
 /* The home thread mixin is a mixin for objects that can only be used
 on a single thread. Its thread ID is exposed as the `home_thread()`
-method. Some subclasses of `home_thread_mixin_t` can move themselves to
+method. Some subclasses of `home_thread_mixin_debug_only_t` can move themselves to
 another thread, modifying the field real_home_thread. */
 
 #define INVALID_THREAD (-1)
 
+class home_thread_mixin_debug_only_t {
+public:
+    void assert_thread() const;
+
+protected:
+    explicit home_thread_mixin_debug_only_t(int specified_home_thread);
+    home_thread_mixin_debug_only_t();
+    virtual ~home_thread_mixin_debug_only_t() { }
+
+private:
+    DISABLE_COPYING(home_thread_mixin_debug_only_t);
+
+#ifndef NDEBUG
+    int real_home_thread;
+#endif
+};
+
 class home_thread_mixin_t {
 public:
     int home_thread() const { return real_home_thread; }
-
-#ifndef NDEBUG
     void assert_thread() const;
-#else
-    void assert_thread() const { }
-#endif  // NDEBUG
 
 protected:
     explicit home_thread_mixin_t(int specified_home_thread);
@@ -261,5 +287,6 @@ private:
     T old_value;
 };
 
+std::string sanitize_for_logger(const std::string &s);
 
 #endif // UTILS_HPP_

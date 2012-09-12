@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__
 #if defined __i386 || defined __x86_64
 #define BREAKPOINT __asm__ volatile ("int3")
@@ -11,6 +12,13 @@
 #define BREAKPOINT raise(SIGTRAP)
 #endif  /* x86/amd64 */
 #endif /* __linux__ */
+
+#ifdef __MACH__
+#define BREAKPOINT raise(SIGTRAP)
+#endif
+#else /* Breakpoints Disabled */
+#define BREAKPOINT
+#endif /* DISABLE_BREAKPOINTS */
 
 #define CT_ASSERT(e) {enum { compile_time_assert_error = 1/(!!(e)) };}
 
@@ -34,6 +42,8 @@
 #else
 #define NON_NULL_ATTR(arg) __attribute__((nonnull(arg)))
 #endif
+
+#define NORETURN __attribute__((noreturn))
 
 /* Error handling
  *
@@ -65,9 +75,9 @@
  */
 
 #ifndef NDEBUG
-#define DEBUG_ONLY_VAR
+#define DEBUG_VAR
 #else
-#define DEBUG_ONLY_VAR __attribute__((unused))
+#define DEBUG_VAR __attribute__((unused))
 #endif
 
 #define UNUSED __attribute__((unused))
@@ -76,6 +86,7 @@
 // TODO: Abort probably is not the right thing to do here.
 #define fail_due_to_user_error(msg, ...) do {                           \
         report_user_error(msg, ##__VA_ARGS__);                          \
+        BREAKPOINT;                                                     \
         exit(-1);                                                       \
     } while (0)
 

@@ -1,10 +1,14 @@
 #include <stdarg.h>
 
+#include <list>
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/tokenizer.hpp>
 
 #include "arch/runtime/coroutines.hpp"
 #include "containers/scoped.hpp"
+#include "logger.hpp"
 #include "perfmon/core.hpp"
 
 /* Constructor and destructor register and deregister the perfmon. */
@@ -14,7 +18,7 @@ perfmon_t::perfmon_t() {
 perfmon_t::~perfmon_t() {
 }
 
-struct stats_collection_context_t : public home_thread_mixin_t {
+struct stats_collection_context_t : public home_thread_mixin_debug_only_t {
     stats_collection_context_t(rwi_lock_t *constituents_lock, size_t size)
         : contexts(new void *[size]), lock_sentry(constituents_lock) { }
 
@@ -181,6 +185,11 @@ void perfmon_result_t::clear_map() {
     map_.clear();
 }
 
+void perfmon_result_t::erase(perfmon_result_t::iterator it) {
+    delete it->second;
+    map_.erase(it);
+}
+
 perfmon_result_t perfmon_result_t::make_string() {
     return perfmon_result_t(std::string());
 }
@@ -274,6 +283,98 @@ void perfmon_result_t::splice_into(perfmon_result_t *map) {
         map->insert(it->first, it->second);
     }
     map_.clear();
+}
+
+/* Construct a filter from a set of paths.  Paths are of the form foo/bar/baz,
+   where each of those can be a regular expression.  They act a lot like XPath
+   expressions, but for perfmon_t objects.  */
+perfmon_filter_t::perfmon_filter_t(const std::set<std::string> &paths) {
+    typedef boost::escaped_list_separator<char> separator_t;
+    typedef boost::tokenizer<separator_t> tokenizer_t;
+    separator_t slashes("\\", "/", "");
+
+    for (std::set<std::string>::const_iterator
+             str = paths.begin(); str != paths.end(); ++str) {
+        regexps.push_back(std::vector<scoped_regex_t *>());
+        std::vector<scoped_regex_t *> *path = &regexps.back();
+        try {
+            tokenizer_t t(*str, slashes);
+            for (tokenizer_t::const_iterator it = t.begin(); it != t.end(); ++it) {
+                path->push_back(new scoped_regex_t());
+                if (!path->back()->compile("^"+(*it)+"$")) {
+                    logWRN("Error: regex %s failed to compile (%s), treating as empty.",
+                           sanitize_for_logger(*it).c_str(),
+                           sanitize_for_logger(path->back()->get_error()).c_str());
+                    if(!path->back()->compile("^$")) {
+                        crash("Regex '^$' failed to compile (%s).\n",
+                              sanitize_for_logger(path->back()->get_error()).c_str());
+                    }
+                }
+            }
+        } catch (const boost::escaped_list_error &e) {
+            logWRN("Error: Could not parse %s (%s), skipping.",
+                   sanitize_for_logger(*str).c_str(), e.what());
+            continue; //Skip this path
+        }
+    }
+}
+
+perfmon_filter_t::~perfmon_filter_t() {
+    for (std::vector<std::vector<scoped_regex_t *> >::const_iterator
+             it = regexps.begin(); it != regexps.end(); ++it) {
+        for (std::vector<scoped_regex_t *>::const_iterator
+                 regexp = it->begin(); regexp != it->end(); ++regexp) {
+            delete *regexp;
+        }
+    }
+}
+
+void perfmon_filter_t::filter(perfmon_result_t *p) const {
+    subfilter(p, 0, std::vector<bool>(regexps.size(), true));
+}
+
+/* Filter a [perfmon_result_t].  [depth] is how deep we are in the paths that
+   the [perfmon_filter_t] was constructed from, and [active] is the set of paths
+   that are still active (i.e. that haven't failed a match yet).  This should
+   only be called by [filter]. */
+perfmon_result_t *perfmon_filter_t::subfilter(
+    perfmon_result_t *p, size_t depth, std::vector<bool> active) const {
+    bool keep_this_perfmon = true;
+    if (p->is_string()) {
+        std::string *str = p->get_string();
+        for (size_t i = 0; i < regexps.size(); ++i) {
+            if (!active[i]) continue;
+            if (depth >= regexps[i].size()) return p;
+            if (depth == regexps[i].size() && regexps[i][depth]->matches(*str)) return p;
+        }
+        keep_this_perfmon = false;
+    } else if (p->is_map()) {
+        std::list<perfmon_result_t::iterator> to_delete;
+        for (perfmon_result_t::iterator it = p->begin(); it != p->end(); ++it) {
+            std::vector<bool> subactive = active;
+            bool some_subpath = false;
+            for (size_t i = 0; i < regexps.size(); ++i) {
+                if (!active[i]) continue;
+                if (depth >= regexps[i].size()) return p;
+                subactive[i] = regexps[i][depth]->matches(it->first);
+                some_subpath |= subactive[i];
+            }
+            if (some_subpath) it->second = subfilter(it->second, depth + 1, subactive);
+            if (!some_subpath || !it->second) to_delete.push_back(it);
+        }
+        for (std::list<perfmon_result_t::iterator>::const_iterator
+                 it = to_delete.begin(); it != to_delete.end(); ++it) {
+            p->erase(*it);
+        }
+        if (p->get_map()->empty()) keep_this_perfmon = false;
+    }
+
+    if (!keep_this_perfmon && depth > 0) { //Never delete topmost node
+        delete p;
+        return 0;
+    } else {
+        return p;
+    }
 }
 
 perfmon_collection_t &get_global_perfmon_collection() {

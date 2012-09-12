@@ -2,6 +2,7 @@
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "memcached/protocol.hpp"
 #include "mock/branch_history_manager.hpp"
@@ -35,7 +36,8 @@ void run_with_broadcaster(
     /* Set up a broadcaster and initial listener */
     mock::test_store_t<memcached_protocol_t> initial_store(io_backender.get(), &order_source);
     store_view_t<memcached_protocol_t> *store_ptr = &initial_store.store;
-    multistore_ptr_t<memcached_protocol_t> multi_store(&store_ptr, 1);
+    memcached_protocol_t::context_t ctx;
+    multistore_ptr_t<memcached_protocol_t> multi_store(&store_ptr, 1, &ctx);
     cond_t interruptor;
 
     scoped_ptr_t<broadcaster_t<memcached_protocol_t> > broadcaster(
@@ -44,8 +46,8 @@ void run_with_broadcaster(
             &branch_history_manager,
             &multi_store,
             &get_global_perfmon_collection(),
-            &interruptor
-        ));
+            &order_source,
+            &interruptor));
 
     // TODO: visit a psychiatrist
     watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > > > broadcaster_business_card_watchable_variable(boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > >(boost::optional<broadcaster_business_card_t<memcached_protocol_t> >(broadcaster->get_business_card())));
@@ -122,7 +124,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
                                order_source_t *order_source) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t<memcached_protocol_t> replier(initial_listener->get());
+    replier_t<memcached_protocol_t> replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
 
     watchable_variable_t<boost::optional<boost::optional<replier_business_card_t<memcached_protocol_t> > > >
         replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t<memcached_protocol_t> > >(boost::optional<replier_business_card_t<memcached_protocol_t> >(replier.get_business_card())));
@@ -142,7 +144,8 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     mock::test_store_t<memcached_protocol_t> store2(io_backender, order_source);
     store_view_t<memcached_protocol_t> *store2_ptr = &store2.store;
 
-    multistore_ptr_t<memcached_protocol_t> multi_store2(&store2_ptr, 1, memcached_protocol_t::region_t::universe());
+    memcached_protocol_t::context_t ctx;
+    multistore_ptr_t<memcached_protocol_t> multi_store2(&store2_ptr, 1, &ctx, memcached_protocol_t::region_t::universe());
     cond_t interruptor;
     listener_t<memcached_protocol_t> listener2(
         io_backender,
@@ -175,12 +178,12 @@ void run_partial_backfill_test(io_backender_t *io_backender,
         mock::fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
-        memcached_protocol_t::read_response_t response =
-            broadcaster->get()->read(read, &exiter, order_source->check_in("unittest::(memcached)run_partial_backfill_test"), &non_interruptor);
+        memcached_protocol_t::read_response_t response;
+        broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(memcached)run_partial_backfill_test").with_read_mode(), &non_interruptor);
         get_result_t get_result = boost::get<get_result_t>(response.result);
         EXPECT_TRUE(get_result.value.get() != NULL);
         EXPECT_EQ(it->second.size(), get_result.value->size());
-        if (get_result.value->size() == (int)it->second.size()) {
+        if (static_cast<size_t>(get_result.value->size()) == it->second.size()) {
             EXPECT_EQ(it->second, std::string(get_result.value->buf(), get_result.value->size()));
         }
     }

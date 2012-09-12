@@ -27,8 +27,8 @@ public:
         json.time = underlying.timestamp;
         json.type = underlying.type;
 
-        cJSON *res = render_as_json(&json, 0);
-        cJSON_AddItemToObject(res, "location", render_as_json(&source, 0));
+        cJSON *res = render_as_json(&json);
+        cJSON_AddItemToObject(res, "location", render_as_json(&source));
 
         return res;
     }

@@ -8,10 +8,7 @@
 continue_on_thread() is. */
 
 template<class callable_t>
-struct thread_doer_t :
-    public thread_message_t,
-    public home_thread_mixin_t
-{
+struct thread_doer_t : public thread_message_t, public home_thread_mixin_t {
     const callable_t callable;
     int thread;
     enum state_t {
@@ -43,7 +40,7 @@ struct thread_doer_t :
     void do_return_home() {
         state = state_go_home;
 
-        DEBUG_ONLY_VAR bool no_switch = continue_on_thread(home_thread(), this);
+        DEBUG_VAR bool no_switch = continue_on_thread(home_thread(), this);
         rassert(!no_switch);
     }
 

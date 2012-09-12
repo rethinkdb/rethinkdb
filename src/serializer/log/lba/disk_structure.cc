@@ -208,7 +208,7 @@ struct reader_t
             extent->read_step_2(&read_info, parent->index);
             parent->active_readers--;
             parent->start_more_readers();
-            if (index == (int)parent->readers.size() - 1) {
+            if (index == static_cast<int>(parent->readers.size()) - 1) {
                 parent->done();
             } else {
                 parent->readers[index+1]->on_prev_done();
@@ -247,7 +247,7 @@ struct reader_t
 
     void start_more_readers() {
         int limit = std::max(LBA_READ_BUFFER_SIZE / ds->em->extent_size / LBA_SHARD_FACTOR, 1ul);
-        while (next_reader != (int)readers.size() && active_readers < limit) {
+        while (next_reader != static_cast<int>(readers.size()) && active_readers < limit) {
             readers[next_reader++]->start_reading();
         }
     }

@@ -8,9 +8,6 @@
 #ifndef NDEBUG
 
 #define ORDER_INVALID (-2)
-#define ORDER_INVALID (-2)
-
-#define ORDER_IGNORE (-1)
 #define ORDER_IGNORE (-1)
 
 const order_token_t order_token_t::ignore(order_bucket_t::invalid(), ORDER_IGNORE, false, "order_token_t::ignore");
@@ -49,7 +46,14 @@ order_token_t order_token_t::with_read_mode() const {
     return order_token_t(bucket_, value_, true, tag_);
 }
 
-bool order_token_t::read_mode() const { return read_mode_; }
+void order_token_t::assert_read_mode() const {
+    rassert(is_ignore() || read_mode_, "Expected an order token in read mode");
+}
+
+void order_token_t::assert_write_mode() const {
+    rassert(is_ignore() || !read_mode_, "Expected an order token in write mode");
+}
+
 const std::string& order_token_t::tag() const { return tag_; }
 
 bool order_token_t::is_invalid() const { return !bucket_.valid() && value_ == ORDER_INVALID; }
@@ -58,6 +62,8 @@ bool order_token_t::is_ignore() const { return !bucket_.valid() && value_ == ORD
 
 
 order_source_t::order_source_t() : bucket_(order_bucket_t::create()), counter_(0) { }
+order_source_t::order_source_t(int specified_home_thread)
+    : home_thread_mixin_debug_only_t(specified_home_thread), bucket_(order_bucket_t::create()), counter_(0) { }
 
 order_source_t::~order_source_t() { }
 
@@ -127,10 +133,14 @@ void order_checkpoint_t::set_tagappend(const std::string& tagappend) {
 
 order_token_t order_checkpoint_t::check_through(order_token_t tok) {
     assert_thread();
-    sink_.check_out(tok);
-    order_token_t tok2 = source_.check_in(tok.tag() + tagappend_);
-    if (tok.read_mode()) tok2 = tok2.with_read_mode();
-    return tok2;
+    if (!tok.is_ignore()) {
+        sink_.check_out(tok);
+        order_token_t tok2 = source_.check_in(tok.tag() + tagappend_);
+        if (tok.read_mode_) tok2 = tok2.with_read_mode();
+        return tok2;
+    } else {
+        return order_token_t::ignore;
+    }
 }
 
 order_token_t order_checkpoint_t::checkpoint_raw_check_in() {

@@ -51,7 +51,7 @@ private:
     void on_disconnect(peer_id_t peer) THROWS_NOTHING;
 
     /* These are meant to be spawned in new coroutines */
-    void propagate_initialization(peer_id_t peer, uuid_t session_id, metadata_t new_value, fifo_enforcer_source_t::state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
+    void propagate_initialization(peer_id_t peer, uuid_t session_id, metadata_t new_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
     void propagate_update(peer_id_t peer, uuid_t session_id, metadata_t new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
     void interrupt_updates_and_free_session(session_t *session, auto_drainer_t::lock_t global_keepalive) THROWS_NOTHING;
 

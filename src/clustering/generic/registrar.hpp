@@ -24,8 +24,7 @@ public:
     registrar_business_card_t<business_card_t> get_business_card() {
         return registrar_business_card_t<business_card_t>(
             create_mailbox.get_address(),
-            delete_mailbox.get_address()
-            );
+            delete_mailbox.get_address());
     }
 
 private:

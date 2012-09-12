@@ -17,7 +17,8 @@ with driver.Metacluster() as metacluster:
     processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i, executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-%d" % i,
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
         for i in xrange(opts["num-nodes"])]
-    time.sleep(3)
+    for process in processes:
+        process.wait_until_started_up()
 
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
@@ -26,19 +27,18 @@ with driver.Metacluster() as metacluster:
     machines = http.machines.keys()
     http.move_server_to_datacenter(machines[0], primary_dc)
     http.move_server_to_datacenter(machines[1], secondary_dc)
-    ns = http.add_namespace(protocol = "memcached", primary = primary_dc,
-        affinities = {})
-    time.sleep(10)
+    ns = scenario_common.prepare_table_for_workload(opts, http, primary = primary_dc)
+    http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
 
-    workload_ports = scenario_common.get_workload_ports(ns.port, processes)
-    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
+    workload_ports = scenario_common.get_workload_ports(opts, ns, processes)
+    with workload_runner.SplitOrContinuousWorkload(opts, opts["protocol"], workload_ports) as workload:
         workload.run_before()
         cluster.check()
         http.check_no_issues()
         http.move_namespace_to_datacenter(ns, secondary_dc)
-        time.sleep(10)
+        http.wait_until_blueprint_satisfied(ns)
         cluster.check()
         http.check_no_issues()
         workload.run_after()

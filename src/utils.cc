@@ -53,22 +53,21 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
         bool skip = length >= 16 && (
                     memcmp(buf, bd_sample, 16) == 0 ||
                     memcmp(buf, zero_sample, 16) == 0 ||
-                    memcmp(buf, ff_sample, 16) == 0
-                    );
+                    memcmp(buf, ff_sample, 16) == 0);
         if (skip) {
             if (!skipped_last) fprintf(stderr, "*\n");
         } else {
             fprintf(stderr, "%.8x  ", (unsigned int)offset);
-            for (int i = 0; i < 16; i++) {
-                if (i < (int)length) {
+            for (ssize_t i = 0; i < 16; ++i) {
+                if (i < length) {
                     fprintf(stderr, "%.2hhx ", buf[i]);
                 } else {
                     fprintf(stderr, "   ");
                 }
             }
             fprintf(stderr, "| ");
-            for (int i = 0; i < 16; i++) {
-                if (i < (int)length) {
+            for (ssize_t i = 0; i < 16; ++i) {
+                if (i < length) {
                     if (isprint(buf[i])) {
                         fputc(buf[i], stderr);
                     } else {
@@ -136,12 +135,25 @@ struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_erro
     return time;
 }
 
+void home_thread_mixin_debug_only_t::assert_thread() const {
+    rassert(get_thread_id() == real_home_thread);
+}
+
+home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t(DEBUG_VAR int specified_home_thread) 
 #ifndef NDEBUG
+    : real_home_thread(specified_home_thread)
+#endif
+{ };
+
+home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t()
+#ifndef NDEBUG
+    : real_home_thread(get_thread_id())
+#endif
+{ };
 
 void home_thread_mixin_t::assert_thread() const {
     rassert(home_thread() == get_thread_id());
 }
-#endif
 
 home_thread_mixin_t::home_thread_mixin_t(int specified_home_thread)
     : real_home_thread(specified_home_thread) {
@@ -161,7 +173,7 @@ on_thread_t::~on_thread_t() {
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
     struct timeval t;
-    int res __attribute__((unused)) = gettimeofday(&t, NULL);
+    DEBUG_VAR int res = gettimeofday(&t, NULL);
     rassert(0 == res);
     return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
 }
@@ -277,7 +289,7 @@ debugf_in_dtor_t::~debugf_in_dtor_t() {
     debugf("%s", message.c_str());
 }
 
-rng_t::rng_t( UNUSED int seed) {
+rng_t::rng_t(DEBUG_VAR int seed) {
     memset(&buffer_, 0, sizeof(buffer_));
 #ifndef NDEBUG
     if (seed == -1) {
@@ -544,4 +556,16 @@ std::string render_as_path(const path_t &path) {
     }
 
     return res;
+}
+
+std::string sanitize_for_logger(const std::string &s) {
+    std::string sanitized = s;
+    for (size_t i = 0; i < sanitized.length(); ++i) {
+        if (sanitized[i] == '\n' || sanitized[i] == '\t') {
+            sanitized[i] = ' ';
+        } else if (sanitized[i] < ' ' || sanitized[i] > '~') {
+            sanitized[i] = '?';
+        }
+    }
+    return sanitized;
 }

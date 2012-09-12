@@ -21,7 +21,7 @@ need_update_objects = (new_data, old_data) ->
     for key of new_data
         if key of old_data is false
             return true
- 
+
     for key of new_data
         if typeof new_data[key] is object and typeof old_data[key] is object
             need_update = compare_object(new_data[key], old_data[key])
@@ -39,7 +39,7 @@ need_update_objects = (new_data, old_data) ->
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
         if data isnt null
-            if data.protocol? and data.protocol is 'memcached'  # We check that the machines in the blueprint do exist
+            if data.protocol? and (data.protocol is 'memcached' or data.protocol is 'rdb')  # We check that the machines in the blueprint do exist
                 if collection_data[id].blueprint? and collection_data[id].blueprint.peers_roles?
                     for machine_uuid of collection_data[id].blueprint.peers_roles
                         if !machines.get(machine_uuid)?
@@ -55,6 +55,7 @@ apply_to_collection = (collection, collection_data) ->
             else
                 data.id = id
                 collection.add(new collection.model(data))
+            #TODO remove not found object
         else
             if collection.get(id)
                 collection.remove(id)
@@ -89,16 +90,19 @@ apply_diffs = (updates) ->
         switch collection_id
             when 'dummy_namespaces'
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "dummy"))
+            when 'databases'
+                apply_to_collection(databases, collection_data)
             when 'memcached_namespaces'
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "memcached"))
+            when 'rdb_namespaces'
+                apply_to_collection(namespaces, add_protocol_tag(collection_data, "rdb"))
             when 'datacenters'
                 apply_to_collection(datacenters, collection_data)
             when 'machines'
                 apply_to_collection(machines, collection_data)
             when 'me' then continue
-            when 'databases' then continue #TODO Implement
             else
-                console.log "Unhandled element update: " + collection_id
+                console.log "Unhandled element update: " + collection_id + "."
     return
 
 set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
@@ -125,31 +129,7 @@ set_last_seen = (last_seen_from_server) ->
     for machine_uuid, timestamp of last_seen_from_server
         _m = machines.get machine_uuid
         if _m
-            _m.set('last_seen_from_server', timestamp)
-
-set_log_entries = (log_data_from_server) ->
-    for machine_uuid, log_entries of log_data_from_server
-        if not machines.get(machine_uuid)?
-            continue # Machine not ready or down, we skip
-
-        for json in log_entries
-
-            new_timestamp = parseFloat(json.timestamp)
-            for entry, i in recent_log_entries.models
-                if new_timestamp > parseFloat(entry.get('timestamp'))
-                    entry = new LogEntry json
-                    entry.set('machine_uuid',machine_uuid)
-
-                    recent_log_entries.add entry, {at: i}
-                    if recent_log_entries.length > 3
-                        recent_log_entries.shift()
-
-                    if parseFloat(json.timestamp) > recent_log_entries.min_timestamp
-                        recent_log_entries.min_timestamp = Math.ceil parseFloat json.timestamp # /ajax/log juste compare integers
-            if recent_log_entries.length < 4
-                entry = new LogEntry json
-                entry.set('machine_uuid',machine_uuid)
-                recent_log_entries.push entry
+            _m.set('last_seen', timestamp)
 
 set_stats = (stat_data) ->
     for machine_id, data of stat_data
@@ -158,6 +138,8 @@ set_stats = (stat_data) ->
         else if machine_id is 'machines' # It would be nice if the back end could update that.
             for mid in data.known
                 machines.get(mid)?.set('stats_up_to_date', true)
+            for mid in data.timed_out
+                machines.get(mid)?.set('stats_up_to_date', false)
             ###
             # Ignore these cases for the time being. When we'll consider these, 
             # we might need an integer instead of a boolean
@@ -166,8 +148,6 @@ set_stats = (stat_data) ->
             for mid in data.ghosts
                 machines.get(mid)?.set('stats_up_to_date', false)
             ###
-            for mid in data.timed_out
-                machines.get(mid)?.set('stats_up_to_date', false)
 
 
 
@@ -186,69 +166,48 @@ collections_ready = ->
 #   - an optional callback can be provided. Currently this callback will only be called after the /ajax route (metadata) is collected
 # To avoid memory leak, we use function declaration (so with pure javascript since coffeescript can't do it)
 # Using setInterval seems to be safe, TODO
-`function collect_stat_data() {
-    $.ajax({
-        url: '/ajax/stat',
-        dataType: 'json',
-        contentType: 'application/json',
-        success: function(data) {
-            set_stats(data)
-            setTimeout(collect_stat_data, statUpdateInterval)
-        }
-    });
-}
-
-function collect_server_data_once(async, optional_callback) {
-    $.ajax({
-        url: '/ajax',
-        dataType: 'json',
-        contentType: 'application/json',
-        async: async,
-        success: function(updates) {
-            if (window.is_disconnected != null) {
+collect_server_data_once = (async, optional_callback) ->
+    $.ajax
+        url: '/ajax'
+        dataType: 'json'
+        contentType: 'application/json'
+        async: async
+        success: (updates) ->
+            if window.is_disconnected?
                 delete window.is_disconnected
                 window.location.reload(true)
-            }
+
             apply_diffs(updates.semilattice)
             set_issues(updates.issues)
             set_directory(updates.directory)
             set_last_seen(updates.last_seen)
-            if (optional_callback) {
+            if optional_callback?
                 optional_callback()
-            }
-            
-        },
-        error: function() {
-            if (window.is_disconnected != null) {
+        error: ->
+            if window.is_disconnected?
                 window.is_disconnected.display_fail()
-            }
-            else {
+            else
                 window.is_disconnected = new IsDisconnected
-            }
-        }
-    })
-    
-    $.ajax({
+
+    $.ajax
         contentType: 'application/json',
-        url: '/ajax/progress', 
+        url: '/ajax/progress',
         dataType: 'json',
         success: set_progress
-    })
-    
-    $.ajax({
-        contentType: 'application/json',
-        url: '/ajax/log/_?max_length=10&min_timestamp='+window.recent_log_entries.min_timestamp,
-        dataType: 'json',
-        success: set_log_entries
-    })
-} 
 
-function collect_server_data(optional_callback) {
-    collect_server_data_once(true, optional_callback)
-    setTimeout(collect_server_data, updateInterval) // The callback are used just once.
-}`
+collect_server_data_async = ->
+    collect_server_data_once true
 
-
+collect_stat_data = ->
+    $.ajax
+        url: '/ajax/stat'
+        dataType: 'json'
+        contentType: 'application/json'
+        success: (data) ->
+            set_stats(data)
+        error: ->
+            #TODO
+            #console.log 'Could not retrieve stats'
 
 $ ->
     render_loading()
@@ -256,12 +215,12 @@ $ ->
 
     # Initializing the Backbone.js app
     window.datacenters = new Datacenters
+    window.databases = new Databases
     window.namespaces = new Namespaces
     window.machines = new Machines
     window.issues = new Issues
     window.progress_list = new ProgressList
     window.directory = new Directory
-    window.recent_log_entries = new LogEntries
     window.issues_redundancy = new IssuesRedundancy
     window.connection_status = new ConnectionStatus
     window.computed_cluster = new ComputedCluster
@@ -299,9 +258,10 @@ $ ->
     # We need to reload data every updateInterval
     #setInterval (-> Backbone.sync 'read', null), updateInterval
     declare_client_connected()
-    # Stat update intervanl is different
-    #setInterval collect_stat_data, statUpdateInterval
+    
+    # Collect the first time
+    collect_server_data_once(true, collections_ready)
 
-    # Populate collection for the first time
-    collect_server_data(collections_ready)
-    collect_stat_data()
+    # Set interval to update the data
+    setInterval collect_server_data_async, updateInterval
+    setInterval collect_stat_data, statUpdateInterval

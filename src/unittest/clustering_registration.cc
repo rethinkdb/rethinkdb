@@ -88,8 +88,7 @@ void run_registrar_death_test() {
     scoped_ptr_t<registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t> > registrar(
         new registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t>(
             cluster.get_mailbox_manager(),
-            &controller
-        ));
+            &controller));
 
     EXPECT_FALSE(controller.has_registrant);
 

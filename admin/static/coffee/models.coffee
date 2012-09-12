@@ -1,4 +1,27 @@
 #Models for Backbone.js
+
+class Database extends Backbone.Model
+    get_namespaces: =>
+        namespaces_in_datacenter = []
+        for namespace in namespaces.models
+            if namespace.get('database') is @get('id')
+                namespaces_in_datacenter.push namespace
+
+        return namespaces_in_datacenter
+
+    get_stats_for_performance: =>
+        __s =
+            keys_read: 0
+            keys_set: 0
+        for namespace in namespaces.models
+            if namespace.get('database') is @get('id')
+                _s = namespace.get_stats()
+                if not _s?
+                    continue
+                __s.keys_read += _s.keys_read
+                __s.keys_set += _s.keys_set
+        return __s
+
 class Namespace extends Backbone.Model
     initialize: ->
         # Add a computed shards property for convenience and metadata
@@ -15,6 +38,44 @@ class Namespace extends Backbone.Model
             clearInterval @set_interval
             @interval = 0
 
+
+    compare_keys: (a, b) ->
+        pattern = /^(%22).*(%22)$/
+        if pattern.test(a) is true
+            a_new = a.slice(3, a.length-3)
+        else if _.isNaN(parseFloat(a)) is false
+            a_new = parseFloat(a)
+        else if a is ""
+            a_new = -Infinity
+        else
+            a_new = a
+
+        if pattern.test(b) is true
+            b_new = b.slice(3, b.length-3)
+        else if _.isNaN(parseFloat(b)) is false
+            b_new = parseFloat(b)
+        else if b is ""
+            b_new = -Infinity
+        else
+            b_new = b
+        if typeof a_new is 'number' and typeof b_new is 'number'
+            return a_new-b_new
+        else if typeof a_new is 'string' and typeof b_new is 'string'
+            if a_new > b_new
+                return 1
+            else if a_new < b_new
+                return -1
+            else
+                return 0
+        else if typeof a_new isnt typeof b_new
+            if typeof a_new is 'number' and typeof b_new is 'string'
+                return -1
+            else if typeof a_new is 'string' and typeof b_new is 'number'
+                return 1
+            else if a_new is null
+                return 1
+        return 0
+
     # Cache key distribution info.
     load_key_distr: =>
         $.ajax
@@ -28,7 +89,7 @@ class Namespace extends Backbone.Model
                 distr_keys = []
                 for key, count of distr_data
                     distr_keys.push(key)
-                distr_keys = _.sortBy(distr_keys, _.identity)
+                distr_keys.sort(@compare_keys)
 
                 @set('key_distr_sorted', distr_keys)
                 @set('key_distr', distr_data)
@@ -55,12 +116,16 @@ class Namespace extends Backbone.Model
                 distr_keys = []
                 for key, count of distr_data
                     distr_keys.push(key)
-                distr_keys = _.sortBy(distr_keys, _.identity)
+                distr_keys.sort(@compare_keys)
 
                 @set('key_distr_sorted', distr_keys)
                 @set('key_distr', distr_data)
             error: =>
-                setTimeout 1000, @load_key_distr_once
+                @timeout = setTimeout @load_key_distr_once, 1000
+
+    clear_timeout: =>
+        if @timeout?
+            clearTimeout @timeout
 
     # Some shard helpers
     compute_shard_rows_approximation: (shard) =>
@@ -73,16 +138,16 @@ class Namespace extends Backbone.Model
         start_key = shard[0]
         end_key = shard[1]
 
-        # TODO: we should probably support interpolation here, but
-        # fuck it for now.
+        # TODO: we should interpolate once we will have decided how to order different type of keys
 
         # find the first key greater than the beginning of our shard
         # and keep summing until we get past our shard boundary.
         count = 0
 
         for key in @get('key_distr_sorted')
-            if key >= start_key or start_key is null
-                if end_key is null or key < end_key
+            # TODO Might be unsafe when comparing string and integers. Need to be checked when the back end will have decided what to do.
+            if @compare_keys(key, start_key) >= 0
+                if @compare_keys(key, end_key) <= 0
                     if @get('key_distr')[key]?
                         count += @get('key_distr')[key]
 
@@ -271,21 +336,6 @@ class LogEntry extends Backbone.Model
     get_iso_8601_timestamp: => ISODateString new Date(@.get('timestamp') * 1000)
     get_formatted_message: =>
         msg = @.get('message')
-        return '' if not msg?
-
-        index = msg.indexOf('{')
-        return {formatted_message: msg} if index is -1
-
-        str_fragment = msg.slice(0,index)
-        json_fragment = $.parseJSON msg.slice(msg.indexOf('{'))
-
-        return {formatted_message: msg} if not json_fragment?
-
-        return {
-            formatted_message: str_fragment
-            json: JSON.stringify(json_fragment, undefined, 2)
-        }
-
 
 class Issue extends Backbone.Model
 
@@ -343,6 +393,11 @@ class ComputedCluster extends Backbone.Model
 
 
 # Collections for Backbone.js
+class Databases extends Backbone.Collection
+    model: Database
+    name: 'Databases'
+
+
 class Namespaces extends Backbone.Collection
     model: Namespace
     name: 'Namespaces'
@@ -354,28 +409,6 @@ class Datacenters extends Backbone.Collection
 class Machines extends Backbone.Collection
     model: Machine
     name: 'Machines'
-
-class LogEntries extends Backbone.Collection
-    min_timestamp: 0
-    model: LogEntry
-    comparator: (a, b) ->
-        if a.get('timestamp') < b.get('timestamp')
-            return 1
-        else if a.get('timestamp') > b.get('timestamp')
-            return -1
-        else if a.get('machine_uuid') <  b.get('machine_uuid')
-            return 1
-        else if a.get('machine_uuid') > b.get('machine_uuid')
-            return -1
-        else if a.get('message') < b.get('message')
-            return 1
-        else if a.get('message') > b.get('message')
-            return -1
-        else
-            return 0
-        # sort strings in reverse order (return a negated string)
-        #String.fromCharCode.apply String,
-        #    _.map(log_entry.get('datetime').split(''), (c) -> 0xffff - c.charCodeAt())
 
 class Issues extends Backbone.Collection
     model: Issue
@@ -522,8 +555,12 @@ module 'DataUtils', ->
             @namespace.off 'add', @compute_shards_without_args
 
 
-
-    #TODO destroy
+    @stripslashes = (str) ->
+        str=str.replace(/\\'/g,'\'')
+        str=str.replace(/\\"/g,'"')
+        str=str.replace(/\\0/g,"\x00")
+        str=str.replace(/\\\\/g,'\\')
+        return str
 
     @get_machine_reachability = (machine_uuid) ->
         reachable = directory.get(machine_uuid)?
@@ -593,9 +630,9 @@ module 'DataUtils', ->
     @get_ack_expectations = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
         datacenter = datacenters.get(datacenter_uuid)
-        acks = namespace.get('ack_expectations')[datacenter.get('id')]
+        acks = namespace?.get('ack_expectations')?[datacenter?.get('id')]?
         if acks?
-            return acks
+            return namespace.get('ack_expectations')[datacenter.get('id')]
         else
             return 0
 
@@ -634,6 +671,14 @@ module 'DataUtils', ->
                         value: activity
                         machine_id: machine.get('id')
                         namespace_id: namespace_id
+            bcards = machine.get('rdb_namespaces')['reactor_bcards']
+            for namespace_id, activity_map of bcards
+                activity_map = activity_map['activity_map']
+                for activity_id, activity of activity_map
+                    activities[activity_id] =
+                        value: activity
+                        machine_id: machine.get('id')
+                        namespace_id: namespace_id
         return activities
 
     @get_directory_activities_by_namespaces = ->
@@ -649,7 +694,16 @@ module 'DataUtils', ->
                     if !activities[namespace_id][machine.get('id')]?
                         activities[namespace_id][machine.get('id')] = {}
                     activities[namespace_id][machine.get('id')][activity[0]] = activity[1]['type']
+            bcards = machine.get('rdb_namespaces')['reactor_bcards']
+            for namespace_id, activity_map of bcards
+                activity_map = activity_map['activity_map']
+                for activity_id, activity of activity_map
+                    if !(namespace_id of activities)
+                        activities[namespace_id] = {}
 
+                    if !activities[namespace_id][machine.get('id')]?
+                        activities[namespace_id][machine.get('id')] = {}
+                    activities[namespace_id][machine.get('id')][activity[0]] = activity[1]['type']
         return activities
 
     # Computes backfill progress for a given (namespace, shard,

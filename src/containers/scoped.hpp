@@ -154,7 +154,6 @@ private:
     DISABLE_COPYING(scoped_array_t);
 };
 
-
 // For dumb structs that get malloc/free for allocation.
 
 template <class T>

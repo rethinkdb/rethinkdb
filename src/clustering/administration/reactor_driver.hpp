@@ -12,7 +12,6 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "concurrency/watchable.hpp"
-#include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 
 /* This files contains the class reactor driver whose job is to create and
@@ -55,12 +54,15 @@ class svs_by_namespace_t {
 public:
     virtual void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
                          stores_lifetimer_t<protocol_t> *stores_out,
-                         scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out) = 0;
+                         scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out,
+                         typename protocol_t::context_t *) = 0;
     virtual void destroy_svs(namespace_id_t namespace_id) = 0;
 
 protected:
     virtual ~svs_by_namespace_t() { }
 };
+
+template <class> class ack_info_t;
 
 template <class protocol_t>
 class reactor_driver_t {
@@ -69,11 +71,12 @@ public:
                      mailbox_manager_t *_mbox_manager,
                      const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
                      branch_history_manager_t<protocol_t> *_branch_history_manager,
-                     boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
+                     boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _namespaces_view,
                      boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                      const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
                      svs_by_namespace_t<protocol_t> *_svs_by_namespace,
-                     perfmon_collection_repo_t *);
+                     perfmon_collection_repo_t *,
+                     typename protocol_t::context_t *);
 
     ~reactor_driver_t();
 
@@ -98,9 +101,12 @@ private:
     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > directory_view;
     branch_history_manager_t<protocol_t> *branch_history_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
-    boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view;
+    boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > namespaces_view;
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;
+    typename protocol_t::context_t *ctx;
     svs_by_namespace_t<protocol_t> *const svs_by_namespace;
+
+    scoped_ptr_t<ack_info_t<protocol_t> > ack_info;
 
     watchable_variable_t<namespaces_directory_metadata_t<protocol_t> > watchable_variable;
     mutex_assertion_t watchable_variable_lock;
@@ -109,7 +115,7 @@ private:
 
     auto_drainer_t drainer;
 
-    typename semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> >::subscription_t semilattice_subscription;
+    typename semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > >::subscription_t semilattice_subscription;
     watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t translation_table_subscription;
 
     perfmon_collection_repo_t *perfmon_collection_repo;

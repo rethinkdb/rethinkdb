@@ -94,6 +94,7 @@ struct distribution_result_t  {
     //Then k1 == left_key
     //and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
     //key_counts[kn] = the number of keys in [kn, right_key)
+    // TODO: Just make this use an int64_t.
     std::map<store_key_t, int> key_counts;
 };
 
@@ -168,7 +169,7 @@ enum set_result_t {
     is replace_policy_if_cas_matches and the CAS does not match */
     sr_didnt_replace,
     /* Returned if the value to be stored is too big */
-    sr_too_large,
+    sr_too_large
 };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(set_result_t, int8_t, sr_stored, sr_too_large);
@@ -191,7 +192,7 @@ void debug_print(append_only_printf_buffer_t *buf, const delete_mutation_t& mut)
 
 enum delete_result_t {
     dr_deleted,
-    dr_not_found,
+    dr_not_found
 };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(delete_result_t, int8_t, dr_deleted, dr_not_found);
@@ -221,7 +222,7 @@ struct incr_decr_result_t {
     enum result_t {
         idr_success,
         idr_not_found,
-        idr_not_numeric,
+        idr_not_numeric
     } res;
     uint64_t new_value;   // Valid only if idr_success
     incr_decr_result_t() { }
@@ -251,7 +252,7 @@ void debug_print(append_only_printf_buffer_t *buf, const append_prepend_mutation
 enum append_prepend_result_t {
     apr_success,
     apr_too_large,
-    apr_not_found,
+    apr_not_found
 };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(append_prepend_result_t, int8_t, apr_success, apr_not_found);
