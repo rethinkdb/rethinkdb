@@ -59,7 +59,7 @@ public:
     void do_admin_list_issues(const admin_command_parser_t::command_data& data);
     void do_admin_list_machines(const admin_command_parser_t::command_data& data);
     void do_admin_list_directory(const admin_command_parser_t::command_data& data);
-    void do_admin_list_namespaces(const admin_command_parser_t::command_data& data);
+    void do_admin_list_tables(const admin_command_parser_t::command_data& data);
     void do_admin_list_datacenters(const admin_command_parser_t::command_data& data);
     void do_admin_resolve(const admin_command_parser_t::command_data& data);
     void do_admin_pin_shard(const admin_command_parser_t::command_data& data);
@@ -71,9 +71,9 @@ public:
     void do_admin_set_primary(const admin_command_parser_t::command_data& data);
     void do_admin_set_datacenter(const admin_command_parser_t::command_data& data);
     void do_admin_create_datacenter(const admin_command_parser_t::command_data& data);
-    void do_admin_create_namespace(const admin_command_parser_t::command_data& data);
+    void do_admin_create_table(const admin_command_parser_t::command_data& data);
     void do_admin_remove_machine(const admin_command_parser_t::command_data& data);
-    void do_admin_remove_namespace(const admin_command_parser_t::command_data& data);
+    void do_admin_remove_table(const admin_command_parser_t::command_data& data);
     void do_admin_remove_datacenter(const admin_command_parser_t::command_data& data);
 
     void sync_from();
@@ -141,7 +141,7 @@ private:
                                  std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > *ns_map);
 
     template <class protocol_t>
-    namespace_id_t do_admin_create_namespace_internal(const std::string& name,
+    namespace_id_t do_admin_create_table_internal(const std::string& name,
                                                       int port,
                                                       const datacenter_id_t& primary,
                                                       namespaces_semilattice_metadata_t<protocol_t> *ns);
@@ -205,12 +205,12 @@ private:
                                 const cluster_semilattice_metadata_t& cluster_metadata);
 
     struct machine_info_t {
-        machine_info_t() : status(), primaries(0), secondaries(0), namespaces(0) { }
+        machine_info_t() : status(), primaries(0), secondaries(0), tables(0) { }
 
         std::string status;
         size_t primaries;
         size_t secondaries;
-        size_t namespaces;
+        size_t tables;
     };
 
     template <class protocol_t>
@@ -237,12 +237,12 @@ private:
     size_t get_replica_count_from_blueprint(const persistable_blueprint_t<protocol_t>& bp);
 
     struct datacenter_info_t {
-        datacenter_info_t() : machines(0), primaries(0), secondaries(0), namespaces(0) { }
+        datacenter_info_t() : machines(0), primaries(0), secondaries(0), tables(0) { }
 
         size_t machines;
         size_t primaries;
         size_t secondaries;
-        size_t namespaces;
+        size_t tables;
     };
 
     std::map<datacenter_id_t, datacenter_info_t> build_datacenter_info(const cluster_semilattice_metadata_t& cluster_metadata);
