@@ -22,7 +22,10 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "utils.hpp"
 
-bool run_json_import(extproc::spawner_t::info_t *spawner_info, UNUSED io_backender_t *backender, std::set<peer_address_t> joins, int ports_port, int ports_client_port, UNUSED std::string db_table, json_importer_t *importer, signal_t *stop_cond) {
+bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer, std::string db_table, signal_t *stop_cond);
+
+
+bool run_json_import(extproc::spawner_t::info_t *spawner_info, UNUSED io_backender_t *backender, std::set<peer_address_t> joins, int ports_port, int ports_client_port, std::string db_table, json_importer_t *importer, signal_t *stop_cond) {
 
     guarantee(spawner_info);
     extproc::pool_group_t extproc_pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
@@ -131,13 +134,17 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, UNUSED io_backend
     //This is an annoying chicken and egg problem here
     rdb_ctx.ns_repo = &rdb_namespace_repo;
 
+    return do_json_importation(&rdb_namespace_repo, importer, db_table, stop_cond);
+}
 
 
+bool do_json_importation(UNUSED namespace_repo_t<rdb_protocol_t> *repo, UNUSED json_importer_t *importer, UNUSED std::string db_table, UNUSED signal_t *stop_cond) {
+
+    // bogus implementation
     for (scoped_cJSON_t json; importer->get_json(&json); json.reset(NULL)) {
         debugf("json: %s\n", json.Print().c_str());
     }
 
-
-    debugf("run_json_import... returning bogus success!\n");
+    debugf("do_json_importation ... returning bogus success!\n");
     return true;
 }
