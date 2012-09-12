@@ -202,7 +202,7 @@ std::vector<std::string> reprocess_column_names(std::vector<std::string> cols) {
     return cols;
 }
 
-void csv_to_json_importer_t::import_json_from_file(UNUSED std::string separators, std::string filepath) {
+void csv_to_json_importer_t::import_json_from_file(std::string separators, std::string filepath) {
 
     std::vector<std::string> lines = read_lines_from_file(filepath);
     if (lines.size() == 0) {

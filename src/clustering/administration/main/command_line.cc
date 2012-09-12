@@ -108,7 +108,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     }
 }
 
-void run_rethinkdb_import(std::vector<host_and_port_t> joins, io_backend_t io_backend, int client_port, std::string db_table, std::string separators, std::string input_filepath, bool *result_out) {
+void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<host_and_port_t> joins, io_backend_t io_backend, int client_port, std::string db_table, std::string separators, std::string input_filepath, bool *result_out) {
     os_signal_cond_t sigint_cond;
     guarantee(!joins.empty());
 
@@ -118,7 +118,7 @@ void run_rethinkdb_import(std::vector<host_and_port_t> joins, io_backend_t io_ba
     csv_to_json_importer_t importer(separators, input_filepath);
 
     // TODO(sam): Make the peer port be configurable.
-    *result_out = run_json_import(io_backender.get(), look_up_peers_addresses(joins), 0, client_port, db_table, &importer);
+    *result_out = run_json_import(spawner_info, io_backender.get(), look_up_peers_addresses(joins), 0, client_port, db_table, &importer, &sigint_cond);
 }
 
 void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
@@ -687,9 +687,12 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_t::create(&spawner_info);
+
     const int num_workers = get_cpu_count();
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_import, joins, io_backend, client_port, db_table, separators, input_filepath, &result),
+    run_in_thread_pool(boost::bind(&run_rethinkdb_import, &spawner_info, joins, io_backend, client_port, db_table, separators, input_filepath, &result),
                        num_workers);
 
     return result ? 0 : 1;

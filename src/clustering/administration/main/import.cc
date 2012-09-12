@@ -1,11 +1,19 @@
 #include "clustering/administration/main/import.hpp"
 
 #include "arch/io/network.hpp"
+#include "clustering/administration/admin_tracker.hpp"
+#include "clustering/administration/auto_reconnect.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/logger.hpp"
+#include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/json_import.hpp"
+#include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/network_logger.hpp"
+#include "clustering/administration/perfmon_collection_repo.hpp"
+#include "clustering/administration/proc_stats.hpp"
+#include "clustering/administration/sys_stats.hpp"
+#include "extproc/pool.hpp"
 #include "http/json.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
@@ -14,7 +22,10 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "utils.hpp"
 
-bool run_json_import(UNUSED io_backender_t *backender, UNUSED std::set<peer_address_t> peers, int ports_port, int ports_client_port, UNUSED std::string db_table, UNUSED json_importer_t *importer) {
+bool run_json_import(extproc::spawner_t::info_t *spawner_info, UNUSED io_backender_t *backender, std::set<peer_address_t> joins, int ports_port, int ports_client_port, UNUSED std::string db_table, json_importer_t *importer, signal_t *stop_cond) {
+
+    guarantee(spawner_info);
+    extproc::pool_group_t extproc_pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
 
     machine_id_t machine_id = generate_uuid();
 
@@ -60,10 +71,68 @@ bool run_json_import(UNUSED io_backender_t *backender, UNUSED std::set<peer_addr
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
     connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, ports_port, &message_multiplexer_run, ports_client_port);
 
+    if (0 == ports_port) {
+        ports_port = connectivity_cluster_run.get_port();
+    } else {
+        guarantee(ports_port == connectivity_cluster_run.get_port());
+    }
+    logINF("Listening for intracluster traffic on port %d.\n", ports_port);
+
+    auto_reconnector_t auto_reconnector(
+        &connectivity_cluster,
+        &connectivity_cluster_run,
+        directory_read_manager.get_root_view()->subview(
+            field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+        metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
+
+    // Skipped field_copier_t, for fun.
+
+    admin_tracker_t admin_tracker(
+        semilattice_manager_cluster.get_root_view(), directory_read_manager.get_root_view());
+
+    perfmon_collection_t proc_stats_collection;
+    perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");
+
+    proc_stats_collector_t proc_stats_collector(&proc_stats_collection);
+
+    perfmon_collection_t sys_stats_collection;
+    perfmon_membership_t sys_stats_membership(&get_global_perfmon_collection(), &sys_stats_collection, "sys");
+
+    const char *bs_filepath = "";
+    sys_stats_collector_t sys_stats_collector(bs_filepath, &sys_stats_collection);
+
+    scoped_ptr_t<initial_joiner_t> initial_joiner;
+    if (!joins.empty()) {
+        initial_joiner.init(new initial_joiner_t(&connectivity_cluster, &connectivity_cluster_run, joins));
+        try {
+            wait_interruptible(initial_joiner->get_ready_signal(), stop_cond);
+        } catch (interrupted_exc_t) {
+            return false;
+        }
+    }
+
+    perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
+
+    // Namespace repos
+
+    // (rdb only)
+
+    rdb_protocol_t::context_t rdb_ctx(&extproc_pool_group,
+                                      NULL,
+                                      semilattice_manager_cluster.get_root_view(),
+                                      &directory_read_manager,
+                                      machine_id);
+
+    namespace_repo_t<rdb_protocol_t> rdb_namespace_repo(&mailbox_manager,
+        directory_read_manager.get_root_view()->subview(
+            field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
+        &rdb_ctx);
+
+    //This is an annoying chicken and egg problem here
+    rdb_ctx.ns_repo = &rdb_namespace_repo;
 
 
 
-    scoped_cJSON_t json;
     for (scoped_cJSON_t json; importer->get_json(&json); json.reset(NULL)) {
         debugf("json: %s\n", json.Print().c_str());
     }
