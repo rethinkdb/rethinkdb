@@ -769,7 +769,7 @@ static uuid_t meta_get_uuid(T searcher, U predicate,
 
 void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const backtrace_t &bt) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     // This must be performed on the semilattice_metadata's home thread,
-    int original_thread = get_thread_id();
+    int original_thread(get_thread_id());
     int metadata_home_thread = env->semilattice_metadata->home_thread();
     rassert(env->directory_read_manager->home_thread() == metadata_home_thread);
     cross_thread_signal_t ct_interruptor(env->interruptor, metadata_home_thread);
@@ -872,10 +872,13 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
            milliseconds until one succeeds, then return. */
 
         int64_t poll_ms = 100; //with this value, usually polls twice
-        //This read won't succeed, but we care whether it fails with an exception.
-        rdb_protocol_t::read_t bad_read(rdb_protocol_t::point_read_t(store_key_t("")));
+        // This read won't succeed, but we care whether it fails with an exception.
+        //  It must be an rget to make sure that access is available to all shards.
+        // This is performed on the client's thread to make sure that any
+        //  immediately following queries will succeed.
+        on_thread_t rethreader_original(original_thread);
+        rdb_protocol_t::read_t bad_read(rdb_protocol_t::rget_read_t(hash_region_t<key_range_t>::universe()));
         try {
-            on_thread_t switcher(original_thread);
             for (;;) {
                 signal_timer_t start_poll(poll_ms);
                 wait_interruptible(&start_poll, env->interruptor);
@@ -2380,8 +2383,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 
 }
 
-namespace_repo_t<rdb_protocol_t>::access_t eval(
-    TableRef *t, runtime_environment_t *env, const backtrace_t &bt)
+namespace_repo_t<rdb_protocol_t>::access_t eval(TableRef *t, runtime_environment_t *env, const backtrace_t &bt)
     THROWS_ONLY(runtime_exc_t) {
     std::string table_name = t->table_name();
     std::string db_name = t->db_name();
