@@ -41,6 +41,11 @@ class linux_iocallback_t {
 public:
     virtual ~linux_iocallback_t() {}
     virtual void on_io_complete() = 0;
+
+    //TODO Remove this default implementation and actually handle io errors.
+    virtual void on_io_failure() {
+        crash("I/O operation failed. Exiting.\n");
+    }
 };
 
 class linux_thread_pool_t;
