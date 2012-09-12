@@ -2020,52 +2020,56 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
             break;
         case Builtin::GROUPEDMAPREDUCE: {
                 Builtin::GroupedMapReduce *g = c->mutable_builtin()->mutable_grouped_map_reduce();
-                shared_scoped_less_t comparator(backtrace);
-                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups(comparator);
                 boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 
-                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    boost::shared_ptr<scoped_cJSON_t> group_mapped_row, value_mapped_row, reduced_row;
+                rdb_protocol_t::rget_read_response_t::result_t result = stream->apply_terminal(*g);
 
-                    // Figure out which group we belong to
-                    {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, g->group_mapping().arg(), json);
-                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
-                        group_mapped_row = eval_term_as_json(g->mutable_group_mapping()->mutable_body(), env, backtrace.with("group_mapping"));
-                    }
+                typedef rdb_protocol_t::rget_read_response_t::groups_t groups_t;
+                groups_t *groups = boost::get<groups_t>(&result);
+                guarantee(groups);
 
-                    // Map the value for comfy reduction goodness
-                    {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, g->value_mapping().arg(), json);
-                        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
-                        value_mapped_row = eval_term_as_json(g->mutable_value_mapping()->mutable_body(), env, backtrace.with("value_mapping"));
-                    }
+                //while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+                //    boost::shared_ptr<scoped_cJSON_t> group_mapped_row, value_mapped_row, reduced_row;
 
-                    // Do the reduction
-                    {
-                        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope);
-                        std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator
-                            elem = groups.find(group_mapped_row);
-                        if(elem != groups.end()) {
-                            env->scopes.scope.put_in_scope(g->reduction().var1(),
-                                                    (*elem).second);
-                        } else {
-                            env->scopes.scope.put_in_scope(g->reduction().var1(),
-                                                    eval_term_as_json(g->mutable_reduction()->mutable_base(), env, backtrace.with("reduction").with("base")));
-                        }
-                        env->scopes.scope.put_in_scope(g->reduction().var2(), value_mapped_row);
+                //    // Figure out which group we belong to
+                //    {
+                //        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, g->group_mapping().arg(), json);
+                //        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
+                //        group_mapped_row = eval_term_as_json(g->mutable_group_mapping()->mutable_body(), env, backtrace.with("group_mapping"));
+                //    }
 
-                        reduced_row = eval_term_as_json(g->mutable_reduction()->mutable_body(), env, backtrace.with("reduction").with("body"));
-                    }
+                //    // Map the value for comfy reduction goodness
+                //    {
+                //        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope, g->value_mapping().arg(), json);
+                //        implicit_value_setter_t impliciter(&env->scopes.implicit_attribute_value, json);
+                //        value_mapped_row = eval_term_as_json(g->mutable_value_mapping()->mutable_body(), env, backtrace.with("value_mapping"));
+                //    }
 
-                    // Phew, update the relevant group
-                    groups[group_mapped_row] = reduced_row;
+                //    // Do the reduction
+                //    {
+                //        variable_val_scope_t::new_scope_t scope_maker(&env->scopes.scope);
+                //        std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator
+                //            elem = groups.find(group_mapped_row);
+                //        if(elem != groups.end()) {
+                //            env->scopes.scope.put_in_scope(g->reduction().var1(),
+                //                                    (*elem).second);
+                //        } else {
+                //            env->scopes.scope.put_in_scope(g->reduction().var1(),
+                //                                    eval_term_as_json(g->mutable_reduction()->mutable_base(), env, backtrace.with("reduction").with("base")));
+                //        }
+                //        env->scopes.scope.put_in_scope(g->reduction().var2(), value_mapped_row);
 
-                }
+                //        reduced_row = eval_term_as_json(g->mutable_reduction()->mutable_body(), env, backtrace.with("reduction").with("body"));
+                //    }
+
+                //    // Phew, update the relevant group
+                //    groups[group_mapped_row] = reduced_row;
+
+                //}
 
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
-                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator it;
-                for (it = groups.begin(); it != groups.end(); ++it) {
+                groups_t::iterator it;
+                for (it = groups->begin(); it != groups->end(); ++it) {
                     scoped_cJSON_t obj(cJSON_CreateObject());
                     obj.AddItemToObject("group", it->first->release());
                     obj.AddItemToObject("reduction", it->second->release());
