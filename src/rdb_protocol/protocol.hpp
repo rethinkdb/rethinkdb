@@ -256,16 +256,16 @@ struct rdb_protocol_t {
     class distribution_read_t {
     public:
         distribution_read_t()
-            : max_depth(0), range(key_range_t::universe())
+            : max_depth(0), region(region_t::universe())
         { }
         explicit distribution_read_t(int _max_depth)
-            : max_depth(_max_depth), range(key_range_t::universe())
+            : max_depth(_max_depth), region(region_t::universe())
         { }
 
         int max_depth;
-        key_range_t range;
+        region_t region;
 
-        RDB_MAKE_ME_SERIALIZABLE_2(max_depth, range);
+        RDB_MAKE_ME_SERIALIZABLE_2(max_depth, region);
     };
 
 
