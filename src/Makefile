@@ -680,9 +680,9 @@ $(PYTHON_PBDIR):
 $(RUBY_PBDIR):
 	$(QUIET) mkdir -p $(RUBY_PBDIR)
 
-drivers: $(PYTHON_PBDIR)/$(PYTHON_PBFILE) $(RUBY_PBDIR)/$(RUBY_PBFILE)
+drivers: $(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE) $(RUBY_PBDIR)/$(RUBY_PBFILE)
 PROTOFILE:=$(SOURCE_DIR)/rdb_protocol/query_language.proto
-$(PYTHON_PBDIR)/$(PYTHON_PBFILE): $(PYTHON_PBDIR) $(PROTOFILE)
+$(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE): $(PYTHON_PBDIR) $(PROTOFILE)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[PY] $(PROTOFILE)"
 endif
