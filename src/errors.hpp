@@ -85,9 +85,9 @@
         abort();                                                    \
     } while (0)
 
-#define nice_crash(msg, ...) do {            \
-        fprintf(stderr, msg, ##__VA_ARGS__); \
-        exit(EXIT_FAILURE);                             \
+#define nice_crash(...) do {          \
+        fprintf(stderr, __VA_ARGS__); \
+        exit(EXIT_FAILURE);           \
     } while (0)
 
 #define crash_or_trap(msg, ...) do {                                \
