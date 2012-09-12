@@ -6,6 +6,7 @@
 
 #include "clustering/generic/registration_metadata.hpp"
 #include "clustering/generic/resource.hpp"
+#include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/promise.hpp"
@@ -15,106 +16,6 @@
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/joins/map.hpp"
 #include "timestamps.hpp"
-
-/* Every broadcaster generates a UUID when it's first created. This is the UUID
-of the branch that the broadcaster administers. */
-
-typedef uuid_t branch_id_t;
-
-/* `version_t` is a (branch ID, timestamp) pair. A `version_t` uniquely
-identifies the state of some region of the database at some time. */
-
-class version_t {
-public:
-    version_t() { }
-    version_t(branch_id_t bid, state_timestamp_t ts) :
-        branch(bid), timestamp(ts) { }
-    static version_t zero() {
-        return version_t(nil_uuid(), state_timestamp_t::zero());
-    }
-
-    bool operator==(const version_t &v) const{
-        return branch == v.branch && timestamp == v.timestamp;
-    }
-    bool operator!=(const version_t &v) const {
-        return !(*this == v);
-    }
-
-    branch_id_t branch;
-    state_timestamp_t timestamp;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(branch, timestamp);
-};
-
-inline void debug_print(append_only_printf_buffer_t *buf, const version_t& v) {
-    buf->appendf("v{");
-    debug_print(buf, v.branch);
-    buf->appendf(", ");
-    debug_print(buf, v.timestamp);
-    buf->appendf("}");
-}
-
-/* `version_range_t` is a pair of `version_t`s. It's used to keep track of
-backfills; when a backfill is interrupted, the state of the individual keys is
-unknown and all we know is that they lie within some range of versions. */
-
-class version_range_t {
-public:
-    version_range_t() { }
-    explicit version_range_t(const version_t &v) :
-        earliest(v), latest(v) { }
-    version_range_t(const version_t &e, const version_t &l) :
-        earliest(e), latest(l) { }
-
-    bool is_coherent() const {
-        return earliest == latest;
-    }
-    bool operator==(const version_range_t &v) const {
-        return earliest == v.earliest && latest == v.latest;
-    }
-    bool operator!=(const version_range_t &v) const {
-        return !(*this == v);
-    }
-
-    version_t earliest, latest;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(earliest, latest);
-};
-
-inline void debug_print(append_only_printf_buffer_t *buf, const version_range_t& vr) {
-    buf->appendf("vr{earliest=");
-    debug_print(buf, vr.earliest);
-    buf->appendf(", latest=");
-    debug_print(buf, vr.latest);
-    buf->appendf("}");
-}
-
-/* `branch_history_t` is a record of some set of branches. They are stored on
-disk and passed back and forth between machines in such a way that each machine
-always has history for every branch that it has to work with. */
-
-template<class protocol_t>
-class branch_birth_certificate_t {
-public:
-    /* The region covered by the branch */
-    typename protocol_t::region_t region;
-
-    /* The timestamp of the first state on the branch */
-    state_timestamp_t initial_timestamp;
-
-    /* Where the branch's initial data came from */
-    region_map_t<protocol_t, version_range_t> origin;
-
-    RDB_MAKE_ME_SERIALIZABLE_3(region, initial_timestamp, origin);
-};
-
-template<class protocol_t>
-class branch_history_t {
-public:
-    std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > branches;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(branches);
-};
 
 template <class> class listener_intro_t;
 
