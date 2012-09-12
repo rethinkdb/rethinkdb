@@ -877,7 +877,8 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         // This is performed on the client's thread to make sure that any
         //  immediately following queries will succeed.
         on_thread_t rethreader_original(original_thread);
-        rdb_protocol_t::read_t bad_read(rdb_protocol_t::rget_read_t(hash_region_t<key_range_t>::universe()));
+        rdb_protocol_t::rget_read_t bad_rget_read(hash_region_t<key_range_t>::universe());
+        rdb_protocol_t::read_t bad_read(bad_rget_read);
         try {
             for (;;) {
                 signal_timer_t start_poll(poll_ms);
