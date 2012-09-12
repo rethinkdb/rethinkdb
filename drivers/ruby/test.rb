@@ -430,6 +430,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_concatmap # CONCATMAP, DISTINCT
+    assert_equal(r[[1,2,3]].concatmap{r[[1,2]].to_stream}.to_stream.run.to_a,
+                 [1,2,1,2,1,2])
     assert_equal(r[[[1],[2]]].concatmap{|x| x}.run.to_a, [1,2])
     assert_raise(RuntimeError){r[[[1],2]].concatmap{|x| x}.run.to_a}
     assert_raise(RuntimeError){r[1].concatmap{|x| x}.run.to_a}
