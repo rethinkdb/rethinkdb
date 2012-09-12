@@ -9,7 +9,7 @@ var q = rethinkdb.query;
 var conn;
 function testConnect() {
     wait();
-    conn = rethinkdb.net.connect('newton', function() {
+    conn = rethinkdb.net.connect({host:HOST, port:PORT}, function() {
         done();
     }, function() {
         fail("Could not connect");
