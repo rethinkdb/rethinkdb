@@ -33,6 +33,7 @@ rethinkdb.query.expr = function(value) {
  * @export
  */
 rethinkdb.query.js = function(jsExpr) {
+    argCheck_(arguments, 1);
     typeCheck_(jsExpr, 'string');
     return new rethinkdb.query.JSExpression(jsExpr);
 };
@@ -46,6 +47,7 @@ rethinkdb.query.js = function(jsExpr) {
  * @export
  */
 rethinkdb.query.table = function(tableIdentifier) {
+    argCheck_(arguments, 1);
     typeCheck_(tableIdentifier, 'string');
     var db_table_array = tableIdentifier.split('.');
 
