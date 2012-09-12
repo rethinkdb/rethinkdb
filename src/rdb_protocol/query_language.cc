@@ -1250,7 +1250,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                             rhs.reset(cJSON_Parse(res->response(0).c_str()));
                         } catch (runtime_exc_t &e) {
                             rhs.reset(cJSON_CreateObject());
-                            rhs.AddItemToObject("errors", cJSON_CreateNumber(1.0));
+                            rhs.AddItemToObject("errors", safe_cJSON_CreateNumber(1.0, backtrace));
                             std::string err = strprintf("Term %d of the foreach threw an error: %s\n", i,
                                                         (e.message + "\n" + e.backtrace.print()).c_str());
                             rhs.AddItemToObject("first_error", cJSON_CreateString(err.c_str()));
