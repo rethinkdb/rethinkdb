@@ -22,10 +22,12 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "utils.hpp"
 
-bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer, std::string db_table, signal_t *stop_cond);
+bool do_json_importation(const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
+                         namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
+                         std::string db_name, std::string table_name, signal_t *interruptor);
 
 
-bool run_json_import(extproc::spawner_t::info_t *spawner_info, UNUSED io_backender_t *backender, std::set<peer_address_t> joins, int ports_port, int ports_client_port, std::string db_table, json_importer_t *importer, signal_t *stop_cond) {
+bool run_json_import(extproc::spawner_t::info_t *spawner_info, UNUSED io_backender_t *backender, std::set<peer_address_t> joins, int ports_port, int ports_client_port, std::string db_name, std::string table_name, json_importer_t *importer, signal_t *stop_cond) {
 
     guarantee(spawner_info);
     extproc::pool_group_t extproc_pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
@@ -134,11 +136,33 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, UNUSED io_backend
     //This is an annoying chicken and egg problem here
     rdb_ctx.ns_repo = &rdb_namespace_repo;
 
-    return do_json_importation(&rdb_namespace_repo, importer, db_table, stop_cond);
+    // TODO: Handle interrupted exceptions?
+    return do_json_importation(metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()), &rdb_namespace_repo, importer, db_name, table_name, stop_cond);
+}
+
+namespace_id_t try_get_or_create_namespace(UNUSED const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
+                                           UNUSED std::string db_name,
+                                           UNUSED std::string table_name,
+                                           UNUSED signal_t *interruptor) {
+
+    // TODO(sam): Implement
+    return namespace_id_t();
 }
 
 
-bool do_json_importation(UNUSED namespace_repo_t<rdb_protocol_t> *repo, UNUSED json_importer_t *importer, UNUSED std::string db_table, UNUSED signal_t *stop_cond) {
+bool do_json_importation(const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces, namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer, std::string db_name, std::string table_name, signal_t *interruptor) {
+
+    // TODO(sam): If the stop_cond gets triggered, we need to gracefully stop?
+
+    namespace_id_t namespace_id = try_get_or_create_namespace(namespaces, db_name, table_name, interruptor);
+
+    // TODO(sam): What if construction fails?  An exception is thrown?
+    namespace_repo_t<rdb_protocol_t>::access_t access(repo, namespace_id, interruptor);
+
+    UNUSED namespace_interface_t<rdb_protocol_t> *ni = access.get_namespace_if();
+
+
+
 
     // bogus implementation
     for (scoped_cJSON_t json; importer->get_json(&json); json.reset(NULL)) {

@@ -108,7 +108,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     }
 }
 
-void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<host_and_port_t> joins, io_backend_t io_backend, int client_port, std::string db_table, std::string separators, std::string input_filepath, bool *result_out) {
+void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<host_and_port_t> joins, io_backend_t io_backend, int client_port, std::string db_name, std::string table_name, std::string separators, std::string input_filepath, bool *result_out) {
     os_signal_cond_t sigint_cond;
     guarantee(!joins.empty());
 
@@ -118,7 +118,7 @@ void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<
     csv_to_json_importer_t importer(separators, input_filepath);
 
     // TODO(sam): Make the peer port be configurable.
-    *result_out = run_json_import(spawner_info, io_backender.get(), look_up_peers_addresses(joins), 0, client_port, db_table, &importer, &sigint_cond);
+    *result_out = run_json_import(spawner_info, io_backender.get(), look_up_peers_addresses(joins), 0, client_port, db_name, table_name, &importer, &sigint_cond);
 }
 
 void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
@@ -647,6 +647,24 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     return result ? 0 : 1;
 }
 
+// TODO(sam): Add split_db_table unit test.
+bool split_db_table(const std::string &db_table, std::string *db_name_out, std::string *table_name_out) {
+    size_t first_pos = db_table.find_first_of('.');
+    if (first_pos == std::string::npos || db_table.find_last_of('.') != first_pos) {
+        return false;
+    }
+
+    if (first_pos == 0 || first_pos + 1 == db_table.size()) {
+        return false;
+    }
+
+    db_name_out->assign(db_table.data(), first_pos);
+    table_name_out->assign(db_table.data() + first_pos + 1, db_table.data() + db_table.size());
+    rassert(db_name_out->size() > 0);
+    rassert(table_name_out->size() > 0);
+    return true;
+}
+
 int main_rethinkdb_import(int argc, char *argv[]) {
     try {
     po::variables_map vm;
@@ -667,10 +685,14 @@ int main_rethinkdb_import(int argc, char *argv[]) {
     int client_port = port_defaults::client_port;
 #endif
     std::string db_table = vm["table"].as<std::string>();
-    if (db_table.empty()) {
+    std::string db_name;
+    std::string table_name;
+    if (!split_db_table(db_table, &db_name, &table_name)) {
         // TODO(sam): handle error gracefully.
         return EXIT_FAILURE;
     }
+
+
     std::string separators = vm["separators"].as<std::string>();
     if (separators.empty()) {
         // TODO(sam): Pardon me, are we returning EXIT_FAILURE where
@@ -692,7 +714,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
     const int num_workers = get_cpu_count();
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_import, &spawner_info, joins, io_backend, client_port, db_table, separators, input_filepath, &result),
+    run_in_thread_pool(boost::bind(&run_rethinkdb_import, &spawner_info, joins, io_backend, client_port, db_name, table_name, separators, input_filepath, &result),
                        num_workers);
 
     return result ? 0 : 1;
