@@ -17,6 +17,8 @@ PROTO_FILE=$(PROTO_FILE_DIR)query_language.proto
 
 OUTPUTMODE=compiled
 
+JSDOC=/usr/share/jsdoc-toolkit/jsrun.jar
+
 # Compile the rethinkdb library
 lib: query_language.pb.js
 	rm -rf rethinkdb.js
@@ -39,7 +41,7 @@ query_language.pb.js: $(PROTO_FILE)
 	$(PROTOC_JS) -I $(PROTO_FILE_DIR)  --js_out=rethinkdb $(PROTO_FILE)
 
 docs: rethinkdb.js
-	jsdoc -d=docs -E=query_language.pb.js -r=3 rethinkdb/
+	jsdoc --template=docs/_themes/jsdoc-for-sphinx -x=js,jsx --directory=./docs/jsdoc -E=query_language.pb.js -r=3 rethinkdb/
 
 clean:
 	rm -rf rethinkdb.js
