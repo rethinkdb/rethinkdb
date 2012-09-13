@@ -76,8 +76,8 @@ archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *b
 }
 
 RDB_IMPL_SERIALIZABLE_1(get_query_t, key);
-RDB_IMPL_SERIALIZABLE_2(rget_query_t, range, maximum);
-RDB_IMPL_SERIALIZABLE_2(distribution_get_query_t, max_depth, range);
+RDB_IMPL_SERIALIZABLE_2(rget_query_t, region, maximum);
+RDB_IMPL_SERIALIZABLE_2(distribution_get_query_t, max_depth, region);
 RDB_IMPL_SERIALIZABLE_3(get_result_t, value, flags, cas);
 RDB_IMPL_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
 RDB_IMPL_SERIALIZABLE_2(rget_result_t, pairs, truncated);
@@ -117,12 +117,10 @@ struct read_get_region_visitor_t : public boost::static_visitor<region_t> {
         return monokey_region(get.key);
     }
     region_t operator()(rget_query_t rget) {
-        // TODO: I bet this causes problems.
-        return region_t(rget.range);
+        return rget.region;
     }
     region_t operator()(distribution_get_query_t dst_get) {
-        // TODO: Similarly, I bet this causes problems.
-        return region_t(dst_get.range);
+        return dst_get.region;
     }
 };
 
@@ -149,16 +147,13 @@ struct read_shard_visitor_t : public boost::static_visitor<read_t> {
         return read_t(get, effective_time);
     }
     read_t operator()(rget_query_t rget) {
-        rassert(region_is_superset(region_t(rget.range), region));
-        // TODO: Reevaluate this code.  Should rget_query_t really have a key_range_t range?
-        rget.range = region.inner;
+        rassert(region_is_superset(rget.region, region));
+        rget.region = region;
         return read_t(rget, effective_time);
     }
     read_t operator()(distribution_get_query_t distribution_get) {
-        rassert(region_is_superset(region_t(distribution_get.range), region));
-
-        // TODO: Reevaluate this code.  Should distribution_get_query_t really have a key_range_t range?
-        distribution_get.range = region.inner;
+        rassert(region_is_superset(distribution_get.region, region));
+        distribution_get.region = region;
         return read_t(distribution_get, effective_time);
     }
 };
@@ -235,16 +230,9 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     }
     read_response_t operator()(UNUSED distribution_get_query_t dget) {
         rassert(count > 0);
-        rassert(boost::get<distribution_result_t>(&bits[0].result));
-        rassert(count == 1 || boost::get<distribution_result_t>(&bits[1].result));
-
-        // Asserts that we don't look like a hash-sharded thing.
-        rassert(!(count > 1
-                  && boost::get<distribution_result_t>(&bits[0].result)->key_counts.begin()->first == boost::get<distribution_result_t>(&bits[1].result)->key_counts.begin()->first));
-
         distribution_result_t res;
 
-        for (int i = 0, e = count; i < e; i++) {
+        for (int i = 0; i < count; ++i) {
             const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
             rassert(result, "Bad boost::get\n");
 
@@ -518,15 +506,15 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
 
     read_response_t operator()(const rget_query_t& rget) {
         return read_response_t(
-            memcached_rget_slice(btree, rget.range, rget.maximum, effective_time, txn, superblock));
+            memcached_rget_slice(btree, rget.region.inner, rget.maximum, effective_time, txn, superblock));
     }
 
     read_response_t operator()(const distribution_get_query_t& dget) {
-        distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.range.left, effective_time, txn, superblock);
+        distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.region.inner.left, effective_time, txn, superblock);
         for (std::map<store_key_t, int>::iterator it  = dstr.key_counts.begin();
                                                   it != dstr.key_counts.end();
                                                   /* increments done in loop */) {
-            if (!dget.range.contains_key(store_key_t(it->first))) {
+            if (!dget.region.inner.contains_key(store_key_t(it->first))) {
                 dstr.key_counts.erase(it++);
             } else {
                 ++it;

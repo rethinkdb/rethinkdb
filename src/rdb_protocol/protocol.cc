@@ -322,10 +322,6 @@ public:
         rassert(boost::get<distribution_read_response_t>(&responses[0].response));
         rassert(count == 1 || boost::get<distribution_read_response_t>(&responses[1].response));
 
-        // Asserts that we don't look like a hash-sharded thing.
-        rassert(!(count > 1
-                  && boost::get<distribution_read_response_t>(&responses[0].response)->key_counts.begin()->first == boost::get<distribution_read_response_t>(&responses[1].response)->key_counts.begin()->first));
-
         response_out->response = distribution_read_response_t();
         distribution_read_response_t *response = boost::get<distribution_read_response_t>(&response_out->response);
 

@@ -506,7 +506,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
         }
 
         while (max_items > 0) {
-            rget_query_t rget_query(region_intersection(range, shard_it->inner), max_items);
+            rget_query_t rget_query(region_intersection(memcached_protocol_t::region_t(range), *shard_it), max_items);
             memcached_protocol_t::read_t read(rget_query, time(NULL));
             memcached_protocol_t::read_response_t response;
             rh->nsi->read(read, &response, order_source->check_in("do_rget").with_read_mode(), rh->interruptor);

@@ -106,7 +106,7 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi, order_so
     }
 
     {
-        rget_query_t rget(key_range_t::universe(), 1000);
+        rget_query_t rget(hash_region_t<key_range_t>::universe(), 1000);
         memcached_protocol_t::read_t read(rget, time(NULL));
 
         cond_t interruptor;
