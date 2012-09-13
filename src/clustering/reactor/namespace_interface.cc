@@ -114,9 +114,19 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
     std::vector<op_response_type> results(masters_to_contact.size());
     std::vector<std::string> failures(masters_to_contact.size());
     // RSI: don't use pmap
-    pmap(masters_to_contact.size(), boost::bind(
-                                                &cluster_namespace_interface_t::template perform_immediate_op<op_type, fifo_enforcer_token_type, op_response_type>, this,
-                                                how_to_run_query, &masters_to_contact, &op, &results, &failures, order_token, _1, interruptor));
+    pmap(masters_to_contact.size(), boost::bind(&cluster_namespace_interface_t::template perform_immediate_op<op_type,
+                                                fifo_enforcer_token_type,
+                                                op_response_type>,
+                                                this,
+                                                how_to_run_query,
+                                                &masters_to_contact,
+                                                &op,
+                                                &results,
+                                                &failures,
+                                                order_token,
+                                                _1,
+                                                interruptor));
+
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 

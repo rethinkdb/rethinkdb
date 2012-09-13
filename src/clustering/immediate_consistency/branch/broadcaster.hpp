@@ -20,6 +20,17 @@ template <class> class semilattice_readwrite_view_t;
 template <class> class multistore_ptr_t;
 struct mailbox_manager_t;
 
+/* Each shard has a `broadcaster_t` on its primary machine. Each machine sends
+queries via `cluster_namespace_interface_t` over the network to the `master_t`
+on the primary machine, which forwards the queries to the `broadcaster_t`. From
+there, the `broadcaster_t` distributes them to one or more `listener_t`s.
+
+When the `broadcaster_t` is first created, it generates a new unique branch ID.
+The `broadcaster_t` is the authority on what sequence of operations is performed
+on that branch. The order in which write and read operations pass through the
+`broadcaster_t` is the order in which they are performed at the B-trees
+themselves. */
+
 template<class protocol_t>
 class broadcaster_t : public home_thread_mixin_debug_only_t {
 private:

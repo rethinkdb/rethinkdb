@@ -19,6 +19,16 @@ cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
     return cJSON_CreateNumber(d);
 }
 
+
+std::string cJSON_print_primary(cJSON *json, const backtrace_t &backtrace) {
+    std::string s = cJSON_Print_lexicographic(json);
+    if (s.size() > MAX_KEY_SIZE) {
+        throw runtime_exc_t(strprintf("Primary key too long (max %d characters): %s",
+                                      MAX_KEY_SIZE-1, cJSON_print_std_string(json).c_str()), backtrace);
+    }
+    return s;
+}
+
 /* Convenience function for making the horrible easy. */
 boost::shared_ptr<scoped_cJSON_t> shared_scoped_json(cJSON *json) {
     return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(json));
@@ -402,6 +412,8 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             check_arg_count(c, 0, backtrace);
             if (!env->implicit_type.has_value() || env->implicit_type.get_value().type != TERM_TYPE_JSON) {
                 throw bad_query_exc_t("No implicit variable in scope", backtrace);
+            } else if (!env->implicit_type.depth_is_legal()) {
+                throw bad_query_exc_t("Cannot use implicit variable in nested queries.  Name your variables!", backtrace);
             }
             deterministic &= env->implicit_type.get_value().deterministic;
             return term_info_t(TERM_TYPE_JSON, deterministic);
@@ -439,7 +451,9 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
 
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 check_mapping_type(b.map().mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("mapping"));
-                return term_info_t(TERM_TYPE_STREAM, deterministic);
+                term_info_t res = get_term_type(c.args(0), env, backtrace);
+                res.deterministic &= deterministic;
+                return res;
             }
             break;
         case Builtin::CONCATMAP:
@@ -448,14 +462,18 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
 
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 //check_mapping_type(b.concat_map().mapping(), TERM_TYPE_STREAM, env, &deterministic, deterministic, backtrace.with("mapping"));
-                return term_info_t(TERM_TYPE_STREAM, deterministic);
+                term_info_t res = get_term_type(c.args(0), env, backtrace);
+                res.deterministic &= deterministic;
+                return res;
             }
             break;
         case Builtin::DISTINCT:
             {
                 check_arg_count(c, 1, backtrace);
 
-                return term_info_t(TERM_TYPE_STREAM, deterministic);
+                term_info_t res = get_term_type(c.args(0), env, backtrace);
+                res.deterministic &= deterministic;
+                return res;
             }
             break;
         case Builtin::FILTER:
@@ -502,7 +520,6 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
         case Builtin::REDUCE:
             {
                 check_arg_count(c, 1, backtrace);
-                implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 check_reduction_type(b.reduce(), env, &deterministic, deterministic, backtrace.with("reduce"));
                 return term_info_t(TERM_TYPE_JSON, false); //This is always false because we can't be sure the functions is associative or commutative
             }
@@ -517,18 +534,23 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
                 return term_info_t(TERM_TYPE_JSON, false);
             }
             break;
-        case Builtin::UNION:
-            check_function_args(c, TERM_TYPE_STREAM, 2, env, &deterministic, backtrace);
-            return term_info_t(TERM_TYPE_STREAM, deterministic);
-            break;
-        case Builtin::ARRAYTOSTREAM:
+        case Builtin::UNION: {
+            term_info_t res = get_term_type(c.args(0), env, backtrace);
+            check_function_args(c, res.type, 2, env, &deterministic, backtrace);
+            res.deterministic &= deterministic;
+            return res;
+        } break;
+        case Builtin::ARRAYTOSTREAM: {
             check_function_args(c, TERM_TYPE_JSON, 1, env, &deterministic, backtrace);
             return term_info_t(TERM_TYPE_STREAM, deterministic);
             break;
-        case Builtin::RANGE:
+        } break;
+        case Builtin::RANGE: {
             check_arg_count(c, 1, backtrace);
-            return term_info_t(TERM_TYPE_STREAM, deterministic);
-            break;
+            term_info_t res = get_term_type(c.args(0), env, backtrace);
+            res.deterministic &= deterministic;
+            return res;
+        } break;
         default:
             crash("unreachable");
             break;
@@ -769,7 +791,7 @@ static uuid_t meta_get_uuid(T searcher, U predicate,
 
 void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const backtrace_t &bt) THROWS_ONLY(runtime_exc_t, broken_client_exc_t) {
     // This must be performed on the semilattice_metadata's home thread,
-    int original_thread = get_thread_id();
+    int original_thread(get_thread_id());
     int metadata_home_thread = env->semilattice_metadata->home_thread();
     rassert(env->directory_read_manager->home_thread() == metadata_home_thread);
     cross_thread_signal_t ct_interruptor(env->interruptor, metadata_home_thread);
@@ -872,10 +894,14 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
            milliseconds until one succeeds, then return. */
 
         int64_t poll_ms = 100; //with this value, usually polls twice
-        //This read won't succeed, but we care whether it fails with an exception.
-        rdb_protocol_t::read_t bad_read(rdb_protocol_t::point_read_t(store_key_t("")));
+        // This read won't succeed, but we care whether it fails with an exception.
+        //  It must be an rget to make sure that access is available to all shards.
+        // This is performed on the client's thread to make sure that any
+        //  immediately following queries will succeed.
+        on_thread_t rethreader_original(original_thread);
+        rdb_protocol_t::rget_read_t bad_rget_read(hash_region_t<key_range_t>::universe());
+        rdb_protocol_t::read_t bad_read(bad_rget_read);
         try {
-            on_thread_t switcher(original_thread);
             for (;;) {
                 signal_timer_t start_poll(poll_ms);
                 wait_interruptible(&start_poll, env->interruptor);
@@ -1031,7 +1057,7 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
     }
 
     try {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_Print_lexicographic(data->GetObjectItem(pk.c_str()))), data));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_primary(data->GetObjectItem(pk.c_str()), backtrace)), data));
         rdb_protocol_t::write_response_t response;
         ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
     } catch (cannot_perform_query_exc_t e) {
@@ -1043,7 +1069,7 @@ point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t n
                                     const std::string &pk, cJSON *id, point_modify::op_t op,
                                     runtime_environment_t *env, const Mapping &m, const backtrace_t &backtrace) {
     try {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_modify_t(pk, store_key_t(cJSON_Print_lexicographic(id)), op, env->scopes, m));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_modify_t(pk, store_key_t(cJSON_print_primary(id, backtrace)), op, env->scopes, m));
         rdb_protocol_t::write_response_t response;
         ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
         rdb_protocol_t::point_modify_response_t mod_res = boost::get<rdb_protocol_t::point_modify_response_t>(response.response);
@@ -1056,7 +1082,7 @@ point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t n
 
 void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace, int *out_num_deletes=0) {
     try {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_Print_lexicographic(id))));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_primary(id, backtrace))));
         rdb_protocol_t::write_response_t response;
         ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
         if (out_num_deletes) {
@@ -1235,7 +1261,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                             rhs.reset(cJSON_Parse(res->response(0).c_str()));
                         } catch (runtime_exc_t &e) {
                             rhs.reset(cJSON_CreateObject());
-                            rhs.AddItemToObject("errors", cJSON_CreateNumber(1.0));
+                            rhs.AddItemToObject("errors", safe_cJSON_CreateNumber(1.0, backtrace));
                             std::string err = strprintf("Term %d of the foreach threw an error: %s\n", i,
                                                         (e.message + "\n" + e.backtrace.print()).c_str());
                             rhs.AddItemToObject("first_error", cJSON_CreateString(err.c_str()));
@@ -1436,7 +1462,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
                 boost::shared_ptr<scoped_cJSON_t> key = eval(t->mutable_get_by_key()->mutable_key(), env, backtrace.with("key"));
 
                 try {
-                    rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(key->PrintLexicographic())));
+                    rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(cJSON_print_primary(key->get(), backtrace))));
                     rdb_protocol_t::read_response_t res;
                     ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
 
@@ -1927,7 +1953,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 arr(new scoped_cJSON_t(cJSON_CreateArray()));
             boost::shared_ptr<scoped_cJSON_t> json;
             while ((json = stream->next())) {
-                arr->AddItemToArray(json->release());
+                arr->AddItemToArray(json->DeepCopy());
             }
             return arr;
         } break;
@@ -2357,14 +2383,14 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                 }
 
                 if (lowerbound && upperbound) {
-                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->PrintLexicographic()),
-                                        key_range_t::closed, store_key_t(upperbound->PrintLexicographic()));
+                    range = key_range_t(key_range_t::closed, store_key_t(cJSON_print_primary(lowerbound->get(), backtrace)),
+                                        key_range_t::closed, store_key_t(cJSON_print_primary(upperbound->get(), backtrace)));
                 } else if (lowerbound) {
-                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->PrintLexicographic()),
+                    range = key_range_t(key_range_t::closed, store_key_t(cJSON_print_primary(lowerbound->get(), backtrace)),
                                         key_range_t::none, store_key_t());
                 } else if (upperbound) {
                     range = key_range_t(key_range_t::none, store_key_t(),
-                                        key_range_t::closed, store_key_t(upperbound->PrintLexicographic()));
+                                        key_range_t::closed, store_key_t(cJSON_print_primary(upperbound->get(), backtrace)));
                 }
 
                 return boost::shared_ptr<json_stream_t>(
@@ -2380,8 +2406,7 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
 
 }
 
-namespace_repo_t<rdb_protocol_t>::access_t eval(
-    TableRef *t, runtime_environment_t *env, const backtrace_t &bt)
+namespace_repo_t<rdb_protocol_t>::access_t eval(TableRef *t, runtime_environment_t *env, const backtrace_t &bt)
     THROWS_ONLY(runtime_exc_t) {
     std::string table_name = t->table_name();
     std::string db_name = t->db_name();

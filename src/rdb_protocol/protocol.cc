@@ -123,12 +123,11 @@ struct r_get_region_visitor : public boost::static_visitor<region_t> {
     }
 
     region_t operator()(const rget_read_t &rg) const {
-        // TODO: Sam bets this causes problems
         return rg.region;
     }
 
     region_t operator()(const distribution_read_t &dg) const {
-        return region_t(dg.range);
+        return dg.region;
     }
 };
 
@@ -153,18 +152,16 @@ struct r_shard_visitor : public boost::static_visitor<read_t> {
     }
 
     read_t operator()(const rget_read_t &rg) const {
-        // TODO: Reevaluate this code.  Should rget_query_t really have a region_t range?
+        rassert(region_is_superset(rg.region, region));
         rget_read_t _rg(rg);
-        _rg.region = region_intersection(region, rg.region);
+        _rg.region = region;
         return read_t(_rg);
     }
 
     read_t operator()(const distribution_read_t &dg) const {
-        rassert(region_is_superset(region_t(dg.range), region));
-
-        // TODO: Reevaluate this code.  Should distribution_get_query_t really have a key_range_t range?
+        rassert(region_is_superset(dg.region, region));
         distribution_read_t _dg(dg);
-        _dg.range = region.inner;
+        _dg.region = region;
         return read_t(_dg);
     }
 
@@ -697,11 +694,11 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
     }
 
     read_response_t operator()(const distribution_read_t &dg) {
-        distribution_read_response_t dstr = rdb_distribution_get(btree, dg.max_depth, dg.range.left, txn, superblock);
+        distribution_read_response_t dstr = rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left, txn, superblock);
         for (std::map<store_key_t, int>::iterator it  = dstr.key_counts.begin();
                                                   it != dstr.key_counts.end();
                                                   /* increments done in loop */) {
-            if (!dg.range.contains_key(store_key_t(it->first))) {
+            if (!dg.region.inner.contains_key(store_key_t(it->first))) {
                 dstr.key_counts.erase(it++);
             } else {
                 ++it;

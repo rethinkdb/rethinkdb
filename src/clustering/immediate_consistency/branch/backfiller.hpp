@@ -12,7 +12,9 @@ template <class> class semilattice_read_view_t;
 class traversal_progress_combiner_t;
 
 /* If you construct a `backfiller_t` for a given store, then it will advertise
-its existence in the metadata and serve backfills over the network. */
+its existence in the metadata and serve backfills over the network. Generally
+`backfiller_t` is constructed as a member of `replier_t`. */
+
 template <class protocol_t>
 class backfiller_t : public home_thread_mixin_debug_only_t {
 public:

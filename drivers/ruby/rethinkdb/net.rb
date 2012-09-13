@@ -76,6 +76,7 @@ module RethinkDB
     end
 
     def dispatch msg # :nodoc:
+      PP.pp msg if $DEBUG
       payload = msg.serialize_to_string
       #File.open('payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
       packet = [payload.length].pack('L<') + payload

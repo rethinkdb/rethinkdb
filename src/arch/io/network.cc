@@ -830,7 +830,7 @@ void linux_repeated_nonthrowing_tcp_listener_t::retry_loop(auto_drainer_t::lock_
         for (int retry_interval = 1;
              !bound;
              retry_interval = std::min(10, retry_interval + 2)) {
-            logINF("Could not bind to port %d, retrying in %d seconds.\n",
+            logINF("Will retry binding to port %d in %d seconds.\n",
                     listener.get_port(),
                     retry_interval);
             nap(retry_interval * 1000, lock.get_drain_signal());

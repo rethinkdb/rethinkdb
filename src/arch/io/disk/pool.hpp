@@ -39,6 +39,8 @@ public:
         size_t get_count() const { return count; }
         off_t get_offset() const { return offset; }
 
+        bool get_succeeded() const { return io_result == (int)count; }
+
     private:
         friend class pool_diskmgr_t;
         pool_diskmgr_t *parent;
@@ -48,6 +50,8 @@ public:
         void *buf;
         size_t count;
         off_t offset;
+
+        int io_result;
 
         void run();
         void done();
