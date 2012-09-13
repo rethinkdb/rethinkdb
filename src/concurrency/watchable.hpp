@@ -128,6 +128,10 @@ void run_until_satisfied_2(
         const callable_type &fun,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
+inline void call_function(const boost::function<void()> &f) {
+    f();
+}
+
 template <class value_t>
 class watchable_variable_t {
 public:
@@ -142,7 +146,7 @@ public:
     void set_value(const value_t &_value) {
         rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
         value = _value;
-        publisher_controller.publish(&watchable_variable_t<value_t>::call);
+        publisher_controller.publish(&call_function);
     }
 
 private:
@@ -163,10 +167,6 @@ private:
         }
         watchable_variable_t<value_t> *parent;
     };
-
-    static void call(const boost::function<void()> &f) {
-        f();
-    }
 
     publisher_controller_t<boost::function<void()> > publisher_controller;
     value_t value;

@@ -112,20 +112,23 @@ private:
 template <class T>
 class implicit_value_t {
 public:
-    implicit_value_t() {
+    implicit_value_t() : depth(0) {
         push();
     }
 
     void push() {
         scopes.push_front(boost::optional<T>());
+        depth += 1;
     }
 
     void push(const T &t) {
         scopes.push_front(t);
+        depth += 1;
     }
 
     void pop() {
         scopes.pop_front();
+        depth -= 1;
     }
 
     class impliciter_t {
@@ -157,10 +160,15 @@ public:
         return *scopes.front();
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_1(scopes);
+    bool depth_is_legal() {
+        return depth == 2; //We push once at the beginning, so we want 2 here.
+    }
+
+    RDB_MAKE_ME_SERIALIZABLE_2(scopes, depth);
 private:
     typedef std::list<boost::optional<T> > scopes_t;
     scopes_t scopes;
+    int depth;
 };
 
 #endif  // RDB_PROTOCOL_SCOPE_HPP_
