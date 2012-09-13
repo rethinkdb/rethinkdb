@@ -92,6 +92,9 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
                     if (force_response) {
                         send(forced_response, conn.get(), &ct_keepalive);
                     } else {
+                        linux_event_watcher_t *ew = conn->get_event_watcher();
+                        linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
+                        ctx.interruptor = &conn_interrupted;
                         send(f(&request, &ctx), conn.get(), &ct_keepalive);
                     }
                     break;
