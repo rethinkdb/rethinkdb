@@ -31,7 +31,7 @@ template <class protocol_t>
 region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_t<protocol_t, binary_blob_t> &blob_map);
 
 template <class protocol_t>
-class multistore_ptr_t : public store_view_t<protocol_t> {
+class multistore_ptr_t {
 public:
     // We don't get ownership of the store_view_t pointers themselves.
     multistore_ptr_t(store_view_t<protocol_t> **store_views, int num_store_views,
@@ -99,6 +99,8 @@ public:
     store_view_t<protocol_t> *get_store(int i) const;
 
     int num_stores() const { return store_views_.size(); }
+
+    const typename protocol_t::region_t &get_region() const { return region_; }
 
 private:
     struct switch_read_token_t;
