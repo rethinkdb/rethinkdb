@@ -35,13 +35,11 @@ class multistore_ptr_t {
 public:
     // We don't get ownership of the store_view_t pointers themselves.
     multistore_ptr_t(store_view_t<protocol_t> **store_views, int num_store_views,
-                     typename protocol_t::context_t *ctx,
                      const typename protocol_t::region_t &region_mask = protocol_t::region_t::universe());
 
     // Creates a multistore_ptr_t that depends on the lifetime of the
     // inner multistore_ptr_t.
     multistore_ptr_t(multistore_ptr_t<protocol_t> *inner,
-                     typename protocol_t::context_t *ctx,
                      const typename protocol_t::region_t &region_mask);
 
     // deletes the store_subview_t objects.
@@ -150,8 +148,6 @@ private:
     // publicly, neither by external users or inner store_ts.
     one_per_thread_t<scoped_array_t<fifo_enforcer_source_t> > internal_sources_;
     scoped_array_t<scoped_ptr_t<fifo_enforcer_sink_t> > internal_sinks_;
-
-    typename protocol_t::context_t *ctx;
 
     DISABLE_COPYING(multistore_ptr_t);
 };

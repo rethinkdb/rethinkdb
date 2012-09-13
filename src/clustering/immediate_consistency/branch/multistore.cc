@@ -32,29 +32,24 @@ region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_
 
 template <class protocol_t>
 multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **store_views, int num_store_views,
-                                               typename protocol_t::context_t *_ctx,
                                                const typename protocol_t::region_t &region)
     : store_views_(num_store_views),
       // TODO: region_ is redundant with superclass's region.
       region_(region),
       external_checkpoint_("multistore_ptr_t"),
       internal_sources_(num_store_views),
-      internal_sinks_(num_store_views),
-      ctx(_ctx) {
-
+      internal_sinks_(num_store_views) {
     initialize(store_views);
 }
 
 template <class protocol_t>
 multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inner,
-                                               typename protocol_t::context_t *_ctx,
                                                const typename protocol_t::region_t &region)
     : store_views_(inner->num_stores()),
       region_(region),
       external_checkpoint_("multistore_ptr_t"),
       internal_sources_(inner->num_stores()),
-      internal_sinks_(inner->num_stores()),
-      ctx(_ctx) {
+      internal_sinks_(inner->num_stores()) {
 
     rassert(region_is_superset(inner->region_, region));
 
