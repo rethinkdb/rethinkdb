@@ -1,7 +1,6 @@
 #include "unittest/gtest.hpp"
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
-#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "mock/branch_history_manager.hpp"
@@ -104,31 +103,21 @@ void run_backfill_test() {
 
     /* Expose the backfiller to the cluster */
 
-    store_view_t<dummy_protocol_t> *backfiller_store_ptr = &backfiller_store;
-
-    dummy_protocol_t::context_t ctx;
-    multistore_ptr_t<dummy_protocol_t> backfiller_multistore(&backfiller_store_ptr, 1, &ctx);
-
     backfiller_t<dummy_protocol_t> backfiller(
         cluster.get_mailbox_manager(),
         &branch_history_manager,
-        &backfiller_multistore);
+        &backfiller_store);
 
     watchable_variable_t<boost::optional<backfiller_business_card_t<dummy_protocol_t> > > pseudo_directory(
         boost::optional<backfiller_business_card_t<dummy_protocol_t> >(backfiller.get_business_card()));
 
     /* Run a backfill */
 
-    // Uhh.. hehhehheh... this might be wrong.
-    dummy_protocol_t::context_t ctx2;
-    store_view_t<dummy_protocol_t> *backfillee_store_ptr = &backfillee_store;
-    multistore_ptr_t<dummy_protocol_t> backfillee_multistore(&backfillee_store_ptr, 1, &ctx2);
-
     cond_t interruptor;
     backfillee<dummy_protocol_t>(
         cluster.get_mailbox_manager(),
         &branch_history_manager,
-        &backfillee_multistore,
+        &backfillee_store,
         backfillee_store.get_region(),
         pseudo_directory.get_watchable()->subview(&wrap_in_optional),
         generate_uuid(),

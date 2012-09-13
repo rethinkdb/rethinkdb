@@ -183,7 +183,7 @@ void reactor_t<protocol_t>::run_role(
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
 
     //A store_view_t derived object that acts as a store for the specified region
-    multistore_ptr_t<protocol_t> svs_subview(underlying_svs, ctx, region);
+    multistore_ptr_t<protocol_t> svs_subview(underlying_svs, region);
 
     {
         //All of the be_{role} functions respond identically to blueprint changes
