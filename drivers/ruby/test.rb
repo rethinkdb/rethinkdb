@@ -399,6 +399,10 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(query_23.run.to_a), $data[2..3])
   end
 
+  def test_too_big_key
+    assert_raise(RuntimeError){rdb.insert({:id => 'a'*1000}).run}
+  end
+
   def test_implicit_nesting
     assert_raise(SyntaxError){rdb.filter{rdb.filter{r[:id]}.to_array.eq([])}.run.to_a}
   end

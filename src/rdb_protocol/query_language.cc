@@ -520,7 +520,6 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
         case Builtin::REDUCE:
             {
                 check_arg_count(c, 1, backtrace);
-                implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 check_reduction_type(b.reduce(), env, &deterministic, deterministic, backtrace.with("reduce"));
                 return term_info_t(TERM_TYPE_JSON, false); //This is always false because we can't be sure the functions is associative or commutative
             }
