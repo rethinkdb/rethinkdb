@@ -60,42 +60,6 @@ public:
                       object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-    bool send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                       send_backfill_callback_t<protocol_t> *send_backfill_cb,
-                       traversal_progress_combiner_t *progress,
-                       object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
-                       signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-    void receive_backfill(const typename protocol_t::backfill_chunk_t &chunk,
-                          object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
-                          signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-
-    void read(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
-              const typename protocol_t::read_t &read,
-              typename protocol_t::read_response_t *response,
-              order_token_t order_token,
-              object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
-              signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-    void write(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
-               const typename protocol_t::store_t::metainfo_t& new_metainfo,
-               const typename protocol_t::write_t &write,
-               typename protocol_t::write_response_t *response,
-               transition_timestamp_t timestamp,
-               order_token_t order_token,
-               object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
-               signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-    void reset_data(const typename protocol_t::region_t &subregion,
-                    const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
-                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-
     store_view_t<protocol_t> *get_store(int i) const;
 
     int num_stores() const { return store_views_.size(); }
