@@ -19,6 +19,16 @@ cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
     return cJSON_CreateNumber(d);
 }
 
+
+std::string cJSON_print_primary(cJSON *json, const backtrace_t &backtrace) {
+    std::string s = cJSON_Print_lexicographic(json);
+    if (s.size() > MAX_KEY_SIZE) {
+        throw runtime_exc_t(strprintf("Primary key too long (max %d characters): %s",
+                                      MAX_KEY_SIZE-1, cJSON_print_std_string(json).c_str()), backtrace);
+    }
+    return s;
+}
+
 /* Convenience function for making the horrible easy. */
 boost::shared_ptr<scoped_cJSON_t> shared_scoped_json(cJSON *json) {
     return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(json));
@@ -1048,7 +1058,7 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
     }
 
     try {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_Print_lexicographic(data->GetObjectItem(pk.c_str()))), data));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_primary(data->GetObjectItem(pk.c_str()), backtrace)), data));
         rdb_protocol_t::write_response_t response;
         ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
     } catch (cannot_perform_query_exc_t e) {
@@ -1060,7 +1070,7 @@ point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t n
                                     const std::string &pk, cJSON *id, point_modify::op_t op,
                                     runtime_environment_t *env, const Mapping &m, const backtrace_t &backtrace) {
     try {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_modify_t(pk, store_key_t(cJSON_Print_lexicographic(id)), op, env->scopes, m));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_modify_t(pk, store_key_t(cJSON_print_primary(id, backtrace)), op, env->scopes, m));
         rdb_protocol_t::write_response_t response;
         ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
         rdb_protocol_t::point_modify_response_t mod_res = boost::get<rdb_protocol_t::point_modify_response_t>(response.response);
@@ -1073,7 +1083,7 @@ point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t n
 
 void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace, int *out_num_deletes=0) {
     try {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_Print_lexicographic(id))));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_primary(id, backtrace))));
         rdb_protocol_t::write_response_t response;
         ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
         if (out_num_deletes) {
@@ -1453,7 +1463,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term *t, runtime_environment_t *env, cons
                 boost::shared_ptr<scoped_cJSON_t> key = eval(t->mutable_get_by_key()->mutable_key(), env, backtrace.with("key"));
 
                 try {
-                    rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(key->PrintLexicographic())));
+                    rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(cJSON_print_primary(key->get(), backtrace))));
                     rdb_protocol_t::read_response_t res;
                     ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
 
@@ -2374,14 +2384,14 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
                 }
 
                 if (lowerbound && upperbound) {
-                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->PrintLexicographic()),
-                                        key_range_t::closed, store_key_t(upperbound->PrintLexicographic()));
+                    range = key_range_t(key_range_t::closed, store_key_t(cJSON_print_primary(lowerbound->get(), backtrace)),
+                                        key_range_t::closed, store_key_t(cJSON_print_primary(upperbound->get(), backtrace)));
                 } else if (lowerbound) {
-                    range = key_range_t(key_range_t::closed, store_key_t(lowerbound->PrintLexicographic()),
+                    range = key_range_t(key_range_t::closed, store_key_t(cJSON_print_primary(lowerbound->get(), backtrace)),
                                         key_range_t::none, store_key_t());
                 } else if (upperbound) {
                     range = key_range_t(key_range_t::none, store_key_t(),
-                                        key_range_t::closed, store_key_t(upperbound->PrintLexicographic()));
+                                        key_range_t::closed, store_key_t(cJSON_print_primary(upperbound->get(), backtrace)));
                 }
 
                 return boost::shared_ptr<json_stream_t>(
