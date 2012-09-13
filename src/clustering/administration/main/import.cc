@@ -22,7 +22,8 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "utils.hpp"
 
-bool do_json_importation(const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
+bool do_json_importation(const boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> > &databases,
+                         const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
                          namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
                          std::string db_name, std::string table_name, signal_t *interruptor);
 
@@ -137,24 +138,61 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, UNUSED io_backend
     rdb_ctx.ns_repo = &rdb_namespace_repo;
 
     // TODO: Handle interrupted exceptions?
-    return do_json_importation(metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()), &rdb_namespace_repo, importer, db_name, table_name, stop_cond);
+    return do_json_importation(metadata_field(&cluster_semilattice_metadata_t::databases, semilattice_manager_cluster.get_root_view()),
+                               metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()),
+                               &rdb_namespace_repo, importer, db_name, table_name, stop_cond);
 }
 
-namespace_id_t try_get_or_create_namespace(UNUSED const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
-                                           UNUSED std::string db_name,
-                                           UNUSED std::string table_name,
-                                           UNUSED signal_t *interruptor) {
+bool get_or_create_namespace(const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
+                             database_id_t db_id,
+                             std::string table_name,
+                             namespace_id_t *namespace_out) {
+    namespaces_semilattice_metadata_t<rdb_protocol_t> ns = *namespaces->get();
+    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> > searcher(&ns.namespaces);
+    const char *error;
+    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator it = searcher.find_uniq(namespace_predicate_t(table_name, db_id), &error);
 
-    // TODO(sam): Implement
-    return namespace_id_t();
+    if (error != METADATA_SUCCESS) {
+        *namespace_out = namespace_id_t();
+        return false;
+    } else {
+        *namespace_out = it->first;
+        return true;
+    }
+}
+
+bool get_or_create_database(const boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> > &databases, std::string db_name, database_id_t *db_out) {
+    std::map<database_id_t, deletable_t<database_semilattice_metadata_t> > dbmap = databases->get().databases;
+    metadata_searcher_t<database_semilattice_metadata_t> searcher(&dbmap);
+
+    const char *error;
+    std::map<database_id_t, deletable_t<database_semilattice_metadata_t> >::iterator it = searcher.find_uniq(db_name, &error);
+
+    if (error != METADATA_SUCCESS) {
+        // TODO(sam): Actually support _creating_ the database.
+        *db_out = database_id_t();
+        return false;
+    } else {
+        *db_out = it->first;
+        return true;
+    }
 }
 
 
-bool do_json_importation(const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces, namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer, std::string db_name, std::string table_name, signal_t *interruptor) {
+bool do_json_importation(const boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> > &databases,
+                         const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
+                         namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
+                         std::string db_name, std::string table_name, signal_t *interruptor) {
 
-    // TODO(sam): If the stop_cond gets triggered, we need to gracefully stop?
+    database_id_t db_id;
+    if (!get_or_create_database(databases, db_name, &db_id)) {
+        return false;
+    }
 
-    namespace_id_t namespace_id = try_get_or_create_namespace(namespaces, db_name, table_name, interruptor);
+    namespace_id_t namespace_id;
+    if (!get_or_create_namespace(namespaces, db_id, table_name, &namespace_id)) {
+        return false;
+    }
 
     // TODO(sam): What if construction fails?  An exception is thrown?
     namespace_repo_t<rdb_protocol_t>::access_t access(repo, namespace_id, interruptor);

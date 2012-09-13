@@ -752,25 +752,6 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     return js_runner;
 }
 
-class namespace_predicate_t {
-public:
-    bool operator()(namespace_semilattice_metadata_t<rdb_protocol_t> ns) {
-        if (name && (ns.name.in_conflict() || ns.name.get() != *name)) {
-            return false;
-        } else if (db_id && (ns.database.in_conflict() || ns.database.get() != *db_id)) {
-            return false;
-        }
-        return true;
-    }
-    explicit namespace_predicate_t(std::string &_name): name(&_name), db_id(0) { }
-    explicit namespace_predicate_t(uuid_t &_db_id): name(0), db_id(&_db_id) { }
-    namespace_predicate_t(std::string &_name, uuid_t &_db_id):
-        name(&_name), db_id(&_db_id) { }
-private:
-    const std::string *name;
-    const uuid_t *db_id;
-};
-
 static void meta_check(const char *status, const char *want,
                        const std::string &operation, const backtrace_t &backtrace) {
     if (status != want) {

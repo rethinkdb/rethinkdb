@@ -195,4 +195,26 @@ public:
 private:
     metamap_t *map;
 };
+
+class namespace_predicate_t {
+public:
+    // TODO: Can this not be a const reference?
+    bool operator()(namespace_semilattice_metadata_t<rdb_protocol_t> ns) {
+        if (name && (ns.name.in_conflict() || ns.name.get() != *name)) {
+            return false;
+        } else if (db_id && (ns.database.in_conflict() || ns.database.get() != *db_id)) {
+            return false;
+        }
+        return true;
+    }
+    explicit namespace_predicate_t(std::string &_name): name(&_name), db_id(0) { }
+    explicit namespace_predicate_t(uuid_t &_db_id): name(0), db_id(&_db_id) { }
+    namespace_predicate_t(std::string &_name, uuid_t &_db_id):
+        name(&_name), db_id(&_db_id) { }
+private:
+    const std::string *name;
+    const uuid_t *db_id;
+};
+
+
 #endif  // CLUSTERING_ADMINISTRATION_METADATA_HPP_
