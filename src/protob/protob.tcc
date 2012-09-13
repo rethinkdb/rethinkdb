@@ -23,7 +23,12 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
       next_http_conn_id(0),
       next_thread(0),
       http_timeout_timer(http_context_t::TIMEOUT_MS, this) {
-    tcp_listener.init(new tcp_listener_t(port, boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
+
+    try {
+        tcp_listener.init(new tcp_listener_t(port, boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
+    } catch (address_in_use_exc_t e) {
+        nice_crash("%s. Cannot bind to RDB protocol port. Exiting.\n", e.what());
+    }
 }
 
 template <class request_t, class response_t, class context_t>
