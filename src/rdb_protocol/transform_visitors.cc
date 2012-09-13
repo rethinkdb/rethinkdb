@@ -36,13 +36,14 @@ void transform_visitor_t::operator()(Builtin_Range range) const {
 
     key_range_t key_range;
 
-    /* TODO this is inefficient because it involves recomputing this for each element. */
+    /* TODO this is inefficient because it involves recomputing this for each element.
+    TODO this is probably also incorrect because the term may be nondeterministic */
     if (range.has_lowerbound()) {
-        lowerbound = eval(range.mutable_lowerbound(), env, b.with("lowerbound"));
+        lowerbound = eval_term_as_json(range.mutable_lowerbound(), env, b.with("lowerbound"));
     }
 
     if (range.has_upperbound()) {
-        upperbound = eval(range.mutable_upperbound(), env, b.with("upperbound"));
+        upperbound = eval_term_as_json(range.mutable_upperbound(), env, b.with("upperbound"));
     }
 
     if (lowerbound && upperbound) {
@@ -74,7 +75,7 @@ void terminal_initializer_visitor_t::operator()(const Builtin_GroupedMapReduce &
 void terminal_initializer_visitor_t::operator()(const Reduction &r) const {
     query_language::backtrace_t b; //TODO get this from somewhere
     Term base = r.base();
-    *out = eval(&base, env, b);
+    *out = eval_term_as_json(&base, env, b);
 }
 
 void terminal_initializer_visitor_t::operator()(const rdb_protocol_details::Length &) const {
@@ -109,7 +110,7 @@ void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
         Term body = gmr.group_mapping().body();
 
         env->scopes.scope.put_in_scope(gmr.group_mapping().arg(), json_cpy);
-        grouping = eval(&body, env, b);
+        grouping = eval_term_as_json(&body, env, b);
     }
 
     //Apply the mapping
@@ -118,7 +119,7 @@ void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
         env->scopes.scope.put_in_scope(gmr.value_mapping().arg(), json_cpy);
 
         Term body = gmr.value_mapping().body();
-        json_cpy = eval(&body, env, b);
+        json_cpy = eval_term_as_json(&body, env, b);
     }
 
     //Finally reduce it in
@@ -128,9 +129,9 @@ void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
         Term base = gmr.reduction().base(),
              body = gmr.reduction().body();
 
-        env->scopes.scope.put_in_scope(gmr.reduction().var1(), get_with_default(*res_groups, grouping, eval(&base, env, b)));
+        env->scopes.scope.put_in_scope(gmr.reduction().var1(), get_with_default(*res_groups, grouping, eval_term_as_json(&base, env, b)));
         env->scopes.scope.put_in_scope(gmr.reduction().var2(), json_cpy);
-        (*res_groups)[grouping] = eval(&body, env, b);
+        (*res_groups)[grouping] = eval_term_as_json(&body, env, b);
     }
 }
 
@@ -145,7 +146,7 @@ void terminal_visitor_t::operator()(const Reduction &r) const {
     env->scopes.scope.put_in_scope(r.var1(), *res_atom);
     env->scopes.scope.put_in_scope(r.var2(), json);
     Term body = r.body();
-    *res_atom = eval(&body, env, b);
+    *res_atom = eval_term_as_json(&body, env, b);
 }
 
 void terminal_visitor_t::operator()(const rdb_protocol_details::Length &) const {
@@ -163,7 +164,7 @@ void terminal_visitor_t::operator()(const WriteQuery_ForEach &w) const {
     for (int i = 0; i < w.queries_size(); ++i) {
         WriteQuery q = w.queries(i);
         Response r; //TODO we need to actually return this somewhere I suppose.
-        execute(&q, env, &r, b);
+        execute_write_query(&q, env, &r, b);
     }
 }
 
