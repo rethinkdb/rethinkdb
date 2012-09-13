@@ -232,7 +232,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
         rassert(count > 0);
         distribution_result_t res;
 
-        for (int i = 0; i < count; ++i) {
+        for (size_t i = 0; i < count; ++i) {
             const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
             rassert(result, "Bad boost::get\n");
 
