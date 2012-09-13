@@ -2043,7 +2043,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
 
                 try {
-                    return boost::get<boost::shared_ptr<scoped_cJSON_t> >(stream->apply_terminal(c->builtin().reduce()));
+                    return boost::get<boost::shared_ptr<scoped_cJSON_t> >(stream->apply_terminal(c->builtin().reduce(), env));
                 } catch (const boost::bad_get &) {
                     crash("Expected a json atom... something is implemented wrong in the clustering code\n");
                 }
@@ -2258,22 +2258,19 @@ boost::shared_ptr<json_stream_t> eval_stream(Term::Call *c, runtime_environment_
         case Builtin::FILTER:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
-                stream->add_transformation(c->builtin().filter());
-                return stream;
+                return stream->add_transformation(c->builtin().filter());
             }
             break;
         case Builtin::MAP:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
-                stream->add_transformation(c->builtin().map().mapping());
-                return stream;
+                return stream->add_transformation(c->builtin().map().mapping());
             }
             break;
         case Builtin::CONCATMAP:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c->mutable_args(0), env, backtrace.with("arg:0"));
-                stream->add_transformation(c->builtin().concat_map());
-                return stream;
+                return stream->add_transformation(c->builtin().concat_map());
             }
             break;
         case Builtin::ORDERBY:
@@ -2464,8 +2461,8 @@ view_t eval_view(Term::Call *c, runtime_environment_t *env, const backtrace_t &b
         case Builtin::FILTER:
             {
                 view_t view = eval_view(c->mutable_args(0), env, backtrace.with("arg:0"));
-                view.stream->add_transformation(c->builtin().filter());
-                return view_t(view.access, view.primary_key, view.stream);
+                json_stream_t new_stream = view.stream->add_transformation(c->builtin().filter());
+                return view_t(view.access, view.primary_key, new_stream);
             }
             break;
         case Builtin::ORDERBY:

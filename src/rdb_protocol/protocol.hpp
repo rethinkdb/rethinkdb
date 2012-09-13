@@ -83,7 +83,15 @@ struct backfill_atom_t {
     RDB_MAKE_ME_SERIALIZABLE_3(key, value, recency);
 };
 
-typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range>  transform_atom_t;
+typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range>  transform_variant_t;
+
+struct transform_atom_t {
+    transform_variant_t variant;
+    scopes_t scope;
+    backtrace_t backtrace;
+
+    RDB_MAKE_ME_SERIALIZABLE_3(variant, scope, backtrace);
+};
 
 typedef std::list<transform_atom_t> transform_t;
 
@@ -95,8 +103,15 @@ struct Length {
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
-typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_t;
+typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_variant_t;
 
+struct terminal_t {
+    terminal_variant_t variant;
+    scopes_t scope;
+    backtrace_t backtrace;
+
+    RDB_MAKE_ME_SERIALIZABLE_3(variant, scope, backtrace);
+};
 
 } // namespace rdb_protocol_details
 
@@ -247,10 +262,8 @@ struct rdb_protocol_t {
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
-        scopes_t scopes;
-        backtrace_t backtrace;
 
-        RDB_MAKE_ME_SERIALIZABLE_5(region, transform, terminal, scopes, backtrace);
+        RDB_MAKE_ME_SERIALIZABLE_3(region, transform, terminal);
     };
 
     class distribution_read_t {

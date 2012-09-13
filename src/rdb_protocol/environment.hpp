@@ -7,7 +7,6 @@
 #include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/serializable_environment.hpp"
 #include "rdb_protocol/stream.hpp"
 
 namespace query_language {
@@ -61,9 +60,6 @@ public:
           this_machine(_this_machine)
     { rassert(js_runner); }
 
-    /* This is put in a seperate structure so that it can be made serializable. */
-    scopes_t scopes;
-
     extproc::pool_t *pool;      // for running external JS jobs
     namespace_repo_t<rdb_protocol_t> *ns_repo;
 
@@ -76,8 +72,10 @@ public:
     directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
 
   private:
-    // Ideally this would be a scoped_ptr_t<js::runner_t>, but unfortunately we
-    // copy runtime_environment_ts to capture scope.
+    // Ideally this would be a scoped_ptr_t<js::runner_t>. We used to copy
+    // `runtime_environment_t` to capture scope, which is why this is a
+    // `boost::shared_ptr`. But now we pass scope around separately, so this
+    // could be changed.
     //
     // Note that js_runner is "lazily initialized": we only call
     // js_runner->begin() once we know we need to evaluate javascript. This

@@ -4,49 +4,77 @@
 
 namespace query_language {
 
+boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_protocol_details::transform_atom_t &t) {
+    rdb_protocol_details::transform_t transform;
+    transform.push_back(t);
+    return boost::make_shared<transform_stream_t>(shared_from_this(), transform);
+}
+
+result_t json_stream_t::apply_terminal(const rdb_protocol_details::terminal_t &t, runtime_environment_t *env) {
+    result_t res;
+    boost::apply_visitor(terminal_initializer_visitor_t(&res, env), t);
+    boost::shared_ptr<scoped_cJSON_t> json;
+    while ((json = next())) boost::apply_visitor(terminal_visitor_t(json, env, &res), t);
+    return res;
+}
+
 in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it, runtime_environment_t *_env)
-    : started(false), env(new runtime_environment_t(*_env))
+    : env(new runtime_environment_t(*_env))
 {
     while (cJSON *json = it.next()) {
-        raw_data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
+        data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
     }
 }
 
 in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *_env)
-    : started(false), env(new runtime_environment_t(*_env))
+    : env(new runtime_environment_t(*_env))
 {
     while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-        raw_data.push_back(json);
+        data.push_back(json);
     }
 }
 
 boost::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
-    started = true;
+    if (data.empty()) {
+        return boost::shared_ptr<scoped_cJSON_t>();
+    } else {
+        boost::shared_ptr<scoped_cJSON_t> res = data.front();
+        data.pop_front();
+        return res;
+    }
+}
+
+transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> stream_, const rdb_protocol_details::transform_t &tr, runtime_environment_t *env_)
+    : stream(stream_), transform(tr), env(new runtime_environment_t(*env_)) { }
+
+boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
     while (data.empty()) {
-        if (raw_data.empty()) {
+        boost::shared_ptr<scoped_cJSON_t> input = stream->next();
+        if (!input) {
             return boost::shared_ptr<scoped_cJSON_t>();
-        } else {
-            json_list_t accumulator;
-            accumulator.push_back(raw_data.front());
-            raw_data.pop_front();
-
-            //Apply transforms to the data
-            typedef rdb_protocol_details::transform_t::iterator tit_t;
-            for (tit_t it  = transform.begin();
-                       it != transform.end();
-                       ++it) {
-                 json_list_t tmp;
-
-                for (json_list_t::iterator jt  = accumulator.begin();
-                                           jt != accumulator.end();
-                                           ++jt) {
-                    boost::apply_visitor(transform_visitor_t(*jt, &tmp, env.get()), *it);
-                }
-                accumulator.clear();
-                accumulator.splice(accumulator.begin(), tmp);
-            }
-            data.splice(data.begin(), accumulator);
         }
+
+        json_list_t accumulator;
+        accumulator.push_back(input);
+
+        //Apply transforms to the data
+        typedef rdb_protocol_details::transform_t::iterator tit_t;
+        for (tit_t it  = transform.begin();
+                   it != transform.end();
+                   ++it) {
+            json_list_t tmp;
+            for (json_list_t::iterator jt  = accumulator.begin();
+                                       jt != accumulator.end();
+                                       ++jt) {
+                boost::apply_visitor(transform_visitor_t(*jt, &tmp, env.get()), *it);
+            }
+
+            /* Equivalent to `accumulator = tmp`, but without the extra copying */
+            std::swap(accumulator, tmp);
+        }
+
+        /* Equivalent to `data = accumulator`, but without the extra copying */
+        std::swap(data, accumulator);
     }
 
     boost::shared_ptr<scoped_cJSON_t> res = data.front();
@@ -54,16 +82,9 @@ boost::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
     return res;
 }
 
-void in_memory_stream_t::add_transformation(const rdb_protocol_details::transform_atom_t &t) {
+boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_atom_t &t) {
     transform.push_back(t);
-}
-
-result_t in_memory_stream_t::apply_terminal(const rdb_protocol_details::terminal_t &t) {
-    result_t res;
-    boost::apply_visitor(terminal_initializer_visitor_t(&res, env.get()), t);
-    boost::shared_ptr<scoped_cJSON_t> json;
-    while ((json = next())) boost::apply_visitor(terminal_visitor_t(json, env.get(), &res), t);
-    return res;
+    return shared_from_this();
 }
 
 batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
@@ -94,12 +115,13 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
     return ret;
 }
 
-void batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_atom_t &t) {
+boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_atom_t &t) {
     guarantee(!started);
     transform.push_back(t);
+    return shared_from_this();
 }
 
-result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::terminal_t &t) {
+result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::terminal_t &t, UNUSED runtime_environment_t *env2) {
     rdb_protocol_t::region_t region(range);
     rdb_protocol_t::rget_read_t rget_read(region);
     rget_read.transform = transform;
@@ -172,16 +194,13 @@ boost::shared_ptr<scoped_cJSON_t> union_stream_t::next() {
     return boost::shared_ptr<scoped_cJSON_t>();
 }
 
-void union_stream_t::add_transformation(const rdb_protocol_details::transform_atom_t &t) {
+boost::shared_ptr<json_stream_t> union_stream_t::add_transformation(const rdb_protocol_details::transform_atom_t &t) {
     for (stream_list_t::iterator it  = streams.begin();
                                  it != streams.end();
                                  ++it) {
-        (*it)->add_transformation(t);
+        *it = (*it)->add_transformation(t);
     }
-}
-
-result_t union_stream_t::apply_terminal(const rdb_protocol_details::terminal_t &) {
-    crash("not implemented");
+    return shared_from_this();
 }
 
 } //namespace query_language 
