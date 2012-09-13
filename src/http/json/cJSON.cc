@@ -608,11 +608,11 @@ bool cJSON_Equal(cJSON *x, cJSON *y) {
                     return false;
                 }
 
-                xhd = xhd->next; 
+                xhd = xhd->next;
                 yhd = yhd->next;
             }
 
-            if (!yhd) {
+            if (yhd) {
                 return false;
             }
         }

@@ -402,6 +402,8 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             check_arg_count(c, 0, backtrace);
             if (!env->implicit_type.has_value() || env->implicit_type.get_value().type != TERM_TYPE_JSON) {
                 throw bad_query_exc_t("No implicit variable in scope", backtrace);
+            } else if (!env->implicit_type.depth_is_legal()) {
+                throw bad_query_exc_t("Cannot use implicit variable in nested queries.  Name your variables!", backtrace);
             }
             deterministic &= env->implicit_type.get_value().deterministic;
             return term_info_t(TERM_TYPE_JSON, deterministic);
@@ -439,7 +441,9 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
 
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 check_mapping_type(b.map().mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("mapping"));
-                return term_info_t(TERM_TYPE_STREAM, deterministic);
+                term_info_t res = get_term_type(c.args(0), env, backtrace);
+                res.deterministic &= deterministic;
+                return res;
             }
             break;
         case Builtin::CONCATMAP:
@@ -448,14 +452,18 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
 
                 implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                 //check_mapping_type(b.concat_map().mapping(), TERM_TYPE_STREAM, env, &deterministic, deterministic, backtrace.with("mapping"));
-                return term_info_t(TERM_TYPE_STREAM, deterministic);
+                term_info_t res = get_term_type(c.args(0), env, backtrace);
+                res.deterministic &= deterministic;
+                return res;
             }
             break;
         case Builtin::DISTINCT:
             {
                 check_arg_count(c, 1, backtrace);
 
-                return term_info_t(TERM_TYPE_STREAM, deterministic);
+                term_info_t res = get_term_type(c.args(0), env, backtrace);
+                res.deterministic &= deterministic;
+                return res;
             }
             break;
         case Builtin::FILTER:
@@ -517,18 +525,23 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
                 return term_info_t(TERM_TYPE_JSON, false);
             }
             break;
-        case Builtin::UNION:
-            check_function_args(c, TERM_TYPE_STREAM, 2, env, &deterministic, backtrace);
-            return term_info_t(TERM_TYPE_STREAM, deterministic);
-            break;
-        case Builtin::ARRAYTOSTREAM:
+        case Builtin::UNION: {
+            term_info_t res = get_term_type(c.args(0), env, backtrace);
+            check_function_args(c, res.type, 2, env, &deterministic, backtrace);
+            res.deterministic &= deterministic;
+            return res;
+        } break;
+        case Builtin::ARRAYTOSTREAM: {
             check_function_args(c, TERM_TYPE_JSON, 1, env, &deterministic, backtrace);
             return term_info_t(TERM_TYPE_STREAM, deterministic);
             break;
-        case Builtin::RANGE:
+        } break;
+        case Builtin::RANGE: {
             check_arg_count(c, 1, backtrace);
-            return term_info_t(TERM_TYPE_STREAM, deterministic);
-            break;
+            term_info_t res = get_term_type(c.args(0), env, backtrace);
+            res.deterministic &= deterministic;
+            return res;
+        } break;
         default:
             crash("unreachable");
             break;
@@ -1239,7 +1252,7 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                             rhs.reset(cJSON_Parse(res->response(0).c_str()));
                         } catch (runtime_exc_t &e) {
                             rhs.reset(cJSON_CreateObject());
-                            rhs.AddItemToObject("errors", cJSON_CreateNumber(1.0));
+                            rhs.AddItemToObject("errors", safe_cJSON_CreateNumber(1.0, backtrace));
                             std::string err = strprintf("Term %d of the foreach threw an error: %s\n", i,
                                                         (e.message + "\n" + e.backtrace.print()).c_str());
                             rhs.AddItemToObject("first_error", cJSON_CreateString(err.c_str()));
@@ -1931,7 +1944,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(Term::Call *c, runtime_environment_t *env
                 arr(new scoped_cJSON_t(cJSON_CreateArray()));
             boost::shared_ptr<scoped_cJSON_t> json;
             while ((json = stream->next())) {
-                arr->AddItemToArray(json->release());
+                arr->AddItemToArray(json->DeepCopy());
             }
             return arr;
         } break;

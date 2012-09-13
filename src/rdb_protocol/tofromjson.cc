@@ -1,5 +1,7 @@
 #include <stdlib.h>
 
+#include <math.h>
+
 #include "errors.hpp"
 #include <boost/scoped_array.hpp>
 #include <boost/make_shared.hpp>
@@ -138,7 +140,9 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
         }
 
     } else if (value->IsNumber()) {
-        cJSON *r = cJSON_CreateNumber(value->NumberValue());
+        double d = value->NumberValue();
+        cJSON *r = 0;
+        if (isfinite(d)) r = cJSON_CreateNumber(value->NumberValue());
         if (!r) *errmsg = "cJSON_CreateNumber() failed";
         return r;
 
