@@ -884,6 +884,9 @@ class StreamExpression(ReadQuery):
             value_mapping = JSONFunction(value_mapping)
         return JSONExpression(internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func))
 
+    def group_by(self, group_mapping, reduction_tripple):
+        return self.grouped_map_reduce(group_mapping, *reduction_tripple())
+
     def distinct(self):
         """Discards duplicate elements from a stream.
 
@@ -1501,5 +1504,10 @@ def table(table_ref):
     else:
         return Table(table_ref)
 
+# Reductions hack for groupby
+def sum_():
+  return [1, 0, fn('a', 'b', R('$a') + R('$b'))]
+
 # this happens at the end since it's a circular import
 import internal
+

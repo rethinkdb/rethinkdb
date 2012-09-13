@@ -14,7 +14,7 @@ __all__ = [
     'connect',
     'db_create', 'db_drop', 'db_list', 'db', 'table',
     'expr', 'R', 'js', 'let', 'fn', 'if_then_else',
-    'ExecutionError', 'BadQueryError']
+    'ExecutionError', 'BadQueryError', 'sum_']
 
 from query import *
 from net import connect, ExecutionError, BadQueryError
