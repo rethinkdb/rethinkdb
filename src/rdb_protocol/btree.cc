@@ -240,14 +240,17 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
     }
 }
 
-point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data,
+point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
                                btree_slice_t *slice, repli_timestamp_t timestamp,
                                transaction_t *txn, superblock_t *superblock) {
     //block_size_t block_size = slice->cache()->get_block_size();
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
-    kv_location_set(&kv_location, key, data, slice, timestamp, txn);
-    return point_write_response_t(kv_location.value.has() ? DUPLICATE : STORED);
+    bool had_value = kv_location.value.has();
+    if (overwrite || !had_value) {
+        kv_location_set(&kv_location, key, data, slice, timestamp, txn);
+    }
+    return point_write_response_t(had_value ? DUPLICATE : STORED);
 }
 
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {

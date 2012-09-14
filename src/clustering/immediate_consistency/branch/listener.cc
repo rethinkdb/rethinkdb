@@ -5,7 +5,6 @@
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
-#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
 

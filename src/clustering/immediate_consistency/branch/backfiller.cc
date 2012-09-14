@@ -2,7 +2,6 @@
 
 #include "btree/parallel_traversal.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
-#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/semaphore.hpp"
 #include "rpc/semilattice/view.hpp"

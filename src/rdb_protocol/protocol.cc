@@ -743,7 +743,7 @@ namespace {
 struct write_visitor_t : public boost::static_visitor<write_response_t> {
     write_response_t operator()(const point_write_t &w) {
         return write_response_t(
-            rdb_set(w.key, w.data, btree, timestamp, txn, superblock));
+            rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock));
     }
 
     write_response_t operator()(const point_modify_t &m) {
@@ -919,7 +919,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
         const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
-        rdb_set(bf_atom.key, bf_atom.value,
+        rdb_set(bf_atom.key, bf_atom.value, true,
                 btree, bf_atom.recency,
                 txn, superblock);
     }
