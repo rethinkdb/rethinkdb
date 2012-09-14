@@ -59,7 +59,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
 
 boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
 class view_t {
 public:
@@ -78,25 +78,25 @@ view_t eval_term_as_view(Term *t, runtime_environment_t *, const scopes_t &scope
 
 view_t eval_call_as_view(Term::Call *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-view_t eval_table_as_view(Term::Table *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+view_t eval_table_as_view(Term::Table *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
 class predicate_t {
 public:
-    predicate_t(const Predicate &_pred, runtime_environment_t _env, const scopes_t &scopes, const backtrace_t &_backtrace);
+    predicate_t(const Predicate &_pred, runtime_environment_t *_env, const scopes_t &_scopes, const backtrace_t &_backtrace);
     bool operator()(boost::shared_ptr<scoped_cJSON_t> json);
 private:
     Predicate pred;
-    runtime_environment_t env;
+    runtime_environment_t *env;
     scopes_t scopes;
     backtrace_t backtrace;
 };
 
-boost::shared_ptr<scoped_cJSON_t> eval_mapping(Mapping m, const runtime_environment_t &env,
-                                               boost::shared_ptr<scoped_cJSON_t> val, const scopes_t &scopes, const backtrace_t &backtrace);
+boost::shared_ptr<scoped_cJSON_t> eval_mapping(Mapping m, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
+                                               boost::shared_ptr<scoped_cJSON_t> val);
 
-boost::shared_ptr<scoped_cJSON_t> map(std::string arg, Term *term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const scopes_t &scopes, const backtrace_t &backtrace);
+boost::shared_ptr<scoped_cJSON_t> map(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val);
 
-boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const scopes_t &scopes, const backtrace_t &backtrace);
+boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val);
 
 } //namespace query_language
 

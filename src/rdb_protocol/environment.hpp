@@ -94,6 +94,9 @@ public:
 
     signal_t *interruptor;
     uuid_t this_machine;
+
+  private:
+    DISABLE_COPYING(runtime_environment_t);
 };
 
 } //namespace query_language

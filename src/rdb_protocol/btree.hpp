@@ -78,7 +78,8 @@ private:
 point_read_response_t rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock);
 
 point_modify_response_t rdb_modify(const std::string &primary_key, const store_key_t &key, const point_modify::op_t op,
-                                   query_language::runtime_environment_t *env, const Mapping &mapping,
+                                   query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
+                                   const Mapping &mapping,
                                    btree_slice_t *slice, repli_timestamp_t timestamp,
                                    transaction_t *txn, superblock_t *superblock);
 
