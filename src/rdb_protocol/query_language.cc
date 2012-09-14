@@ -631,11 +631,6 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
             }
             break;
         }
-        case WriteQuery::INSERTSTREAM: {
-            check_protobuf(w.has_insert_stream());
-            check_term_type(w.insert_stream().stream(), TERM_TYPE_STREAM, env, is_det_out, backtrace.with("stream"));
-            break;
-        }
         case WriteQuery::FOREACH:
             {
                 check_protobuf(w.has_for_each());
@@ -1241,23 +1236,6 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                                          scoped_cJSON_t(cJSON_CreateString(first_error.c_str())).Print().c_str());
                 }
                 res->add_response("{" + res_list + "}");
-            }
-            break;
-    case WriteQuery::INSERTSTREAM: //TODO: remove this (nonfunctional now)
-            {
-                std::string pk = get_primary_key(w->mutable_insert_stream()->mutable_table_ref(), env, backtrace);
-                boost::shared_ptr<json_stream_t> stream = eval_stream(w->mutable_insert_stream()->mutable_stream(), env, backtrace.with("stream"));
-
-                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_insert_stream()->mutable_table_ref(), env, backtrace);
-
-                int errors = 0; //TODO: error handling
-                int inserted = 0;
-                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    bool did_insert = insert(ns_access, pk, json, env, backtrace, false);
-                    (did_insert?inserted:errors) += 1;
-                }
-
-                res->add_response(strprintf("{\"inserted\": %d}", inserted));
             }
             break;
         case WriteQuery::FOREACH: {
