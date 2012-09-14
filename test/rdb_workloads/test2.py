@@ -43,14 +43,16 @@ class RDBTest(unittest.TestCase):
         with self.assertRaises(BadQueryError) as cm:
             res = self.conn.run(query)
         e = cm.exception
-        print "\n\n", e
+        e.location()   # If the backtrace printing is broken, this will throw an exception
+        # print "\n\n", e   # Uncomment for pretty-printed exception eye-candy
         self.assertIn(msg, str(e))
 
     def error_exec(self, query, msg):
         with self.assertRaises(ExecutionError) as cm:
             res = self.conn.run(query)
         e = cm.exception
-        print "\n\n", e
+        e.location()   # If the backtrace printing is broken, this will throw an exception
+        # print "\n\n", e   # Uncomment for pretty-printed exception eye-candy
         self.assertIn(msg, str(e))
 
     def clear_table(self):
