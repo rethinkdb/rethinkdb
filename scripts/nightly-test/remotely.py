@@ -39,7 +39,9 @@ def run(command_line, stdout = sys.stdout, inputs = [], outputs = [],
         on_begin_transfer = lambda: None,
         on_begin_script = lambda: None, on_end_script = lambda: None,
         input_root = ".", output_root = ".",
-        constraint = None, timeout = 60 * 60 * 6):
+        constraint = None,
+        timeout = 60 * 6   # minutes
+        ):
     """Runs `command_line` on a remote machine. Output will be written to
 `stdout`. The working directory will be a temporary directory; paths in `inputs`
 will be copied to the remote directory before running the script, and paths in

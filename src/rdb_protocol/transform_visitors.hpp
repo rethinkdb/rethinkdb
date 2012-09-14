@@ -22,7 +22,7 @@ typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
 /* A visitor for applying a transformation to a bit of json. */
 class transform_visitor_t : public boost::static_visitor<void> {
 public:
-    transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env);
+    transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env, const scopes_t &_scopes, const backtrace_t &_backtrace);
 
     void operator()(const Builtin_Filter &filter) const;
 
@@ -36,13 +36,17 @@ private:
     boost::shared_ptr<scoped_cJSON_t> json;
     json_list_t *out;
     query_language::runtime_environment_t *env;
+    scopes_t scopes;
+    backtrace_t backtrace;
 };
 
 /* A visitor for setting the result type based on a terminal. */
 class terminal_initializer_visitor_t : public boost::static_visitor<void> {
 public:
     terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,
-                                            query_language::runtime_environment_t *_env);
+                                   query_language::runtime_environment_t *_env,
+                                   const scopes_t &_scopes,
+                                   const backtrace_t &_backtrace);
 
     void operator()(const Builtin_GroupedMapReduce &) const;
 
@@ -54,6 +58,8 @@ public:
 private:
     rget_read_response_t::result_t *out;
     query_language::runtime_environment_t *env;
+    scopes_t scopes;
+    backtrace_t backtrace;
 };
 
 /* A visitor for applying a terminal to a bit of json. */
@@ -61,6 +67,8 @@ class terminal_visitor_t : public boost::static_visitor<void> {
 public:
     terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                        query_language::runtime_environment_t *_env,
+                       const scopes_t &_scopes,
+                       const backtrace_t &_backtrace,
                        rget_read_response_t::result_t *_out);
 
     void operator()(const Builtin_GroupedMapReduce &gmr) const;
@@ -74,6 +82,8 @@ public:
 private:
     boost::shared_ptr<scoped_cJSON_t> json;
     query_language::runtime_environment_t *env;
+    scopes_t scopes;
+    backtrace_t backtrace;
     rget_read_response_t::result_t *out;
 };
 

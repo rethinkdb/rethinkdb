@@ -4,27 +4,24 @@
 
 namespace query_language {
 
-transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env)
-    : json(_json), out(_out), env(_env)
+transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env, const scopes_t &_scopes, const backtrace_t &_backtrace)
+    : json(_json), out(_out), env(_env), scopes(_scopes), backtrace(_backtrace)
 { }
 
 void transform_visitor_t::operator()(const Builtin_Filter &filter) const {
-    query_language::backtrace_t b; //TODO get this from somewhere
-    if (query_language::predicate_t(filter.predicate(), *env, b)(json)) {
+    if (query_language::predicate_t(filter.predicate(), env, scopes, backtrace)(json)) {
         out->push_back(json);
     }
 }
 
 void transform_visitor_t::operator()(const Mapping &mapping) const {
-    query_language::backtrace_t b; //TODO get this from somewhere
     Term t = mapping.body();
-    out->push_back(query_language::map(mapping.arg(), &t, *env, json, b));
+    out->push_back(query_language::map(mapping.arg(), &t, env, scopes, backtrace, json));
 }
 
 void transform_visitor_t::operator()(const Builtin_ConcatMap &concatmap) const {
-    query_language::backtrace_t b; //TODO get this from somewhere
     Term t = concatmap.mapping().body();
-    boost::shared_ptr<json_stream_t> stream = query_language::concatmap(concatmap.mapping().arg(), &t, *env, json, b);
+    boost::shared_ptr<json_stream_t> stream = query_language::concatmap(concatmap.mapping().arg(), &t, env, scopes, backtrace, json);
     while (boost::shared_ptr<scoped_cJSON_t> data = stream->next()) {
         out->push_back(data);
     }
@@ -32,17 +29,17 @@ void transform_visitor_t::operator()(const Builtin_ConcatMap &concatmap) const {
 
 void transform_visitor_t::operator()(Builtin_Range range) const {
     boost::shared_ptr<scoped_cJSON_t> lowerbound, upperbound;
-    query_language::backtrace_t b; //TODO get this from somewhere
 
     key_range_t key_range;
 
-    /* TODO this is inefficient because it involves recomputing this for each element. */
+    /* TODO this is inefficient because it involves recomputing this for each element.
+    TODO this is probably also incorrect because the term may be nondeterministic */
     if (range.has_lowerbound()) {
-        lowerbound = eval(range.mutable_lowerbound(), env, b.with("lowerbound"));
+        lowerbound = eval_term_as_json(range.mutable_lowerbound(), env, scopes, backtrace.with("lowerbound"));
     }
 
     if (range.has_upperbound()) {
-        upperbound = eval(range.mutable_upperbound(), env, b.with("upperbound"));
+        upperbound = eval_term_as_json(range.mutable_upperbound(), env, scopes, backtrace.with("upperbound"));
     }
 
     if (lowerbound && upperbound) {
@@ -65,16 +62,17 @@ void transform_visitor_t::operator()(Builtin_Range range) const {
 }
 
 terminal_initializer_visitor_t::terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,
-                                                               query_language::runtime_environment_t *_env)
-    : out(_out), env(_env)
+                                                               query_language::runtime_environment_t *_env,
+                                                               const scopes_t &_scopes,
+                                                               const backtrace_t &_backtrace)
+    : out(_out), env(_env), scopes(_scopes), backtrace(_backtrace)
 { }
 
 void terminal_initializer_visitor_t::operator()(const Builtin_GroupedMapReduce &) const { *out = rget_read_response_t::groups_t(); }
 
 void terminal_initializer_visitor_t::operator()(const Reduction &r) const {
-    query_language::backtrace_t b; //TODO get this from somewhere
     Term base = r.base();
-    *out = eval(&base, env, b);
+    *out = eval_term_as_json(&base, env, scopes, backtrace);
 }
 
 void terminal_initializer_visitor_t::operator()(const rdb_protocol_details::Length &) const {
@@ -91,13 +89,14 @@ void terminal_initializer_visitor_t::operator()(const WriteQuery_ForEach &) cons
 
 terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                    query_language::runtime_environment_t *_env,
+                   const scopes_t &_scopes,
+                   const backtrace_t &_backtrace,
                    rget_read_response_t::result_t *_out)
-    : json(_json), env(_env), out(_out)
+    : json(_json), env(_env), scopes(_scopes), backtrace(_backtrace), out(_out)
 { }
 
 void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
     boost::shared_ptr<scoped_cJSON_t> json_cpy = json;
-    query_language::backtrace_t b; //TODO get this from somewhere
     //we assume the result has already been set to groups_t
     rget_read_response_t::groups_t *res_groups = boost::get<rget_read_response_t::groups_t>(out);
     guarantee(res_groups);
@@ -105,47 +104,47 @@ void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
     //Grab the grouping
     boost::shared_ptr<scoped_cJSON_t> grouping;
     {
-        query_language::new_val_scope_t scope(&env->scopes.scope);
         Term body = gmr.group_mapping().body();
-
-        env->scopes.scope.put_in_scope(gmr.group_mapping().arg(), json_cpy);
-        grouping = eval(&body, env, b);
+        scopes_t scopes_copy = scopes;
+        new_val_scope_t inner_scope(&scopes_copy.scope);
+        scopes_copy.scope.put_in_scope(gmr.group_mapping().arg(), json_cpy);
+        grouping = eval_term_as_json(&body, env, scopes_copy, backtrace);
     }
 
     //Apply the mapping
     {
-        query_language::new_val_scope_t scope(&env->scopes.scope);
-        env->scopes.scope.put_in_scope(gmr.value_mapping().arg(), json_cpy);
-
         Term body = gmr.value_mapping().body();
-        json_cpy = eval(&body, env, b);
+        scopes_t scopes_copy = scopes;
+        new_val_scope_t inner_scope(&scopes_copy.scope);
+        scopes_copy.scope.put_in_scope(gmr.value_mapping().arg(), json_cpy);
+        json_cpy = eval_term_as_json(&body, env, scopes_copy, backtrace);
     }
 
     //Finally reduce it in
     {
-        query_language::new_val_scope_t scope(&env->scopes.scope);
-
         Term base = gmr.reduction().base(),
              body = gmr.reduction().body();
 
-        env->scopes.scope.put_in_scope(gmr.reduction().var1(), get_with_default(*res_groups, grouping, eval(&base, env, b)));
-        env->scopes.scope.put_in_scope(gmr.reduction().var2(), json_cpy);
-        (*res_groups)[grouping] = eval(&body, env, b);
+        scopes_t scopes_copy = scopes;
+        new_val_scope_t inner_scope(&scopes_copy.scope);
+        scopes_copy.scope.put_in_scope(gmr.reduction().var1(), get_with_default(*res_groups, grouping, eval_term_as_json(&base, env, scopes, backtrace)));
+        scopes_copy.scope.put_in_scope(gmr.reduction().var2(), json_cpy);
+        (*res_groups)[grouping] = eval_term_as_json(&body, env, scopes_copy, backtrace);
     }
 }
 
 void terminal_visitor_t::operator()(const Reduction &r) const {
-    query_language::backtrace_t b; //TODO get this from somewhere
     //we assume the result has already been set to groups_t
     rget_read_response_t::atom_t *res_atom = boost::get<rget_read_response_t::atom_t>(out);
     guarantee(res_atom);
     guarantee(*res_atom);
 
-    query_language::new_val_scope_t scope(&env->scopes.scope);
-    env->scopes.scope.put_in_scope(r.var1(), *res_atom);
-    env->scopes.scope.put_in_scope(r.var2(), json);
+    scopes_t scopes_copy = scopes;
+    new_val_scope_t inner_scope(&scopes_copy.scope);
+    scopes_copy.scope.put_in_scope(r.var1(), *res_atom);
+    scopes_copy.scope.put_in_scope(r.var2(), json);
     Term body = r.body();
-    *res_atom = eval(&body, env, b);
+    *res_atom = eval_term_as_json(&body, env, scopes_copy, backtrace);
 }
 
 void terminal_visitor_t::operator()(const rdb_protocol_details::Length &) const {
@@ -155,15 +154,14 @@ void terminal_visitor_t::operator()(const rdb_protocol_details::Length &) const 
 }
 
 void terminal_visitor_t::operator()(const WriteQuery_ForEach &w) const {
-    query_language::backtrace_t b; //TODO get this from somewhere
-
-    query_language::new_val_scope_t scope(&env->scopes.scope);
-    env->scopes.scope.put_in_scope(w.var(), json);
+    scopes_t scopes_copy = scopes;
+    new_val_scope_t inner_scope(&scopes_copy.scope);
+    scopes_copy.scope.put_in_scope(w.var(), json);
 
     for (int i = 0; i < w.queries_size(); ++i) {
         WriteQuery q = w.queries(i);
         Response r; //TODO we need to actually return this somewhere I suppose.
-        execute(&q, env, &r, b);
+        execute_write_query(&q, env, &r, scopes_copy, backtrace);
     }
 }
 

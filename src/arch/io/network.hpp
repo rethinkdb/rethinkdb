@@ -133,6 +133,10 @@ public:
     int getsockname(ip_address_t *addr);
     int getpeername(ip_address_t *addr);
 
+    linux_event_watcher_t *get_event_watcher() {
+        return event_watcher.get();
+    }
+
 private:
     explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
 

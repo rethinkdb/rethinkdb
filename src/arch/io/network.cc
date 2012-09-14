@@ -58,7 +58,12 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
 
     guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
 
-    int res = connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)); if (res != 0) {
+    int res;
+    do {
+        res  = connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
+    } while (res == -1 && errno == EINTR);
+
+    if (res != 0) {
         if (errno == EINPROGRESS) {
             linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_out);
             wait_interruptible(&watch, interruptor);
