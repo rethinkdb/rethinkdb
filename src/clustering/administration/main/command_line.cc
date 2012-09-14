@@ -448,22 +448,21 @@ MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *
     return true;
 }
 
-int parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
+MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
     try {
         po::store(po::parse_command_line(argc, argv, options), *vm);
         po::notify(*vm);
-        return 0;
+        return true;
     } catch (const po::unknown_option& ex) {
         logERR("%s\n", ex.what());
-        return 1;
+        return false;
     }
 }
 
 int main_rethinkdb_create(int argc, char *argv[]) {
     po::variables_map vm;
-    int res = parse_commands(argc, argv, &vm, get_rethinkdb_create_options());
-    if (res) {
-        return res;
+    if (!parse_commands(argc, argv, &vm, get_rethinkdb_create_options())) {
+        return EXIT_FAILURE;
     }
 
     io_backend_t io_backend;
@@ -483,7 +482,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         return 1;
     }
 
-    res = mkdir(filepath.c_str(), 0755);
+    int res = mkdir(filepath.c_str(), 0755);
     if (res != 0) {
         fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
         return 1;
@@ -495,14 +494,13 @@ int main_rethinkdb_create(int argc, char *argv[]) {
     run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, machine_name, io_backend, &result),
                        num_workers);
 
-    return result ? 0 : 1;
+    return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int main_rethinkdb_serve(int argc, char *argv[]) {
     po::variables_map vm;
-    int res = parse_commands(argc, argv, &vm, get_rethinkdb_serve_options());
-    if (res) {
-        return res;
+    if (!parse_commands(argc, argv, &vm, get_rethinkdb_serve_options())) {
+        return EXIT_FAILURE;
     }
 
     std::string filepath = vm["directory"].as<std::string>();
@@ -534,12 +532,12 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     const int num_workers = vm["cores"].as<int>();
     if (num_workers <= 0 || num_workers > MAX_THREADS) {
         fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
-        return 1;
+        return EXIT_FAILURE;
     }
 
     if (!check_existence(filepath)) {
         fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
-        return 1;
+        return EXIT_FAILURE;
     }
 
     install_fallback_log_writer(logfilepath);
@@ -551,7 +549,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                    &result, render_as_path(web_path)),
                        num_workers);
 
-    return result ? 0 : 1;
+    return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int main_rethinkdb_admin(int argc, char *argv[]) {
@@ -597,20 +595,19 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         result = false;
     }
 
-    return result ? 0 : 1;
+    return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int main_rethinkdb_proxy(int argc, char *argv[]) {
     po::variables_map vm;
-    int res = parse_commands(argc, argv, &vm, get_rethinkdb_proxy_options());
-    if (res) {
-        return res;
+    if (!parse_commands(argc, argv, &vm, get_rethinkdb_proxy_options())) {
+        return EXIT_FAILURE;
     }
 
     if (!vm.count("join")) {
         printf("No --join option(s) given. A proxy needs to connect to something!\n"
                "Run 'rethinkdb proxy help' for more information.\n");
-        return 1;
+        return EXIT_FAILURE;
      }
 
     std::string logfilepath = vm["log-file"].as<std::string>();
@@ -644,11 +641,11 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                                    &result, render_as_path(web_path)),
                        num_workers);
 
-    return result ? 0 : 1;
+    return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 // TODO(sam): Add split_db_table unit test.
-bool split_db_table(const std::string &db_table, std::string *db_name_out, std::string *table_name_out) {
+MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_out, std::string *table_name_out) {
     size_t first_pos = db_table.find_first_of('.');
     if (first_pos == std::string::npos || db_table.find_last_of('.') != first_pos) {
         return false;
@@ -667,57 +664,54 @@ bool split_db_table(const std::string &db_table, std::string *db_name_out, std::
 
 int main_rethinkdb_import(int argc, char *argv[]) {
     try {
-    po::variables_map vm;
-    int res = parse_commands(argc - 1, argv + 1, &vm, get_rethinkdb_import_options());
-    if (res) {
-        return res;
-    }
+        po::variables_map vm;
+        if (!parse_commands(argc - 1, argv + 1, &vm, get_rethinkdb_import_options())) {
+            return EXIT_FAILURE;
+        }
 
-    // TODO(sam): Does this not work with a zero count?
-    std::vector<host_and_port_t> joins;
-    if (vm.count("join") > 0) {
-        joins = vm["join"].as<std::vector<host_and_port_t> >();
-    }
-    // TODO(sam): I think we and rethinkdb_admin handle client_port differently?  Why?
+        // TODO(sam): Does this not work with a zero count?
+        std::vector<host_and_port_t> joins;
+        if (vm.count("join") > 0) {
+            joins = vm["join"].as<std::vector<host_and_port_t> >();
+        }
+        // TODO(sam): I think we and rethinkdb_admin handle client_port differently?  Why?
 #ifndef NDEBUG
-    int client_port = vm["client-port"].as<int>();
+        int client_port = vm["client-port"].as<int>();
 #else
-    int client_port = port_defaults::client_port;
+        int client_port = port_defaults::client_port;
 #endif
-    std::string db_table = vm["table"].as<std::string>();
-    std::string db_name;
-    std::string table_name;
-    if (!split_db_table(db_table, &db_name, &table_name)) {
-        // TODO(sam): handle error gracefully.
-        return EXIT_FAILURE;
-    }
+        std::string db_table = vm["table"].as<std::string>();
+        std::string db_name;
+        std::string table_name;
+        if (!split_db_table(db_table, &db_name, &table_name)) {
+            // TODO(sam): handle error gracefully.
+            return EXIT_FAILURE;
+        }
 
 
-    std::string separators = vm["separators"].as<std::string>();
-    if (separators.empty()) {
-        // TODO(sam): Pardon me, are we returning EXIT_FAILURE where
-        // elsewhere we used numeric constants 0 and 1?
-        return EXIT_FAILURE;
-    }
-    std::string input_filepath = vm["input-file"].as<std::string>();
-    if (input_filepath.empty()) {
-        // TODO(sam): handle error gracefully.
-        return EXIT_FAILURE;
-    }
-    io_backend_t io_backend;
-    if (!pull_io_backend_option(vm, &io_backend)) {
-        return EXIT_FAILURE;
-    }
+        std::string separators = vm["separators"].as<std::string>();
+        if (separators.empty()) {
+            return EXIT_FAILURE;
+        }
+        std::string input_filepath = vm["input-file"].as<std::string>();
+        if (input_filepath.empty()) {
+            // TODO(sam): handle error gracefully.
+            return EXIT_FAILURE;
+        }
+        io_backend_t io_backend;
+        if (!pull_io_backend_option(vm, &io_backend)) {
+            return EXIT_FAILURE;
+        }
 
-    extproc::spawner_t::info_t spawner_info;
-    extproc::spawner_t::create(&spawner_info);
+        extproc::spawner_t::info_t spawner_info;
+        extproc::spawner_t::create(&spawner_info);
 
-    const int num_workers = get_cpu_count();
-    bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_import, &spawner_info, joins, io_backend, client_port, db_name, table_name, separators, input_filepath, &result),
-                       num_workers);
+        const int num_workers = get_cpu_count();
+        bool result;
+        run_in_thread_pool(boost::bind(&run_rethinkdb_import, &spawner_info, joins, io_backend, client_port, db_name, table_name, separators, input_filepath, &result),
+                           num_workers);
 
-    return result ? 0 : 1;
+        return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const std::exception& ex) {
         // TODO(sam): This generic exception handler is complete fucking bullshit and so are the other ones in this file.
         logERR("%s\n", ex.what());
@@ -728,9 +722,8 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
     po::variables_map vm;
-    int res = parse_commands(argc, argv, &vm, get_rethinkdb_porcelain_options());
-    if (res) {
-        return res;
+    if (!parse_commands(argc, argv, &vm, get_rethinkdb_porcelain_options())) {
+        return EXIT_FAILURE;
     }
 
     std::string filepath = vm["directory"].as<std::string>();
@@ -762,7 +755,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     const int num_workers = vm["cores"].as<int>();
     if (num_workers <= 0 || num_workers > MAX_THREADS) {
         fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
-        return 1;
+        return EXIT_FAILURE;
     }
 
     bool new_directory = false;
@@ -772,7 +765,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         int mkdir_res = mkdir(filepath.c_str(), 0755);
         if (mkdir_res != 0) {
             fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
-            return 1;
+            return EXIT_FAILURE;
         }
     }
 
@@ -785,7 +778,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                    &result, render_as_path(web_path), new_directory),
                        num_workers);
 
-    return result ? 0 : 1;
+    return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 void help_rethinkdb_create() {
