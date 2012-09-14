@@ -55,22 +55,25 @@ module RethinkDB
       @body = [:table, @db_name, @table_name] # when used as stream
     end
 
-    # Insert one or more rows into the table.  Rows with duplicate primary key
-    # (usually :id) are ignored, with no guarantees about which row 'wins'.  May
-    # also provide only one row to insert.  For example, if we have a table
-    # <b>+table+</b>, the following are equivalent:
-    #   table.insert({:id => 1, :name => 'Bob'})
-    #   table.insert([{:id => 1, :name => 'Bob'}])
-    #   table.insert([{:id => 1, :name => 'Bob'}, {:id => 1, :name => 'Bob'}])
+    # Insert one or more rows into the table.  If you try to insert a
+    # row with a primary key already in the table, you will get abck
+    # an error.  For example, if you have a table <b>+table+</b>:
+    #   table.insert({:id => 1}, {:id => 1})
+    # Will return something like:
+    #   {'inserted' => 1, 'errors' => 1, 'first_error' => ...}
     # You may also provide a stream.  So to make a copy of a table, you can do:
     #   r.create_db('new_db').run
     #   r.db('new_db').create_table('new_table').run
     #   r.db('new_db').new_table.insert(table).run
     def insert(rows)
       rows = [rows] if rows.class != Array
-      Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| S.r(x)}]
+      Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| S.r(x)}, false]
     end
 
+    def upsert(rows) # :nodoc:
+      rows = [rows] if rows.class != Array
+      Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| S.r(x)}, true]
+    end
     # Get the row of the invoking table with key <b>+key+</b>.  You may also
     # optionally specify the name of the attribute to use as your key
     # (<b>+keyname+</b>), but note that your table must be indexed by that

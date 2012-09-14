@@ -248,6 +248,7 @@ message WriteQuery {
     message Insert {
         required TableRef table_ref = 1;
         repeated Term terms = 2;
+        optional bool overwrite = 3 [default = false];
     };
 
     optional Insert insert = 5;

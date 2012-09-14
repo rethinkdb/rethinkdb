@@ -350,14 +350,14 @@ struct rdb_protocol_t {
     class point_write_t {
     public:
         point_write_t() { }
-        point_write_t(const store_key_t& key_, boost::shared_ptr<scoped_cJSON_t> data_)
-            : key(key_), data(data_) { }
+        point_write_t(const store_key_t& key_, boost::shared_ptr<scoped_cJSON_t> data_, bool overwrite_=true)
+            : key(key_), data(data_), overwrite(overwrite_) { }
 
         store_key_t key;
-
         boost::shared_ptr<scoped_cJSON_t> data;
+        bool overwrite;
 
-        RDB_MAKE_ME_SERIALIZABLE_2(key, data);
+        RDB_MAKE_ME_SERIALIZABLE_3(key, data, overwrite);
     };
 
     class point_delete_t {
