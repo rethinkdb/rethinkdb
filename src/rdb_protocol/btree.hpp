@@ -82,7 +82,7 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
                                    btree_slice_t *slice, repli_timestamp_t timestamp,
                                    transaction_t *txn, superblock_t *superblock);
 
-point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data,
+point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
                        btree_slice_t *slice, repli_timestamp_t timestamp,
                        transaction_t *txn, superblock_t *superblock);
 

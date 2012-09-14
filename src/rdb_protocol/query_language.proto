@@ -216,7 +216,6 @@ message WriteQuery {
         DELETE = 2;
         MUTATE = 3;
         INSERT = 4;
-        INSERTSTREAM = 5;
         FOREACH = 6;
         POINTUPDATE = 7;
         POINTDELETE = 8;
@@ -248,16 +247,10 @@ message WriteQuery {
     message Insert {
         required TableRef table_ref = 1;
         repeated Term terms = 2;
+        optional bool overwrite = 3 [default = false];
     };
 
     optional Insert insert = 5;
-
-    message InsertStream {
-        required TableRef table_ref = 1;
-        required Term stream = 2;
-    };
-
-    optional InsertStream insert_stream = 6;
 
     message ForEach {
         required Term stream = 1;

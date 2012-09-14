@@ -631,11 +631,6 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
             }
             break;
         }
-        case WriteQuery::INSERTSTREAM: {
-            check_protobuf(w.has_insert_stream());
-            check_term_type(w.insert_stream().stream(), TERM_TYPE_STREAM, env, is_det_out, backtrace.with("stream"));
-            break;
-        }
         case WriteQuery::FOREACH:
             {
                 check_protobuf(w.has_for_each());
@@ -1027,7 +1022,7 @@ void execute(ReadQuery *r, runtime_environment_t *env, Response *res, const back
     }
 }
 
-void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::string &pk, boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env, const backtrace_t &backtrace) {
+MUST_USE bool insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::string &pk, boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env, const backtrace_t &backtrace, bool overwrite) {
     if (!data->GetObjectItem(pk.c_str())) {
         throw runtime_exc_t(strprintf("Must have a field named \"%s\" (The primary key).", pk.c_str()), backtrace);
     }
@@ -1038,9 +1033,10 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::str
     }
 
     try {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_primary(data->GetObjectItem(pk.c_str()), backtrace)), data));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_primary(data->GetObjectItem(pk.c_str()), backtrace)), data, overwrite));
         rdb_protocol_t::write_response_t response;
         ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+        return overwrite || boost::get<rdb_protocol_t::point_write_response_t>(response.response).result != DUPLICATE;
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
@@ -1163,9 +1159,12 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
         case WriteQuery::INSERT:
             {
                 std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref(), env, backtrace);
+                bool overwrite = w->mutable_insert()->overwrite();
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access =
                     eval(w->mutable_insert()->mutable_table_ref(), env, backtrace);
 
+                std::string first_error;
+                int errors = 0; //TODO: error reporting
                 int inserted = 0;
                 if (w->insert().terms_size() == 1) {
                     Term *t = w->mutable_insert()->mutable_terms(0);
@@ -1174,8 +1173,11 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     if (t_type == TERM_TYPE_JSON) {
                         boost::shared_ptr<scoped_cJSON_t> data = eval(t, env, backtrace.with("term:0"));
                         if (data->type() == cJSON_Object) {
-                            ++inserted;
-                            insert(ns_access, pk, data, env, backtrace.with("term:0"));
+                            bool did_insert = insert(ns_access, pk, data, env, backtrace.with("term:0"), overwrite);
+                            if (!did_insert && first_error == "") {
+                                first_error = strprintf("Duplicate primary key %s in %s", pk.c_str(), data->Print().c_str());
+                            }
+                            (did_insert?inserted:errors) += 1;
                         } else if (data->type() == cJSON_Array) {
                             stream.reset(new in_memory_stream_t(json_array_iterator_t(data->get()), env));
                         } else {
@@ -1190,36 +1192,31 @@ void execute(WriteQuery *w, runtime_environment_t *env, Response *res, const bac
                     if (stream) {
                         int i = 0;
                         while (boost::shared_ptr<scoped_cJSON_t> data = stream->next()) {
-                            ++inserted;
-                            insert(ns_access, pk, data, env, backtrace.with(strprintf("stream:%d", i++)));
+                            bool did_insert = insert(ns_access, pk, data, env, backtrace.with(strprintf("stream:%d", i++)),overwrite);
+                            if (!did_insert && first_error == "") {
+                                first_error = strprintf("Duplicate primary key %s in %s", pk.c_str(), data->Print().c_str());
+                            }
+                            (did_insert?inserted:errors) += 1;
                         }
                     }
                 } else {
                     for (int i = 0; i < w->insert().terms_size(); ++i) {
                         boost::shared_ptr<scoped_cJSON_t> data =
                             eval(w->mutable_insert()->mutable_terms(i), env, backtrace.with(strprintf("term:%d", i)));
-                        ++inserted;
-                        insert(ns_access, pk, data, env, backtrace.with(strprintf("term:%d", i)));
+                        bool did_insert = insert(ns_access, pk, data, env, backtrace.with(strprintf("term:%d", i)), overwrite);
+                        if (!did_insert && first_error == "") {
+                            first_error = strprintf("Duplicate primary key %s in %s", pk.c_str(), data->Print().c_str());
+                        }
+                        (did_insert?inserted:errors) += 1;
                     }
                 }
 
-                res->add_response(strprintf("{\"inserted\": %d}", inserted));
-            }
-            break;
-        case WriteQuery::INSERTSTREAM:
-            {
-                std::string pk = get_primary_key(w->mutable_insert_stream()->mutable_table_ref(), env, backtrace);
-                boost::shared_ptr<json_stream_t> stream = eval_stream(w->mutable_insert_stream()->mutable_stream(), env, backtrace.with("stream"));
-
-                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w->mutable_insert_stream()->mutable_table_ref(), env, backtrace);
-
-                int inserted = 0;
-                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    inserted++;
-                    insert(ns_access, pk, json, env, backtrace);
+                std::string res_list = strprintf("\"inserted\": %d, \"errors\": %d", inserted, errors);
+                if (first_error != "") {
+                    res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
+                                         scoped_cJSON_t(cJSON_CreateString(first_error.c_str())).Print().c_str());
                 }
-
-                res->add_response(strprintf("{\"inserted\": %d}", inserted));
+                res->add_response("{" + res_list + "}");
             }
             break;
         case WriteQuery::FOREACH: {
