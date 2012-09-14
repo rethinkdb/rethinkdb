@@ -97,6 +97,9 @@ inline void debug_print(append_only_printf_buffer_t *buf, const version_range_t&
     buf->appendf("}");
 }
 
+template <class protocol_t>
+region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_t<protocol_t, binary_blob_t> &blob_map);
+
 /* The state of the database at the time that the `broadcaster_t` was created
 and the sequence of writes that pass through a `broadcaster_t` are collectively
 referred to as a "branch". When a new broadcaster is created, it records the
