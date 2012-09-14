@@ -32,7 +32,10 @@ Response on_unparsable_query(Query *q, std::string msg) {
     return res;
 }
 
-Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
+Response query_server_t::handle(Query *q, context_t *query_context) {
+    stream_cache_t *stream_cache = &query_context->stream_cache;
+    signal_t *interruptor = query_context->interruptor;
+    rassert(interruptor);
     Response res;
     res.set_token(q->token());
 
@@ -54,7 +57,6 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
         return res;
     }
 
-    cond_t interruptor;
     boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
     {
         int thread = get_thread_id();
@@ -64,7 +66,7 @@ Response query_server_t::handle(Query *q, stream_cache_t *stream_cache) {
             ctx->cross_thread_database_watchables[thread]->get_watchable(),
             ctx->semilattice_metadata,
             ctx->directory_read_manager,
-            js_runner, &interruptor, ctx->machine_id);
+            js_runner, interruptor, ctx->machine_id);
         try {
             //[execute] will set the status code unless it throws
             execute(q, &runtime_environment, &res, root_backtrace, stream_cache);
