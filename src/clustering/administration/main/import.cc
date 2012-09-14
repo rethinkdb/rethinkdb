@@ -152,12 +152,16 @@ bool get_or_create_namespace(const boost::shared_ptr<semilattice_readwrite_view_
     const char *error;
     std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator it = searcher.find_uniq(namespace_predicate_t(table_name, db_id), &error);
 
-    if (error != METADATA_SUCCESS) {
+    if (error == METADATA_SUCCESS) {
+        *namespace_out = it->first;
+        return true;
+    } else if (error == METADATA_ERR_NONE) {
+        // TODO(sam):  impl this.
         *namespace_out = namespace_id_t();
         return false;
     } else {
-        *namespace_out = it->first;
-        return true;
+        *namespace_out = namespace_id_t();
+        return false;
     }
 }
 
@@ -168,13 +172,17 @@ bool get_or_create_database(const boost::shared_ptr<semilattice_readwrite_view_t
     const char *error;
     std::map<database_id_t, deletable_t<database_semilattice_metadata_t> >::iterator it = searcher.find_uniq(db_name, &error);
 
-    if (error != METADATA_SUCCESS) {
-        // TODO(sam): Actually support _creating_ the database.
+    if (error == METADATA_SUCCESS) {
+        *db_out = it->first;
+        return true;
+    } else if (error == METADATA_ERR_NONE) {
+        // TODO(sam): Impl this.
         *db_out = database_id_t();
         return false;
     } else {
-        *db_out = it->first;
-        return true;
+        // TODO(sam): Actually support _creating_ the database.
+        *db_out = database_id_t();
+        return false;
     }
 }
 
