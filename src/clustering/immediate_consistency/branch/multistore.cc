@@ -25,12 +25,6 @@ store_view_t<protocol_t> *multistore_ptr_t<protocol_t>::get_store(int i) const {
 }
 
 template <class protocol_t>
-region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_t<protocol_t, binary_blob_t> &blob_map) {
-    return region_map_transform<protocol_t, binary_blob_t, version_range_t>(blob_map,
-                                                                            &binary_blob_t::get<version_range_t>);
-}
-
-template <class protocol_t>
 multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **store_views, int num_store_views,
                                                const typename protocol_t::region_t &region)
     : store_views_(num_store_views),
@@ -284,7 +278,3 @@ void multistore_ptr_t<protocol_t>::switch_inner_write_token(int i, fifo_enforcer
 template class multistore_ptr_t<mock::dummy_protocol_t>;
 template class multistore_ptr_t<memcached_protocol_t>;
 template class multistore_ptr_t<rdb_protocol_t>;
-
-template region_map_t<mock::dummy_protocol_t, version_range_t> to_version_range_map<mock::dummy_protocol_t>(const region_map_t<mock::dummy_protocol_t, binary_blob_t> &blob_map);
-template region_map_t<memcached_protocol_t, version_range_t> to_version_range_map<memcached_protocol_t>(const region_map_t<memcached_protocol_t, binary_blob_t> &blob_map);
-template region_map_t<rdb_protocol_t, version_range_t> to_version_range_map<rdb_protocol_t>(const region_map_t<rdb_protocol_t, binary_blob_t> &blob_map);
