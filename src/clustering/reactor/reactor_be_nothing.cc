@@ -1,7 +1,6 @@
 #include "clustering/reactor/reactor.hpp"
 
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
-#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 

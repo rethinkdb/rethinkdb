@@ -51,6 +51,15 @@ bool version_is_divergent(
 }
 
 
+template <class protocol_t>
+region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_t<protocol_t, binary_blob_t> &blob_map) {
+    return region_map_transform<protocol_t, binary_blob_t, version_range_t>(blob_map,
+                                                                            &binary_blob_t::get<version_range_t>);
+}
+
+
+
+
 
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
@@ -98,3 +107,9 @@ bool version_is_divergent<rdb_protocol_t>(
         version_t v1,
         version_t v2,
         rdb_protocol_t::region_t relevant_region);
+
+template region_map_t<mock::dummy_protocol_t, version_range_t> to_version_range_map<mock::dummy_protocol_t>(const region_map_t<mock::dummy_protocol_t, binary_blob_t> &blob_map);
+
+template region_map_t<memcached_protocol_t, version_range_t> to_version_range_map<memcached_protocol_t>(const region_map_t<memcached_protocol_t, binary_blob_t> &blob_map);
+
+template region_map_t<rdb_protocol_t, version_range_t> to_version_range_map<rdb_protocol_t>(const region_map_t<rdb_protocol_t, binary_blob_t> &blob_map);
