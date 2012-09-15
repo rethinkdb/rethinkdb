@@ -2120,14 +2120,14 @@ predicate_t::predicate_t(const Predicate &_pred, runtime_environment_t *_env, co
 bool predicate_t::operator()(boost::shared_ptr<scoped_cJSON_t> json) {
     variable_val_scope_t::new_scope_t scope_maker(&scopes.scope, pred.arg(), json);
     implicit_value_setter_t impliciter(&scopes.implicit_attribute_value, json);
-    boost::shared_ptr<scoped_cJSON_t> a_bool = eval_term_as_json(pred.mutable_body(), env, scopes, backtrace.with("predicate"));
+    boost::shared_ptr<scoped_cJSON_t> a_bool = eval_term_as_json(pred.mutable_body(), env, scopes, backtrace);
 
     if (a_bool->type() == cJSON_True) {
         return true;
     } else if (a_bool->type() == cJSON_False) {
         return false;
     } else {
-        throw runtime_exc_t("Predicate failed to evaluate to a bool", backtrace.with("predicate"));
+        throw runtime_exc_t("Predicate failed to evaluate to a bool", backtrace);
     }
 }
 

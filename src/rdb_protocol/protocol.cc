@@ -259,9 +259,13 @@ public:
 
                         scopes_t scopes_copy = rg.terminal->scopes;
                         query_language::new_val_scope_t inner_scope(&scopes_copy.scope);
-                        scopes_copy.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace)));
+                        scopes_copy.scope.put_in_scope(gmr->reduction().var1(),
+                            get_with_default(*res_groups, j->first,
+                                eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("reduction").with("base"))
+                                )
+                            );
                         scopes_copy.scope.put_in_scope(gmr->reduction().var2(), j->second);
-                        (*res_groups)[j->first] = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace);
+                        (*res_groups)[j->first] = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("reduction").with("body"));
                     }
                 }
             } else if (const Reduction *r = boost::get<Reduction>(&rg.terminal->variant)) {
@@ -270,7 +274,7 @@ public:
                 atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
 
                 Term base = r->base();
-                *res_atom = eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace);
+                *res_atom = eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("base"));
 
                 for(size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
@@ -283,7 +287,7 @@ public:
                     scopes_copy.scope.put_in_scope(r->var1(), *res_atom);
                     scopes_copy.scope.put_in_scope(r->var2(), *atom);
                     Term body = r->body();
-                    *res_atom = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace);
+                    *res_atom = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("body"));
                 }
             } else if (boost::get<rdb_protocol_details::Length>(&rg.terminal->variant)) {
                 rg_response.result = atom_t();
@@ -477,9 +481,9 @@ public:
 
                         scopes_t scopes_copy = rg.terminal->scopes;
                         query_language::new_val_scope_t inner_scope(&scopes_copy.scope);
-                        scopes_copy.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace)));
+                        scopes_copy.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("reduction").with("base"))));
                         scopes_copy.scope.put_in_scope(gmr->reduction().var2(), j->second);
-                        (*res_groups)[j->first] = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace);
+                        (*res_groups)[j->first] = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("reduction").with("body"));
                     }
                 }
             } else if (const Reduction *r = boost::get<Reduction>(&rg.terminal->variant)) {
@@ -488,7 +492,7 @@ public:
                 atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
 
                 Term base = r->base();
-                *res_atom = eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace);
+                *res_atom = eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("base"));
 
                 for(size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
@@ -501,7 +505,7 @@ public:
                     scopes_copy.scope.put_in_scope(r->var1(), *res_atom);
                     scopes_copy.scope.put_in_scope(r->var2(), *atom);
                     Term body = r->body();
-                    *res_atom = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace);
+                    *res_atom = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("body"));
                 }
             } else if (boost::get<rdb_protocol_details::Length>(&rg.terminal->variant)) {
                 rg_response.result = atom_t();
