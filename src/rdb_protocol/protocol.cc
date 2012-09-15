@@ -208,7 +208,6 @@ public:
     }
 
     void operator()(const rget_read_t &rg) {
-        env.scopes = rg.scopes;
         response_out->response = rget_read_response_t();
         rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response_out->response);
         rg_response.truncated = false;
@@ -244,7 +243,7 @@ public:
                         rg_response.last_considered_key = _rr->last_considered_key;
                     }
                 }
-            } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg.terminal)) {
+            } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&rg.terminal->variant)) {
                 //GroupedMapreduce
                 rg_response.result = groups_t();
                 groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
@@ -255,23 +254,27 @@ public:
                     const groups_t *groups = boost::get<groups_t>(&(_rr->result));
 
                     for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
-                        query_language::new_val_scope_t scope(&env.scopes.scope);
                         Term base = gmr->reduction().base(),
                              body = gmr->reduction().body();
 
-                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, rg.backtrace)));
-                        env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
-
-                        (*res_groups)[j->first] = eval(&body, &env, rg.backtrace);
+                        scopes_t scopes_copy = rg.terminal->scopes;
+                        query_language::new_val_scope_t inner_scope(&scopes_copy.scope);
+                        scopes_copy.scope.put_in_scope(gmr->reduction().var1(),
+                            get_with_default(*res_groups, j->first,
+                                eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("reduction").with("base"))
+                                )
+                            );
+                        scopes_copy.scope.put_in_scope(gmr->reduction().var2(), j->second);
+                        (*res_groups)[j->first] = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("reduction").with("body"));
                     }
                 }
-            } else if (const Reduction *r = boost::get<Reduction>(&*rg.terminal)) {
+            } else if (const Reduction *r = boost::get<Reduction>(&rg.terminal->variant)) {
                 //Normal Mapreduce
                 rg_response.result = atom_t();
                 atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
 
                 Term base = r->base();
-                *res_atom = eval(&base, &env, rg.backtrace);
+                *res_atom = eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("base"));
 
                 for(size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
@@ -279,13 +282,14 @@ public:
 
                     const atom_t *atom = boost::get<atom_t>(&(_rr->result));
 
-                    query_language::new_val_scope_t scope(&env.scopes.scope);
-                    env.scopes.scope.put_in_scope(r->var1(), *res_atom);
-                    env.scopes.scope.put_in_scope(r->var2(), *atom);
+                    scopes_t scopes_copy = rg.terminal->scopes;
+                    query_language::new_val_scope_t inner_scope(&scopes_copy.scope);
+                    scopes_copy.scope.put_in_scope(r->var1(), *res_atom);
+                    scopes_copy.scope.put_in_scope(r->var2(), *atom);
                     Term body = r->body();
-                    *res_atom = eval(&body, &env, rg.backtrace);
+                    *res_atom = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("body"));
                 }
-            } else if (boost::get<rdb_protocol_details::Length>(&*rg.terminal)) {
+            } else if (boost::get<rdb_protocol_details::Length>(&rg.terminal->variant)) {
                 rg_response.result = atom_t();
                 length_t *res_length = boost::get<length_t>(&rg_response.result);
                 res_length->length = 0;
@@ -297,7 +301,7 @@ public:
                     const length_t *length = boost::get<length_t>(&(_rr->result));
                     res_length->length += length->length;
                 }
-            } else if (boost::get<WriteQuery_ForEach>(&*rg.terminal)) {
+            } else if (boost::get<WriteQuery_ForEach>(&rg.terminal->variant)) {
                 rg_response.result = atom_t();
                 inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
                 res_inserted->inserted = 0;
@@ -321,10 +325,6 @@ public:
         rassert(count > 0);
         rassert(boost::get<distribution_read_response_t>(&responses[0].response));
         rassert(count == 1 || boost::get<distribution_read_response_t>(&responses[1].response));
-
-        // Asserts that we don't look like a hash-sharded thing.
-        rassert(!(count > 1
-                  && boost::get<distribution_read_response_t>(&responses[0].response)->key_counts.begin()->first == boost::get<distribution_read_response_t>(&responses[1].response)->key_counts.begin()->first));
 
         response_out->response = distribution_read_response_t();
         distribution_read_response_t *response = boost::get<distribution_read_response_t>(&response_out->response);
@@ -386,7 +386,6 @@ public:
     }
 
     void operator()(const rget_read_t &rg) {
-        env.scopes = rg.scopes;
         response_out->response = rget_read_response_t();
         rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response_out->response);
         rg_response.truncated = false;
@@ -466,7 +465,7 @@ public:
                     //res_stream->insert(res_stream->end(), stream->begin(), stream->end());
                     rg_response.truncated = rg_response.truncated || _rr->truncated;
                 }
-            } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&*rg.terminal)) {
+            } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&rg.terminal->variant)) {
                 //GroupedMapreduce
                 rg_response.result = groups_t();
                 groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
@@ -477,23 +476,23 @@ public:
                     const groups_t *groups = boost::get<groups_t>(&(_rr->result));
 
                     for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
-                        query_language::new_val_scope_t scope(&env.scopes.scope);
                         Term base = gmr->reduction().base(),
                              body = gmr->reduction().body();
 
-                        env.scopes.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval(&base, &env, rg.backtrace)));
-                        env.scopes.scope.put_in_scope(gmr->reduction().var2(), j->second);
-
-                        (*res_groups)[j->first] = eval(&body, &env, rg.backtrace);
+                        scopes_t scopes_copy = rg.terminal->scopes;
+                        query_language::new_val_scope_t inner_scope(&scopes_copy.scope);
+                        scopes_copy.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("reduction").with("base"))));
+                        scopes_copy.scope.put_in_scope(gmr->reduction().var2(), j->second);
+                        (*res_groups)[j->first] = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("reduction").with("body"));
                     }
                 }
-            } else if (const Reduction *r = boost::get<Reduction>(&*rg.terminal)) {
+            } else if (const Reduction *r = boost::get<Reduction>(&rg.terminal->variant)) {
                 //Normal Mapreduce
                 rg_response.result = atom_t();
                 atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
 
                 Term base = r->base();
-                *res_atom = eval(&base, &env, rg.backtrace);
+                *res_atom = eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("base"));
 
                 for(size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
@@ -501,13 +500,14 @@ public:
 
                     const atom_t *atom = boost::get<atom_t>(&(_rr->result));
 
-                    query_language::new_val_scope_t scope(&env.scopes.scope);
-                    env.scopes.scope.put_in_scope(r->var1(), *res_atom);
-                    env.scopes.scope.put_in_scope(r->var2(), *atom);
+                    scopes_t scopes_copy = rg.terminal->scopes;
+                    query_language::new_val_scope_t inner_scope(&scopes_copy.scope);
+                    scopes_copy.scope.put_in_scope(r->var1(), *res_atom);
+                    scopes_copy.scope.put_in_scope(r->var2(), *atom);
                     Term body = r->body();
-                    *res_atom = eval(&body, &env, rg.backtrace);
+                    *res_atom = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("body"));
                 }
-            } else if (boost::get<rdb_protocol_details::Length>(&*rg.terminal)) {
+            } else if (boost::get<rdb_protocol_details::Length>(&rg.terminal->variant)) {
                 rg_response.result = atom_t();
                 length_t *res_length = boost::get<length_t>(&rg_response.result);
                 res_length->length = 0;
@@ -520,7 +520,7 @@ public:
 
                     res_length->length += length->length;
                 }
-            } else if (boost::get<WriteQuery_ForEach>(&*rg.terminal)) {
+            } else if (boost::get<WriteQuery_ForEach>(&rg.terminal->variant)) {
                 rg_response.result = atom_t();
                 inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
                 res_inserted->inserted = 0;
@@ -598,12 +598,6 @@ private:
     query_language::runtime_environment_t env;
 };
 
-void read_t::multistore_unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    multistore_unshard_visitor_t v(responses, count, response, ctx);
-    boost::apply_visitor(v, read);
-}
-
-
 /* write_t::get_region() implementation */
 
 namespace {
@@ -663,10 +657,6 @@ void write_t::unshard(const write_response_t *responses, DEBUG_VAR size_t count,
     *response = responses[0];
 }
 
-void write_t::multistore_unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    return unshard(responses, count, response, ctx);
-}
-
 store_t::store_t(io_backender_t *io_backend,
                  const std::string& filename,
                  bool create,
@@ -689,7 +679,6 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
     }
 
     read_response_t operator()(const rget_read_t &rget) {
-        env.scopes = rget.scopes;
         return read_response_t(rdb_rget_slice(btree, rget.region.inner, txn, superblock, &env, rget.transform, rget.terminal));
     }
 
@@ -748,8 +737,7 @@ struct write_visitor_t : public boost::static_visitor<write_response_t> {
     }
 
     write_response_t operator()(const point_modify_t &m) {
-        env.scopes = m.scopes;
-        write_response_t res(rdb_modify(m.primary_key, m.key, m.op, &env, m.mapping, btree, timestamp, txn, superblock));
+        write_response_t res(rdb_modify(m.primary_key, m.key, m.op, &env, m.scopes, m.backtrace, m.mapping, btree, timestamp, txn, superblock));
         return res;
     }
 

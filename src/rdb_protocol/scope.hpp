@@ -24,11 +24,11 @@ public:
         scopes.front()[name] = t;
     }
 
-    T get(const std::string &name) {
-        for (typename scopes_t::iterator it  = scopes.begin();
-                                         it != scopes.end();
-                                         ++it) {
-            typename std::map<std::string, T>::iterator jt = it->find(name);
+    T get(const std::string &name) const {
+        for (typename scopes_t::const_iterator it  = scopes.begin();
+                                               it != scopes.end();
+                                               ++it) {
+            typename std::map<std::string, T>::const_iterator jt = it->find(name);
             if (jt != it->end()) {
                 return jt->second;
             }
@@ -39,11 +39,11 @@ public:
 
     // Calling this only makes sense in the typechecker. All variables
     // are guranteed by the typechecker to be present at runtime.
-    bool is_in_scope(const std::string &name) {
-        for (typename scopes_t::iterator it  = scopes.begin();
-                                         it != scopes.end();
-                                         ++it) {
-            typename std::map<std::string, T>::iterator jt = it->find(name);
+    bool is_in_scope(const std::string &name) const {
+        for (typename scopes_t::const_iterator it  = scopes.begin();
+                                               it != scopes.end();
+                                               ++it) {
+            typename std::map<std::string, T>::const_iterator jt = it->find(name);
             if (jt != it->end()) {
                 return true;
             }
@@ -60,15 +60,15 @@ public:
     }
 
     // TODO(rntz): find a better way to do this.
-    void dump(std::vector<std::string> *argnames, std::vector<T> *argvals) {
+    void dump(std::vector<std::string> *argnames, std::vector<T> *argvals) const {
         std::set<std::string> seen;
 
         if (argnames) argnames->clear();
         argvals->clear();
 
         // Most recent scope is at front of deque, so we iterate in-order.
-        for (typename std::list<std::map<std::string, T> >::iterator sit = scopes.begin(); sit != scopes.end(); ++sit) {
-            for (typename std::map<std::string, T>::iterator it = sit->begin(); it != sit->end(); ++it) {
+        for (typename std::list<std::map<std::string, T> >::const_iterator sit = scopes.begin(); sit != scopes.end(); ++sit) {
+            for (typename std::map<std::string, T>::const_iterator it = sit->begin(); it != sit->end(); ++it) {
                 // Earlier bindings take precedence over later ones.
                 if (seen.count(it->first)) continue;
 
@@ -152,15 +152,15 @@ public:
         implicit_value_t *parent;
     };
 
-    bool has_value() {
+    bool has_value() const {
         return scopes.front();
     }
 
-    T get_value() {
+    T get_value() const {
         return *scopes.front();
     }
 
-    bool depth_is_legal() {
+    bool depth_is_legal() const {
         return depth == 2; //We push once at the beginning, so we want 2 here.
     }
 

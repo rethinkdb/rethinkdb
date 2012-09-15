@@ -923,6 +923,37 @@ class StreamExpression(ReadQuery):
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
 
+    def eq_join(self, left_attr_name, right_table, right_attr_name):
+        """For each row in the input, look for a row in `right_table` whose
+        value for `right_attr_name` is the same as the input row's value for
+        `left_attr_name`. If such a row is found, merge the rows together.
+        Returns a stream with all the merged rows.
+
+        Currently, `right_attr_name` must be the primary key name for
+        `right_table`.
+
+        If a field is in both the row from the input stream and the row from
+        `right_table`, the value from the input stream will be taken.
+
+        :param left_attr_name: The attribute to match in the input
+        :type left_attr_name: str
+        :param right_table: The table to join against
+        :type right_table: :class:`Table`
+        :param right_attr_name: The attribute to match in `right_table` (must
+            be the primary key)
+        :type right_attr_name: str
+        :returns: :class:`StreamExpression`
+        """
+        # This is a hack for the demo
+        assert isinstance(left_attr_name, str)
+        assert isinstance(right_table, Table)
+        assert isinstance(right_attr_name, str)
+        return self.concat_map(fn("left_row",
+            expr([right_table.get(R("$left_row.%s" % left_attr_name), right_attr_name)]).to_stream() \
+                .filter(fn("x", R("$x") != None)) \
+                .map(fn("right_row", R("$right_row").extend(R("$left_row"))))
+            ))
+
 def expr(val):
     """Converts a python value to a ReQL :class:`JSONExpression`.
 
@@ -1431,16 +1462,21 @@ class Table(MultiRowSelection):
     def insert_stream(self, stream):
         return WriteQuery(internal.InsertStream(self, stream))
 
-    def get(self, key):
-        """Select a row by primary key. If the key doesn't exist, returns null.
+    def get(self, key, attr_name = "id"):
+        """Select the row whose value for `attr_name` is equal to `key`. If no
+        row is found, return `null`.
+
+        Currently, `attr_name` must be the primary key for the table.
 
         :param key: the key to look for
         :type key: JSON value
+        :param attr_name: the field to check against `key`
+        :type attr_name: str
         :rtype: :class:`RowSelection`
 
         >>> q = table('users').get(10)  # get user with primary key 10
         """
-        return RowSelection(internal.Get(self, key))
+        return RowSelection(internal.Get(self, key, attr_name))
 
     def _write_ref_ast(self, parent):
         parent.db_name = self.db_expr.db_name

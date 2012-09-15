@@ -25,6 +25,7 @@ int user_to_poll(int mode) {
     int out_mode = 0;
     if (mode & poll_event_in) out_mode |= POLLIN;
     if (mode & poll_event_out) out_mode |= POLLOUT;
+    if (mode & poll_event_rdhup) out_mode |= POLLRDHUP;
 
     return out_mode;
 }

@@ -83,7 +83,19 @@ struct backfill_atom_t {
     RDB_MAKE_ME_SERIALIZABLE_3(key, value, recency);
 };
 
-typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range>  transform_atom_t;
+typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range>  transform_variant_t;
+
+struct transform_atom_t {
+    transform_atom_t() { }
+    transform_atom_t(const transform_variant_t &tv, const scopes_t &s, const backtrace_t &b) :
+        variant(tv), scopes(s), backtrace(b) { }
+
+    transform_variant_t variant;
+    scopes_t scopes;
+    backtrace_t backtrace;
+
+    RDB_MAKE_ME_SERIALIZABLE_3(variant, scopes, backtrace);
+};
 
 typedef std::list<transform_atom_t> transform_t;
 
@@ -95,8 +107,19 @@ struct Length {
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
-typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_t;
+typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_variant_t;
 
+struct terminal_t {
+    terminal_t() { }
+    terminal_t(const terminal_variant_t &tv, const scopes_t &s, const backtrace_t &b) :
+        variant(tv), scopes(s), backtrace(b) { }
+
+    terminal_variant_t variant;
+    scopes_t scopes;
+    backtrace_t backtrace;
+
+    RDB_MAKE_ME_SERIALIZABLE_3(variant, scopes, backtrace);
+};
 
 } // namespace rdb_protocol_details
 
@@ -218,39 +241,28 @@ struct rdb_protocol_t {
             : region(_region) { }
 
         rget_read_t(const region_t &_region,
-                    const rdb_protocol_details::transform_t &_transform,
-                    const scopes_t &_scopes,
-                    const backtrace_t &_backtrace)
-            : region(_region), transform(_transform),
-              scopes(_scopes), backtrace(_backtrace)
+                    const rdb_protocol_details::transform_t &_transform)
+            : region(_region), transform(_transform)
         { }
 
         rget_read_t(const region_t &_region,
-                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
-                    const scopes_t &_scopes,
-                    const backtrace_t &_backtrace)
-            : region(_region), terminal(_terminal),
-              scopes(_scopes), backtrace(_backtrace)
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
+            : region(_region), terminal(_terminal)
         { }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
-                    const scopes_t &_scopes,
-                    const backtrace_t &_backtrace)
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
             : region(_region), transform(_transform),
-              terminal(_terminal), scopes(_scopes),
-              backtrace(_backtrace)
+              terminal(_terminal)
         { }
 
         region_t region;
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
-        scopes_t scopes;
-        backtrace_t backtrace;
 
-        RDB_MAKE_ME_SERIALIZABLE_5(region, transform, terminal, scopes, backtrace);
+        RDB_MAKE_ME_SERIALIZABLE_3(region, transform, terminal);
     };
 
     class distribution_read_t {
@@ -278,7 +290,6 @@ struct rdb_protocol_t {
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
         void unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
-        void multistore_unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : read(r.read) { }
@@ -336,15 +347,16 @@ struct rdb_protocol_t {
     public:
         point_modify_t() { }
         point_modify_t(const std::string &_primary_key, const store_key_t &_key, const point_modify::op_t &_op,
-                       const query_language::scopes_t &_scopes, const Mapping &_mapping)
-            : primary_key(_primary_key), key(_key), op(_op), scopes(_scopes), mapping(_mapping) { }
+                       const query_language::scopes_t &_scopes, const backtrace_t &_backtrace, const Mapping &_mapping)
+            : primary_key(_primary_key), key(_key), op(_op), scopes(_scopes), backtrace(_backtrace), mapping(_mapping) { }
 
         std::string primary_key;
         store_key_t key;
         point_modify::op_t op;
         query_language::scopes_t scopes;
+        backtrace_t backtrace;
         Mapping mapping;
-        RDB_MAKE_ME_SERIALIZABLE_5(primary_key, key, op, scopes, mapping);
+        RDB_MAKE_ME_SERIALIZABLE_6(primary_key, key, op, scopes, backtrace, mapping);
     };
 
     class point_write_t {
@@ -377,7 +389,6 @@ struct rdb_protocol_t {
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
         void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache) const THROWS_NOTHING;
-        void multistore_unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : write(w.write) { }
