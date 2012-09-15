@@ -212,24 +212,40 @@ bool do_json_importation(const boost::shared_ptr<semilattice_readwrite_view_t<da
 
     namespace_interface_t<rdb_protocol_t> *ni = access.get_namespace_if();
 
+    order_source_t order_source;
+
     for (scoped_cJSON_t json; importer->get_json(&json); json.reset(NULL)) {
         debugf("json: %s\n", json.Print().c_str());
 
         cJSON *pkey_value = json.GetObjectItem(primary_key.c_str());
         if (!pkey_value) {
+            // TODO(sam): We want to silently ignore?
             continue;
         }
 
-        rdb_protocol_t::point_write_t point_write(primary_key, 
+        if (pkey_value->type != cJSON_String && pkey_value->type != cJSON_Number) {
+            // TODO(sam): We want to silently ignore?
+            continue;
+        }
+
+        std::string internal_key = cJSON_Print_lexicographic(pkey_value);
+
+        if (internal_key.size() > MAX_KEY_SIZE) {
+            // TODO(sam): We want to silently ignore?
+            continue;
+        }
+
+        store_key_t key(internal_key);
+
+        boost::shared_ptr<scoped_cJSON_t> json_copy_fml(new scoped_cJSON_t(json.DeepCopy()));
+
+        rdb_protocol_t::point_write_t point_write(key, json_copy_fml, true);
         rdb_protocol_t::write_t rdb_write;
-        rdb_write.write = 
-        ni->
+        rdb_write.write = point_write;
+        rdb_protocol_t::write_response_t response;
+        ni->write(rdb_write, &response, order_source.check_in("do_json_importation"), interruptor);
 
-    }
-
-    // bogus implementation
-    for (scoped_cJSON_t json; importer->get_json(&json); json.reset(NULL)) {
-        debugf("json: %s\n", json.Print().c_str());
+        // We don't care about the response.
     }
 
     debugf("do_json_importation ... returning bogus success!\n");

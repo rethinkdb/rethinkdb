@@ -14,6 +14,7 @@ cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs);
 std::string cJSON_Print_std(cJSON *json);
 std::string cJSON_Print_lexicographic(const cJSON *json);
 
+
 class scoped_cJSON_t {
 private:
     cJSON *val;
