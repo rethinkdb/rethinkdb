@@ -224,11 +224,10 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     }
 
     read_response_t operator()(UNUSED distribution_get_query_t dget) {
-        rassert(count > 0);
-
         // TODO: do this without copying so much and/or without dynamic memory
         // Sort results by region
         std::vector<distribution_result_t> results(count);
+        rassert(count > 0);
 
         for (size_t i = 0; i < count; ++i) {
             const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
@@ -264,22 +263,20 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
                 ++i;
             }
 
-            if (largest_size == 0) {
-                continue;
-            }
-
             // Scale up the selected hash shard
-            double scale_factor = static_cast<double>(total_range_keys) / static_cast<double>(largest_size);
+            if (largest_size > 0) {
+                double scale_factor = static_cast<double>(total_range_keys) / static_cast<double>(largest_size);
 
-            rassert(scale_factor >= 1.0);  // Directly provable from the code above.
+                rassert(scale_factor >= 1.0);  // Directly provable from the code above.
 
-            for (std::map<store_key_t, int>::iterator mit = results[largest_index].key_counts.begin();
-                 mit != results[largest_index].key_counts.end();
-                 ++mit) {
-                mit->second = static_cast<int>(mit->second * scale_factor);
+                for (std::map<store_key_t, int>::iterator mit = results[largest_index].key_counts.begin();
+                     mit != results[largest_index].key_counts.end();
+                     ++mit) {
+                    mit->second = static_cast<int>(mit->second * scale_factor);
+                }
+
+                res.key_counts.insert(results[largest_index].key_counts.begin(), results[largest_index].key_counts.end());
             }
-
-            res.key_counts.insert(results[largest_index].key_counts.begin(), results[largest_index].key_counts.end());
         }
 
         return read_response_t(res);
