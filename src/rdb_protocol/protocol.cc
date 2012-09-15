@@ -598,12 +598,6 @@ private:
     query_language::runtime_environment_t env;
 };
 
-void read_t::multistore_unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    multistore_unshard_visitor_t v(responses, count, response, ctx);
-    boost::apply_visitor(v, read);
-}
-
-
 /* write_t::get_region() implementation */
 
 namespace {
@@ -661,10 +655,6 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
 void write_t::unshard(const write_response_t *responses, DEBUG_VAR size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
     rassert(count == 1);
     *response = responses[0];
-}
-
-void write_t::multistore_unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    return unshard(responses, count, response, ctx);
 }
 
 store_t::store_t(io_backender_t *io_backend,

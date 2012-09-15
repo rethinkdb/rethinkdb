@@ -81,7 +81,7 @@ RDB_IMPL_SERIALIZABLE_2(distribution_get_query_t, max_depth, region);
 RDB_IMPL_SERIALIZABLE_3(get_result_t, value, flags, cas);
 RDB_IMPL_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
 RDB_IMPL_SERIALIZABLE_2(rget_result_t, pairs, truncated);
-RDB_IMPL_SERIALIZABLE_1(distribution_result_t, key_counts);
+RDB_IMPL_SERIALIZABLE_2(distribution_result_t, region, key_counts);
 RDB_IMPL_SERIALIZABLE_1(get_cas_mutation_t, key);
 RDB_IMPL_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas);
 RDB_IMPL_SERIALIZABLE_2(delete_mutation_t, key, dont_put_in_delete_queue);
@@ -180,6 +180,13 @@ public:
     }
 };
 
+class distribution_result_less_t {
+public:
+    bool operator()(const distribution_result_t& x, const distribution_result_t& y) {
+        return x.region < y.region;
+    }
+};
+
 // TODO: get rid of this extra response_t copy on the stack
 struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     const read_response_t *bits;
@@ -191,87 +198,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
         return read_response_t(boost::get<get_result_t>(bits[0].result));
     }
     read_response_t operator()(rget_query_t rget) {
-        std::map<store_key_t, const rget_result_t *> sorted_bits;
-        for (size_t i = 0; i < count; ++i) {
-            const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
-            if (!bit->pairs.empty()) {
-                const store_key_t &key = bit->pairs.front().key;
-                rassert(sorted_bits.count(key) == 0);
-                sorted_bits.insert(std::make_pair(key, bit));
-            }
-        }
-#ifndef NDEBUG
-        store_key_t last;
-#endif
-        rget_result_t result;
-        size_t cumulative_size = 0;
-        for (std::map<store_key_t, const rget_result_t *>::iterator it = sorted_bits.begin(); it != sorted_bits.end(); ++it) {
-            if (cumulative_size >= rget_max_chunk_size || result.pairs.size() > static_cast<size_t>(rget.maximum)) {
-                break;
-            }
-            for (std::vector<key_with_data_buffer_t>::const_iterator jt = it->second->pairs.begin(); jt != it->second->pairs.end(); ++jt) {
-                if (cumulative_size >= rget_max_chunk_size || result.pairs.size() > static_cast<size_t>(rget.maximum)) {
-                    break;
-                }
-                result.pairs.push_back(*jt);
-                cumulative_size += estimate_rget_result_pair_size(*jt);
-#ifndef NDEBUG
-                rassert(result.pairs.size() == 0 || jt->key > last);
-                last = jt->key;
-#endif
-            }
-        }
-        if (cumulative_size >= rget_max_chunk_size) {
-            result.truncated = true;
-        } else {
-            result.truncated = false;
-        }
-        return read_response_t(result);
-    }
-    read_response_t operator()(UNUSED distribution_get_query_t dget) {
-        rassert(count > 0);
-        distribution_result_t res;
-
-        for (size_t i = 0; i < count; ++i) {
-            const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
-            rassert(result, "Bad boost::get\n");
-
-#ifndef NDEBUG
-            for (std::map<store_key_t, int>::const_iterator it = result->key_counts.begin();
-                 it != result->key_counts.end();
-                 ++it) {
-                rassert(!std_contains(res.key_counts, it->first), "repeated key '%*.*s'",
-                        static_cast<int>(it->first.size()), static_cast<int>(it->first.size()), it->first.contents());
-            }
-#endif
-            res.key_counts.insert(result->key_counts.begin(), result->key_counts.end());
-
-        }
-
-        return read_response_t(res);
-    }
-};
-
-}   /* anonymous namespace */
-
-void read_t::unshard(const read_response_t *responses, size_t count, read_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
-    read_unshard_visitor_t v(responses, count);
-    *response = boost::apply_visitor(v, query);
-}
-
-namespace {
-
-// TODO: get rid of this extra response_t copy on the stack
-struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_response_t> {
-    const read_response_t *bits;
-    const size_t count;
-
-    explicit read_multistore_unshard_visitor_t(const read_response_t *b, size_t c) : bits(b), count(c) { }
-    read_response_t operator()(UNUSED get_query_t get) {
-        rassert(count == 1);
-        return read_response_t(boost::get<get_result_t>(bits[0].result));
-    }
-    read_response_t operator()(rget_query_t rget) {
+        // TODO: do this without dynamic memory?
         std::vector<key_with_data_buffer_t> pairs;
         for (size_t i = 0; i < count; ++i) {
             const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
@@ -289,62 +216,70 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_res
         }
 
         rget_result_t result;
-
-        // TODO: This truncated value is based on the code below, and,
-        // what if we also reached rget.maximum?  What if we reached
-        // the end of the pairs?  We shouldn't be truncated then, no?
-        result.truncated = (cumulative_size >= rget_max_chunk_size);
-
         pairs.resize(ix);
         result.pairs.swap(pairs);
+        result.truncated = (cumulative_size >= rget_max_chunk_size);
 
         return read_response_t(result);
     }
+
     read_response_t operator()(UNUSED distribution_get_query_t dget) {
         rassert(count > 0);
-        rassert(boost::get<distribution_result_t>(&bits[0].result));
-        rassert(count == 1 || boost::get<distribution_result_t>(&bits[1].result));
 
-        // These test properties of distribution queries sharded by hash rather than key.
-        rassert(count > 1);
-        rassert(boost::get<distribution_result_t>(&bits[0].result)->key_counts.begin()->first == boost::get<distribution_result_t>(&bits[1].result)->key_counts.begin()->first);
+        // TODO: do this without copying so much and/or without dynamic memory
+        // Sort results by region
+        std::vector<distribution_result_t> results(count);
 
-        distribution_result_t res;
-        int64_t total_num_keys = 0;
-        rassert(count > 0);
-
-        int64_t total_keys_in_res = 0;
-        for (int i = 0, e = count; i < e; ++i) {
+        for (size_t i = 0; i < count; ++i) {
             const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
             rassert(result, "Bad boost::get\n");
-
-            int64_t tmp_total_keys = 0;
-            for (std::map<store_key_t, int>::const_iterator it = result->key_counts.begin();
-                 it != result->key_counts.end();
-                 ++it) {
-                tmp_total_keys += it->second;
-            }
-
-            total_num_keys += tmp_total_keys;
-
-            if (res.key_counts.size() < result->key_counts.size()) {
-                res = *result;
-                total_keys_in_res = tmp_total_keys;
-            }
+            results[i] = *result;
         }
 
-        if (total_keys_in_res == 0) {
-            return read_response_t(res);
-        }
+        std::sort(results.begin(), results.end(), distribution_result_less_t());
 
-        double scale_factor = static_cast<double>(total_num_keys) / static_cast<double>(total_keys_in_res);
+        distribution_result_t res;
+        size_t i = 0;
+        while (i < results.size()) {
+            // Find the largest hash shard for this key range
+            key_range_t range = results[i].region.inner;
+            size_t largest_index = i;
+            size_t largest_size = 0;
+            size_t total_range_keys = 0;
 
-        rassert(scale_factor >= 1.0);  // Directly provable from the code above.
+            while (i < results.size() && results[i].region.inner == range) {
+                size_t tmp_total_keys = 0;
+                for (std::map<store_key_t, int>::const_iterator mit = results[i].key_counts.begin();
+                     mit != results[i].key_counts.end();
+                     ++mit) {
+                    tmp_total_keys += mit->second;
+                }
 
-        for (std::map<store_key_t, int>::iterator it = res.key_counts.begin();
-             it != res.key_counts.end();
-             ++it) {
-            it->second = static_cast<int>(it->second * scale_factor);
+                if (tmp_total_keys > largest_size) {
+                    largest_size = tmp_total_keys;
+                    largest_index = i;
+                }
+
+                total_range_keys += tmp_total_keys;
+                ++i;
+            }
+
+            if (largest_size == 0) {
+                continue;
+            }
+
+            // Scale up the selected hash shard
+            double scale_factor = static_cast<double>(total_range_keys) / static_cast<double>(largest_size);
+
+            rassert(scale_factor >= 1.0);  // Directly provable from the code above.
+
+            for (std::map<store_key_t, int>::iterator mit = results[largest_index].key_counts.begin();
+                 mit != results[largest_index].key_counts.end();
+                 ++mit) {
+                mit->second = static_cast<int>(mit->second * scale_factor);
+            }
+
+            res.key_counts.insert(results[largest_index].key_counts.begin(), results[largest_index].key_counts.end());
         }
 
         return read_response_t(res);
@@ -353,8 +288,8 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_res
 
 }   /* anonymous namespace */
 
-void read_t::multistore_unshard(const read_response_t *responses, size_t count, read_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
-    read_multistore_unshard_visitor_t v(responses, count);
+void read_t::unshard(const read_response_t *responses, size_t count, read_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
+    read_unshard_visitor_t v(responses, count);
     *response = boost::apply_visitor(v, query);
 }
 
@@ -390,10 +325,6 @@ void write_t::unshard(const write_response_t *responses, DEBUG_VAR size_t count,
     /* TODO: Make sure the request type matches the response type */
     rassert(count == 1);
     *response = responses[0];
-}
-
-void write_t::multistore_unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    unshard(responses, count, response, ctx);
 }
 
 namespace {
@@ -520,6 +451,8 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
                 ++it;
             }
         }
+
+        dstr.region = dget.region;
 
         return read_response_t(dstr);
     }
