@@ -146,7 +146,8 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, UNUSED io_backend
 bool get_or_create_namespace(const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
                              database_id_t db_id,
                              std::string table_name,
-                             namespace_id_t *namespace_out) {
+                             namespace_id_t *namespace_out,
+                             std::string *primary_key_out) {
     namespaces_semilattice_metadata_t<rdb_protocol_t> ns = *namespaces->get();
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> > searcher(&ns.namespaces);
     const char *error;
@@ -154,13 +155,16 @@ bool get_or_create_namespace(const boost::shared_ptr<semilattice_readwrite_view_
 
     if (error == METADATA_SUCCESS) {
         *namespace_out = it->first;
+        *primary_key_out = it->second.get().primary_key.get();
         return true;
     } else if (error == METADATA_ERR_NONE) {
         // TODO(sam):  impl this.
         *namespace_out = namespace_id_t();
+        primary_key_out->clear();
         return false;
     } else {
         *namespace_out = namespace_id_t();
+        primary_key_out->clear();
         return false;
     }
 }
@@ -198,17 +202,30 @@ bool do_json_importation(const boost::shared_ptr<semilattice_readwrite_view_t<da
     }
 
     namespace_id_t namespace_id;
-    if (!get_or_create_namespace(namespaces, db_id, table_name, &namespace_id)) {
+    std::string primary_key;
+    if (!get_or_create_namespace(namespaces, db_id, table_name, &namespace_id, &primary_key)) {
         return false;
     }
 
     // TODO(sam): What if construction fails?  An exception is thrown?
     namespace_repo_t<rdb_protocol_t>::access_t access(repo, namespace_id, interruptor);
 
-    UNUSED namespace_interface_t<rdb_protocol_t> *ni = access.get_namespace_if();
+    namespace_interface_t<rdb_protocol_t> *ni = access.get_namespace_if();
 
+    for (scoped_cJSON_t json; importer->get_json(&json); json.reset(NULL)) {
+        debugf("json: %s\n", json.Print().c_str());
 
+        cJSON *pkey_value = json.GetObjectItem(primary_key.c_str());
+        if (!pkey_value) {
+            continue;
+        }
 
+        rdb_protocol_t::point_write_t point_write(primary_key, 
+        rdb_protocol_t::write_t rdb_write;
+        rdb_write.write = 
+        ni->
+
+    }
 
     // bogus implementation
     for (scoped_cJSON_t json; importer->get_json(&json); json.reset(NULL)) {
