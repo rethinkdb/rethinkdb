@@ -1627,13 +1627,13 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 }
 
                 if (!data->type() == cJSON_Object) {
-                    throw runtime_exc_t("Data must be an object", backtrace.with("arg:0"));
+                    throw runtime_exc_t("Data: \n" + data->Print() + "must be an object", backtrace.with("arg:0"));
                 }
 
                 cJSON *value = data->GetObjectItem(c->builtin().attr().c_str());
 
                 if (!value) {
-                    throw runtime_exc_t("Object is missing attribute \"" + c->builtin().attr() + "\"", backtrace.with("attr"));
+                    throw runtime_exc_t("Object:\n" + data->Print() +"\nis missing attribute \"" + c->builtin().attr() + "\"", backtrace.with("attr"));
                 }
 
                 return shared_scoped_json(cJSON_DeepCopy(value));
@@ -1651,7 +1651,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 }
 
                 if (!data->type() == cJSON_Object) {
-                    throw runtime_exc_t("Data must be an object", backtrace.with("arg:0"));
+                    throw runtime_exc_t("Data: \n" + data->Print() + "\nmust be an object", backtrace.with("arg:0"));
                 }
 
                 cJSON *attr = data->GetObjectItem(c->builtin().attr().c_str());
@@ -1674,7 +1674,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 data = scopes.implicit_attribute_value.get_value();
             }
             if (!data->type() == cJSON_Object) {
-                throw runtime_exc_t("Data must be an object", backtrace.with("arg:0"));
+                throw runtime_exc_t("Data: \n" + data->Print() + "\nmust be an object", backtrace.with("arg:0"));
             }
             boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(data->DeepCopy()));
             for (int i = 0; i < c->builtin().attrs_size(); ++i) {
@@ -1694,7 +1694,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 }
 
                 if (!data->type() == cJSON_Object) {
-                    throw runtime_exc_t("Data must be an object", backtrace.with("arg:0"));
+                    throw runtime_exc_t("Data: \n" + data->Print() + "\nmust be an object", backtrace.with("arg:0"));
                 }
 
                 boost::shared_ptr<scoped_cJSON_t> res = shared_scoped_json(cJSON_CreateObject());
@@ -1702,7 +1702,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 for (int i = 0; i < c->builtin().attrs_size(); ++i) {
                     cJSON *item = data->GetObjectItem(c->builtin().attrs(i).c_str());
                     if (!item) {
-                        throw runtime_exc_t("Attempting to pick missing attribute.", backtrace.with(strprintf("attrs:%d", i)));
+                        throw runtime_exc_t("Attempting to pick missing attribute " + c->builtin().attrs(i) + " from data:\n" + data->Print(), backtrace.with(strprintf("attrs:%d", i)));
                     } else {
                         res->AddItemToObject(item->string, cJSON_DeepCopy(item));
                     }
