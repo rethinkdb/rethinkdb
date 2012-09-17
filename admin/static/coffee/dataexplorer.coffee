@@ -694,7 +694,7 @@ module 'DataExplorerView', ->
                     window.conn.close()
             catch err
                 #TODO
-                #console.log err
+                console.log err
             host = window.location.hostname
             port = window.location.port
             if port is ''
