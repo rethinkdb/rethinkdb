@@ -9,7 +9,7 @@ var q = rethinkdb.query;
 var conn;
 function testConnect() {
     wait();
-    conn = rethinkdb.net.connect('newton', function() {
+    conn = rethinkdb.net.connect({host:HOST, port:PORT}, function() {
         done();
     }, function() {
         fail("Could not connect");
@@ -98,7 +98,7 @@ function testReduce() {
 
 function testFilter() {
     arr.filter(function(val) {
-        return val < 3;
+        return val.lt(3);
     }).length().run(objeq(2));
 
     arr.filter(q.fn('a', q.R('$a').lt(3))).length().run(objeq(2));
@@ -234,6 +234,31 @@ function testGroupedMapReduce() {
 
 function testConcatMap() {
     tab.concatMap(q([1,2])).length().run(aeq(20));
+}
+
+var tab2 = q.table('table-2');
+function testSetupOtherTable() {
+    wait();
+    //q.db('Welcome-db').create('table-2').run(function() {
+        tab2.insert([
+            {id:20, name:'bob'},
+            {id:19, name:'tom'},
+            {id:18, name:'joe'}
+        ]).run(objeq({inserted:3}));
+        done();
+    //});
+}
+
+function testEqJoin() {
+    tab.eqJoin('num', tab2).orderby('id').run(objeq([
+        {id:0, num:20, name:'bob'},
+        {id:1, num:19, name:'tom'},
+        {id:2, num:18, name:'joe'},
+    ]));
+}
+
+function testDropTable() {
+    //q.db('Welcome-db').drop('table-2').run();
 }
 
 function testUpdate1() {
@@ -385,6 +410,9 @@ runTests([
     testBetween,
     testGroupedMapReduce,
     testConcatMap,
+    testSetupOtherTable,
+    testEqJoin,
+    testDropTable,
     testUpdate1,
     testUpdate2,
     testPointUpdate1,

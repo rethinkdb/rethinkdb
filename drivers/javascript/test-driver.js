@@ -11,8 +11,8 @@ if (isNode) {
     var purple = '\u001b[35m';
     var reset = '\u001b[0m';
 
-    exports.exit = function() {
-        process.exit();
+    exports.exit = function(exitCode) {
+        process.exit(exitCode);
     };
 
     log = function(msg) {
@@ -31,8 +31,8 @@ if (isNode) {
 } else {
     exports = this;
 
-    exports.exit = function() {
-        throw '';
+    exports.exit = function(exitCode) {
+        throw "Exit with code "+exitCode;
     };
 
     err = function(msg) {
@@ -67,7 +67,7 @@ function log(msg) {
 
 exports.fail = function(msg) {
     err('failed with message: '+msg);
-    exit();
+    exit(1);
 }
 
 exports.assertEquals = function(expected, val) {

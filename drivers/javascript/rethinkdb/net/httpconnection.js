@@ -18,8 +18,9 @@ goog.require('rethinkdb.net.Connection');
  * @param {?string|Array.<string>|Object|Array.<Object>} host_or_list A host/port
  *      pair or list of host port pairs giving the servers to attempt to connect
  *      to. Either hostname or port may be omitted to utilize the default.
- * @param {function(...)=} onConnect
- * @param {function(...)=} onFailure
+ * @param {function(...)=} onConnect Function to call when connection is established
+ * @param {function(...)=} onFailure Error handler to use for this connection. Will be
+ *  called if a connection cannot be established. Can also be set with setErrorHandler.
  * @constructor
  * @extends {rethinkdb.net.Connection}
  * @export
@@ -41,7 +42,7 @@ rethinkdb.net.HttpConnection = function(host_or_list, onConnect, onFailure) {
      */
 	var DEFAULT_HOST = 'localhost';
 
-    goog.base(this, null);
+    goog.base(this, null, onFailure);
     this.url_ = '';
 
     var self = this;
@@ -91,7 +92,7 @@ rethinkdb.net.HttpConnection = function(host_or_list, onConnect, onFailure) {
 
             xhr.send();
 		} else {
-			if (onFailure) onFailure();
+            self.error_(new rethinkdb.errors.ClientError('Unabled to establish HTTP connection'));
 		}
 	})();
 };
@@ -105,7 +106,7 @@ goog.inherits(rethinkdb.net.HttpConnection, rethinkdb.net.Connection);
  */
 rethinkdb.net.HttpConnection.prototype.send_ = function(data) {
     if (!this.url_)
-        throw new rethinkdb.errors.ClientError("Connection not open");
+        this.error_(new rethinkdb.errors.ClientError("Connection not open"));
 
     var xhr = new XMLHttpRequest();
     xhr.responseType = "arraybuffer";
@@ -128,7 +129,7 @@ rethinkdb.net.HttpConnection.prototype.send_ = function(data) {
  */
 rethinkdb.net.HttpConnection.prototype.close = function() {
     if (!this.url_)
-        throw new rethinkdb.errors.ClientError("Connection not open");
+        this.error_(new rethinkdb.errors.ClientError("Connection not open"));
 
     var xhr = new XMLHttpRequest();
     xhr.open("POST", this.url_+'close-connection?conn_id='+this.conn_id_, true);

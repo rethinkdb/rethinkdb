@@ -148,7 +148,7 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         return res;
     } else if (req.method == GET && req.resource.as_string().find("open-new-connection")) {
         int32_t conn_id = ++next_http_conn_id;
-        http_conns.insert(std::pair<int32_t,http_context_t>(conn_id, http_context_t()));
+        http_conns.insert(conn_id, new http_context_t());
 
         http_res_t res(HTTP_OK);
         res.version = "HTTP/1.1";
@@ -176,16 +176,21 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         request_t request;
         bool parseSucceeded = request.ParseFromArray(data, req_size);
 
-        typename std::map<int32_t, http_context_t>::iterator it;
+        typename boost::ptr_map<int32_t, http_context_t>::iterator it;
         response_t response;
         switch(cb_mode) {
         case INLINE:
             it = http_conns.find(conn_id);
-            if (!parseSucceeded || it == http_conns.end()) {
+            if (!parseSucceeded) {
                 std::string err = "Client is buggy (failed to deserialize protobuf).";
                 response = on_unparsable_query(&request, err);
+            } else if (it == http_conns.end() || it->second->isTerminated()) {
+                std::string err = "This HTTP connection not open.";
+                response = on_unparsable_query(&request, err);
             } else {
-                http_context_t *ctx = &(it->second);
+                http_context_t *ctx = it->second;
+                rassert(static_cast<signal_t *>(ctx->getInterruptorCond()) ==
+                        ctx->getContext()->interruptor);
                 ctx->grab();
                 response = f(&request, ctx->getContext());
                 ctx->release();
@@ -221,11 +226,17 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
  */
 template <class request_t, class response_t, class context_t>
 void protob_server_t<request_t, response_t, context_t>::on_ring() {
-    for (typename std::map<int32_t, http_context_t>::iterator iter = http_conns.begin(); iter != http_conns.end();) {
-        if (iter->second.isFree() && iter->second.isExpired()) {
-            typename std::map<int32_t, http_context_t>::iterator tmp = iter;
-            ++iter;
-            http_conns.erase(tmp);
+    for (typename boost::ptr_map<int32_t, http_context_t>::iterator
+             iter = http_conns.begin(); iter != http_conns.end();) {
+        if (iter->second->isExpired()) {
+            if (iter->second->isFree()) {
+                typename boost::ptr_map<int32_t, http_context_t>::iterator tmp = iter;
+                ++iter;
+                http_conns.erase(tmp);
+            } else {
+                if (!iter->second->isTerminated()) iter->second->terminate();
+                ++iter;
+            }
         } else {
             ++iter;
         }
@@ -234,8 +245,14 @@ void protob_server_t<request_t, response_t, context_t>::on_ring() {
 
 template <class request_t, class response_t, class context_t>
 protob_server_t<request_t, response_t, context_t>::http_context_t::http_context_t() {
+    ctx.interruptor = &interruptor_cond;
     users_count = 0;
     touch();
+}
+
+template <class request_t, class response_t, class context_t>
+void protob_server_t<request_t, response_t, context_t>::http_context_t::terminate() {
+    interruptor_cond.pulse_if_not_already_pulsed();
 }
 
 template <class request_t, class response_t, class context_t>
@@ -256,6 +273,7 @@ bool protob_server_t<request_t, response_t, context_t>::http_context_t::isExpire
 template <class request_t, class response_t, class context_t>
 void protob_server_t<request_t, response_t, context_t>::http_context_t::grab() {
     users_count++;
+    touch();
 }
 
 template <class request_t, class response_t, class context_t>

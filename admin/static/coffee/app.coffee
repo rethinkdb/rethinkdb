@@ -39,7 +39,7 @@ need_update_objects = (new_data, old_data) ->
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
         if data isnt null
-            if data.protocol? and (data.protocol is 'memcached' or data.protocol is 'rdb')  # We check that the machines in the blueprint do exist
+            if data.protocol? and data.protocol is 'rdb'  # We check that the machines in the blueprint do exist
                 if collection_data[id].blueprint? and collection_data[id].blueprint.peers_roles?
                     for machine_uuid of collection_data[id].blueprint.peers_roles
                         if !machines.get(machine_uuid)?
@@ -92,8 +92,6 @@ apply_diffs = (updates) ->
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "dummy"))
             when 'databases'
                 apply_to_collection(databases, collection_data)
-            when 'memcached_namespaces'
-                apply_to_collection(namespaces, add_protocol_tag(collection_data, "memcached"))
             when 'rdb_namespaces'
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "rdb"))
             when 'datacenters'
@@ -102,7 +100,7 @@ apply_diffs = (updates) ->
                 apply_to_collection(machines, collection_data)
             when 'me' then continue
             else
-                console.log "Unhandled element update: " + collection_id + "."
+                #console.log "Unhandled element update: " + collection_id + "."
     return
 
 set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
