@@ -80,7 +80,7 @@ class Namespace extends Backbone.Model
     load_key_distr: =>
         $.ajax
             processData: false
-            url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
+            url: "/ajax/distribution?namespace=#{@get('id')}&depth=1"
             type: 'GET'
             contentType: 'application/json'
             success: (distr_data) =>
@@ -107,7 +107,7 @@ class Namespace extends Backbone.Model
     load_key_distr_once: =>
         $.ajax
             processData: false
-            url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
+            url: "/ajax/distribution?namespace=#{@get('id')}&depth=1"
             type: 'GET'
             contentType: 'application/json'
             success: (distr_data) =>
