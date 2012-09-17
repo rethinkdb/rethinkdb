@@ -706,6 +706,15 @@ bool linux_nonthrowing_tcp_listener_t::bind_socket() {
         }
     }
 
+    // If we were told to let the kernel assign the port, figure out what was assigned
+    if (port == 0) {
+        struct sockaddr_in sa;
+        socklen_t sa_len(sizeof(sa));
+        int res = getsockname(sock.get(), (struct sockaddr*)&sa, &sa_len);
+        guarantee_err(res != -1, "Could not determine socket local port number");
+        port = ntohs(sa.sin_port);
+    }
+
     bound = true;
     return bound;
 }
@@ -795,6 +804,11 @@ linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
     if (!listener->bind_socket()) {
         throw address_in_use_exc_t("localhost", listener->port);
     }
+}
+
+int linux_tcp_bound_socket_t::get_port() const {
+    debugf("socket port: %d\n", listener->get_port());
+    return listener->get_port();
 }
 
 linux_tcp_listener_t::linux_tcp_listener_t(int port,
