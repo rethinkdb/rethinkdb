@@ -98,7 +98,7 @@ function testReduce() {
 
 function testFilter() {
     arr.filter(function(val) {
-        return val < 3;
+        return val.lt(3);
     }).length().run(objeq(2));
 
     arr.filter(q.fn('a', q.R('$a').lt(3))).length().run(objeq(2));
