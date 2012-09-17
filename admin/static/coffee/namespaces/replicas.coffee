@@ -38,13 +38,13 @@ module 'NamespaceView', ->
                 primary_uuid: new_dc.get('id')
                 replica_affinities: new_affinities
             modal.render("Are you sure you want to make datacenter " + new_dc.get('name') + " primary?",
-                "/ajax/semilattice/memcached_namespaces/" + @model.get('id'),
+                "/ajax/semilattice/rdb_namespaces/" + @model.get('id'),
                 JSON.stringify(data),
                 (response) =>
                     clear_modals()
                     diff = {}
                     diff[@model.get('id')] = response
-                    apply_to_collection(namespaces, add_protocol_tag(diff, "memcached"))
+                    apply_to_collection(namespaces, add_protocol_tag(diff, "rdb"))
                     # Grab the latest view of things
                     $('#user-alert-space').html(@alert_tmpl
                         namespace_uuid: @model.get('id')
