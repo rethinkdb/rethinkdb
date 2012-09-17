@@ -19,8 +19,9 @@ goog.require('rethinkdb.net.Connection');
  * @param {?string|Array.<string>|Object|Array.<Object>} host_or_list A host/port
  *      pair or list of host port pairs giving the servers to attempt to connect
  *      to. Either hostname or port may be omitted to utilize the default.
- * @param {function(...)=} onConnect
- * @param {function(...)=} onFailure
+ * @param {function(...)=} onConnect Function to call when connection is established
+ * @param {function(...)=} onFailure Error handler to use for this connection. Will be
+ *  called if a connection cannot be established. Can also be set with setErrorHandler.
  * @constructor
  * @extends {rethinkdb.net.Connection}
  * @export
@@ -43,11 +44,11 @@ rethinkdb.net.TcpConnection = function(host_or_list, onConnect, onFailure) {
 	var DEFAULT_HOST = 'localhost';
 
     if (!rethinkdb.net.TcpConnection.isAvailable()) {
-        throw new rethinkdb.errors.ClientError("Cannot instantiate TcpConnection, "+
-            "TCP sockets are not available in this environment.");
+        this.error_(new rethinkdb.errors.ClientError("Cannot instantiate TcpConnection, "+
+            "TCP sockets are not available in this environment."));
     }
 
-    goog.base(this, null);
+    goog.base(this, null, onFailure);
 
     this.recvBuffer_ = null;
     this.revdD_ = 0;
@@ -94,7 +95,7 @@ rethinkdb.net.TcpConnection = function(host_or_list, onConnect, onFailure) {
 
 			socket_node_.on('error', tryNext);
 		} else {
-			if (onFailure) onFailure();
+            self.error_(new rethinkdb.errors.ClientError('Unabled to establish TCP connection'));
 		}
 	})();
 };
@@ -118,7 +119,7 @@ rethinkdb.net.TcpConnection.isAvailable = function() {
  */
 rethinkdb.net.TcpConnection.prototype.send_ = function(data) {
     if (!this.socket_)
-        throw new rethinkdb.errors.ClientError("Connection not open");
+        this.error_(new rethinkdb.errors.ClientError("Connection not open"));
 
     // This is required because the node socket has to take a native node
     // buffer, not an ArrayBuffer. Even though ArrayBuffers are supported
@@ -181,7 +182,7 @@ rethinkdb.net.TcpConnection.prototype.tcpRecv_ = function(node_data) {
  */
 rethinkdb.net.TcpConnection.prototype.close = function() {
     if (!this.socket_)
-        throw new rethinkdb.errors.ClientError("Connection not open");
+        this.error_(new rethinkdb.errors.ClientError("Connection not open"));
 
     this.socket_.end();
     this.socket_ = null;

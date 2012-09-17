@@ -295,6 +295,7 @@ rethinkdb.query.BuiltinExpression.prototype.compile = function() {
  */
 function makeBinary(builtinType, chainName) {
     rethinkdb.query.Expression.prototype[chainName] = function(other) {
+        argCheck_(arguments, 1);
         other = wrapIf_(other);
         return new rethinkdb.query.BuiltinExpression(builtinType, [this, other]);
     };
@@ -308,6 +309,7 @@ function makeBinary(builtinType, chainName) {
  */
 function makeComparison(comparison, chainName) {
     rethinkdb.query.Expression.prototype[chainName] = function(other) {
+        argCheck_(arguments, 1);
         other = wrapIf_(other);
         return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.COMPARE,
                 [this, other], function(builtin) {
@@ -442,6 +444,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'length',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.and = function(predicate) {
+    argCheck_(arguments, 1);
     predicate = wrapIf_(predicate);
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ALL, [this, predicate]);
 };
@@ -454,6 +457,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'and',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.or = function(predicate) {
+    argCheck_(arguments, 1);
     predicate = wrapIf_(predicate);
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.ANY,
                                                      [this, predicate]);
@@ -470,6 +474,8 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'or',
  */
 rethinkdb.query.Expression.prototype.between =
         function(startKey, endKey, opt_keyName) {
+    argCheck_(arguments, 2);
+
     startKey = wrapIf_(startKey);
     endKey = wrapIf_(endKey);
     typeCheck_(opt_keyName, 'string');
@@ -511,6 +517,8 @@ goog.inherits(rethinkdb.query.SliceExpression, rethinkdb.query.BuiltinExpression
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.slice = function(startIndex, opt_endIndex) {
+    argCheck_(arguments, 1);
+
     return new rethinkdb.query.SliceExpression(this, startIndex, opt_endIndex);
 };
 goog.exportProperty(rethinkdb.query.Expression.prototype, 'slice',
@@ -522,6 +530,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'slice',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.limit = function(limit) {
+    argCheck_(arguments, 1);
     typeCheck_(limit, 'number');
     return new rethinkdb.query.SliceExpression(this, 0, limit);
 };
@@ -534,6 +543,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'limit',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.skip = function(hop) {
+    argCheck_(arguments, 1);
     typeCheck_(hop, 'number');
     return new rethinkdb.query.SliceExpression(this, hop);
 };
@@ -546,6 +556,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'skip',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.nth = function(index) {
+    argCheck_(arguments, 1);
     typeCheck_(index, 'number');
     return new rethinkdb.query.BuiltinExpression(Builtin.BuiltinType.NTH,
             [this, new rethinkdb.query.NumberExpression(index)]);
@@ -637,6 +648,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'map',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.orderby = function(var_args) {
+    argCheck_(arguments, 1);
     var orderings = Array.prototype.slice.call(arguments, 0);
     orderings.forEach(function(order) {typeCheck_(order, 'string')});
 
@@ -684,6 +696,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'distinct',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.reduce = function(base, reduce) {
+    argCheck_(arguments, 2);
     base = wrapIf_(base);
     reduce = functionWrap_(reduce);
 
@@ -712,6 +725,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'reduce',
  * @return {rethinkdb.query.Expression}
  */
 rethinkdb.query.Expression.prototype.groupedMapReduce = function(grouping, mapping, base, reduce) {
+    argCheck_(arguments, 4);
     grouping = functionWrap_(grouping);
     mapping  = functionWrap_(mapping);
     base     = wrapIf_(base);

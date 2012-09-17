@@ -66,6 +66,7 @@ rethinkdb.query.GetExpression.prototype.compile = function() {
  * @param {*} key
  */
 rethinkdb.query.Table.prototype.get = function(key) {
+    argCheck_(arguments, 1);
     key = wrapIf_(key);
     return new rethinkdb.query.GetExpression(this, key);
 };
@@ -113,6 +114,7 @@ rethinkdb.query.InsertQuery.prototype.buildQuery = function() {
  * @param {*} docs An object or list of objects to insert
  */
 rethinkdb.query.Table.prototype.insert = function(docs) {
+    argCheck_(arguments, 1);
     if (!goog.isArray(docs))
         docs = [docs];
     docs = docs.map(rethinkdb.query.expr);
@@ -270,6 +272,7 @@ rethinkdb.query.PointUpdateQuery.prototype.buildQuery = function() {
  * @param {function(...)|rethinkdb.query.FunctionExpression|rethinkdb.query.Expression} mapping
  */
 rethinkdb.query.Expression.prototype.update = function(mapping) {
+    argCheck_(arguments, 1);
     mapping = functionWrap_(mapping);
     if (this instanceof rethinkdb.query.GetExpression) {
         return new rethinkdb.query.PointUpdateQuery(this.table_, this.key_, mapping);
@@ -358,6 +361,7 @@ rethinkdb.query.PointMutateQuery.prototype.buildQuery = function() {
  * @param {function(...)|rethinkdb.query.FunctionExpression|rethinkdb.query.Expression} mapping
  */
 rethinkdb.query.Expression.prototype.mutate = function(mapping) {
+    argCheck_(arguments, 1);
     mapping = functionWrap_(mapping);
     if (this instanceof rethinkdb.query.GetExpression) {
         return new rethinkdb.query.PointMutateQuery(this.table_, this.key_, mapping);

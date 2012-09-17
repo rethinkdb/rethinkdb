@@ -11,16 +11,44 @@ goog.require('goog.proto2.WireFormatSerializer');
  * This is an abstract base class for two different kinds of connections,
  * a tcp connection or an http connection (for use by browsers).
  * @param {?string=} opt_dbName optional default db to use for this connection
+ * @param {?function(Error)=} opt_errorHandler optional error handler to use for this connection
  * @constructor
  */
-rethinkdb.net.Connection = function(opt_dbName) {
+rethinkdb.net.Connection = function(opt_dbName, opt_errorHandler) {
     typeCheck_(opt_dbName, 'string');
 	this.defaultDbName_ = opt_dbName || 'Welcome-db';
     this.outstandingQueries_ = {};
     this.nextToken_ = 1;
 
+    this.errorHandler_ = opt_errorHandler || null;
+
     rethinkdb.net.last_connection_ = this;
 };
+
+/**
+ * Invoke the error handler on this connection.
+ * @param {Error} error The origional error thrown
+ * @ignore
+ */
+rethinkdb.net.Connection.prototype.error_ = function(error) {
+    if (this.errorHandler_) {
+        this.errorHandler_(error);
+    } else {
+        // Simply rethrow the error. It'll go uncaught and show up in the developer's console.
+        throw error;
+    }
+};
+
+/**
+ * Set the error handler to use for this connection. Will be called with any error
+ * returned by the server.
+ * @param {function(Error)} handler The error handler to use
+ */
+rethinkdb.net.Connection.prototype.setErrorHandler = function(handler) {
+    this.errorHandler_ = handler;
+};
+goog.exportProperty(rethinkdb.net.Connection.prototype, 'setErrorHandler',
+                    rethinkdb.net.Connection.prototype.setErrorHandler);
 
 /**
  * Send the protobuf over the underlying connection. Implemented by subclasses.
@@ -82,6 +110,7 @@ rethinkdb.net.Connection.prototype.sendProtoBuf_ = function(pbObj) {
  * @param {function(...)} opt_callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.run = function(expr, opt_callback) {
+    argCheck_(arguments, 1);
     typeCheck_(expr, rethinkdb.query.Query);
     typeCheck_(opt_callback, 'function');
     this.run_(expr, false, opt_callback);
@@ -98,6 +127,7 @@ goog.exportProperty(rethinkdb.net.Connection.prototype, 'run',
  * @param {function(...)} opt_callback Function to invoke with response.
  */
 rethinkdb.net.Connection.prototype.iter = function(expr, opt_callback) {
+    argCheck_(arguments, 1);
     typeCheck_(expr, rethinkdb.query.Query);
     typeCheck_(opt_callback, 'function');
     this.run_(expr, true, opt_callback);
@@ -114,7 +144,7 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
     goog.asserts.assert(data.length >= 4);
     var msgLength = (new DataView(data.buffer)).getUint32(0, true);
     if (msgLength !== (data.length - 4)) {
-        throw new rethinkdb.errors.ClientError("RDB response corrupted, length inaccurate");
+        this.error_(new rethinkdb.errors.ClientError("RDB response corrupted, length inaccurate"));
     }
 
     var serializer = new goog.proto2.WireFormatSerializer();
@@ -123,7 +153,7 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
     try {
         serializer.deserializeTo(response, new Uint8Array(data.buffer, 4));
     } catch(err) {
-        throw new rethinkdb.errors.ClientError("response deserialization failed");
+        this.error_(new rethinkdb.errors.ClientError("response deserialization failed"));
     }
 
     var responseStatus = response.getStatusCode();
@@ -132,13 +162,13 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
 
         switch(responseStatus) {
         case Response.StatusCode.BROKEN_CLIENT:
-            throw new rethinkdb.errors.BrokenClient(response.getErrorMessage());
+            this.error_(new rethinkdb.errors.BrokenClient(response.getErrorMessage()));
             break;
         case Response.StatusCode.RUNTIME_ERROR:
-            throw new rethinkdb.errors.RuntimeError(response.getErrorMessage());
+            this.error_(new rethinkdb.errors.RuntimeError(response.getErrorMessage()));
             break;
         case Response.StatusCode.BAD_QUERY:
-            throw new rethinkdb.errors.BadQuery(response.getErrorMessage());
+            this.error_(new rethinkdb.errors.BadQuery(response.getErrorMessage()));
             break;
         case Response.StatusCode.SUCCESS_EMPTY:
             delete this.outstandingQueries_[response.getToken()]
@@ -179,7 +209,7 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
             }
             break;
         default:
-            throw new rethinkdb.errors.ClientError("unknown response status code");
+            this.error_(new rethinkdb.errors.ClientError("unknown response status code"));
             break;
         }
     } // else no matching request
@@ -190,6 +220,7 @@ rethinkdb.net.Connection.prototype.recv_ = function(data) {
  * @param {string} dbName
  */
 rethinkdb.net.Connection.prototype.use = function(dbName) {
+    argCheck_(arguments, 1);
     typeCheck_(dbName, 'string');
 	this.defaultDbName_ = dbName;
 };
