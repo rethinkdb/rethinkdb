@@ -394,6 +394,7 @@ protected:
 class linux_tcp_bound_socket_t {
 public:
     explicit linux_tcp_bound_socket_t(int _port);
+    int get_port() const;
 private:
     friend class linux_tcp_listener_t;
 

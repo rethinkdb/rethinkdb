@@ -50,7 +50,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
 
     /* This constructor makes an entry for us in `routing_table`. The destructor
     will remove the entry. */
-    routing_table_entry_for_ourself(&routing_table, parent->me, peer_address_t(ip_address_t::us(), port)),
+    routing_table_entry_for_ourself(&routing_table, parent->me, peer_address_t(ip_address_t::us(), cluster_listener_socket->get_port())),
 
     /* The `connection_entry_t` constructor takes care of putting itself in the
     `connection_map` on each thread and notifying any listeners that we're now
