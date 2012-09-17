@@ -181,8 +181,11 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         switch(cb_mode) {
         case INLINE:
             it = http_conns.find(conn_id);
-            if (!parseSucceeded || it == http_conns.end()) {
+            if (!parseSucceeded) {
                 std::string err = "Client is buggy (failed to deserialize protobuf).";
+                response = on_unparsable_query(&request, err);
+            } else if (it == http_conns.end()) {
+                std::string err = "This HTTP connection not open.";
                 response = on_unparsable_query(&request, err);
             } else {
                 http_context_t *ctx = &(it->second);

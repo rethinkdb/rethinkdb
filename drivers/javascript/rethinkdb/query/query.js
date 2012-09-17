@@ -63,7 +63,7 @@ rethinkdb.query.table = function(tableIdentifier) {
  * @class A ReQL query that can be evaluated by a RethinkDB sever.
  * @constructor
  */
-rethinkdb.query.BaseQuery = function() { };
+rethinkdb.query.Query = function() { };
 
 /**
  * A shortcut for conn.run(this). If the connection is omitted the last created
@@ -71,12 +71,12 @@ rethinkdb.query.BaseQuery = function() { };
  * @param {function(...)} callback The callback to invoke with the result.
  * @param {rethinkdb.net.Connection=} opt_conn The connection to run this expression on.
  */
-rethinkdb.query.BaseQuery.prototype.run = function(callback, opt_conn) {
-    opt_conn = opt_conn || rethinkdb.net.last_connection;
+rethinkdb.query.Query.prototype.run = function(callback, opt_conn) {
+    opt_conn = opt_conn || rethinkdb.net.last_connection_;
     opt_conn.run(this, callback);
 };
-goog.exportProperty(rethinkdb.query.BaseQuery.prototype, 'run',
-                    rethinkdb.query.BaseQuery.prototype.run);
+goog.exportProperty(rethinkdb.query.Query.prototype, 'run',
+                    rethinkdb.query.Query.prototype.run);
 
 /**
  * A shortcut for conn.iter(this). If the connection is omitted the last created
@@ -84,12 +84,12 @@ goog.exportProperty(rethinkdb.query.BaseQuery.prototype, 'run',
  * @param {function()} callback The callback to invoke with the result.
  * @param {rethinkdb.net.Connection=} conn The connection to run this expression on.
  */
-rethinkdb.query.BaseQuery.prototype.iter = function(callback, conn) {
-    conn = conn || rethinkdb.net.last_connection;
+rethinkdb.query.Query.prototype.iter = function(callback, conn) {
+    conn = conn || rethinkdb.net.last_connection_;
     conn.iter(this, callback);
 };
-goog.exportProperty(rethinkdb.query.BaseQuery.prototype, 'iter',
-                    rethinkdb.query.BaseQuery.prototype.iter);
+goog.exportProperty(rethinkdb.query.Query.prototype, 'iter',
+                    rethinkdb.query.Query.prototype.iter);
 
 /**
  * Returns a protobuf message tree for this query ast
@@ -97,16 +97,16 @@ goog.exportProperty(rethinkdb.query.BaseQuery.prototype, 'iter',
  * @return {!Query}
  * @ignore
  */
-rethinkdb.query.BaseQuery.prototype.buildQuery = goog.abstractMethod;
+rethinkdb.query.Query.prototype.buildQuery = goog.abstractMethod;
 
 /**
  * @class A query representing a ReQL read operation
  * @constructor
- * @extends {rethinkdb.query.BaseQuery}
+ * @extends {rethinkdb.query.Query}
  * @ignore
  */
 rethinkdb.query.ReadQuery = function() { };
-goog.inherits(rethinkdb.query.ReadQuery, rethinkdb.query.BaseQuery);
+goog.inherits(rethinkdb.query.ReadQuery, rethinkdb.query.Query);
 
 /** @override */
 rethinkdb.query.ReadQuery.prototype.buildQuery = function() {
