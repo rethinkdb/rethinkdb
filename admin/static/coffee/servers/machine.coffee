@@ -396,7 +396,6 @@ module 'MachineView', ->
         initialize: =>
             @directory_entry = directory.get @model.get 'id'
             if @directory_entry?
-                @directory_entry.on 'change:memcached_namespaces', @render
                 @directory_entry.on 'change:rdb_namespaces', @render
             namespaces.on 'add', @render
             namespaces.on 'remove', @render
@@ -756,7 +755,6 @@ module 'MachineView', ->
 
         destroy: =>
             if @directory_entry?
-                @directory_entry.off 'change:memcached_namespaces', @render
                 @directory_entry.off 'change:rdb_namespaces', @render
             namespaces.off 'add', @render
             namespaces.off 'remove', @render

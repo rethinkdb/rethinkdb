@@ -1,6 +1,5 @@
 #include "memcached/memcached_btree/incr_decr.hpp"
 
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 #include "containers/buffer_group.hpp"

@@ -185,6 +185,13 @@ bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
 
 /* A visitor to handle this unsharding process for us. */
 
+class distribution_read_response_less_t {
+public:
+    bool operator()(const distribution_read_response_t& x, const distribution_read_response_t& y) {
+        return x.region < y.region;
+    }
+};
+
 class unshard_visitor_t : public boost::static_visitor<void> {
 public:
     unshard_visitor_t(const read_response_t *_responses, 
@@ -322,32 +329,62 @@ public:
     }
 
     void operator()(const distribution_read_t &) {
+        // TODO: do this without copying so much and/or without dynamic memory
+        // Sort results by region
+        std::vector<distribution_read_response_t> results(count);
         rassert(count > 0);
-        rassert(boost::get<distribution_read_response_t>(&responses[0].response));
-        rassert(count == 1 || boost::get<distribution_read_response_t>(&responses[1].response));
 
-        // Asserts that we don't look like a hash-sharded thing.
-        rassert(!(count > 1
-                  && boost::get<distribution_read_response_t>(&responses[0].response)->key_counts.begin()->first == boost::get<distribution_read_response_t>(&responses[1].response)->key_counts.begin()->first));
-
-        response_out->response = distribution_read_response_t();
-        distribution_read_response_t *response = boost::get<distribution_read_response_t>(&response_out->response);
-
-        for (size_t i = 0; i < count; i++) {
-            const distribution_read_response_t *response_piece = boost::get<distribution_read_response_t>(&responses[i].response);
-            rassert(response_piece, "Bad boost::get\n");
-
-#ifndef NDEBUG
-            for (std::map<store_key_t, int>::const_iterator it = response_piece->key_counts.begin();
-                 it != response_piece->key_counts.end();
-                 ++it) {
-                rassert(!std_contains(response->key_counts, it->first), "repeated key '%*.*s'",
-                        static_cast<int>(it->first.size()), static_cast<int>(it->first.size()), it->first.contents());
-            }
-#endif
-            response->key_counts.insert(response_piece->key_counts.begin(), response_piece->key_counts.end());
-
+        for (size_t i = 0; i < count; ++i) {
+            const distribution_read_response_t *result = boost::get<distribution_read_response_t>(&responses[i].response);
+            rassert(result, "Bad boost::get\n");
+            results[i] = *result;
         }
+
+        std::sort(results.begin(), results.end(), distribution_read_response_less_t());
+
+        distribution_read_response_t res;
+        size_t i = 0;
+        while (i < results.size()) {
+            // Find the largest hash shard for this key range
+            key_range_t range = results[i].region.inner;
+            size_t largest_index = i;
+            size_t largest_size = 0;
+            size_t total_range_keys = 0;
+
+            while (i < results.size() && results[i].region.inner == range) {
+                size_t tmp_total_keys = 0;
+                for (std::map<store_key_t, int>::const_iterator mit = results[i].key_counts.begin();
+                     mit != results[i].key_counts.end();
+                     ++mit) {
+                    tmp_total_keys += mit->second;
+                }
+
+                if (tmp_total_keys > largest_size) {
+                    largest_size = tmp_total_keys;
+                    largest_index = i;
+                }
+
+                total_range_keys += tmp_total_keys;
+                ++i;
+            }
+
+            if (largest_size > 0) {
+                // Scale up the selected hash shard
+                double scale_factor = static_cast<double>(total_range_keys) / static_cast<double>(largest_size);
+
+                rassert(scale_factor >= 1.0);  // Directly provable from the code above.
+
+                for (std::map<store_key_t, int>::iterator mit = results[largest_index].key_counts.begin();
+                     mit != results[largest_index].key_counts.end();
+                     ++mit) {
+                    mit->second = static_cast<int>(mit->second * scale_factor);
+                }
+
+                res.key_counts.insert(results[largest_index].key_counts.begin(), results[largest_index].key_counts.end());
+            }
+        }
+
+        response_out->response = res;
     }
 
 private:
@@ -366,247 +403,6 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
                    const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> >& b) {
     return a.first < b.first;
 }
-
-class multistore_unshard_visitor_t : public boost::static_visitor<void> {
-public:
-    multistore_unshard_visitor_t(const read_response_t *_responses, 
-                                 size_t _count,
-                                 read_response_t *_response_out, context_t *ctx) 
-        : responses(_responses), count(_count), response_out(_response_out),
-          env(ctx->pool_group,
-              ctx->ns_repo,
-              ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
-              ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
-              ctx->semilattice_metadata,
-              boost::make_shared<js::runner_t>(),
-              ctx->signals[get_thread_id()].get(),
-              ctx->machine_id)
-    { }
-
-    void operator()(const point_read_t &) {
-        rassert(count == 1);
-        rassert(boost::get<point_read_response_t>(&responses[0].response));
-        *response_out = responses[0];
-    }
-
-    void operator()(const rget_read_t &rg) {
-        response_out->response = rget_read_response_t();
-        rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response_out->response);
-        rg_response.truncated = false;
-        rg_response.key_range = read_t(rg).get_region().inner;
-        rg_response.last_considered_key = read_t(rg).get_region().inner.left;
-
-        try {
-            /* First check to see if any of the responses we're unsharding threw. */
-            for(size_t i = 0; i < count; ++i) {
-                // TODO: we're ignoring the limit when recombining.
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                rassert(_rr);
-
-                if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&(_rr->result))) {
-                    throw *e;
-                }
-            }
-
-            if (!rg.terminal) {
-                //A vanilla range get (or filter or map)
-                rg_response.result = stream_t(); //Set the response to have the correct result type
-                stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
-
-                /* An annoyance occurs. We have results from several different hash
-                 * shards. We must figure out what the last considered key is,
-                 * however that value must be the last considered key for all of
-                 * the hash shards, thus we have to take the minimum of all the
-                 * shards last considered keys. Observe the picture:
-                 *
-                 *              A - - - - - - - - - - - - - - - Z
-                 * hash shard 1     | -        - -  -  -  |
-                 * hash shard 2     |  --       -    -   -|
-                 * hash shard 3     |     --- -   -       |
-                 * hash shard 4     |-   -         -  - - |
-                 *
-                 * Here each shard has returned 5 keys. (Each - is a key). Now the
-                 * question is what is the last considered key?
-                 *
-                 *              A - - - - - - - - - - - - - - - Z
-                 * hash shard 1     | -        - -  -  -  |
-                 * hash shard 2     |  --       -    -   a|
-                 * hash shard 3     |     --- -   b       |
-                 * hash shard 4     |-   -         -  - - |
-                 *
-                 * Is it "a" or "b"? The answer is "b"? If we picked "a" then the
-                 * next request we got would have "a" as the left side of the
-                 * range. And we could miss keys in hash shard 3.
-                 */
-
-                /* Figure out what the last considered key actually is. */
-                rg_response.last_considered_key = read_t(rg).get_region().inner.last_key_in_range();
-
-                for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-
-                    if (_rr-> truncated && _rr->last_considered_key < rg_response.last_considered_key) {
-                        rg_response.last_considered_key = _rr->last_considered_key;
-                    }
-                }
-
-                for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    rassert(_rr);
-
-                    const stream_t *stream = boost::get<stream_t>(&(_rr->result));
-
-                    for (stream_t::const_iterator jt  = stream->begin();
-                                                  jt != stream->end();
-                                                  ++jt) {
-                        //Filter out the results that went past our last considered key
-                        if (jt->first <= rg_response.last_considered_key) {
-                            res_stream->push_back(*jt);
-                        }
-                    }
-
-                    //res_stream->insert(res_stream->end(), stream->begin(), stream->end());
-                    rg_response.truncated = rg_response.truncated || _rr->truncated;
-                }
-            } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&rg.terminal->variant)) {
-                //GroupedMapreduce
-                rg_response.result = groups_t();
-                groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
-                for(size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-
-                    const groups_t *groups = boost::get<groups_t>(&(_rr->result));
-
-                    for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
-                        Term base = gmr->reduction().base(),
-                             body = gmr->reduction().body();
-
-                        scopes_t scopes_copy = rg.terminal->scopes;
-                        query_language::new_val_scope_t inner_scope(&scopes_copy.scope);
-                        scopes_copy.scope.put_in_scope(gmr->reduction().var1(), get_with_default(*res_groups, j->first, eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("reduction").with("base"))));
-                        scopes_copy.scope.put_in_scope(gmr->reduction().var2(), j->second);
-                        (*res_groups)[j->first] = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("reduction").with("body"));
-                    }
-                }
-            } else if (const Reduction *r = boost::get<Reduction>(&rg.terminal->variant)) {
-                //Normal Mapreduce
-                rg_response.result = atom_t();
-                atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
-
-                Term base = r->base();
-                *res_atom = eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("base"));
-
-                for(size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-
-                    const atom_t *atom = boost::get<atom_t>(&(_rr->result));
-
-                    scopes_t scopes_copy = rg.terminal->scopes;
-                    query_language::new_val_scope_t inner_scope(&scopes_copy.scope);
-                    scopes_copy.scope.put_in_scope(r->var1(), *res_atom);
-                    scopes_copy.scope.put_in_scope(r->var2(), *atom);
-                    Term body = r->body();
-                    *res_atom = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("body"));
-                }
-            } else if (boost::get<rdb_protocol_details::Length>(&rg.terminal->variant)) {
-                rg_response.result = atom_t();
-                length_t *res_length = boost::get<length_t>(&rg_response.result);
-                res_length->length = 0;
-
-                for(size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-
-                    const length_t *length = boost::get<length_t>(&(_rr->result));
-
-                    res_length->length += length->length;
-                }
-            } else if (boost::get<WriteQuery_ForEach>(&rg.terminal->variant)) {
-                rg_response.result = atom_t();
-                inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
-                res_inserted->inserted = 0;
-
-                for(size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-
-                    const inserted_t *inserted = boost::get<inserted_t>(&(_rr->result));
-
-                    res_inserted->inserted += inserted->inserted;
-                }
-            } else {
-                unreachable();
-            }
-        } catch (const runtime_exc_t &e) {
-            rg_response.result = e;
-        }
-    }
-
-    void operator()(const distribution_read_t &) {
-        rassert(count > 0);
-        rassert(boost::get<distribution_read_response_t>(&responses[0].response));
-        rassert(count == 1 || boost::get<distribution_read_response_t>(&responses[1].response));
-
-        // These test properties of distribution queries sharded by hash rather than key.
-        rassert(count > 1);
-        rassert(boost::get<distribution_read_response_t>(&responses[0].response)->key_counts.begin()->first == boost::get<distribution_read_response_t>(&responses[1].response)->key_counts.begin()->first);
-
-        response_out->response = distribution_read_response_t();
-        distribution_read_response_t *response = boost::get<distribution_read_response_t>(&response_out->response);
-
-        int64_t total_num_keys = 0;
-        rassert(count > 0);
-
-        int64_t total_keys_in_res = 0;
-        for (size_t i = 0; i < count; ++i) {
-            const distribution_read_response_t *response_piece = boost::get<distribution_read_response_t>(&responses[i].response);
-            rassert(response_piece, "Bad boost::get\n");
-
-            int64_t tmp_total_keys = 0;
-            for (std::map<store_key_t, int>::const_iterator it = response_piece->key_counts.begin();
-                 it != response_piece->key_counts.end();
-                 ++it) {
-                tmp_total_keys += it->second;
-            }
-
-            total_num_keys += tmp_total_keys;
-
-            if (response->key_counts.size() < response_piece->key_counts.size()) {
-                *response = *response_piece;
-                total_keys_in_res = tmp_total_keys;
-            }
-        }
-
-        if (total_keys_in_res == 0) {
-            return;
-        }
-
-        double scale_factor = static_cast<double>(total_num_keys) / static_cast<double>(total_keys_in_res);
-
-        rassert(scale_factor >= 1.0);  // Directly provable from the code above.
-
-        for (std::map<store_key_t, int>::iterator it  = response->key_counts.begin();
-                                                  it != response->key_counts.end();
-                                                  ++it) {
-            it->second = static_cast<int>(it->second * scale_factor);
-        }
-    }
-
-private:
-    const read_response_t *responses;
-    size_t count;
-    read_response_t *response_out;
-    query_language::runtime_environment_t env;
-};
-
-void read_t::multistore_unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    multistore_unshard_visitor_t v(responses, count, response, ctx);
-    boost::apply_visitor(v, read);
-}
-
 
 /* write_t::get_region() implementation */
 
@@ -667,10 +463,6 @@ void write_t::unshard(const write_response_t *responses, DEBUG_VAR size_t count,
     *response = responses[0];
 }
 
-void write_t::multistore_unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    return unshard(responses, count, response, ctx);
-}
-
 store_t::store_t(io_backender_t *io_backend,
                  const std::string& filename,
                  bool create,
@@ -707,6 +499,8 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
                 ++it;
             }
         }
+
+        dstr.region = dg.region;
 
         return read_response_t(dstr);
     }

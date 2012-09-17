@@ -36,10 +36,6 @@
     <div class="section summary">
         <p>
             {{num_namespaces}} {{pluralize_noun "table" num_amespaces}} with
-            <ul>
-                <li>{{num_rdb}} using rdb protocol</li>
-                <li>{{num_memcached}} using memcached</li>
-            </ul>
         </p>
         <p>Status: {{humanize_namespace_reachability reachability}}</p>
         {{#unless stats_up_to_date}}

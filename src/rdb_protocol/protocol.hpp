@@ -206,9 +206,10 @@ struct rdb_protocol_t {
         //and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
         //key_counts[kn] = the number of keys in [kn, right_key)
         // TODO: Just make this use an int64_t.
+        region_t region;
         std::map<store_key_t, int> key_counts;
 
-        RDB_MAKE_ME_SERIALIZABLE_1(key_counts);
+        RDB_MAKE_ME_SERIALIZABLE_2(region, key_counts);
     };
 
     struct read_response_t {
@@ -290,7 +291,6 @@ struct rdb_protocol_t {
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
         void unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
-        void multistore_unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : read(r.read) { }
@@ -390,7 +390,6 @@ struct rdb_protocol_t {
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
         void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache) const THROWS_NOTHING;
-        void multistore_unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : write(w.write) { }
