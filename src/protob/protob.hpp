@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/function.hpp>
+#include <boost/ptr_container/ptr_map.hpp>
 
 #include "arch/arch.hpp"
 #include "concurrency/auto_drainer.hpp"
@@ -50,17 +51,23 @@ private:
         void grab();
         void release();
         bool isFree();
+        void terminate();
 
+        cond_t *getInterruptorCond() { return &interruptor_cond; }
+        bool isTerminated() { return interruptor_cond.is_pulsed(); }
     private:
+        cond_t interruptor_cond;
         context_t ctx;
         time_t last_accessed;
         int users_count;
 
         // Update last_accessed to current time
         void touch();
+
+        DISABLE_COPYING(http_context_t);
     };
 
-    std::map<int32_t, http_context_t> http_conns;
+    boost::ptr_map<int32_t, http_context_t> http_conns;
     int32_t next_http_conn_id;
     int next_thread;
     repeating_timer_t http_timeout_timer;
