@@ -227,17 +227,28 @@ rethinkdb.query.JSFunctionExpression.parseRegexp_ = /function [^(]*\(([^)]*)\) *
  * @export
  */
 rethinkdb.query.fn = function(var_args) {
+    var args;
+    var body;
     if (typeof var_args === 'function') {
-        return new rethinkdb.query.JSFunctionExpression(var_args);
+        // generate arg names and get body by evaluating function
+        // similar to ruby block syntax
+
+        args = [];
+        for (var i = 0; i < var_args.length; i++) {
+            args.push('genSym'+args.length);
+        }
+
+        body = var_args.apply(null, args.map(function(argName) {
+            return rethinkdb.query.R('$'+argName);
+        }));
     } else {
-        var body = arguments[arguments.length - 1];
-        var args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
-
-        typeCheck_(body, rethinkdb.query.BaseQuery);
-        args.forEach(function(arg) {return typeCheck_(arg, 'string')});
-
-        return new rethinkdb.query.FunctionExpression(args, body);
+        body = arguments[arguments.length - 1];
+        args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
     }
+
+    typeCheck_(body, rethinkdb.query.BaseQuery);
+    args.forEach(function(arg) {return typeCheck_(arg, 'string')});
+    return new rethinkdb.query.FunctionExpression(args, body);
 };
 
 /**
@@ -558,7 +569,7 @@ goog.exportProperty(rethinkdb.query.Expression.prototype, 'nth',
 rethinkdb.query.Expression.prototype.filter = function(selector) {
     var predicateFunction;
     if (typeof selector === 'function') {
-        predicateFunction = new rethinkdb.query.JSFunctionExpression(selector);
+        predicateFunction = rethinkdb.query.fn(selector);
     } else if (selector instanceof rethinkdb.query.FunctionExpression) {
         predicateFunction = selector;
     } else if (selector instanceof rethinkdb.query.Expression) {

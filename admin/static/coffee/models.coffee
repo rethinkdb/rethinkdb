@@ -663,14 +663,6 @@ module 'DataUtils', ->
     @get_directory_activities = ->
         activities = {}
         for machine in directory.models
-            bcards = machine.get('memcached_namespaces')['reactor_bcards']
-            for namespace_id, activity_map of bcards
-                activity_map = activity_map['activity_map']
-                for activity_id, activity of activity_map
-                    activities[activity_id] =
-                        value: activity
-                        machine_id: machine.get('id')
-                        namespace_id: namespace_id
             bcards = machine.get('rdb_namespaces')['reactor_bcards']
             for namespace_id, activity_map of bcards
                 activity_map = activity_map['activity_map']
@@ -684,16 +676,6 @@ module 'DataUtils', ->
     @get_directory_activities_by_namespaces = ->
         activities = {}
         for machine in directory.models
-            bcards = machine.get('memcached_namespaces')['reactor_bcards']
-            for namespace_id, activity_map of bcards
-                activity_map = activity_map['activity_map']
-                for activity_id, activity of activity_map
-                    if !(namespace_id of activities)
-                        activities[namespace_id] = {}
-
-                    if !activities[namespace_id][machine.get('id')]?
-                        activities[namespace_id][machine.get('id')] = {}
-                    activities[namespace_id][machine.get('id')][activity[0]] = activity[1]['type']
             bcards = machine.get('rdb_namespaces')['reactor_bcards']
             for namespace_id, activity_map of bcards
                 activity_map = activity_map['activity_map']

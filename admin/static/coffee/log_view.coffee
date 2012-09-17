@@ -288,7 +288,7 @@ module 'LogView', ->
                 msg = ''
                 json_data = $.parseJSON data
                 for group of json_data
-                    if group is 'memcached_namespaces' or group is 'rdb_namespaces'
+                    if group is 'rdb_namespaces'
                         for namespace_id of json_data[group]
                             if namespace_id is 'new'
                                 msg += @log_new_namespace_template
@@ -447,7 +447,7 @@ module 'LogView', ->
                 msg = ''
                 json_data = $.parseJSON data
                 for group of json_data
-                    if group is 'memcached_namespaces' or group is 'rdb_namespaces'
+                    if group is 'rdb_namespaces'
                         for namespace_id of json_data[group]
                             if json_data[group][namespace_id] is null
                                 msg += @log_delete_something_template
