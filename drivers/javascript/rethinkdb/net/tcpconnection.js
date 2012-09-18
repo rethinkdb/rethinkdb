@@ -1,6 +1,6 @@
-goog.provide('rethinkdb.net.TcpConnection');
+goog.provide('rethinkdb.TcpConnection');
 
-goog.require('rethinkdb.net.Connection');
+goog.require('rethinkdb.Connection');
 
 /**
  * Constructs a TCP based connection in one of several ways.
@@ -23,10 +23,10 @@ goog.require('rethinkdb.net.Connection');
  * @param {function(...)=} onFailure Error handler to use for this connection. Will be
  *  called if a connection cannot be established. Can also be set with setErrorHandler.
  * @constructor
- * @extends {rethinkdb.net.Connection}
+ * @extends {rethinkdb.Connection}
  * @export
  */
-rethinkdb.net.TcpConnection = function(host_or_list, onConnect, onFailure) {
+rethinkdb.TcpConnection = function(host_or_list, onConnect, onFailure) {
     typeCheck_(onConnect, 'function');
     typeCheck_(onFailure, 'function');
 
@@ -43,7 +43,7 @@ rethinkdb.net.TcpConnection = function(host_or_list, onConnect, onFailure) {
      */
 	var DEFAULT_HOST = 'localhost';
 
-    if (!rethinkdb.net.TcpConnection.isAvailable()) {
+    if (!rethinkdb.TcpConnection.isAvailable()) {
         this.error_(new rethinkdb.errors.ClientError("Cannot instantiate TcpConnection, "+
             "TCP sockets are not available in this environment."));
     }
@@ -99,7 +99,7 @@ rethinkdb.net.TcpConnection = function(host_or_list, onConnect, onFailure) {
 		}
 	})();
 };
-goog.inherits(rethinkdb.net.TcpConnection, rethinkdb.net.Connection);
+goog.inherits(rethinkdb.TcpConnection, rethinkdb.Connection);
 
 /**
  * Returns true if TcpConnection is available in the current environment.
@@ -107,7 +107,7 @@ goog.inherits(rethinkdb.net.TcpConnection, rethinkdb.net.Connection);
  * @static
  * @export
  */
-rethinkdb.net.TcpConnection.isAvailable = function() {
+rethinkdb.TcpConnection.isAvailable = function() {
     return (typeof require !== 'undefined' && require('net'));
 };
 
@@ -117,7 +117,7 @@ rethinkdb.net.TcpConnection.isAvailable = function() {
  * @private
  * @override
  */
-rethinkdb.net.TcpConnection.prototype.send_ = function(data) {
+rethinkdb.TcpConnection.prototype.send_ = function(data) {
     if (!this.socket_)
         this.error_(new rethinkdb.errors.ClientError("Connection not open"));
 
@@ -138,7 +138,7 @@ rethinkdb.net.TcpConnection.prototype.send_ = function(data) {
  * Buffers data until a full response message is received.
  * @private
  */
-rethinkdb.net.TcpConnection.prototype.tcpRecv_ = function(node_data) {
+rethinkdb.TcpConnection.prototype.tcpRecv_ = function(node_data) {
     var rcvArray = new Uint8Array(node_data);
     var read = 0;
     var available = rcvArray.byteLength;
@@ -180,12 +180,12 @@ rethinkdb.net.TcpConnection.prototype.tcpRecv_ = function(node_data) {
  * Close the underlying TCP connection.
  * @override
  */
-rethinkdb.net.TcpConnection.prototype.close = function() {
+rethinkdb.TcpConnection.prototype.close = function() {
     if (!this.socket_)
         this.error_(new rethinkdb.errors.ClientError("Connection not open"));
 
     this.socket_.end();
     this.socket_ = null;
 };
-goog.exportProperty(rethinkdb.net.TcpConnection.prototype, 'close',
-                    rethinkdb.net.TcpConnection.prototype.close);
+goog.exportProperty(rethinkdb.TcpConnection.prototype, 'close',
+                    rethinkdb.TcpConnection.prototype.close);

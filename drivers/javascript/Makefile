@@ -24,7 +24,7 @@ lib: query_language.pb.js
 	rm -rf rethinkdb.js
 	rm -rf rethinkdb.map.js
 	bash -c 'cat <(echo "(function(){") \
-		<($(CLOSURE_BUILDER) --root=$(CLOSURE_LIB) --root=rethinkdb/ --namespace=rethinkdb \
+		<($(CLOSURE_BUILDER) --root=$(CLOSURE_LIB) --root=rethinkdb/ --namespace=topLevel \
 		--compiler_jar=$(CLOSURE_COMPILER) \
 		--compiler_flags="--compilation_level=ADVANCED_OPTIMIZATIONS" \
 		--compiler_flags="--accept_const_keyword" \
