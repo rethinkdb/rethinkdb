@@ -217,7 +217,7 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
                 throw query_language::runtime_exc_t(strprintf("Cannot create new row with non-number, non-string primary key (%s).",
                                                               val->Print().c_str()), backtrace);
             }
-            store_key_t new_key(cJSON_Print_lexicographic(val_pk));
+            store_key_t new_key(cJSON_print_lexicographic(val_pk));
             if (key != new_key) {
                 throw query_language::runtime_exc_t(strprintf("Mutate cannot insert a row with a different primary key."), backtrace);
             }
@@ -349,17 +349,24 @@ public:
                                               const rdb_protocol_details::transform_t &_transform,
                                               boost::optional<rdb_protocol_details::terminal_t> _terminal,
                                               const key_range_t &range)
-        : transaction(txn), cumulative_size(0),
+        : bad_init(false), transaction(txn), cumulative_size(0),
           env(_env), transform(_transform), terminal(_terminal)
     {
-        response.last_considered_key = range.left;
+        try {
+            response.last_considered_key = range.left;
 
-        if (terminal) {
-            boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result, env, terminal->scopes, terminal->backtrace), terminal->variant);
+            if (terminal) {
+                boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result, env, terminal->scopes, terminal->backtrace), terminal->variant);
+            }
+        } catch (const query_language::runtime_exc_t &e) {
+            /* Evaluation threw so we're not going to be accepting any more requests. */
+            response.result = e;
+            bad_init = true;
         }
     }
 
     bool handle_pair(const btree_key_t* key, const void *value) {
+        if (bad_init) return false;
         try {
             store_key_t store_key(key);
             if (response.last_considered_key < store_key) {
@@ -413,6 +420,7 @@ public:
             return false;
         }
     }
+    bool bad_init;
     transaction_t *transaction;
     rget_read_response_t response;
     size_t cumulative_size;

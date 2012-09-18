@@ -4,9 +4,11 @@
 #include "errors.hpp"
 #include <boost/function.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "arch/arch.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "containers/archive/archive.hpp"
 #include "http/http.hpp"
 
@@ -35,7 +37,18 @@ private:
     boost::function<response_t(request_t *, context_t *)> f;
     response_t (*on_unparsable_query)(request_t *, std::string);
     protob_server_callback_mode_t cb_mode;
+
+    /* WARNING: The order here is fragile. */
+    cond_t main_shutting_down_cond;
+    signal_t *shutdown_signal() { return &shutting_down_conds[get_thread_id()]; }
+    boost::ptr_vector<cross_thread_signal_t> shutting_down_conds;
     auto_drainer_t auto_drainer;
+    struct pulse_on_destruct_t {
+        explicit pulse_on_destruct_t(cond_t *_cond) : cond(_cond) { }
+        ~pulse_on_destruct_t() { cond->pulse(); }
+        cond_t *cond;
+    } pulse_sdc_on_shutdown;
+
     scoped_ptr_t<tcp_listener_t> tcp_listener;
 
     // For HTTP server
