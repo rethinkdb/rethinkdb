@@ -10,13 +10,27 @@ goog.require('goog.proto2.WireFormatSerializer');
  * @class A connection over which queries may be sent.
  * This is an abstract base class for two different kinds of connections,
  * a tcp connection or an http connection (for use by browsers).
- * @param {?string=} opt_dbName optional default db to use for this connection
+ * @param {?string|Object} host Either a string giving the host to connect to or
+ *      an object specifying host and/or port and/or db for the default database to
+ *      use on this connection. Any key not supplied will revert to the default.
  * @param {?function(Error)=} opt_errorHandler optional error handler to use for this connection
  * @constructor
  */
-rethinkdb.Connection = function(opt_dbName, opt_errorHandler) {
-    typeCheck_(opt_dbName, 'string');
-	this.defaultDbName_ = opt_dbName || 'Welcome-db';
+rethinkdb.Connection = function(host, opt_errorHandler) {
+    if (typeof host === undefined) {
+        host = {};
+    } else if (typeof host === 'string') {
+        host = {'host':host};
+    }
+
+    this.host_ = host['host'] || this.DEFAULT_HOST;
+    this.port_ = host['port'] || this.DEFAULT_PORT;
+    this.db_   = host['db']   || this.DEFAULT_DB;
+
+    typeCheck_(this.host_, 'string');
+    typeCheck_(this.port_, 'number');
+    typeCheck_(this.db_,   'string');
+
     this.outstandingQueries_ = {};
     this.nextToken_ = 1;
 
@@ -24,6 +38,38 @@ rethinkdb.Connection = function(opt_dbName, opt_errorHandler) {
 
     rethinkdb.last_connection_ = this;
 };
+
+/**
+ * The default host to use for new connections that don't specify a host
+ * @constant
+ * @type {string}
+ */
+rethinkdb.Connection.prototype.DEFAULT_HOST = 'localhost';
+
+/**
+ * The default port to use for new connections that don't specify a port
+ * @type {number}
+ */
+rethinkdb.Connection.prototype.DEFAULT_PORT = 12346;
+
+/**
+ * The default database to use for new connections that don't specify one
+ * @constant
+ * @type {string}
+ */
+rethinkdb.Connection.prototype.DEFAULT_DB = 'Welcome-db';
+
+/**
+ * Closes this connection and reopens a new connection to the same host
+ * and port.
+ */
+rethinkdb.Connection.prototype.reconnect = function(onConnect) {
+    this.constructor.call(this, {'host':this.host_,
+                                 'port':this.port_,
+                                 'db'  :this.db_}, onConnect, this.errorHandler_);
+};
+goog.exportProperty(rethinkdb.Connection.prototype, 'reconnect',
+                    rethinkdb.Connection.prototype.reconnect);
 
 /**
  * Invoke the error handler on this connection.
@@ -222,7 +268,7 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
 rethinkdb.Connection.prototype.use = function(dbName) {
     argCheck_(arguments, 1);
     typeCheck_(dbName, 'string');
-	this.defaultDbName_ = dbName;
+	this.db_ = dbName;
 };
 
 /**
@@ -230,5 +276,5 @@ rethinkdb.Connection.prototype.use = function(dbName) {
  * @return {string}
  */
 rethinkdb.Connection.prototype.getDefaultDb = function() {
-    return this.defaultDbName_;
+    return this.db_;
 };
