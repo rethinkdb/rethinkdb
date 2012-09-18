@@ -43,7 +43,7 @@ std::string cJSON_print_lexicographic(const cJSON *json) {
         rassert((void *)&packed.d == (void *)&packed.u);
         packed.d = json->valuedouble;
         acc += strprintf("%.*lx", (int)(sizeof(double)*2), packed.u);
-        return acc;
+        acc += strprintf("#%.20g\n", json->valuedouble);
     } else {
         rassert(json->type == cJSON_String);
         acc += "S";
