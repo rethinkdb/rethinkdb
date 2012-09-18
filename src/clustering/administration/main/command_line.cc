@@ -108,17 +108,14 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     }
 }
 
-void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<host_and_port_t> joins, io_backend_t io_backend, int client_port, std::string db_name, std::string table_name, std::string separators, std::string input_filepath, bool *result_out) {
+void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<host_and_port_t> joins, int client_port, std::string db_name, std::string table_name, boost::optional<std::string> primary_key, std::string separators, std::string input_filepath, bool *result_out) {
     os_signal_cond_t sigint_cond;
     guarantee(!joins.empty());
-
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(io_backend, &io_backender);
 
     csv_to_json_importer_t importer(separators, input_filepath);
 
     // TODO(sam): Make the peer port be configurable.
-    *result_out = run_json_import(spawner_info, io_backender.get(), look_up_peers_addresses(joins), 0, client_port, db_name, table_name, &importer, &sigint_cond);
+    *result_out = run_json_import(spawner_info, look_up_peers_addresses(joins), 0, client_port, db_name, table_name, primary_key, &importer, &sigint_cond);
 }
 
 void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
@@ -415,6 +412,7 @@ po::options_description get_rethinkdb_import_options() {
         // no default value.  Or am I supposed to wade my way back into the
         // program_options documentation again?
         ("table", po::value<std::string>()->default_value(""), "the database table to which to import")
+        ("primary-key", po::value<std::string>()->default_value(""), "the primary key to create a new table with, or expected primary key")
         ("separators,s", po::value<std::string>()->default_value("\t,"), "list of characters to be used as whitespace -- uses \" \t,\" by default")
         ("input-file", po::value<std::string>()->default_value(""), "the csv input file");
     desc.add(get_disk_options());
@@ -688,6 +686,11 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        std::string primary_key_arg = vm["primary-key"].as<std::string>();
+        boost::optional<std::string> primary_key;
+        if (!primary_key_arg.empty()) {
+            primary_key = primary_key_arg;
+        }
 
         std::string separators = vm["separators"].as<std::string>();
         if (separators.empty()) {
@@ -698,6 +701,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             // TODO(sam): handle error gracefully.
             return EXIT_FAILURE;
         }
+        // TODO(sam): This is an unused option!  Remove it.
         io_backend_t io_backend;
         if (!pull_io_backend_option(vm, &io_backend)) {
             return EXIT_FAILURE;
@@ -708,7 +712,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
         const int num_workers = get_cpu_count();
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_import, &spawner_info, joins, io_backend, client_port, db_name, table_name, separators, input_filepath, &result),
+        run_in_thread_pool(boost::bind(&run_rethinkdb_import, &spawner_info, joins, client_port, db_name, table_name, primary_key, separators, input_filepath, &result),
                            num_workers);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
