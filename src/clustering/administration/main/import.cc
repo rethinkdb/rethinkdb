@@ -232,7 +232,7 @@ bool do_json_importation(const boost::shared_ptr<semilattice_readwrite_view_t<da
             continue;
         }
 
-        std::string internal_key = cJSON_Print_lexicographic(pkey_value);
+        std::string internal_key = cJSON_print_lexicographic(pkey_value);
 
         if (internal_key.size() > MAX_KEY_SIZE) {
             debugf("key size is overlarge\n");
