@@ -10,9 +10,23 @@ var conn;
 function testConnect() {
     wait();
     conn = rethinkdb.net.connect({host:HOST, port:PORT}, function() {
+        q.db('Welcome-db').list().run(function(tables) {
+            wait();
+            function drop() {
+                var table = tables.shift();
+                if (table) {
+                    q.db('Welcome-db').drop(table).run(drop);
+                } else {
+                    q.db('Welcome-db').create('Welcome-rdb').run(function() {
+                        done();
+                    });
+                }
+            }
+            drop();
+        });
         done();
-    }, function() {
-        fail("Could not connect");
+    }, function(e) {
+        fail(e);
     });
 }
 
@@ -59,11 +73,11 @@ function testBool() {
 var arr = q([1,2,3,4,5,6]);
 function testSlices() {
     arr.nth(0).run(aeq(1));
-    arr.length().run(aeq(6));
-    arr.limit(5).length().run(aeq(5));
-    arr.skip(4).length().run(aeq(2));
+    arr.count().run(aeq(6));
+    arr.limit(5).count().run(aeq(5));
+    arr.skip(4).count().run(aeq(2));
     arr.skip(4).nth(0).run(aeq(5));
-    arr.slice(1,4).length().run(aeq(3));
+    arr.slice(1,4).count().run(aeq(3));
     arr.nth(2).run(aeq(3));
 }
 
@@ -99,9 +113,9 @@ function testReduce() {
 function testFilter() {
     arr.filter(function(val) {
         return val.lt(3);
-    }).length().run(objeq(2));
+    }).count().run(objeq(2));
 
-    arr.filter(q.fn('a', q.R('$a').lt(3))).length().run(objeq(2));
+    arr.filter(q.fn('a', q.R('$a').lt(3))).count().run(objeq(2));
 }
 
 var tobj = q({a:1,b:2,c:3});
@@ -166,16 +180,16 @@ function testPluck() {
 
 function testTabFilter() {
     tab.filter(function(row) {
-        return row.num > 16;
-    }).length().run(aeq(4));
+        return row('num').gt(16);
+    }).count().run(aeq(4));
 
-    tab.filter(q.fn('row', q.R('$row.num').gt(16))).length().run(aeq(4));
+    tab.filter(q.fn('row', q.R('$row.num').gt(16))).count().run(aeq(4));
 
-    tab.filter(q.R('num').gt(16)).length().run(aeq(4));
+    tab.filter(q.R('num').gt(16)).count().run(aeq(4));
 
     tab.filter({num:16}).nth(0).run(objeq({id:4,num:16}))
 
-    tab.filter({num:q(20).sub(q.R('id'))}).length().run(aeq(10));
+    tab.filter({num:q(20).sub(q.R('id'))}).count().run(aeq(10));
 }
 
 function testTabMap() {
@@ -189,26 +203,26 @@ function testTabReduce() {
 
 function testJS() {
     tab.filter(function(row) {
-        return row.num > 16;
-    }).length().run(aeq(4));
+        return row('num').gt(16);
+    }).count().run(aeq(4));
 
     tab.map(function(row) {
-        return row.num + 2;
+        return row('num').add(2);
     }).filter(function (val) {
-        return val > 16;
-    }).length().run(aeq(6));
+        return val.gt(16);
+    }).count().run(aeq(6));
 
     tab.filter(function(row) {
-        return row.num > 16;
+        return row('num').gt(16);
     }).map(function(row) {
-        return row.num * 4;
+        return row('num').mul(4);
     }).reduce(0, function(acc, val) {
-        return acc + val;
+        return acc.add(val);
     }).run(aeq(296));
 }
 
 function testBetween() {
-    tab.between(2,3).length().run(aeq(2));
+    tab.between(2,3).count().run(aeq(2));
     tab.between(2,2).nth(0).run(objeq({
         id:2,
         num:18
@@ -217,15 +231,13 @@ function testBetween() {
 
 function testGroupedMapReduce() {
     tab.groupedMapReduce(function(row) {
-        if (row.id < 5) {
-            return 0;
-        } else {
-            return 1;
-        }
+        return q.ifThenElse(row('id').lt(5),
+            q.expr(0),
+            q.expr(1))
     }, function(row) {
-        return row.num;
+        return row('num');
     }, 0, function(acc, num) {
-        return acc + num;
+        return acc.add(num);
     }).run(objeq([
             {group:0, reduction:90},
             {group:1, reduction:65}
@@ -233,20 +245,20 @@ function testGroupedMapReduce() {
 }
 
 function testConcatMap() {
-    tab.concatMap(q([1,2])).length().run(aeq(20));
+    tab.concatMap(q([1,2])).count().run(aeq(20));
 }
 
 var tab2 = q.table('table-2');
 function testSetupOtherTable() {
     wait();
-    //q.db('Welcome-db').create('table-2').run(function() {
+    q.db('Welcome-db').create('table-2').run(function() {
         tab2.insert([
             {id:20, name:'bob'},
             {id:19, name:'tom'},
             {id:18, name:'joe'}
         ]).run(objeq({inserted:3}));
         done();
-    //});
+    });
 }
 
 function testEqJoin() {
@@ -263,8 +275,7 @@ function testDropTable() {
 
 function testUpdate1() {
     tab.update(function(a) {
-        a.updated = true;
-        return a;
+        return a.extend({updated:true});
     }).run(objeq({
         errors:0,
         skipped:0,
@@ -284,8 +295,7 @@ function testUpdate2() {
 
 function testPointUpdate1() {
     tab.get(0).update(function(a) {
-        a.pointupdated = true;
-        return a;
+        return a.extend({pointupdated:true});
     }).run(objeq({
         errors:0,
         skipped:0,
@@ -294,12 +304,13 @@ function testPointUpdate1() {
 }
 
 function testPointUpdate2() {
-    tab.get(0).getAttr('pointupdated').run(aeq(true));
+    tab.get(0)('pointupdated').run(aeq(true));
 }
 
 function testMutate1() {
     tab.mutate(function(a) {
-        return {id:a.id, mutated:true};
+        return a.pickAttrs('id').extend({mutated:true});
+        //return q.expr({id:a.getAttr('id'), mutated:true});
     }).run(objeq({
         deleted:0,
         errors:0,
@@ -321,7 +332,8 @@ function testMutate2() {
 
 function testPointMutate1() {
     tab.get(0).mutate(function(a) {
-        return {id:a.id, pointmutated:true};
+        return a.pickAttrs('id').extend({pointmutated:true});
+        //return {id:a.id, pointmutated:true};
     }).run(objeq({
         deleted:0,
         errors:0,
@@ -331,7 +343,7 @@ function testPointMutate1() {
 }
 
 function testPointMutate2() {
-    tab.get(0).getAttr('pointmutated').run(aeq(true));
+    tab.get(0)('pointmutated').run(aeq(true));
 }
 
 function testPointDelete1() {
@@ -341,16 +353,16 @@ function testPointDelete1() {
 }
 
 function testPointDelete2() {
-    tab.length().run(aeq(9));
+    tab.count().run(aeq(9));
 }
 
 function testDelete1() {
-    tab.length().run(aeq(9));
+    tab.count().run(aeq(9));
     tab.del().run(objeq({deleted:9}));
 }
 
 function testDelete2() {
-    tab.length().run(aeq(0));
+    tab.count().run(aeq(0));
 }
 
 function testForEach1() {
@@ -360,8 +372,8 @@ function testForEach1() {
 }
 
 function testForEach2() {
-    tab.forEach(q.fn('a', tab.insert({id:q('$a.id').add(100), fe:true}))).run(objeq({
-        inserted:3
+    tab.forEach(q.fn('a', tab.get(q('$a.id')).update(q.expr({fe:true})))).run(objeq({
+        updated:3
     }));
 }
 
@@ -376,8 +388,9 @@ function testForEach3() {
 }
 
 function testClose() {
-    tab.del().run();
-    conn.close();
+    tab.del().run(function() {
+        conn.close();
+    });
 }
 
 runTests([

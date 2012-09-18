@@ -89,3 +89,22 @@ function argCheck_(args, expected) {
                             (expected > 1 ? 's.' : '.'));
     }
 }
+
+/**
+ * Internal utility that creates new ReQL expression objects that are
+ * themselves shortcut functions.
+ * @param {...*} var_args
+ * @ignore
+ */
+function newExpr_(var_args) {
+    var constructor = arguments[0];
+    var args = Array.prototype.slice.call(arguments, 1);
+
+    var self = function(prop) {
+        return rethinkdb.query.Expression.prototype.getAttr.call(self, prop);
+    };
+
+    self.__proto__ = constructor.prototype;
+    constructor.apply(self, args);
+    return self;
+}

@@ -12,17 +12,17 @@ rethinkdb.query.expr = function(value) {
     if (value instanceof rethinkdb.query.Expression) {
         return value;
     } else if (goog.isNumber(value)) {
-        return new rethinkdb.query.NumberExpression(value);
+        return newExpr_(rethinkdb.query.NumberExpression, value);
     } else if (goog.isBoolean(value)) {
-        return new rethinkdb.query.BooleanExpression(value);
+        return newExpr_(rethinkdb.query.BooleanExpression, value);
     } else if (goog.isString(value)) {
-        return new rethinkdb.query.StringExpression(value);
+        return newExpr_(rethinkdb.query.StringExpression, value);
     } else if (goog.isArray(value)) {
-        return new rethinkdb.query.ArrayExpression(value);
+        return newExpr_(rethinkdb.query.ArrayExpression, value);
     } else if (goog.isObject(value)) {
-        return new rethinkdb.query.ObjectExpression(value);
+        return newExpr_(rethinkdb.query.ObjectExpression, value);
     } else {
-        return new rethinkdb.query.JSONExpression(value);
+        return newExpr_(rethinkdb.query.JSONExpression, value);
     }
 };
 
@@ -35,7 +35,7 @@ rethinkdb.query.expr = function(value) {
 rethinkdb.query.js = function(jsExpr) {
     argCheck_(arguments, 1);
     typeCheck_(jsExpr, 'string');
-    return new rethinkdb.query.JSExpression(jsExpr);
+    return newExpr_(rethinkdb.query.JSExpression, jsExpr);
 };
 
 /**
@@ -58,7 +58,7 @@ rethinkdb.query.table = function(tableIdentifier) {
         db_name = undefined;
     }
 
-    return new rethinkdb.query.Table(table_name, db_name);
+    return newExpr_(rethinkdb.query.Table, table_name, db_name);
 };
 
 /**

@@ -68,7 +68,7 @@ rethinkdb.query.GetExpression.prototype.compile = function() {
 rethinkdb.query.Table.prototype.get = function(key) {
     argCheck_(arguments, 1);
     key = wrapIf_(key);
-    return new rethinkdb.query.GetExpression(this, key);
+    return newExpr_(rethinkdb.query.GetExpression, this, key);
 };
 goog.exportProperty(rethinkdb.query.Table.prototype, 'get',
                     rethinkdb.query.Table.prototype.get);
