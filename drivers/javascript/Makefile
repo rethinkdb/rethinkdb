@@ -42,6 +42,8 @@ query_language.pb.js: $(PROTO_FILE)
 
 docs: rethinkdb.js
 	jsdoc --template=docs/_themes/jsdoc-for-sphinx -x=js,jsx --directory=./docs/jsdoc -E=query_language.pb.js -r=3 rethinkdb/
+	make -C docs/ html
+	cp -r docs/_build/* /var/www/jsdocs/
 
 clean:
 	rm -rf rethinkdb.js
