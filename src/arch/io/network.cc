@@ -710,8 +710,8 @@ bool linux_nonthrowing_tcp_listener_t::bind_socket() {
     if (port == 0) {
         struct sockaddr_in sa;
         socklen_t sa_len(sizeof(sa));
-        int res = getsockname(sock.get(), (struct sockaddr*)&sa, &sa_len);
-        guarantee_err(res != -1, "Could not determine socket local port number");
+        int res2 = getsockname(sock.get(), (struct sockaddr*)&sa, &sa_len);
+        guarantee_err(res2 != -1, "Could not determine socket local port number");
         port = ntohs(sa.sin_port);
     }
 
@@ -807,7 +807,6 @@ linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
 }
 
 int linux_tcp_bound_socket_t::get_port() const {
-    debugf("socket port: %d\n", listener->get_port());
     return listener->get_port();
 }
 

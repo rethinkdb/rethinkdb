@@ -45,7 +45,20 @@ Response query_server_t::handle(Query *q, context_t *query_context) {
     bool is_deterministic;
 
     try {
-        query_language::check_query_type(*q, &type_environment, &is_deterministic, root_backtrace);
+        query_language::check_query_type(
+            *q, &type_environment, &is_deterministic, root_backtrace);
+        boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
+        int thread = get_thread_id();
+        query_language::runtime_environment_t runtime_environment(
+            ctx->pool_group, ctx->ns_repo,
+            ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
+            ctx->cross_thread_database_watchables[thread]->get_watchable(),
+            ctx->semilattice_metadata,
+            ctx->directory_read_manager,
+            js_runner, interruptor, ctx->machine_id);
+        //[execute_query] will set the status code unless it throws
+        execute_query(q, &runtime_environment, &res, scopes_t(),
+                      root_backtrace, stream_cache);
     } catch (const query_language::broken_client_exc_t &e) {
         res.set_status_code(Response::BROKEN_CLIENT);
         res.set_error_message(e.message);
@@ -55,30 +68,13 @@ Response query_server_t::handle(Query *q, context_t *query_context) {
         res.set_error_message(e.message);
         put_backtrace(e.backtrace, &res);
         return res;
-    }
-
-    boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
-    {
-        int thread = get_thread_id();
-        query_language::runtime_environment_t runtime_environment(
-            ctx->pool_group, ctx->ns_repo,
-            ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
-            ctx->cross_thread_database_watchables[thread]->get_watchable(),
-            ctx->semilattice_metadata,
-            ctx->directory_read_manager,
-            js_runner, interruptor, ctx->machine_id);
-        try {
-            //[execute_query] will set the status code unless it throws
-            execute_query(q, &runtime_environment, &res, scopes_t(), root_backtrace, stream_cache);
-        } catch (const query_language::runtime_exc_t &e) {
-            res.set_status_code(Response::RUNTIME_ERROR);
-            res.set_error_message(e.message);
-            put_backtrace(e.backtrace, &res);
-        } catch (const query_language::broken_client_exc_t &e) {
-            res.set_status_code(Response::BROKEN_CLIENT);
-            res.set_error_message(e.message);
-            return res;
-        }
+    } catch (const query_language::runtime_exc_t &e) {
+        res.set_status_code(Response::RUNTIME_ERROR);
+        res.set_error_message(e.message);
+        put_backtrace(e.backtrace, &res);
+    } catch (const interrupted_exc_t &e) {
+        res.set_status_code(Response::RUNTIME_ERROR);
+        res.set_error_message("Query interrupted.  Did you shut down the server?");
     }
 
     return res;

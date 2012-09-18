@@ -105,22 +105,6 @@ void scoped_cJSON_t::reset(cJSON *v) {
     val = v;
 }
 
-copyable_cJSON_t::copyable_cJSON_t(cJSON *_val)
-    : val(_val)
-{ }
-
-copyable_cJSON_t::copyable_cJSON_t(const copyable_cJSON_t &other)
-    : val(cJSON_DeepCopy(other.val))
-{ }
-
-copyable_cJSON_t::~copyable_cJSON_t() {
-    cJSON_Delete(val);
-}
-
-cJSON *copyable_cJSON_t::get() const {
-    return val;
-}
-
 json_iterator_t::json_iterator_t(cJSON *target) {
     node = target->child;
 }
