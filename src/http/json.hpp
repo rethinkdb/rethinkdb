@@ -10,9 +10,17 @@
 class http_res_t;
 
 http_res_t http_json_res(cJSON *json);
+
+//TODO: do we both merge and cJSON_merge?
+//Merge two cJSON objects, crashes if there are overlapping keys
+cJSON *merge(cJSON *, cJSON *);
 cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs);
-std::string cJSON_Print_std(cJSON *json);
-std::string cJSON_Print_lexicographic(const cJSON *json);
+void project(cJSON *json, std::set<std::string> keys);
+
+std::string cJSON_print_lexicographic(const cJSON *json);
+std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING;
+std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING;
+std::string cJSON_type_to_string(int type);
 
 class scoped_cJSON_t {
 private:
@@ -119,16 +127,6 @@ class json_array_iterator_t : public json_iterator_t {
 public:
     explicit json_array_iterator_t(cJSON *target);
 };
-
-std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING;
-std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING;
-
-void project(cJSON *json, std::set<std::string> keys);
-
-//Merge two cJSON objects, crashes if there are overlapping keys
-cJSON *merge(cJSON *, cJSON *);
-
-std::string cJSON_type_to_string(int type);
 
 /* Json serialization */
 write_message_t &operator<<(write_message_t &msg, const cJSON &cjson);

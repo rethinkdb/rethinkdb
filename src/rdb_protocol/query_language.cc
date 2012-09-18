@@ -21,7 +21,7 @@ cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
 
 
 std::string cJSON_print_primary(cJSON *json, const backtrace_t &backtrace) {
-    std::string s = cJSON_Print_lexicographic(json);
+    std::string s = cJSON_print_lexicographic(json);
     if (s.size() > MAX_KEY_SIZE) {
         throw runtime_exc_t(strprintf("Primary key too long (max %d characters): %s",
                                       MAX_KEY_SIZE-1, cJSON_print_std_string(json).c_str()), backtrace);
@@ -1048,7 +1048,7 @@ MUST_USE bool insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const
     cJSON *primary_key = data->GetObjectItem(pk.c_str());
     if (primary_key->type != cJSON_String && primary_key->type != cJSON_Number) {
         throw runtime_exc_t(strprintf("Cannot insert row %s with primary key %s of non-string, non-number type.",
-                                      data->Print().c_str(), cJSON_Print_std(primary_key).c_str()), backtrace);
+                                      data->Print().c_str(), cJSON_print_std_string(primary_key).c_str()), backtrace);
     }
 
     try {

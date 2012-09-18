@@ -32,7 +32,7 @@ cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
     return obj;
 }
 
-std::string cJSON_Print_lexicographic(const cJSON *json) {
+std::string cJSON_print_lexicographic(const cJSON *json) {
     std::string acc;
     rassert(json->type == cJSON_Number || json->type == cJSON_String);
     if (json->type == cJSON_Number) {
@@ -62,17 +62,9 @@ scoped_cJSON_t::~scoped_cJSON_t() {
     }
 }
 
-std::string cJSON_Print_std(cJSON *json) {
-    char *s = cJSON_Print(json);
-    rassert(s);
-    std::string res(s);
-    free(s);
-    return res;
-}
-
 /* Render a cJSON entity to text for transfer/storage. */
 std::string scoped_cJSON_t::Print() const THROWS_NOTHING {
-    return cJSON_Print_std(val);
+    return cJSON_print_std_string(val);
 }
 /* Render a cJSON entity to text for transfer/storage without any formatting. */
 std::string scoped_cJSON_t::PrintUnformatted() const THROWS_NOTHING {
@@ -85,7 +77,7 @@ std::string scoped_cJSON_t::PrintUnformatted() const THROWS_NOTHING {
 }
 
 std::string scoped_cJSON_t::PrintLexicographic() const THROWS_NOTHING {
-    return cJSON_Print_lexicographic(val);
+    return cJSON_print_lexicographic(val);
 }
 
 cJSON *scoped_cJSON_t::get() const {
