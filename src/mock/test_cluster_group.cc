@@ -210,7 +210,7 @@ test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines) {
 
     for (int i = 0; i < n_machines; i++) {
         files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
-        stores.push_back(new typename protocol_t::store_t(io_backender.get(), files[i].name(), true, NULL, &ctx));
+        stores.push_back(new typename protocol_t::store_t(io_backender.get(), files[i].name(), GIGABYTE, true, NULL, &ctx));
         store_view_t<protocol_t> *store_ptr = &stores[i];
         svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
         stores.back().metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));

@@ -53,6 +53,7 @@ template <class protocol_t>
 class svs_by_namespace_t {
 public:
     virtual void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
+                         int64_t cache_size,
                          stores_lifetimer_t<protocol_t> *stores_out,
                          scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out,
                          typename protocol_t::context_t *) = 0;

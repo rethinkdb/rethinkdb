@@ -109,6 +109,7 @@ public:
     watchable_and_reactor_t(io_backender_t *io_backender,
                             reactor_driver_t<protocol_t> *parent,
                             namespace_id_t namespace_id,
+                            int64_t _cache_size,
                             const blueprint_t<protocol_t> &bp,
                             svs_by_namespace_t<protocol_t> *svs_by_namespace,
                             typename protocol_t::context_t *_ctx) :
@@ -116,7 +117,8 @@ public:
         ctx(_ctx),
         parent_(parent),
         namespace_id_(namespace_id),
-        svs_by_namespace_(svs_by_namespace)
+        svs_by_namespace_(svs_by_namespace),
+        cache_size(_cache_size)
     {
         coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this, io_backender));
     }
@@ -210,7 +212,7 @@ private:
         perfmon_collection_t *serializers_collection = &perfmon_collections->serializers_collection;
 
         // TODO: We probably shouldn't have to pass in this perfmon collection.
-        svs_by_namespace_->get_svs(serializers_collection, namespace_id_, &stores_lifetimer_, &svs_, ctx);
+        svs_by_namespace_->get_svs(serializers_collection, namespace_id_, cache_size, &stores_lifetimer_, &svs_, ctx);
 
         reactor_.init(new reactor_t<protocol_t>(
             io_backender,
@@ -254,6 +256,7 @@ private:
     scoped_ptr_t<reactor_t<protocol_t> > reactor_;
 
     scoped_ptr_t<typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t> reactor_directory_subscription_;
+    int64_t cache_size;
 
     DISABLE_COPYING(watchable_and_reactor_t);
 };
@@ -347,7 +350,14 @@ void reactor_driver_t<protocol_t>::on_change() {
                  * existing reactor. */
                 if (!std_contains(reactor_data, it->first)) {
                     namespace_id_t tmp = it->first;
-                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(io_backender, this, it->first, bp, svs_by_namespace, ctx));
+                    int64_t cache_size;
+                    if (it->second.get().cache_quota.in_conflict()) {
+                        cache_size = GIGABYTE;
+                    } else {
+                        cache_size = it->second.get().cache_quota.in_conflict();
+                    }
+
+                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
                 } else {
                     reactor_data.find(it->first)->second->watchable.set_value(bp);
                 }

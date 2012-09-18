@@ -457,6 +457,7 @@ struct rdb_protocol_t {
     public:
         store_t(io_backender_t *io_backend,
                 const std::string& filename,
+                int64_t cache_target,
                 bool create,
                 perfmon_collection_t *parent_perfmon_collection,
                 context_t *ctx);
