@@ -329,3 +329,8 @@ template void on_subfield_change<mock::dummy_protocol_t>(UNUSED namespaces_direc
 
 
 
+const char *const METADATA_SUCCESS = 0;
+const char *const METADATA_ERR_NONE = "No entry with that name.";
+const char *const METADATA_ERR_MULTIPLE = "Multiple entries with that name.";
+const char *const METADATA_ERR_CONFLICT = "Entry with that name is in conflict.";
+
