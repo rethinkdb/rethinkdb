@@ -1013,14 +1013,17 @@ goog.inherits(rethinkdb.LetExpression, rethinkdb.Expression);
 /** @override */
 rethinkdb.LetExpression.prototype.compile = function() {
     var let_ = new Term.Let();
-    for (var key in this.bindings_) {
-        var binding = this.bindings_[key];
 
-        var tuple = new VarTermTuple();
-        tuple.setVar(binding[0]);
-        tuple.setTerm(binding[1].compile());
+    for (var varName in this.bindings_) {
+        if (this.bindings_.hasOwnProperty(varName)) {
+            var expr = this.bindings_[varName];
 
-        let_.addBinds(tuple);
+            var tuple = new VarTermTuple();
+            tuple.setVar(varName);
+            tuple.setTerm(expr.compile());
+
+            let_.addBinds(tuple);
+        }
     }
     let_.setExpr(this.body_.compile());
 
@@ -1033,22 +1036,19 @@ rethinkdb.LetExpression.prototype.compile = function() {
 
 /**
  * Bind the result of an ReQL expression to a variable within an expression.
- * @param {...*} var_args The first N-1 arguments are expected to be tuples (expressed as
- *  JavaScript lists) of string ReQL expression pairs to bind. The last argument is a
- *  ReQL expression to evaluate within which those variables will be bound.
+ * @param {Object} bindings An object giving name:expression pairs.
+ * @param {rethinkdb.Query} body The ReQL query to evauluate in context.
  * @return {rethinkdb.Expression}
  * @export
  */
-rethinkdb.let = function(var_args) {
-    var bindings = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
-    var body = arguments[arguments.length - 1];
-
-    if (!bindings.every(function(tuple) {
-        return (typeof tuple[0] === 'string') && (tuple[1] instanceof rethinkdb.Expression);
-    })) {
-        throw new TypeError("Let bindings must be string, ReQL expression tuples");
-    };
+rethinkdb.let = function(bindings, body) {
     typeCheck_(body, rethinkdb.Query);
+
+    for (var key in bindings) {
+        if (bindings.hasOwnProperty(key)) {
+            typeCheck_(bindings[key], rethinkdb.Expression);
+        }
+    }
 
     return newExpr_(rethinkdb.LetExpression, bindings, body);
 };

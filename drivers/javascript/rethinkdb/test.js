@@ -91,8 +91,8 @@ function testIf() {
 }
 
 function testLet() {
-    r.let(['a', r.expr(1)], r('$a')).run(aeq(1));
-    r.let(['a', r.expr(1)], ['b', r.expr(2)], r('$a').add(r('$b'))).run(aeq(3));
+    r.let({a:r.expr(1)}, r('$a')).run(aeq(1));
+    r.let({a:r.expr(1), b:r.expr(2)}, r('$a').add(r('$b'))).run(aeq(3));
 }
 
 function testDistinct() {
@@ -126,7 +126,7 @@ function testGetAttr() {
     tobj.getAttr('b').run(aeq(2));
     tobj.getAttr('c').run(aeq(3));
 
-    r.let(['a', tobj],
+    r.let({a:tobj},
         r.ifThenElse(r('$a').hasAttr('b'),
             r('$a.b'),
             r.expr("No attribute b")
@@ -145,7 +145,7 @@ function testWithout() {
 }
 
 function testR() {
-    r.let(['a', r.expr({b:1})], r('$a.b')).run(aeq(1));
+    r.let({a:r.expr({b:1})}, r('$a.b')).run(aeq(1));
 }
 
 var tab = r.table('Welcome-rdb');
