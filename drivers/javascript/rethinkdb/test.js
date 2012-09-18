@@ -78,6 +78,10 @@ function testSlices() {
     arr.nth(2).run(aeq(3));
 }
 
+function testAppend() {
+    arr.append(7).nth(6).run(aeq(7));
+}
+
 function testExtend() {
     r.expr({a:1}).extend({b:2}).run(objeq({a:1,b:2}));
 }
@@ -397,6 +401,7 @@ runTests([
     testArith,
     testBool,
     testSlices,
+    testAppend,
     testExtend,
     testIf,
     testLet,

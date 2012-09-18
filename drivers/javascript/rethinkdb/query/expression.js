@@ -494,6 +494,19 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'between',
                     rethinkdb.Expression.prototype.between);
 
 /**
+ * Appends a value to the end of this array
+ * @return {rethinkdb.Expression}
+ * @param {*} val The value to append
+ */
+rethinkdb.Expression.prototype.append = function(val) {
+    argCheck_(arguments, 1);
+    val = wrapIf_(val);
+    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.ARRAYAPPEND, [this, val]);
+};
+goog.exportProperty(rethinkdb.Expression.prototype, 'append',
+                    rethinkdb.Expression.prototype.append);
+
+/**
  * @constructor
  * @extends {rethinkdb.BuiltinExpression}
  * @param {rethinkdb.Expression} leftExpr
