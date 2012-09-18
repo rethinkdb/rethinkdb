@@ -807,7 +807,6 @@ linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
 }
 
 int linux_tcp_bound_socket_t::get_port() const {
-    debugf("socket port: %d\n", listener->get_port());
     return listener->get_port();
 }
 
