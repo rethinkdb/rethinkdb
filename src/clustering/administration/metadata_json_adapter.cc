@@ -57,6 +57,12 @@ void with_ctx_apply_json_to(cJSON *change, datacenter_semilattice_metadata_t *ta
 
 void with_ctx_on_subfield_change(datacenter_semilattice_metadata_t *, const vclock_ctx_t &) { }
 
+// Just going to put this here...
+void debug_print(append_only_printf_buffer_t *buf, const datacenter_semilattice_metadata_t &m) {
+    buf->appendf("dc_sl_metadata{name=");
+    debug_print(buf, m.name);
+    buf->appendf("}");
+}
 
 
 //json adapter concept for datacenters_semilattice_metadata_t
@@ -93,6 +99,12 @@ void with_ctx_apply_json_to(cJSON *change, database_semilattice_metadata_t *targ
 
 void with_ctx_on_subfield_change(database_semilattice_metadata_t *, const vclock_ctx_t &) { }
 
+// Just going to put this here thankyou.
+void debug_print(append_only_printf_buffer_t *buf, const database_semilattice_metadata_t &x) {
+    buf->appendf("db_sl_metadata{name=");
+    debug_print(buf, x.name);
+    buf->appendf("}");
+}
 
 //json adapter concept for databases_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(databases_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
@@ -110,6 +122,9 @@ void with_ctx_apply_json_to(cJSON *change, databases_semilattice_metadata_t *tar
 void with_ctx_on_subfield_change(databases_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     with_ctx_on_subfield_change(&target->databases, ctx);
 }
+
+
+
 
 //json adapter concept for cluster_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {

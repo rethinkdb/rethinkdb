@@ -168,6 +168,7 @@ public:
        return [end()] and set the optional status parameter appropriately. */
     template<class callable_t>
     iterator find_uniq(callable_t predicate, const char **out=0) {
+        debugf_print("find_uniq on map", *map);
         iterator it, retval;
         if (out) *out = METADATA_SUCCESS;
         retval = it = find_next(begin(), predicate);
