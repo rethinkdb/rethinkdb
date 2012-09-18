@@ -963,6 +963,61 @@ Database view
 */
 
 .namespace-view {
+    .shards_container{
+    .user-alert-space{
+        p {
+            margin: 0px;
+        }
+    }
+        .status{
+            margin: 7px 0px 20px 0px;
+            overflow: auto;
+            height: 48px;
+            p{
+                padding: 15px 0px 0px 0px;
+            }
+            #show-change_shards-link{
+                float: right;
+                margin: 9px 0px 0px 0px;
+            }  
+        }
+        .change_shards_container{
+            display: none;
+            float: right;
+            width: 400px;
+            margin: 0px;
+            overflow: auto;
+            .border-radius(4px);
+            background-color: #F0F2EB;
+            border: thin solid #B9D7D9;
+            padding: 9px 14px;
+            p{
+                width: 200px;
+                margin: 0px; //Bootstrap
+                padding: 6px 0px 0px 0px;
+            }
+            input {
+                float: right;
+                width: 30px;
+                margin: 0px; //Bootstrap
+            }
+            button {
+                margin-left: 15px;
+                float: right;
+            }
+            .close-change_shards{
+                float: right;
+                margin: 0px 0px 0px 15px;
+                font-size: 20px;
+                font-weight: bold;
+                line-height: 18px;
+                color: black;
+                text-shadow: 0 1px 0 white;
+                opacity: 0.2;
+                text-decoration: none;
+            }
+        }
+    }
 
     .pie_legend{
         .legend{
@@ -1038,8 +1093,7 @@ Database view
         }
     }
 
-    .namespace-shards{
-        position: relative;
+    .shards_container{
         .alert_for_sharding{
             display: none;
         }

@@ -1,94 +1,164 @@
-<script id="modify_shards-template" type="text/x-handlebars-template">
-    <div class="alert_for_sharding alert alert-error"></div>
-    <div class="modify-shards">
-        <h3 class="title">Change sharding settings for <a href="/#tables/{{namespace.id}}">{{namespace.name}}</a>:</h3>
-        <div class="invalid_shard_alert alert alert-error"></div>
-        {{#if unsaved_settings}}
-        <div class="unsaved-settings-warning">You have unsaved changes. Please click "Commit settings" for them to take effect.</div>
+<script id="shards_container-template" type="text/x-handlebars-template">
+    <div class="user-alert-space"></div>
+    <h3>Shards for this table</h3>
+    <div class="status">
+        <div class="change_shards_container">
+            <a class="close-change_shards" href="#">&times;</a>
+            <button class="btn change_shards-btn" data-loading-text="Sharding...">Change</button>
+            <input class="num_shards" id="new_num_shards" name="num_shards" type="text" value="{{num_shards}}"/>
+            <p>Number of shards:</p>
+        </div>
+        <button class="btn" id="show-change_shards-link">Change number of shard</button>
+        <p>
+        {{#if no_shard}}
+        This table has not been sharded.
+        {{else}}
+        This table currently contains {{num_shards}} {{pluralize_noun "shard" num_shards}}
         {{/if}}
-        <form class="form">
-            <div class="sharding-scheme">
-                <div class="shards-container">
-                </div>
-                {{#if suggest_shards_view}}
-                <div class="shard-suggester clearfix">
-                    <a id="cancel_shards_suggester_btn" href="#" class="close_link">Close</a>
-
-                    <h4>Suggest sharding scheme:</h4>
-                    {{#if error_msg}}
-                    <p class="server-error alert alert-error">{{error_msg}}</p>
-                    {{/if}}
-                    <div class="shard_suggest_elements">
-                        <label for="replicas">Number of shards:</label>
-                        <input class="num_shards" id="focus_num_shards" name="num_shards" type="text" value="{{new_shard_count}}"/>
-                        <button class="btn btn-compute-shards-suggestion" data-loading-text="Calculating...">Suggest</button>
-                    </div>
-                    <p class="current">Current shards: <strong>{{current_shards_count}}</strong>, Max shards: <strong>{{max_shard_count}}</strong></p>
-                                    </div>
-                {{else}}
-                <p class="suggest_shards_pathway"><a id="suggest_shards_btn" href="#">Suggest balanced shards</a></p>
-                {{/if}}
-            </div>
-            <div class="sharding-plan"></div>
-            <div class="btn-footer">
-                <button class="btn btn-reset" data-loading-text="Renove uncommited changes">Remove uncommited changes</button>
-                <button class="btn btn-primary btn-primary-commit" data-loading-text="Saving...">Commit settings</button>
-            </div>
-        </form>
+        </p>
     </div>
-    <div class="blackout"></div>
+    
+    <div class="data_repartition-container"></div>
 </script>
 
-<script id="modify_shards-alert-template" type="text/x-handlebars-template">
+<script id="change_shards-alert_error-template" type="text/x-handlebars-template">
+    <div class="alert alert-error">
+        <a class="close" href="#">&times;</a>
+        <p>{{error}}</p>
+    </div>
+</script>
+
+<script id="change_shards-success-alert-template" type="text/x-handlebars-template">
     <div class="alert" data-alert="alert">
         <a class="close" href="#">&times;</a>
-        <p>You successfully modified the shard plan. <a href="#" class="namespace-pinning-link">Server assignments</a> for this table have been reset.</p>
+        <p>You successfully modified the number of shards.</p> 
     </div>
 </script>
 
-<script id="modify_shards-view_shard-template" type="text/x-handlebars-template">
-    <div class="name">
+<script id="rebalance_shards-success-alert-template" type="text/x-handlebars-template">
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>You successfully rebalanced the shards.</p> 
     </div>
-    <div class="actions">
-        <input type="button" class="split btn" data-index="{{index}}" value="Split">
-        {{#if shard.notlast}}
-        <input type="button" class="merge btn" data-index="{{index}}" value="Merge with next"
+</script>
+
+<script id="change_shards-fail-alert-template" type="text/x-handlebars-template">
+    <div class="alert" data-alert="alert alert-error">
+        <a class="close" href="#">&times;</a>
+        <p>The server returned an error. Please try again.</p> 
+    </div>
+</script>
+
+<script id="data_repartition-template" type="text/x-handlebars-template">
+    <h3 class="title">Data repartition</h3>
+
+    {{#if has_shards}}
+        {{#if numerous_shards}}
+            <div class="data_repartition-graph">
+                <svg class="data_repartition-diagram" width="700" height="350">
+                    <text x="300" y="150" class="loading_text-diagram">Loading data...</text>
+                </svg>
+            </div>
+
+            <div class="data_repartition-legend">
+                <ul class="legend legend_left">
+                    <li class="title-legend"><h4>More statistics</h4></li>
+
+                    <li class="more_statistics">
+                        This table has {{shards_length}} {{pluralize_noun "shard" shards_length}} and contains {{total_keys}} keys.
+                    </li>
+                    <li class="more_statistics">
+                        {{#if max_keys}}
+                        Biggest shard has {{max_keys}} keys
+                        {{else}}
+                        Loading stats for biggest shards
+                        {{/if}}
+                    </li>
+                    <li class="more_statistics">
+                        {{#if min_keys}}
+                        Smallest shard has {{min_keys}} keys
+                        {{else}}
+                        Loading stats for smallest shards
+                        {{/if}}
+     
+                    </li>
+                </ul>
+                <ul class="legend legend_right">
+                    <li class="title-legend"><h4>Operations on shards</h4></li>
+                    <li class="more_statistics">
+                        <button class="btn rebalance_shards-link">Rebalance shards</button>
+                    </li>
+                </ul>
+            </div>
+     
+        {{else}}
+        <div class="two-panel-section">
+            <div class="data_repartition-graph panel-left">
+                <svg class="data_repartition-diagram" width="270" height="270">
+                    <text x="100" y="135" class="loading_text-diagram">Loading data...</text>
+                </svg>
+            </div>
+            <div class="data_repartition-legend panel-right">
+                <ul class="legend">
+                    <li class="title-legend"><h4>More statistics</h4></li>
+
+
+                    <li class="more_statistics">
+                        This table has {{shards_length}} {{pluralize_noun "shard" shards_length}} and contains {{total_keys}} keys.
+                    </li>
+                    <li class="more_statistics">
+                        {{#if max_keys}}
+                        Biggest shard has {{max_keys}} keys
+                        {{else}}
+                        Loading stats for biggest shards
+                        {{/if}}
+                    </li>
+                    <li class="more_statistics">
+                        {{#if min_keys}}
+                        Smallest shard has {{min_keys}} keys
+                        {{else}}
+                        Loading stats for smallest shards
+                        {{/if}}
+     
+                    </li>
+                </ul>
+                <ul class="legend">
+                    <li class="title-legend"><h4>Operations on shards</h4></li>
+                    <li class="more_statistics">
+                        <button class="btn rebalance_shards-link">Rebalance shards</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
         {{/if}}
-    </div>
-</script>
-
-<script id="shard_name-shard_keys-template" type="text/x-handlebars-template">
-    <h4>{{name}}</h4>
-    <span class="shard_num_keys">
-    {{#if shard_stats.rows_approx}}
-        About {{shard_stats.rows_approx}} {{pluralize_noun "key" shard_stats.rows_approx}}
     {{else}}
-        Loading data...
+        <div class="two-panel-section">
+            <div class="data_repartition-graph panel-left">
+                <svg class="data_repartition-diagram" width="270" height="270">
+                    <text x="100" y="135" class="loading_text-diagram">Loading data...</text>
+                </svg>
+            </div>
+            <div class="data_repartition-legend panel-right">
+                <ul class="legend">
+                    <li class="title-legend"><h4>More statistics</h4></li>
+
+                    <li class="more_statistics">
+                    This table has one shard and contains {{total_keys}} keys.
+                    </li>                   <li class="more_statistics">
+                        Biggest shard has {{max_keys}} keys
+                    </li>
+                </ul>
+                <ul class="legend">
+                    <li class="title-legend"><h4>Operations on shards</h4></li>
+                    <li class="more_statistics">
+                        <button class="btn" disabled="disabled">Rebalance shards</button> (needs at least 2 shards)
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <p class="no-shard"></p>    
     {{/if}}
-    </span>
 </script>
 
-<script id="modify_shards-edit_shard-template" type="text/x-handlebars-template">
-  {{#with shard}}
-    <div class="name">
-    </div>
-  {{/with}}
-    <div class="actions action-coming">
-      {{#if splitting}}
-      <label for="splitpoint">
-        <p>Split point:</p>
-      </label>
-      <input class="small splitpoint_input" name="splitpoint" type="text" />
-      <a href="#" class="btn cancel_split btn-secondary">Cancel</a>
-      <a href="#" class="btn commit_split btn-primary">Split</a>
-      {{/if}}
-      {{#if merging}}
-      <p>
-        Are you sure you want to merge these shards?
-        <a href="#" class="btn cancel_merge secondary">No</a>
-        <a href="#" class="btn commit_merge primary">Yes</a>
-      </p>
-      {{/if}}
-    </div>
-</script>
+
 
