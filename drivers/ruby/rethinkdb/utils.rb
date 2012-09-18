@@ -64,6 +64,14 @@ module RethinkDB
     def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
     def with_var; sym = gensym; yield sym, RQL.var(sym); end
     def r x; RQL.expr(x); end
+    def arg_or_block(*args, &block)
+      if args.length == 1 && block
+        raise SyntaxError,"Cannot provide both an argument *and* a block."
+      end
+      return lambda { args[0] } if (args.length == 1)
+      return block if block
+      raise SyntaxError,"Must provide either an argument or a block."
+    end
   end
   module S; extend S_Mixin; end
 end

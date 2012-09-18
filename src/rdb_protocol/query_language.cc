@@ -2067,6 +2067,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     }
                     if (arg->type() != cJSON_True) {
                         result = false;
+                        break;
                     }
                 }
 
@@ -2085,6 +2086,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     }
                     if (arg->type() == cJSON_True) {
                         result = true;
+                        break;
                     }
                 }
 
