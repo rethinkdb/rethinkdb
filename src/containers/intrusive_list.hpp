@@ -164,7 +164,7 @@ public:
         list->_size = 0;
     }
 
-    unsigned int size() { return _size; }
+    unsigned int size() const { return _size; }
 
 #ifndef NDEBUG
     void validate() {

@@ -26,7 +26,7 @@ require 'test/unit'
 $port_base = ARGV[0].to_i # 0 if none given
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
-  def rdb; r.db('Welcome-db').table('Welcome-rdb'); end
+  def rdb; @@c.use('Welcome-db'); r.table('Welcome-rdb'); end
   @@c = RethinkDB::Connection.new('localhost', $port_base + 12346)
   def c; @@c; end
   def id_sort x; x.sort_by{|y| y['id']}; end

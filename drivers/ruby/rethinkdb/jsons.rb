@@ -34,12 +34,10 @@ module RethinkDB
       end
     end
 
-    # Append a single element to an array.  Has the shorter synonym
-    # <b>+append+</b> The following are equivalent:
+    # Append a single element to an array.  The following are equivalent:
     #   r[[1,2,3,4]]
-    #   r[[1,2,3]].arrayappend(4)
     #   r[[1,2,3]].append(4)
-    def arrayappend(el)
+    def append(el)
       JSON_Expression.new [:call, [:arrayappend], [@body, S.r(el)]]
     end
 

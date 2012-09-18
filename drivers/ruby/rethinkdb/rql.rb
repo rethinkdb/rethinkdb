@@ -465,5 +465,16 @@ module RethinkDB
     def self.method_missing(m, *args, &block) # :nodoc:
       (m2 = C.method_aliases[m]) ? self.send(m2, *args, &block) : super(m, *args, &block)
     end
+
+    # Refer to a table by name.  When run over a connection, this query uses the
+    # default database of that connection.  If we have a connection <b>+$c+</b>
+    # like so:
+    #   $c = Connection.new('localhost', 12346, 'db_name')
+    # then the following are equivalent:
+    #   c.run(r.table('tbl_name'))
+    #   c.run(r.db('db_name').table('tbl_name')
+    def self.table(tbl_name)
+      Table.new(:default_db, tbl_name)
+    end
   end
 end

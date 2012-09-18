@@ -27,24 +27,18 @@ module RethinkDB
     # Return the S-expression representation of a query.  Used for
     # equality comparison and advanced debugging.
     def sexp
-      clean_lst @body
+      S.clean_lst @body
     end
     def body # :nodoc:
       @body
-    end
-    def clean_lst lst # :nodoc:
-      if    lst.kind_of? RQL_Query     then lst.sexp
-      elsif lst.class == Array         then lst.map{|z| clean_lst(z)}
-      else                                  lst
-      end
     end
 
     # Compile into either a protobuf class or a query.
     def as _class # :nodoc:
       RQL_Protob.comp(_class, sexp)
     end
-    def query # :nodoc:
-      RQL_Protob.query sexp
+    def query(*args) # :nodoc:
+      RQL_Protob.query(args == [] ? sexp : S.replace(sexp, *args))
     end
 
     # Dereference aliases (see utils.rb) and possibly dispatch to RQL
