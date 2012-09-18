@@ -64,6 +64,7 @@ module RethinkDB
     def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
     def with_var; sym = gensym; yield sym, RQL.var(sym); end
     def r x; RQL.expr(x); end
+
     def arg_or_block(*args, &block)
       if args.length == 1 && block
         raise SyntaxError,"Cannot provide both an argument *and* a block."
@@ -71,6 +72,16 @@ module RethinkDB
       return lambda { args[0] } if (args.length == 1)
       return block if block
       raise SyntaxError,"Must provide either an argument or a block."
+    end
+
+    def clean_lst lst # :nodoc:
+      return lst.sexp if lst.kind_of? RQL_Query
+      return lst.class == Array ? lst.map{|z| clean_lst(z)} : lst
+    end
+
+    def replace(sexp, old, new)
+      return sexp.map{|x| replace x,old,new} if sexp.class == Array
+      return (sexp == old) ? new : sexp
     end
   end
   module S; extend S_Mixin; end
