@@ -3,6 +3,9 @@ goog.provide('rethinkdb.TcpConnection');
 goog.require('rethinkdb.Connection');
 
 /**
+ * Host or list behavior is being abandoned for now. Could be brought back
+ * in the future.
+ *
  * Constructs a TCP based connection in one of several ways.
  * If no host is supplied the server will attempt to connect to the default host
  * over the default port. If a single host is given the constructor will attempt
@@ -25,22 +28,14 @@ goog.require('rethinkdb.Connection');
  * @constructor
  * @extends {rethinkdb.Connection}
  * @export
+ * @ignore
  */
+/*
 rethinkdb.TcpConnection = function(host_or_list, onConnect, onFailure) {
     typeCheck_(onConnect, 'function');
     typeCheck_(onFailure, 'function');
 
-    /**
-     * @const
-     * @type {number}
-     * @ignore
-     */
 	var DEFAULT_PORT = 12346;
-    /**
-     * @const
-     * @type {string}
-     * @ignore
-     */
 	var DEFAULT_HOST = 'localhost';
 
     if (!rethinkdb.TcpConnection.isAvailable()) {
@@ -98,6 +93,58 @@ rethinkdb.TcpConnection = function(host_or_list, onConnect, onFailure) {
             self.error_(new rethinkdb.errors.ClientError('Unabled to establish TCP connection'));
 		}
 	})();
+};
+goog.inherits(rethinkdb.TcpConnection, rethinkdb.Connection);
+*/
+
+/**
+ * Constructs a TCP based connection in one of several ways.
+ * @class A TCP based connection to the RethinkDB server.
+ * Use this connection type when running this client in a server side execution
+ * environment like node.js. It is to be preferred to the HTTP connection when
+ * available.
+ * @param {?string|Object} host Either a string giving the host to connect to or
+ *      an object specifying host and/or port and/or db for the default database to
+ *      use on this connection. Any key not supplied will revert to the default.
+ * @param {function(...)=} onConnect Function to call when connection is established
+ * @param {function(...)=} onFailure Error handler to use for this connection. Will be
+ *  called if a connection cannot be established. Can also be set with setErrorHandler.
+ * @constructor
+ * @extends {rethinkdb.Connection}
+ * @export
+ */
+rethinkdb.TcpConnection = function(host, onConnect, onFailure) {
+    if (!rethinkdb.TcpConnection.isAvailable()) {
+        this.error_(new rethinkdb.errors.ClientError("Cannot instantiate TcpConnection, "+
+            "TCP sockets are not available in this environment."));
+    }
+
+    typeCheck_(onConnect, 'function');
+    typeCheck_(onFailure, 'function');
+
+    goog.base(this, host, onFailure);
+
+    this.recvBuffer_ = null;
+    this.revdD_ = 0;
+    this.socket_ = null;
+
+	var self = this;
+
+	// Will be set when connection established
+	self.socket_ = null;
+
+	var net_node_ = require('net');
+
+    var socket_node_ = net_node_.connect(this.port_, this.host_, function() {
+        socket_node_.write("35ba61af", "hex");
+        socket_node_.on('data', goog.bind(self.tcpRecv_, self));
+        self.socket_ = socket_node_;
+        if (onConnect) onConnect(self);
+    });
+
+	socket_node_.on('error', function() {
+        self.error_(new rethinkdb.errors.ClientError('Unabled to establish TCP connection'));
+    });
 };
 goog.inherits(rethinkdb.TcpConnection, rethinkdb.Connection);
 

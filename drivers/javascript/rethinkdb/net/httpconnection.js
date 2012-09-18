@@ -3,6 +3,9 @@ goog.provide('rethinkdb.HttpConnection');
 goog.require('rethinkdb.Connection');
 
 /**
+ * Host or list behavior is being abandoned for now. Could be brought back
+ * in the future.
+ *
  * Constructs a HTTP based connection in one of several ways.
  * If no host is supplied the server will attempt to connect to the default host
  * over the default port. If a single host is given the constructor will attempt
@@ -24,22 +27,14 @@ goog.require('rethinkdb.Connection');
  * @constructor
  * @extends {rethinkdb.Connection}
  * @export
+ * @ignore
  */
+/*
 rethinkdb.HttpConnection = function(host_or_list, onConnect, onFailure) {
     typeCheck_(onConnect, 'function');
     typeCheck_(onFailure, 'function');
 
-    /**
-     * @const
-     * @type {number}
-     * @ignore
-     */
     var DEFAULT_PORT = 21300;
-    /**
-     * @const
-     * @type {string}
-     * @ignore
-     */
 	var DEFAULT_HOST = 'localhost';
 
     goog.base(this, null, onFailure);
@@ -97,6 +92,59 @@ rethinkdb.HttpConnection = function(host_or_list, onConnect, onFailure) {
 	})();
 };
 goog.inherits(rethinkdb.HttpConnection, rethinkdb.Connection);
+*/
+
+/**
+ * Constructs a HTTP based connection in one of several ways.
+ * @class A TCP based connection to the RethinkDB server.
+ * Use this connection type when running this client in a server side execution
+ * environment like node.js. It is to be preferred to the HTTP connection when
+ * available.
+ * @param {?string|Object} host Either a string giving the host to connect to or
+ *      an object specifying host and/or port and/or db for the default database to
+ *      use on this connection. Any key not supplied will revert to the default.
+ * @param {function(...)=} onConnect Function to call when connection is established
+ * @param {function(...)=} onFailure Error handler to use for this connection. Will be
+ *  called if a connection cannot be established. Can also be set with setErrorHandler.
+ * @constructor
+ * @extends {rethinkdb.Connection}
+ * @export
+ */
+rethinkdb.HttpConnection = function(host, onConnect, onFailure) {
+    typeCheck_(onConnect, 'function');
+    typeCheck_(onFailure, 'function');
+
+    goog.base(this, host, onFailure);
+    this.url_ = '';
+
+    var self = this;
+
+    var url = 'http://'+this.host_+':'+this.port_+'/ajax/reql/';
+
+    var xhr = new XMLHttpRequest();
+    xhr.responseType = "arraybuffer";
+    xhr.open("GET", url + 'open-new-connection', true);
+
+    xhr.onreadystatechange = function(e) {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                self.url_ = url;
+                self.conn_id_ = (new DataView(xhr.response)).getInt32(0, true);
+                if (onConnect) onConnect(self);
+            } else {
+                self.error_(new rethinkdb.errors.ClientError('Unabled to establish HTTP connection'));
+            }
+        }
+    };
+
+    xhr.send();
+};
+goog.inherits(rethinkdb.HttpConnection, rethinkdb.Connection);
+
+/**
+ * @type {number}
+ */
+rethinkdb.HttpConnection.prototype.DEFAULT_PORT = 21300;
 
 /**
  * Send data over the underlying HTTP connection.
