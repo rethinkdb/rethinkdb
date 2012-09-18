@@ -198,12 +198,14 @@ bool do_json_importation(const boost::shared_ptr<semilattice_readwrite_view_t<da
 
     database_id_t db_id;
     if (!get_or_create_database(databases, db_name, &db_id)) {
+        debugf("could not get or create database named '%s'\n", db_name.c_str());
         return false;
     }
 
     namespace_id_t namespace_id;
     std::string primary_key;
     if (!get_or_create_namespace(namespaces, db_id, table_name, &namespace_id, &primary_key)) {
+        debugf("could not get or create namespace named '%s' (in db '%s')\n", table_name.c_str(), uuid_to_str(db_id).c_str());
         return false;
     }
 
@@ -219,11 +221,13 @@ bool do_json_importation(const boost::shared_ptr<semilattice_readwrite_view_t<da
 
         cJSON *pkey_value = json.GetObjectItem(primary_key.c_str());
         if (!pkey_value) {
+            debugf("pkey_value NULL\n");
             // TODO(sam): We want to silently ignore?
             continue;
         }
 
         if (pkey_value->type != cJSON_String && pkey_value->type != cJSON_Number) {
+            debugf("pkey_value->type is bad\n");
             // TODO(sam): We want to silently ignore?
             continue;
         }
@@ -231,6 +235,7 @@ bool do_json_importation(const boost::shared_ptr<semilattice_readwrite_view_t<da
         std::string internal_key = cJSON_Print_lexicographic(pkey_value);
 
         if (internal_key.size() > MAX_KEY_SIZE) {
+            debugf("key size is overlarge\n");
             // TODO(sam): We want to silently ignore?
             continue;
         }
@@ -244,6 +249,13 @@ bool do_json_importation(const boost::shared_ptr<semilattice_readwrite_view_t<da
         rdb_write.write = point_write;
         rdb_protocol_t::write_response_t response;
         ni->write(rdb_write, &response, order_source.check_in("do_json_importation"), interruptor);
+
+        if (!boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
+            debugf("did not get a point write response\n");
+        } else {
+            rdb_protocol_t::point_write_response_t *resp = boost::get<rdb_protocol_t::point_write_response_t>(&response.response);
+            debugf("point write response: %s\n", resp->result == STORED ? "STORED" : resp->result == DUPLICATE ? "DUPLICATE" : "???");
+        }
 
         // We don't care about the response.
     }

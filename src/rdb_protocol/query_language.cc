@@ -784,6 +784,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
     metadata_searcher_t<datacenter_semilattice_metadata_t>
         dc_searcher(&metadata.datacenters.datacenters);
 
+    // TODO: Don't have this status variable way out in this scope.
     const char *status;
     switch(m->type()) {
     case MetaQuery::CREATE_DB: {
@@ -847,7 +848,9 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name, bt.with("datacenter"));
 
         /* Ensure table doesn't already exist. */
+        debugf("About to check for unique namespace in CREATE_TABLE");
         ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
+        debugf("Checked for unique namespace in CREATE_TABLE:  result was %s\n", status);
         meta_check(status, METADATA_ERR_NONE, "CREATE_TABLE " + table_name, bt);
 
         /* Create namespace, insert into metadata, then join into real metadata. */
