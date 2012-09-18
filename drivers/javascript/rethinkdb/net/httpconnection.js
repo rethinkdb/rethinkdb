@@ -1,6 +1,6 @@
-goog.provide('rethinkdb.net.HttpConnection');
+goog.provide('rethinkdb.HttpConnection');
 
-goog.require('rethinkdb.net.Connection');
+goog.require('rethinkdb.Connection');
 
 /**
  * Constructs a HTTP based connection in one of several ways.
@@ -22,10 +22,10 @@ goog.require('rethinkdb.net.Connection');
  * @param {function(...)=} onFailure Error handler to use for this connection. Will be
  *  called if a connection cannot be established. Can also be set with setErrorHandler.
  * @constructor
- * @extends {rethinkdb.net.Connection}
+ * @extends {rethinkdb.Connection}
  * @export
  */
-rethinkdb.net.HttpConnection = function(host_or_list, onConnect, onFailure) {
+rethinkdb.HttpConnection = function(host_or_list, onConnect, onFailure) {
     typeCheck_(onConnect, 'function');
     typeCheck_(onFailure, 'function');
 
@@ -96,7 +96,7 @@ rethinkdb.net.HttpConnection = function(host_or_list, onConnect, onFailure) {
 		}
 	})();
 };
-goog.inherits(rethinkdb.net.HttpConnection, rethinkdb.net.Connection);
+goog.inherits(rethinkdb.HttpConnection, rethinkdb.Connection);
 
 /**
  * Send data over the underlying HTTP connection.
@@ -104,7 +104,7 @@ goog.inherits(rethinkdb.net.HttpConnection, rethinkdb.net.Connection);
  * @private
  * @override
  */
-rethinkdb.net.HttpConnection.prototype.send_ = function(data) {
+rethinkdb.HttpConnection.prototype.send_ = function(data) {
     if (!this.url_)
         this.error_(new rethinkdb.errors.ClientError("Connection not open"));
 
@@ -127,7 +127,7 @@ rethinkdb.net.HttpConnection.prototype.send_ = function(data) {
  * Close the underlying HTTP connection.
  * @override
  */
-rethinkdb.net.HttpConnection.prototype.close = function() {
+rethinkdb.HttpConnection.prototype.close = function() {
     if (!this.url_)
         this.error_(new rethinkdb.errors.ClientError("Connection not open"));
 
@@ -138,5 +138,5 @@ rethinkdb.net.HttpConnection.prototype.close = function() {
     this.conn_id_ = null;
     this.url_ = null;
 };
-goog.exportProperty(rethinkdb.net.HttpConnection.prototype, 'close',
-                    rethinkdb.net.HttpConnection.prototype.close);
+goog.exportProperty(rethinkdb.HttpConnection.prototype, 'close',
+                    rethinkdb.HttpConnection.prototype.close);
