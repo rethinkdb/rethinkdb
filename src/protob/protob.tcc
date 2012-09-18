@@ -20,6 +20,7 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
     : f(_f),
       on_unparsable_query(_on_unparsable_query),
       cb_mode(_cb_mode),
+      pulse_sdc_on_shutdown(&shutting_down_cond),
       next_http_conn_id(0),
       next_thread(0),
       http_timeout_timer(http_context_t::TIMEOUT_MS, this) {
@@ -94,7 +95,8 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
                     } else {
                         linux_event_watcher_t *ew = conn->get_event_watcher();
                         linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
-                        ctx.interruptor = &conn_interrupted;
+                        wait_any_t interruptor(&conn_interrupted, &shutting_down_cond);
+                        ctx.interruptor = &interruptor;
                         send(f(&request, &ctx), conn.get(), &ct_keepalive);
                     }
                     break;
@@ -189,8 +191,8 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
                 response = on_unparsable_query(&request, err);
             } else {
                 http_context_t *ctx = it->second;
-                rassert(static_cast<signal_t *>(ctx->getInterruptorCond()) ==
-                        ctx->getContext()->interruptor);
+                wait_any_t interruptor (ctx->getInterruptorCond(), &shutting_down_cond);
+                ctx->getContext()->interruptor = &interruptor;
                 ctx->grab();
                 response = f(&request, ctx->getContext());
                 ctx->release();
@@ -245,7 +247,6 @@ void protob_server_t<request_t, response_t, context_t>::on_ring() {
 
 template <class request_t, class response_t, class context_t>
 protob_server_t<request_t, response_t, context_t>::http_context_t::http_context_t() {
-    ctx.interruptor = &interruptor_cond;
     users_count = 0;
     touch();
 }

@@ -35,7 +35,18 @@ private:
     boost::function<response_t(request_t *, context_t *)> f;
     response_t (*on_unparsable_query)(request_t *, std::string);
     protob_server_callback_mode_t cb_mode;
+
+    /* WARNING: The order here is fragile.  We need `pulse_sdc_on_shutdown` to
+       be destructed before `auto_drainer`, but `shutting_down_cond` must be
+       destructed *after* `auto_drainer`. */
+    cond_t shutting_down_cond;
     auto_drainer_t auto_drainer;
+    struct pulse_on_destruct_t {
+        explicit pulse_on_destruct_t(cond_t *_cond) : cond(_cond) { }
+        ~pulse_on_destruct_t() { cond->pulse(); }
+        cond_t *cond;
+    } pulse_sdc_on_shutdown;
+
     scoped_ptr_t<tcp_listener_t> tcp_listener;
 
     // For HTTP server
