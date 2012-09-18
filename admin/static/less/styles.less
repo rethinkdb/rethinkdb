@@ -1,0 +1,102 @@
+// CSS Reset
+@import "bootstrap/reset.less";
+
+// Core variables and mixins
+@import "bootstrap/variables.less"; // Modify this for custom colors, font-sizes, etc
+@import "bootstrap/mixins.less";
+
+// Grid system and page structure
+@import "bootstrap/scaffolding.less";
+@import "bootstrap/grid.less";
+@import "bootstrap/layouts.less";
+
+// Utility classes
+@import "bootstrap/utilities.less"; // Has to be last to override when necessary
+
+@accent: #0597d8;
+@sans: 'Istok Web', sans-serif;
+@serif: 'Copse', serif;
+
+#navbar {
+    font-family: @sans;
+    border-top: 4px @accent solid;
+    background: #2f2f30;
+    @text_shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
+    
+    /* left nav (logo, links, etc.) */
+    ul.nav {
+        margin: 0;
+        padding: 0;
+        float: left;
+        li {
+            font-size: 15px;
+            display: inline-block;
+            padding-right: 10px;
+            padding-left: 10px;
+            vertical-align: middle;
+            text-shadow: @text_shadow;
+
+            @fancy_dividers: -1px 0 0 rgba(0, 0, 0, .30) inset, 1px 0 0 rgba(255, 255, 255, .05);
+            -webkit-box-shadow: @fancy_dividers;
+               -moz-box-shadow: @fancy_dividers;
+                    box-shadow: @fancy_dividers;
+            a {
+                padding: 21px 16px;
+                color: #ababab;
+                display: block;
+                &:hover {
+                    text-decoration: none;
+                    color: white;
+                }
+            }
+            &#nav-logo {
+                padding-left: 0;
+                a {
+                    font-family: @serif;
+                    font-size: 22px;
+                    font-weight: bold;
+                    color: white;
+                    padding-left: 0;
+                    span.highlight { color: @accent; }
+                }
+            }
+            &.active {
+                background-image: url('https://dl.dropbox.com/s/x6om3yds5w83182/navbar-active.png');
+                a { color: white; }
+            }
+        }
+    }
+    /* right nav (search) */
+    .right-nav {
+        margin: 0;
+        padding: 0;
+        float: right;
+    }
+
+    #nav-search {
+        input[type="text"] {
+            font-family: @sans;    
+            font-size: 15px;
+            color: white;
+            border: 0 none;
+
+            text-shadow: @text_shadow;
+            margin-top: 13px;
+            padding: 6px 12px 6px 40px;
+            width: 150px;
+            .border-radius(18px);
+            /*#gradient.vertical(rgba(255,255,255,0.03),rgba(0,0,0,0.03));
+            background-color: rgba(28,28,39,1); */
+            background: url(https://dl.dropbox.com/s/3hpw8o66ukrh138/icon-magnifying_glass.png) no-repeat 12px rgba(28,28,39,1);
+
+            /*#gradient.vertical(rgba(28,28,39,1), rgba(35, 35, 36, 1));*/
+
+            @inset_shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 3px rgba(0, 0, 0, 0.3) inset;
+
+            -webkit-box-shadow: @inset_shadow;
+               -moz-box-shadow: @inset_shadow;
+                    box-shadow: @inset_shadow;
+
+        }
+    }
+}
