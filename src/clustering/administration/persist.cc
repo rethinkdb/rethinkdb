@@ -216,6 +216,10 @@ void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backen
                                               standard_serializer_t::private_dynamic_config_t(filename),
                                               perfmon_parent));
 
+    if (!serializer->coop_lock_and_check()) {
+        throw file_in_use_exc_t();
+    }
+
     if (create) {
         mirrored_cache_static_config_t cache_static_config;
         cache_t::create(serializer.get(), &cache_static_config);

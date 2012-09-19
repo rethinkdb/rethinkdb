@@ -65,11 +65,15 @@ void run_rethinkdb_create(const std::string &filepath, const std::string &machin
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
-    metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, metadata);
 
-    logINF("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
-
-    *result_out = true;
+    try {
+        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, metadata);
+        logINF("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
+        *result_out = true;
+    } catch (metadata_persistence::file_in_use_exc_t &ex) {
+        logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
+        *result_out = false;
+    }
 }
 
 std::set<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t> names) {
@@ -118,17 +122,23 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
-    metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
 
-    *result_out = serve(spawner_info,
-                        io_backender.get(),
-                        filepath, &store,
-                        look_up_peers_addresses(joins),
-                        ports,
-                        store.read_machine_id(),
-                        store.read_metadata(),
-                        web_assets,
-                        &sigint_cond);
+    try {
+        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
+
+        *result_out = serve(spawner_info,
+                            io_backender.get(),
+                            filepath, &store,
+                            look_up_peers_addresses(joins),
+                            ports,
+                            store.read_machine_id(),
+                            store.read_metadata(),
+                            web_assets,
+                            &sigint_cond);
+    } catch (metadata_persistence::file_in_use_exc_t &ex) {
+        logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
+        *result_out = false;
+    }
 }
 
 void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets, bool new_directory) {
@@ -143,16 +153,21 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
         perfmon_collection_t metadata_perfmon_collection;
         perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
-        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
+        try {
+            metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
 
-        *result_out = serve(spawner_info,
-                            io_backender.get(),
-                            filepath, &store,
-                            look_up_peers_addresses(joins),
-                            ports,
-                            store.read_machine_id(), store.read_metadata(),
-                            web_assets,
-                            &sigint_cond);
+            *result_out = serve(spawner_info,
+                                io_backender.get(),
+                                filepath, &store,
+                                look_up_peers_addresses(joins),
+                                ports,
+                                store.read_machine_id(), store.read_metadata(),
+                                web_assets,
+                                &sigint_cond);
+        } catch (metadata_persistence::file_in_use_exc_t &ex) {
+            logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
+            *result_out = false;
+        }
 
     } else {
         logINF("It did not already exist. It has been created.\n");
@@ -262,16 +277,21 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
         perfmon_collection_t metadata_perfmon_collection;
         perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
-        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
+        try {
+            metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
 
-        *result_out = serve(spawner_info,
-                            io_backender.get(),
-                            filepath, &store,
-                            look_up_peers_addresses(joins),
-                            ports,
-                            our_machine_id, semilattice_metadata,
-                            web_assets,
-                            &sigint_cond);
+            *result_out = serve(spawner_info,
+                                io_backender.get(),
+                                filepath, &store,
+                                look_up_peers_addresses(joins),
+                                ports,
+                                our_machine_id, semilattice_metadata,
+                                web_assets,
+                                &sigint_cond);
+        } catch (metadata_persistence::file_in_use_exc_t &ex) {
+            logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
+            *result_out = false;
+        }
     }
 }
 
