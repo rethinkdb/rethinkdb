@@ -124,7 +124,7 @@ module 'NamespaceView', ->
                     need_update = true
                     break
 
-            if need_update
+            if need_update and @model.get('key_distr')?
                 @.$('.data_repartition-container').html @data_repartition_template json
 
                 @.$('.loading_text-diagram').css 'display', 'none'
@@ -322,7 +322,7 @@ module 'NamespaceView', ->
     class @ChangeShardsModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#change_shards-modal-template').html()
         change_shards_success_alert_template: Handlebars.compile $('#change_shards-success-alert-template').html()
-        class: 'modify-replicas'
+        class: 'change_shards'
 
         initialize: (data) =>
             @model = data.model
@@ -331,7 +331,8 @@ module 'NamespaceView', ->
 
 
         render: =>
-            log_render '(rendering) modify replicas dialog (outer)'
+            @model.load_key_distr_once()
+
             super
                 modal_title: "Change the number of shards"
                 btn_primary_text: "Shard"

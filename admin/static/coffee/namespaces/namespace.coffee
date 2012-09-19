@@ -27,7 +27,7 @@ module 'NamespaceView', ->
         initialize: ->
             log_initial '(initializing) namespace view: container'
 
-            @model.load_key_distr()
+            @model.load_key_distr_once()
 
             # Panels for namespace view
             @title = new NamespaceView.Title(model: @model)
@@ -124,8 +124,6 @@ module 'NamespaceView', ->
 
 
         destroy: =>
-            @model.clear_interval_key_distr()
-
             @title.destroy()
             @profile.destroy()
             @replicas.destroy()

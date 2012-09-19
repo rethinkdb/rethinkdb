@@ -29,16 +29,6 @@ class Namespace extends Backbone.Model
     compute_shards: =>
         @.set 'computed_shards', new DataUtils.Shards [],@
 
-    interval: 0
-    set_interval_key_distr: =>
-        @set_interval = setInterval @load_key_distr, @interval
-
-    clear_interval_key_distr: ->
-        if @set_interval?
-            clearInterval @set_interval
-            @interval = 0
-
-
     compare_keys: (a, b) ->
         pattern = /^(%22).*(%22)$/
         if pattern.test(a) is true
@@ -76,38 +66,10 @@ class Namespace extends Backbone.Model
                 return 1
         return 0
 
-    # Cache key distribution info.
-    load_key_distr: =>
-        $.ajax
-            processData: false
-            url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
-            type: 'GET'
-            contentType: 'application/json'
-            success: (distr_data) =>
-                # Cache the data
-                # Sort the keys and cache that too
-                distr_keys = []
-                for key, count of distr_data
-                    distr_keys.push(key)
-                distr_keys.sort(@compare_keys)
-
-                @set('key_distr_sorted', distr_keys)
-                @set('key_distr', distr_data)
-                if @interval isnt 5000
-                    @clear_interval_key_distr()
-                    @interval = 5000
-                    @set_interval_key_distr()
-
-            error: =>
-                if @interval isnt 1000
-                    @clear_interval_key_distr()
-                    @interval = 1000
-                    @set_interval_key_distr()
-
     load_key_distr_once: =>
         $.ajax
             processData: false
-            url: "/ajax/distribution?namespace=#{@get('id')}&depth=1"
+            url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
             type: 'GET'
             contentType: 'application/json'
             success: (distr_data) =>
