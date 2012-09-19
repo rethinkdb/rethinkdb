@@ -17,6 +17,11 @@
 @sans: 'Istok Web', sans-serif;
 @serif: 'Copse', serif;
 
+/*
+    ----------------------------
+    Navbar at the top
+    ----------------------------
+*/
 #navbar {
     font-family: @sans;
     border-top: 4px @accent solid;
@@ -99,6 +104,57 @@
 
         }
     }
+}
+
+/*
+    ----------------------------
+    Status bar at the top
+    ----------------------------
+*/
+
+#sidebar {
+    background-image: url('https://dl.dropbox.com/s/plzmuyfwibwyvry/status_panel-background.png');
+    padding: 20px 0;
+    .panel > div {
+        padding-left: 60px;
+        height: 47px;
+        h5 {
+            font-family: @sans;
+            font-size: 14px;
+            line-height: 1;
+            margin: 0;
+            padding: 0;
+            margin-bottom: 5px;
+        }
+
+        h4 {
+            font-family: @serif; 
+            font-size: 18px;
+            line-height: 24px;
+            margin: 0;
+            padding: 0;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+    }
+
+    .client-connection-status {
+        background: url('https://dl.dropbox.com/s/fpiswm98f9wx8ff/status_panel-icon_1.png') no-repeat left center;
+    }
+
+    .issues {
+        background: url('https://dl.dropbox.com/s/ugca6ovxajdja65/status_panel-icon_2.png') no-repeat left center;
+    }
+
+    .servers-connected {
+        background: url('https://dl.dropbox.com/s/wdn0nvzq2c85zvm/status_panel-icon_3.png') no-repeat left center;
+    }
+
+    .datacenters-connected {
+        background: url('https://dl.dropbox.com/s/k6nl8f6qzmjyabc/status_panel-icon_4.png') no-repeat left center;
+    }
+
 }
 
 /*

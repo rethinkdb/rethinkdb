@@ -16,7 +16,8 @@ module 'Sidebar', ->
             log_initial '(initializing) sidebar view: container'
 
             @client_connectivity_status = new Sidebar.ClientConnectionStatus()
-            @connectivity_status = new Sidebar.ConnectivityStatus()
+            @servers_connected = new Sidebar.ServersConnected()
+            @datacenters_connected = new Sidebar.DatacentersConnected()
             @issues = new Sidebar.Issues()
             @logs = new Sidebar.Logs()
 
@@ -71,7 +72,8 @@ module 'Sidebar', ->
     
                 # Render connectivity status
                 @.$('.client-connection-status').html @client_connectivity_status.render().el
-                @.$('.connectivity-status').html @connectivity_status.render().el
+                @.$('.servers-connected').html @servers_connected.render().el
+                @.$('.datacenters-connected').html @datacenters_connected.render().el
     
                 # Render issue summary
                 @.$('.issues').html @issues.render().el
@@ -150,7 +152,6 @@ module 'Sidebar', ->
     # Sidebar.ClientConnectionStatus
     class @ClientConnectionStatus extends Backbone.View
         className: 'client-connection-status'
-        tagName: 'div'
         template: Handlebars.compile $('#sidebar-client_connection_status-template').html()
 
         initialize: =>
@@ -180,10 +181,29 @@ module 'Sidebar', ->
             datacenters.off 'all', @render
             machines.off 'all', @render
 
-    # Sidebar.ConnectivityStatus
-    class @ConnectivityStatus extends Backbone.View
-        className: 'connectivity-status'
-        template: Handlebars.compile $('#sidebar-connectivity_status-template').html()
+    # Sidebar.ServersConnected
+    class @ServersConnected extends Backbone.View
+        template: Handlebars.compile $('#sidebar-servers_connected-template').html()
+
+        initialize: =>
+            # Rerender every time some relevant info changes
+            directory.on 'all', @render
+            machines.on 'all', @render
+
+        render: =>
+            @.$el.html @template
+                servers_active: directory.length
+                servers_total: machines.length
+            return @
+
+        destroy: =>
+            # Rerender every time some relevant info changes
+            directory.off 'all', @render
+            machines.off 'all', @render
+
+    # Sidebar.DatacentersConnected
+    class @DatacentersConnected extends Backbone.View
+        template: Handlebars.compile $('#sidebar-datacenters_connected-template').html()
 
         initialize: =>
             # Rerender every time some relevant info changes
@@ -200,8 +220,6 @@ module 'Sidebar', ->
                     dc_visible[dc_visible.length] = _m.get('datacenter_uuid')
             dc_visible = _.uniq(dc_visible)
             conn =
-                machines_active: directory.length
-                machines_total: machines.length
                 datacenters_active: dc_visible.length
                 datacenters_total: datacenters.models.length
             return conn
