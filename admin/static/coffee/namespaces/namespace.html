@@ -51,7 +51,11 @@
         <p>Shards: {{nshards}}</p>
         <p>Masters: {{nashards}} of {{nshards}} reachable</p>
         <p>Replicas: {{nareplicas}} of {{nreplicas}} reachable</p>
+        {{#if total_keys}}
         <p>Data: {{total_keys}} documents</p>
+        {{else}}
+        <p>Data: Loading...</p>
+        {{/if}}
         <p>Replication: {{> backfill_progress_summary}}</p>
         {{#unless stats_up_to_date}}
         <p>The stats displayed might not be up to date<br />

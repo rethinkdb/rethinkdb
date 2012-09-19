@@ -29,25 +29,23 @@ class Namespace extends Backbone.Model
     compute_shards: =>
         @.set 'computed_shards', new DataUtils.Shards [],@
 
-    compare_keys: (a, b) ->
-        pattern = /^(%22).*(%22)$/
-        if pattern.test(a) is true
-            a_new = a.slice(3, a.length-3)
-        else if _.isNaN(parseFloat(a)) is false
-            a_new = parseFloat(a)
-        else if a is ""
-            a_new = -Infinity
-        else
+    transform_key: (a) ->
+        if a is null
             a_new = a
+        else if a is ""
+            a_new is -Infinity
+        else if typeof a is "string" and a[0]? and a[0] is 'N'
+            s = a.slice(a.indexOf("%23")+3)
+            if _.isNaN(parseFloat(s)) is false
+                a_new = parseFloat(s)
+        else if typeof a is "string" and a[0]? and a[0] is 'S'
+            a_new = a.slice(1)
+        return a_new
 
-        if pattern.test(b) is true
-            b_new = b.slice(3, b.length-3)
-        else if _.isNaN(parseFloat(b)) is false
-            b_new = parseFloat(b)
-        else if b is ""
-            b_new = -Infinity
-        else
-            b_new = b
+    compare_keys: (a, b) =>
+        a_new = @transform_key(a)
+        b_new = @transform_key(b)
+
         if typeof a_new is 'number' and typeof b_new is 'number'
             return a_new-b_new
         else if typeof a_new is 'string' and typeof b_new is 'string'
