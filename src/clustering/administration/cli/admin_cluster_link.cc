@@ -98,8 +98,7 @@ void admin_cluster_link_t::admin_stats_to_table(const std::string& machine,
 }
 
 std::string admin_value_to_string(const hash_region_t<key_range_t>& region) {
-    // TODO(sam): I don't know what is the appropriate sort of thing for an admin_value_to_string call.
-    return strprintf("%" PRIu64 ":%" PRIu64 ":%s", region.beg, region.end, key_range_to_cli_str(region.inner).c_str());
+    return strprintf("%s", key_range_to_cli_str(region.inner).c_str());
 }
 
 std::string admin_value_to_string(const mock::dummy_protocol_t::region_t& region) {
