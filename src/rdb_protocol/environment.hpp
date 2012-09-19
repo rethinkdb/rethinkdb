@@ -26,9 +26,7 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
-        uuid_t _this_machine,
-        uuid_t _parser_id,
-        one_per_thread_t<int> *_thread_counters)
+        uuid_t _this_machine)
         : pool(_pool_group->get()),
           ns_repo(_ns_repo),
           namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
@@ -37,9 +35,7 @@ public:
           directory_read_manager(_directory_read_manager),
           js_runner(_js_runner),
           interruptor(_interruptor),
-          this_machine(_this_machine),
-          parser_id(_parser_id),
-          thread_counters(_thread_counters)
+          this_machine(_this_machine)
     { rassert(js_runner); }
 
     runtime_environment_t(
@@ -62,9 +58,7 @@ public:
           directory_read_manager(NULL),
           js_runner(_js_runner),
           interruptor(_interruptor),
-          this_machine(_this_machine),
-          parser_id(nil_uuid()),
-          thread_counters(NULL)
+          this_machine(_this_machine)
     { rassert(js_runner); }
 
     extproc::pool_t *pool;      // for running external JS jobs
@@ -101,10 +95,6 @@ public:
 
     signal_t *interruptor;
     uuid_t this_machine;
-
-    /* For autokey generation */
-    uuid_t parser_id;
-    one_per_thread_t<int> *thread_counters;
 
   private:
     DISABLE_COPYING(runtime_environment_t);

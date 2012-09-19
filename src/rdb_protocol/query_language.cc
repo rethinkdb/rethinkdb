@@ -1061,21 +1061,7 @@ MUST_USE bool insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const
         if (overwrite) {
             throw runtime_exc_t(strprintf("Must have a field named \"%s\" (The primary key) if you are attempting to overwrite.", pk.c_str()), backtrace);
         }
-        rassert(!env->parser_id.is_nil());
-        /* The structure of our key is as follows:
-         * KWPC:7f7483d4-231b-faec-091b-b0938bcacd75:4:15
-         * 1    2                                    3 4
-         *
-         * 1: A randomly generated 4 character string we don't rely on this for
-         * uniqueness it's just there to make these a bit nicer to shard
-         *
-         * 2: The uuid of this parser each entity that can cause insertions should generate a new one of these.
-         *
-         * 3: The thread this insert was run on.
-         *
-         * 4: The number of inserts that have been run from this thread. (Incremented below.)
-         */
-        std::string generated_pk = rand_string(4) + ":" + uuid_to_str(env->parser_id) + strprintf(":%d:%d", get_thread_id(), (*env->thread_counters->get())++);
+        std::string generated_pk = uuid_to_str(generate_uuid());
         *generated_pk_out = generated_pk;
         data->AddItemToObject(pk.c_str(), cJSON_CreateString(generated_pk.c_str()));
         generated_key = true;
