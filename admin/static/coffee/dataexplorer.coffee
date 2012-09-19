@@ -614,7 +614,9 @@ module 'DataExplorerView', ->
 
 
         callback_render: (data) =>
-            @data_container.render(@query, data)
+            execution_time = new Date() - @start_time
+            @.$('.loading_query_img').css 'display', 'none'
+            @data_container.render(@query, data, execution_time)
 
         execute_query: =>
             window.result = {}
@@ -638,10 +640,14 @@ module 'DataExplorerView', ->
                         char_used = @query[i]
                 i++
 
+            @.$('.loading_query_img').css 'display', 'block'
+
             full_query = @query + '.run(this.callback_render)'
+            @start_time = new Date()
             try
                 eval(full_query)
             catch err
+                @.$('.loading_query_img').css 'display', 'none'
                 @data_container.render_error(full_query, err)
             
             # Display query in sidebar and home view
@@ -855,9 +861,9 @@ module 'DataExplorerView', ->
         display_home: (event) =>
             window.app.current_view.display_home(event)
 
-        render: (query, result) =>
+        render: (query, result, execution_time) =>
             if query? and result isnt undefined
-                @.$el.html @result_view.render(query, result).el
+                @.$el.html @result_view.render(query, result, execution_time).el
                 @result_view.delegateEvents()
             else
                 @.$el.html @default_view.render().el
@@ -1226,11 +1232,26 @@ module 'DataExplorerView', ->
             @mouse_down = false
             @.$('.json_table').toggleClass('resizing', false)
 
-        render: (query, result, type) =>
+        render: (query, result, execution_time) =>
             @current_result = result
+
+            if execution_time < 1000
+                execution_time_pretty = execution_time+"ms"
+            else if execution_time < 60*1000
+                execution_time_pretty = (execution_time/1000).toFixed(2)+"s"
+            else # We do not expect query to last one hour.
+                minutes = Math.floor(execution_time/(60*1000))
+                execution_time_pretty = minutes+"min "+((execution_time-minutes*60*1000)/1000).toFixed(2)+"s"
+
+            if @current_result.constructor? and @current_result.constructor is Array
+                num_rows = @current_result.length
+            else
+                num_rows = 1
 
             @.$el.html @template
                 query: query
+                execution_time: execution_time_pretty
+                num_rows: num_rows
             
             if @current_result is null or @current_result.length is 0
                 @.$('.results').html @template_no_result
@@ -1241,34 +1262,10 @@ module 'DataExplorerView', ->
             @.$('#table_view').html @json_to_table @current_result
             @.$('.raw_view_textarea').html JSON.stringify @current_result
  
-            if !type?
-                type = 'json'
-                ### No table view per default
-                if @current_result.length is 1
-                    type = "json"
-                else
-                    type = "table"
-                ###
-
-
-            #TODO We should really remove bootstraps...
-            switch type
-                when  'json'
-                    @.$('.link_to_tree_view').tab 'show'
-                    @.$('#tree_view').addClass 'active'
-                    @.$('#table_view').removeClass 'active'
-                    @.$('#raw_view').removeClass 'active'
-                when  'table'
-                    @.$('.link_to_table_view').tab 'show'
-                    @.$('#table_view').addClass 'active'
-                    @.$('#tree_view').removeClass 'active'
-                    @.$('#raw_view').removeClass 'active'
-                when  'raw'
-                    @.$('.link_to_raw_view').tab 'show'
-                    @.$('#raw_view').addClass 'active'
-                    @.$('#table_view').removeClass 'active'
-                    @.$('#tree_view').removeClass 'active'
- 
+            @.$('.link_to_tree_view').tab 'show'
+            @.$('#tree_view').addClass 'active'
+            @.$('#table_view').removeClass 'active'
+            @.$('#raw_view').removeClass 'active'
 
             @delegateEvents()
 

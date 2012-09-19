@@ -11,10 +11,12 @@
             <input type="button" value="clear" class="btn button_query clear_query" />
         </div>
 
+        <div class="suggestion_full_container">
         <div class="suggestion_list_container">
             <ul class="suggestion_name_list"></ul>
         </div>
         <div class="suggestion_description"></div>
+        </div>
 
     </div>
     <div class="loading_query">
@@ -98,6 +100,7 @@
 
         <h2>Results</h2>
         <p class="query_executed">For query: {{query}}</p>
+        <p>Executed in {{execution_time}}, {{num_rows}} {{pluralize_noun "row" num_rows}} returned</p>
 
         <ul class="nav nav-tabs change_view_container"">
             <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view">Raw view</a></li>
