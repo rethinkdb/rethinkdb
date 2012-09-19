@@ -49,9 +49,9 @@ public:
     vclock_t<region_map_t<protocol_t, std::set<machine_id_t> > > secondary_pinnings;
     vclock_t<std::string> primary_key; //TODO this should actually never be changed...
     vclock_t<database_id_t> database;
-    vclock_t<int64_t> cache_quota;
+    vclock_t<int64_t> cache_size;
 
-    RDB_MAKE_ME_SERIALIZABLE_12(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_quota);
+    RDB_MAKE_ME_SERIALIZABLE_12(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
 };
 
 
@@ -64,11 +64,11 @@ private:
     machine_id_t machine;
 };
 
-//RSI add cache quota to this.
 template<class protocol_t>
 namespace_semilattice_metadata_t<protocol_t> new_namespace(
     uuid_t machine, uuid_t database, uuid_t datacenter,
-    const std::string &name, const std::string &key, int port) {
+    const std::string &name, const std::string &key, int port,
+    int64_t cache_size) {
 
     vclock_builder_t vc(machine);
     namespace_semilattice_metadata_t<protocol_t> ns;
@@ -98,15 +98,15 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
         protocol_t::region_t::universe(), std::set<machine_id_t>());
     ns.secondary_pinnings = vc.build(secondary_pinnings);
 
-    ns.cache_quota = vc.build(GIGABYTE);
+    ns.cache_size = vc.build(cache_size);
     return ns;
 }
 
 template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_12(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_quota);
+RDB_MAKE_SEMILATTICE_JOINABLE_12(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
 
 template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_12(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_quota);
+RDB_MAKE_EQUALITY_COMPARABLE_12(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
 
 //json adapter concept for namespace_semilattice_metadata_t
 template <class protocol_t>

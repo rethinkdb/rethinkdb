@@ -869,6 +869,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         std::string db_name = m->create_table().table_ref().db_name();
         std::string table_name = m->create_table().table_ref().table_name();
         std::string primary_key = m->create_table().primary_key();
+        int64_t cache_size = m->create_table().cache_size();
 
         uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("table_ref").with("db_name"));
         uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name, bt.with("datacenter"));
@@ -883,7 +884,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         //TODO(mlucy): What is the port for?  Why is it always the same?
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
             new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, table_name,
-                                          primary_key, port_constants::namespace_port);
+                                          primary_key, port_constants::namespace_port, cache_size);
         {
             cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
             change.get()->namespaces.insert(std::make_pair(namespace_id, ns));

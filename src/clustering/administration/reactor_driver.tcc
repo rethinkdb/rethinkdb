@@ -351,10 +351,10 @@ void reactor_driver_t<protocol_t>::on_change() {
                 if (!std_contains(reactor_data, it->first)) {
                     namespace_id_t tmp = it->first;
                     int64_t cache_size;
-                    if (it->second.get().cache_quota.in_conflict()) {
+                    if (it->second.get().cache_size.in_conflict()) {
                         cache_size = GIGABYTE;
                     } else {
-                        cache_size = it->second.get().cache_quota.in_conflict();
+                        cache_size = it->second.get().cache_size.get();
                     }
 
                     reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
