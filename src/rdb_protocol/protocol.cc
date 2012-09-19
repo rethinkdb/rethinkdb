@@ -194,9 +194,9 @@ public:
 
 class unshard_visitor_t : public boost::static_visitor<void> {
 public:
-    unshard_visitor_t(const read_response_t *_responses, 
+    unshard_visitor_t(const read_response_t *_responses,
                       size_t _count,
-                      read_response_t *_response_out, context_t *ctx) 
+                      read_response_t *_response_out, context_t *ctx)
         : responses(_responses), count(_count), response_out(_response_out),
           env(ctx->pool_group,
               ctx->ns_repo,
