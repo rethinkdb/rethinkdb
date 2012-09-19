@@ -25,6 +25,7 @@ message Term {
         GETBYKEY = 12;
         TABLE = 13;
         JAVASCRIPT = 14;
+        IMPLICIT_VAR = 15;
     };
 
     required TermType type = 1;

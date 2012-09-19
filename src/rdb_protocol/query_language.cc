@@ -103,6 +103,14 @@ term_info_t get_term_type(const Term &t, type_checking_environment_t *env, const
     check_protobuf(field_count <= 2);
 
     switch (t.type()) {
+    case Term::IMPLICIT_VAR:
+        if (!env->implicit_type.has_value() || env->implicit_type.get_value().type != TERM_TYPE_JSON) {
+            throw bad_query_exc_t("No implicit variable in scope", backtrace);
+        } else if (!env->implicit_type.depth_is_legal()) {
+            throw bad_query_exc_t("Cannot use implicit variable in nested queries.  Name your variables!", backtrace);
+        }
+        return env->implicit_type.get_value();
+        break;
     case Term::VAR:
         check_protobuf(t.has_var());
         if (!env->scope.is_in_scope(t.var())) {
@@ -1366,234 +1374,238 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json_and_check_either(Term *t, ru
 
 boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
     switch (t->type()) {
-        case Term::VAR:
-            return scopes.scope.get(t->var());
-            break;
-        case Term::LET:
-            {
-                // Push the scope
-                scopes_t scopes_copy = scopes;
-                new_scope_t inner_type_scope(&scopes_copy.type_env.scope);
-                new_val_scope_t inner_val_scope(&scopes_copy.scope);
+    case Term::IMPLICIT_VAR:
+        rassert(scopes.implicit_attribute_value.has_value());
+        return scopes.implicit_attribute_value.get_value();
+    case Term::VAR:
+        return scopes.scope.get(t->var());
+        break;
+    case Term::LET:
+        {
+            // Push the scope
+            scopes_t scopes_copy = scopes;
+            new_scope_t inner_type_scope(&scopes_copy.type_env.scope);
+            new_val_scope_t inner_val_scope(&scopes_copy.scope);
 
-                eval_let_binds(t->mutable_let(), env, &scopes_copy, backtrace);
+            eval_let_binds(t->mutable_let(), env, &scopes_copy, backtrace);
 
-                return eval_term_as_json(t->mutable_let()->mutable_expr(), env, scopes_copy, backtrace.with("expr"));
-            }
-            break;
-        case Term::CALL:
-            return eval_call_as_json(t->mutable_call(), env, scopes, backtrace);
-            break;
-        case Term::IF:
-            {
-                boost::shared_ptr<scoped_cJSON_t> test = eval_term_as_json_and_check_either(t->mutable_if_()->mutable_test(), env, scopes, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
+            return eval_term_as_json(t->mutable_let()->mutable_expr(), env, scopes_copy, backtrace.with("expr"));
+        }
+        break;
+    case Term::CALL:
+        return eval_call_as_json(t->mutable_call(), env, scopes, backtrace);
+        break;
+    case Term::IF:
+        {
+            boost::shared_ptr<scoped_cJSON_t> test = eval_term_as_json_and_check_either(t->mutable_if_()->mutable_test(), env, scopes, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
 
-                boost::shared_ptr<scoped_cJSON_t> res;
-                if (test->type() == cJSON_True) {
-                    res = eval_term_as_json(t->mutable_if_()->mutable_true_branch(), env, scopes, backtrace.with("true"));
-                } else {
-                    res = eval_term_as_json(t->mutable_if_()->mutable_false_branch(), env, scopes, backtrace.with("false"));
-                }
-                return res;
-            }
-            break;
-        case Term::ERROR:
-            throw runtime_exc_t(t->error(), backtrace);
-            break;
-        case Term::NUMBER:
-            {
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(safe_cJSON_CreateNumber(t->number(), backtrace)));
-            }
-            break;
-        case Term::STRING:
-            {
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateString(t->valuestring().c_str())));
-            }
-            break;
-        case Term::JSON: {
-            const char *str = t->jsonstring().c_str();
-            boost::shared_ptr<scoped_cJSON_t> json(new scoped_cJSON_t(cJSON_Parse(str)));
-            if (!json->get()) {
-                throw runtime_exc_t(strprintf("Malformed JSON: %s", str), backtrace);
-            }
-            return json;
-        } break;
-        case Term::BOOL:
-            {
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(t->valuebool())));
-            }
-            break;
-        case Term::JSON_NULL:
-            {
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNull()));
-            }
-            break;
-        case Term::ARRAY:
-            {
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
-                for (int i = 0; i < t->array_size(); ++i) {
-                    res->AddItemToArray(eval_term_as_json(t->mutable_array(i), env, scopes, backtrace.with(strprintf("elem:%d", i)))->release());
-                }
-                return res;
-            }
-            break;
-        case Term::OBJECT:
-            {
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateObject()));
-                for (int i = 0; i < t->object_size(); ++i) {
-                    std::string item_name(t->object(i).var());
-                    res->AddItemToObject(item_name.c_str(), eval_term_as_json(t->mutable_object(i)->mutable_term(), env, scopes, backtrace.with(strprintf("key:%s", item_name.c_str())))->release());
-                }
-                return res;
-            }
-            break;
-        case Term::GETBYKEY:
-            {
-                std::string pk = get_primary_key(t->mutable_get_by_key()->mutable_table_ref(), env, backtrace);
-
-                if (t->get_by_key().attrname() != pk) {
-                    throw runtime_exc_t(strprintf("Attribute: %s is not the primary key (%s) and thus cannot be selected upon.", t->get_by_key().attrname().c_str(), pk.c_str()),
-                        backtrace.with("attrname"));
-                }
-
-                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(t->mutable_get_by_key()->mutable_table_ref(), env, backtrace);
-
-                boost::shared_ptr<scoped_cJSON_t> key = eval_term_as_json(t->mutable_get_by_key()->mutable_key(), env, scopes, backtrace.with("key"));
-
-                try {
-                    rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(cJSON_print_primary(key->get(), backtrace))));
-                    rdb_protocol_t::read_response_t res;
-                    ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
-
-                    rdb_protocol_t::point_read_response_t *p_res = boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
-                    return p_res->data;
-                } catch (cannot_perform_query_exc_t e) {
-                    throw runtime_exc_t("cannot perform read: " + std::string(e.what()), backtrace);
-                }
-                break;
-            }
-        case Term::TABLE:
-            crash("Term::TABLE must be evaluated with eval_stream or eval_view");
-
-        case Term::JAVASCRIPT: {
-            // TODO(rntz): optimize map/reduce/filter queries whose
-            // mappings/reductions/predicates are just javascript terms by
-            // streaming arguments to them and streaming results back. Should
-            // wait to do this until it's established it's a bottleneck, but
-            // it's a reasonably good bet that it is. Putting this comment here
-            // not because the changes will need to be made here but because
-            // it's the most logical place to put it.
-
-            // TODO (rntz): implicitly bound argument should become receiver
-            // ("this") object on javascript side.
-
-            boost::shared_ptr<js::runner_t> js = env->get_js_runner();
-            std::string errmsg;
-            boost::shared_ptr<scoped_cJSON_t> result;
-
-            // TODO(rntz): set up a js::runner_t::req_config_t with an
-            // appropriately-chosen timeout.
-
-            // Check whether the function has been compiled already.
-            bool compiled = t->HasExtension(extension::js_id);
-
-            // We give all values in scope as arguments.
-            // TODO(rntz): this is wasteful double-copying.
-            std::vector<std::string> argnames; // only used if (!compiled)
-            std::vector<boost::shared_ptr<scoped_cJSON_t> > argvals;
-            scopes.scope.dump(compiled ? NULL : &argnames, &argvals);
-
-            js::id_t id;
-            if (compiled) {
-                id = t->GetExtension(extension::js_id);
+            boost::shared_ptr<scoped_cJSON_t> res;
+            if (test->type() == cJSON_True) {
+                res = eval_term_as_json(t->mutable_if_()->mutable_true_branch(), env, scopes, backtrace.with("true"));
             } else {
-                // Not compiled yet. Compile it and add the extension.
-                id = js->compile(argnames, t->javascript(), &errmsg);
-                if (js::INVALID_ID == id) {
-                    throw runtime_exc_t("failed to compile javascript: " + errmsg, backtrace);
-                }
-                t->SetExtension(extension::js_id, (int32_t) id);
+                res = eval_term_as_json(t->mutable_if_()->mutable_false_branch(), env, scopes, backtrace.with("false"));
+            }
+            return res;
+        }
+        break;
+    case Term::ERROR:
+        throw runtime_exc_t(t->error(), backtrace);
+        break;
+    case Term::NUMBER:
+        {
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(safe_cJSON_CreateNumber(t->number(), backtrace)));
+        }
+        break;
+    case Term::STRING:
+        {
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateString(t->valuestring().c_str())));
+        }
+        break;
+    case Term::JSON: {
+        const char *str = t->jsonstring().c_str();
+        boost::shared_ptr<scoped_cJSON_t> json(new scoped_cJSON_t(cJSON_Parse(str)));
+        if (!json->get()) {
+            throw runtime_exc_t(strprintf("Malformed JSON: %s", str), backtrace);
+        }
+        return json;
+    } break;
+    case Term::BOOL:
+        {
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(t->valuebool())));
+        }
+        break;
+    case Term::JSON_NULL:
+        {
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNull()));
+        }
+        break;
+    case Term::ARRAY:
+        {
+            boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
+            for (int i = 0; i < t->array_size(); ++i) {
+                res->AddItemToArray(eval_term_as_json(t->mutable_array(i), env, scopes, backtrace.with(strprintf("elem:%d", i)))->release());
+            }
+            return res;
+        }
+        break;
+    case Term::OBJECT:
+        {
+            boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateObject()));
+            for (int i = 0; i < t->object_size(); ++i) {
+                std::string item_name(t->object(i).var());
+                res->AddItemToObject(item_name.c_str(), eval_term_as_json(t->mutable_object(i)->mutable_term(), env, scopes, backtrace.with(strprintf("key:%s", item_name.c_str())))->release());
+            }
+            return res;
+        }
+        break;
+    case Term::GETBYKEY:
+        {
+            std::string pk = get_primary_key(t->mutable_get_by_key()->mutable_table_ref(), env, backtrace);
+
+            if (t->get_by_key().attrname() != pk) {
+                throw runtime_exc_t(strprintf("Attribute: %s is not the primary key (%s) and thus cannot be selected upon.", t->get_by_key().attrname().c_str(), pk.c_str()),
+                                    backtrace.with("attrname"));
             }
 
-            // Figure out whether to bind "this" to the implicit object.
-            boost::shared_ptr<scoped_cJSON_t> object;
-            if (scopes.implicit_attribute_value.has_value()) {
-                object = scopes.implicit_attribute_value.get_value();
-                if (object->type() != cJSON_Object) {
-                    // If it's not a JSON object, we have to ignore it ("this"
-                    // can't be bound to a non-object).
-                    object.reset();
-                }
-            }
+            namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(t->mutable_get_by_key()->mutable_table_ref(), env, backtrace);
 
-            // Evaluate the source.
-            result = js->call(id, object, argvals, &errmsg);
-            if (!result) {
-                throw runtime_exc_t("failed to evaluate javascript: " + errmsg, backtrace);
+            boost::shared_ptr<scoped_cJSON_t> key = eval_term_as_json(t->mutable_get_by_key()->mutable_key(), env, scopes, backtrace.with("key"));
+
+            try {
+                rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(cJSON_print_primary(key->get(), backtrace))));
+                rdb_protocol_t::read_response_t res;
+                ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
+
+                rdb_protocol_t::point_read_response_t *p_res = boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
+                return p_res->data;
+            } catch (cannot_perform_query_exc_t e) {
+                throw runtime_exc_t("cannot perform read: " + std::string(e.what()), backtrace);
             }
-            return result;
+            break;
+        }
+    case Term::TABLE:
+        crash("Term::TABLE must be evaluated with eval_stream or eval_view");
+
+    case Term::JAVASCRIPT: {
+        // TODO(rntz): optimize map/reduce/filter queries whose
+        // mappings/reductions/predicates are just javascript terms by
+        // streaming arguments to them and streaming results back. Should
+        // wait to do this until it's established it's a bottleneck, but
+        // it's a reasonably good bet that it is. Putting this comment here
+        // not because the changes will need to be made here but because
+        // it's the most logical place to put it.
+
+        // TODO (rntz): implicitly bound argument should become receiver
+        // ("this") object on javascript side.
+
+        boost::shared_ptr<js::runner_t> js = env->get_js_runner();
+        std::string errmsg;
+        boost::shared_ptr<scoped_cJSON_t> result;
+
+        // TODO(rntz): set up a js::runner_t::req_config_t with an
+        // appropriately-chosen timeout.
+
+        // Check whether the function has been compiled already.
+        bool compiled = t->HasExtension(extension::js_id);
+
+        // We give all values in scope as arguments.
+        // TODO(rntz): this is wasteful double-copying.
+        std::vector<std::string> argnames; // only used if (!compiled)
+        std::vector<boost::shared_ptr<scoped_cJSON_t> > argvals;
+        scopes.scope.dump(compiled ? NULL : &argnames, &argvals);
+
+        js::id_t id;
+        if (compiled) {
+            id = t->GetExtension(extension::js_id);
+        } else {
+            // Not compiled yet. Compile it and add the extension.
+            id = js->compile(argnames, t->javascript(), &errmsg);
+            if (js::INVALID_ID == id) {
+                throw runtime_exc_t("failed to compile javascript: " + errmsg, backtrace);
+            }
+            t->SetExtension(extension::js_id, (int32_t) id);
         }
 
-        default:
-            unreachable();
+        // Figure out whether to bind "this" to the implicit object.
+        boost::shared_ptr<scoped_cJSON_t> object;
+        if (scopes.implicit_attribute_value.has_value()) {
+            object = scopes.implicit_attribute_value.get_value();
+            if (object->type() != cJSON_Object) {
+                // If it's not a JSON object, we have to ignore it ("this"
+                // can't be bound to a non-object).
+                object.reset();
+            }
+        }
+
+        // Evaluate the source.
+        result = js->call(id, object, argvals, &errmsg);
+        if (!result) {
+            throw runtime_exc_t("failed to evaluate javascript: " + errmsg, backtrace);
+        }
+        return result;
+    }
+
+    default:
+        unreachable();
     }
     unreachable();
 }
 
 boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
     switch (t->type()) {
-        case Term::LET:
-            {
-                // Push the scope
-                scopes_t scopes_copy = scopes;
-                new_scope_t inner_type_scope(&scopes_copy.type_env.scope);
-                new_val_scope_t inner_val_scope(&scopes_copy.scope);
+    case Term::LET:
+        {
+            // Push the scope
+            scopes_t scopes_copy = scopes;
+            new_scope_t inner_type_scope(&scopes_copy.type_env.scope);
+            new_val_scope_t inner_val_scope(&scopes_copy.scope);
 
-                eval_let_binds(t->mutable_let(), env, &scopes_copy, backtrace);
+            eval_let_binds(t->mutable_let(), env, &scopes_copy, backtrace);
 
-                return eval_term_as_stream(t->mutable_let()->mutable_expr(), env, scopes, backtrace.with("expr"));
-            }
-            break;
-        case Term::CALL:
-            return eval_call_as_stream(t->mutable_call(), env, scopes, backtrace);
-            break;
-        case Term::IF:
-            {
-                boost::shared_ptr<scoped_cJSON_t> test = eval_term_as_json_and_check_either(t->mutable_if_()->mutable_test(), env, scopes, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
+            return eval_term_as_stream(t->mutable_let()->mutable_expr(), env, scopes, backtrace.with("expr"));
+        }
+        break;
+    case Term::CALL:
+        return eval_call_as_stream(t->mutable_call(), env, scopes, backtrace);
+        break;
+    case Term::IF:
+        {
+            boost::shared_ptr<scoped_cJSON_t> test = eval_term_as_json_and_check_either(t->mutable_if_()->mutable_test(), env, scopes, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
 
-                if (test->type() == cJSON_True) {
-                    return eval_term_as_stream(t->mutable_if_()->mutable_true_branch(), env, scopes, backtrace.with("true"));
-                } else {
-                    return eval_term_as_stream(t->mutable_if_()->mutable_false_branch(), env, scopes, backtrace.with("false"));
-                }
+            if (test->type() == cJSON_True) {
+                return eval_term_as_stream(t->mutable_if_()->mutable_true_branch(), env, scopes, backtrace.with("true"));
+            } else {
+                return eval_term_as_stream(t->mutable_if_()->mutable_false_branch(), env, scopes, backtrace.with("false"));
             }
-            break;
-        case Term::TABLE:
-            {
-                return eval_table_as_view(t->mutable_table(), env, backtrace).stream;
-            }
-            break;
-        case Term::VAR:
-        case Term::ERROR:
-        case Term::NUMBER:
-        case Term::STRING:
-        case Term::JSON:
-        case Term::BOOL:
-        case Term::JSON_NULL:
-        case Term::OBJECT:
-        case Term::GETBYKEY:
-        case Term::JAVASCRIPT:
-        case Term::ARRAY: {
-            /* TODO: The type checker should have rejected these cases. Why are
-            we handling them? */
-            boost::shared_ptr<scoped_cJSON_t> arr = eval_term_as_json(t, env, scopes, backtrace);
-            require_type(arr->get(), cJSON_Array, backtrace);
-            json_array_iterator_t it(arr->get());
-            return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it));
-        } break;
-        default:
-            unreachable();
-            break;
+        }
+        break;
+    case Term::TABLE:
+        {
+            return eval_table_as_view(t->mutable_table(), env, backtrace).stream;
+        }
+        break;
+    case Term::IMPLICIT_VAR:
+    case Term::VAR:
+    case Term::ERROR:
+    case Term::NUMBER:
+    case Term::STRING:
+    case Term::JSON:
+    case Term::BOOL:
+    case Term::JSON_NULL:
+    case Term::OBJECT:
+    case Term::GETBYKEY:
+    case Term::JAVASCRIPT:
+    case Term::ARRAY: {
+        /* TODO: The type checker should have rejected these cases. Why are
+           we handling them? */
+        boost::shared_ptr<scoped_cJSON_t> arr = eval_term_as_json(t, env, scopes, backtrace);
+        require_type(arr->get(), cJSON_Array, backtrace);
+        json_array_iterator_t it(arr->get());
+        return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it));
+    } break;
+    default:
+        unreachable();
+        break;
     }
     unreachable();
 }
@@ -2500,41 +2512,42 @@ view_t eval_call_as_view(Term::Call *c, runtime_environment_t *env, const scopes
 
 view_t eval_term_as_view(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
     switch (t->type()) {
-        case Term::VAR:
-        case Term::LET:
-        case Term::ERROR:
-        case Term::NUMBER:
-        case Term::STRING:
-        case Term::JSON:
-        case Term::BOOL:
-        case Term::JSON_NULL:
-        case Term::ARRAY:
-        case Term::OBJECT:
-        case Term::JAVASCRIPT:
-            crash("eval_term_as_view called on incompatible Term");
-            break;
-        case Term::CALL:
-            return eval_call_as_view(t->mutable_call(), env, scopes, backtrace);
-            break;
-        case Term::IF:
-            {
-                boost::shared_ptr<scoped_cJSON_t> test = eval_term_as_json_and_check_either(t->mutable_if_()->mutable_test(), env, scopes, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
+    case Term::IMPLICIT_VAR:
+    case Term::VAR:
+    case Term::LET:
+    case Term::ERROR:
+    case Term::NUMBER:
+    case Term::STRING:
+    case Term::JSON:
+    case Term::BOOL:
+    case Term::JSON_NULL:
+    case Term::ARRAY:
+    case Term::OBJECT:
+    case Term::JAVASCRIPT:
+        crash("eval_term_as_view called on incompatible Term");
+        break;
+    case Term::CALL:
+        return eval_call_as_view(t->mutable_call(), env, scopes, backtrace);
+        break;
+    case Term::IF:
+        {
+            boost::shared_ptr<scoped_cJSON_t> test = eval_term_as_json_and_check_either(t->mutable_if_()->mutable_test(), env, scopes, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
 
-                if (test->type() == cJSON_True) {
-                    return eval_term_as_view(t->mutable_if_()->mutable_true_branch(), env, scopes, backtrace.with("true"));
-                } else {
-                    return eval_term_as_view(t->mutable_if_()->mutable_false_branch(), env, scopes, backtrace.with("false"));
-                }
+            if (test->type() == cJSON_True) {
+                return eval_term_as_view(t->mutable_if_()->mutable_true_branch(), env, scopes, backtrace.with("true"));
+            } else {
+                return eval_term_as_view(t->mutable_if_()->mutable_false_branch(), env, scopes, backtrace.with("false"));
             }
-            break;
-        case Term::GETBYKEY:
-            crash("unimplemented");
-            break;
-        case Term::TABLE:
-            return eval_table_as_view(t->mutable_table(), env, backtrace.with("table_ref"));
-            break;
-        default:
-            unreachable();
+        }
+        break;
+    case Term::GETBYKEY:
+        crash("unimplemented");
+        break;
+    case Term::TABLE:
+        return eval_table_as_view(t->mutable_table(), env, backtrace.with("table_ref"));
+        break;
+    default:
+        unreachable();
     }
     unreachable();
 }
