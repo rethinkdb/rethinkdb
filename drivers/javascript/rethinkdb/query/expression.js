@@ -872,6 +872,25 @@ rethinkdb.VarExpression.prototype.compile = function() {
 };
 
 /**
+ * @param {string} varName
+ * @constructor
+ * @extends {rethinkdb.Expression}
+ * @ignore
+ */
+rethinkdb.ImplicitVarExpression = function(varName) {
+    this.varName_ = varName;
+};
+goog.inherits(rethinkdb.ImplicitVarExpression, rethinkdb.Expression);
+
+/** @override */
+rethinkdb.ImplicitVarExpression.prototype.compile = function() {
+    var term = new Term();
+    term.setType(Term.TermType.IMPLICIT_VAR);
+    term.setVar(this.varName_);
+    return term;
+};
+
+/**
  * @param {rethinkdb.Expression} leftExpr
  * @param {string} attrName
  * @constructor
@@ -884,19 +903,6 @@ rethinkdb.AttrExpression = function(leftExpr, attrName) {
     });
 };
 goog.inherits(rethinkdb.AttrExpression, rethinkdb.BuiltinExpression);
-
-/**
- * @param {string} attrName
- * @constructor
- * @extends {rethinkdb.BuiltinExpression}
- * @ignore
- */
-rethinkdb.ImplicitAttrExpression = function(attrName) {
-    goog.base(this, Builtin.BuiltinType.IMPLICIT_GETATTR, [], function(builtin) {
-        builtin.setAttr(attrName);
-    });
-};
-goog.inherits(rethinkdb.ImplicitAttrExpression, rethinkdb.BuiltinExpression);
 
 /**
  * Reference the value of a bound variable or a field of a bound variable.
@@ -913,14 +919,17 @@ rethinkdb.R = function(varString) {
 
     var curName = attrChain.shift();
     var curExpr = null;
-    if (curName[0] === '@') {
-        curName = attrChain.shift();
-    }
-
     if (curName[0] === '$') {
         curExpr = newExpr_(rethinkdb.VarExpression, curName.slice(1));
     } else {
-        curExpr = newExpr_(rethinkdb.ImplicitAttrExpression, curName);
+        curExpr = newExpr_(rethinkdb.ImplicitVarExpression);
+
+        // @attrName should be treated like @.attrName
+        if (curName[0] === '@' && curName.length > 1) {
+            attrChain.unshift(curName.slice(1));
+        } else if (curName[0] !== '@') {
+            attrChain.unshift(curName);
+        }
     }
 
     while (curName = attrChain.shift()) {
