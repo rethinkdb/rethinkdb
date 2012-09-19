@@ -1442,7 +1442,7 @@ class Table(MultiRowSelection):
 
     def __repr__(self):
         if self.db_expr is not None:
-            return "<Table %r>" % (self.db_expr.db_name + "." + self.table_name)
+            return "<Table %r, db=%r>" % (self.table_name, self.db_expr.db_name)
         else:
             return "<Table %r>" % self.table_name
 
@@ -1478,7 +1478,10 @@ class Table(MultiRowSelection):
         return RowSelection(internal.Get(self, key, attr_name))
 
     def _write_ref_ast(self, parent):
-        parent.db_name = self.db_expr.db_name
+        if self.db_expr:
+            parent.db_name = self.db_expr.db_name
+        else:
+            parent.db_name = net.last_connection.db_name
         parent.table_name = self.table_name
 
 def table(table_ref):
@@ -1492,13 +1495,8 @@ def table(table_ref):
     :returns: :class:`Table` -- a reference to the specified table
 
     >>> q = table('table_name')         #
-    >>> q = table('db_name.table_name') # equivalent to db('db_name').table('table_name')
     """
-    if '.' in table_ref:
-        db_name, table_name = table_ref.split('.', 1)
-        return db(db_name).table(table_name)
-    else:
-        return Table(table_ref)
+    return Table(table_ref)
 
 # this happens at the end since it's a circular import
 import internal
