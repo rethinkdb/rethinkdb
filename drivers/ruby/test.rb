@@ -26,7 +26,7 @@ require 'test/unit'
 $port_base = ARGV[0].to_i # 0 if none given
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
-  def rdb; r.db('Welcome-db').table('Welcome-rdb'); end
+  def rdb; @@c.use('Welcome-db'); r.table('Welcome-rdb'); end
   @@c = RethinkDB::Connection.new('localhost', $port_base + 12346)
   def c; @@c; end
   def id_sort x; x.sort_by{|y| y['id']}; end
@@ -76,11 +76,11 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_without
-    assert_equal(r[{:a => 1, :b => 2, :c => 3}].without(:a, :c).run, {'b' => 2})
-    assert_equal(rdb.orderby(:id).map{r.without(:name, :num)}.run.to_a,
+    assert_equal(r.expr({:a => 1, :b => 2, :c => 3}).without(:a, :c).run, {'b' => 2})
+    assert_equal(rdb.orderby(:id).map{r[:$_].without(:name, :num)}.run.to_a,
                  rdb.orderby(:id).map{|row| row.without(:name).without(:num)}.run.to_a)
-    assert_equal(r[{:a => 1}].without(:b).run, {'a' => 1})
-    assert_equal(r[{}].without(:b).run, {})
+    assert_equal(r.expr({:a => 1}).without(:b).run, {'a' => 1})
+    assert_equal(r.expr({}).without(:b).run, {})
   end
 
   def test_arr_ordering
@@ -138,9 +138,9 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_array_python # from python tests
-    assert_equal(r[[]].append(2).run.to_a, [2])
-    assert_equal(r[[1]].append(2).run.to_a, [1, 2])
-    assert_raise(RuntimeError){r[2].append(0).run.to_a}
+    assert_equal(r.expr([]).append(2).run.to_a, [2])
+    assert_equal(r.expr([1]).append(2).run.to_a, [1, 2])
+    assert_raise(RuntimeError){r.expr(2).append(0).run.to_a}
 
     assert_equal(r.add([1], [2]).run.to_a, [1, 2])
     assert_equal(r.add([1, 2], []).run.to_a, [1, 2])
@@ -148,53 +148,53 @@ class ClientTest < Test::Unit::TestCase
     assert_raise(RuntimeError){r.add([1],1).run}
 
     arr = (0...10).collect{|x| x}
-    assert_equal(r[arr][0...3].run.to_a, arr[0...3])
-    assert_equal(r[arr][0...0].run.to_a, arr[0...0])
-    assert_equal(r[arr][5...15].run.to_a, arr[5...15])
-    assert_equal(r[arr][5...-3].run.to_a, arr[5...-3])
-    assert_equal(r[arr][-5...-3].run.to_a, arr[-5...-3])
-    assert_equal(r[arr][0..3].run.to_a, arr[0..3])
-    assert_equal(r[arr][0..0].run.to_a, arr[0..0])
-    assert_equal(r[arr][5..15].run.to_a, arr[5..15])
-    assert_equal(r[arr][5..-3].run.to_a, arr[5..-3])
-    assert_equal(r[arr][-5..-3].run.to_a, arr[-5..-3])
+    assert_equal(r.expr(arr)[0...3].run.to_a, arr[0...3])
+    assert_equal(r.expr(arr)[0...0].run.to_a, arr[0...0])
+    assert_equal(r.expr(arr)[5...15].run.to_a, arr[5...15])
+    assert_equal(r.expr(arr)[5...-3].run.to_a, arr[5...-3])
+    assert_equal(r.expr(arr)[-5...-3].run.to_a, arr[-5...-3])
+    assert_equal(r.expr(arr)[0..3].run.to_a, arr[0..3])
+    assert_equal(r.expr(arr)[0..0].run.to_a, arr[0..0])
+    assert_equal(r.expr(arr)[5..15].run.to_a, arr[5..15])
+    assert_equal(r.expr(arr)[5..-3].run.to_a, arr[5..-3])
+    assert_equal(r.expr(arr)[-5..-3].run.to_a, arr[-5..-3])
 
-    assert_raise(RuntimeError){r[1][0...0].run.to_a}
-    assert_raise(RuntimeError){r[arr][0.5...0].run.to_a}
-    assert_raise(RuntimeError){r[1][0...1.01].run.to_a}
-    assert_raise(RuntimeError){r[1][5...3].run.to_a}
+    assert_raise(RuntimeError){r.expr(1)[0...0].run.to_a}
+    assert_raise(RuntimeError){r.expr(arr)[0.5...0].run.to_a}
+    assert_raise(RuntimeError){r.expr(1)[0...1.01].run.to_a}
+    assert_raise(RuntimeError){r.expr(1)[5...3].run.to_a}
 
-    assert_equal(r[arr][5..-1].run.to_a, arr[5..-1])
-    assert_equal(r[arr][0...7].run.to_a, arr[0...7])
-    assert_equal(r[arr][0...-2].run.to_a, arr[0...-2])
-    assert_equal(r[arr][-2..-1].run.to_a, arr[-2..-1])
-    assert_equal(r[arr][0..-1].run.to_a, arr[0..-1])
+    assert_equal(r.expr(arr)[5..-1].run.to_a, arr[5..-1])
+    assert_equal(r.expr(arr)[0...7].run.to_a, arr[0...7])
+    assert_equal(r.expr(arr)[0...-2].run.to_a, arr[0...-2])
+    assert_equal(r.expr(arr)[-2..-1].run.to_a, arr[-2..-1])
+    assert_equal(r.expr(arr)[0..-1].run.to_a, arr[0..-1])
 
-    assert_equal(r[arr][3].run, 3)
-    assert_equal(r[arr][-1].run, 9)
-    assert_raise(RuntimeError){r[0][0].run}
-    assert_raise(SyntaxError){r[arr][0.1].run}
-    assert_raise(RuntimeError){r[[0]][1].run}
+    assert_equal(r.expr(arr)[3].run, 3)
+    assert_equal(r.expr(arr)[-1].run, 9)
+    assert_raise(RuntimeError){r.expr(0)[0].run}
+    assert_raise(SyntaxError){r.expr(arr)[0.1].run}
+    assert_raise(RuntimeError){r.expr([0])[1].run}
 
-    assert_equal(r[[]].length.run, 0)
-    assert_equal(r[arr].length.run, arr.length)
-    assert_raise(RuntimeError){r[0].length.run}
+    assert_equal(r.expr([]).length.run, 0)
+    assert_equal(r.expr(arr).length.run, arr.length)
+    assert_raise(RuntimeError){r.expr(0).length.run}
   end
 
   def test_stream # from python tests
     arr = (0...10).collect{|x| x}
-    assert_equal(r[arr].to_stream.to_array.run, arr)
-    assert_equal(r[arr].to_stream.nth(0).run, 0)
-    assert_equal(r[arr].to_stream.nth(5).run, 5)
-    assert_raise(RuntimeError){r[arr].to_stream.nth([]).run}
-    assert_raise(RuntimeError){r[arr].to_stream.nth(0.4).run}
-    assert_raise(RuntimeError){r[arr].to_stream.nth(-5).run}
-    assert_raise(RuntimeError){r[[0]].to_stream.nth(1).run}
+    assert_equal(r.expr(arr).to_stream.to_array.run, arr)
+    assert_equal(r.expr(arr).to_stream.nth(0).run, 0)
+    assert_equal(r.expr(arr).to_stream.nth(5).run, 5)
+    assert_raise(RuntimeError){r.expr(arr).to_stream.nth([]).run}
+    assert_raise(RuntimeError){r.expr(arr).to_stream.nth(0.4).run}
+    assert_raise(RuntimeError){r.expr(arr).to_stream.nth(-5).run}
+    assert_raise(RuntimeError){r.expr([0]).to_stream.nth(1).run}
   end
 
   def test_stream_fancy # from python tests
-    def limit(a,c); r[a].to_stream.limit(c).to_array.run; end
-    def skip(a,c); r[a].to_stream.skip(c).to_array.run; end
+    def limit(a,c); r.expr(a).to_stream.limit(c).to_array.run; end
+    def skip(a,c); r.expr(a).to_stream.skip(c).to_array.run; end
 
     assert_equal(limit([], 0), [])
     assert_equal(limit([1, 2], 0), [])
@@ -207,7 +207,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(skip([1, 2], 0), [1, 2])
     assert_equal(skip([1, 2], 1), [2])
 
-    def distinct(a); r[a].distinct.run; end
+    def distinct(a); r.expr(a).distinct.run; end
     assert_equal(distinct([]), [])
     assert_equal(distinct([1,2,3]*10), [1,2,3])
     assert_equal(distinct([1, 2, 3, 2]), [1, 2, 3])
@@ -217,82 +217,82 @@ class ClientTest < Test::Unit::TestCase
   def test_ordering
     def order(query, *args); query.orderby(*args).run.to_a; end
     docs = (0...10).map{|n| {'id' => 100+n, 'a' => n, 'b' => n%3}}
-    assert_equal(order(r[docs].to_stream, 'a'), docs.sort_by{|x| x['a']})
-    assert_equal(order(r[docs].to_stream,['a', false]), docs.sort_by{|x| x['a']}.reverse)
-    assert_equal(order(r[docs].to_stream.filter({'b' => 0}), :a),
+    assert_equal(order(r.expr(docs).to_stream, 'a'), docs.sort_by{|x| x['a']})
+    assert_equal(order(r.expr(docs).to_stream,['a', false]), docs.sort_by{|x| x['a']}.reverse)
+    assert_equal(order(r.expr(docs).to_stream.filter({'b' => 0}), :a),
                  docs.select{|x| x['b'] == 0}.sort_by{|x| x['a']})
   end
 
   def test_ops # +,-,%,*,/,<,>,<=,>=,eq,ne,any,all
-    assert_equal((r[5] + 3).run, 8)
-    assert_equal((r[5].add(3)).run, 8)
+    assert_equal((r.expr(5) + 3).run, 8)
+    assert_equal((r.expr(5).add(3)).run, 8)
     assert_equal(r.add(5,3).run, 8)
     assert_equal(r.add(2,3,3).run, 8)
 
-    assert_equal((r[5] - 3).run, 2)
-    assert_equal((r[5].sub(3)).run, 2)
-    assert_equal((r[5].subtract(3)).run, 2)
+    assert_equal((r.expr(5) - 3).run, 2)
+    assert_equal((r.expr(5).sub(3)).run, 2)
+    assert_equal((r.expr(5).subtract(3)).run, 2)
     assert_equal(r.sub(5,3).run, 2)
     assert_equal(r.subtract(5,3).run, 2)
 
-    assert_equal((r[5] % 3).run, 2)
-    assert_equal((r[5].mod(3)).run, 2)
-    assert_equal((r[5].modulo(3)).run, 2)
+    assert_equal((r.expr(5) % 3).run, 2)
+    assert_equal((r.expr(5).mod(3)).run, 2)
+    assert_equal((r.expr(5).modulo(3)).run, 2)
     assert_equal(r.mod(5,3).run, 2)
     assert_equal(r.modulo(5,3).run, 2)
 
-    assert_equal((r[5] * 3).run, 15)
-    assert_equal((r[5].mul(3)).run, 15)
-    assert_equal((r[5].multiply(3)).run, 15)
+    assert_equal((r.expr(5) * 3).run, 15)
+    assert_equal((r.expr(5).mul(3)).run, 15)
+    assert_equal((r.expr(5).multiply(3)).run, 15)
     assert_equal(r.mul(5,3).run, 15)
     assert_equal(r.multiply(5,3).run, 15)
     assert_equal(r.multiply(5,3,1).run, 15)
 
-    assert_equal((r[15] / 3).run, 5)
-    assert_equal((r[15].div(3)).run, 5)
-    assert_equal((r[15].divide(3)).run, 5)
+    assert_equal((r.expr(15) / 3).run, 5)
+    assert_equal((r.expr(15).div(3)).run, 5)
+    assert_equal((r.expr(15).divide(3)).run, 5)
     assert_equal(r.div(15,3).run, 5)
     assert_equal(r.divide(15,3).run, 5)
 
     assert_equal(r.lt(3,2).run,false)
     assert_equal(r.lt(3,3).run,false)
     assert_equal(r.lt(3,4).run,true)
-    assert_equal(r[3].lt(2).run,false)
-    assert_equal(r[3].lt(3).run,false)
-    assert_equal(r[3].lt(4).run,true)
-    assert_equal((r[3] < 2).run,false)
-    assert_equal((r[3] < 3).run,false)
-    assert_equal((r[3] < 4).run,true)
+    assert_equal(r.expr(3).lt(2).run,false)
+    assert_equal(r.expr(3).lt(3).run,false)
+    assert_equal(r.expr(3).lt(4).run,true)
+    assert_equal((r.expr(3) < 2).run,false)
+    assert_equal((r.expr(3) < 3).run,false)
+    assert_equal((r.expr(3) < 4).run,true)
 
     assert_equal(r.le(3,2).run,false)
     assert_equal(r.le(3,3).run,true)
     assert_equal(r.le(3,4).run,true)
-    assert_equal(r[3].le(2).run,false)
-    assert_equal(r[3].le(3).run,true)
-    assert_equal(r[3].le(4).run,true)
-    assert_equal((r[3] <= 2).run,false)
-    assert_equal((r[3] <= 3).run,true)
-    assert_equal((r[3] <= 4).run,true)
+    assert_equal(r.expr(3).le(2).run,false)
+    assert_equal(r.expr(3).le(3).run,true)
+    assert_equal(r.expr(3).le(4).run,true)
+    assert_equal((r.expr(3) <= 2).run,false)
+    assert_equal((r.expr(3) <= 3).run,true)
+    assert_equal((r.expr(3) <= 4).run,true)
 
     assert_equal(r.gt(3,2).run,true)
     assert_equal(r.gt(3,3).run,false)
     assert_equal(r.gt(3,4).run,false)
-    assert_equal(r[3].gt(2).run,true)
-    assert_equal(r[3].gt(3).run,false)
-    assert_equal(r[3].gt(4).run,false)
-    assert_equal((r[3] > 2).run,true)
-    assert_equal((r[3] > 3).run,false)
-    assert_equal((r[3] > 4).run,false)
+    assert_equal(r.expr(3).gt(2).run,true)
+    assert_equal(r.expr(3).gt(3).run,false)
+    assert_equal(r.expr(3).gt(4).run,false)
+    assert_equal((r.expr(3) > 2).run,true)
+    assert_equal((r.expr(3) > 3).run,false)
+    assert_equal((r.expr(3) > 4).run,false)
 
     assert_equal(r.ge(3,2).run,true)
     assert_equal(r.ge(3,3).run,true)
     assert_equal(r.ge(3,4).run,false)
-    assert_equal(r[3].ge(2).run,true)
-    assert_equal(r[3].ge(3).run,true)
-    assert_equal(r[3].ge(4).run,false)
-    assert_equal((r[3] >= 2).run,true)
-    assert_equal((r[3] >= 3).run,true)
-    assert_equal((r[3] >= 4).run,false)
+    assert_equal(r.expr(3).ge(2).run,true)
+    assert_equal(r.expr(3).ge(3).run,true)
+    assert_equal(r.expr(3).ge(4).run,false)
+    assert_equal((r.expr(3) >= 2).run,true)
+    assert_equal((r.expr(3) >= 3).run,true)
+    assert_equal((r.expr(3) >= 4).run,false)
 
     assert_equal(r.eq(3,2).run, false)
     assert_equal(r.eq(3,3).run, true)
@@ -310,15 +310,15 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.all(true, false, true).run, false)
     assert_equal(r.and(true, true, true).run, true)
     assert_equal(r.and(true, false, true).run, false)
-    assert_equal((r[true].and(true)).run, true)
-    assert_equal((r[true].and(false)).run, false)
+    assert_equal((r.expr(true).and(true)).run, true)
+    assert_equal((r.expr(true).and(false)).run, false)
 
     assert_equal(r.any(false, false, false).run, false)
     assert_equal(r.any(false, true, false).run, true)
     assert_equal(r.or(false, false, false).run, false)
     assert_equal(r.or(false, true, false).run, true)
-    assert_equal((r[false].or(false)).run, false)
-    assert_equal((r[true].or(false)).run, true)
+    assert_equal((r.expr(false).or(false)).run, false)
+    assert_equal((r.expr(true).or(false)).run, true)
   end
 
   def test_json # JSON
@@ -326,7 +326,7 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_let # LET, CALL, VAR, NUMBER, STRING
-    query = r.let([['a', r.add(1,2)], ['b', r.add(:$a,2)]], r.var('a') + :$b)
+    query = r.let([['a', r.add(1,2)], ['b', r.add(r[:$a],2)]], r.var('a') + r[:$b])
     assert_equal(query.run, 8)
   end
 
@@ -350,16 +350,16 @@ class ClientTest < Test::Unit::TestCase
 
   def test_getbykey # OBJECT, GETBYKEY
     query = r.expr({'obj' => rdb.get(0)})
-    query2 = r[{'obj' => rdb.get(0)}]
+    query2 = r.expr({'obj' => rdb.get(0)})
     assert_equal(query.run['obj'], $data[0])
     assert_equal(query2.run['obj'], $data[0])
   end
 
   def test_map # MAP, FILTER, GETATTR, IMPLICIT_GETATTR, STREAMTOARRAY
-    assert_equal(r[[{:id => 1}, {:id => 2}]].map{|row| row[:id]}.run.to_a, [1,2])
-    assert_raise(RuntimeError){r[1].map{}.run.to_a}
+    assert_equal(r.expr([{:id => 1}, {:id => 2}]).map{|row| row[:id]}.run.to_a, [1,2])
+    assert_raise(RuntimeError){r.expr(1).map{}.run.to_a}
     assert_equal(rdb.filter({'num' => 1}).run.to_a, [$data[1]])
-    assert_equal(id_sort(rdb.filter({'num' => :num}).run.to_a), $data)
+    assert_equal(id_sort(rdb.filter({'num' => r[:num]}).run.to_a), $data)
     query = rdb.orderby(:id).map { |outer_row|
       rdb.filter{|row| row[:id] < outer_row[:id]}.to_array
     }
@@ -369,26 +369,26 @@ class ClientTest < Test::Unit::TestCase
   def test_reduce # REDUCE, HASATTR, IMPLICIT_HASATTR
     # TODO: Error checking for reduce
     # TODO_SERV: Reduce still broken.
-    query = rdb.map{r.hasattr(:id)}.reduce(true){|a,b| r.all a,b}
+    query = rdb.map{r[:$_].hasattr(:id)}.reduce(true){|a,b| r.all a,b}
     #assert_equal(query.run, true)
 
-    assert_equal(r[[1,2,3]].reduce(0){|a,b| a+b}.run, 6)
-    assert_raise(RuntimeError){r[1].reduce(0){0}.run}
+    assert_equal(r.expr([1,2,3]).reduce(0){|a,b| a+b}.run, 6)
+    assert_raise(RuntimeError){r.expr(1).reduce(0){0}.run}
 
     # assert_equal(  rdb.map{|row| row['id']}.reduce(0){|a,b| a+b}.run,
     #              $data.map{|row| row['id']}.reduce(0){|a,b| a+b})
 
-    assert_equal(rdb.map{r.hasattr(:id)}.run.to_a, $data.map{true})
+    assert_equal(rdb.map{r[:$_].hasattr(:id)}.run.to_a, $data.map{true})
     assert_equal(rdb.map{|row| r.not row.hasattr('id')}.run.to_a, $data.map{false})
     assert_equal(rdb.map{|row| r.not row.has('id')}.run.to_a, $data.map{false})
     assert_equal(rdb.map{|row| r.not row.attr?('id')}.run.to_a, $data.map{false})
-    assert_equal(rdb.map{r.has(:id)}.run.to_a, $data.map{true})
-    assert_equal(rdb.map{r.attr?('id').not}.run.to_a, $data.map{false})
+    assert_equal(rdb.map{r[:$_].has(:id)}.run.to_a, $data.map{true})
+    assert_equal(rdb.map{r[:$_].attr?('id').not}.run.to_a, $data.map{false})
   end
 
   def test_filter # FILTER
-    assert_equal(r[[1,2,3]].filter{|x| x<3}.run.to_a, [1,2])
-    assert_raise(RuntimeError){r[1].filter{true}.run.to_a}
+    assert_equal(r.expr([1,2,3]).filter{|x| x<3}.run.to_a, [1,2])
+    assert_raise(RuntimeError){r.expr(1).filter{true}.run.to_a}
     query_5 = rdb.filter{r[:name].eq('5')}
     assert_equal(query_5.run.to_a, [$data[5]])
     query_2345 = rdb.filter{|row| r.and row[:id] >= 2,row[:id] <= 5}
@@ -409,21 +409,21 @@ class ClientTest < Test::Unit::TestCase
 
   def test_slice_streams # SLICE
     arr=[0,1,2,3,4,5]
-    assert_equal(r[arr][1].run, 1)
-    assert_equal(r[arr].to_stream[1].run, 1)
+    assert_equal(r.expr(arr)[1].run, 1)
+    assert_equal(r.expr(arr).to_stream[1].run, 1)
 
-    assert_equal(r[arr][2...6].run.to_a, r[arr][2..-1].run.to_a)
-    assert_equal(r[arr].to_stream[2...6].run.to_a, r[arr].to_stream[2..-1].run.to_a)
+    assert_equal(r.expr(arr)[2...6].run.to_a, r.expr(arr)[2..-1].run.to_a)
+    assert_equal(r.expr(arr).to_stream[2...6].run.to_a, r.expr(arr).to_stream[2..-1].run.to_a)
 
-    assert_equal(r[arr][2...5].run.to_a, r[arr][2..4].run.to_a)
-    assert_equal(r[arr].to_stream[2...5].run.to_a, r[arr].to_stream[2..4].run.to_a)
+    assert_equal(r.expr(arr)[2...5].run.to_a, r.expr(arr)[2..4].run.to_a)
+    assert_equal(r.expr(arr).to_stream[2...5].run.to_a, r.expr(arr).to_stream[2..4].run.to_a)
 
-    assert_raise(RuntimeError){r[arr][2...0].run.to_a}
-    assert_raise(RuntimeError){r[arr].to_stream[2...-1].run.to_a}
+    assert_raise(RuntimeError){r.expr(arr)[2...0].run.to_a}
+    assert_raise(RuntimeError){r.expr(arr).to_stream[2...-1].run.to_a}
   end
 
   def test_mapmerge
-    assert_equal(r[{:a => 1}].mapmerge({:b => 2}).run, {'a' => 1, 'b' => 2})
+    assert_equal(r.expr({:a => 1}).mapmerge({:b => 2}).run, {'a' => 1, 'b' => 2})
     assert_equal(r.mapmerge({:a => 1}, {:a => 2}).run, {'a' => 2})
   end
 
@@ -432,18 +432,18 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.orderby('id').run.to_a, $data)
     assert_equal(rdb.orderby(:id).run.to_a, $data)
     assert_equal(rdb.orderby([:id, false]).run.to_a, $data.reverse)
-    query = rdb.map{r[{:id => r[:id],:num => r[:id].mod(2)}]}.orderby(:num,[:id, false])
+    query = rdb.map{r.expr({:id => r[:id],:num => r[:id].mod(2)})}.orderby(:num,[:id, false])
     want = $data.map{|o| o['id']}.sort_by{|n| (n%2)*$data.length - n}
     assert_equal(query.run.to_a.map{|o| o['id']}, want)
   end
 
   def test_concatmap # CONCATMAP, DISTINCT
-    assert_equal(r[[1,2,3]].concatmap{r[[1,2]].to_stream}.to_stream.run.to_a,
+    assert_equal(r.expr([1,2,3]).concatmap{r.expr([1,2]).to_stream}.to_stream.run.to_a,
                  [1,2,1,2,1,2])
-    assert_equal(r[[[1],[2]]].concatmap{|x| x}.run.to_a, [1,2])
-    assert_raise(RuntimeError){r[[[1],2]].concatmap{|x| x}.run.to_a}
-    assert_raise(RuntimeError){r[1].concatmap{|x| x}.run.to_a}
-    assert_equal(r[[[1],[2]]].concatmap{|x| x}.run.to_a, [1,2])
+    assert_equal(r.expr([[1],[2]]).concatmap{|x| x}.run.to_a, [1,2])
+    assert_raise(RuntimeError){r.expr([[1],2]).concatmap{|x| x}.run.to_a}
+    assert_raise(RuntimeError){r.expr(1).concatmap{|x| x}.run.to_a}
+    assert_equal(r.expr([[1],[2]]).concatmap{|x| x}.run.to_a, [1,2])
     query = rdb.concatmap{|row| rdb.map{r[:id] * row[:id]}}.distinct
     nums = $data.map{|o| o['id']}
     want = nums.map{|n| nums.map{|m| n*m}}.flatten(1).uniq
@@ -451,7 +451,7 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_range # RANGE
-    assert_raise(RuntimeError){rdb.between(1, r[[3]]).run.to_a}
+    assert_raise(RuntimeError){rdb.between(1, r.expr([3])).run.to_a}
     assert_equal(id_sort(rdb.between(1,3).run.to_a), $data[1..3])
     assert_equal(id_sort(rdb.between(2,nil).run.to_a), $data[2..-1])
     assert_equal(id_sort(rdb.between(1, 3).run.to_a), $data[1..3])
@@ -462,25 +462,25 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb.to_array.between(1, 3).run.to_a), $data[1..3])
     assert_equal(id_sort(rdb.to_array.between(nil, 4).run.to_a),$data[0..4])
 
-    assert_equal(id_sort(r[$data].between(1,3).run.to_a), $data[1..3])
-    assert_equal(id_sort(r[$data].between(2,nil).run.to_a), $data[2..-1])
-    assert_equal(id_sort(r[$data].between(1, 3).run.to_a), $data[1..3])
-    assert_equal(id_sort(r[$data].between(nil, 4).run.to_a),$data[0..4])
+    assert_equal(id_sort(r.expr($data).between(1,3).run.to_a), $data[1..3])
+    assert_equal(id_sort(r.expr($data).between(2,nil).run.to_a), $data[2..-1])
+    assert_equal(id_sort(r.expr($data).between(1, 3).run.to_a), $data[1..3])
+    assert_equal(id_sort(r.expr($data).between(nil, 4).run.to_a),$data[0..4])
 
-    assert_raise(RuntimeError){r[[1]].between(1, 3).run.to_a}
-    assert_raise(RuntimeError){r[[1,2]].between(1, 3).run.to_a}
+    assert_raise(RuntimeError){r.expr([1]).between(1, 3).run.to_a}
+    assert_raise(RuntimeError){r.expr([1,2]).between(1, 3).run.to_a}
   end
 
   def test_groupedmapreduce # GROUPEDMAPREDUCE
     #TODO: Add tests once issue #922 is resolved.
     assert_equal(rdb.orderby(:id).run.to_a, $data)
     assert_equal(rdb.to_array.orderby(:id).run.to_a, $data)
-    assert_equal(r[[{:id => 1}, {:id => 0}]].orderby(:id).run.to_a.map{|x| x['id']}, [0, 1])
-    assert_raise(RuntimeError){r[1].orderby(:id).run.to_a}
-    assert_raise(RuntimeError){r[[1]].nth(0).orderby(:id).run.to_a}
-    assert_raise(RuntimeError){r[[1]].orderby(:id).run.to_a}
-    assert_raise(RuntimeError){r[[{:num => 1}]].orderby(:id).run.to_a}
-    assert_equal(r[[]].orderby(:id).run.to_a, [])
+    assert_equal(r.expr([{:id => 1}, {:id => 0}]).orderby(:id).run.to_a.map{|x| x['id']}, [0, 1])
+    assert_raise(RuntimeError){r.expr(1).orderby(:id).run.to_a}
+    assert_raise(RuntimeError){r.expr([1]).nth(0).orderby(:id).run.to_a}
+    assert_raise(RuntimeError){r.expr([1]).orderby(:id).run.to_a}
+    assert_raise(RuntimeError){r.expr([{:num => 1}]).orderby(:id).run.to_a}
+    assert_equal(r.expr([]).orderby(:id).run.to_a, [])
 
     gmr = rdb.groupedmapreduce(lambda {|row| row[:id] % 4}, lambda {|row| row[:id]},
                                0, lambda {|a,b| a+b});
@@ -489,16 +489,16 @@ class ClientTest < Test::Unit::TestCase
     gmr3 = rdb.to_array.groupedmapreduce(lambda {|row| row[:id] % 4},
                                          lambda {|row| row[:id]},
                                          0, lambda {|a,b| a+b});
-    gmr4 = r[$data].groupedmapreduce(lambda {|row| row[:id] % 4},
+    gmr4 = r.expr($data).groupedmapreduce(lambda {|row| row[:id] % 4},
                                      lambda {|row| row[:id]},
                                      0, lambda {|a,b| a+b});
     assert_equal(gmr.run.to_a, gmr2.run.to_a)
     assert_equal(gmr.run.to_a, gmr3.run.to_a)
     assert_equal(gmr.run.to_a, gmr4.run.to_a)
-    gmr5 = r[[$data]].groupedmapreduce(lambda {|row| row[:id] % 4},
+    gmr5 = r.expr([$data]).groupedmapreduce(lambda {|row| row[:id] % 4},
                                        lambda {|row| row[:id]},
                                        0, lambda {|a,b| a+b});
-    gmr6 = r[1].groupedmapreduce(lambda {|row| row[:id] % 4},
+    gmr6 = r.expr(1).groupedmapreduce(lambda {|row| row[:id] % 4},
                                  lambda {|row| row[:id]},
                                  0, lambda {|a,b| a+b});
     assert_raise(RuntimeError){gmr5.run.to_a}
@@ -545,8 +545,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_pickattrs # PICKATTRS, # UNION, # LENGTH
-    q1=r.union(rdb.map{r.pickattrs(:id,:name)}, rdb.map{|row| row.attrs(:id,:num)})
-    q2=r.union(rdb.map{r.attrs(:id,:name)}, rdb.map{|row| row.pick(:id,:num)})
+    q1=r.union(rdb.map{r[:$_].pickattrs(:id,:name)}, rdb.map{|row| row.attrs(:id,:num)})
+    q2=r.union(rdb.map{r[:$_].attrs(:id,:name)}, rdb.map{|row| row.pick(:id,:num)})
     q1v = q1.run.to_a.sort_by{|x| x['name'].to_s + ',' + x['id'].to_s}
     assert_equal(q1v, q2.run.to_a.sort_by{|x| x['name'].to_s + ',' + x['id'].to_s})
     len = $data.length
@@ -592,7 +592,7 @@ class ClientTest < Test::Unit::TestCase
     rdb.delete.run
     docs = (0...4).map{|n| {"id" => 100 + n, "a" => n, "b" => n % 3}}
     assert_equal(rdb.upsert(docs).run, {'inserted' => docs.length, 'errors' => 0})
-    assert_equal(rdb.upsert(r[docs].to_stream).run, {'inserted' => docs.length, 'errors' => 0})
+    assert_equal(rdb.upsert(r.expr(docs).to_stream).run, {'inserted' => docs.length, 'errors' => 0})
     docs.each{|doc| assert_equal(rdb.get(doc['id']).run, doc)}
 
     rdb.delete.run
@@ -616,21 +616,21 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb.filter{r[:a].eq(r[:b])}.run.to_a),
                  docs.select{|x| x['a'] == x['b']})
 
-    assert_equal(-r[5].run, r[-5].run)
-    assert_equal(+r[5].run, r[+5].run)
+    assert_equal(-r.expr(5).run, r.expr(-5).run)
+    assert_equal(+r.expr(5).run, r.expr(+5).run)
 
-    assert_equal((r[3]+4).run, 7)
-    assert_equal((r[3]-4).run, -1)
-    assert_equal((r[3]*4).run, 12)
-    assert_equal((r[3]/4).run, 3.0/4)
-    assert_equal((r[3]%2).run, 3%2)
-    assert_raise(TypeError){4+r[3]}
-    assert_raise(TypeError){4-r[3]}
-    assert_raise(TypeError){4*r[3]}
-    assert_raise(TypeError){4/r[3]}
-    assert_raise(TypeError){4%r[3]}
+    assert_equal((r.expr(3)+4).run, 7)
+    assert_equal((r.expr(3)-4).run, -1)
+    assert_equal((r.expr(3)*4).run, 12)
+    assert_equal((r.expr(3)/4).run, 3.0/4)
+    assert_equal((r.expr(3)%2).run, 3%2)
+    assert_raise(TypeError){4+r.expr(3)}
+    assert_raise(TypeError){4-r.expr(3)}
+    assert_raise(TypeError){4*r.expr(3)}
+    assert_raise(TypeError){4/r.expr(3)}
+    assert_raise(TypeError){4%r.expr(3)}
 
-    assert_equal(((r[3]+4)*-r[6]*(r[-5]+3)).run, 84)
+    assert_equal(((r.expr(3)+4)*-r.expr(6)*(r.expr(-5)+3)).run, 84)
 
     rdb.delete.run
     docs = (0...10).map{|n| {"id" => 100 + n, "a" => n, "b" => n % 3}}
@@ -660,25 +660,25 @@ class ClientTest < Test::Unit::TestCase
   def test_getitem #from python tests
     arr = (0...10).map{|x| x}
     [0..-1, 2..-1, 0...2, -1..-1, 0...-1, 3...5, 3, -1].each {|rng|
-      assert_equal(r[arr][rng].run, arr[rng])}
+      assert_equal(r.expr(arr)[rng].run, arr[rng])}
     obj = {:a => 3, :b => 4}
     [:a, :b].each {|attr|
-      assert_equal(r[obj][attr].run, obj[attr])}
-    assert_raise(RuntimeError){r[obj][:c].run}
+      assert_equal(r.expr(obj)[attr].run, obj[attr])}
+    assert_raise(RuntimeError){r.expr(obj)[:c].run}
   end
 
   def test_stream_getitem #from python tests
     arr = (0...10).map{|x| x}
     [0..-1, 3..-1, 0...3, 4...6].each {|rng|
-      assert_equal(r[arr].to_stream[rng].run.to_a, arr[rng])}
+      assert_equal(r.expr(arr).to_stream[rng].run.to_a, arr[rng])}
     [3].each {|rng|
-      assert_equal(r[arr].to_stream[rng].run, arr[rng])}
-    assert_raise(ArgumentError){r[arr].to_stream[4...'a'].run.to_a}
+      assert_equal(r.expr(arr).to_stream[rng].run, arr[rng])}
+    assert_raise(ArgumentError){r.expr(arr).to_stream[4...'a'].run.to_a}
   end
 
   def test_array_foreach #FOREACH
     assert_equal(id_sort(rdb.run.to_a), $data)
-    assert_equal(r[[2,3,4]].foreach{|x|
+    assert_equal(r.expr([2,3,4]).foreach{|x|
                    [rdb.get(x).update({:num => 0}),
                     rdb.get(x*2).update({:num => 0})]}.run,
                  {"skipped"=>0, "updated"=>6, "errors"=>0})
@@ -952,7 +952,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb2.run.to_a, [])
 
     # UPSERTSTREAM
-    assert_equal(rdb2.upsert(r[$data].to_stream).run['inserted'], len)
+    assert_equal(rdb2.upsert(r.expr($data).to_stream).run['inserted'], len)
     rdb2.upsert($data).run
     assert_equal(id_sort(rdb2.run.to_a), $data)
 

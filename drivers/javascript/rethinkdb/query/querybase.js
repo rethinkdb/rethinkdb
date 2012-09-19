@@ -22,7 +22,7 @@ goog.provide('rethinkdb');
  * @ignore
  */
 function wrapIf_(val) {
-    if (val instanceof rethinkdb.Expression) {
+    if (val instanceof rethinkdb.Query) {
         return val;
     } else {
         return rethinkdb.expr(val);
@@ -30,25 +30,18 @@ function wrapIf_(val) {
 }
 
 /**
- * Internal utility for wrapping API function arguments that
+ * Internal utility to wrap API function arguments that
  * are expected to be function expressions.
  * @param {*} fun
-        The function to wrap
- * @returns rethinkdb.FunctionExpression
+ * @returns {rethinkdb.FunctionExpression}
  * @ignore
  */
 function functionWrap_(fun) {
     if (fun instanceof rethinkdb.FunctionExpression) {
-        // No wrap needed
-    } else if (fun instanceof rethinkdb.Expression) {
-        fun = rethinkdb.fn('', fun);
-    } else if(typeof fun === 'function') {
-        fun = rethinkdb.fn(fun);
+        return fun;
     } else {
-       throw TypeError("Argument expected to be a function expression");
+        return rethinkdb.fn(fun);
     }
-
-    return fun;
 }
 
 /**

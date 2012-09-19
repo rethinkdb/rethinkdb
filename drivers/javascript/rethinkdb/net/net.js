@@ -1,7 +1,3 @@
-/**
- * @name rethinkdb.net
- * @namespace Namespace for networking releated classes and functions
- */
 goog.provide('rethinkdb.net');
 
 goog.require('rethinkdb.Connection');

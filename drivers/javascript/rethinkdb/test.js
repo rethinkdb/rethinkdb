@@ -275,12 +275,22 @@ function testDropTable() {
 }
 
 function testUpdate1() {
-    tab.update(function(a) {
+    tab.filter(function(row) {
+        return row('id').ge(5);
+    }).update(function(a) {
         return a.extend({updated:true});
     }).run(objeq({
         errors:0,
         skipped:0,
-        updated:10,
+        updated:5,
+    }));
+
+    tab.filter(function(row) {
+        return row('id').lt(5);
+    }).update({updated:true}).run(objeq({
+        errors:0,
+        skipped:0,
+        updated:5,
     }));
 }
 
