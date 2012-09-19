@@ -5,18 +5,13 @@ module 'NamespaceView', ->
 
     class @Sharding extends Backbone.View
         template: Handlebars.compile $('#shards_container-template').html()
-        alert_error_template: Handlebars.compile $('#change_shards-alert_error-template').html()
-        change_shards_success_alert_template: Handlebars.compile $('#change_shards-success-alert-template').html()
         change_shards_fail_alert_template: Handlebars.compile $('#change_shards-fail-alert-template').html()
         data_repartition_template: Handlebars.compile $('#data_repartition-template').html()
         rebalance_shards_success_alert_template: Handlebars.compile $('#rebalance_shards-success-alert-template').html()
         className: 'shards_container'
         events:
-            'click #show-change_shards-link': 'show_change_shards'
-            'click .close-change_shards': 'hide_change_shards'
-            'click .change_shards-btn': 'change_shards'
+            'click #change_shards-link': 'show_change_shards'
             'click .rebalance_shards-link': 'rebalance_shards'
-            'keypress #new_num_shards': 'check_keypress_is_enter'
 
         initialize: =>
             @shards_length = @model.get('shards').length
@@ -32,116 +27,15 @@ module 'NamespaceView', ->
             @model.on 'change:key_distr', @render_data_repartition
             @model.on 'change:shards', @render_data_repartition
             @data_repartition = {}
- 
-        check_keypress_is_enter: (event) =>
-            if event.which is 13
-                event.preventDefault()
-                @change_shards()
+
+            @change_shards_modal = new NamespaceView.ChangeShardsModal
+                model: @model
+                parent: @
            
 
-        show_change_shards: =>
-            @.$('#show-change_shards-link').css 'display', 'none'
-            @.$('.change_shards_container').css 'display', 'block'
-            @.$('#new_num_shards').focus()
-
-        hide_change_shards: (event) =>
+        show_change_shards: (event) =>
             event.preventDefault()
-            @.$('#show-change_shards-link').css 'display', 'block'
-            @.$('.change_shards_container').css 'display', 'none'
-
-        display_error: (error) =>
-            @.$('.user-alert-space').css 'display', 'none'
-            @.$('.user-alert-space').html @alert_error_template
-                error: error
-            @.$('.user-alert-space').slideDown 'fast'
-            @.$('.change_shards-btn').button('reset')
-
-        change_shards: =>
-            new_num_shards = @.$('#new_num_shards').val()
-            @.$('.change_shards-btn').button('loading')
-
-            if DataUtils.is_integer(new_num_shards) is false
-                error_msg = "The number of shards must be an integer."
-                @display_error error_msg
-                return
-            
-            if new_num_shards < 1 or new_num_shards > MAX_SHARD_COUNT
-                error_msg = "The number of shards must be beteen 1 and " + MAX_SHARD_COUNT + "."
-                @display_error error_msg
-                return
-
-            data = @model.get('key_distr')
-            distr_keys = @model.get('key_distr_sorted')
-            total_rows = _.reduce distr_keys, ((agg, key) => return agg + data[key]), 0
-            rows_per_shard = total_rows / new_num_shards
-
-            if not data? or not distr_keys?
-                error_msg = "The distribution of keys has not been loaded yet. Please try again."
-                @display_error error_msg
-                return
-
-            if distr_keys.length < 2
-                error_msg = "There is not enough data in the database to make balanced shards."
-                @display_error error_msg
-                return
-
-            current_shard_count = 0
-            split_points = [""]
-            no_more_splits = false
-            for key in distr_keys
-                if split_points.length >= new_num_shards
-                    no_more_splits = true
-                current_shard_count += data[key]
-                if current_shard_count >= rows_per_shard and not no_more_splits
-                    split_points.push(key)
-                    current_shard_count = 0
-            split_points.push(null)
-
-            shard_set = []
-            for splitIndex in [0..(split_points.length - 2)]
-                shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
-
-            if shard_set.length < new_num_shards
-                error_msg = "There is only enough data to make " + shard_set.length + " balanced shards."
-                @display_error error_msg
-                return
-
-            empty_master_pin = {}
-            empty_replica_pins = {}
-            for shard in shard_set
-                empty_master_pin[shard] = null
-                empty_replica_pins[shard] = []
-
-            data =
-                shards: shard_set
-                primary_pinnings: empty_master_pin
-                secondary_pinnings: empty_replica_pins
-
-            @data_sent = data
-
-            $.ajax
-                 processData: false
-                 url: "/ajax/semilattice/#{@model.attributes.protocol}_namespaces/#{@model.get('id')}"
-                 type: 'POST'
-                 contentType: 'application/json'
-                 data: JSON.stringify(data)
-                 success: @on_success
-                 error: @on_error
-
-        on_success: =>
-            @.$('.user-alert-space').css 'display', 'none'
-            @.$('.user-alert-space').html @change_shards_success_alert_template({})
-            @.$('.user-alert-space').slideDown 'fast'
-            @.$('.change_shards-btn').button('reset')
-
-            #Update data // assuming no bug on the server...
-            namespaces.get(@model.get('id')).set @data_sent
-
-        on_error: =>
-            @.$('.user-alert-space').css 'display', 'none'
-            @.$('.user-alert-space').html @change_shards_fail_alert_template({})
-            @.$('.user-alert-space').slideDown 'fast'
-            @.$('.user-alert-space').slideDown 'fast'
+            @change_shards_modal.render()
 
         check_has_unsatisfiable_goals: =>
             if @should_be_hidden
@@ -420,3 +314,114 @@ module 'NamespaceView', ->
             @model.off 'change:shards', @check_num_shards_changed
             @model.off 'change:key_distr', @render_data_repartition
             @model.off 'change:shards', @render_data_repartition
+
+
+
+
+    # Modify replica counts and ack counts in each datacenter
+    class @ChangeShardsModal extends UIComponents.AbstractModal
+        template: Handlebars.compile $('#change_shards-modal-template').html()
+        change_shards_success_alert_template: Handlebars.compile $('#change_shards-success-alert-template').html()
+        class: 'modify-replicas'
+
+        initialize: (data) =>
+            @model = data.model
+            @parent = data.parent
+            super
+
+
+        render: =>
+            log_render '(rendering) modify replicas dialog (outer)'
+            super
+                modal_title: "Change the number of shards"
+                btn_primary_text: "Shard"
+            $('#new_num_shards').focus()
+
+
+        display_error: (error) =>
+            @.$('.alert-error').css 'display', 'none'
+            @.$('.alert-error').html error
+            @.$('.alert-error').slideDown 'fast'
+            @reset_buttons()
+
+        on_submit: =>
+            super
+            new_num_shards = @.$('#new_num_shards').val()
+            @.$('.change_shards-btn').button('loading')
+
+            if DataUtils.is_integer(new_num_shards) is false
+                error_msg = "The number of shards must be an integer."
+                @display_error error_msg
+                return
+            
+            if new_num_shards < 1 or new_num_shards > MAX_SHARD_COUNT
+                error_msg = "The number of shards must be beteen 1 and " + MAX_SHARD_COUNT + "."
+                @display_error error_msg
+                return
+
+            data = @model.get('key_distr')
+            distr_keys = @model.get('key_distr_sorted')
+            total_rows = _.reduce distr_keys, ((agg, key) => return agg + data[key]), 0
+            rows_per_shard = total_rows / new_num_shards
+
+            if not data? or not distr_keys?
+                error_msg = "The distribution of keys has not been loaded yet. Please try again."
+                @display_error error_msg
+                return
+
+            if distr_keys.length < 2
+                error_msg = "There is not enough data in the database to make balanced shards."
+                @display_error error_msg
+                return
+
+            current_shard_count = 0
+            split_points = [""]
+            no_more_splits = false
+            for key in distr_keys
+                if split_points.length >= new_num_shards
+                    no_more_splits = true
+                current_shard_count += data[key]
+                if current_shard_count >= rows_per_shard and not no_more_splits
+                    split_points.push(key)
+                    current_shard_count = 0
+            split_points.push(null)
+
+            shard_set = []
+            for splitIndex in [0..(split_points.length - 2)]
+                shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
+
+            if shard_set.length < new_num_shards
+                error_msg = "There is only enough data to make " + shard_set.length + " balanced shards."
+                @display_error error_msg
+                return
+
+            empty_master_pin = {}
+            empty_replica_pins = {}
+            for shard in shard_set
+                empty_master_pin[shard] = null
+                empty_replica_pins[shard] = []
+
+            data =
+                shards: shard_set
+                primary_pinnings: empty_master_pin
+                secondary_pinnings: empty_replica_pins
+
+            @data_sent = data
+
+            $.ajax
+                 processData: false
+                 url: "/ajax/semilattice/#{@model.attributes.protocol}_namespaces/#{@model.get('id')}"
+                 type: 'POST'
+                 contentType: 'application/json'
+                 data: JSON.stringify(data)
+                 success: @on_success
+                 error: @on_error
+
+        on_success: =>
+            @parent.$('.user-alert-space').css 'display', 'none'
+            @parent.$('.user-alert-space').html @change_shards_success_alert_template({})
+            @parent.$('.user-alert-space').slideDown 'fast'
+            super
+
+            #Update data // assuming no bug on the server...
+            namespaces.get(@model.get('id')).set @data_sent
