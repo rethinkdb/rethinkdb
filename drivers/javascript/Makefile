@@ -24,7 +24,7 @@ lib: query_language.pb.js
 	rm -rf rethinkdb.js
 	rm -rf rethinkdb.map.js
 	bash -c 'cat <(echo "(function(){") \
-		<($(CLOSURE_BUILDER) --root=$(CLOSURE_LIB) --root=rethinkdb/ --namespace=rethinkdb \
+		<($(CLOSURE_BUILDER) --root=$(CLOSURE_LIB) --root=rethinkdb/ --namespace=topLevel \
 		--compiler_jar=$(CLOSURE_COMPILER) \
 		--compiler_flags="--compilation_level=ADVANCED_OPTIMIZATIONS" \
 		--compiler_flags="--accept_const_keyword" \
@@ -42,6 +42,8 @@ query_language.pb.js: $(PROTO_FILE)
 
 docs: rethinkdb.js
 	jsdoc --template=docs/_themes/jsdoc-for-sphinx -x=js,jsx --directory=./docs/jsdoc -E=query_language.pb.js -r=3 rethinkdb/
+	make -C docs/ html
+	cp -r docs/_build/* /var/www/jsdocs/
 
 clean:
 	rm -rf rethinkdb.js

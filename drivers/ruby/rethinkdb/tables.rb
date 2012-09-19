@@ -34,13 +34,6 @@ module RethinkDB
     def list_tables
       Meta_Query.new [:list_tables, @db_name]
     end
-
-    # The following are equivalent:
-    #   r.db('a').table('b')
-    #   r.db('a').b
-    def method_missing(m, *a, &b)
-      self.table(m.to_s, *a, &b)
-    end
   end
 
   # A table in a particular RethinkDB database.  If you call a

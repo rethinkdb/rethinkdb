@@ -32,18 +32,21 @@ cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
     return obj;
 }
 
-std::string cJSON_Print_lexicographic(const cJSON *json) {
+std::string cJSON_print_lexicographic(const cJSON *json) {
     std::string acc;
     rassert(json->type == cJSON_Number || json->type == cJSON_String);
     if (json->type == cJSON_Number) {
         acc += "N";
 
-        union {double d; int64_t u;} packed;
+        union {
+            double d;
+            int64_t u;
+        } packed;
         rassert(sizeof(packed.d) == sizeof(packed.u));
-        rassert((void *)&packed.d == (void *)&packed.u);
         packed.d = json->valuedouble;
-        acc += strprintf("%.*lx", (int)(sizeof(double)*2), packed.u);
-        return acc;
+        // TODO: do some mangling so that these sort correctly.
+        acc += strprintf("%.*lx", static_cast<int>(sizeof(double)*2), packed.u);
+        acc += strprintf("#%.20g", json->valuedouble);
     } else {
         rassert(json->type == cJSON_String);
         acc += "S";
@@ -62,17 +65,9 @@ scoped_cJSON_t::~scoped_cJSON_t() {
     }
 }
 
-std::string cJSON_Print_std(cJSON *json) {
-    char *s = cJSON_Print(json);
-    rassert(s);
-    std::string res(s);
-    free(s);
-    return res;
-}
-
 /* Render a cJSON entity to text for transfer/storage. */
 std::string scoped_cJSON_t::Print() const THROWS_NOTHING {
-    return cJSON_Print_std(val);
+    return cJSON_print_std_string(val);
 }
 /* Render a cJSON entity to text for transfer/storage without any formatting. */
 std::string scoped_cJSON_t::PrintUnformatted() const THROWS_NOTHING {
@@ -85,7 +80,7 @@ std::string scoped_cJSON_t::PrintUnformatted() const THROWS_NOTHING {
 }
 
 std::string scoped_cJSON_t::PrintLexicographic() const THROWS_NOTHING {
-    return cJSON_Print_lexicographic(val);
+    return cJSON_print_lexicographic(val);
 }
 
 cJSON *scoped_cJSON_t::get() const {
@@ -103,22 +98,6 @@ void scoped_cJSON_t::reset(cJSON *v) {
         cJSON_Delete(val);
     }
     val = v;
-}
-
-copyable_cJSON_t::copyable_cJSON_t(cJSON *_val)
-    : val(_val)
-{ }
-
-copyable_cJSON_t::copyable_cJSON_t(const copyable_cJSON_t &other)
-    : val(cJSON_DeepCopy(other.val))
-{ }
-
-copyable_cJSON_t::~copyable_cJSON_t() {
-    cJSON_Delete(val);
-}
-
-cJSON *copyable_cJSON_t::get() const {
-    return val;
 }
 
 json_iterator_t::json_iterator_t(cJSON *target) {

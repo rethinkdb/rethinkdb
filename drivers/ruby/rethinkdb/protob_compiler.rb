@@ -40,14 +40,14 @@ module RethinkDB
       #   * Empty arguments
       return args.map {|arg| comp(message_class, arg)} if repeating
       args = args[0] if args.class == Array and args[0].class == Hash
-      raise TypeError,"Cannot construct #{message_class} from #{args}." if args == []
+      raise TypeError,"Can't build #{message_class} from #{args.inspect}." if args == []
 
       # Handle terminal parts of the protobuf, where we have to actually pack values.
       if message_class.kind_of? Symbol
         # It's easier for the user if we allow both atoms and 1-element lists
         args = [args] if args.class != Array
         if args.length != 1
-        then raise TypeError,"Cannot construct #{message_class} from #{args}." end
+        then raise TypeError,"Can't build #{message_class} from #{args.inspect}." end
         # Coercing symbols into strings makes our attribute notation more consistent
         args[0] = args[0].to_s if args[0].class == Symbol
         return args[0]

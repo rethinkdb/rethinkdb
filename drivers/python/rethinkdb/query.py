@@ -593,26 +593,25 @@ class JSONExpression(ReadQuery):
         """
         return JSONExpression(internal.Distinct(self))
 
-    def pluck(self, attr_or_attrs):
-        """For each element of an array, picks out the specified attribute or
-        attributes from the object and returns only those. If there is a single
-        attribute specified, pick out that attribute on its own for each
-        element; if there is an array of attributes, pick them all out and put
-        them together in an object for each element.
+    def pluck(self, *attrs):
+        """For each element of an array, picks out the specified
+        attributes from the object and returns only those.
 
         This is like :meth:`StreamExpression.pluck()`, but with arrays instead
         of streams.
 
         If the input is not an array, fails when the query is run.
 
-        :param attr_or_attrs: The attribute or attributes to pluck out
-        :type attr_or_attrs: string or list of strings
+        :param attrs: The attributes to pluck out
+        :type attrs: strings
         :returns: :class:`JSONExpression`
+        
+        >>> expr([{ 'a': 1, 'b': 1, 'c': 1},
+                  { 'a': 2, 'b': 2, 'c': 2}]).pluck('a', 'b').run()
+        [{ 'a': 1, 'b': 1 }, { 'a': 2, 'b': 2 }]
         """
-        if isinstance(attr_or_attrs, str):
-            return self.map(fn("r", R("$r")[attr_or_attrs]))
-        else:
-            return self.map(fn("r", {a: R("$r")[a] for a in attr_or_attrs}))
+        # TODO: reimplement in terms of pickattr when that's done
+        return self.map(fn("r", {a: R("$r")[a] for a in attrs}))
 
     def length(self):
         """Returns the length of an array.
@@ -891,21 +890,21 @@ class StreamExpression(ReadQuery):
         """
         return StreamExpression(internal.Distinct(self))
 
-    def pluck(self, attr_or_attrs):
-        """For each element of the stream, picks out the specified attribute or
-        attributes from the object and returns only those. If there is a single
-        attribute specified, pick out that attribute on its own for each
-        element; if there is an array of attributes, pick them all out and put
-        them together in an object for each element.
+    def pluck(self, *attrs):
+        """For each row of the stream, picks out the specified
+        attributes from the object and returns only those.
 
-        :param attr_or_attrs: The attribute or attributes to pluck out
-        :type attr_or_attrs: string or list of strings
+        :param attrs: The attributes to pluck out
+        :type attrs: strings
         :returns: :class:`JSONExpression`
+        
+        >>> table('foo').insert([{ 'a': 1, 'b': 1, 'c': 1},
+                                 { 'a': 2, 'b': 2, 'c': 2}]).run()
+        >>> table('foo').pluck('a', 'b').run()
+        <BatchedIterator [{ 'a': 1, 'b': 1 }, { 'a': 2, 'b': 2 }]>
         """
-        if isinstance(attr_or_attrs, str):
-            return self.map(fn("r", R("$r")[attr_or_attrs]))
-        else:
-            return self.map(fn("r", [R("$r")[a] for a in attr_or_attrs]))
+        # TODO: reimplement in terms of pickattr when that's done
+        return self.map(fn("r", {a: R("$r")[a] for a in attrs}))
 
     def length(self):
         """Returns the length of the stream.

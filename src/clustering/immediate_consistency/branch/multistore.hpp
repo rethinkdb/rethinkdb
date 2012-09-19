@@ -65,43 +65,6 @@ private:
     struct switch_read_token_t;
     typename protocol_t::region_t get_a_region(int i) const;
 
-    // Used by send_multistore_backfill.
-    void single_shard_backfill(int i,
-                               multistore_send_backfill_should_backfill_t<protocol_t> *helper,
-                               const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                               chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
-                               traversal_progress_combiner_t *progress,
-                               const scoped_array_t<switch_read_token_t> *internal_tokens,
-                               signal_t *interruptor) THROWS_NOTHING;
-
-    void single_shard_receive_backfill(int i, const typename protocol_t::backfill_chunk_t &chunk,
-                                       const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
-                                       signal_t *interruptor) THROWS_NOTHING;
-
-    void single_shard_read(DEBUG_ONLY(const metainfo_checker_t<protocol_t> &metainfo_checker,)
-                           const typename protocol_t::read_t *read,
-                           order_token_t order_token,
-                           const typename multistore_ptr_t<protocol_t>::switch_read_token_t *read_info,
-                           typename protocol_t::read_response_t *response,
-                           size_t *reads_left,
-                           cond_t *done,
-                           signal_t *interruptor) THROWS_NOTHING;
-
-    void single_shard_write(int i,
-                            const new_and_metainfo_checker_t<protocol_t> &metainfo,
-                            const typename protocol_t::write_t &write,
-                            transition_timestamp_t timestamp,
-                            order_token_t order_token,
-                            const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
-                            std::vector<typename protocol_t::write_response_t> *responses,
-                            signal_t *interruptor) THROWS_NOTHING;
-
-    void single_shard_reset_data(int i,
-                                 const typename protocol_t::region_t &subregion,
-                                 const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                                 const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
-                                 signal_t *interruptor) THROWS_NOTHING;
-
     void do_get_a_metainfo(int i,
                            order_token_t order_token,
                            const scoped_array_t<switch_read_token_t> *internal_tokens,

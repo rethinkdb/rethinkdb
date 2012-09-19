@@ -214,39 +214,24 @@ class Connection():
     The connection may be used with Python's `with` statement for
     exception safety.
     """
-    def __init__(self, host_or_list=None, port=None, db_name=None):
+    def __init__(self, host=None, port=None, db_name=None):
         """Connect to a RethinkDB cluster. The connection may be
         created by specifying the host (in which case the default port
-        will be used), host and port, no arguments (in which case the
-        default port on localhost will be used), or a list of values
-        where each value contains the host string or a tuple of (host,
-        port) pairs.
-
-        Once the connection object reaches a single node, it retreives
-        the addresses of other nodes and connects to them
-        automatically. Queries are then routed to the most appropriate
-        node to minimize network hops on the server.
-
-        If all of the nodes are inaccessible, or if all of the nodes
-        terminate their network connections, the connection object
-        raises an error. If some of the nodes are inaccessible, or if
-        some of the nodes terminate their network connections, the
-        connection object does not attempt to connect to them again.
+        will be used), host and port, or no arguments (in which case the
+        default port on localhost will be used).
 
         Use :func:`rethinkdb.connect` - as shorthand for
-        this method.
+        this constructor.
 
         Creating a connection sets :data:`last_connection` to
-        itself. This is used by :func:`rethinkdb.query.Expression.run`
-        as a default connection if no connection object is passed.
+        the this new connection. This is used by
+        :func:`rethinkdb.query.Expression.run` as a default
+        connection if no connection object is passed.
 
-        :param host_or_list: A hostname, or a list of hostnames or
-          (host, port) tuples.
-        :type host_or_list: str or a list of values where each value
-          may be an str, or an (str, int) tuple.
+        :param host: A hostname or None to use the default port
+        :type host: str or None
         :param port: The port to connect to. If not specified, the
-          default port is used. If `host_or_port` argument is a list,
-          `port` is ignored.
+          default port is used.
         :type port: int
 
         :param db_name: An optional name of a database to be used by
@@ -255,7 +240,7 @@ class Connection():
         :type db_name: str
         """
         self.token = 1
-        self.socket = socket.create_connection((host_or_list, port))
+        self.socket = socket.create_connection((host, port))
         self.socket.sendall(struct.pack("<L", 0xaf61ba35))
 
         global last_connection

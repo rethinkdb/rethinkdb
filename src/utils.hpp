@@ -289,4 +289,6 @@ private:
 
 std::string sanitize_for_logger(const std::string &s);
 
+#define NULLPTR (static_cast<void *>(0))
+
 #endif // UTILS_HPP_

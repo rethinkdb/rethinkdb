@@ -93,6 +93,16 @@ module RethinkDB
         self.class.new [:call, [:map, vname, S.r(yield(v))], [@body]]}
     end
 
+    # For each element of a sequence, picks out the specified
+    # attributes from the object and returns only those.
+    # If the input is not an array, fails when the query is run.
+    #   expr([{ 'a' => 1, 'b' => 1, 'c' => 1},
+    #         { 'a' => 2, 'b' => 2, 'c' => 2}]).pluck('a', 'b').run()
+    #   [{ 'a' => 1, 'b' => 1 }, { 'a' => 2, 'b' => 2 }]
+    def pluck(*args)
+      self.map {|x| x.pickattrs(*args)}
+    end
+
     # Order a sequence of objects by one or more attributes.  For
     # example, to sort first by name and then by social security
     # number for the table <b>+people+</b>, you could do:

@@ -143,13 +143,13 @@ home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t(DEBUG_VAR int spe
 #ifndef NDEBUG
     : real_home_thread(specified_home_thread)
 #endif
-{ };
+{ }
 
 home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t()
 #ifndef NDEBUG
     : real_home_thread(get_thread_id())
 #endif
-{ };
+{ }
 
 void home_thread_mixin_t::assert_thread() const {
     rassert(home_thread() == get_thread_id());

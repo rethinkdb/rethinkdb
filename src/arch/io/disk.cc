@@ -6,6 +6,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 
 #include <algorithm>
 
@@ -362,6 +363,14 @@ void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf)
     }
 
     nice_guarantee(size_t(res) != length, "I/O operation failed. Exiting.");
+}
+
+bool linux_file_t::coop_lock_and_check() {
+    if (flock(fd.get(), LOCK_EX | LOCK_NB) != 0) {
+        rassert(errno == EWOULDBLOCK);
+        return false;
+    }
+    return true;
 }
 
 linux_file_t::~linux_file_t() {

@@ -34,12 +34,10 @@ module RethinkDB
       end
     end
 
-    # Append a single element to an array.  Has the shorter synonym
-    # <b>+append+</b> The following are equivalent:
+    # Append a single element to an array.  The following are equivalent:
     #   r[[1,2,3,4]]
-    #   r[[1,2,3]].arrayappend(4)
     #   r[[1,2,3]].append(4)
-    def arrayappend(el)
+    def append(el)
       JSON_Expression.new [:call, [:arrayappend], [@body, S.r(el)]]
     end
 
@@ -113,15 +111,17 @@ module RethinkDB
   # yields a Single_Row_Selection
   class Single_Row_Selection < JSON_Expression
     # Analagous to Multi_Row_Selection#update
-    def update
+    def update(*args, &b)
+      b = S.arg_or_block(*args, &b)
       S.with_var {|vname,v|
-        Write_Query.new [:pointupdate, *(@body[1..-1] + [[vname, S.r(yield(v))]])]}
+        Write_Query.new [:pointupdate, *(@body[1..-1] + [[vname, S.r(b.call(v))]])]}
     end
 
     # Analagous to Multi_Row_Selection#mutate
-    def mutate
+    def mutate(*args, &b)
+      b = S.arg_or_block(*args, &b)
       S.with_var {|vname,v|
-        Write_Query.new [:pointmutate, *(@body[1..-1] + [[vname, S.r(yield(v))]])]}
+        Write_Query.new [:pointmutate, *(@body[1..-1] + [[vname, S.r(b.call(v))]])]}
     end
 
     # Analagous to Multi_Row_Selection#delete

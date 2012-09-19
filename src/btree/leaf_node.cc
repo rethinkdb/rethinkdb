@@ -1,4 +1,8 @@
+#define __STDC_FORMAT_MACROS
+
 #include "btree/leaf_node.hpp"
+
+#include <inttypes.h>
 
 #include <algorithm>
 
@@ -359,7 +363,7 @@ bool fsck(value_sizer_t<void> *sizer, const btree_key_t *left_exclusive_or_null,
         if (offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, offset);
             if (tstamp > earliest_so_far) {
-                *msg_out = strprintf("timestamps out of order (%d after %d)\n", int(tstamp.longtime), int(earliest_so_far.longtime));
+                *msg_out = strprintf("timestamps out of order (%" PRIu64 " after %" PRIu64 ")\n", tstamp.longtime, earliest_so_far.longtime);
                 return false;
             }
             earliest_so_far = tstamp;
@@ -1390,7 +1394,7 @@ void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *ke
     location_to_write_data += key->full_size();
     memcpy(location_to_write_data, value, sizer->size(value));
 
-    node->live_size += sizeof(uint16_t) + key->full_size() + sizer->size(value);;
+    node->live_size += sizeof(uint16_t) + key->full_size() + sizer->size(value);
 
     validate(sizer, node);
 }
