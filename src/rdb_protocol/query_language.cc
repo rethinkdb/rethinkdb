@@ -765,19 +765,27 @@ private:
     const uuid_t *db_id;
 };
 
-static void meta_check(const char *status, const char *want,
-                       const std::string &operation, const backtrace_t &backtrace) {
+void meta_check(metadata_search_status_t status, metadata_search_status_t want,
+                const std::string &operation, const backtrace_t &backtrace) {
     if (status != want) {
-        if (status == METADATA_SUCCESS) status = "Entry already exists.";
+        const char *msg;
+        switch (status) {
+        case METADATA_SUCCESS: msg = "Entry already exists."; break;
+        case METADATA_ERR_NONE: msg = "No entry with that name."; break;
+        case METADATA_ERR_MULTIPLE: msg = "Multiple entries with that name."; break;
+        case METADATA_CONFLICT: msg = "Entry with that name is in conflict."; break;
+        default:
+            unreachable();
+        }
         throw runtime_exc_t(strprintf("Error during operation `%s`: %s",
-                                      operation.c_str(), status), backtrace);
+                                      operation.c_str(), msg), backtrace);
     }
 }
 
 template<class T, class U>
-static uuid_t meta_get_uuid(T searcher, U predicate,
+uuid_t meta_get_uuid(T searcher, U predicate,
                      const std::string &operation, const backtrace_t &backtrace) {
-    const char *status;
+    metadata_search_status_t status;
     typename T::iterator entry = searcher.find_uniq(predicate, &status);
     meta_check(status, METADATA_SUCCESS, operation, backtrace);
     return entry->first;
@@ -802,12 +810,12 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
     metadata_searcher_t<datacenter_semilattice_metadata_t>
         dc_searcher(&metadata.datacenters.datacenters);
 
-    const char *status;
     switch(m->type()) {
     case MetaQuery::CREATE_DB: {
         std::string db_name = m->db_name();
 
         /* Ensure database doesn't already exist. */
+        metadata_search_status_t status;
         db_searcher.find_uniq(db_name, &status);
         meta_check(status, METADATA_ERR_NONE, "CREATE_DB " + db_name, bt);
 
@@ -822,6 +830,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         std::string db_name = m->db_name();
 
         // Get database metadata.
+        metadata_search_status_t status;
         metadata_searcher_t<database_semilattice_metadata_t>::iterator
             db_metadata = db_searcher.find_uniq(db_name, &status);
         meta_check(status, METADATA_SUCCESS, "DROP_DB " + db_name, bt);
@@ -865,6 +874,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name, bt.with("datacenter"));
 
         /* Ensure table doesn't already exist. */
+        metadata_search_status_t status;
         ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
         meta_check(status, METADATA_ERR_NONE, "CREATE_TABLE " + table_name, bt);
 
@@ -917,6 +927,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
         // Get namespace metadata.
         uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("db_name"));
+        metadata_search_status_t status;
         metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
             ns_metadata =
             ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
@@ -951,7 +962,6 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
 std::string get_primary_key(TableRef *t, runtime_environment_t *env,
                             const backtrace_t &bt) {
-    const char *status;
     std::string db_name = t->db_name();
     std::string table_name = t->table_name();
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > ns_metadata = env->namespaces_semilattice_metadata->get();
@@ -965,6 +975,7 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
 
     uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DB " + db_name, bt);
     namespace_predicate_t pred(table_name, db_id);
+    metadata_search_status_t status;
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
         ns_metadata_it = ns_searcher.find_uniq(pred, &status);
     meta_check(status, METADATA_SUCCESS, "FIND_TABLE " + table_name, bt);
