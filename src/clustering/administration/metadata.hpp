@@ -167,7 +167,7 @@ public:
     /* Find the unique entry matching [predicate].  If there is no unique entry,
        return [end()] and set the optional status parameter appropriately. */
     template<class callable_t>
-    iterator find_uniq(callable_t predicate, const char **out=0) {
+    iterator find_uniq(callable_t predicate, const char **out = 0) {
         iterator it, retval;
         if (out) *out = METADATA_SUCCESS;
         retval = it = find_next(begin(), predicate);
@@ -180,17 +180,17 @@ public:
         return retval;
     }
     /* As above, but matches by name instead of a predicate. */
-    iterator find_uniq(const std::string &name, const char **out=0) {
-        return find_uniq(name_predicate_t(name), out);
+    iterator find_uniq(const std::string &name, const char **out = 0) {
+        return find_uniq(name_predicate_t(&name), out);
     }
 
     struct name_predicate_t {
         bool operator()(T metadata) {
-            return !metadata.name.in_conflict() && metadata.name.get() == name;
+            return !metadata.name.in_conflict() && metadata.name.get() == *name;
         }
-        name_predicate_t(const std::string &_name): name(_name) { }
+        explicit name_predicate_t(const std::string *_name): name(_name) { }
     private:
-        const std::string &name;
+        const std::string *name;
     };
 private:
     metamap_t *map;

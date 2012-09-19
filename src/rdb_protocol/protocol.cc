@@ -106,7 +106,7 @@ rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
     }
 }
 
-rdb_protocol_t::context_t::~context_t() { };
+rdb_protocol_t::context_t::~context_t() { }
 
 // Construct a region containing only the specified key
 region_t rdb_protocol_t::monokey_region(const store_key_t &k) {

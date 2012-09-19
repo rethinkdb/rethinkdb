@@ -24,7 +24,7 @@ public:
     void send(int message, peer_id_t peer) {
         class writer_t : public send_message_write_callback_t {
         public:
-            writer_t(int _data) : data(_data) { }
+            explicit writer_t(int _data) : data(_data) { }
             virtual ~writer_t() { }
             void write(write_stream_t *stream) {
                 write_message_t msg;

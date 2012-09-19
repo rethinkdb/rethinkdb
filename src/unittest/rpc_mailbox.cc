@@ -20,7 +20,7 @@ private:
 
     class write_impl_t : public mailbox_write_callback_t {
     public:
-        write_impl_t(int _arg) : arg(_arg) { }
+        explicit write_impl_t(int _arg) : arg(_arg) { }
         void write(write_stream_t *stream) {
             write_message_t msg;
             msg << arg;
@@ -34,7 +34,7 @@ private:
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(dummy_mailbox_t *_parent) : parent(_parent) { }
+        explicit read_impl_t(dummy_mailbox_t *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             int i;
             int res = deserialize(stream, &i);

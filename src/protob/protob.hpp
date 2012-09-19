@@ -1,6 +1,8 @@
 #ifndef PROTOB_PROTOB_HPP_
 #define PROTOB_PROTOB_HPP_
 
+#include <string>
+
 #include "errors.hpp"
 #include <boost/function.hpp>
 #include <boost/ptr_container/ptr_map.hpp>

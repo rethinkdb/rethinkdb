@@ -19,4 +19,4 @@ bool operator!=(const cow_ptr_t<T> &a, const cow_ptr_t<T> &b) {
     return *a != *b;
 }
 
-#endif   /* RPC_SEMILATTICE_JOINS_COW_PTR_HPP_ */
+#endif /* RPC_SEMILATTICE_JOINS_COW_PTR_HPP_ */
