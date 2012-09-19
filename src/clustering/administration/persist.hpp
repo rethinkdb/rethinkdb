@@ -13,6 +13,13 @@ template <class> class branch_history_manager_t;
 
 namespace metadata_persistence {
 
+class file_in_use_exc_t : public std::exception {
+public:
+    const char *what() const throw () {
+        return "metadata file is being used by another rethinkdb process";
+    }
+};
+
 class persistent_file_t {
 public:
     persistent_file_t(io_backender_t *io_backender, const std::string &filename, perfmon_collection_t *perfmon_parent);

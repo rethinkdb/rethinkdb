@@ -272,6 +272,11 @@ block_write(const void *buf, file_account_t *io_account) {
 }
 
 template<class inner_serializer_t>
+bool semantic_checking_serializer_t<inner_serializer_t>::coop_lock_and_check() {
+    return inner_serializer.coop_lock_and_check();
+}
+
+template<class inner_serializer_t>
 block_size_t semantic_checking_serializer_t<inner_serializer_t>::
 get_block_size() { return inner_serializer.get_block_size(); }
 

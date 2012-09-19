@@ -614,6 +614,11 @@ block_size_t log_serializer_t::get_block_size() {
     return static_config.block_size();
 }
 
+bool log_serializer_t::coop_lock_and_check() {
+    rassert(dbfile != NULL);
+    return dbfile->coop_lock_and_check();
+}
+
 // TODO: Should be called end_block_id I guess (or should subtract 1 frim end_block_id?
 block_id_t log_serializer_t::max_block_id() {
     rassert(state == state_ready);

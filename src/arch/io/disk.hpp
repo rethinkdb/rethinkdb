@@ -115,6 +115,8 @@ public:
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, const void *buf);
 
+    bool coop_lock_and_check();
+
     ~linux_file_t();
 
 private:
