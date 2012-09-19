@@ -39,11 +39,12 @@ module RethinkDB
     #   people.filter({:age => r.mul(:height, 2)})
     def filter(obj=nil)
       if obj
-        raise SyntaxError,"Filter: Not a hash: #{obj.inspect}." if obj.class != Hash
-        self.filter { |row|
-          JSON_Expression.new [:call, [:all], obj.map{|kv|
-                                 row.getattr(kv[0]).eq(S.r(kv[1]))}]
-        }
+        if obj.class == Hash         then self.filter { |row|
+            JSON_Expression.new [:call, [:all], obj.map{|kv|
+                                   row.getattr(kv[0]).eq(S.r(kv[1]))}]}
+        elsif obj.kind_of? RQL_Query then self.filter {obj}
+        else raise SyntaxError,"Filter: Not a hash or RQL query: #{obj.inspect}."
+        end
       else
         S.with_var{|vname,v|
           self.class.new [:call, [:filter, vname, S.r(yield(v))], [@body]]}
