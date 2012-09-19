@@ -22,10 +22,8 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "utils.hpp"
 
-bool do_json_importation(machine_id_t machine_id,
-                         const boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> > &databases,
-                         const boost::shared_ptr<semilattice_read_view_t<datacenters_semilattice_metadata_t> > &datacenters,
-                         const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
+bool do_json_importation(machine_id_t us,
+                         const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
                          namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
                          json_import_target_t target,
                          signal_t *interruptor);
@@ -142,21 +140,25 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_add
 
     // TODO: Handle interrupted exceptions?
     return do_json_importation(machine_id,
-                               metadata_field(&cluster_semilattice_metadata_t::databases, semilattice_manager_cluster.get_root_view()),
-                               metadata_field(&cluster_semilattice_metadata_t::datacenters, semilattice_manager_cluster.get_root_view()),
-                               metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()),
+                               semilattice_manager_cluster.get_root_view(),
                                &rdb_namespace_repo, importer, target, stop_cond);
 }
 
+
+
+
 bool get_or_create_namespace(machine_id_t us,
-                             const boost::shared_ptr<semilattice_read_view_t<datacenters_semilattice_metadata_t> > &datacenters,
-                             const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
+                             const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
                              database_id_t db_id,
                              boost::optional<std::string> datacenter_name,
                              std::string table_name,
                              boost::optional<std::string> maybe_primary_key,
                              namespace_id_t *namespace_out,
                              std::string *primary_key_out) {
+    boost::shared_ptr<semilattice_read_view_t<datacenters_semilattice_metadata_t> > datacenters = metadata_field(&cluster_semilattice_metadata_t::datacenters, metadata);
+    boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > namespaces = metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, metadata);
+
+
     namespaces_semilattice_metadata_t<rdb_protocol_t> ns = *namespaces->get();
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> > searcher(&ns.namespaces);
     metadata_search_status_t error;
@@ -166,17 +168,23 @@ bool get_or_create_namespace(machine_id_t us,
         std::string existing_pk = it->second.get().primary_key.get();
         if (maybe_primary_key) {
             if (existing_pk != *maybe_primary_key) {
+                debugf("Successfully found namespace %s, with wrong primary key '%s'\n",
+                       uuid_to_str(it->first).c_str(), existing_pk.c_str());
+
                 *namespace_out = namespace_id_t();
                 primary_key_out->clear();
                 return false;
             }
         }
+
+        debugf("Successfully found namespace %s\n", uuid_to_str(it->first).c_str());
         *primary_key_out = existing_pk;
         *namespace_out = it->first;
         return true;
     } else if (error == METADATA_ERR_NONE) {
         // We need a primary key if we are to be creating a namespace.
         if (!maybe_primary_key) {
+            debugf("Trying to create a namespace but lack primary key.\n");
             *namespace_out = namespace_id_t();
             primary_key_out->clear();
             return false;
@@ -184,6 +192,7 @@ bool get_or_create_namespace(machine_id_t us,
         std::string primary_key = *maybe_primary_key;
 
         if (!datacenter_name) {
+            debugf("Trying to create a namespace but lack datacenter parameter.\n");
             *namespace_out = namespace_id_t();
             primary_key_out->clear();
             return false;
@@ -195,6 +204,7 @@ bool get_or_create_namespace(machine_id_t us,
         std::map<datacenter_id_t, deletable_t<datacenter_semilattice_metadata_t> >::iterator it = dc_searcher.find_uniq(*datacenter_name, &dc_error);
 
         if (dc_error != METADATA_SUCCESS) {
+            debugf("Could not find datacenter.\n");
             // TODO(sam): Add a way to produce a good error message.
             *namespace_out = namespace_id_t();
             primary_key_out->clear();
@@ -209,10 +219,15 @@ bool get_or_create_namespace(machine_id_t us,
         nss.namespaces.insert(std::make_pair(ns_id, ns));
         namespaces->join(cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(nss));
 
+        // TODO(sam): Call fill_in_blueprints here.
+
+        debugf("Created namespace.\n");
+
         *namespace_out = ns_id;
         *primary_key_out = primary_key;
         return true;
     } else {
+        debugf("Error searching for namespace.\n");
         // TODO(sam): Add a way to produce a good error message.
         *namespace_out = namespace_id_t();
         primary_key_out->clear();
@@ -221,8 +236,9 @@ bool get_or_create_namespace(machine_id_t us,
 }
 
 bool get_or_create_database(machine_id_t us,
-                            const boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> > &databases,
+                            const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
                             std::string db_name, database_id_t *db_out) {
+    boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> > databases = metadata_field(&cluster_semilattice_metadata_t::databases, metadata);
     std::map<database_id_t, deletable_t<database_semilattice_metadata_t> > dbmap = databases->get().databases;
     metadata_searcher_t<database_semilattice_metadata_t> searcher(&dbmap);
 
@@ -230,6 +246,7 @@ bool get_or_create_database(machine_id_t us,
     std::map<database_id_t, deletable_t<database_semilattice_metadata_t> >::iterator it = searcher.find_uniq(db_name, &error);
 
     if (error == METADATA_SUCCESS) {
+        debugf("Successfully found database %s\n", uuid_to_str(it->first).c_str());
         *db_out = it->first;
         return true;
     } else if (error == METADATA_ERR_NONE) {
@@ -240,10 +257,12 @@ bool get_or_create_database(machine_id_t us,
         dbs.databases.insert(std::make_pair(db_id, db));
 
         databases->join(dbs);
+        debugf("No database found, created %s\n", uuid_to_str(db_id).c_str());
 
         *db_out = db_id;
         return true;
     } else {
+        debugf("Unspecified error searching for database (duplicate?)\n");
         *db_out = database_id_t();
         return false;
     }
@@ -251,9 +270,7 @@ bool get_or_create_database(machine_id_t us,
 
 
 bool do_json_importation(machine_id_t us,
-                         const boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> > &databases,
-                         const boost::shared_ptr<semilattice_read_view_t<datacenters_semilattice_metadata_t> > &datacenters,
-                         const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
+                         const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
                          namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
                          json_import_target_t target,
                          signal_t *interruptor) {
@@ -263,14 +280,14 @@ bool do_json_importation(machine_id_t us,
     boost::optional<std::string> maybe_primary_key = target.primary_key;
 
     database_id_t db_id;
-    if (!get_or_create_database(us, databases, db_name, &db_id)) {
+    if (!get_or_create_database(us, metadata, db_name, &db_id)) {
         debugf("could not get or create database named '%s'\n", db_name.c_str());
         return false;
     }
 
     namespace_id_t namespace_id;
     std::string primary_key;
-    if (!get_or_create_namespace(us, datacenters, namespaces, db_id, datacenter_name, table_name, maybe_primary_key, &namespace_id, &primary_key)) {
+    if (!get_or_create_namespace(us, metadata, db_id, datacenter_name, table_name, maybe_primary_key, &namespace_id, &primary_key)) {
         debugf("could not get or create table named '%s' (in db '%s')\n", table_name.c_str(), uuid_to_str(db_id).c_str());
         return false;
     }
@@ -279,6 +296,8 @@ bool do_json_importation(machine_id_t us,
     namespace_repo_t<rdb_protocol_t>::access_t access(repo, namespace_id, interruptor);
 
     namespace_interface_t<rdb_protocol_t> *ni = access.get_namespace_if();
+
+    wait_interruptible(ni->get_initial_ready_signal(), interruptor);
 
     order_source_t order_source;
 
