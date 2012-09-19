@@ -133,15 +133,23 @@ module RethinkDB
       return true
     end
 
-    # Create a new connection to <b>+host+</b> on port <b>+port+</b>.  Example:
-    #   c = Connection.new('localhost')
-    def initialize(host, port=12346)
+    # Create a new connection to <b>+host+</b> on port <b>+port+</b>.
+    # You may also optionally provide a default database to use when
+    # running queries over that connection.  Example:
+    #   c = Connection.new('localhost', 12346, 'default_db')
+    def initialize(host='localhost', port=12346, default_db=nil)
       @@last = self
+      @default_db = default_db
       @socket = TCPSocket.open(host, port)
       @waiters = {}
       @data = {}
       @mutex = Mutex.new
       start_listener
+    end
+
+    # Change the default database of a connection.
+    def use(new_default_db)
+      @default_db = new_default_db
     end
 
     # Run a query over the connection.  If you run a query that returns a JSON
@@ -155,7 +163,8 @@ module RethinkDB
       is_atomic = (query.kind_of?(JSON_Expression) ||
                    query.kind_of?(Meta_Query) ||
                    query.kind_of?(Write_Query))
-      protob = query.query
+      args = @default_db ? [:default_db, @default_db] : []
+      protob = query.query(*args)
       if is_atomic
         a = []
         token_iter(dispatch protob){|row| a.push row} ? a : a[0]

@@ -26,7 +26,7 @@ require 'test/unit'
 $port_base = ARGV[0].to_i # 0 if none given
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
-  def rdb; r.db('Welcome-db').table('Welcome-rdb'); end
+  def rdb; @@c.use('Welcome-db'); r.table('Welcome-rdb'); end
   @@c = RethinkDB::Connection.new('localhost', $port_base + 12346)
   def c; @@c; end
   def id_sort x; x.sort_by{|y| y['id']}; end
@@ -100,7 +100,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.all(true, true, true).run, true)
 
     assert_raise(RuntimeError){r.all(true, 3).run}
-    assert_raise(RuntimeError){r.any(true, 4).run}
+    assert_raise(RuntimeError){r.any(4, true).run}
   end
 
   def test_not # from python tests
@@ -679,8 +679,8 @@ class ClientTest < Test::Unit::TestCase
   def test_array_foreach #FOREACH
     assert_equal(id_sort(rdb.run.to_a), $data)
     assert_equal(r[[2,3,4]].foreach{|x|
-                   [rdb.get(x).update{{:num => 0}},
-                    rdb.get(x*2).update{{:num => 0}}]}.run,
+                   [rdb.get(x).update({:num => 0}),
+                    rdb.get(x*2).update({:num => 0})]}.run,
                  {"skipped"=>0, "updated"=>6, "errors"=>0})
     assert_equal(rdb.to_array.foreach{|row|
                    rdb.filter{r[:id].eq(row[:id])}.update{|row|
@@ -839,11 +839,11 @@ class ClientTest < Test::Unit::TestCase
 
   def test_update_edge_cases #POINTUPDATE
     assert_equal(rdb.orderby(:id).run.to_a, $data)
-    assert_equal(rdb.get(0).update{nil}.run,
+    assert_equal(rdb.get(0).update(nil).run,
                  {'skipped' => 1, 'updated' => 0, 'errors' => 0})
-    assert_equal(rdb.get(11).update{nil}.run,
+    assert_equal(rdb.get(11).update(nil).run,
                  {'skipped' => 1, 'updated' => 0, 'errors' => 0})
-    assert_equal(rdb.get(11).update{{}}.run,
+    assert_equal(rdb.get(11).update({}).run,
                  {'skipped' => 1, 'updated' => 0, 'errors' => 0})
     assert_equal(rdb.orderby(:id).run.to_a, $data)
   end
@@ -936,12 +936,12 @@ class ClientTest < Test::Unit::TestCase
                  {'modified' => 10, 'inserted' => 0, 'deleted' => 0, 'errors' => 0})
     assert_equal(id_sort(rdb2.run.to_a), $data);
 
-    update = rdb2.get(0).update{{:num => 2}}.run
+    update = rdb2.get(0).update({:num => 2}).run
     assert_equal(update, {'errors' => 0, 'updated' => 1, 'skipped' => 0})
     assert_equal(rdb2.get(0).run['num'], 2);
-    update = rdb2.get(0).update{nil}.run
+    update = rdb2.get(0).update(nil).run
     assert_equal(update, {'errors' => 0, 'updated' => 0, 'skipped' => 1})
-    assert_equal(rdb2.get(0).mutate{$data[0]}.run,
+    assert_equal(rdb2.get(0).mutate($data[0]).run,
                  {"errors"=>0, 'inserted' => 0, "deleted"=>0, "modified"=>1, 'errors' => 0})
     assert_equal(id_sort(rdb2.run.to_a), $data)
 
@@ -981,7 +981,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(query.run, {'inserted'=>1, 'errors' => 0})
     assert_equal(id_sort(rdb2.run.to_a), $data)
 
-    assert_equal(rdb2.get(0).mutate{nil}.run,
+    assert_equal(rdb2.get(0).mutate(nil).run,
                  {'modified' => 0, 'inserted' => 0, 'deleted' => 1, 'errors' => 0, 'errors' => 0})
     assert_equal(id_sort(rdb2.run.to_a), $data[1..-1])
     assert_raise(RuntimeError){rdb2.get(1).mutate{{:id => -1}}.run.to_a}

@@ -47,8 +47,9 @@ module RethinkDB
     # If the object returned in <b>+update+</b> has attributes
     # which are not present in the original row, those attributes will
     # still be added to the new row.
-    def update
-      S.with_var{|vname,v| Write_Query.new [:update, @body, [vname, S.r(yield(v))]]}
+    def update(*args, &b)
+      b = S.arg_or_block(*args, &b)
+      S.with_var{|vname,v| Write_Query.new [:update, @body, [vname, S.r(b.call(v))]]}
     end
 
     # Replace all of the selected rows.  Unlike <b>+update+</b>, must return the
@@ -58,8 +59,9 @@ module RethinkDB
     # table <b>+table+</b>, then:
     #   table.mutate{|row| r.if(row[:id] < 5, nil, row)}
     # will delete everything with id less than 5, but leave the other rows untouched.
-    def mutate
-      S.with_var{|vname,v| Write_Query.new [:mutate, @body, [vname, S.r(yield(v))]]}
+    def mutate(*args, &b)
+      b = S.arg_or_block(*args, &b)
+      S.with_var{|vname,v| Write_Query.new [:mutate, @body, [vname, S.r(b.call(v))]]}
     end
   end
 end
