@@ -8,6 +8,7 @@
 template <class protocol_t>
 btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
                                          const std::string& filename,
+                                         int64_t cache_target,
                                          bool create,
                                          perfmon_collection_t *parent_perfmon_collection,
                                          typename protocol_t::context_t *) :
@@ -35,8 +36,8 @@ btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
     }
 
     // TODO: Don't specify cache dynamic config here.
-    cache_dynamic_config.max_size = GIGABYTE;
-    cache_dynamic_config.max_dirty_size = GIGABYTE / 2;
+    cache_dynamic_config.max_size = cache_target;
+    cache_dynamic_config.max_dirty_size = cache_target / 2;
     cache.init(new cache_t(serializer.get(), &cache_dynamic_config, &perfmon_collection));
 
     if (create) {

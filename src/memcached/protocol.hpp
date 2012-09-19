@@ -158,6 +158,7 @@ public:
     public:
         store_t(io_backender_t *io_backender,
                 const std::string& filename,
+                int64_t cache_quota,
                 bool create,
                 perfmon_collection_t *collection,
                 context_t *);

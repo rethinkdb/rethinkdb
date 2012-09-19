@@ -963,6 +963,14 @@ Database view
 */
 
 .namespace-view {
+    .shards_container{
+        .user-alert-space{
+            p {
+                margin: 0px;
+            }
+        }
+
+    }
 
     .pie_legend{
         .legend{
@@ -995,6 +1003,7 @@ Database view
     }
 
     .data_repartition-graph{
+        margin: 0px auto;
         text-align: center;
         rect{
             fill: #ed993e;
@@ -1038,8 +1047,7 @@ Database view
         }
     }
 
-    .namespace-shards{
-        position: relative;
+    .shards_container{
         .alert_for_sharding{
             display: none;
         }
@@ -1235,12 +1243,8 @@ Database view
     }
 }
 
-.popover {
-    .popover-inner { overflow: visible; }
-    .namespace-shard-assign-machine {
-        .chzn-container { margin-bottom: 10px; }
-    }
-}
+
+
 
 /*
     ----------------------------

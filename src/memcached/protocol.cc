@@ -415,10 +415,11 @@ region_t memcached_protocol_t::cpu_sharding_subspace(int subregion_number, int n
 
 store_t::store_t(io_backender_t *io_backend,
                  const std::string& filename,
+                 int64_t cache_size,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
                  context_t *ctx) :
-    btree_store_t<memcached_protocol_t>(io_backend, filename, create, parent_perfmon_collection, ctx) { }
+    btree_store_t<memcached_protocol_t>(io_backend, filename, cache_size, create, parent_perfmon_collection, ctx) { }
 
 store_t::~store_t() {
     assert_thread();

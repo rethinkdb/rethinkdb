@@ -305,6 +305,7 @@ message MetaQuery {
         required string datacenter  = 1;
         required TableRef table_ref = 3;
         optional string primary_key = 4 [default = "id"];
+        optional int64 cache_size = 5 [default = 1073741824]; //notice that's a gigabyte right there.
     }
     optional CreateTable create_table = 3;
 

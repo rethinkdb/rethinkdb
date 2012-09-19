@@ -465,10 +465,11 @@ void write_t::unshard(const write_response_t *responses, DEBUG_VAR size_t count,
 
 store_t::store_t(io_backender_t *io_backend,
                  const std::string& filename,
+                 int64_t cache_target,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
                  context_t *_ctx) :
-    btree_store_t<rdb_protocol_t>(io_backend, filename, create, parent_perfmon_collection, _ctx),
+    btree_store_t<rdb_protocol_t>(io_backend, filename, cache_target, create, parent_perfmon_collection, _ctx),
     ctx(_ctx)
 { }
 

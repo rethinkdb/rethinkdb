@@ -99,7 +99,7 @@ module 'NamespaceView', ->
 
             @.$el.html @template(json)
 
-
+            #TODO Put these events in the event object...
             # Bind action for primary datacenter
             @.$('#edit-primary').on 'click', (e) =>
                 @modify_replicas(e, datacenters.get(@model.get('primary_uuid')))
