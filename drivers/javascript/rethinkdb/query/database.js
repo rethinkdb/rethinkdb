@@ -1,6 +1,6 @@
-goog.provide('rethinkdb.query.Database');
+goog.provide('rethinkdb.Database');
 
-goog.require('rethinkdb.query');
+goog.require('rethinkdb');
 
 /**
  * Construct a new metaquery node of the given type on the given database
@@ -8,17 +8,17 @@ goog.require('rethinkdb.query');
  * @param {MetaQuery.MetaQueryType} type The metaquery type to perform
  * @param {string=} opt_dbName The database to perform this query on
  * @constructor
- * @extends {rethinkdb.query.Query}
+ * @extends {rethinkdb.Query}
  * @ignore
  */
-rethinkdb.query.MetaQuery = function(type, opt_dbName) {
+rethinkdb.MetaQuery = function(type, opt_dbName) {
     this.type_ = type;
     this.dbName_ = opt_dbName || null;
 };
-goog.inherits(rethinkdb.query.MetaQuery, rethinkdb.query.Query);
+goog.inherits(rethinkdb.MetaQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.query.MetaQuery.prototype.buildQuery = function() {
+rethinkdb.MetaQuery.prototype.buildQuery = function() {
     var meta = new MetaQuery();
     meta.setType(this.type_);
     if (this.dbName_) {
@@ -37,10 +37,10 @@ rethinkdb.query.MetaQuery.prototype.buildQuery = function() {
  * @param {string} dbName
  * @export
  */
-rethinkdb.query.dbCreate = function(dbName) {
+rethinkdb.dbCreate = function(dbName) {
     argCheck_(arguments, 1);
     typeCheck_(dbName, 'string');
-    return new rethinkdb.query.MetaQuery(MetaQuery.MetaQueryType.CREATE_DB, dbName);
+    return new rethinkdb.MetaQuery(MetaQuery.MetaQueryType.CREATE_DB, dbName);
 };
 
 /**
@@ -48,18 +48,18 @@ rethinkdb.query.dbCreate = function(dbName) {
  * @param {string} dbName
  * @export
  */
-rethinkdb.query.dbDrop = function(dbName) {
+rethinkdb.dbDrop = function(dbName) {
     argCheck_(arguments, 1);
     typeCheck_(dbName, 'string');
-    return new rethinkdb.query.MetaQuery(MetaQuery.MetaQueryType.DROP_DB, dbName);
+    return new rethinkdb.MetaQuery(MetaQuery.MetaQueryType.DROP_DB, dbName);
 };
 
 /**
  * List all databases.
  * @export
  */
-rethinkdb.query.dbList = function() {
-    return new rethinkdb.query.MetaQuery(MetaQuery.MetaQueryType.LIST_DBS);
+rethinkdb.dbList = function() {
+    return new rethinkdb.MetaQuery(MetaQuery.MetaQueryType.LIST_DBS);
 };
 
 /**
@@ -67,30 +67,30 @@ rethinkdb.query.dbList = function() {
  * @param {string} dbName
  * @constructor
  */
-rethinkdb.query.Database = function(dbName) {
+rethinkdb.Database = function(dbName) {
     this.name_ = dbName;
 };
 
 /**
  * Construct a database reference.
  * @param {string} dbName
- * @return {rethinkdb.query.Database}
+ * @return {rethinkdb.Database}
  * @export
  */
-rethinkdb.query.db = function(dbName) {
+rethinkdb.db = function(dbName) {
     argCheck_(arguments, 1);
     typeCheck_(dbName, 'string');
-    return new rethinkdb.query.Database(dbName);
+    return new rethinkdb.Database(dbName);
 };
 
 /**
  * List all tables in this database
  */
-rethinkdb.query.Database.prototype.list = function() {
-    return new rethinkdb.query.MetaQuery(MetaQuery.MetaQueryType.LIST_TABLES, this.name_);
+rethinkdb.Database.prototype.list = function() {
+    return new rethinkdb.MetaQuery(MetaQuery.MetaQueryType.LIST_TABLES, this.name_);
 };
-goog.exportProperty(rethinkdb.query.Database.prototype, 'list',
-                    rethinkdb.query.Database.prototype.list);
+goog.exportProperty(rethinkdb.Database.prototype, 'list',
+                    rethinkdb.Database.prototype.list);
 
 /**
  * @class A query that creates a table in a database
@@ -99,19 +99,19 @@ goog.exportProperty(rethinkdb.query.Database.prototype, 'list',
  * @param {string} tableName
  * @param {string=} opt_primaryKey
  * @constructor
- * @extends {rethinkdb.query.Query}
+ * @extends {rethinkdb.Query}
  * @ignore
  */
-rethinkdb.query.CreateTableQuery = function(dataCenter, dbName, tableName, opt_primaryKey) {
+rethinkdb.CreateTableQuery = function(dataCenter, dbName, tableName, opt_primaryKey) {
     this.dataCenter_ = dataCenter;
     this.dbName_ = dbName;
     this.tableName_ = tableName;
     this.primaryKey_ = opt_primaryKey || 'id';
 };
-goog.inherits(rethinkdb.query.CreateTableQuery, rethinkdb.query.Query);
+goog.inherits(rethinkdb.CreateTableQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.query.CreateTableQuery.prototype.buildQuery = function() {
+rethinkdb.CreateTableQuery.prototype.buildQuery = function() {
     var tableref = new TableRef();
     tableref.setDbName(this.dbName_);
     tableref.setTableName(this.tableName_);
@@ -137,32 +137,32 @@ rethinkdb.query.CreateTableQuery.prototype.buildQuery = function() {
  * @param {string} tableName
  * @param {string=} opt_primaryKey
  */
-rethinkdb.query.Database.prototype.create = function(tableName, opt_primaryKey) {
+rethinkdb.Database.prototype.create = function(tableName, opt_primaryKey) {
     argCheck_(arguments, 1);
     typeCheck_(tableName, 'string');
     typeCheck_(opt_primaryKey, 'string');
-    return new rethinkdb.query.CreateTableQuery('Welcome-dc', this.name_, tableName, opt_primaryKey);
+    return new rethinkdb.CreateTableQuery('Welcome-dc', this.name_, tableName, opt_primaryKey);
 };
-goog.exportProperty(rethinkdb.query.Database.prototype, 'create',
-                    rethinkdb.query.Database.prototype.create);
+goog.exportProperty(rethinkdb.Database.prototype, 'create',
+                    rethinkdb.Database.prototype.create);
 
 /**
  * @class A query that drops a table from a database
  * @param {string} dbName
  * @param {string} tableName
  * @constructor
- * @extends {rethinkdb.query.Query}
+ * @extends {rethinkdb.Query}
  * @ignore
  */
-rethinkdb.query.DropTableQuery = function(dbName, tableName) {
+rethinkdb.DropTableQuery = function(dbName, tableName) {
     argCheck_(arguments, 1);
     this.dbName_ = dbName;
     this.tableName_ = tableName;
 };
-goog.inherits(rethinkdb.query.DropTableQuery, rethinkdb.query.Query);
+goog.inherits(rethinkdb.DropTableQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.query.DropTableQuery.prototype.buildQuery = function() {
+rethinkdb.DropTableQuery.prototype.buildQuery = function() {
     var tableref = new TableRef();
     tableref.setDbName(this.dbName_);
     tableref.setTableName(this.tableName_);
@@ -182,22 +182,22 @@ rethinkdb.query.DropTableQuery.prototype.buildQuery = function() {
  * Drop a table from this database
  * @param {string} tableName
  */
-rethinkdb.query.Database.prototype.drop = function(tableName) {
+rethinkdb.Database.prototype.drop = function(tableName) {
     argCheck_(arguments, 1);
     typeCheck_(tableName, 'string');
-    return new rethinkdb.query.DropTableQuery(this.name_, tableName);
+    return new rethinkdb.DropTableQuery(this.name_, tableName);
 };
-goog.exportProperty(rethinkdb.query.Database.prototype, 'drop',
-                    rethinkdb.query.Database.prototype.drop);
+goog.exportProperty(rethinkdb.Database.prototype, 'drop',
+                    rethinkdb.Database.prototype.drop);
 
 /**
  * Construct a table reference for a table in this database
  * @param {string} tableName
  */
-rethinkdb.query.Database.prototype.table = function(tableName) {
+rethinkdb.Database.prototype.table = function(tableName) {
     argCheck_(arguments, 1);
     typeCheck_(tableName, 'string');
-    return new rethinkdb.query.Table(tableName, this.name_);
+    return new rethinkdb.Table(tableName, this.name_);
 };
-goog.exportProperty(rethinkdb.query.Database.prototype, 'table',
-                    rethinkdb.query.Database.prototype.table);
+goog.exportProperty(rethinkdb.Database.prototype, 'table',
+                    rethinkdb.Database.prototype.table);

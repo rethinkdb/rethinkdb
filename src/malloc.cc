@@ -8,7 +8,7 @@ static perfmon_duration_sampler_t pm_operator_new(secs_to_ticks(1.0)),
 static perfmon_multi_membership_t pm_new_delete_membership(&get_global_perfmon_collection(),
     &pm_operator_new, "operator_new",
     &pm_operator_delete, "operator_delete",
-    NULL);
+    NULLPTR);
 
 void* operator new(size_t size) {
     block_pm_duration set_timer(&pm_operator_new);

@@ -38,12 +38,15 @@ std::string cJSON_print_lexicographic(const cJSON *json) {
     if (json->type == cJSON_Number) {
         acc += "N";
 
-        union {double d; int64_t u;} packed;
+        union {
+            double d;
+            int64_t u;
+        } packed;
         rassert(sizeof(packed.d) == sizeof(packed.u));
-        rassert((void *)&packed.d == (void *)&packed.u);
         packed.d = json->valuedouble;
-        acc += strprintf("%.*lx", (int)(sizeof(double)*2), packed.u);
-        return acc;
+        // TODO: do some mangling so that these sort correctly.
+        acc += strprintf("%.*lx", static_cast<int>(sizeof(double)*2), packed.u);
+        acc += strprintf("#%.20g", json->valuedouble);
     } else {
         rassert(json->type == cJSON_String);
         acc += "S";

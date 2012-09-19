@@ -164,7 +164,7 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
                                    transaction_t *txn, superblock_t *superblock) {
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
-        find_keyvalue_location_for_write(txn,superblock,key.btree_key(),&kv_location,&slice->root_eviction_priority,&slice->stats);
+        find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
 
         boost::shared_ptr<scoped_cJSON_t> lhs;
         if (!kv_location.value.has()) {

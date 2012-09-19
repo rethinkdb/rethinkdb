@@ -27,7 +27,7 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
       http_timeout_timer(http_context_t::TIMEOUT_MS, this) {
 
     for (int i = 0; i < get_num_threads(); ++i) {
-        cross_thread_signal_t *s = new cross_thread_signal_t(&main_shutting_down_cond,i);
+        cross_thread_signal_t *s = new cross_thread_signal_t(&main_shutting_down_cond, i);
         shutting_down_conds.push_back(s);
         rassert(s == &shutting_down_conds[i]);
     }
@@ -163,7 +163,7 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         res.version = "HTTP/1.1";
         res.add_header_line("Access-Control-Allow-Origin", "*");
         std::string body_data;
-        body_data.assign(((char *)&conn_id), sizeof(conn_id));
+        body_data.assign(reinterpret_cast<char *>(&conn_id), sizeof(conn_id));
         res.set_body("application/octet-stream", body_data);
 
         return res;

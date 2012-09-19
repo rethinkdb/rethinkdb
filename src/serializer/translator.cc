@@ -252,6 +252,10 @@ block_size_t translator_serializer_t::get_block_size() {
     return inner->get_block_size();
 }
 
+bool translator_serializer_t::coop_lock_and_check() {
+    return inner->coop_lock_and_check();
+}
+
 block_id_t translator_serializer_t::max_block_id() {
     int64_t x = inner->max_block_id() - cfgid.subsequent_ser_id();
     if (x <= 0) {
