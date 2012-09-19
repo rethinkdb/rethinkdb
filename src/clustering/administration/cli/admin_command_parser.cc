@@ -506,11 +506,11 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
 
     info = add_command(list_command, list_command, list_usage, &admin_cluster_link_t::do_admin_list, &commands);
-    info->add_positional("object", 1, false)->add_options("!id", NULL);
+    info->add_positional("object", 1, false)->add_options("!id", NULLPTR);
     info->add_flag("long", 0, false);
 
     info = add_command(list_stats_command, list_stats_command, list_stats_usage, &admin_cluster_link_t::do_admin_list_stats, &commands);
-    info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace", NULL);
+    info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace", NULLPTR);
 
     info = add_command(list_issues_command, list_issues_command, list_issues_usage, &admin_cluster_link_t::do_admin_list_issues, &commands);
 
@@ -522,9 +522,9 @@ void admin_command_parser_t::build_command_descriptions() {
 
     info = add_command(list_tables_command, list_tables_command, list_tables_usage, &admin_cluster_link_t::do_admin_list_tables, &commands);
 #ifndef NO_MEMCACHE
-    info->add_flag("protocol", 1, false)->add_options("rdb", NULL);
+    info->add_flag("protocol", 1, false)->add_options("rdb", NULLPTR);
 #else
-    info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULL);
+    info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULLPTR);
 #endif
     info->add_flag("long", 0, false);
 
@@ -534,9 +534,9 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(create_table_command, create_table_command, create_table_usage, &admin_cluster_link_t::do_admin_create_table, &commands);
     info->add_positional("name", 1, true);
 #ifndef NO_MEMCACHE
-    info->add_flag("protocol", 1, false)->add_options("rdb", NULL);
+    info->add_flag("protocol", 1, false)->add_options("rdb", NULLPTR);
 #else
-    info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULL);
+    info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULLPTR);
 #endif
     info->add_flag("primary", 1, true)->add_option("!datacenter");
     info->add_flag("port", 1, true);
@@ -554,7 +554,7 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("id", -1, true)->add_option("!id");
 
     info = add_command(help_command, help_command, help_usage, NULL, &commands); // Special case, 'help' is not done through the cluster
-    info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", NULL);
+    info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", NULLPTR);
     info->add_positional("subcommand", 1, false);
 }
 
