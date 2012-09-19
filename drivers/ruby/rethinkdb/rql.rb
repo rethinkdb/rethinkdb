@@ -122,20 +122,12 @@ module RethinkDB
 
     # Construct a query that binds some values to variable (as specified by
     # <b>+varbinds+</b>) and then executes <b>+body+</b> with those variables in
-    # scope.  For example:
-    #   r.let([['a', 2],
-    #          ['b', r[:$a]+1]],
-    #         r[:$b]*2)
-    # will bind <b>+a+</b> to 2, <b>+b+</b> to 3, and then return 6.  (It is
-    # thus analagous to <b><tt>let*</tt></b> in the Lisp family of languages.)
-    # It may also be used with hashes instead of lists, but in that case you
-    # give up some power: in particular, you cannot have variables that depend
-    # on previous variables, because the order is not guaranteed.  For example:
-    #   r.let({:a => 2, :b => 3}, r[:$b]*2) # legal
-    #   r.let({:a => 2, :b => r[:$a]+1}, r[:$b]*2) #legality not guaranteed
-    def self.let(varbinds, body);
+    # scope.  For example, the following are equivalent:
+    #   r.let({:a => 2, :b => 3}, r[:$a] + r[:$b])
+    #   r.expr(5)
+    def self.let(varbinds, body)
       varbinds.map! { |pair|
-        raise SyntaxError,"Malformed LET expression #{body}" if pair.length != 2
+        raise SyntaxError,"Malformed LET expression #{body.inspect}" if pair.length != 2
         [pair[0].to_s, expr(pair[1])]}
       res = S.r(body)
       res.class.new [:let, varbinds, res]
