@@ -397,6 +397,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(query_2345.run.to_a), $data[2..5])
     assert_equal(id_sort(query_234.run.to_a), $data[2..4])
     assert_equal(id_sort(query_23.run.to_a), $data[2..3])
+    assert_equal(id_sort(rdb.filter(r[:id] < 5).run.to_a), $data[0...5])
   end
 
   def test_too_big_key
