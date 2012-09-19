@@ -128,10 +128,10 @@ void apply_json_to(cJSON *, cluster_directory_peer_type_t *);
 void on_subfield_change(cluster_directory_peer_type_t *);
 
 
-const char *const METADATA_SUCCESS = 0;
-const char *const METADATA_ERR_NONE = "No entry with that name.";
-const char *const METADATA_ERR_MULTIPLE = "Multiple entries with that name.";
-const char *const METADATA_ERR_CONFLICT = "Entry with that name is in conflict.";
+extern const char *const METADATA_SUCCESS;
+extern const char *const METADATA_ERR_NONE;
+extern const char *const METADATA_ERR_MULTIPLE;
+extern const char *const METADATA_ERR_CONFLICT;
 
 /* A helper class to search through metadata in various ways.  Can be
    constructed from a pointer to the internal map of the metadata,

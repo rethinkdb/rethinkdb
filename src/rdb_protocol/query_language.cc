@@ -789,6 +789,8 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
     case MetaQuery::CREATE_DB: {
         std::string db_name = m->db_name();
 
+        debugf("find_uniq for db '%s'\n", db_name.c_str());
+
         /* Ensure database doesn't already exist. */
         db_searcher.find_uniq(db_name, &status);
         meta_check(status, METADATA_ERR_NONE, "CREATE_DB " + db_name, bt);
