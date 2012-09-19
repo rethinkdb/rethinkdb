@@ -140,6 +140,8 @@ public:
 
     block_size_t get_block_size();
 
+    bool coop_lock_and_check();
+
 private:
     std::map<ls_block_token_pointee_t*, off64_t> token_offsets;
     std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
