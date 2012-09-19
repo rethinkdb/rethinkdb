@@ -39,7 +39,7 @@ public:
         size_t get_count() const { return count; }
         off_t get_offset() const { return offset; }
 
-        bool get_succeeded() const { return io_result == (int)count; }
+        bool get_succeeded() const { return io_result == static_cast<int>(count); }
 
     private:
         friend class pool_diskmgr_t;
@@ -51,6 +51,8 @@ public:
         size_t count;
         off_t offset;
 
+        // TODO: io_result almost probably definitely should be an
+        // int64_t or was at some point, like in libaio.
         int io_result;
 
         void run();

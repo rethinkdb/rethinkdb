@@ -20,6 +20,7 @@ public:
 
     btree_store_t(io_backender_t *io_backender,
                   const std::string& filename,
+                  int64_t cache_target,
                   bool create,
                   perfmon_collection_t *parent_perfmon_collection,
                   typename protocol_t::context_t *);

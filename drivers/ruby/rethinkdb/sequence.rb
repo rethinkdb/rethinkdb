@@ -39,11 +39,12 @@ module RethinkDB
     #   people.filter({:age => r.mul(:height, 2)})
     def filter(obj=nil)
       if obj
-        raise SyntaxError,"Filter: Not a hash: #{obj.inspect}." if obj.class != Hash
-        self.filter { |row|
-          JSON_Expression.new [:call, [:all], obj.map{|kv|
-                                 row.getattr(kv[0]).eq(S.r(kv[1]))}]
-        }
+        if obj.class == Hash         then self.filter { |row|
+            JSON_Expression.new [:call, [:all], obj.map{|kv|
+                                   row.getattr(kv[0]).eq(S.r(kv[1]))}]}
+        elsif obj.kind_of? RQL_Query then self.filter {obj}
+        else raise SyntaxError,"Filter: Not a hash or RQL query: #{obj.inspect}."
+        end
       else
         S.with_var{|vname,v|
           self.class.new [:call, [:filter, vname, S.r(yield(v))], [@body]]}
@@ -91,6 +92,16 @@ module RethinkDB
     def map
       S.with_var{|vname,v|
         self.class.new [:call, [:map, vname, S.r(yield(v))], [@body]]}
+    end
+
+    # For each element of a sequence, picks out the specified
+    # attributes from the object and returns only those.
+    # If the input is not an array, fails when the query is run.
+    #   expr([{ 'a' => 1, 'b' => 1, 'c' => 1},
+    #         { 'a' => 2, 'b' => 2, 'c' => 2}]).pluck('a', 'b').run()
+    #   [{ 'a' => 1, 'b' => 1 }, { 'a' => 2, 'b' => 2 }]
+    def pluck(*args)
+      self.map {|x| x.pickattrs(*args)}
     end
 
     # Order a sequence of objects by one or more attributes.  For

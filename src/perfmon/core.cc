@@ -28,7 +28,7 @@ public:
     stats_collection_context_t(rwi_lock_t *constituents_lock,
                                const intrusive_list_t<perfmon_membership_t> &constituents) :
         lock_sentry(constituents_lock),
-        DEBUG_ONLY(size(constituents.size()),)
+        DEBUG_ONLY(size(constituents.size()), )
         contexts(new void *[constituents.size()])
     { }
 

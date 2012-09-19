@@ -1,5 +1,5 @@
-#ifndef __RPC_SEMILATTICE_WATCHABLE_HPP__
-#define __RPC_SEMILATTICE_WATCHABLE_HPP__
+#ifndef RPC_SEMILATTICE_WATCHABLE_HPP_
+#define RPC_SEMILATTICE_WATCHABLE_HPP_
 
 template <class T>
 class semilattice_watchable_t : public watchable_t<T> {
@@ -36,4 +36,4 @@ cross_thread_watchable_variable_t<T> cross_thread_watchable_from_semilattice(boo
     return cross_thread_watchable_variable_t<T>(new semilattice_watchable_t<T>(view), dest_thread);
 }
 
-#endif
+#endif  // RPC_SEMILATTICE_WATCHABLE_HPP_

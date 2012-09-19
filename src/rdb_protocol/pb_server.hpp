@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_PB_SERVER_HPP_
 
 #include <map>
+#include <string>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -30,6 +31,8 @@ private:
     Response handle(Query *q, context_t *query_context);
     protob_server_t<Query, Response, context_t> server;
     rdb_protocol_t::context_t *ctx;
+    uuid_t parser_id;
+    one_per_thread_t<int> thread_counters;
 };
 
 Response on_unparsable_query(Query *q, std::string msg);

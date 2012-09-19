@@ -106,7 +106,7 @@ rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
     }
 }
 
-rdb_protocol_t::context_t::~context_t() { };
+rdb_protocol_t::context_t::~context_t() { }
 
 // Construct a region containing only the specified key
 region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
@@ -194,9 +194,9 @@ public:
 
 class unshard_visitor_t : public boost::static_visitor<void> {
 public:
-    unshard_visitor_t(const read_response_t *_responses, 
+    unshard_visitor_t(const read_response_t *_responses,
                       size_t _count,
-                      read_response_t *_response_out, context_t *ctx) 
+                      read_response_t *_response_out, context_t *ctx)
         : responses(_responses), count(_count), response_out(_response_out),
           env(ctx->pool_group,
               ctx->ns_repo,
@@ -465,10 +465,11 @@ void write_t::unshard(const write_response_t *responses, DEBUG_VAR size_t count,
 
 store_t::store_t(io_backender_t *io_backend,
                  const std::string& filename,
+                 int64_t cache_target,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
                  context_t *_ctx) :
-    btree_store_t<rdb_protocol_t>(io_backend, filename, create, parent_perfmon_collection, _ctx),
+    btree_store_t<rdb_protocol_t>(io_backend, filename, cache_target, create, parent_perfmon_collection, _ctx),
     ctx(_ctx)
 { }
 

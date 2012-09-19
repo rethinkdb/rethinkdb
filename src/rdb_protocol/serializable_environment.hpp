@@ -66,4 +66,4 @@ struct scopes_t {
 
 } //namespace query_language
 
-#endif
+#endif  // RDB_PROTOCOL_SERIALIZABLE_ENVIRONMENT_HPP_

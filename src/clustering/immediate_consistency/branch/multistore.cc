@@ -57,7 +57,7 @@ void multistore_ptr_t<protocol_t>::do_initialize(int i, store_view_t<protocol_t>
     // We do a region intersection because store_subview_t requires that the region mask be a subset of the store region.
     store_views_[i] = new store_subview_t<protocol_t>(store_views[i],
                                                       region_intersection(protocol_t::cpu_sharding_subspace(i, num_stores()),
- region_intersection(region_, store_views[i]->get_region())));
+                                                                          region_intersection(region_, store_views[i]->get_region())));
 
     // We have an internal sink for each thread of internal_sources.
     // However really one of them goes unused, because

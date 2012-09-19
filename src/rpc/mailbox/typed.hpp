@@ -84,7 +84,7 @@ class mailbox_t< void() > {
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void() > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void() > *_parent) : parent(_parent) { }
         void read(UNUSED read_stream_t *stream) {
             if (parent->callback_mode == mailbox_callback_mode_coroutine) {
                 coro_t::spawn_sometime(boost::bind(parent->fun));
@@ -142,7 +142,7 @@ class mailbox_t< void(arg0_t) > {
         friend class read_impl_t;
         const arg0_t &arg0;
     public:
-        write_impl_t(const arg0_t& _arg0) :
+        explicit write_impl_t(const arg0_t& _arg0) :
             arg0(_arg0)
         { }
         void write(write_stream_t *stream) {
@@ -155,7 +155,7 @@ class mailbox_t< void(arg0_t) > {
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             int res = deserialize(stream, &arg0);
@@ -219,7 +219,7 @@ class mailbox_t< void(arg0_t, arg1_t) > {
         const arg0_t &arg0;
         const arg1_t &arg1;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1) :
+        explicit write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1) :
             arg0(_arg0), arg1(_arg1)
         { }
         void write(write_stream_t *stream) {
@@ -233,7 +233,7 @@ class mailbox_t< void(arg0_t, arg1_t) > {
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t, arg1_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -301,7 +301,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
         const arg1_t &arg1;
         const arg2_t &arg2;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2) :
+        explicit write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2)
         { }
         void write(write_stream_t *stream) {
@@ -316,7 +316,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -388,7 +388,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
         const arg2_t &arg2;
         const arg3_t &arg3;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3) :
+        explicit write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3)
         { }
         void write(write_stream_t *stream) {
@@ -404,7 +404,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -480,7 +480,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
         const arg3_t &arg3;
         const arg4_t &arg4;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4) :
+        explicit write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4)
         { }
         void write(write_stream_t *stream) {
@@ -497,7 +497,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -577,7 +577,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
         const arg4_t &arg4;
         const arg5_t &arg5;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5) :
+        explicit write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5)
         { }
         void write(write_stream_t *stream) {
@@ -595,7 +595,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -679,7 +679,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
         const arg5_t &arg5;
         const arg6_t &arg6;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6) :
+        explicit write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6)
         { }
         void write(write_stream_t *stream) {
@@ -698,7 +698,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -786,7 +786,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         const arg6_t &arg6;
         const arg7_t &arg7;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7) :
+        explicit write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7)
         { }
         void write(write_stream_t *stream) {
@@ -806,7 +806,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -898,7 +898,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         const arg7_t &arg7;
         const arg8_t &arg8;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8) :
+        explicit write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8)
         { }
         void write(write_stream_t *stream) {
@@ -919,7 +919,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -1015,7 +1015,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         const arg8_t &arg8;
         const arg9_t &arg9;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9) :
+        explicit write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9)
         { }
         void write(write_stream_t *stream) {
@@ -1037,7 +1037,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -1137,7 +1137,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         const arg9_t &arg9;
         const arg10_t &arg10;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10) :
+        explicit write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10)
         { }
         void write(write_stream_t *stream) {
@@ -1160,7 +1160,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -1264,7 +1264,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         const arg10_t &arg10;
         const arg11_t &arg11;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11) :
+        explicit write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11)
         { }
         void write(write_stream_t *stream) {
@@ -1288,7 +1288,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -1396,7 +1396,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         const arg11_t &arg11;
         const arg12_t &arg12;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11, const arg12_t& _arg12) :
+        explicit write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11, const arg12_t& _arg12) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11), arg12(_arg12)
         { }
         void write(write_stream_t *stream) {
@@ -1421,7 +1421,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -1533,7 +1533,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         const arg12_t &arg12;
         const arg13_t &arg13;
     public:
-        write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11, const arg12_t& _arg12, const arg13_t& _arg13) :
+        explicit write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11, const arg12_t& _arg12, const arg13_t& _arg13) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11), arg12(_arg12), arg13(_arg13)
         { }
         void write(write_stream_t *stream) {
@@ -1559,7 +1559,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;

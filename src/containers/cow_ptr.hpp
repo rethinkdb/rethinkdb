@@ -33,7 +33,7 @@ public:
 
     class change_t {
     public:
-        change_t(cow_ptr_t *parent);
+        explicit change_t(cow_ptr_t *parent);
         ~change_t();
         T *get();
     private:
@@ -49,4 +49,4 @@ private:
 
 #include "containers/cow_ptr.tcc"
 
-#endif   /* CONTAINERS_COW_PTR_HPP_ */
+#endif  // CONTAINERS_COW_PTR_HPP_

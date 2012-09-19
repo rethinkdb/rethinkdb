@@ -91,9 +91,16 @@ module RethinkDB
       elsif args.class == Array
         # Handle the case where we're constructinga the fields in order.
         args = args.map{|x| x == nil ? RQL.expr(x) : x}
-        message.fields.zip(args).each {|_params|;field = _params[0][1];arg = _params[1]
-          message_set(message, field.name,
-                      comp(field.type, arg, field.rule==:repeated)) if arg != nil
+        fields = message.fields.sort_by {|kv| kv[0]}
+        fields.zip(args).each {|_params|;field = _params[0][1];arg = _params[1]
+          if arg == S.skip
+            if field.rule != :optional
+              raise RuntimeError, "Cannot skip non-optional rule."
+            end
+          else
+            message_set(message, field.name,
+                        comp(field.type, arg, field.rule==:repeated)) if arg != nil
+          end
         }
       else
         # Handle the case where the user provided neither an Array nor a Hash,

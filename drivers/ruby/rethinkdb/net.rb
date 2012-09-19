@@ -14,13 +14,15 @@ module RethinkDB
   class Query_Results
     def initialize(connection, token) # :nodoc:
       @run = false
-      @connection = connection
+      @conn_id = connection.conn_id
+      @conn = connection
       @token = token
     end
 
     def each (&block) # :nodoc:
       raise RuntimeError, "Can only iterate over Query_Results once!" if @run
-      @connection.token_iter(@token, &block)
+      raise RuntimeError, "Connection has been reset!" if @conn.conn_id != @conn_id
+      @conn.token_iter(@token, &block)
       @run = true
       return self
     end
@@ -52,11 +54,28 @@ module RethinkDB
     end
 
     def start_listener # :nodoc:
+      class << @socket
+        def read_exn(len)
+          buf = read len
+          raise RuntimeError,"Connection closed by server." if !buf or buf.length != len
+          return buf
+        end
+      end
       @socket.send([@@magic_number].pack('L<'), 0)
+      @listener.terminate! if @listener
       @listener = Thread.new do
         loop do
-          response_length = @socket.recv(4).unpack('L<')[0]
-          response = @socket.recv(response_length)
+          begin
+            response_length = @socket.read_exn(4).unpack('L<')[0]
+            response = @socket.read_exn(response_length)
+          rescue RuntimeError => e
+            @mutex.synchronize do
+              @listener = nil
+              @waiters.each {|kv| kv[1].signal}
+            end
+            Thread.current.terminate!
+            abort("unreachable")
+          end
           #TODO: Recovery
           begin
             protob = Response.new.parse_from_string(response)
@@ -75,6 +94,18 @@ module RethinkDB
       end
     end
 
+    # Reconnect to the server.  This will interrupt all queries on the
+    # server and invalidate all outstanding enumerables on the client.
+    def reconnect
+      @socket.close if @socket
+      @socket = TCPSocket.open(@host, @port)
+      @waiters = {}
+      @data = {}
+      @mutex = Mutex.new
+      @conn_id += 1
+      start_listener
+    end
+
     def dispatch msg # :nodoc:
       PP.pp msg if $DEBUG
       payload = msg.serialize_to_string
@@ -85,10 +116,14 @@ module RethinkDB
     end
 
     def wait token # :nodoc:
+      res = nil
+      raise RuntimeError, "Connection closed by server!" if not @listener
       @mutex.synchronize do
         (@waiters[token] = ConditionVariable.new).wait(@mutex) if not @data[token]
-        return @data.delete token
+        res = @data.delete token if @data[token]
       end
+      raise RuntimeError, "Connection closed by server!" if !@listener or !res
+      return res
     end
 
     def continue token # :nodoc:
@@ -108,7 +143,15 @@ module RethinkDB
       loop do
         if (data == [])
           break if done
-          protob = wait token
+
+          begin
+            protob = wait token
+          rescue IRB::Abort => e
+            print "\nAborting query and reconnecting...\n"
+            self.reconnect()
+            raise e
+          end
+
           case protob.status_code
           when Response::StatusCode::SUCCESS_JSON then
             yield JSON.parse('['+protob.response[0]+']')[0]
@@ -137,15 +180,15 @@ module RethinkDB
     # You may also optionally provide a default database to use when
     # running queries over that connection.  Example:
     #   c = Connection.new('localhost', 12346, 'default_db')
-    def initialize(host='localhost', port=12346, default_db=nil)
+    def initialize(host='localhost', port=12346, default_db='Welcome-db')
       @@last = self
+      @host = host
+      @port = port
       @default_db = default_db
-      @socket = TCPSocket.open(host, port)
-      @waiters = {}
-      @data = {}
-      @mutex = Mutex.new
-      start_listener
+      @conn_id = 0
+      reconnect
     end
+    attr_reader :default_db, :conn_id
 
     # Change the default database of a connection.
     def use(new_default_db)
@@ -175,7 +218,7 @@ module RethinkDB
 
     # Close the connection.
     def close
-      @listener.terminate!
+      @listener.terminate! if @listener
       @socket.close
     end
   end
