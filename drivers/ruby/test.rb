@@ -544,6 +544,14 @@ class ClientTest < Test::Unit::TestCase
                  id_sort(rdb.filter{r[:id] < 5}.run.to_a))
   end
 
+  def test_pluck
+    e=r.expr([{ 'a' => 1, 'b' => 2, 'c' => 3},
+              { 'a' => 4, 'b' => 5, 'c' => 6}])
+    assert_equal(e.pluck().run(), [{}, {}])
+    assert_equal(e.pluck('a').run(), [{ 'a' => 1 }, { 'a' => 4 }])
+    assert_equal(e.pluck('a', 'b').run(), [{ 'a' => 1, 'b' => 2 }, { 'a' => 4, 'b' => 5 }])
+  end
+
   def test_pickattrs # PICKATTRS, # UNION, # LENGTH
     q1=r.union(rdb.map{r[:$_].pickattrs(:id,:name)}, rdb.map{|row| row.attrs(:id,:num)})
     q2=r.union(rdb.map{r[:$_].attrs(:id,:name)}, rdb.map{|row| row.pick(:id,:num)})
