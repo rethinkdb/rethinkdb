@@ -39,7 +39,7 @@ module RethinkDB
     #   people.filter({:age => r.mul(:height, 2)})
     def filter(obj=nil)
       if obj
-        if obj.class == Hash               then self.filter { |row|
+        if obj.class == Hash         then self.filter { |row|
             JSON_Expression.new [:call, [:all], obj.map{|kv|
                                    row.getattr(kv[0]).eq(S.r(kv[1]))}]}
         elsif obj.kind_of? RQL_Query then self.filter {obj}
