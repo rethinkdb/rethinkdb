@@ -95,11 +95,16 @@ module 'NamespaceView', ->
                 max_keys = d3.max shards, (d) -> return d.num_keys
                 min_keys = d3.min shards, (d) -> return d.num_keys
 
+                max_keys = 0 if not max_keys?
+                min_keys = 0 if not min_keys?
+
             data =
                 num_shards: @model.get('shards').length
                 has_shards: @model.get('shards').length  > 1
                 has_unsatisfiable_goals: @should_be_hidden
                 total_keys: total_keys if total_keys?
+                max_keys_defined: max_keys?
+                min_keys_defined: min_keys?
                 max_keys: max_keys if max_keys?
                 min_keys: min_keys if min_keys?
 
