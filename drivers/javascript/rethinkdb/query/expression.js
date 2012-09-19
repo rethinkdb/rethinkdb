@@ -595,13 +595,7 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'nth',
  */
 rethinkdb.Expression.prototype.filter = function(selector) {
     var predicateFunction;
-    if (selector instanceof rethinkdb.FunctionExpression) {
-        predicateFunction = selector;
-    } else if (selector instanceof rethinkdb.Expression) {
-        predicateFunction = newExpr_(rethinkdb.FunctionExpression,[''],  selector);
-    } else if (typeof selector === 'function') {
-        predicateFunction = rethinkdb.fn(selector);
-    } else if (typeof selector === 'object') {
+    if (typeof selector === 'object' && !(selector instanceof rethinkdb.Query)) {
         var ands = [];
         for (var key in selector) {
             if (selector.hasOwnProperty(key)) {
@@ -611,7 +605,7 @@ rethinkdb.Expression.prototype.filter = function(selector) {
         predicateFunction = newExpr_(rethinkdb.FunctionExpression,[''],
              newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.ALL, ands));
     } else {
-        throw new TypeError("Filter selector of type "+ typeof(selector));
+        predicateFunction = functionWrap_(selector);
     }
 
     return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.FILTER, [this],
