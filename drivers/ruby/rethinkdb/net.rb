@@ -14,13 +14,15 @@ module RethinkDB
   class Query_Results
     def initialize(connection, token) # :nodoc:
       @run = false
-      @connection = connection
+      @conn_id = connection.conn_id
+      @conn = connection
       @token = token
     end
 
     def each (&block) # :nodoc:
       raise RuntimeError, "Can only iterate over Query_Results once!" if @run
-      @connection.token_iter(@token, &block)
+      raise RuntimeError, "Connection has been reset!" if @conn.conn_id != @conn_id
+      @conn.token_iter(@token, &block)
       @run = true
       return self
     end
@@ -75,6 +77,18 @@ module RethinkDB
       end
     end
 
+    # Reconnect to the server.  This will interrupt all queries on the
+    # server and invalidate all outstanding enumerables on the client.
+    def reconnect
+      @socket.close if @socket
+      @socket = TCPSocket.open(@host, @port)
+      @waiters = {}
+      @data = {}
+      @mutex = Mutex.new
+      @conn_id += 1
+      start_listener
+    end
+
     def dispatch msg # :nodoc:
       PP.pp msg if $DEBUG
       payload = msg.serialize_to_string
@@ -108,7 +122,15 @@ module RethinkDB
       loop do
         if (data == [])
           break if done
-          protob = wait token
+
+          begin
+            protob = wait token
+          rescue IRB::Abort => e
+            print "\nAborting query and reconnecting...\n"
+            self.reconnect()
+            raise e
+          end
+
           case protob.status_code
           when Response::StatusCode::SUCCESS_JSON then
             yield JSON.parse('['+protob.response[0]+']')[0]
@@ -139,13 +161,13 @@ module RethinkDB
     #   c = Connection.new('localhost', 12346, 'default_db')
     def initialize(host='localhost', port=12346, default_db=nil)
       @@last = self
+      @host = host
+      @port = port
       @default_db = default_db
-      @socket = TCPSocket.open(host, port)
-      @waiters = {}
-      @data = {}
-      @mutex = Mutex.new
-      start_listener
+      @conn_id = 0
+      reconnect
     end
+    attr_reader :default_db, :conn_id
 
     # Change the default database of a connection.
     def use(new_default_db)
