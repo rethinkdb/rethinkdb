@@ -127,11 +127,9 @@ cJSON *render_as_json(cluster_directory_peer_type_t *peer_type);
 void apply_json_to(cJSON *, cluster_directory_peer_type_t *);
 void on_subfield_change(cluster_directory_peer_type_t *);
 
-
-extern const char *const METADATA_SUCCESS;
-extern const char *const METADATA_ERR_NONE;
-extern const char *const METADATA_ERR_MULTIPLE;
-extern const char *const METADATA_ERR_CONFLICT;
+enum metadata_search_status_t {
+    METADATA_SUCCESS, METADATA_ERR_NONE, METADATA_ERR_MULTIPLE, METADATA_CONFLICT
+};
 
 /* A helper class to search through metadata in various ways.  Can be
    constructed from a pointer to the internal map of the metadata,
@@ -167,7 +165,7 @@ public:
     /* Find the unique entry matching [predicate].  If there is no unique entry,
        return [end()] and set the optional status parameter appropriately. */
     template<class callable_t>
-    iterator find_uniq(callable_t predicate, const char **out = 0) {
+    iterator find_uniq(callable_t predicate, metadata_search_status_t *out = 0) {
         iterator it, retval;
         if (out) *out = METADATA_SUCCESS;
         retval = it = find_next(begin(), predicate);
@@ -180,7 +178,7 @@ public:
         return retval;
     }
     /* As above, but matches by name instead of a predicate. */
-    iterator find_uniq(const std::string &name, const char **out = 0) {
+    iterator find_uniq(const std::string &name, metadata_search_status_t *out = 0) {
         return find_uniq(name_predicate_t(&name), out);
     }
 

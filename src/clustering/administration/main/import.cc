@@ -158,7 +158,7 @@ bool get_or_create_namespace(UNUSED const boost::shared_ptr<semilattice_read_vie
                              std::string *primary_key_out) {
     namespaces_semilattice_metadata_t<rdb_protocol_t> ns = *namespaces->get();
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> > searcher(&ns.namespaces);
-    const char *error;
+    metadata_search_status_t error;
     std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator it = searcher.find_uniq(namespace_predicate_t(table_name, db_id), &error);
 
     if (error == METADATA_SUCCESS) {
@@ -196,7 +196,7 @@ bool get_or_create_database(machine_id_t us, const boost::shared_ptr<semilattice
     std::map<database_id_t, deletable_t<database_semilattice_metadata_t> > dbmap = databases->get().databases;
     metadata_searcher_t<database_semilattice_metadata_t> searcher(&dbmap);
 
-    const char *error;
+    metadata_search_status_t error;
     std::map<database_id_t, deletable_t<database_semilattice_metadata_t> >::iterator it = searcher.find_uniq(db_name, &error);
 
     if (error == METADATA_SUCCESS) {

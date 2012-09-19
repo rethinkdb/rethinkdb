@@ -326,11 +326,3 @@ template json_adapter_if_t::json_adapter_map_t get_json_subfields<mock::dummy_pr
 template cJSON *render_as_json<mock::dummy_protocol_t>(namespaces_directory_metadata_t<mock::dummy_protocol_t> *target);
 template void apply_json_to<mock::dummy_protocol_t>(cJSON *change, namespaces_directory_metadata_t<mock::dummy_protocol_t> *target);
 template void on_subfield_change<mock::dummy_protocol_t>(UNUSED namespaces_directory_metadata_t<mock::dummy_protocol_t> *target);
-
-
-
-const char *const METADATA_SUCCESS = 0;
-const char *const METADATA_ERR_NONE = "No entry with that name.";
-const char *const METADATA_ERR_MULTIPLE = "Multiple entries with that name.";
-const char *const METADATA_ERR_CONFLICT = "Entry with that name is in conflict.";
-
