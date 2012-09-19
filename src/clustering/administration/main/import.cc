@@ -211,7 +211,7 @@ bool get_or_create_namespace(machine_id_t us,
 
         *namespace_out = ns_id;
         *primary_key_out = primary_key;
-        return false;
+        return true;
     } else {
         // TODO(sam): Add a way to produce a good error message.
         *namespace_out = namespace_id_t();
@@ -271,7 +271,7 @@ bool do_json_importation(machine_id_t us,
     namespace_id_t namespace_id;
     std::string primary_key;
     if (!get_or_create_namespace(us, datacenters, namespaces, db_id, datacenter_name, table_name, maybe_primary_key, &namespace_id, &primary_key)) {
-        debugf("could not get or create namespace named '%s' (in db '%s')\n", table_name.c_str(), uuid_to_str(db_id).c_str());
+        debugf("could not get or create table named '%s' (in db '%s')\n", table_name.c_str(), uuid_to_str(db_id).c_str());
         return false;
     }
 
