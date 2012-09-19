@@ -1,8 +1,56 @@
 <script id="shards_container-template" type="text/x-handlebars-template">
     <div class="user-alert-space"></div>
     <h3>Shards for this table</h3>
-    
-    <div class="data_repartition-container"></div>
+    <div class="data_repartition-legend"></div>
+
+    <h4 class="title">Data repartition</h4>
+    <div class="data_repartition-container">Loading...</div>
+</script>
+
+<script id="status_shard-template" type="text/x-handlebars-template">
+    <ul class="legend legend_left">
+        <li class="title-legend"><h4>More statistics</h4></li>
+
+        <li class="more_statistics">
+        This table has {{num_shards}} {{pluralize_noun "shard" num_shards}}{{#unless total_keys}}.{{/unless}}
+        {{#if total_keys}}and contains {{total_keys}} keys.{{/if}}
+        </li>
+        <li class="more_statistics">
+            {{#if max_keys}}
+            Biggest shard has {{max_keys}} keys
+            {{else}}
+            Loading stats for biggest shards
+            {{/if}}
+        </li>
+        <li class="more_statistics">
+            {{#if min_keys}}
+            Smallest shard has {{min_keys}} keys
+            {{else}}
+            Loading stats for smallest shards
+            {{/if}}
+        </li>
+    </ul>
+    <ul class="legend legend_right">
+        <li class="title-legend"><h4>Operations on shards</h4></li>
+
+        {{#if has_unsatisfiable_goals}} 
+        <li class="more_statistics">
+            Solve the unsatisfiable goals before sharding.
+        </li>
+        {{else}}
+        <li class="more_statistics">
+            <a href="#" id="change_shards-link">Change number of shards</a>
+        </li>
+        <li class="more_statistics">
+            {{#if has_shards}}
+            <a href="#" class="rebalance_shards-link">Rebalance shards</a>
+            {{else}}
+            Rebalance shards (needs at least 2 shards)
+            {{/if}}
+        </li>
+           
+        {{/if}}
+    </ul>
 </script>
 
 <script id="change_shards-success-alert-template" type="text/x-handlebars-template">
@@ -27,45 +75,6 @@
 </script>
 
 <script id="data_repartition-template" type="text/x-handlebars-template">
-    <div class="data_repartition-legend">
-        <ul class="legend legend_left">
-            <li class="title-legend"><h4>More statistics</h4></li>
-
-            <li class="more_statistics">
-                This table has {{shards_length}} {{pluralize_noun "shard" shards_length}} and contains {{total_keys}} keys.
-            </li>
-            <li class="more_statistics">
-                {{#if max_keys}}
-                Biggest shard has {{max_keys}} keys
-                {{else}}
-                Loading stats for biggest shards
-                {{/if}}
-            </li>
-            <li class="more_statistics">
-                {{#if min_keys}}
-                Smallest shard has {{min_keys}} keys
-                {{else}}
-                Loading stats for smallest shards
-                {{/if}}
-            </li>
-        </ul>
-        <ul class="legend legend_right">
-            <li class="title-legend"><h4>Operations on shards</h4></li>
-
-            <li class="more_statistics">
-                <a href="#" id="change_shards-link">Change number of shards</a>
-            </li>
-            <li class="more_statistics">
-                {{#if has_shards}}
-                <a href="#" class="rebalance_shards-link">Rebalance shards</a>
-                {{else}}
-                Rebalance shards (needs at least 2 shards)
-                {{/if}}
-            </li>
-        </ul>
-    </div>
-
-    <h4 class="title">Data repartition</h4>
     <div class="data_repartition-graph">
         <svg class="data_repartition-diagram" width="700" height="350">
             <text x="300" y="150" class="loading_text-diagram">Loading data...</text>
