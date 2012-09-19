@@ -793,7 +793,7 @@ uuid_t meta_get_uuid(T searcher, U predicate,
 
 void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const backtrace_t &bt) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     // This must be performed on the semilattice_metadata's home thread,
-    int original_thread(get_thread_id());
+    int original_thread = get_thread_id();
     int metadata_home_thread = env->semilattice_metadata->home_thread();
     rassert(env->directory_read_manager->home_thread() == metadata_home_thread);
     cross_thread_signal_t ct_interruptor(env->interruptor, metadata_home_thread);
