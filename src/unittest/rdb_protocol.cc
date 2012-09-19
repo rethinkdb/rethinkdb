@@ -34,7 +34,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     rdb_protocol_t::context_t ctx;
 
     for (size_t i = 0; i < shards.size(); ++i) {
-        underlying_stores.push_back(new rdb_protocol_t::store_t(io_backender.get(), temp_files[i].name(), true, &get_global_perfmon_collection(), &ctx));
+        underlying_stores.push_back(new rdb_protocol_t::store_t(io_backender.get(), temp_files[i].name(), GIGABYTE, true, &get_global_perfmon_collection(), &ctx));
     }
 
     boost::ptr_vector<store_view_t<rdb_protocol_t> > stores;

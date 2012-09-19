@@ -258,6 +258,8 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
                 namespace_metadata.database = vclock_t<datacenter_id_t>(database_id, our_machine_id);
 
+                namespace_metadata.cache_size = vclock_t<int64_t>(GIGABYTE, our_machine_id);
+
                 cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&semilattice_metadata.memcached_namespaces);
                 change.get()->namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
             }
@@ -267,7 +269,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                 namespace_id_t namespace_id = generate_uuid();
 
                 namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata =
-                    new_namespace<rdb_protocol_t>(our_machine_id, database_id, datacenter_id, "Welcome-rdb", "id", port_constants::namespace_port);
+                    new_namespace<rdb_protocol_t>(our_machine_id, database_id, datacenter_id, "Welcome-rdb", "id", port_constants::namespace_port, GIGABYTE);
 
                 persistable_blueprint_t<rdb_protocol_t> blueprint;
                 std::map<rdb_protocol_t::region_t, blueprint_role_t> roles;

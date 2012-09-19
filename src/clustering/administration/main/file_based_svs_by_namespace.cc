@@ -4,15 +4,33 @@
 #include "clustering/reactor/reactor.hpp"
 #include "db_thread_info.hpp"
 
+/* This object serves mostly as a container for arguments to the
+ * do_construct_existing_store function because we hit the boost::bind argument
+ * limit. */
 template <class protocol_t>
-void do_construct_existing_store(int i, io_backender_t *io_backender,
-                                 perfmon_collection_t *serializers_perfmon_collection,
+struct store_args_t {
+    store_args_t(io_backender_t *_io_backender, namespace_id_t _namespace_id,
+                 int64_t _cache_size, perfmon_collection_t *_serializers_perfmon_collection,
+                 typename protocol_t::context_t *_ctx)
+        : io_backender(_io_backender), namespace_id(_namespace_id), cache_size(_cache_size),
+          serializers_perfmon_collection(_serializers_perfmon_collection),
+          ctx(_ctx)
+    { }
+
+    io_backender_t *io_backender;
+    namespace_id_t namespace_id;
+    int64_t cache_size;
+    perfmon_collection_t *serializers_perfmon_collection;
+    typename protocol_t::context_t *ctx;
+};
+
+template <class protocol_t>
+void do_construct_existing_store(int i, 
+                                 store_args_t<protocol_t> store_args,
                                  file_based_svs_by_namespace_t<protocol_t> *fbssvsbn,
-                                 namespace_id_t namespace_id,
                                  int num_db_threads,
                                  stores_lifetimer_t<protocol_t> *stores_out,
-                                 store_view_t<protocol_t> **store_views,
-                                 typename protocol_t::context_t *ctx) {
+                                 store_view_t<protocol_t> **store_views) {
 
     // TODO: Exceptions?  Can exceptions happen, and then this doesn't
     // catch it, and the caller doesn't handle it.
@@ -24,29 +42,31 @@ void do_construct_existing_store(int i, io_backender_t *io_backender,
     // threads.
     on_thread_t th(i % num_db_threads);
 
-    std::string file_name = fbssvsbn->file_name_for(namespace_id, i);
+    std::string file_name = fbssvsbn->file_name_for(store_args.namespace_id, i);
 
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
-    typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, false, serializers_perfmon_collection, ctx);
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(store_args.io_backender, file_name, 
+                                                                           store_args.cache_size, false, store_args.serializers_perfmon_collection, 
+                                                                           store_args.ctx);
     (*stores_out->stores())[i].init(store);
     store_views[i] = store;
 }
 
 template <class protocol_t>
-void do_create_new_store(int i, io_backender_t *io_backender,
-                         perfmon_collection_t *serializers_perfmon_collection,
+void do_create_new_store(int i,
+                         store_args_t<protocol_t> store_args,
                          file_based_svs_by_namespace_t<protocol_t> *fbssvsbn,
-                         namespace_id_t namespace_id,
                          int num_db_threads,
                          stores_lifetimer_t<protocol_t> *stores_out,
-                         store_view_t<protocol_t> **store_views,
-                         typename protocol_t::context_t *ctx) {
+                         store_view_t<protocol_t> **store_views) {
     // TODO: See the todo about thread distribution in do_construct_existing_store.  It is applicable here, too.
     on_thread_t th(i % num_db_threads);
 
-    std::string file_name = fbssvsbn->file_name_for(namespace_id, i);
+    std::string file_name = fbssvsbn->file_name_for(store_args.namespace_id, i);
 
-    typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, true, serializers_perfmon_collection, ctx);
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(store_args.io_backender, file_name, 
+                                                                           store_args.cache_size, true, store_args.serializers_perfmon_collection, 
+                                                                           store_args.ctx);
     (*stores_out->stores())[i].init(store);
     store_views[i] = store;
 }
@@ -56,6 +76,7 @@ void
 file_based_svs_by_namespace_t<protocol_t>::get_svs(
             perfmon_collection_t *serializers_perfmon_collection,
             namespace_id_t namespace_id,
+            int64_t cache_size,
             stores_lifetimer_t<protocol_t> *stores_out,
             scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out,
             typename protocol_t::context_t *ctx) {
@@ -73,6 +94,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     // on N serializers.
 
     int res = access(this->file_name_for(namespace_id, 0).c_str(), R_OK | W_OK);
+    store_args_t<protocol_t> store_args(io_backender_, namespace_id, cache_size, serializers_perfmon_collection, ctx);
     if (res == 0) {
         int num_stores = 1;
         while (0 == access(file_name_for(namespace_id, num_stores).c_str(), R_OK | W_OK)) {
@@ -90,9 +112,8 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         // them in the pmap?  No.
 
         pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>,
-                                     _1, io_backender_, serializers_perfmon_collection,
-                                     this, namespace_id,
-                                     num_db_threads, stores_out, store_views.data(), ctx));
+                                     _1, store_args, this,
+                                     num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
     } else {
@@ -108,9 +129,8 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
 
         pmap(num_stores, boost::bind(do_create_new_store<protocol_t>,
-                                     _1, io_backender_, serializers_perfmon_collection,
-                                     this, namespace_id,
-                                     num_db_threads, stores_out, store_views.data(), ctx));
+                                     _1,  store_args, this,
+                                     num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
 

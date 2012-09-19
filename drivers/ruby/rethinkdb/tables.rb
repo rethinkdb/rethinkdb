@@ -19,8 +19,9 @@ module RethinkDB
     # datacenter it should reside in and the primary key as well
     # (almost always "id").  When run, either returns <b>+nil+</b> or
     # throws on error.
-    def create_table(name, datacenter=@@default_datacenter,  primary_key="id")
-      Meta_Query.new [:create_table, datacenter, [@db_name, name], primary_key]
+    def create_table(name, datacenter=@@default_datacenter,  primary_key=nil)
+      primary_key_lst = primary_key ? [primary_key] : []
+      Meta_Query.new [:create_table, datacenter, [@db_name, name], *primary_key_lst]
     end
 
     # Drop the table <b>+name+</b> from this database.  When run,

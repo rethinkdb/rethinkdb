@@ -29,35 +29,23 @@ class Namespace extends Backbone.Model
     compute_shards: =>
         @.set 'computed_shards', new DataUtils.Shards [],@
 
-    interval: 0
-    set_interval_key_distr: =>
-        @set_interval = setInterval @load_key_distr, @interval
-
-    clear_interval_key_distr: ->
-        if @set_interval?
-            clearInterval @set_interval
-            @interval = 0
-
-
-    compare_keys: (a, b) ->
-        pattern = /^(%22).*(%22)$/
-        if pattern.test(a) is true
-            a_new = a.slice(3, a.length-3)
-        else if _.isNaN(parseFloat(a)) is false
-            a_new = parseFloat(a)
-        else if a is ""
-            a_new = -Infinity
-        else
+    transform_key: (a) ->
+        if a is null
             a_new = a
+        else if a is ""
+            a_new is -Infinity
+        else if typeof a is "string" and a[0]? and a[0] is 'N'
+            s = a.slice(a.indexOf("%23")+3)
+            if _.isNaN(parseFloat(s)) is false
+                a_new = parseFloat(s)
+        else if typeof a is "string" and a[0]? and a[0] is 'S'
+            a_new = a.slice(1)
+        return a_new
 
-        if pattern.test(b) is true
-            b_new = b.slice(3, b.length-3)
-        else if _.isNaN(parseFloat(b)) is false
-            b_new = parseFloat(b)
-        else if b is ""
-            b_new = -Infinity
-        else
-            b_new = b
+    compare_keys: (a, b) =>
+        a_new = @transform_key(a)
+        b_new = @transform_key(b)
+
         if typeof a_new is 'number' and typeof b_new is 'number'
             return a_new-b_new
         else if typeof a_new is 'string' and typeof b_new is 'string'
@@ -76,38 +64,10 @@ class Namespace extends Backbone.Model
                 return 1
         return 0
 
-    # Cache key distribution info.
-    load_key_distr: =>
-        $.ajax
-            processData: false
-            url: "/ajax/distribution?namespace=#{@get('id')}&depth=1"
-            type: 'GET'
-            contentType: 'application/json'
-            success: (distr_data) =>
-                # Cache the data
-                # Sort the keys and cache that too
-                distr_keys = []
-                for key, count of distr_data
-                    distr_keys.push(key)
-                distr_keys.sort(@compare_keys)
-
-                @set('key_distr_sorted', distr_keys)
-                @set('key_distr', distr_data)
-                if @interval isnt 5000
-                    @clear_interval_key_distr()
-                    @interval = 5000
-                    @set_interval_key_distr()
-
-            error: =>
-                if @interval isnt 1000
-                    @clear_interval_key_distr()
-                    @interval = 1000
-                    @set_interval_key_distr()
-
     load_key_distr_once: =>
         $.ajax
             processData: false
-            url: "/ajax/distribution?namespace=#{@get('id')}&depth=1"
+            url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
             type: 'GET'
             contentType: 'application/json'
             success: (distr_data) =>
