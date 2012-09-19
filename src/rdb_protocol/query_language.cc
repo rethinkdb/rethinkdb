@@ -363,7 +363,6 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
     case Builtin::IMPLICIT_WITHOUT:
     case Builtin::PICKATTRS:
     case Builtin::IMPLICIT_PICKATTRS:
-        check_protobuf(b.attrs_size());
         break;
     case Builtin::FILTER: {
         check_protobuf(b.has_filter());
