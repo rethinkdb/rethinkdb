@@ -23,7 +23,7 @@ public:
               &pm_keys_read, "keys_read",
               &pm_keys_set, "keys_set",
               &pm_keys_expired, "keys_expired",
-              NULL)
+              NULLPTR)
     { }
 
     perfmon_collection_t btree_collection;

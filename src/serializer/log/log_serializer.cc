@@ -47,7 +47,7 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_old_garbage_blocks, "serializer_old_garbage_blocks",
           &pm_serializer_old_total_blocks, "serializer_old_total_blocks",
           &pm_serializer_lba_gcs, "serializer_lba_gcs",
-          NULL)
+          NULLPTR)
 { }
 
 void log_serializer_t::create(io_backender_t *backender, private_dynamic_config_t private_dynamic_config, static_config_t static_config) {
