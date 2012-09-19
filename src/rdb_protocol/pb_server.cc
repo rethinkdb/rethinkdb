@@ -10,7 +10,7 @@
 query_server_t::query_server_t(int port, rdb_protocol_t::context_t *_ctx) :
     server(port, boost::bind(&query_server_t::handle, this, _1, _2),
            &on_unparsable_query, INLINE),
-    ctx(_ctx)
+    ctx(_ctx), parser_id(generate_uuid()), thread_counters(0)
 { }
 
 http_app_t *query_server_t::get_http_app() {
@@ -55,7 +55,8 @@ Response query_server_t::handle(Query *q, context_t *query_context) {
             ctx->cross_thread_database_watchables[thread]->get_watchable(),
             ctx->semilattice_metadata,
             ctx->directory_read_manager,
-            js_runner, interruptor, ctx->machine_id);
+            js_runner, interruptor, ctx->machine_id,
+            parser_id, &thread_counters);
         //[execute_query] will set the status code unless it throws
         execute_query(q, &runtime_environment, &res, scopes_t(),
                       root_backtrace, stream_cache);
