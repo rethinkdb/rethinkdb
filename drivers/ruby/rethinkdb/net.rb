@@ -54,11 +54,28 @@ module RethinkDB
     end
 
     def start_listener # :nodoc:
+      class << @socket
+        def read_exn(len)
+          buf = read len
+          raise RuntimeError,"Connection closed by server." if !buf or buf.length != len
+          return buf
+        end
+      end
       @socket.send([@@magic_number].pack('L<'), 0)
+      @listener.terminate! if @listener
       @listener = Thread.new do
         loop do
-          response_length = @socket.recv(4).unpack('L<')[0]
-          response = @socket.recv(response_length)
+          begin
+            response_length = @socket.read_exn(4).unpack('L<')[0]
+            response = @socket.read_exn(response_length)
+          rescue RuntimeError => e
+            @mutex.synchronize do
+              @listener = nil
+              @waiters.each {|kv| kv[1].signal}
+            end
+            Thread.current.terminate!
+            abort("unreachable")
+          end
           #TODO: Recovery
           begin
             protob = Response.new.parse_from_string(response)
@@ -99,10 +116,14 @@ module RethinkDB
     end
 
     def wait token # :nodoc:
+      res = nil
+      raise RuntimeError, "Connection closed by server!" if not @listener
       @mutex.synchronize do
         (@waiters[token] = ConditionVariable.new).wait(@mutex) if not @data[token]
-        return @data.delete token
+        res = @data.delete token if @data[token]
       end
+      raise RuntimeError, "Connection closed by server!" if !@listener or !res
+      return res
     end
 
     def continue token # :nodoc:
@@ -197,7 +218,7 @@ module RethinkDB
 
     # Close the connection.
     def close
-      @listener.terminate!
+      @listener.terminate! if @listener
       @socket.close
     end
   end
