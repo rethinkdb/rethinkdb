@@ -24,13 +24,14 @@
 
 bool do_json_importation(machine_id_t machine_id,
                          const boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> > &databases,
+                         const boost::shared_ptr<semilattice_read_view_t<datacenters_semilattice_metadata_t> > &datacenters,
                          const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
                          namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
-                         std::string db_name, std::string table_name, boost::optional<std::string> primary_key,
+                         json_import_target_t target,
                          signal_t *interruptor);
 
 
-bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_address_t> joins, int ports_port, int ports_client_port, std::string db_name, std::string table_name, boost::optional<std::string> primary_key, json_importer_t *importer, signal_t *stop_cond) {
+bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_address_t> joins, int ports_port, int ports_client_port, json_import_target_t target, json_importer_t *importer, signal_t *stop_cond) {
 
     guarantee(spawner_info);
     extproc::pool_group_t extproc_pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
@@ -142,12 +143,15 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_add
     // TODO: Handle interrupted exceptions?
     return do_json_importation(machine_id,
                                metadata_field(&cluster_semilattice_metadata_t::databases, semilattice_manager_cluster.get_root_view()),
+                               metadata_field(&cluster_semilattice_metadata_t::datacenters, semilattice_manager_cluster.get_root_view()),
                                metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()),
-                               &rdb_namespace_repo, importer, db_name, table_name, primary_key, stop_cond);
+                               &rdb_namespace_repo, importer, target, stop_cond);
 }
 
-bool get_or_create_namespace(const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
+bool get_or_create_namespace(UNUSED const boost::shared_ptr<semilattice_read_view_t<datacenters_semilattice_metadata_t> > &datacenters,
+                             const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
                              database_id_t db_id,
+                             UNUSED boost::optional<std::string> datacenter_name,
                              std::string table_name,
                              boost::optional<std::string> maybe_primary_key,
                              namespace_id_t *namespace_out,
@@ -174,6 +178,10 @@ bool get_or_create_namespace(const boost::shared_ptr<semilattice_readwrite_view_
         *namespace_out = it->first;
         return true;
     } else if (error == METADATA_ERR_NONE) {
+
+        // TODO(sam) implement
+
+
         *namespace_out = namespace_id_t();
         primary_key_out->clear();
         return false;
@@ -214,10 +222,15 @@ bool get_or_create_database(machine_id_t us, const boost::shared_ptr<semilattice
 
 bool do_json_importation(machine_id_t machine_id,
                          const boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> > &databases,
+                         const boost::shared_ptr<semilattice_read_view_t<datacenters_semilattice_metadata_t> > &datacenters,
                          const boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &namespaces,
                          namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
-                         std::string db_name, std::string table_name, boost::optional<std::string> maybe_primary_key,
+                         json_import_target_t target,
                          signal_t *interruptor) {
+    std::string db_name = target.db_name;
+    boost::optional<std::string> datacenter_name = target.datacenter_name;
+    std::string table_name = target.table_name;
+    boost::optional<std::string> maybe_primary_key = target.primary_key;
 
     database_id_t db_id;
     if (!get_or_create_database(machine_id, databases, db_name, &db_id)) {
@@ -227,7 +240,7 @@ bool do_json_importation(machine_id_t machine_id,
 
     namespace_id_t namespace_id;
     std::string primary_key;
-    if (!get_or_create_namespace(namespaces, db_id, table_name, maybe_primary_key, &namespace_id, &primary_key)) {
+    if (!get_or_create_namespace(datacenters, namespaces, db_id, datacenter_name, table_name, maybe_primary_key, &namespace_id, &primary_key)) {
         debugf("could not get or create namespace named '%s' (in db '%s')\n", table_name.c_str(), uuid_to_str(db_id).c_str());
         return false;
     }

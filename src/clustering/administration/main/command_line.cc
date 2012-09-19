@@ -108,14 +108,14 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     }
 }
 
-void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<host_and_port_t> joins, int client_port, std::string db_name, std::string table_name, boost::optional<std::string> primary_key, std::string separators, std::string input_filepath, bool *result_out) {
+void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<host_and_port_t> joins, int client_port, json_import_target_t target, std::string separators, std::string input_filepath, bool *result_out) {
     os_signal_cond_t sigint_cond;
     guarantee(!joins.empty());
 
     csv_to_json_importer_t importer(separators, input_filepath);
 
     // TODO(sam): Make the peer port be configurable.
-    *result_out = run_json_import(spawner_info, look_up_peers_addresses(joins), 0, client_port, db_name, table_name, primary_key, &importer, &sigint_cond);
+    *result_out = run_json_import(spawner_info, look_up_peers_addresses(joins), 0, client_port, target, &importer, &sigint_cond);
 }
 
 void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
@@ -412,6 +412,7 @@ po::options_description get_rethinkdb_import_options() {
         // no default value.  Or am I supposed to wade my way back into the
         // program_options documentation again?
         ("table", po::value<std::string>()->default_value(""), "the database table to which to import")
+        ("datacenter", po::value<std::string>()->default_value(""), "the datacenter into which to create a table")
         ("primary-key", po::value<std::string>()->default_value(""), "the primary key to create a new table with, or expected primary key")
         ("separators,s", po::value<std::string>()->default_value("\t,"), "list of characters to be used as whitespace -- uses \" \t,\" by default")
         ("input-file", po::value<std::string>()->default_value(""), "the csv input file");
@@ -686,6 +687,12 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        std::string datacenter_name_arg = vm["datacenter"].as<std::string>();
+        boost::optional<std::string> datacenter_name;
+        if (!datacenter_name_arg.empty()) {
+            datacenter_name = datacenter_name_arg;
+        }
+
         std::string primary_key_arg = vm["primary-key"].as<std::string>();
         boost::optional<std::string> primary_key;
         if (!primary_key_arg.empty()) {
@@ -710,9 +717,16 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         extproc::spawner_t::info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);
 
+        json_import_target_t target;
+        target.db_name = db_name;
+        target.datacenter_name = datacenter_name;
+        target.table_name = table_name;
+        target.primary_key = primary_key;
+
         const int num_workers = get_cpu_count();
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_import, &spawner_info, joins, client_port, db_name, table_name, primary_key, separators, input_filepath, &result),
+        run_in_thread_pool(boost::bind(&run_rethinkdb_import, &spawner_info, joins, client_port,
+                                       target, separators, input_filepath, &result),
                            num_workers);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;

@@ -5,16 +5,21 @@
 #include <string>
 
 #include "errors.hpp"
-#include "extproc/spawner.hpp"
+#include <boost/optional.hpp>
 
-namespace boost {
-template <class> class optional;
-};
+#include "extproc/spawner.hpp"
 
 class peer_address_t;
 class json_importer_t;
 
-bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_address_t> peers, int ports_port, int ports_client_port, std::string db_name, std::string table_name, boost::optional<std::string> primary_key, json_importer_t *importer, signal_t *stop_cond);
+struct json_import_target_t {
+    std::string db_name;
+    boost::optional<std::string> datacenter_name;
+    std::string table_name;
+    boost::optional<std::string> primary_key;
+};
+
+bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_address_t> peers, int ports_port, int ports_client_port, json_import_target_t import_args, json_importer_t *importer, signal_t *stop_cond);
 
 
 
