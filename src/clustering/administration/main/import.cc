@@ -168,16 +168,13 @@ bool get_or_create_namespace(UNUSED const boost::shared_ptr<semilattice_read_vie
                 *namespace_out = namespace_id_t();
                 primary_key_out->clear();
                 return false;
-            } else {
-                *primary_key_out = *maybe_primary_key;
             }
-        } else {
-            *primary_key_out = existing_pk;
         }
-
+        *primary_key_out = existing_pk;
         *namespace_out = it->first;
         return true;
     } else if (error == METADATA_ERR_NONE) {
+        // 
 
         // TODO(sam) implement
 
