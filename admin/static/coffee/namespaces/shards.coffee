@@ -5,8 +5,9 @@ module 'NamespaceView', ->
 
     class @Sharding extends Backbone.View
         template: Handlebars.compile $('#shards_container-template').html()
-        change_shards_fail_alert_template: Handlebars.compile $('#change_shards-fail-alert-template').html()
+        status_template: Handlebars.compile $('#status_shard-template').html()
         data_repartition_template: Handlebars.compile $('#data_repartition-template').html()
+        change_shards_fail_alert_template: Handlebars.compile $('#change_shards-fail-alert-template').html()
         rebalance_shards_success_alert_template: Handlebars.compile $('#rebalance_shards-success-alert-template').html()
         className: 'shards_container'
         events:
@@ -14,11 +15,6 @@ module 'NamespaceView', ->
             'click .rebalance_shards-link': 'rebalance_shards'
 
         initialize: =>
-            @shards_length = @model.get('shards').length
-
-            # We should rerender on key distro updates
-            @model.on 'change:shards', @check_num_shards_changed
-
             # Forbid changes if issues
             issues.on 'all', @check_has_unsatisfiable_goals
             @check_has_unsatisfiable_goals()
@@ -26,6 +22,10 @@ module 'NamespaceView', ->
             # Listeners/cache for the data repartition
             @model.on 'change:key_distr', @render_data_repartition
             @model.on 'change:shards', @render_data_repartition
+
+            @model.on 'change:key_distr', @render_status
+            @model.on 'change:shards', @render_status
+
             @data_repartition = {}
 
             @change_shards_modal = new NamespaceView.ChangeShardsModal
@@ -77,19 +77,23 @@ module 'NamespaceView', ->
             @.$('change_shards_container').css 'display', 'block'
 
         render: =>
-            data =
-                num_shards: @model.get('shards').length
-                no_shard: @model.get('shards').length is 1
-
-            @.$el.html @template data
-
-            @shards_length = @model.get('shards').length
+            @.$el.html @template({})
+            @render_status()
 
             return @
 
-        check_num_shards_changed: =>
-            if @model.get('shards').length isnt @shards_length
-                @render()
+        render_status: =>
+            if @model.get('key_distr')?
+                total_keys = 0
+                for key of @model.get('key_distr')
+                    total_keys += parseInt @model.get('key_distr')[key]
+            data =
+                num_shards: @model.get('shards').length
+                has_shards: @model.get('shards').length  > 1
+                has_unsatisfiable_goals: @should_be_hidden
+                total_keys: total_keys if total_keys?
+
+            @.$('.data_repartition-legend').html @status_template data
 
         render_data_repartition: =>
             $('.tooltip').remove()
@@ -104,130 +108,118 @@ module 'NamespaceView', ->
 
             max_keys = d3.max shards, (d) -> return d.num_keys
             min_keys = d3.min shards, (d) -> return d.num_keys
-            json =
-                max_keys: max_keys
-                min_keys: min_keys
-                shards_length: shards.length
-                total_jeys: total_keys
 
+            #TODO remove data. We don't need it anymore.
+            data = {}
             if shards.length > 1
-                json.has_shards = true
+                data.has_shards = true
                 if shards.length > 11
-                    json.numerous_shards = true
+                    data.numerous_shards = true
             else
-                json.has_shards = false
+                data.has_shards = false
 
-            # So we don't update every seconds
-            need_update = false
-            for key of json
-                if not @data_repartition[key]? or @data_repartition[key] != json[key]
-                    need_update = true
-                    break
+            if @model.get('key_distr')? and max_keys? and not _.isNaN max_keys and shards.length isnt 0 # Should not happen
 
-            if need_update and @model.get('key_distr')?
-                @.$('.data_repartition-container').html @data_repartition_template json
-
+                @.$('.data_repartition-container').html @data_repartition_template data
                 @.$('.loading_text-diagram').css 'display', 'none'
-                @data_repartition = json
+                margin_width = 20
+                margin_height = 20
 
+                margin_width_inner = 20
+                width = 28
+                margin_bar = 2
 
-                # Draw histogram
-                if json.max_keys? and not _.isNaN json.max_keys and shards.length isnt 0
-                    margin_width = 20
-                    margin_height = 20
+                svg_height = 270
 
-                    margin_width_inner = 20
-                    width = 28
-                    margin_bar = 2
-
-                    svg_height = 270
-
-                    if json.numerous_shards? and json.numerous_shards
-                        if margin_width+margin_width_inner+(width+margin_bar)*json.shards_length+margin_width_inner+margin_width > 700
-                            svg_width = margin_width+margin_width_inner+(width+margin_bar)*json.shards_length+margin_width_inner+margin_width
-                            svg_width = Math.min svg_width, 700
-                            width_and_margin = (svg_width-margin_width*2-margin_width_inner*2)/json.shards_length
-                            width = width_and_margin/json.shards_length*(json.shards_length-2)
-                            margin_bar = width_and_margin/json.shards_length*2
-                        else
-                            svg_width = margin_width+margin_width_inner+(width+margin_bar)*json.shards_length+margin_width_inner+margin_width
-                        container_width = svg_width
+                if data.numerous_shards? and data.numerous_shards
+                    if margin_width+margin_width_inner+(width+margin_bar)*@model.get('shards').length+margin_width_inner+margin_width > 700
+                        svg_width = margin_width+margin_width_inner+(width+margin_bar)*@model.get('shards').length+margin_width_inner+margin_width
+                        svg_width = Math.min svg_width, 700
+                        width_and_margin = (svg_width-margin_width*2-margin_width_inner*2)/@model.get('shards').length
+                        width = width_and_margin/@model.get('shards').length*(@model.get('shards').length-2)
+                        margin_bar = width_and_margin/@model.get('shards').length*2
                     else
-                        svg_width = margin_width+margin_width_inner+(width+margin_bar)*json.shards_length+margin_width_inner+margin_width
-                        container_width = Math.max svg_width, 350
+                        svg_width = margin_width+margin_width_inner+(width+margin_bar)*@model.get('shards').length+margin_width_inner+margin_width
+                    container_width = svg_width
+                else
+                    svg_width = margin_width+margin_width_inner+(width+margin_bar)*@model.get('shards').length+margin_width_inner+margin_width
+                    container_width = Math.max svg_width, 350
 
- 
-                    @.$('.data_repartition-graph').css('width', container_width+'px')
-                    y = d3.scale.linear().domain([0, json.max_keys]).range([1, svg_height-margin_height*2.5])
 
-                    svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
-                    svg.selectAll('rect').data(shards)
-                        .enter()
-                        .append('rect')
-                        .attr('x', (d, i) ->
-                            return margin_width+margin_width_inner+(width+margin_bar)*i
-                        )
-                        .attr('y', (d) -> return svg_height-y(d.num_keys)-margin_height-1) #-1 not to overlap with axe
-                        .attr('width', width)
-                        .attr( 'height', (d) -> return y(d.num_keys))
-                        .attr( 'title', (d) ->
-                            pattern = /^(%22).*(%22)$/
-                            keys = $.parseJSON(d.boundaries)
-                            for key, i in keys
-                                if pattern.test(key) is true
-                                    keys[i] = key.slice(3, key.length-3)
+                @.$('.data_repartition-graph').css('width', container_width+'px')
+                y = d3.scale.linear().domain([0, max_keys]).range([1, svg_height-margin_height*2.5])
 
-                            result = 'Shard: '
-                            result += '[ '+keys[0]+', '+keys[1]+']'
-                            result += '<br />'+d.num_keys+' keys'
-                            return result
-                        )
-                
+                transform_key = @model.transform_key
+                svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
+                svg.selectAll('rect').data(shards)
+                    .enter()
+                    .append('rect')
+                    .attr('x', (d, i) ->
+                        return margin_width+margin_width_inner+(width+margin_bar)*i
+                    )
+                    .attr('y', (d) -> return svg_height-y(d.num_keys)-margin_height-1) #-1 not to overlap with axe
+                    .attr('width', width)
+                    .attr( 'height', (d) -> return y(d.num_keys))
+                    .attr( 'title', (d) ->
+                        keys = $.parseJSON(d.boundaries)
+                        for key, i in keys
+                            keys[i] = transform_key key
+                            if typeof keys[i] is 'number'
+                                keys[i] = keys[i].toString()
+                            if typeof keys[i] is 'string'
+                                keys[i] =keys[i].slice 0, 7
 
-                    arrow_width = 4
-                    arrow_length = 7
-                    extra_data = []
-                    extra_data.push
-                        x1: margin_width
-                        x2: margin_width
-                        y1: margin_height
-                        y2: svg_height-margin_height
+                        result = 'Shard: '
+                        result += '[ '+keys[0]+', '+keys[1]+']'
+                        result += '<br />'+d.num_keys+' keys'
+                        return result
+                    )
+            
 
-                    extra_data.push
-                        x1: margin_width
-                        x2: svg_width-margin_width
-                        y1: svg_height-margin_height
-                        y2: svg_height-margin_height
+                arrow_width = 4
+                arrow_length = 7
+                extra_data = []
+                extra_data.push
+                    x1: margin_width
+                    x2: margin_width
+                    y1: margin_height
+                    y2: svg_height-margin_height
 
-                    svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
-                    svg.selectAll('line').data(extra_data).enter().append('line')
-                        .attr('x1', (d) -> return d.x1)
-                        .attr('x2', (d) -> return d.x2)
-                        .attr('y1', (d) -> return d.y1)
-                        .attr('y2', (d) -> return d.y2)
-                        .style('stroke', '#000')
+                extra_data.push
+                    x1: margin_width
+                    x2: svg_width-margin_width
+                    y1: svg_height-margin_height
+                    y2: svg_height-margin_height
 
-                    axe_legend = []
-                    axe_legend.push
-                        x: margin_width
-                        y: Math.floor(margin_height/2)
-                        string: 'Keys'
-                        anchor: 'middle'
-                    axe_legend.push
-                        x: Math.floor(svg_width/2)
-                        y: svg_height
-                        string: 'Shards'
-                        anchor: 'middle'
+                svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
+                svg.selectAll('line').data(extra_data).enter().append('line')
+                    .attr('x1', (d) -> return d.x1)
+                    .attr('x2', (d) -> return d.x2)
+                    .attr('y1', (d) -> return d.y1)
+                    .attr('y2', (d) -> return d.y2)
+                    .style('stroke', '#000')
 
-                    svg.selectAll('.legend')
-                        .data(axe_legend).enter().append('text')
-                        .attr('x', (d) -> return d.x)
-                        .attr('y', (d) -> return d.y)
-                        .attr('text-anchor', (d) -> return d.anchor)
-                        .text((d) -> return d.string)
+                axe_legend = []
+                axe_legend.push
+                    x: margin_width
+                    y: Math.floor(margin_height/2)
+                    string: 'Keys'
+                    anchor: 'middle'
+                axe_legend.push
+                    x: Math.floor(svg_width/2)
+                    y: svg_height
+                    string: 'Shards'
+                    anchor: 'middle'
 
-                    @.$('rect').tooltip
-                        trigger: 'hover'
+                svg.selectAll('.legend')
+                    .data(axe_legend).enter().append('text')
+                    .attr('x', (d) -> return d.x)
+                    .attr('y', (d) -> return d.y)
+                    .attr('text-anchor', (d) -> return d.anchor)
+                    .text((d) -> return d.string)
+
+                @.$('rect').tooltip
+                    trigger: 'hover'
 
                 @delegateEvents()
             return @
@@ -240,6 +232,8 @@ module 'NamespaceView', ->
                 {},
                 undefined)
             confirmation_modal.on_submit = =>
+                confirmation_modal.$('.btn-primary').button('loading')
+                confirmation_modal.$('.cancel').button('loading')
 
                 new_num_shards = ''+@model.get('shards').length
 
