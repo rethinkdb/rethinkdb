@@ -167,9 +167,10 @@ module 'NamespaceView', ->
                 json.reachability = false
 
             #Compute the total number of keys
-            json.total_keys = 0
-            for key of @model.get('key_distr')
-                json.total_keys += @model.get('key_distr')[key]
+            if @model.get('key_distr')?
+                json.total_keys = 0
+                for key of @model.get('key_distr')
+                    json.total_keys += parseInt @model.get('key_distr')[key]
 
             json.stats_up_to_date = true
             for machine in machines.models

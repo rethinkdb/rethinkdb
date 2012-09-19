@@ -84,14 +84,24 @@ module 'NamespaceView', ->
 
         render_status: =>
             if @model.get('key_distr')?
+                shards = []
                 total_keys = 0
-                for key of @model.get('key_distr')
-                    total_keys += parseInt @model.get('key_distr')[key]
+                for shard in @model.get('shards')
+                    new_shard =
+                        boundaries: shard
+                        num_keys: parseInt @model.compute_shard_rows_approximation shard
+                    shards.push new_shard
+                total_keys += new_shard.num_keys
+                max_keys = d3.max shards, (d) -> return d.num_keys
+                min_keys = d3.min shards, (d) -> return d.num_keys
+
             data =
                 num_shards: @model.get('shards').length
                 has_shards: @model.get('shards').length  > 1
                 has_unsatisfiable_goals: @should_be_hidden
                 total_keys: total_keys if total_keys?
+                max_keys: max_keys if max_keys?
+                min_keys: min_keys if min_keys?
 
             @.$('.data_repartition-legend').html @status_template data
 
