@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_SCOPE_HPP_
 
 #include <deque>
+#include <list>
 #include <map>
 #include <set>
 #include <string>
@@ -25,9 +26,9 @@ public:
     }
 
     T get(const std::string &name) const {
-        for (typename scopes_t::const_iterator it  = scopes.begin();
-                                               it != scopes.end();
-                                               ++it) {
+        for (typename std::list<std::map<std::string, T> >::const_iterator it = scopes.begin();
+             it != scopes.end();
+             ++it) {
             typename std::map<std::string, T>::const_iterator jt = it->find(name);
             if (jt != it->end()) {
                 return jt->second;
@@ -40,9 +41,7 @@ public:
     // Calling this only makes sense in the typechecker. All variables
     // are guranteed by the typechecker to be present at runtime.
     bool is_in_scope(const std::string &name) const {
-        for (typename scopes_t::const_iterator it  = scopes.begin();
-                                               it != scopes.end();
-                                               ++it) {
+        for (typename std::list<std::map<std::string, T> >::const_iterator it = scopes.begin(); it != scopes.end(); ++it) {
             typename std::map<std::string, T>::const_iterator jt = it->find(name);
             if (jt != it->end()) {
                 return true;
@@ -100,8 +99,7 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(scopes);
 private:
-    typedef std::list<std::map<std::string, T> > scopes_t;
-    scopes_t scopes;
+    std::list<std::map<std::string, T> > scopes;
 };
 
 /* an implicit_value_t allows for a specific implicit value to exist at certain
@@ -166,8 +164,7 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_2(scopes, depth);
 private:
-    typedef std::list<boost::optional<T> > scopes_t;
-    scopes_t scopes;
+    std::list<boost::optional<T> > scopes;
     int depth;
 };
 

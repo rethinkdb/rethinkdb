@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_PB_SERVER_HPP_
 
 #include <map>
+#include <string>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>

@@ -1,9 +1,9 @@
-#include "unittest/gtest.hpp"
+#include "arch/runtime/context_switching.hpp"
 
 #include <stdexcept>
 
-#include "arch/runtime/context_switching.hpp"
 #include "containers/scoped.hpp"
+#include "unittest/gtest.hpp"
 
 namespace unittest {
 

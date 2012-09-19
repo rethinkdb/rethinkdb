@@ -42,8 +42,8 @@ private:
 
 class in_memory_stream_t : public json_stream_t {
 public:
-    in_memory_stream_t(json_array_iterator_t it);
-    in_memory_stream_t(boost::shared_ptr<json_stream_t> stream);
+    explicit in_memory_stream_t(json_array_iterator_t it);
+    explicit in_memory_stream_t(boost::shared_ptr<json_stream_t> stream);
 
     template <class Ordering>
     void sort(const Ordering &o) {
@@ -208,7 +208,7 @@ public:
             }
             scoped_cJSON_t val(cJSON_DeepCopy(json->GetObjectItem(attrname.c_str())));
             if (!val.get()) {
-                throw runtime_exc_t(strprintf("Object %s has not attribute %s.", json->Print().c_str(), attrname.c_str()),backtrace);
+                throw runtime_exc_t(strprintf("Object %s has no attribute %s.", json->Print().c_str(), attrname.c_str()), backtrace);
             } else if (val.type() != cJSON_Number && val.type() != cJSON_String) {
                 throw runtime_exc_t(strprintf("Primary key must be a number or string, not %s.", val.Print().c_str()), backtrace);
             } else if (range.contains_key(store_key_t(val.PrintLexicographic()))) {

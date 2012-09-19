@@ -24,7 +24,7 @@ typedef int8_t patch_operation_code_t;
  */
 class patch_deserialization_error_t {
 public:
-    patch_deserialization_error_t(const std::string &message);
+    explicit patch_deserialization_error_t(const std::string &message);
     const char *c_str() const { return message_.c_str(); }
 private:
     std::string message_;

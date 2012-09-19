@@ -70,7 +70,7 @@ void run_rethinkdb_create(const std::string &filepath, const std::string &machin
         metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, metadata);
         logINF("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
         *result_out = true;
-    } catch (metadata_persistence::file_in_use_exc_t &ex) {
+    } catch (const metadata_persistence::file_in_use_exc_t &ex) {
         logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
         *result_out = false;
     }
@@ -135,7 +135,7 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
                             store.read_metadata(),
                             web_assets,
                             &sigint_cond);
-    } catch (metadata_persistence::file_in_use_exc_t &ex) {
+    } catch (const metadata_persistence::file_in_use_exc_t &ex) {
         logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
         *result_out = false;
     }
@@ -164,7 +164,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                                 store.read_machine_id(), store.read_metadata(),
                                 web_assets,
                                 &sigint_cond);
-        } catch (metadata_persistence::file_in_use_exc_t &ex) {
+        } catch (const metadata_persistence::file_in_use_exc_t &ex) {
             logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
             *result_out = false;
         }
@@ -288,7 +288,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                                 our_machine_id, semilattice_metadata,
                                 web_assets,
                                 &sigint_cond);
-        } catch (metadata_persistence::file_in_use_exc_t &ex) {
+        } catch (const metadata_persistence::file_in_use_exc_t &ex) {
             logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
             *result_out = false;
         }
