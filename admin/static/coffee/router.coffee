@@ -138,7 +138,6 @@ class BackboneCluster extends Backbone.Router
             @$container.html @current_view.render().el
         
         if namespace?
-            @current_view.overview.render_data_in_memory()
             @current_view.shards.render_data_repartition()
 
         @sidebar.set_type_view()

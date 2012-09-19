@@ -35,7 +35,6 @@ module 'NamespaceView', ->
             @replicas = new NamespaceView.Replicas(model: @model)
             @shards = new NamespaceView.Sharding(model: @model)
             @pins = new NamespaceView.Pinning(model: @model)
-            @overview = new NamespaceView.Overview(model: @model)
             @other = new NamespaceView.Other(model: @model)
 
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
@@ -69,9 +68,6 @@ module 'NamespaceView', ->
             @.$('.profile').html @profile.render().$el
             @.$('.performance-graph').html @performance_graph.render().$el
 
-            # display the data on the machines
-            @.$('.namespace-overview-container').html @overview.render().$el
-
             # Display the replicas
             @.$('.replication').html @replicas.render().el
 
@@ -89,15 +85,12 @@ module 'NamespaceView', ->
             if tab?
                 @.$('.active').removeClass('active')
                 switch tab
-                    when 'overview'
-                        @.$('#namespace-overview').addClass('active')
-                        @.$('#namespace-overview-link').tab('show')
-                    when 'replication'
-                        @.$('#namespace-replication').addClass('active')
-                        @.$('#namespace-replication-link').tab('show')
                     when 'shards'
                         @.$('#namespace-sharding').addClass('active')
                         @.$('#namespace-sharding-link').tab('show')
+                    when 'replication'
+                        @.$('#namespace-replication').addClass('active')
+                        @.$('#namespace-replication-link').tab('show')
                     when 'assignments'
                         @.$('#namespace-pinning').addClass('active')
                         @.$('#namespace-pinning-link').tab('show')
@@ -105,8 +98,8 @@ module 'NamespaceView', ->
                         @.$('#namespace-other').addClass('active')
                         @.$('#namespace-other-link').tab('show')
                     else
-                        @.$('#namespace-overview').addClass('active')
-                        @.$('#namespace-overview-link').tab('show')
+                        @.$('#namespace-sharding').addClass('active')
+                        @.$('#namespace-sharding-link').tab('show')
             return @
 
         close_alert: (event) ->
@@ -129,7 +122,6 @@ module 'NamespaceView', ->
             @replicas.destroy()
             @shards.destroy()
             @pins.destroy()
-            @overview.destroy()
             @performance_graph.destroy()
 
 
@@ -195,88 +187,6 @@ module 'NamespaceView', ->
             directory.off 'all', @render
             progress_list.off 'all', @render
 
-    class @Overview extends Backbone.View
-        className: 'namespace-overview'
-
-        container_template: Handlebars.compile $('#namespace_overview-container-template').html()
-        data_in_memory_template: Handlebars.compile $('#namespace_overview-data_in_memory-template').html()
-        data_repartition_template: Handlebars.compile $('#namespace_overview-data_repartition-template').html()
-
-        initialize: =>
-            machines.on 'change', @render_data_in_memory
-            @json_in_memory =
-                data_in_memory_percent: -1
-                data_in_memory: -1
-                data_total: -1
-
-        render: =>
-            @.$el.html @container_template {}
-            return @
-
-        render_data_in_memory: =>
-            data_in_memory = 0
-            data_total = 0
-            data_is_ready = false
-            for machine in machines.models
-                if machine.get('stats')? and @model.get('id') of machine.get('stats') and machine.get('stats')[@model.get('id')].serializers?
-                    for key of machine.get('stats')[@model.get('id')].serializers
-                        if machine.get('stats')[@model.get('id')].serializers[key].cache?.blocks_in_memory?
-                            data_in_memory += parseInt(machine.get('stats')[@model.get('id')].serializers[key].cache.blocks_in_memory) * parseInt(machine.get('stats')[@model.get('id')].serializers[key].cache.block_size)
-                            data_total += parseInt(machine.get('stats')[@model.get('id')].serializers[key].cache.blocks_total) * parseInt(machine.get('stats')[@model.get('id')].serializers[key].cache.block_size)
-                            data_is_ready = true
-            
-            if data_is_ready
-                json =
-                    data_in_memory_percent: Math.floor(data_in_memory/data_total*100).toString()+'%'
-                    data_in_memory: human_readable_units(data_in_memory, units_space)
-                    data_not_in_memory: if data_total-data_in_memory>=0 then human_readable_units(data_total-data_in_memory, units_space) else human_readable_units(0, units_space)
-                    data_total: human_readable_units(data_total, units_space)
-            else
-                json =
-                    data_in_memory_percent: 'loading...'
-                    data_in_memory: 'loading...'
-                    data_not_in_memory: 'loading...'
-                    data_total: 'loading...'
-
-            # So we don't update every seconds
-            need_update = false
-            for key of json
-                if not @json_in_memory[key]? or @json_in_memory[key] != json[key]
-                    need_update = true
-                    break
-            if need_update
-                @json_in_memory = json
-                @.$('.data_in_memory-container').html @data_in_memory_template @json_in_memory
-
-                # Draw pie chart
-                if data_in_memory isnt 0 and data_total isnt 0
-                    r = 100
-                    width = 270
-                    height = 270
-                    color = (i) ->
-                        if i is 0
-                            return '#1f77b4'
-                        else
-                            return '#f00'
-
-                    data_pie = [data_total-data_in_memory, data_in_memory]
-
-                    # Remove transition for the time being. We have to use transition with opacity only the first time
-                    # For update, we should just move/extend pieces, too much work for now
-                    #@.$('.loading_text-svg').fadeOut '600', -> $(@).remove() 
-                    @.$('.loading_text-pie_chart').css 'display', 'none'
-
-                    arc = d3.svg.arc().innerRadius(0).outerRadius(r)
-                    svg = d3.select('.pie_chart-data_in_memory').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
-                    arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc)
-
-                    # No transition for now
-                    #arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc).style('opacity', 0).transition().duration(600).style('opacity', 1)
-
-            return @ # Just to make sure that d3 doesn't return false
-            
-        destroy: =>
-            machines.off 'change', @render_data_in_memory
 
     class @Other extends Backbone.View
         className: 'namespace-other'
