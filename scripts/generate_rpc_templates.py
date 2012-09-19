@@ -37,7 +37,7 @@ def generate_async_message_template(nargs):
         for i in xrange(nargs):
             print "        const arg%d_t &arg%d;" % (i, i)
         print "    public:"
-        print "        write_impl_t(" + csep("const arg#_t& _arg#") + ") :"
+        print "        explicit write_impl_t(" + csep("const arg#_t& _arg#") + ") :"
         print "            " + csep("arg#(_arg#)")
         print "        { }"
     print "        void write(write_stream_t *stream) {"
@@ -51,7 +51,7 @@ def generate_async_message_template(nargs):
     print
     print "    class read_impl_t : public mailbox_read_callback_t {"
     print "    public:"
-    print "        read_impl_t(mailbox_t< void(" + csep("arg#_t") + ") > *_parent) : parent(_parent) { }"
+    print "        explicit read_impl_t(mailbox_t< void(" + csep("arg#_t") + ") > *_parent) : parent(_parent) { }"
     if nargs == 0:
         print "        void read(UNUSED read_stream_t *stream) {"
     else:

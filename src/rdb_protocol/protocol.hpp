@@ -238,7 +238,7 @@ struct rdb_protocol_t {
     class rget_read_t {
     public:
         rget_read_t() { }
-        rget_read_t(const region_t &_region)
+        explicit rget_read_t(const region_t &_region)
             : region(_region) { }
 
         rget_read_t(const region_t &_region,
@@ -363,8 +363,8 @@ struct rdb_protocol_t {
     class point_write_t {
     public:
         point_write_t() { }
-        point_write_t(const store_key_t& key_, boost::shared_ptr<scoped_cJSON_t> data_, bool overwrite_=true)
-            : key(key_), data(data_), overwrite(overwrite_) { }
+        point_write_t(const store_key_t& _key, boost::shared_ptr<scoped_cJSON_t> _data, bool _overwrite = true)
+            : key(_key), data(_data), overwrite(_overwrite) { }
 
         store_key_t key;
         boost::shared_ptr<scoped_cJSON_t> data;

@@ -190,6 +190,9 @@ rethinkdb.JSExpression.prototype.compile = function() {
  * @ignore
  */
 rethinkdb.FunctionExpression = function(args, body) {
+    if (args.length < 1)
+        args.push('');
+
     /** @type {Array.<string>} */
     this.args = args;
 
@@ -229,10 +232,7 @@ rethinkdb.JSFunctionExpression.parseRegexp_ = /function [^(]*\(([^)]*)\) *{([^]*
 rethinkdb.fn = function(var_args) {
     var args;
     var body;
-    if (arguments[arguments.length - 1] instanceof rethinkdb.Query) {
-        body = arguments[arguments.length - 1];
-        args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
-    } else if (typeof var_args === 'function') {
+    if (typeof var_args === 'function' && !(var_args instanceof rethinkdb.Query)) {
         // generate arg names and get body by evaluating function
         // similar to ruby block syntax
 
@@ -244,9 +244,12 @@ rethinkdb.fn = function(var_args) {
         body = var_args.apply(null, args.map(function(argName) {
             return rethinkdb.R('$'+argName);
         }));
+    } else {
+        body = arguments[arguments.length - 1];
+        args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
     }
 
-    typeCheck_(body, rethinkdb.Query);
+    body = wrapIf_(body);
     args.forEach(function(arg) {return typeCheck_(arg, 'string')});
     return newExpr_(rethinkdb.FunctionExpression, args, body);
 };
@@ -802,14 +805,14 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'getAttr',
 
 /**
  * Returns a new object containing only the requested attributes from this.
- * @param {string|Array.<string>} attrs An attribute to pick or a list of attributes to pick.
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.pickAttrs = function(attrs) {
+rethinkdb.Expression.prototype.pickAttrs = function() {
+    var attrs = Array.prototype.slice.call(arguments, 0);
     if (!goog.isArray(attrs)) {
         attrs = [attrs];
     }
-    attrs.forEach(function(attr){typeCheck_(attr, 'string')});
+    attrs.forEach(function(attr){typeCheck_(attr, 'string');});
     return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.PICKATTRS, [this],
         function(builtin) {
             for (var key in attrs) {
@@ -845,11 +848,12 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'without',
 
 /**
  * Shortcut to map a pick attrs over a sequence.
- * @param {string|Array.<string>} attrs An attribute to pick or a list of attributes to pick.
+ * table('foo').pluck('a', 'b') returns a stream of objects only with 'a' and 'b' attributes.
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.pluck = function(attrs) {
-    return this.map(rethinkdb.fn('a', rethinkdb.R('$a').pickAttrs(attrs)));
+rethinkdb.Expression.prototype.pluck = function() {
+    var args = Array.prototype.slice.call(arguments, 0);
+    return this.map(rethinkdb.fn('a', rethinkdb.Expression.prototype.pickAttrs.apply(rethinkdb.R('$a'), args)));
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'pluck',
                     rethinkdb.Expression.prototype.pluck);

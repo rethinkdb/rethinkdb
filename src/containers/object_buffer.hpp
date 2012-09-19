@@ -1,5 +1,5 @@
-#ifndef OBJECT_BUFFER_HPP
-#define OBJECT_BUFFER_HPP
+#ifndef CONTAINERS_OBJECT_BUFFER_HPP_
+#define CONTAINERS_OBJECT_BUFFER_HPP_
 
 #include "errors.hpp"
 
@@ -21,14 +21,16 @@ public:
         object_buffer_t<T> *parent;
     };
 
-    object_buffer_t() : instantiated(false) { };
+    object_buffer_t() : instantiated(false) { }
     ~object_buffer_t() {
-        if (instantiated) {
-            reset();
-        }
-    };
+        if (instantiated) { reset(); }
+    }
 
-#define OBJECT_BUFFER_CREATE_INTERNAL(...) { rassert(!instantiated); instantiated = true; return new (&object_data[0]) T(__VA_ARGS__); }
+#define OBJECT_BUFFER_CREATE_INTERNAL(...) do {                         \
+        rassert(!instantiated);                                         \
+        instantiated = true;                                            \
+        return new (&object_data[0]) T(__VA_ARGS__);                    \
+    } while (0)
 
     // 9 arguments ought to be enough for anybody
     T * create()
@@ -95,4 +97,4 @@ private:
     uint8_t object_data[sizeof(T)];
 };
 
-#endif
+#endif  // CONTAINERS_OBJECT_BUFFER_HPP_

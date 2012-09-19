@@ -140,7 +140,7 @@ function testGetAttr() {
 
 function testPickAttrs() {
     tobj.pickAttrs('a').run(objeq({a:1}));
-    tobj.pickAttrs(['a', 'b']).run(objeq({a:1,b:2}));
+    tobj.pickAttrs('a', 'b').run(objeq({a:1,b:2}));
 }
 
 function testWithout() {
@@ -188,7 +188,7 @@ function testTabFilter() {
 
     tab.filter(r('num').gt(16)).count().run(aeq(4));
 
-    tab.filter({num:16}).nth(0).run(objeq({id:4,num:16}))
+    tab.filter({num:16}).nth(0).run(objeq({id:4,num:16}));
 
     tab.filter({num:r.expr(20).sub(r('id'))}).count().run(aeq(10));
 }
@@ -275,12 +275,22 @@ function testDropTable() {
 }
 
 function testUpdate1() {
-    tab.update(function(a) {
+    tab.filter(function(row) {
+        return row('id').ge(5);
+    }).update(function(a) {
         return a.extend({updated:true});
     }).run(objeq({
         errors:0,
         skipped:0,
-        updated:10,
+        updated:5,
+    }));
+
+    tab.filter(function(row) {
+        return row('id').lt(5);
+    }).update({updated:true}).run(objeq({
+        errors:0,
+        skipped:0,
+        updated:5,
     }));
 }
 

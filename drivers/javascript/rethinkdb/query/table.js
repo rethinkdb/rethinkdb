@@ -274,7 +274,9 @@ rethinkdb.PointUpdateQuery.prototype.buildQuery = function() {
  */
 rethinkdb.Expression.prototype.update = function(mapping) {
     argCheck_(arguments, 1);
+
     mapping = functionWrap_(mapping);
+
     if (this instanceof rethinkdb.GetExpression) {
         return new rethinkdb.PointUpdateQuery(this.table_, this.key_, mapping);
     } else {
