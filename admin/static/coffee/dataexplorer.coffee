@@ -694,6 +694,7 @@ module 'DataExplorerView', ->
                     window.conn.close()
             catch err
                 #TODO
+                console.log 'Could not close connection'
                 console.log err
             host = window.location.hostname
             port = window.location.port
@@ -705,7 +706,8 @@ module 'DataExplorerView', ->
                     port: port
             catch err
                 #TODO
-                #console.log err
+                console.log 'Cound not open connection'
+                console.log err
 
         initialize: =>
             if @has_been_initialized.value is false
@@ -821,7 +823,11 @@ module 'DataExplorerView', ->
             @display_normal()
             @input_query.destroy()
             @data_container.destroy()
-            window.conn.close()
+            try
+                window.conn.close()
+            catch err
+                console.log 'Could not destroy connection'
+                console.log err
             clearInterval @interval
 
     
