@@ -40,25 +40,15 @@ rethinkdb.js = function(jsExpr) {
 
 /**
  * Construct a table reference
- * @param {string} tableIdentifier A string giving either a table
- *      in the current defult dababase or a string formatted as
- *      "db name.table name" giving both the database and table.
+ * @param {string} table_name A string giving a table name.
  * @returns {rethinkdb.Expression}
  * @export
  */
-rethinkdb.table = function(tableIdentifier) {
+rethinkdb.table = function(table_name) {
     argCheck_(arguments, 1);
-    typeCheck_(tableIdentifier, 'string');
-    var db_table_array = tableIdentifier.split('.');
+    typeCheck_(table_name, 'string');
 
-    var db_name = db_table_array[0];
-    var table_name = db_table_array[1];
-    if (table_name === undefined) {
-        table_name = db_name;
-        db_name = undefined;
-    }
-
-    return newExpr_(rethinkdb.Table, table_name, db_name);
+    return newExpr_(rethinkdb.Table, table_name);
 };
 
 /**
