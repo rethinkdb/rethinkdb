@@ -198,7 +198,7 @@ json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespace_semi
     res["port"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<int>(&target->port, ctx));
     res["primary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<protocol_t, machine_id_t> >(&target->primary_pinnings, ctx));
     res["secondary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<protocol_t, std::set<machine_id_t> > >(&target->secondary_pinnings, ctx));
-    res["primary_key"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<vclock_t<std::string>, vclock_ctx_t>(&target->primary_key, ctx));
+    res["primary_key"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::string>(&target->primary_key, ctx));
     res["database"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<database_id_t>(&target->database, ctx));
     res["cache_size"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<int64_t>(&target->cache_size, ctx));
     return res;
