@@ -18,30 +18,31 @@ void stream_cache_t::erase(int64_t key) {
     streams.erase(streams.find(key));
 }
 
-bool stream_cache_t::serve(int64_t key, Response *res) {
+bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     std::map<int64_t, entry_t>::iterator it = streams.find(key);
-    if (it == streams.end()) {
-        return false;
-    } else {
-        entry_t *entry = &it->second;
-        entry->last_activity = time(0);
-        try {
-            int chunk_size = 0;
-            while (boost::shared_ptr<scoped_cJSON_t> json = entry->stream->next()) {
-                res->add_response(json->PrintUnformatted());
-                if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {
-                    res->set_status_code(Response::SUCCESS_PARTIAL);
-                    return true;
-                }
+    if (it == streams.end()) return false;
+    entry_t *entry = &it->second;
+    entry->last_activity = time(0);
+    try {
+        int chunk_size = 0;
+        // This is a hack.  Some streams have an interruptor that is invalid by
+        // the time we reach here, so we just reset it to a good one.
+        entry->stream->reset_interruptor(interruptor);
+        while (boost::shared_ptr<scoped_cJSON_t> json = entry->stream->next()) {
+            res->add_response(json->PrintUnformatted());
+            if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {
+                debugf("PARTIAL\n");
+                res->set_status_code(Response::SUCCESS_PARTIAL);
+                return true;
             }
-        } catch (query_language::runtime_exc_t) {
-            erase(key);
-            throw;
         }
+    } catch (const std::exception &e) {
         erase(key);
-        res->set_status_code(Response::SUCCESS_STREAM);
-        return true;
+        throw;
     }
+    erase(key);
+    res->set_status_code(Response::SUCCESS_STREAM);
+    return true;
 }
 
 void stream_cache_t::maybe_evict() {
