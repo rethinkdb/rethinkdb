@@ -171,8 +171,6 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_add
 }
 
 
-
-
 bool get_or_create_namespace(machine_id_t us,
                              namespace_repo_t<rdb_protocol_t> *ns_repo,
                              const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
@@ -197,7 +195,7 @@ bool get_or_create_namespace(machine_id_t us,
         std::string existing_pk = it->second.get().primary_key.get();
         if (maybe_primary_key) {
             if (existing_pk != *maybe_primary_key) {
-                debugf("Successfully found namespace %s, with wrong primary key '%s'\n",
+                printf("Successfully found namespace %s, with wrong primary key '%s'\n",
                        uuid_to_str(it->first).c_str(), existing_pk.c_str());
 
                 *namespace_out = namespace_id_t();
@@ -206,14 +204,14 @@ bool get_or_create_namespace(machine_id_t us,
             }
         }
 
-        debugf("Successfully found namespace %s\n", uuid_to_str(it->first).c_str());
+        printf("Successfully found namespace %s\n", uuid_to_str(it->first).c_str());
         *primary_key_out = existing_pk;
         *namespace_out = it->first;
         return true;
     } else if (error == METADATA_ERR_NONE) {
         // We need a primary key if we are to be creating a namespace.
         if (!maybe_primary_key) {
-            debugf("Trying to create a namespace but lack primary key.\n");
+            printf("Trying to create a namespace but lack primary key.\n");
             *namespace_out = namespace_id_t();
             primary_key_out->clear();
             return false;
@@ -221,7 +219,7 @@ bool get_or_create_namespace(machine_id_t us,
         std::string primary_key = *maybe_primary_key;
 
         if (!datacenter_name) {
-            debugf("Trying to create a namespace but lack datacenter parameter.\n");
+            printf("Trying to create a namespace but lack datacenter parameter.\n");
             *namespace_out = namespace_id_t();
             primary_key_out->clear();
             return false;
@@ -233,7 +231,7 @@ bool get_or_create_namespace(machine_id_t us,
         std::map<datacenter_id_t, deletable_t<datacenter_semilattice_metadata_t> >::iterator jt = dc_searcher.find_uniq(*datacenter_name, &dc_error);
 
         if (dc_error != METADATA_SUCCESS) {
-            debugf("Could not find datacenter. error = %d\n", dc_error);
+            printf("Could not find datacenter. error = %d\n", dc_error);
             // TODO(sam): Add a way to produce a good error message.
             *namespace_out = namespace_id_t();
             primary_key_out->clear();
@@ -248,24 +246,24 @@ bool get_or_create_namespace(machine_id_t us,
         nss.namespaces.insert(std::make_pair(ns_id, ns));
         namespaces->join(cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(nss));
 
-        debugf("About to fill_in_blueprints.\n");
+        printf("About to fill_in_blueprints.\n");
 
         cluster_semilattice_metadata_t metadata_copy = metadata->get();
         fill_in_blueprints(&metadata_copy, directory, us);
 
         metadata->join(metadata_copy);
 
-        debugf("Created namespace.  Waiting for readiness...\n");
+        printf("Created namespace.  Waiting for readiness...\n");
 
         wait_for_rdb_table_readiness(ns_repo, ns_id, interruptor);
 
-        debugf("Done waiting for readiness.\n");
+        printf("Done waiting for readiness.\n");
 
         *namespace_out = ns_id;
         *primary_key_out = primary_key;
         return true;
     } else {
-        debugf("Error searching for namespace.\n");
+        printf("Error searching for namespace.\n");
         // TODO(sam): Add a way to produce a good error message.
         *namespace_out = namespace_id_t();
         primary_key_out->clear();
@@ -276,6 +274,7 @@ bool get_or_create_namespace(machine_id_t us,
 bool get_or_create_database(UNUSED machine_id_t us,
                             const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
                             std::string db_name, database_id_t *db_out) {
+    rassert(!db_name.empty());
     boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> > databases = metadata_field(&cluster_semilattice_metadata_t::databases, metadata);
     std::map<database_id_t, deletable_t<database_semilattice_metadata_t> > dbmap = databases->get().databases;
     metadata_searcher_t<database_semilattice_metadata_t> searcher(&dbmap);
@@ -284,19 +283,18 @@ bool get_or_create_database(UNUSED machine_id_t us,
     std::map<database_id_t, deletable_t<database_semilattice_metadata_t> >::iterator it = searcher.find_uniq(db_name, &error);
 
     if (error == METADATA_SUCCESS) {
-        debugf("Successfully found database %s\n", uuid_to_str(it->first).c_str());
         *db_out = it->first;
         return true;
     } else if (error == METADATA_ERR_NONE) {
-        debugf("No database found.\n");
-
-        *db_out = database_id_t();
-        return false;
+        printf("No database named '%s' found.\n", db_name.c_str());
+    } else if (error == METADATA_ERR_MULTIPLE) {
+        printf("Error searching for database.  (Multiple databases are named '%s'.)\n", db_name.c_str());
     } else {
-        debugf("Unspecified error searching for database (duplicate?)\n");
-        *db_out = database_id_t();
-        return false;
+        printf("Error when searching for database named '%s'.\n", db_name.c_str());
     }
+
+    *db_out = database_id_t();
+    return false;
 }
 
 
@@ -317,28 +315,28 @@ bool do_json_importation(machine_id_t us,
         // TODO: Duplicate code.
         // The column name cannot be found!  (This logic will be
         // different when we support primary key autogeneration.)
-        debugf("Requested primary key '%s' not found in import data.\n", maybe_primary_key->c_str());
+        printf("Requested primary key '%s' not found in import data.\n", maybe_primary_key->c_str());
         return false;
     }
 
 
     database_id_t db_id;
     if (!get_or_create_database(us, metadata, db_name, &db_id)) {
-        debugf("could not get or create database named '%s'\n", db_name.c_str());
+        printf("could not get or create database named '%s'\n", db_name.c_str());
         return false;
     }
 
     namespace_id_t namespace_id;
     std::string primary_key;
     if (!get_or_create_namespace(us, repo, metadata, directory, db_id, datacenter_name, table_name, maybe_primary_key, &namespace_id, &primary_key, interruptor)) {
-        debugf("could not get or create table named '%s' (in db '%s')\n", table_name.c_str(), uuid_to_str(db_id).c_str());
+        printf("could not get or create table named '%s' (in db '%s')\n", table_name.c_str(), uuid_to_str(db_id).c_str());
         return false;
     }
 
     if (!importer->might_support_primary_key(primary_key)) {
         // The column name cannot be found!  (This logic will be
         // different when we support primary key autogeneration.)
-        debugf("Primary key '%s' not found in import data.", primary_key.c_str());
+        printf("Primary key '%s' not found in import data.", primary_key.c_str());
         return false;
     }
 
@@ -351,27 +349,31 @@ bool do_json_importation(machine_id_t us,
 
     order_source_t order_source;
 
-    for (scoped_cJSON_t json; importer->next_json(&json); json.reset(NULL)) {
-        debugf("json: %s\n", json.Print().c_str());
+    bool seen_primary_key = false;
 
+    for (scoped_cJSON_t json; importer->next_json(&json); json.reset(NULL)) {
         cJSON *pkey_value = json.GetObjectItem(primary_key.c_str());
         if (!pkey_value) {
-            debugf("pkey_value NULL\n");
-            // TODO(sam): We want to silently ignore?
+            // This can't happen with CSV because we can check headers up front.
+            // This will need to change if autogeneration is turned on.
+            if (!seen_primary_key) {
+                printf("Some imported objects have no primary key, and are ignored.\n");
+                seen_primary_key = true;
+            }
             continue;
         }
 
+        // TODO: This code is duplicated with something.
         if (pkey_value->type != cJSON_String && pkey_value->type != cJSON_Number) {
-            debugf("pkey_value->type is bad\n");
-            // TODO(sam): We want to silently ignore?
+            // This cannot happen with CRSV because we only parse strings and numbers.
+            printf("Primary key spotted with invalid value!  (Neither string nor number.)\n");
             continue;
         }
 
         std::string internal_key = cJSON_print_lexicographic(pkey_value);
 
         if (internal_key.size() > MAX_KEY_SIZE) {
-            debugf("key size is overlarge\n");
-            // TODO(sam): We want to silently ignore?
+            printf("Primary key %s too large (when used for storage), ignoring.\n", cJSON_print_std_string(pkey_value).c_str());
             continue;
         }
 
@@ -379,7 +381,7 @@ bool do_json_importation(machine_id_t us,
 
         boost::shared_ptr<scoped_cJSON_t> json_copy_fml(new scoped_cJSON_t(json.DeepCopy()));
 
-        rdb_protocol_t::point_write_t point_write(key, json_copy_fml, true);
+        rdb_protocol_t::point_write_t point_write(key, json_copy_fml, false);
         rdb_protocol_t::write_t rdb_write;
         rdb_write.write = point_write;
         rdb_protocol_t::write_response_t response;
@@ -387,10 +389,18 @@ bool do_json_importation(machine_id_t us,
 
         // TODO(sam): Check stored/duplicat ebehavior.
         if (!boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
-            debugf("did not get a point write response\n");
+            printf("Internal error: Attempted a point write (for key %s), but did not get a point write response.\n", cJSON_print_std_string(pkey_value).c_str());
         } else {
             rdb_protocol_t::point_write_response_t *resp = boost::get<rdb_protocol_t::point_write_response_t>(&response.response);
-            debugf("point write response: %s\n", resp->result == STORED ? "STORED" : resp->result == DUPLICATE ? "DUPLICATE" : "???");
+            switch (resp->result) {
+            case DUPLICATE:
+                printf("An entry with primary key %s already exists, and has not been overwritten.\n", cJSON_print_std_string(pkey_value).c_str());
+                break;
+            case STORED:
+                break;
+            default:
+                unreachable();
+            }
         }
 
         // We don't care about the response.
