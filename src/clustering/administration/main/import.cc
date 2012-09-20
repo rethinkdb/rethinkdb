@@ -408,8 +408,9 @@ bool do_json_importation(machine_id_t us,
         }
 
         importation_complete = true;
-        printf("Importation complete.  Successfully imported %ld rows.  %s\n", num_imported_rows, importer->get_error_information().c_str());
     } catch (interrupted_exc_t exc) {
+        importation_complete = false;
+        // do nothing.
     }
 
     printf("%s  Successfully imported %ld row%s.  Ignored %ld row%s with duplicated primary key.  %s\n",
