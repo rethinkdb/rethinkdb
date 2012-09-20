@@ -97,6 +97,7 @@ module 'Sidebar', ->
         destroy: =>
             window.app.off 'all', @render
 
+    # TODO: Logs were dropped from the sidebar (now topbar), this code needs to be retired.
     class @Logs extends Backbone.View
         className: 'recent-log-entries'
         tagName: 'ul'

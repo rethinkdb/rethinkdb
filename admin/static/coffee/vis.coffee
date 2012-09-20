@@ -1,7 +1,7 @@
 module 'Vis', ->
     # Wraps the ops graph (left) and the stats panel (right)
     class @PerformancePanel extends Backbone.View
-        className: 'performance_panel'
+        className: 'performance-panel'
         template: Handlebars.compile $('#performance_panel-template').html()
 
         initialize: (_stats_fn) =>
@@ -189,7 +189,7 @@ module 'Vis', ->
             @legend.destroy()
 
     class @OpsPlotLegend extends Backbone.View
-        className: 'ops_plot_legend'
+        className: 'ops-plot-legend'
         template: Handlebars.compile $('#ops_plot_legend-template').html()
 
         initialize: (_read_metric, _write_metric, _context) =>
@@ -244,7 +244,7 @@ module 'Vis', ->
             return @values[@values.length - 1]
 
     class @MoreStats extends Backbone.View
-        className: 'more_stats'
+        className: 'more-stats'
         template: Handlebars.compile $('#more_stats-template').html()
         initialize: =>
             machines.on 'add', @render

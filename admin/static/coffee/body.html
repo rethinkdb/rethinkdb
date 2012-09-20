@@ -1,15 +1,29 @@
 <script id="body-structure-template" type="text/x-handlebars-template">
-    <div id="navbar-container"></div>
-    <div id="dev-tools">
-        <h3>Development tools</h3>
-        <div id="show-walkthrough-popup" class="btn">Show walkthrough popup</div>
-        <div id="pause-application" class="btn">Pause JS</div>
+    <div id="sticky-wrap">
+        <div id="navbar-container"></div>
+        <div id="dev-tools">
+            <h3>Development tools</h3>
+            <div id="show-walkthrough-popup" class="btn">Show walkthrough popup</div>
+            <div id="pause-application" class="btn">Pause JS</div>
+        </div>
+        <div id="sidebar"></div>
+        <div id="main-container">
+            <div id="cluster" class="container"></div>
+            <div class="walkthrough-popup"></div>
+            <div id="modal-dialog"></div>
+        </div>
     </div>
-    <div id="sidebar"></div>
-    <div id="main-container">
-        <div id="cluster" class="container"></div>
-        <div class="walkthrough-popup"></div>
-        <div id="modal-dialog"></div>
+    <div id="footer">
+        <div class="container">
+            <p class="copyright">Copyright 2012 RethinkDB - All rights reserved</p>
+            <ul>
+                <li>Support</li>
+                <li>Blog</li>
+                <li>Company</li>
+                <li>Press</li>
+                <li>Terms</li>
+            </ul>
+        </div>
     </div>
     <div id="walkthrough"></div>
 </script>

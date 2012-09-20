@@ -3,9 +3,9 @@
 module 'DashboardView', ->
     # Cluster.Container
     class @Container extends Backbone.View
-        el: '#cluster'
-        className: 'dashboard_view'
-        template: Handlebars.compile $('#dashboard_view-template').html() # TODO use div instead of a table
+        template: Handlebars.compile $('#dashboard_view-template').html()
+        id: 'dashboard'
+
         initialize: =>
             log_initial '(initializing) dashboard container view'
 
@@ -13,18 +13,21 @@ module 'DashboardView', ->
 
         render: =>
             @.$el.html @template({})
-            @cluster_performance = new DashboardView.ClusterPerformance()
+            @cluster_performance = new Vis.PerformancePanel(computed_cluster.get_stats)
 
             @.$('#cluster_status_container').html @cluster_status.render().el
-            @.$('#cluster_performance_panel_placeholder').html @cluster_performance.render()
-    
+            @.$('#cluster_performance_container').html @cluster_performance.render().el
+
+            return @
+
         destroy: =>
             @cluster_status.destroy()
             @cluster_performance.destroy()
 
+    # TODO: dropped RAM and disk distribution in the templates, need to remove support for them here as well
     class @ClusterStatus extends Backbone.View
-        className: 'dashboard-view'
         template: Handlebars.compile $('#cluster_status-template').html()
+        className: 'cluster-status'
 
         events:
             'click a[rel=dashboard_details]': 'show_popover'
@@ -52,6 +55,22 @@ module 'DashboardView', ->
 
             @render()
 
+        render: =>
+            log_render '(rendering) cluster status view'
+
+            @.$el.html @template(@compute_status())
+            @.$('a[rel=dashboard_details]').popover
+                trigger: 'manual'
+            @.delegateEvents()
+
+            return @
+
+        destroy: ->
+            issues.off 'all', @render
+            issues_redundancy.off 'all', @render # when issues_redundancy is reset
+            machines.off 'stats_updated', @render # when the stats of the machines are updated
+            directory.off 'all', @render
+            namespaces.off 'all', @render
 
         # We could create a model to create issues because of Disk/RAM
         threshold_disk: 0.9
@@ -189,41 +208,4 @@ module 'DashboardView', ->
                 status.num_machines_with_ram_problems = status.machines_with_ram_problems.length
             status.threshold_ram = Math.floor(@threshold_ram*100)
 
-
-            status
-
-        render: =>
-            log_render '(rendering) cluster status view'
-
-            @.$el.html @template(@compute_status())
-            @.$('a[rel=dashboard_details]').popover
-                trigger: 'manual'
-            @.delegateEvents()
-            return @
-
-
-        destroy: ->
-            issues.off 'all', @render
-            issues_redundancy.off 'all', @render # when issues_redundancy is reset
-            machines.off 'stats_updated', @render # when the stats of the machines are updated
-            directory.off 'all', @render
-            namespaces.off 'all', @render
-
-
-    class @ClusterPerformance extends Backbone.View
-        className: 'dashboard-view'
-        template: Handlebars.compile $('#cluster_performance-template').html()
-
-
-        initialize: ->
-            log_initial '(initializing) cluster performance view'
-            $('#cluster_performance_container').html @template({})
-            @perf_panel = new Vis.PerformancePanel(computed_cluster.get_stats)
-            @render()
-
-        render: =>
-            log_render '(rendering) cluster_performance view'
-            return @perf_panel.render().$el
-
-        destroy: =>
-            @perf_panel.destroy()
+            return status

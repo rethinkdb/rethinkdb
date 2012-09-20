@@ -17,14 +17,98 @@
 @sans: 'Istok Web', sans-serif;
 @serif: 'Copse', serif;
 
+
+/* 
+    ----------------------------------------------------------------------
+    Sticky footer and 100% height
+        - Uses Adham Dannaway's sticky footer approach (adhamdannaway.com)
+    ----------------------------------------------------------------------
+*/
+html, body { height: 100%; }
+#sticky-wrap { min-height: 100%; }
+#main-container {
+    overflow: auto;
+    padding-bottom: 75px;
+}
+#footer {
+    position: relative;
+    margin-top: -75px;
+    height: 75px;
+    clear: both;
+}
+/* Opera fix */
+body:before {
+    content:"";
+    height: 100%;
+    float: left;
+    width: 0;
+    margin-top: -32767px;
+}
+
 /*
     ----------------------------
     Main content
     ----------------------------
 */
-
 #main-container {
     background: url('https://dl.dropbox.com/s/xnjd8qzm0rkoz2q/background.png');
+    padding-top: 30px;
+    
+    .section {
+       padding: 20px 25px; 
+       background: #fcfcfc;
+       border-thin: thin solid #cfcfcf;
+       margin-bottom: 25px;
+
+       @shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 3px rgba(0, 0, 0, 0.3);
+
+        -webkit-box-shadow: @shadow;
+           -moz-box-shadow: @shadow;
+                box-shadow: @shadow;
+
+        .border-radius(5px);
+
+        h2.title {
+            margin-top: 0;
+            font-family: @serif;
+            color: #a3a3a3;
+            font-size: 19px;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-family: @serif;
+        }
+    }
+}
+
+/*
+    ----------------------------
+    Footer
+    ----------------------------
+*/
+#footer {
+    background-color: #e5e5e5;
+    color: #a3a3a3;
+    font-family: @serif;
+    font-size: 14px;
+    padding-top: 40px;
+    border-top: thin solid #d0d0d0;
+    ul {
+        float: left;
+        padding: 0;
+        margin: 0;
+        list-style-type: none;
+        li {
+            display: inline-block;
+            margin-right: 25px;
+        }
+    }
+
+    p.copyright { 
+        float: right;
+        margin: 0;
+    }
 }
 
 /*
@@ -121,10 +205,10 @@
     Status bar at the top
     ----------------------------
 */
-
 #sidebar {
     background-image: url('https://dl.dropbox.com/s/plzmuyfwibwyvry/status_panel-background.png');
     padding: 20px 0;
+    border-bottom: thin solid #d0d0d0;
     .panel > div {
         padding-left: 60px;
         height: 47px;
@@ -151,22 +235,130 @@
         }
     }
 
-    .client-connection-status {
-        background: url('https://dl.dropbox.com/s/fpiswm98f9wx8ff/status_panel-icon_1.png') no-repeat left center;
+    .client-connection-status { background: url('https://dl.dropbox.com/s/fpiswm98f9wx8ff/status_panel-icon_1.png') no-repeat left center; }
+    .issues { background: url('https://dl.dropbox.com/s/ugca6ovxajdja65/status_panel-icon_2.png') no-repeat left center; }
+    .servers-connected { background: url('https://dl.dropbox.com/s/wdn0nvzq2c85zvm/status_panel-icon_3.png') no-repeat left center; }
+    .datacenters-connected { background: url('https://dl.dropbox.com/s/k6nl8f6qzmjyabc/status_panel-icon_4.png') no-repeat left center; }
+}
+
+/*
+    ----------------------------
+    Dashboard
+    ----------------------------
+*/
+#dashboard {
+    #cluster_status_container { padding: 0; }
+    .cluster-status table { border-spacing: 0; }
+    .cluster-status td.panel {
+        @bad: #e85250;
+        @good: #3ba51a;
+
+        border-left: thin solid #dfdfdf;
+        padding: 20px;
+        width: 25%;
+        vertical-align: top;
+
+        h3 {
+            margin-top: 0;
+            font-family: @serif;
+            font-size: 17px;
+            color: #4c4c4c;
+            padding-left: 21px;
+        }
+        &.no-problems-detected h3 { background: 0 3px no-repeat url('https://dl.dropbox.com/s/vgdhxkfem0856ge/green-light.png'); }
+        &.problems-detected h3 { background: 0 3px no-repeat url('https://dl.dropbox.com/s/pdoclcb9e7u8k4b/red-light.png'); }
+
+        p {
+            font-family: @sans;
+            font-size: 14px;
+            color: #4c4c4c;
+            span.good { color: @good; }
+            span.bad { color: @bad; }
+            span.good, span.bad { font-weight: bold; }
+            &.details { margin-bottom: 0; }
+        }
+
+        &.first { border-left: none; }
+    }
+}
+
+/*
+    --------------------
+    Visualization styles
+    --------------------
+*/
+#ops_plot_container {
+    position: relative;
+    .chart {
+        border-bottom: solid 1px black;
+        overflow: hidden;
+        display: inline-block;
+
+        border-top: solid 1px black;
+        border-left: solid 1px black;
+        border-right: solid 1px black;
+
+        .title, { display: none; }
+        .value { display: none; }
+        canvas { display: block; }
     }
 
-    .issues {
-        background: url('https://dl.dropbox.com/s/ugca6ovxajdja65/status_panel-icon_2.png') no-repeat left center;
+    .chart, .haxis, .hgrid, .line { margin-left: 34px; }
+
+    .haxis, .vaxis, .hgrid, .vgrid {
+        font: 10px sans-serif;
+        line {
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+    }
+    .haxis text { -webkit-transition: fill-opacity 250ms linear; }
+    
+    .haxis { margin-top: -9px; }
+
+    .hgrid {
+        height: 200px;
+        position: absolute;
+        top: -3px;
+        left: 0;
+        line { opacity: .2; }
     }
 
-    .servers-connected {
-        background: url('https://dl.dropbox.com/s/wdn0nvzq2c85zvm/status_panel-icon_3.png') no-repeat left center;
+    .vaxis { margin-top: -228px; }
+
+    .vgrid {
+        position: absolute;
+        top: 0;
+        left: 0px;
+        line { opacity: .2; }
     }
 
-    .datacenters-connected {
-        background: url('https://dl.dropbox.com/s/k6nl8f6qzmjyabc/status_panel-icon_4.png') no-repeat left center;
+    .line {
+       background: #000;
+       opacity: .2;
+       z-index: 2;
     }
 
+    .ops_plot_legend { width: 370px; }
+
+    .legend {
+        .color {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+        }
+        .reads .color { background-color: #729E51; }
+        .writes .color { background-color: #983434; }
+        text-transform: uppercase;
+        color: @gray;
+        font-size: 0.7em;
+    }
+    .legend-table {
+        width: 370px;
+        td.reads { width: 185px; }
+        td.reads .color { margin-left: 85px; }
+        td.writes { text-align: left; }
+    }
 }
 
 /*
@@ -174,7 +366,6 @@
     Development tools
     ----------------------------
 */
-
 #dev-tools {
     display: none;
     #translucent > .background(#000, 0.1);

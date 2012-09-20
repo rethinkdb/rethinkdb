@@ -1,12 +1,13 @@
 <script id="performance_panel-template" type="text/x-handlebars-template">
-    <div class="two-panel-section-no-border">
-        <div class="panel-left">
-            <h2 class="title">Cluster performance</h2>
-            <div class="ops_plot_placeholder"></div>
-        </div>
-        <div class="panel-right stats_placeholder"></div>
+    <h2 class="title">Cluster performance</h2>
+    <div class="ops_plot_placeholder"></div>
+    <!--
+    <div class="row-fluid">
+        <div class="span6 ops_plot_placeholder"></div>
+        <div class="span6 stats_placeholder"></div>
       </div>
     </div>
+    -->
 </script>
 
 <script id="ops_plot-template" type="text/x-handlebars-template">
@@ -25,9 +26,7 @@
     </div>
 </script>
 
-
 <script id="more_stats-template" type="text/x-handlebars-template">
-    <h2 class="title">More Information</h2>
     <p>RethinkDB version: 1.2</p>
     <p>This cluster contains:</p>
     <ul>
