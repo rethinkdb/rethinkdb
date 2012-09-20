@@ -242,6 +242,6 @@ void csv_to_json_importer_t::import_json_from_file(std::string separators, std::
     column_names_ = reprocess_column_names(header_line);
 }
 
-std::string csv_to_json_importer_t::get_error_information() {
-    return strprintf("%s malformed row%s ignored.", num_ignored_rows_, num_ignored_rows_ == 1 ? "" : "s");
+std::string csv_to_json_importer_t::get_error_information() const {
+    return strprintf("%ld malformed row%s ignored.", num_ignored_rows_, num_ignored_rows_ == 1 ? "" : "s");
 }

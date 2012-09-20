@@ -348,59 +348,77 @@ bool do_json_importation(machine_id_t us,
 
     bool seen_primary_key = false;
 
-    for (scoped_cJSON_t json; importer->next_json(&json); json.reset(NULL)) {
-        cJSON *pkey_value = json.GetObjectItem(primary_key.c_str());
-        if (!pkey_value) {
-            // This can't happen with CSV because we can check headers up front.
-            // This will need to change if autogeneration is turned on.
-            if (!seen_primary_key) {
-                printf("Some imported objects have no primary key, and are ignored.\n");
-                seen_primary_key = true;
+    int64_t num_imported_rows = 0;
+    int64_t num_duplicate_pkey = 0;
+
+    bool importation_complete = false;
+    try {
+        for (scoped_cJSON_t json; importer->next_json(&json); json.reset(NULL)) {
+            cJSON *pkey_value = json.GetObjectItem(primary_key.c_str());
+            if (!pkey_value) {
+                // This can't happen with CSV because we can check headers up front.
+                // This will need to change if autogeneration is turned on.
+                if (!seen_primary_key) {
+                    printf("Some imported objects have no primary key ('%s'), and are ignored.\n", primary_key.c_str());
+                    seen_primary_key = true;
+                }
+                continue;
             }
-            continue;
-        }
 
-        // TODO: This code is duplicated with something.
-        if (pkey_value->type != cJSON_String && pkey_value->type != cJSON_Number) {
-            // This cannot happen with CRSV because we only parse strings and numbers.
-            printf("Primary key spotted with invalid value!  (Neither string nor number.)\n");
-            continue;
-        }
+            // TODO: This code is duplicated with something.
+            if (pkey_value->type != cJSON_String && pkey_value->type != cJSON_Number) {
+                // This cannot happen with CRSV because we only parse strings and numbers.
+                printf("Primary key spotted with invalid value!  (Neither string nor number.)\n");
+                continue;
+            }
 
-        std::string internal_key = cJSON_print_lexicographic(pkey_value);
+            std::string internal_key = cJSON_print_lexicographic(pkey_value);
 
-        if (internal_key.size() > MAX_KEY_SIZE) {
-            printf("Primary key %s too large (when used for storage), ignoring.\n", cJSON_print_std_string(pkey_value).c_str());
-            continue;
-        }
+            if (internal_key.size() > MAX_KEY_SIZE) {
+                printf("Primary key %s too large (when used for storage), ignoring.\n", cJSON_print_std_string(pkey_value).c_str());
+                continue;
+            }
 
-        store_key_t key(internal_key);
+            store_key_t key(internal_key);
 
-        boost::shared_ptr<scoped_cJSON_t> json_copy_fml(new scoped_cJSON_t(json.DeepCopy()));
+            boost::shared_ptr<scoped_cJSON_t> json_copy_fml(new scoped_cJSON_t(json.DeepCopy()));
 
-        rdb_protocol_t::point_write_t point_write(key, json_copy_fml, false);
-        rdb_protocol_t::write_t rdb_write;
-        rdb_write.write = point_write;
-        rdb_protocol_t::write_response_t response;
-        ni->write(rdb_write, &response, order_source.check_in("do_json_importation"), interruptor);
+            rdb_protocol_t::point_write_t point_write(key, json_copy_fml, false);
+            rdb_protocol_t::write_t rdb_write;
+            rdb_write.write = point_write;
+            rdb_protocol_t::write_response_t response;
+            ni->write(rdb_write, &response, order_source.check_in("do_json_importation"), interruptor);
 
-        if (!boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
-            printf("Internal error: Attempted a point write (for key %s), but did not get a point write response.\n", cJSON_print_std_string(pkey_value).c_str());
-        } else {
-            rdb_protocol_t::point_write_response_t *resp = boost::get<rdb_protocol_t::point_write_response_t>(&response.response);
-            switch (resp->result) {
-            case DUPLICATE:
-                printf("An entry with primary key %s already exists, and has not been overwritten.\n", cJSON_print_std_string(pkey_value).c_str());
-                break;
-            case STORED:
-                break;
-            default:
-                unreachable();
+            if (!boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
+                printf("Internal error: Attempted a point write (for key %s), but did not get a point write response.\n", cJSON_print_std_string(pkey_value).c_str());
+            } else {
+                rdb_protocol_t::point_write_response_t *resp = boost::get<rdb_protocol_t::point_write_response_t>(&response.response);
+                switch (resp->result) {
+                case DUPLICATE:
+                    printf("An entry with primary key %s already exists, and has not been overwritten.\n", cJSON_print_std_string(pkey_value).c_str());
+                    ++num_duplicate_pkey;
+                    break;
+                case STORED:
+                    ++num_imported_rows;
+                    break;
+                default:
+                    unreachable();
+                }
             }
         }
+
+        importation_complete = true;
+        printf("Importation complete.  Successfully imported %ld rows.  %s\n", num_imported_rows, importer->get_error_information().c_str());
+    } catch (interrupted_exc_t exc) {
     }
 
-    printf("Importation complete.  %s\n", importer->get_error_information().c_str());
+    printf("%s  Successfully imported %ld row%s.  Ignored %ld row%s with duplicated primary key.  %s\n",
+           importation_complete ? "Import completed." : "Interrupted, import partially completed.",
+           num_imported_rows,
+           num_imported_rows == 1 ? "" : "s",
+           num_duplicate_pkey,
+           num_duplicate_pkey == 1 ? "" : "s",
+           importer->get_error_information().c_str());
 
     return true;
 }
