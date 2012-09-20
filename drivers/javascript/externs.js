@@ -18,6 +18,7 @@ var net_node_;
 net_node_.connect;
 var socket_node_;
 socket_node_.on;
+socket_node_.removeAllListeners;
 socket_node_.write;
 socket_node_.setNoDelay;
 var JSON;
