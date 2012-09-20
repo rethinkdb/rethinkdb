@@ -36,6 +36,10 @@ public:
 };
 
 template <class protocol_t>
+void debug_print(append_only_printf_buffer_t *buf, const persistable_blueprint_t<protocol_t> &x);
+
+
+template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *);
 
 template <class protocol_t>

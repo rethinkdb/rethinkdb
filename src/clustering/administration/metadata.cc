@@ -57,6 +57,12 @@ void with_ctx_apply_json_to(cJSON *change, datacenter_semilattice_metadata_t *ta
 
 void with_ctx_on_subfield_change(datacenter_semilattice_metadata_t *, const vclock_ctx_t &) { }
 
+// Just going to put this here...
+void debug_print(append_only_printf_buffer_t *buf, const datacenter_semilattice_metadata_t &m) {
+    buf->appendf("dc_sl_metadata{name=");
+    debug_print(buf, m.name);
+    buf->appendf("}");
+}
 
 
 //json adapter concept for datacenters_semilattice_metadata_t
@@ -93,6 +99,12 @@ void with_ctx_apply_json_to(cJSON *change, database_semilattice_metadata_t *targ
 
 void with_ctx_on_subfield_change(database_semilattice_metadata_t *, const vclock_ctx_t &) { }
 
+// Just going to put this here thankyou.
+void debug_print(append_only_printf_buffer_t *buf, const database_semilattice_metadata_t &x) {
+    buf->appendf("db_sl_metadata{name=");
+    debug_print(buf, x.name);
+    buf->appendf("}");
+}
 
 //json adapter concept for databases_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(databases_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
@@ -110,6 +122,9 @@ void with_ctx_apply_json_to(cJSON *change, databases_semilattice_metadata_t *tar
 void with_ctx_on_subfield_change(databases_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     with_ctx_on_subfield_change(&target->databases, ctx);
 }
+
+
+
 
 //json adapter concept for cluster_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
@@ -198,7 +213,7 @@ json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespace_semi
     res["port"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<int>(&target->port, ctx));
     res["primary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<protocol_t, machine_id_t> >(&target->primary_pinnings, ctx));
     res["secondary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<protocol_t, std::set<machine_id_t> > >(&target->secondary_pinnings, ctx));
-    res["primary_key"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<vclock_t<std::string>, vclock_ctx_t>(&target->primary_key, ctx));
+    res["primary_key"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::string>(&target->primary_key, ctx));
     res["database"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<database_id_t>(&target->database, ctx));
     res["cache_size"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<int64_t>(&target->cache_size, ctx));
     return res;
