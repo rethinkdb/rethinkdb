@@ -174,8 +174,6 @@ std::string rltrim(const std::string &s) {
 std::vector<std::string> reprocess_column_names(std::vector<std::string> cols) {
     // TODO(sam): Avoid allowing super-weird characters in column names like \0.
 
-    debugf_print("reprocess_column_names input", cols);
-
     // Trim spaces.
     for (size_t i = 0; i < cols.size(); ++i) {
         cols[i] = rltrim(cols[i]);
