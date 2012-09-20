@@ -10,7 +10,7 @@ module 'NamespaceView', ->
         error_template: Handlebars.compile $('#error_adding_namespace-template').html()
         alert_message_template: Handlebars.compile $('#alert_message-template').html()
 
-        events: ->
+        events:
             'click .add-database': 'add_database'
             'click .add-namespace': 'add_namespace'
             'click .remove-namespace': 'remove_namespace'
@@ -123,6 +123,8 @@ module 'NamespaceView', ->
         summary_template: Handlebars.compile $('#database_list_element-summary-template').html()
 
         className: 'element-container'
+        events:
+            'click .delete_database-link': 'remove_database'
 
         initialize: ->
             log_initial '(initializing) list view: datacenter'
@@ -152,6 +154,15 @@ module 'NamespaceView', ->
             json = @model.toJSON()
 
             @.$('.summary').html @summary_template json
+
+        remove_database: (event) =>
+            event.preventDefault()
+
+            db = databases.get @.$(event.target).data('id')
+            if db?
+                remove_database_dialog = new DatabaseView.RemoveDatabaseModal
+                remove_database_dialog.render db
+           
 
 
         register_namespace_callback: (callbacks) =>
@@ -330,7 +341,6 @@ module 'NamespaceView', ->
             @delegateEvents()
 
         show_advanced_settings: (event) =>
-            console.log 'trigger'
             event.preventDefault()
             @.$('.advanced_settings').slideDown 'fast'
 
