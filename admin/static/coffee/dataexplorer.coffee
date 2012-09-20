@@ -27,6 +27,8 @@ module 'DataExplorerView', ->
         className: 'dataexplorer_container'
         template: Handlebars.compile $('#dataexplorer_view-template').html()
         template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
+        alert_connection_fail_template: Handlebars.compile $('#alert-connection_fail-template').html()
+        alert_reconnection_success_template: Handlebars.compile $('#alert-reconnection_success-template').html()
 
         events:
             'click .CodeMirror': 'handle_keypress'
@@ -39,6 +41,7 @@ module 'DataExplorerView', ->
             'click .old_query': 'write_query_old'
             'click .home_view': 'display_home'
             'click .change_size': 'toggle_size'
+            'click #reconnect': 'reconnect'
 
         displaying_full_view: false
         has_been_initialized:
@@ -615,7 +618,6 @@ module 'DataExplorerView', ->
         create_tagged_callback: =>
             id = Math.random()
             @last_id = id
-            console.log id
             tagged_callback = (data) =>
                 if id is @last_id
                     execution_time = new Date() - @start_time
@@ -625,6 +627,8 @@ module 'DataExplorerView', ->
             return tagged_callback
 
         execute_query: =>
+            clearTimeout @timeout
+            @timeout = setTimeout @connect
             window.result = {}
 
             @query = @codemirror.getValue()
@@ -701,26 +705,31 @@ module 'DataExplorerView', ->
             @codemirror.setCursor
                 line: Infinity
                 ch: Infinity
-        connect: =>
+        connect: (data) =>
             try
-                if window.conn?
+                if window.conn? and window.conn.N isnt null
                     window.conn.close()
             catch err
-                #TODO
-                console.log 'Could not close connection'
-                console.log err
+                #console.log 'Could not close previous connection'
             host = window.location.hostname
             port = window.location.port
             if port is ''
                 port = 13457
             try
-                window.conn = new rethinkdb.net.HttpConnection 
+                window.conn = new rethinkdb.net.HttpConnection
                     host: host
                     port: port
+                if data? and data.reconnecting is true
+                    @.$('#user-alert-space').html @alert_reconnection_success_template({})
             catch err
-                #TODO
-                console.log 'Cound not open connection'
-                console.log err
+                @.$('#user-alert-space').css 'display', 'none'
+                @.$('#user-alert-space').html @alert_connection_fail_template({})
+                @.$('#user-alert-space').slideDown()
+
+        reconnect: (event) =>
+            event.preventDefault()
+            @connect
+                reconnecting: true
 
         initialize: =>
             if @has_been_initialized.value is false
@@ -729,10 +738,9 @@ module 'DataExplorerView', ->
                 @has_been_initialized.value = true
             
             @connect()
+            @timeout = setTimeout @connect
             window.r = rethinkdb.query
             window.R = r.R
-
-            @interval = setInterval @connect, 60*5*1000
 
             # We escape the last function because we are building a regex on top of it.
             @unsafe_to_safe_regexstr = []
@@ -839,10 +847,8 @@ module 'DataExplorerView', ->
             try
                 window.conn.close()
             catch err
-                console.log 'Could not destroy connection'
-                console.log err
-            clearInterval @interval
-
+                #console.log 'Could not destroy connection'
+            clearTimeout @timeout
     
     class @InputQuery extends Backbone.View
         className: 'query_control'
