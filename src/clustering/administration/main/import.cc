@@ -80,7 +80,7 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_add
             PROXY_PEER));
 
     message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
-    // TODO(sam): Are we going to use the write manager at all?
+    // TODO: Are we going to use the write manager at all?  Could we just remove it?  Just wondering.
     directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(&directory_manager_client, our_root_directory_variable.get_watchable());
     directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(connectivity_cluster.get_connectivity_service());
     message_multiplexer_t::client_t::run_t directory_manager_client_run(&directory_manager_client, &directory_read_manager);
@@ -337,7 +337,6 @@ bool do_json_importation(machine_id_t us,
         return false;
     }
 
-    // TODO(sam): What if construction fails?  An exception is thrown?
     namespace_repo_t<rdb_protocol_t>::access_t access(repo, namespace_id, interruptor);
 
     namespace_interface_t<rdb_protocol_t> *ni = access.get_namespace_if();
