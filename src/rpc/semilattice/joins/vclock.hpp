@@ -65,6 +65,8 @@ private:
 public:
     vclock_t();
 
+    vclock_t(const T &_t);
+
     vclock_t(const T &_t, const uuid_t &us);
 
     bool in_conflict() const;
