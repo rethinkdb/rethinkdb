@@ -159,7 +159,10 @@ class WriteQueryInner(object):
 class Insert(WriteQueryInner):
     def __init__(self, table, entries):
         self.table = table
-        self.entries = [query.expr(e) for e in entries]
+        if isinstance(entries, query.StreamExpression):
+            self.entries = [entries]
+        else:
+            self.entries = [query.expr(e) for e in entries]
 
     def _write_write_query(self, parent):
         parent.type = p.WriteQuery.INSERT
@@ -212,21 +215,6 @@ class Mutate(WriteQueryInner):
         return "%s.mutate(%s)" % (
             printer.expr_wrapped(self.parent_view, ["view"]),
             self.mapping._pretty_print(printer, ["mapping"]))
-
-class InsertStream(WriteQueryInner):
-    def __init__(self, table, stream):
-        self.table = table
-        self.stream = stream
-
-    def _write_write_query(self, parent):
-        parent.type = p.WriteQuery.INSERTSTREAM
-        self.table._write_ref_ast(parent.insert_stream.table_ref)
-        self.stream._inner._write_ast(parent.insert_stream.stream)
-
-    def pretty_print(self, printer):
-        return "%s.insert(%s)" % (
-            printer.expr_wrapped(self.table, ["table_ref"]),
-            printer.expr_unwrapped(self.stream, ["stream"]))
 
 ################
 # READ QUERIES #
@@ -496,7 +484,13 @@ class ImplicitAttr(ExpressionInner):
         self._write_call(parent, p.Builtin.IMPLICIT_GETATTR)
         parent.call.builtin.attr = self.attr
     def pretty_print(self, printer):
-        return ("R(%s)" % printer.simple_string(repr(self.attr), ["attr"]), PRETTY_PRINT_EXPR_WRAPPED)
+        return ("r[%s]" % printer.simple_string(repr(self.attr), ["attr"]), PRETTY_PRINT_EXPR_WRAPPED)
+
+class ImplicitVar(ExpressionInner):
+    def _write_ast(self, parent):
+        parent.type = p.Term.IMPLICIT_VAR
+    def pretty_print(self, printer):
+        return ("r['@']", PRETTY_PRINT_EXPR_WRAPPED)
 
 class ToStream(ExpressionInner):
     def __init__(self, array):
@@ -749,7 +743,7 @@ class Var(ExpressionInner):
         parent.var = self.name
 
     def pretty_print(self, printer):
-        return ("R(%r)" % ("$" + self.name), PRETTY_PRINT_EXPR_WRAPPED)
+        return ("%s" % self.name, PRETTY_PRINT_EXPR_WRAPPED)
 
 class Table(ExpressionInner):
     def __init__(self, table):

@@ -22,16 +22,18 @@ std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING;
 std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING;
 std::string cJSON_type_to_string(int type);
 
+
 class scoped_cJSON_t {
 private:
     cJSON *val;
 
 public:
-    explicit scoped_cJSON_t(cJSON *);
+    scoped_cJSON_t() : val(NULL) { }
+    explicit scoped_cJSON_t(cJSON *v);
     ~scoped_cJSON_t();
     cJSON *get() const;
     cJSON *release();
-    void reset(cJSON *);
+    void reset(cJSON *v);
 
     int type() const {
         return val->type;

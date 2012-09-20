@@ -92,6 +92,17 @@ goog.exportProperty(rethinkdb.Query.prototype, 'iter',
 rethinkdb.Query.prototype.buildQuery = goog.abstractMethod;
 
 /**
+ * Returns a formatted string representing the text that would
+ * have generated this ReQL ast. Used for reporting server errors.
+ * @param {Array=} bt
+ * @return {string}
+ * @ignore
+ */
+rethinkdb.Query.prototype.formatQuery = function(bt) {
+    return "----";
+};
+
+/**
  * @class A query representing a ReQL read operation
  * @constructor
  * @extends {rethinkdb.Query}

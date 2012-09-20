@@ -68,6 +68,33 @@ private:
     machine_id_t machine;
 };
 
+template <class protocol_t>
+void debug_print(append_only_printf_buffer_t *buf, const namespace_semilattice_metadata_t<protocol_t> &m) {
+    buf->appendf("ns_sl_metadata{blueprint=");
+    debug_print(buf, m.blueprint);
+    buf->appendf(", primary_datacenter=");
+    debug_print(buf, m.primary_datacenter);
+    buf->appendf(", replica_affinities=");
+    debug_print(buf, m.replica_affinities);
+    buf->appendf(", ack_expectations=");
+    debug_print(buf, m.ack_expectations);
+    buf->appendf(", shards=");
+    debug_print(buf, m.shards);
+    buf->appendf(", name=");
+    debug_print(buf, m.name);
+    buf->appendf(", port=");
+    debug_print(buf, m.port);
+    buf->appendf(", primary_pinnings=");
+    debug_print(buf, m.primary_pinnings);
+    buf->appendf(", secondary_pinnings=");
+    debug_print(buf, m.secondary_pinnings);
+    buf->appendf(", primary_key=");
+    debug_print(buf, m.primary_key);
+    buf->appendf(", database=");
+    debug_print(buf, m.database);
+    buf->appendf("}");
+}
+
 template<class protocol_t>
 namespace_semilattice_metadata_t<protocol_t> new_namespace(
     uuid_t machine, uuid_t database, uuid_t datacenter,

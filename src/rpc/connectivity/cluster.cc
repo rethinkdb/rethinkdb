@@ -20,6 +20,13 @@
 #define CLUSTER_PROTO_HEADER "RethinkDB " RETHINKDB_VERSION " cluster\n"
 const char *const cluster_proto_header = CLUSTER_PROTO_HEADER;
 
+void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address) {
+    buf->appendf("peer_address{ip=");
+    debug_print(buf, address.ip);
+    buf->appendf(", port=%d}", address.port);
+}
+
+
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int port,
         message_handler_t *mh,
@@ -288,10 +295,17 @@ void connectivity_cluster_t::run_t::handle(
     }
     if (expected_id && other_id != *expected_id) {
         logERR("received inconsistent routing information (wrong ID) from %s, closing connection", peername);
+
         return;
     }
     if (expected_address && other_address != *expected_address) {
-        logERR("received inconsistent routing information (wrong address) from %s, closing connection", peername);
+        printf_buffer_t<500> buf;
+        buf.appendf("expected_address = ");
+        debug_print(&buf, *expected_address);
+        buf.appendf(", other_address = ");
+        debug_print(&buf, other_address);
+
+        logERR("received inconsistent routing information (wrong address) from %s (%s), closing connection", peername, buf.c_str());
         return;
     }
 
