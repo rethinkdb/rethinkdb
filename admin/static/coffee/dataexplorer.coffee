@@ -612,11 +612,17 @@ module 'DataExplorerView', ->
                 @hide_suggestion()
             return @
 
+        create_tagged_callback: =>
+            id = Math.random()
+            @last_id = id
+            console.log id
+            tagged_callback = (data) =>
+                if id is @last_id
+                    execution_time = new Date() - @start_time
+                    @.$('.loading_query_img').css 'display', 'none'
+                    @data_container.render(@query, data, execution_time)
 
-        callback_render: (data) =>
-            execution_time = new Date() - @start_time
-            @.$('.loading_query_img').css 'display', 'none'
-            @data_container.render(@query, data, execution_time)
+            return tagged_callback
 
         execute_query: =>
             window.result = {}
@@ -642,9 +648,10 @@ module 'DataExplorerView', ->
 
             @.$('.loading_query_img').css 'display', 'block'
 
-            full_query = @query + '.run(this.callback_render)'
-            @start_time = new Date()
+            full_query = @query + '.run(tagged_callback)'
             try
+                tagged_callback = @create_tagged_callback()
+                @start_time = new Date()
                 eval(full_query)
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
