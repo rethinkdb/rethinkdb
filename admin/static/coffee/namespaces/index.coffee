@@ -337,24 +337,39 @@ module 'NamespaceView', ->
         alert_tmpl: Handlebars.compile $('#added_namespace-alert-template').html()
         error_template: Handlebars.compile $('#error_input-template').html()
         class: 'add-namespace'
-
-        initialize: ->
+            
+        initialize: =>
             log_initial '(initializing) modal dialog: add namespace'
             super
+            # Extend events
+            @delegateEvents()
+
+        show_advanced_settings: (event) =>
+            console.log 'trigger'
+            event.preventDefault()
+            @.$('.advanced_settings').slideDown 'fast'
 
         render: ->
             log_render '(rendering) add namespace dialog'
 
             super
-                modal_title: 'Add namespace'
+                modal_title: 'Add a table'
                 btn_primary_text: 'Add'
                 datacenters: _.map(datacenters.models, (datacenter) -> datacenter.toJSON())
                 databases: _.map(databases.models, (database) -> database.toJSON())
+
+            @.$('.show_advanced_settings-link').click @show_advanced_settings
 
         on_submit: =>
             super
 
             formdata = form_data_as_object($('form', @$modal))
+            if formdata.cache_size is ''
+                formdata.cache_size = '1024'
+            ###
+            if formdata.primary_key is ''
+                formdata.primary_key is 'id'
+            ###
 
             template_error = {}
             input_error = false
@@ -369,6 +384,10 @@ module 'NamespaceView', ->
                         template_error.namespace_exists = true
                         break
 
+            if DataUtils.is_integer(formdata.cache_size) is false
+                input_error = true
+                template_error.cache_size_format = true
+
             if input_error is true
                 $('.alert_modal').html @error_template template_error
                 $('.alert_modal').alert()
@@ -376,6 +395,7 @@ module 'NamespaceView', ->
             else
                 ack = {}
                 ack[formdata.primary_datacenter] = 1
+
                 $.ajax
                     processData: false
                     url: '/ajax/semilattice/rdb_namespaces/new'
@@ -386,6 +406,8 @@ module 'NamespaceView', ->
                         primary_uuid: formdata.primary_datacenter
                         database: formdata.database
                         ack_expectations: ack
+                        cache_size: parseInt(formdata.cache_size)*1024*1024
+                        #primary_key: formdata.primary_key
                         )
                     success: @on_success
                     error: @on_error
