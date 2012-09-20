@@ -361,8 +361,10 @@ module 'NamespaceView', ->
             formdata = form_data_as_object($('form', @$modal))
             if formdata.cache_size is ''
                 formdata.cache_size = '1024'
+            ###
             if formdata.primary_key is ''
-                formdata.primary_key is 'id'
+                formdata.#primary_key is 'id'
+            ###
 
             template_error = {}
             input_error = false
@@ -400,7 +402,7 @@ module 'NamespaceView', ->
                         database: formdata.database
                         ack_expectations: ack
                         cache_size: parseInt(formdata.cache_size)*1024*1024
-                        primary_key: formdata.primary_key
+                        #primary_key: formdata.primary_key
                         )
                     success: @on_success
                     error: @on_error
