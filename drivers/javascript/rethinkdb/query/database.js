@@ -97,16 +97,18 @@ goog.exportProperty(rethinkdb.Database.prototype, 'list',
  * @param {string} dataCenter
  * @param {string} dbName
  * @param {string} tableName
- * @param {string=} opt_primaryKey
+ * @param {string} primaryKey
+ * @param {string} cacheSize
  * @constructor
  * @extends {rethinkdb.Query}
  * @ignore
  */
-rethinkdb.CreateTableQuery = function(dataCenter, dbName, tableName, opt_primaryKey) {
+rethinkdb.CreateTableQuery = function(dataCenter, dbName, tableName, primaryKey, cacheSize) {
     this.dataCenter_ = dataCenter;
     this.dbName_ = dbName;
     this.tableName_ = tableName;
-    this.primaryKey_ = opt_primaryKey || 'id';
+    this.primaryKey_ = primaryKey;
+    this.cacheSize_ = cacheSize;
 };
 goog.inherits(rethinkdb.CreateTableQuery, rethinkdb.Query);
 
@@ -117,9 +119,10 @@ rethinkdb.CreateTableQuery.prototype.buildQuery = function() {
     tableref.setTableName(this.tableName_);
 
     var createtable = new MetaQuery.CreateTable();
-    createtable.setDatacenter(this.dataCenter_);
+    if (this.dataCenter_) createtable.setDatacenter(this.dataCenter_);
     createtable.setTableRef(tableref);
-    createtable.setPrimaryKey(this.primaryKey_);
+    if (this.primaryKey_) createtable.setPrimaryKey(this.primaryKey_);
+    if (this.cacheSize_) createtable.setCacheSize(this.cacheSize_);
 
     var meta = new MetaQuery();
     meta.setType(MetaQuery.MetaQueryType.CREATE_TABLE);
@@ -134,14 +137,29 @@ rethinkdb.CreateTableQuery.prototype.buildQuery = function() {
 
 /**
  * Create a new table in the database
- * @param {string} tableName
- * @param {string=} opt_primaryKey
+ * @param {string|Object} tableNameOrOptions Either pass a string giving
+ *  the name of the new table or an options dictionary providing:
+ *      dataCenter - the primary datacenter for the new table
+ *      tableName - the name of the new table
+ *      primaryKey - the primary key for the new table
+ *      cacheSize - the cache size limit for the new table
  */
-rethinkdb.Database.prototype.create = function(tableName, opt_primaryKey) {
+rethinkdb.Database.prototype.create = function(tableNameOrOptions) {
     argCheck_(arguments, 1);
-    typeCheck_(tableName, 'string');
-    typeCheck_(opt_primaryKey, 'string');
-    return new rethinkdb.CreateTableQuery('Welcome-dc', this.name_, tableName, opt_primaryKey);
+
+    var options = {};
+    if (typeof tableNameOrOptions === 'string') {
+        options['tableName'] = tableNameOrOptions;
+    } else {
+        options = tableNameOrOptions;
+    }
+
+    typeCheck_(options['tableName'], 'string');
+    typeCheck_(options['primaryKey'], 'string');
+    typeCheck_(options['dataCenter'], 'string');
+    typeCheck_(options['cacheSize'], 'string');
+
+    return new rethinkdb.CreateTableQuery(options['dataCenter'], this.name_, options['tableName'], options['primaryKey'], options['cacheSize']);
 };
 goog.exportProperty(rethinkdb.Database.prototype, 'create',
                     rethinkdb.Database.prototype.create);

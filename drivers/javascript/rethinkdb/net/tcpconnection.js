@@ -235,6 +235,8 @@ rethinkdb.TcpConnection.prototype.close = function() {
     if (!this.socket_)
         this.error_(new rethinkdb.errors.ClientError("Connection not open"));
 
+    // Clear end event so we don't throw an exception when we close the connecton;
+    this.socket_.removeAllListeners('end');
     this.socket_.end();
     this.socket_ = null;
 };
