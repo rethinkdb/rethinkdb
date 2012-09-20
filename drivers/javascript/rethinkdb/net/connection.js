@@ -62,6 +62,7 @@ rethinkdb.Connection.prototype.DEFAULT_DB = 'Welcome-db';
 /**
  * Closes this connection and reopens a new connection to the same host
  * and port.
+ * @param {function(...)=} onConnect
  */
 rethinkdb.Connection.prototype.reconnect = function(onConnect) {
     this.constructor.call(this, {'host':this.host_,

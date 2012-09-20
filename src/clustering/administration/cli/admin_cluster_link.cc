@@ -1188,6 +1188,8 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
     }
 
     // Send the requests
+    std::set<stat_manager_t::stat_id_t> requested_stats;
+    requested_stats.insert(".*");
     for (boost::ptr_map<machine_id_t, admin_stats_request_t>::iterator i = request_map.begin(); i != request_map.end(); ++i) {
         bool found = false;
         // Find machine in directory
@@ -1198,7 +1200,7 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
                 send(&mailbox_manager,
                      j->second.get_stats_mailbox_address,
                      i->second->response_mailbox.get_address(),
-                     std::set<stat_manager_t::stat_id_t>());
+                     requested_stats);
             }
         }
 
