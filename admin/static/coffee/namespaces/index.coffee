@@ -134,25 +134,10 @@ module 'NamespaceView', ->
             @no_namespace = true
 
             @model.on 'change', @render_summary
-            @namespace_list.on 'size_changed', @nl_size_changed
-
-        nl_size_changed: =>
-            num_namespaces = @namespace_list.element_views.length
-
-            we_should_rerender = false
-
-            if @no_namespace and num_namespaces > 0
-                @no_namespace = false
-                we_should_rerender = true
-            else if not @no_namespace and num_namespaces is 0
-                @no_namespace = true
-                we_should_rerender = true
-
-            @render() if we_should_rerender
+            @namespace_list.on 'size_changed', @render
 
         render: =>
-            @.$el.html @template
-                no_namespaces: @no_namespaces
+            @.$el.html @template({})
 
             @render_summary()
 
