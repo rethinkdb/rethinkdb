@@ -1286,7 +1286,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 
         scopes_t scopes_copy = scopes;
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            // TODO: Type-scope?
+            variable_type_scope_t::new_scope_t type_scope_maker(&scopes_copy.type_env.scope, w->for_each().var(), term_info_t(TERM_TYPE_JSON, true));
             variable_val_scope_t::new_scope_t scope_maker(&scopes_copy.scope, w->for_each().var(), json);
 
             for (int i = 0; i < w->for_each().queries_size(); ++i) {
@@ -1839,10 +1839,6 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
             break;
         case Builtin::ADD:
             {
-                std::vector<std::string> argnames;
-                std::vector<boost::shared_ptr<scoped_cJSON_t> > values;
-                scopes.scope.dump(&argnames, &values);
-
                 if (c->args_size() == 0) {
                     return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNull()));
                 }
@@ -2161,7 +2157,11 @@ predicate_t::predicate_t(const Predicate &_pred, runtime_environment_t *_env, co
 
 bool predicate_t::operator()(boost::shared_ptr<scoped_cJSON_t> json) {
     variable_val_scope_t::new_scope_t scope_maker(&scopes.scope, pred.arg(), json);
+    variable_type_scope_t::new_scope_t type_scope_maker(&scopes.type_env.scope, pred.arg(), term_info_t(TERM_TYPE_JSON, true));
+
     implicit_value_setter_t impliciter(&scopes.implicit_attribute_value, json);
+    implicit_type_t::impliciter_t type_impliciter(&scopes.type_env.implicit_type, term_info_t(TERM_TYPE_JSON, true));
+
     boost::shared_ptr<scoped_cJSON_t> a_bool = eval_term_as_json(pred.mutable_body(), env, scopes, backtrace);
 
     if (a_bool->type() == cJSON_True) {
@@ -2216,8 +2216,12 @@ private:
 
 boost::shared_ptr<scoped_cJSON_t> map(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val) {
     scopes_t scopes_copy = scopes;
+
     variable_val_scope_t::new_scope_t scope_maker(&scopes_copy.scope, arg, val);
+    variable_type_scope_t::new_scope_t type_scope_maker(&scopes_copy.type_env.scope, arg, term_info_t(TERM_TYPE_JSON, true));
+
     implicit_value_setter_t impliciter(&scopes_copy.implicit_attribute_value, val);
+    implicit_type_t::impliciter_t type_impliciter(&scopes_copy.type_env.implicit_type, term_info_t(TERM_TYPE_JSON, true));
     return eval_term_as_json(term, env, scopes_copy, backtrace);
 }
 
@@ -2229,7 +2233,10 @@ boost::shared_ptr<scoped_cJSON_t> eval_mapping(Mapping m, runtime_environment_t 
 boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val) {
     scopes_t scopes_copy = scopes;
     variable_val_scope_t::new_scope_t scope_maker(&scopes_copy.scope, arg, val);
+    variable_type_scope_t::new_scope_t type_scope_maker(&scopes_copy.type_env.scope, arg, term_info_t(TERM_TYPE_JSON, true));
+
     implicit_value_setter_t impliciter(&scopes_copy.implicit_attribute_value, val);
+    implicit_type_t::impliciter_t type_impliciter(&scopes_copy.type_env.implicit_type, term_info_t(TERM_TYPE_JSON, true));
     return eval_term_as_stream(term, env, scopes_copy, backtrace);
 }
 
