@@ -1,7 +1,21 @@
 <script id="dataexplorer_view-template" type="text/x-handlebars-template">
     <h1 class="title status">Data Explorer</h1>
+    <div id="user-alert-space"></div>
 </script>
 
+<script id="alert-connection_fail-template" type="text/x-handlebars-template">
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>The connection to the server failed. Please try to <a href="#" id="reconnect">reconnect</a></p>
+    </div>
+</script>
+
+<script id="alert-reconnection_success-template" type="text/x-handlebars-template">
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>Successfully reconnected.</p>
+    </div>
+</script>
 
 <script id="dataexplorer_input_query-template" type="text/x-handlebars-template">
     <div class="input_query_container" >
