@@ -95,8 +95,8 @@ function testIf() {
 }
 
 function testLet() {
-    r.let({a:r.expr(1)}, r('$a')).run(aeq(1));
-    r.let({a:r.expr(1), b:r.expr(2)}, r('$a').add(r('$b'))).run(aeq(3));
+    r.let({a:r.expr(1)}, r.letVar('a')).run(aeq(1));
+    r.let({a:r.expr(1), b:r.expr(2)}, r.letVar('a').add(r.letVar('b'))).run(aeq(3));
 }
 
 function testDistinct() {
@@ -104,19 +104,17 @@ function testDistinct() {
 }
 
 function testMap() {
-    arr.map(r.fn('a', r('$a').add(1))).nth(2).run(aeq(4));
+    arr.map(function(a) {return a.add(1)}).nth(2).run(aeq(4));
 }
 
 function testReduce() {
-    arr.reduce(r.expr(0), r.fn('a', 'b', r('$a').add(r('$b')))).run(aeq(21));
+    arr.reduce(0, function(a, b) {return a.add(b)}).run(aeq(21));
 }
 
 function testFilter() {
     arr.filter(function(val) {
         return val.lt(3);
     }).count().run(objeq(2));
-
-    arr.filter(r.fn('a', r('$a').lt(3))).count().run(objeq(2));
 }
 
 var tobj = r.expr({a:1,b:2,c:3});
@@ -131,9 +129,9 @@ function testGetAttr() {
     tobj.getAttr('c').run(aeq(3));
 
     r.let({a:tobj},
-        r.ifThenElse(r('$a').hasAttr('b'),
-            r('$a.b'),
-            r.expr("No attribute b")
+        r.ifThenElse(r.letVar('a').hasAttr('b'),
+            r.letVar('a.b'),
+            r.error("No attribute b")
         )
     ).run(aeq(2));
 }
@@ -149,7 +147,7 @@ function testWithout() {
 }
 
 function testR() {
-    r.let({a:r.expr({b:1})}, r('$a.b')).run(aeq(1));
+    r.let({a:r.expr({b:1})}, r.letVar('a.b')).run(aeq(1));
 }
 
 var tab = r.table('Welcome-rdb');
@@ -184,7 +182,7 @@ function testTabFilter() {
         return row('num').gt(16);
     }).count().run(aeq(4));
 
-    tab.filter(r.fn('row', r('$row.num').gt(16))).count().run(aeq(4));
+    tab.filter(function(row) {return row('num').gt(16)}).count().run(aeq(4));
 
     tab.filter(r('num').gt(16)).count().run(aeq(4));
 
@@ -198,8 +196,8 @@ function testTabMap() {
 }
 
 function testTabReduce() {
-    tab.map(r('num')).reduce(r.expr(0), r.fn('a','b', r('$b').add(r('$a')))).run(aeq(155));
-    tab.map(r('num')).reduce(r.expr(0), r.fn('a', 'b', r('$b').add(r('$a')))).run(aeq(155));
+    tab.map(r('num')).reduce(r.expr(0), function(a,b) {return b.add(a)}).run(aeq(155));
+    tab.map(r('num')).reduce(r.expr(0), function(a,b) {return b.add(a)}).run(aeq(155));
 }
 
 function testJS() {
@@ -260,14 +258,6 @@ function testSetupOtherTable() {
         ]).run(objeq({inserted:3}));
         done();
     });
-}
-
-function testEqJoin() {
-    tab.eqJoin('num', tab2).orderby('id').run(objeq([
-        {id:0, num:20, name:'bob'},
-        {id:1, num:19, name:'tom'},
-        {id:2, num:18, name:'joe'},
-    ]));
 }
 
 function testDropTable() {
@@ -377,13 +367,13 @@ function testDelete2() {
 }
 
 function testForEach1() {
-    r.expr([1,2,3]).forEach(r.fn('a', tab.insert({id:r('$a'), fe:true}))).run(objeq({
+    r.expr([1,2,3]).forEach(function(a) {return tab.insert({id:a, fe:true})}).run(objeq({
         inserted:3
     }));
 }
 
 function testForEach2() {
-    tab.forEach(r.fn('a', tab.get(r('$a.id')).update(r.expr({fe:true})))).run(objeq({
+    tab.forEach(function(a) {return tab.get(a('id')).update(r.expr({fe:true}))}).run(objeq({
         updated:3
     }));
 }
@@ -436,7 +426,6 @@ runTests([
     testGroupedMapReduce,
     testConcatMap,
     testSetupOtherTable,
-    testEqJoin,
     testDropTable,
     testUpdate1,
     testUpdate2,

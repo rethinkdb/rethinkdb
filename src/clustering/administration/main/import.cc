@@ -28,7 +28,7 @@
 
 bool do_json_importation(machine_id_t us,
                          const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
-                         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
+                         const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory,
                          namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
                          json_import_target_t target,
                          signal_t *interruptor);
@@ -165,7 +165,7 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_add
     // TODO: Handle interrupted exceptions?
     return do_json_importation(machine_id,
                                semilattice_manager_cluster.get_root_view(),
-                               directory_read_manager.get_root_view()->get(),
+                               directory_read_manager.get_root_view(),
                                &rdb_namespace_repo, importer, target, stop_cond);
 }
 
@@ -173,7 +173,7 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_add
 bool get_or_create_namespace(machine_id_t us,
                              namespace_repo_t<rdb_protocol_t> *ns_repo,
                              const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
-                             const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
+                             const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory,
                              database_id_t db_id,
                              boost::optional<std::string> datacenter_name,
                              std::string table_name,
@@ -244,10 +244,20 @@ bool get_or_create_namespace(machine_id_t us,
         nss.namespaces.insert(std::make_pair(ns_id, ns));
         namespaces->join(cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(nss));
 
-        printf("About to fill_in_blueprints.\n");
-
+        // Try fill_in_blueprints twice.  Sigh.
         cluster_semilattice_metadata_t metadata_copy = metadata->get();
-        fill_in_blueprints(&metadata_copy, directory, us);
+        bool try_another_fill_in_blueprints = false;
+        try {
+            fill_in_blueprints(&metadata_copy, directory->get(), us);
+        } catch (missing_machine_exc_t exc) {
+            try_another_fill_in_blueprints = true;
+        }
+
+        if (try_another_fill_in_blueprints) {
+            nap(1000);
+            metadata_copy = metadata->get();
+            fill_in_blueprints(&metadata_copy, directory->get(), us);
+        }
 
         metadata->join(metadata_copy);
 
@@ -297,7 +307,7 @@ bool get_or_create_database(UNUSED machine_id_t us,
 
 bool do_json_importation(machine_id_t us,
                          const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
-                         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
+                         const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory,
                          namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
                          json_import_target_t target,
                          signal_t *interruptor) {
@@ -309,7 +319,7 @@ bool do_json_importation(machine_id_t us,
     const bool autogen = target.autogen;
 
     // Try early abort on primary key.
-    if (maybe_primary_key && !importer->might_support_primary_key(*maybe_primary_key)) {
+    if (!autogen && maybe_primary_key && !importer->might_support_primary_key(*maybe_primary_key)) {
         // TODO: Duplicate code.
         // The column name cannot be found!  (This logic will be
         // different when we support primary key autogeneration.)
@@ -331,7 +341,7 @@ bool do_json_importation(machine_id_t us,
         return false;
     }
 
-    if (!importer->might_support_primary_key(primary_key)) {
+    if (!autogen && !importer->might_support_primary_key(primary_key)) {
         // The column name cannot be found!  (This logic will be
         // different when we support primary key autogeneration.)
         printf("Primary key '%s' not found in import data.", primary_key.c_str());
@@ -353,12 +363,14 @@ bool do_json_importation(machine_id_t us,
 
     bool importation_complete = false;
     try {
+        printf("Importing data...\n");
         for (scoped_cJSON_t json; importer->next_json(&json); json.reset(NULL)) {
             cJSON *pkey_value = json.GetObjectItem(primary_key.c_str());
             if (!pkey_value) {
                 if (autogen) {
                     std::string generated_pk = uuid_to_str(generate_uuid());
-                    json.AddItemToObject(primary_key.c_str(), cJSON_CreateString(generated_pk.c_str()));
+                    pkey_value = cJSON_CreateString(generated_pk.c_str());
+                    json.AddItemToObject(primary_key.c_str(), pkey_value);
                 } else {
                     // This can't happen with CSV because we can check headers up front.
                     // This will need to change if autogeneration is turned on.

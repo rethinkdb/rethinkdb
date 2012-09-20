@@ -360,8 +360,13 @@ rethinkdb.fn = function(var_args) {
         }
 
         body = var_args.apply(null, args.map(function(argName) {
-            return rethinkdb.R('$'+argName);
+            return rethinkdb.letVar(argName);
         }));
+
+        if (body === undefined) {
+            throw new rethinkdb.errors.ClientError("ReQL function must return ReQL expression");
+        }
+
     } else {
         body = arguments[arguments.length - 1];
         args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
@@ -1013,7 +1018,9 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'without',
  */
 rethinkdb.Expression.prototype.pluck = function() {
     var args = Array.prototype.slice.call(arguments, 0);
-    return this.map(rethinkdb.fn('a', rethinkdb.Expression.prototype.pickAttrs.apply(rethinkdb.R('$a'), args)));
+    return this.map(function(a) {
+        return rethinkdb.Expression.prototype.pickAttrs.apply(a, args)
+    });
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'pluck',
                     rethinkdb.Expression.prototype.pluck);
@@ -1094,20 +1101,36 @@ rethinkdb.R = function(varString) {
     var attrChain = varString.split('.');
 
     var curName = attrChain.shift();
-    var curExpr = null;
-    if (curName[0] === '$') {
-        curExpr = newExpr_(rethinkdb.VarExpression, curName.slice(1));
-    } else {
-        curExpr = newExpr_(rethinkdb.ImplicitVarExpression);
 
-        // @attrName should be treated like @.attrName
-        if (curName[0] === '@' && curName.length > 1) {
-            attrChain.unshift(curName.slice(1));
-        } else if (curName[0] !== '@') {
-            attrChain.unshift(curName);
-        }
+    // @attrName should be treated like @.attrName
+    if (curName[0] === '@' && curName.length > 1) {
+        attrChain.unshift(curName.slice(1));
+    } else if (curName[0] !== '@') {
+        attrChain.unshift(curName);
     }
 
+    var curExpr = newExpr_(rethinkdb.ImplicitVarExpression);
+
+    while (curName = attrChain.shift()) {
+        curExpr = newExpr_(rethinkdb.AttrExpression, curExpr, curName);
+    }
+
+    return curExpr;
+};
+
+/**
+ * Reference a variable bound by an enclosing let statement
+ * @param {string} varString The variable to reference. subfields can be
+ *  referenced with dot notation.
+ * @param {string} variable.
+ * @export
+ */
+rethinkdb.letVar = function(varString) {
+    typeCheck_(varString, 'string');
+    var attrChain = varString.split('.');
+
+    var curName = attrChain.shift();
+    var curExpr = newExpr_(rethinkdb.VarExpression, curName);
     while (curName = attrChain.shift()) {
         curExpr = newExpr_(rethinkdb.AttrExpression, curExpr, curName);
     }
@@ -1297,27 +1320,6 @@ rethinkdb.Expression.prototype.forEach = function(fun) {
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'forEach',
                     rethinkdb.Expression.prototype.forEach);
-
-/**
- * Hack for demo
- */
-rethinkdb.Expression.prototype.eqJoin = function(attr, table) {
-    typeCheck_(attr, 'string');
-
-    if (!(table instanceof rethinkdb.Table)) {
-        table = rethinkdb.table(table);
-    }
-
-    return this.concatMap(rethinkdb.fn('leftRow',
-        rethinkdb.expr([table.get(rethinkdb.R('$leftRow.'+attr))]).filter(rethinkdb.fn('x',
-            rethinkdb.R('$x')['ne'](null))
-        ).map(rethinkdb.fn('rightRow',
-            rethinkdb.R('$rightRow').extend(rethinkdb.R('$leftRow')))
-        )
-    ));
-};
-goog.exportProperty(rethinkdb.Expression.prototype, 'eqJoin',
-                    rethinkdb.Expression.prototype.eqJoin);
 
 /**
  * Convert a stream to an array.
