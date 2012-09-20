@@ -163,8 +163,8 @@ bool get_or_create_namespace(machine_id_t us,
     boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > namespaces = metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, metadata);
 
 
-    namespaces_semilattice_metadata_t<rdb_protocol_t> ns = *namespaces->get();
-    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> > searcher(&ns.namespaces);
+    namespaces_semilattice_metadata_t<rdb_protocol_t> original_nss = *namespaces->get();
+    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> > searcher(&original_nss.namespaces);
     metadata_search_status_t error;
     std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator it = searcher.find_uniq(namespace_predicate_t(table_name, db_id), &error);
 
@@ -205,7 +205,7 @@ bool get_or_create_namespace(machine_id_t us,
         datacenters_semilattice_metadata_t dcs = datacenters->get();
         metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher(&dcs.datacenters);
         metadata_search_status_t dc_error;
-        std::map<datacenter_id_t, deletable_t<datacenter_semilattice_metadata_t> >::iterator it = dc_searcher.find_uniq(*datacenter_name, &dc_error);
+        std::map<datacenter_id_t, deletable_t<datacenter_semilattice_metadata_t> >::iterator jt = dc_searcher.find_uniq(*datacenter_name, &dc_error);
 
         if (dc_error != METADATA_SUCCESS) {
             debugf("Could not find datacenter. error = %d\n", dc_error);
@@ -215,7 +215,7 @@ bool get_or_create_namespace(machine_id_t us,
             return false;
         }
 
-        datacenter_id_t dc_id = it->first;
+        datacenter_id_t dc_id = jt->first;
 
         namespace_semilattice_metadata_t<rdb_protocol_t> ns = new_namespace<rdb_protocol_t>(us, db_id, dc_id, table_name, primary_key, 0 /* unused memcached port arg */, GIGABYTE);
         namespaces_semilattice_metadata_t<rdb_protocol_t> nss;
