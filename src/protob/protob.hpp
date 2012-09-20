@@ -84,7 +84,7 @@ private:
 
     boost::ptr_map<int32_t, http_context_t> http_conns;
     int32_t next_http_conn_id;
-    int next_thread;
+    unsigned next_thread;
     repeating_timer_t http_timeout_timer;
 };
 
