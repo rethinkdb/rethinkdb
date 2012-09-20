@@ -55,8 +55,7 @@ Response query_server_t::handle(Query *q, context_t *query_context) {
             ctx->cross_thread_database_watchables[thread]->get_watchable(),
             ctx->semilattice_metadata,
             ctx->directory_read_manager,
-            js_runner, interruptor, ctx->machine_id,
-            parser_id, &thread_counters);
+            js_runner, interruptor, ctx->machine_id);
         //[execute_query] will set the status code unless it throws
         execute_query(q, &runtime_environment, &res, scopes_t(),
                       root_backtrace, stream_cache);

@@ -138,6 +138,10 @@ rethinkdb.TcpConnection = function(host, onConnect, onFailure) {
     var socket_node_ = net_node_.connect(this.port_, this.host_, function() {
         socket_node_.write("35ba61af", "hex");
         socket_node_.on('data', goog.bind(self.tcpRecv_, self));
+        socket_node_.on('end', function() {
+            self.socket_ = null;
+            self.error_(new rethinkdb.errors.RuntimeError('Server disconnected'));
+        });
         self.socket_ = socket_node_;
         if (onConnect) onConnect(self);
     });
@@ -231,6 +235,8 @@ rethinkdb.TcpConnection.prototype.close = function() {
     if (!this.socket_)
         this.error_(new rethinkdb.errors.ClientError("Connection not open"));
 
+    // Clear end event so we don't throw an exception when we close the connecton;
+    this.socket_.removeAllListeners('end');
     this.socket_.end();
     this.socket_ = null;
 };
