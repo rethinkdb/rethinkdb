@@ -125,6 +125,7 @@ rethinkdb.Connection.prototype.run_ = function(expr, iterate, opt_callback) {
 
     this.outstandingQueries_[query.getToken()] = {
         callback: (opt_callback || null),
+        query: expr, // Save origional ast for backtrace reconstructions
         iterate : iterate,
         partial : []
     };
@@ -212,7 +213,7 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
             this.error_(new rethinkdb.errors.BrokenClient(response.getErrorMessage()));
             break;
         case Response.StatusCode.RUNTIME_ERROR:
-            this.error_(new rethinkdb.errors.RuntimeError(response.getErrorMessage()));
+            this.error_(new rethinkdb.errors.RuntimeError(formatServerError_(response, request.query)));
             break;
         case Response.StatusCode.BAD_QUERY:
             this.error_(new rethinkdb.errors.BadQuery(response.getErrorMessage()));
