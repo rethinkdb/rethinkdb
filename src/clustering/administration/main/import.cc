@@ -12,6 +12,7 @@
 #include "clustering/administration/network_logger.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/proc_stats.hpp"
+#include "clustering/administration/suggester.hpp"
 #include "clustering/administration/sys_stats.hpp"
 #include "extproc/pool.hpp"
 #include "http/json.hpp"
@@ -24,6 +25,7 @@
 
 bool do_json_importation(machine_id_t us,
                          const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
+                         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
                          namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
                          json_import_target_t target,
                          signal_t *interruptor);
@@ -141,6 +143,7 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_add
     // TODO: Handle interrupted exceptions?
     return do_json_importation(machine_id,
                                semilattice_manager_cluster.get_root_view(),
+                               directory_read_manager.get_root_view()->get(),
                                &rdb_namespace_repo, importer, target, stop_cond);
 }
 
@@ -149,6 +152,7 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_add
 
 bool get_or_create_namespace(machine_id_t us,
                              const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
+                             const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
                              database_id_t db_id,
                              boost::optional<std::string> datacenter_name,
                              std::string table_name,
@@ -204,7 +208,7 @@ bool get_or_create_namespace(machine_id_t us,
         std::map<datacenter_id_t, deletable_t<datacenter_semilattice_metadata_t> >::iterator it = dc_searcher.find_uniq(*datacenter_name, &dc_error);
 
         if (dc_error != METADATA_SUCCESS) {
-            debugf("Could not find datacenter.\n");
+            debugf("Could not find datacenter. error = %d\n", dc_error);
             // TODO(sam): Add a way to produce a good error message.
             *namespace_out = namespace_id_t();
             primary_key_out->clear();
@@ -219,7 +223,12 @@ bool get_or_create_namespace(machine_id_t us,
         nss.namespaces.insert(std::make_pair(ns_id, ns));
         namespaces->join(cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(nss));
 
-        // TODO(sam): Call fill_in_blueprints here.
+        debugf("About to fill_in_blueprints.\n");
+
+        cluster_semilattice_metadata_t metadata_copy = metadata->get();
+        fill_in_blueprints(&metadata_copy, directory, us);
+
+        metadata->join(metadata_copy);
 
         debugf("Created namespace.\n");
 
@@ -250,17 +259,19 @@ bool get_or_create_database(machine_id_t us,
         *db_out = it->first;
         return true;
     } else if (error == METADATA_ERR_NONE) {
-        databases_semilattice_metadata_t dbs;
-        database_semilattice_metadata_t db;
-        db.name = vclock_t<std::string>(db_name, us);
-        database_id_t db_id = generate_uuid();
-        dbs.databases.insert(std::make_pair(db_id, db));
+        // TODO(sam): Why the heck would we want to create a database?
 
-        databases->join(dbs);
-        debugf("No database found, created %s\n", uuid_to_str(db_id).c_str());
+        // databases_semilattice_metadata_t dbs;
+        // database_semilattice_metadata_t db;
+        // db.name = vclock_t<std::string>(db_name, us);
+        // database_id_t db_id = generate_uuid();
+        // dbs.databases.insert(std::make_pair(db_id, db));
 
-        *db_out = db_id;
-        return true;
+        // databases->join(dbs);
+        // debugf("No database found, created %s\n", uuid_to_str(db_id).c_str());
+
+        *db_out = database_id_t();
+        return false;
     } else {
         debugf("Unspecified error searching for database (duplicate?)\n");
         *db_out = database_id_t();
@@ -271,6 +282,7 @@ bool get_or_create_database(machine_id_t us,
 
 bool do_json_importation(machine_id_t us,
                          const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
+                         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
                          namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
                          json_import_target_t target,
                          signal_t *interruptor) {
@@ -287,7 +299,7 @@ bool do_json_importation(machine_id_t us,
 
     namespace_id_t namespace_id;
     std::string primary_key;
-    if (!get_or_create_namespace(us, metadata, db_id, datacenter_name, table_name, maybe_primary_key, &namespace_id, &primary_key)) {
+    if (!get_or_create_namespace(us, metadata, directory, db_id, datacenter_name, table_name, maybe_primary_key, &namespace_id, &primary_key)) {
         debugf("could not get or create table named '%s' (in db '%s')\n", table_name.c_str(), uuid_to_str(db_id).c_str());
         return false;
     }
@@ -298,6 +310,9 @@ bool do_json_importation(machine_id_t us,
     namespace_interface_t<rdb_protocol_t> *ni = access.get_namespace_if();
 
     wait_interruptible(ni->get_initial_ready_signal(), interruptor);
+
+    // TODO(sam): Remove this 10-second wait.
+    nap(10000);
 
     order_source_t order_source;
 
