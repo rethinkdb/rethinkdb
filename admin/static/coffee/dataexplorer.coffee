@@ -627,6 +627,8 @@ module 'DataExplorerView', ->
             return tagged_callback
 
         execute_query: =>
+            clearTimeout @timeout
+            @timeout = setTimeout @connect
             window.result = {}
 
             @query = @codemirror.getValue()
@@ -736,10 +738,9 @@ module 'DataExplorerView', ->
                 @has_been_initialized.value = true
             
             @connect()
+            @timeout = setTimeout @connect
             window.r = rethinkdb.query
             window.R = r.R
-
-            @interval = setInterval @connect, 60*5*1000
 
             # We escape the last function because we are building a regex on top of it.
             @unsafe_to_safe_regexstr = []
@@ -847,8 +848,7 @@ module 'DataExplorerView', ->
                 window.conn.close()
             catch err
                 #console.log 'Could not destroy connection'
-            clearInterval @interval
-
+            clearTimeout @timeout
     
     class @InputQuery extends Backbone.View
         className: 'query_control'
