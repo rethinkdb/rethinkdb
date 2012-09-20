@@ -39,6 +39,11 @@ vclock_t<T>::vclock_t() {
 }
 
 template <class T>
+vclock_t<T>::vclock_t(const T &_t) {
+    values.insert(std::make_pair(vclock_details::version_map_t(), _t));
+}
+
+template <class T>
 vclock_t<T>::vclock_t(const T &_t, const uuid_t &us) {
     stamped_value_t tmp = std::make_pair(vclock_details::version_map_t(), _t);
     tmp.first[us] = 1;
