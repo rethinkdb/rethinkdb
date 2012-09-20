@@ -1,5 +1,7 @@
 #include "clustering/administration/main/import.hpp"
 
+// TODO: Which of these headers, other than rdb_protocol/query_language.hpp, contains rdb_protocol_t stuff?
+
 #include "arch/io/network.hpp"
 #include "clustering/administration/admin_tracker.hpp"
 #include "clustering/administration/auto_reconnect.hpp"
@@ -16,6 +18,7 @@
 #include "clustering/administration/sys_stats.hpp"
 #include "extproc/pool.hpp"
 #include "http/json.hpp"
+#include "rdb_protocol/query_language.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
@@ -29,6 +32,16 @@ bool do_json_importation(machine_id_t us,
                          namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
                          json_import_target_t target,
                          signal_t *interruptor);
+
+bool get_other_peer(const std::set<peer_id_t> &peers_list, const peer_id_t &me, peer_id_t *other_peer_out) {
+    for (std::set<peer_id_t>::const_iterator it = peers_list.begin(); it != peers_list.end(); ++it) {
+        if (*it != me) {
+            *other_peer_out = *it;
+            return true;
+        }
+    }
+    return false;
+}
 
 
 bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_address_t> joins, int ports_port, int ports_client_port, json_import_target_t target, json_importer_t *importer, signal_t *stop_cond) {
@@ -120,6 +133,16 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_add
         }
     }
 
+    peer_id_t other_peer;
+    if (!get_other_peer(connectivity_cluster.get_peers_list(), connectivity_cluster.get_me(), &other_peer)) {
+        // TODO(sam): print to stderr?  Improve error reporting?  This is a bogus message?
+        printf("Aborting!  Could not find other peer after it connected!\n");
+        return false;
+    }
+
+    // Wait for semilattice data.
+    semilattice_manager_cluster.get_root_view()->sync_from(other_peer, stop_cond);
+
     perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
     // Namespace repos
@@ -151,6 +174,7 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_add
 
 
 bool get_or_create_namespace(machine_id_t us,
+                             namespace_repo_t<rdb_protocol_t> *ns_repo,
                              const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
                              const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
                              database_id_t db_id,
@@ -158,7 +182,8 @@ bool get_or_create_namespace(machine_id_t us,
                              std::string table_name,
                              boost::optional<std::string> maybe_primary_key,
                              namespace_id_t *namespace_out,
-                             std::string *primary_key_out) {
+                             std::string *primary_key_out,
+                             signal_t *interruptor) {
     boost::shared_ptr<semilattice_read_view_t<datacenters_semilattice_metadata_t> > datacenters = metadata_field(&cluster_semilattice_metadata_t::datacenters, metadata);
     boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > namespaces = metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, metadata);
 
@@ -230,7 +255,11 @@ bool get_or_create_namespace(machine_id_t us,
 
         metadata->join(metadata_copy);
 
-        debugf("Created namespace.\n");
+        debugf("Created namespace.  Waiting for readiness...\n");
+
+        wait_for_rdb_table_readiness(ns_repo, ns_id, interruptor);
+
+        debugf("Done waiting for readiness.\n");
 
         *namespace_out = ns_id;
         *primary_key_out = primary_key;
@@ -290,7 +319,7 @@ bool do_json_importation(machine_id_t us,
 
     namespace_id_t namespace_id;
     std::string primary_key;
-    if (!get_or_create_namespace(us, metadata, directory, db_id, datacenter_name, table_name, maybe_primary_key, &namespace_id, &primary_key)) {
+    if (!get_or_create_namespace(us, repo, metadata, directory, db_id, datacenter_name, table_name, maybe_primary_key, &namespace_id, &primary_key, interruptor)) {
         debugf("could not get or create table named '%s' (in db '%s')\n", table_name.c_str(), uuid_to_str(db_id).c_str());
         return false;
     }
@@ -301,9 +330,6 @@ bool do_json_importation(machine_id_t us,
     namespace_interface_t<rdb_protocol_t> *ni = access.get_namespace_if();
 
     wait_interruptible(ni->get_initial_ready_signal(), interruptor);
-
-    // TODO(sam): Remove this 10-second wait.
-    nap(10000);
 
     order_source_t order_source;
 

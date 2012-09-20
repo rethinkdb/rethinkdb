@@ -27,6 +27,8 @@
 #include "rdb_protocol/stream.hpp"
 #include "rdb_protocol/environment.hpp"
 
+void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, namespace_id_t namespace_id, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+
 namespace query_language {
 
 /* These functions throw exceptions if their inputs aren't well defined or

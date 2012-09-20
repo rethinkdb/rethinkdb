@@ -12,6 +12,32 @@
 #include "rdb_protocol/internal_extensions.pb.h"
 #include "rdb_protocol/js.hpp"
 
+void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, namespace_id_t namespace_id, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    /* The following is an ugly hack, but it's probably what we want.  It
+       takes about a third of a second for the new namespace to get to the
+       point where we can do reads/writes on it.  We don't want to return
+       until that has happened, so we try to do a read every `poll_ms`
+       milliseconds until one succeeds, then return. */
+
+    // This read won't succeed, but we care whether it fails with an exception.
+    //  It must be an rget to make sure that access is available to all shards.
+
+    const int poll_ms = 100; //with this value, usually polls twice
+    rdb_protocol_t::rget_read_t bad_rget_read(hash_region_t<key_range_t>::universe());
+    rdb_protocol_t::read_t bad_read(bad_rget_read);
+    for (;;) {
+        signal_timer_t start_poll(poll_ms);
+        wait_interruptible(&start_poll, interruptor);
+        try {
+            namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_id, interruptor);
+            rdb_protocol_t::read_response_t read_res;
+            // TODO: We should not use order_token_t::ignore.
+            ns_access.get_namespace_if()->read(bad_read, &read_res, order_token_t::ignore, interruptor);
+            break;
+        } catch (cannot_perform_query_exc_t e) { } //continue loop
+    }
+}
+
 namespace query_language {
 
 cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
@@ -875,31 +901,13 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
         env->semilattice_metadata->join(metadata);
 
-        /* The following is an ugly hack, but it's probably what we want.  It
-           takes about a third of a second for the new namespace to get to the
-           point where we can do reads/writes on it.  We don't want to return
-           until that has happened, so we try to do a read every `poll_ms`
-           milliseconds until one succeeds, then return. */
+        /* UGLY HACK BELOW.  SEE wait_for_rdb_table_readiness for more info. */
 
-        int64_t poll_ms = 100; //with this value, usually polls twice
-        // This read won't succeed, but we care whether it fails with an exception.
-        //  It must be an rget to make sure that access is available to all shards.
         // This is performed on the client's thread to make sure that any
         //  immediately following queries will succeed.
         on_thread_t rethreader_original(original_thread);
-        rdb_protocol_t::rget_read_t bad_rget_read(hash_region_t<key_range_t>::universe());
-        rdb_protocol_t::read_t bad_read(bad_rget_read);
         try {
-            for (;;) {
-                signal_timer_t start_poll(poll_ms);
-                wait_interruptible(&start_poll, env->interruptor);
-                try {
-                    namespace_repo_t<rdb_protocol_t>::access_t ns_access(env->ns_repo, namespace_id, env->interruptor);
-                    rdb_protocol_t::read_response_t read_res;
-                    ns_access.get_namespace_if()->read(bad_read, &read_res, order_token_t::ignore, env->interruptor);
-                    break;
-                } catch (cannot_perform_query_exc_t e) { } //continue loop
-            }
+            wait_for_rdb_table_readiness(env->ns_repo, namespace_id, env->interruptor);
         } catch (interrupted_exc_t e) {
             throw runtime_exc_t("Query interrupted, probably by user.", bt);
         }
