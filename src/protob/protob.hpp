@@ -20,8 +20,61 @@ enum protob_server_callback_mode_t {
     CORO_UNORDERED //a coroutine is spawned for each request and responses are sent back as they are completed
 };
 
+template<class context_t>
+class http_conn_cache_t : public repeating_timer_callback_t {
+public:
+    class http_conn_t {
+    public:
+        http_conn_t() : last_accessed(time(0)) { ctx.interruptor = &interruptor; }
+        context_t *get_ctx() { last_accessed = time(0); return &ctx; }
+        void pulse() { rassert(!interruptor.is_pulsed()); interruptor.pulse(); }
+        bool is_expired() { return difftime(time(0), last_accessed) > TIMEOUT_SEC; }
+    private:
+        cond_t interruptor;
+        context_t ctx;
+        time_t last_accessed;
+        DISABLE_COPYING(http_conn_t);
+    };
+
+    http_conn_cache_t() : next_id(0), http_timeout_timer(TIMEOUT_MS, this) { }
+    ~http_conn_cache_t() {
+        typename std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator it;
+        for (it = cache.begin(); it != cache.end(); ++it) it->second->pulse();
+    }
+
+    boost::shared_ptr<http_conn_t> find(int32_t key) {
+        typename std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator
+            it = cache.find(key);
+        if (it == cache.end()) return boost::shared_ptr<http_conn_t>();
+        return it->second;
+    }
+    int32_t create() {
+        int32_t key = next_id++;
+        cache.insert(std::make_pair(key, boost::shared_ptr<http_conn_t>(new http_conn_t())));
+        return key;
+    }
+    size_t erase(int32_t key) { return cache.erase(key); }
+
+    void on_ring() {
+        typename std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator it, tmp;
+        for (it = cache.begin(); it != cache.end();) {
+            tmp = it++;
+            if (tmp->second->is_expired()) {
+                tmp->second->pulse();
+                cache.erase(tmp);
+            }
+        }
+    }
+private:
+        static const int TIMEOUT_SEC = 5*60;
+        static const int TIMEOUT_MS = TIMEOUT_SEC*1000;
+    std::map<int32_t, boost::shared_ptr<http_conn_t> > cache;
+    int32_t next_id;
+    repeating_timer_t http_timeout_timer;
+};
+
 template <class request_t, class response_t, class context_t>
-class protob_server_t : public http_app_t, public repeating_timer_callback_t {
+class protob_server_t : public http_app_t {
 public:
     // TODO: Function pointers?  Really?
     protob_server_t(int port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *, std::string), protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
@@ -34,7 +87,6 @@ private:
 
     // For HTTP server
     http_res_t handle(const http_req_t &);
-    void on_ring();
 
     boost::function<response_t(request_t *, context_t *)> f;
     response_t (*on_unparsable_query)(request_t *, std::string);
@@ -50,42 +102,11 @@ private:
         ~pulse_on_destruct_t() { cond->pulse(); }
         cond_t *cond;
     } pulse_sdc_on_shutdown;
+    http_conn_cache_t<context_t> http_conn_cache;
 
     scoped_ptr_t<tcp_listener_t> tcp_listener;
 
-    // For HTTP server
-    class http_context_t {
-    public:
-        //TODO make this configurable?
-        static const int TIMEOUT_SEC = 5*60;
-        static const int TIMEOUT_MS = TIMEOUT_SEC*1000;
-
-        http_context_t();
-        context_t *getContext();
-        bool isExpired();
-        void grab();
-        void release();
-        bool isFree();
-        void terminate();
-
-        cond_t *getInterruptorCond() { return &interruptor_cond; }
-        bool isTerminated() { return interruptor_cond.is_pulsed(); }
-    private:
-        cond_t interruptor_cond;
-        context_t ctx;
-        time_t last_accessed;
-        int users_count;
-
-        // Update last_accessed to current time
-        void touch();
-
-        DISABLE_COPYING(http_context_t);
-    };
-
-    boost::ptr_map<int32_t, http_context_t> http_conns;
-    int32_t next_http_conn_id;
     unsigned next_thread;
-    repeating_timer_t http_timeout_timer;
 };
 
 template<class request_t, class response_t, class context_t>
