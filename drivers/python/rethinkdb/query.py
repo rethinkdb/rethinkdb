@@ -49,8 +49,7 @@ Stream expressions
 .. autofunction:: js
 .. autofunction:: let
 .. autofunction:: fn
-.. autoclass:: JSONFunction
-.. autoclass:: StreamFunction
+.. autoclass:: FunctionExpr
 
 Write queries
 =============
@@ -77,6 +76,7 @@ Manipulating databases and tables
 
 import query_language_pb2 as p
 import net
+import types
 
 class BaseQuery(object):
     """A base class for all ReQL queries. Queries can be run by calling the
@@ -433,16 +433,16 @@ class JSONExpression(ReadQuery):
         If the input is not an array, fails when the query is run.
 
         :param predicate: the predicate to filter with
-        :type predicate: dict, :class:`JSONExpression`, or :class:`JSONFunction`
+        :type predicate: dict, :class:`JSONExpression`, or :class:`FunctionExpr`
         :returns: :class:`JSONExpression`
 
-        >>> expr([1, 2, 3, 4, 5]).filter(fn("x", R("$x") > 2)).run()
+        >>> expr([1, 2, 3, 4, 5]).filter(lambda x: x > 2).run()
         [3, 4, 5]
         """
         if isinstance(predicate, dict):
-            predicate = JSONExpression(internal.All(*[R(k) == v for k, v in predicate.iteritems()]))
-        if not isinstance(predicate, JSONFunction):
-            predicate = JSONFunction(predicate)
+            predicate = JSONExpression(internal.All(*[r[k] == v for k, v in predicate.iteritems()]))
+        if not isinstance(predicate, FunctionExpr):
+            predicate = FunctionExpr(predicate)
 
         return JSONExpression(internal.Filter(self, predicate))
 
@@ -510,14 +510,14 @@ class JSONExpression(ReadQuery):
         If the input is not an array, fails when the query is run.
 
         :param mapping: The function to evaluate
-        :type mapping: :class:`JSONExpression` or :class:`JSONFunction`
+        :type mapping: :class:`JSONExpression` or :class:`FunctionExpr`
         :returns: :class:`JSONExpression`
 
-        >>> expr([1, 2, 3]).map(fn("x", R('$x') * 2)).run()
+        >>> expr([1, 2, 3]).map(lambda x: x * 2).run()
         [2, 4, 6]
         """
-        if not isinstance(mapping, JSONFunction):
-            mapping = JSONFunction(mapping)
+        if not isinstance(mapping, FunctionExpr):
+            mapping = FunctionExpr(mapping)
         return JSONExpression(internal.Map(self, mapping))
 
     def concat_map(self, mapping):
@@ -531,14 +531,14 @@ class JSONExpression(ReadQuery):
         If the input is not an array, fails when the query is run.
 
         :param mapping: The mapping to evaluate
-        :type mapping: :class:`StreamExpression` or :class:`StreamFunction`
+        :type mapping: :class:`StreamExpression` or :class:`FunctionExpr`
         :returns: :class:`JSONExpression`
 
-        >>> expr([1, 2, 3]).concat_map(fn("a", expr([R("$a"), "test"]).to_stream())).run()
+        >>> expr([1, 2, 3]).concat_map(lambda x: expr([x, 'test']).to_stream()).run()
         [1, "test", 2, "test", 3, "test"]
         """
-        if not isinstance(mapping, StreamFunction):
-            mapping = StreamFunction(mapping)
+        if not isinstance(mapping, FunctionExpr):
+            mapping = FunctionExpr(mapping)
         return JSONExpression(internal.ConcatMap(self, mapping))
 
     def reduce(self, base, func):
@@ -556,13 +556,13 @@ class JSONExpression(ReadQuery):
         :param base: The identity of the reduction
         :type base: :class:`JSONExpression`
         :param func: The function to use to combine things
-        :type func: :class:`JSONFunction`
+        :type func: :class:`FunctionExpr`
         :rtype: :class:`JSONExpression`
 
-        >>> expr([1, 2, 3]).reduce(0, fn('a', 'b', R('$a') + R('$b'))).run()
+        >>> expr([1, 2, 3]).reduce(0, lambda x, y: x + y).run()
         6
         """
-        assert isinstance(func, JSONFunction)
+        assert isinstance(func, FunctionExpr)
         return JSONExpression(internal.Reduce(self, base, func))
 
     def grouped_map_reduce(self, group_mapping, value_mapping, reduction_base, reduction_func):
@@ -572,10 +572,10 @@ class JSONExpression(ReadQuery):
 
         If the input is not an array, fails when the query is run.
         """
-        if not isinstance(group_mapping, JSONFunction):
-            group_mapping = JSONFunction(group_mapping)
-        if not isinstance(value_mapping, JSONFunction):
-            value_mapping = JSONFunction(value_mapping)
+        if not isinstance(group_mapping, FunctionExpr):
+            group_mapping = FunctionExpr(group_mapping)
+        if not isinstance(value_mapping, FunctionExpr):
+            value_mapping = FunctionExpr(value_mapping)
         return JSONExpression(internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func))
 
     def distinct(self):
@@ -611,7 +611,7 @@ class JSONExpression(ReadQuery):
         [{ 'a': 1, 'b': 1 }, { 'a': 2, 'b': 2 }]
         """
         # TODO: reimplement in terms of pickattr when that's done
-        return self.map(fn("r", {a: R("$r")[a] for a in attrs}))
+        return self.map(lambda x: {a: x[a] for a in attrs})
 
     def length(self):
         """Returns the length of an array.
@@ -690,19 +690,19 @@ class StreamExpression(ReadQuery):
         We can also pass ReQL expressions directly. The above query is
         equivalent to the following query:
 
-        >>> table('users').filter((R('age') == 30) & (R('state') == 'CA')))
+        >>> table('users').filter((r['age'] == 30) & (r['state'] == 'CA')))
 
         The values in a dict can contain ReQL expressions - they will get
         evaluated in order to evaluate the condition:
 
         >>> # Select all Californians whose age is equal to the number
         >>> # of colleges attended added to the number of jobs held
-        >>> table('users').filter( { 'state': 'CA', 'age': R('jobs_held') + R('colleges_attended') })
+        >>> table('users').filter( { 'state': 'CA', 'age': r['jobs_held'] + r['colleges_attended'] })
 
         We can of course specify this query as a ReQL expression directly:
 
-        >>> table('users').filter((R('state') == 'CA') &
-        ...                       (R('age') == R('jobs_held') + R('colleges_attended')))
+        >>> table('users').filter((r['state'] == 'CA') &
+        ...                       (r['age'] == r['jobs_held'] + r['colleges_attended']))
 
         We can use subqueries as well:
 
@@ -713,27 +713,20 @@ class StreamExpression(ReadQuery):
         So far we've been grabbing attributes from the implicit scope. We can
         bind the value of each row to a variable and operate on that:
 
-        >>> table('users').filter(fn('row', R('$row.state') == 'CA' &
-        ...                                 R('$row.age') == R('$row.jobs_held') + R('$row.colleges_attended')))
+        >>> table('users').filter(lambda x: (x['state'] == 'CA') &
+        ...                                 (x['age'] == x['jobs_held'] + x['colleges_attended']))
 
         This type of syntax allows us to execute inner subqueries that refer to
         the outer row:
 
-        >>> # Select all users whose age is equal to a number of blog
-        >>> # posts written by all users with the same first name:
-        >>> table('users').filter(fn('user',
-        ...     R('$user.age') == table('posts').filter(fn('post',
-        ...         R('$post.author.first_name') == R('$user.first_name')))
-        ...         .length()))
-
         :param predicate: the predicate to filter with
-        :type predicate: dict, :class:`JSONExpression`, or :class:`JSONFunction`
+        :type predicate: dict, :class:`JSONExpression`, or :class:`FunctionExpr`
         :returns: :class:`StreamExpression` or :class:`MultiRowSelection` (same as input)
         """
         if isinstance(predicate, dict):
-            predicate = JSONExpression(internal.All(*[R(k) == v for k, v in predicate.iteritems()]))
-        if not isinstance(predicate, JSONFunction):
-            predicate = JSONFunction(predicate)
+            predicate = JSONExpression(internal.All(*[r[k] == v for k, v in predicate.iteritems()]))
+        if not isinstance(predicate, FunctionExpr):
+            predicate = FunctionExpr(predicate)
 
         return self._make_selector(internal.Filter(self, predicate))
 
@@ -808,14 +801,14 @@ class StreamExpression(ReadQuery):
         """Applies the given function to each element of the stream.
 
         :param mapping: The function to evaluate
-        :type mapping: :class:`JSONExpression` or :class:`JSONFunction`
+        :type mapping: :class:`JSONExpression` or :class:`FunctionExpr`
         :returns: :class:`StreamExpression`
 
-        >>> table('users').map(R('age'))
-        >>> table('users').map(fn('user', table('posts').filter({'userid': R('$user.id')})))
+        >>> table('users').map(r['age'])
+        >>> table('users').map(lambda user: table('posts').filter({'userid': user['id']}))
         """
-        if not isinstance(mapping, JSONFunction):
-            mapping = JSONFunction(mapping)
+        if not isinstance(mapping, FunctionExpr):
+            mapping = FunctionExpr(mapping)
         return StreamExpression(internal.Map(self, mapping))
 
     def concat_map(self, mapping):
@@ -824,11 +817,11 @@ class StreamExpression(ReadQuery):
         produce the result of `concat_map()`.
 
         :param mapping: The mapping to evaluate
-        :type mapping: :class:`StreamExpression` or :class:`StreamFunction`
+        :type mapping: :class:`StreamExpression` or :class:`FunctionExpr`
         :returns: :class:`StreamExpression`
         """
-        if not isinstance(mapping, StreamFunction):
-            mapping = StreamFunction(mapping)
+        if not isinstance(mapping, FunctionExpr):
+            mapping = FunctionExpr(mapping)
         return StreamExpression(internal.ConcatMap(self, mapping))
 
     def reduce(self, base, func):
@@ -841,12 +834,12 @@ class StreamExpression(ReadQuery):
         :param base: The identity of the reduction
         :type base: :class:`JSONExpression`
         :param func: The function to use to combine things
-        :type func: :class:`JSONFunction`
+        :type func: :class:`FunctionExpr`
         :rtype: :class:`JSONExpression`
 
         """
-        if not isinstance(func, JSONFunction):
-            func = JSONFunction(func)
+        if not isinstance(func, FunctionExpr):
+            func = FunctionExpr(func)
         return JSONExpression(internal.Reduce(self, base, func))
 
     def grouped_map_reduce(self, group_mapping, value_mapping, reduction_base, reduction_func):
@@ -860,27 +853,27 @@ class StreamExpression(ReadQuery):
         reduction.
 
         :param group_mapping: Function to group values by
-        :type group_mapping: :class:`JSONFunction`
+        :type group_mapping: :class:`FunctionExpr`
         :param value_mapping: Function to transform values by before reduction
-        :type value_mapping: :class:`JSONFunction`
+        :type value_mapping: :class:`FunctionExpr`
         :param reduction_base: base value for reduction, as in :meth:`reduce()`
         :type reduction_base: :class:`JSONExpression`
         :param reduction_func: combiner function for reduction
-        :type reduction_func: :class:`JSONFunction`
+        :type reduction_func: :class:`FunctionExpr`
 
         >>> # This will compute the total value of the expenses in each category
         >>> table('expenses').grouped_map_reduce(
-        ...     fn("e", R("$e.category_name")),
-        ...     fn("e", R("$e.dollar_value")),
+        ...     lambda e: e['category_name'],
+        ...     lambda e: e['dollar_value'],
         ...     0,
-        ...     fn("a", "b", R("$a") + R("$b"))
+        ...     lambda a, b: a + b
         ...     ).run()
         {"employees": 409950, "rent": 214000, "inventory": 386533}
         """
-        if not isinstance(group_mapping, JSONFunction):
-            group_mapping = JSONFunction(group_mapping)
-        if not isinstance(value_mapping, JSONFunction):
-            value_mapping = JSONFunction(value_mapping)
+        if not isinstance(group_mapping, FunctionExpr):
+            group_mapping = FunctionExpr(group_mapping)
+        if not isinstance(value_mapping, FunctionExpr):
+            value_mapping = FunctionExpr(value_mapping)
         return JSONExpression(internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func))
 
     def distinct(self):
@@ -904,7 +897,7 @@ class StreamExpression(ReadQuery):
         <BatchedIterator [{ 'a': 1, 'b': 1 }, { 'a': 2, 'b': 2 }]>
         """
         # TODO: reimplement in terms of pickattr when that's done
-        return self.map(fn("r", {a: R("$r")[a] for a in attrs}))
+        return self.map(lambda r: {a: r[a] for a in attrs})
 
     def length(self):
         """Returns the length of the stream.
@@ -921,37 +914,6 @@ class StreamExpression(ReadQuery):
             "`expr.length()`. (We couldn't overload `len(expr)` because it's "
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
-
-    def eq_join(self, left_attr_name, right_table, right_attr_name):
-        """For each row in the input, look for a row in `right_table` whose
-        value for `right_attr_name` is the same as the input row's value for
-        `left_attr_name`. If such a row is found, merge the rows together.
-        Returns a stream with all the merged rows.
-
-        Currently, `right_attr_name` must be the primary key name for
-        `right_table`.
-
-        If a field is in both the row from the input stream and the row from
-        `right_table`, the value from the input stream will be taken.
-
-        :param left_attr_name: The attribute to match in the input
-        :type left_attr_name: str
-        :param right_table: The table to join against
-        :type right_table: :class:`Table`
-        :param right_attr_name: The attribute to match in `right_table` (must
-            be the primary key)
-        :type right_attr_name: str
-        :returns: :class:`StreamExpression`
-        """
-        # This is a hack for the demo
-        assert isinstance(left_attr_name, str)
-        assert isinstance(right_table, Table)
-        assert isinstance(right_attr_name, str)
-        return self.concat_map(fn("left_row",
-            expr([right_table.get(R("$left_row.%s" % left_attr_name), right_attr_name)]).to_stream() \
-                .filter(fn("x", R("$x") != None)) \
-                .map(fn("right_row", R("$right_row").extend(R("$left_row"))))
-            ))
 
 def expr(val):
     """Converts a python value to a ReQL :class:`JSONExpression`.
@@ -1017,70 +979,43 @@ def if_then_else(test, true_branch, false_branch):
         t = JSONExpression
     return t(internal.If(test, true_branch, false_branch))
 
-def R(string):
+class AttrVarAccess(object):
     """Get the value of a variable or attribute.
 
-    To get a variable, prefix the name with `$`.
-
-    >>> R('$user')
-
-    To get attributes of variables, use dot notation.
-
-    >>> R('$user.name')
-    >>> R('$user.options.ads')
-
     Filter and map bind the current element to the implicit variable.
+    To access the implicit variable (i.e. 'current' row), use the
+    following:
+
+    >>> r['@']
+
 
     To access an attribute of the implicit variable, pass the attribute name.
 
-    >>> R('name')
-    >>> R('options.ads')
+    >>> r['name']
+    >>> r['@']['name']
 
-    To get the implicit variable, use '@'.
-
-    >>> R('@')
-
-    For attributes that would be misinterpreted, use alternative notations.
-
-    >>> R('@.$special')     # get implicit var's "$special" attribute
-    >>> R('@')['$special']  # the same
-    >>> R('@')['a.b.c']     # get an attribute named "a.b.c"
 
     See information on scoping rules for more details.
 
-    :param name: The name of the variable (prefixed with `$`),
-      implicit attribute (prefixed with `@`), or inner attributes
-      (separated by `.`)
-    :type name: str
-    :returns: :class:`JSONExpression`
-
-    >>> table('users').insert({ 'name': Joe,
-                                'age': 30,
-                                'address': { 'city': 'Mountain View', 'state': 'CA' }
-                              }).run()
-    >>> table('users').filter(R('age') == 30) # access attribute age from the implicit row variable
-    >>> table('users').filter(R('address.city') == 'Mountain View') # access subattribute city
-                                                                    # of attribute address from
-                                                                    # the implicit row variable
-    >>> table('users').filter(fn('row', R('$row.age') == 30)) # access attribute age from the
-                                                              # variable 'row'
-    >>> table('users').filter(fn('row', R('$row.address.city') == 'Mountain View')) # access subattribute city
-                                                                                     # of attribute address from
-                                                                                     # the variable 'row'
-    >>> table('users').filter(fn('row', R('age') == 30)) # error - binding a row disables implicit scope
-    >>> table('users').filter(fn('row', R('$age') == 30)) # error - no variable 'age' is defined
-    >>> table('users').filter(R('$age') == 30) # error - no variable '$age' is defined, use 'age'
+    >>> table('users').filter(r['age'] == 30) # access attribute age from the implicit row variable
+    >>> table('users').filter(r['address']['city') == 'Mountain View') # access subattribute city
+                                                                       # of attribute address from
+                                                                       # the implicit row variable
+    >>> table('users').filter(lambda row: row['age') == 30)) # access attribute age from the
+                                                             # variable 'row'
     """
-    parts = string.split(".")
-    if parts[0] == "@":
-        raise NotImplementedError("R('@') is not implemented")
-    elif parts[0].startswith("$"):
-        expr_so_far = JSONExpression(internal.Var(parts[0][1:]))
-    else:
-        expr_so_far = JSONExpression(internal.ImplicitAttr(parts[0]))
-    for part in parts[1:]:
-        expr_so_far = expr_so_far[part]
-    return expr_so_far
+    def __getitem__(self, key):
+        if key == "@":
+            expr = JSONExpression(internal.ImplicitVar())
+        else:
+            expr = JSONExpression(internal.ImplicitAttr(key))
+        return expr
+
+r = AttrVarAccess()
+
+def letvar(name):
+    "Evaluates a variable in the context of let"
+    return JSONExpression(internal.Var(name))
 
 def js(expr=None, body=None):
     if (expr is not None) + (body is not None) != 1:
@@ -1106,40 +1041,24 @@ def let(*bindings):
         t = JSONExpression
     return t(internal.Let(body, bindings))
 
-def fn(*x):
-    """Create a function.
-    See :func:`Selectable.filter` for examples.
-
-    The last argument is the body of the function,
-    and the other arguments are the parameter names.
-
-    :param args: names of parameters
-    :param body: body of function
-    :type body: :class:`JSONExpression` or :class:`StreamExpression`
-    :rtype: :class:`rethinkdb.JSONFunction` or :class:`rethinkdb.StreamFunction`
-
-    >>> fn(3)                           # lambda: 3
-    >>> fn("x", R("$x") + 1)            # lambda x: x + 1
-    >>> fn("x", "y", R("$x") + R("$y))  # lambda x, y: x + y
-    """
-    body = x[-1]
-    args = x[:-1]
-    if isinstance(body, StreamExpression):
-        return StreamFunction(body, *args)
-    else:
-        return JSONFunction(body, *args)
-
-class JSONFunction(object):
+class FunctionExpr(object):
     """TODO document me"""
-    def __init__(self, body, *args):
-        self.body = expr(body)
-        self.args = args
+    def __init__(self, body):
+        if isinstance(body, types.FunctionType):
+            self.args = body.func_code.co_varnames
+            res = body(*[JSONExpression(internal.Var(arg)) for arg in self.args])
+            if not isinstance(res, BaseQuery):
+                res = expr(res)
+            self.body = res
+        else:
+            self.args = []
+            self.body = expr(body)
 
     def __str__(self):
         return self._pretty_print(internal.ReprPrettyPrinter(), [])
 
     def __repr__(self):
-        return "<JSONFunction %s>" % str(self)
+        return "<FunctionExpr %s>" % str(self)
 
     def write_mapping(self, mapping):
         assert len(self.args) <= 1
@@ -1157,30 +1076,10 @@ class JSONFunction(object):
         self.body._inner._write_ast(reduction.body)
 
     def _pretty_print(self, printer, backtrace_steps):
-        return "fn(%s)" % (", ".join([repr(x) for x in self.args] + [printer.expr_unwrapped(self.body, backtrace_steps)]))
-
-class StreamFunction(object):
-    """TODO document me"""
-    def __init__(self, body, *args):
-        assert isinstance(body, StreamExpression)
-        self.body = body
-        self.args = args
-
-    def __str__(self):
-        return self._pretty_print(internal.ReprPrettyPrinter(), [])
-
-    def __repr__(self):
-        return "<StreamFunction %s>" % str(self)
-
-    def write_mapping(self, mapping):
-        if self.args:
-            mapping.arg = self.args[0]
-        else:
-            mapping.arg = 'row'     # TODO: GET RID OF THIS
-        self.body._inner._write_ast(mapping.body)
-
-    def _pretty_print(self, printer, backtrace_steps):
-        return "fn(%s)" % (", ".join([repr(x) for x in self.args] + [printer.expr_unwrapped(self.body, backtrace_steps)]))
+        args = self.args
+        if not args:
+            args = ['_']
+        return ("lambda %s: " % ", ".join(args)) + printer.expr_unwrapped(self.body, backtrace_steps)
 
 class BaseSelection(object):
     """Something which can be read or written."""
@@ -1194,17 +1093,17 @@ class BaseSelection(object):
 
         The merge is recursive, see :
 
-        >>> table('users').filter(R('warnings') > 5).update({'banned': True})
+        >>> table('users').filter(r['warnings'] > 5).update({'banned': True})
 
         """
-        if not isinstance(mapping, JSONFunction):
-            mapping = JSONFunction(mapping)
+        if not isinstance(mapping, FunctionExpr):
+            mapping = FunctionExpr(mapping)
         return WriteQuery(internal.Update(self, mapping))
 
     def mutate(self, mapping):
         """TODO: get rid of this ?"""
-        if not isinstance(mapping, JSONFunction):
-            mapping = JSONFunction(mapping)
+        if not isinstance(mapping, FunctionExpr):
+            mapping = FunctionExpr(mapping)
         return WriteQuery(internal.Mutate(self, mapping))
 
 class RowSelection(JSONExpression, BaseSelection):
@@ -1457,9 +1356,6 @@ class Table(MultiRowSelection):
             return WriteQuery(internal.Insert(self, [docs]))
         else:
             return WriteQuery(internal.Insert(self, docs))
-
-    def insert_stream(self, stream):
-        return WriteQuery(internal.InsertStream(self, stream))
 
     def get(self, key, attr_name = "id"):
         """Select the row whose value for `attr_name` is equal to `key`. If no
