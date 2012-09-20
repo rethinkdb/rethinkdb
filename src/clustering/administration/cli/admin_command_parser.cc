@@ -50,7 +50,9 @@ const char *list_stats_usage = "[<MACHINE>...] [<TABLE>...]";
 const char *list_issues_usage = "";
 const char *list_machines_usage = "[--long]";
 const char *list_directory_usage = "[--long]";
-const char *list_tables_usage = "[--protocol <PROTOCOL>] [--long]";
+// TODO: fix this once multiple protocols are supported again
+const char *list_tables_usage = "[--long]";
+// const char *list_tables_usage = "[--protocol <PROTOCOL>] [--long]";
 const char *list_datacenters_usage = "[--long]";
 const char *help_usage = "[ ls | create | rm | set | split | merge | pin | resolve | help ]";
 const char *resolve_usage = "<ID> <FIELD>";
@@ -62,7 +64,9 @@ const char *set_acks_usage = "<TABLE> <DATACENTER> <NUM-ACKS>";
 const char *set_replicas_usage = "<TABLE> <DATACENTER> <NUM-REPLICAS>";
 const char *set_primary_usage = "<TABLE> <DATACENTER>";
 const char *set_datacenter_usage = "<MACHINE> <DATACENTER>";
-const char *create_table_usage = "<NAME> --port <PORT> --protocol <PROTOCOL> --primary <DATACENTER>";
+// TODO: fix this once multiple protocols are supported again
+const char *create_table_usage = "<NAME> --primary <DATACENTER>";
+// const char *create_table_usage = "<NAME> --port <PORT> --protocol <PROTOCOL> --primary <DATACENTER>";
 const char *create_datacenter_usage = "<NAME>";
 const char *remove_usage = "<ID>...";
 
@@ -70,7 +74,8 @@ const char *list_id_option = "[<ID>]";
 const char *list_long_option = "[--long]";
 const char *list_stats_machine_option = "[<MACHINE>...]";
 const char *list_stats_table_option = "[<TABLE>...]";
-const char *list_tables_protocol_option = "[--protocol <PROTOCOL>]";
+// TODO: fix this once multiple protocols are supported again
+// const char *list_tables_protocol_option = "[--protocol <PROTOCOL>]";
 const char *resolve_id_option = "<ID>";
 const char *resolve_field_option = "<FIELD>";
 const char *pin_shard_table_option = "<TABLE>";
@@ -94,8 +99,9 @@ const char *set_primary_datacenter_option = "<DATACENTER>";
 const char *set_datacenter_machine_option = "<MACHINE>";
 const char *set_datacenter_datacenter_option = "<DATACENTER>";
 const char *create_table_name_option = "<NAME>";
-const char *create_table_port_option = "--port <PORT>";
-const char *create_table_protocol_option = "--protocol <PROTOCOL>";
+// TODO: fix this once multiple protocols are supported again
+// const char *create_table_port_option = "--port <PORT>";
+// const char *create_table_protocol_option = "--protocol <PROTOCOL>";
 const char *create_table_primary_option = "--primary <DATACENTER>";
 const char *create_datacenter_name_option = "<NAME>";
 const char *remove_id_option = "<ID>";
@@ -104,9 +110,12 @@ const char *list_id_option_desc = "print out a detailed description of a single 
 const char *list_long_option_desc = "print out full uuids (and extra information when listing machines, tables, or datacenters)";
 const char *list_stats_machine_option_desc = "limit stat collection to the set of machines specified";
 const char *list_stats_table_option_desc = "limit stat collection to the set of tables specified";
-const char *list_tables_protocol_option_desc = "limit the list of tables to tables matching the specified protocol";
+// TODO: fix this once multiple protocols are supported again
+// const char *list_tables_protocol_option_desc = "limit the list of tables to tables matching the specified protocol";
 const char *resolve_id_option_desc = "the name or uuid of an object with a conflicted field";
-const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters this can be 'name' only, and for tables, this can be 'name', 'datacenter', 'replicas', 'acks', 'shards', 'port', master_pinnings', or 'replica_pinnings'";
+// TODO: fix this once multiple protocols are supported again
+const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters this can be 'name' only, and for tables, this can be 'name', 'datacenter', 'replicas', 'acks', 'shards', master_pinnings', or 'replica_pinnings'";
+// const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters this can be 'name' only, and for tables, this can be 'name', 'datacenter', 'replicas', 'acks', 'shards', 'port', master_pinnings', or 'replica_pinnings'";
 const char *pin_shard_table_option_desc = "the table to change the shard pinnings of";
 const char *pin_shard_shard_option_desc = "the shard to be affected, this is of the format [<LOWER-BOUND>]-[<UPPER-BOUND>] where one or more of the bounds must be specified.  Any non-alphanumeric character should be specified using escaped hexadecimal ASCII, e.g. '\\7E' for '~', the minimum and maximum bounds can be referred to as '-inf' and '+inf', respectively.  Only one shard may be modified at a time.";
 const char *pin_shard_master_option_desc = "the machine to host the master replica of the shard, this machine must belong to the primary datacenter of the table";
@@ -128,12 +137,9 @@ const char *set_primary_datacenter_option_desc = "the datacenter to move to";
 const char *set_datacenter_machine_option_desc = "the machine to move to the specified datacenter";
 const char *set_datacenter_datacenter_option_desc = "the datacenter to move to";
 const char *create_table_name_option_desc = "the name of the new table";
-const char *create_table_port_option_desc = "the port for the table to serve data from for every machine in the cluster";
-#ifdef NO_MEMCACHE
-const char *create_table_protocol_option_desc = "the protocol for the table to use, only 'rdb' supported";
-#else
-const char *create_table_protocol_option_desc = "the protocol for the table to use, either 'rdb' or 'memcached'";
-#endif
+// TODO: fix this once multiple protocols are supported again
+// const char *create_table_port_option_desc = "the port for the table to serve data from for every machine in the cluster";
+// const char *create_table_protocol_option_desc = "the protocol for the table to use, either 'rdb' or 'memcached'";
 const char *create_table_primary_option_desc = "the primary datacenter of the new table, this datacenter will host the master replicas of each shard";
 const char *create_datacenter_name_option_desc = "the name of the new datacenter";
 const char *remove_id_option_desc = "the name or uuid of the object to remove";
@@ -143,7 +149,9 @@ const char *list_stats_description = "Print a list of statistics gathered by the
 const char *list_issues_description = "Print a list of issues currently detected by the cluster.";
 const char *list_machines_description = "Print a list of machines in the cluster along with some relevant data about each machine.";
 const char *list_directory_description = "Print a list of nodes currently connected to the running admin client, this may include data servers, proxy nodes, or other admin clients.";
-const char *list_tables_description = "Print a list of tables in the cluster along with some relevant data about each table. The list may be filtered by a table protocol type.";
+// TODO :fix this once multiple protocols are supported again
+const char *list_tables_description = "Print a list of tables in the cluster along with some relevant data about each table.";
+// const char *list_tables_description = "Print a list of tables in the cluster along with some relevant data about each table. The list may be filtered by a table protocol type.";
 const char *list_datacenters_description = "Print a list of datacenters in the cluster along with some relevant data about each datacenter.";
 const char *exit_description = "Quit the cluster administration console.";
 const char *help_description = "Print help on a cluster administration command.";
@@ -156,7 +164,9 @@ const char *set_acks_description = "Set how many replicas must acknowledge a wri
 const char *set_replicas_description = "Set the replica affinities of a table.  This represents the number of replicas that the table will have in each specified datacenter.";
 const char *set_primary_description = "Set the primary datacenter of a table, which will move the master replicas to this datacenter.";
 const char *set_datacenter_description = "Set the datacenter that a machine belongs to.";
-const char *create_table_description = "Create a new table with the given protocol.  The table's primary datacenter and listening port must be specified.";
+// TODO: fix this once multiple protocols are supported again
+const char *create_table_description = "Create a new table in the given primary datacenter.";
+// const char *create_table_description = "Create a new table with the given protocol.  The table's primary datacenter and listening port must be specified.";
 const char *create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
 const char *remove_description = "Remove one or more objects from the cluster.";
 const char *remove_machine_description = "Remove one or more machines from the cluster.";
@@ -237,16 +247,22 @@ admin_command_parser_t::command_info_t::~command_info_t() {
     }
 }
 
-admin_command_parser_t::param_options_t *admin_command_parser_t::command_info_t::add_flag(const std::string& name, int count, bool required)
+admin_command_parser_t::param_options_t *admin_command_parser_t::command_info_t::add_flag(const std::string& name,
+                                                                                          int count,
+                                                                                          bool required,
+                                                                                          bool hidden)
 {
-    param_options_t *option = new param_options_t(name, count, required);
+    param_options_t *option = new param_options_t(name, count, required, hidden);
     flags.insert(std::make_pair(name, option));
     return option;
 }
 
-admin_command_parser_t::param_options_t *admin_command_parser_t::command_info_t::add_positional(const std::string& name, int count, bool required)
+admin_command_parser_t::param_options_t *admin_command_parser_t::command_info_t::add_positional(const std::string& name,
+                                                                                                int count,
+                                                                                                bool required,
+                                                                                                bool hidden)
 {
-    param_options_t *option = new param_options_t(name, count, required);
+    param_options_t *option = new param_options_t(name, count, required, hidden);
     positionals.push_back(option);
     return option;
 }
@@ -506,11 +522,11 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
 
     info = add_command(list_command, list_command, list_usage, &admin_cluster_link_t::do_admin_list, &commands);
-    info->add_positional("object", 1, false)->add_options("!id", NULL);
+    info->add_positional("object", 1, false)->add_options("!id", NULLPTR);
     info->add_flag("long", 0, false);
 
     info = add_command(list_stats_command, list_stats_command, list_stats_usage, &admin_cluster_link_t::do_admin_list_stats, &commands);
-    info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace", NULL);
+    info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace", NULLPTR);
 
     info = add_command(list_issues_command, list_issues_command, list_issues_usage, &admin_cluster_link_t::do_admin_list_issues, &commands);
 
@@ -521,11 +537,9 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_flag("long", 0, false);
 
     info = add_command(list_tables_command, list_tables_command, list_tables_usage, &admin_cluster_link_t::do_admin_list_tables, &commands);
-#ifndef NO_MEMCACHE
-    info->add_flag("protocol", 1, false)->add_options("rdb", NULL);
-#else
-    info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULL);
-#endif
+    // TODO: fix this once multiple protocols are supported again
+    info->add_flag("protocol", 1, false, true); // hidden option
+    // info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULLPTR);
     info->add_flag("long", 0, false);
 
     info = add_command(list_datacenters_command, list_datacenters_command, list_datacenters_usage, &admin_cluster_link_t::do_admin_list_datacenters, &commands);
@@ -533,13 +547,12 @@ void admin_command_parser_t::build_command_descriptions() {
 
     info = add_command(create_table_command, create_table_command, create_table_usage, &admin_cluster_link_t::do_admin_create_table, &commands);
     info->add_positional("name", 1, true);
-#ifndef NO_MEMCACHE
-    info->add_flag("protocol", 1, false)->add_options("rdb", NULL);
-#else
-    info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULL);
-#endif
+    // TODO: fix this once multiple protocols are supported again
+    info->add_flag("protocol", 1, false, true); // hidden option
+    info->add_flag("port", 1, false);
+    // info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULLPTR);
+    // info->add_flag("port", 1, true);
     info->add_flag("primary", 1, true)->add_option("!datacenter");
-    info->add_flag("port", 1, true);
 
     info = add_command(create_datacenter_command, create_datacenter_command, create_datacenter_usage, &admin_cluster_link_t::do_admin_create_datacenter, &commands);
     info->add_positional("name", 1, true);
@@ -554,7 +567,7 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("id", -1, true)->add_option("!id");
 
     info = add_command(help_command, help_command, help_usage, NULL, &commands); // Special case, 'help' is not done through the cluster
-    info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", NULL);
+    info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", NULLPTR);
     info->add_positional("subcommand", 1, false);
 }
 
@@ -725,7 +738,8 @@ std::map<std::string, admin_command_parser_t::command_info_t *>::const_iterator 
 
 void admin_command_parser_t::add_option_matches(const param_options_t *option, const std::string& partial, linenoiseCompletions *completions) {
 
-    if (partial.find("!") == 0) {
+    if (option->hidden || partial.find("!") == 0) {
+        // Skip any hidden options, no completions there
         // Don't allow completions beginning with '!', as we use it as a special case
         return;
     }
@@ -1031,7 +1045,8 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 options.push_back(std::make_pair(list_long_option, list_long_option_desc));
                 options.push_back(std::make_pair(list_stats_machine_option, list_stats_machine_option_desc));
                 options.push_back(std::make_pair(list_stats_table_option, list_stats_table_option_desc));
-                options.push_back(std::make_pair(list_tables_protocol_option, list_tables_protocol_option_desc));
+                // TODO: fix this once multiple protocols are supported again
+                // options.push_back(std::make_pair(list_tables_protocol_option, list_tables_protocol_option_desc));
                 do_usage_internal(helps, options, "ls - display information from the cluster, run 'help ls <SUBCOMMAND>' for more information", console_mode);
             } else if (subcommand == "stats") {
                 helps.push_back(admin_help_info_t(list_stats_command, list_stats_usage, list_stats_description));
@@ -1052,7 +1067,8 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
             } else if (subcommand == "tables") {
                 helps.push_back(admin_help_info_t(list_tables_command, list_tables_usage, list_tables_description));
                 options.push_back(std::make_pair(list_long_option, list_long_option_desc));
-                options.push_back(std::make_pair(list_tables_protocol_option, list_tables_protocol_option_desc));
+                // TODO: fix this once multiple protocols are supported again
+                // options.push_back(std::make_pair(list_tables_protocol_option, list_tables_protocol_option_desc));
                 do_usage_internal(helps, options, "ls tables - display a list of tables in the cluster", console_mode);
             } else if (subcommand == "datacenters") {
                 helps.push_back(admin_help_info_t(list_datacenters_command, list_datacenters_usage, list_datacenters_description));
@@ -1107,8 +1123,9 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
             } else if (subcommand == "table") {
                 helps.push_back(admin_help_info_t(create_table_command, create_table_usage, create_table_description));
                 options.push_back(std::make_pair(create_table_name_option, create_table_name_option_desc));
-                options.push_back(std::make_pair(create_table_port_option, create_table_port_option_desc));
-                options.push_back(std::make_pair(create_table_protocol_option, create_table_protocol_option_desc));
+                // TODO: fix this once multiple protocols are supported again
+                // options.push_back(std::make_pair(create_table_port_option, create_table_port_option_desc));
+                // options.push_back(std::make_pair(create_table_protocol_option, create_table_protocol_option_desc));
                 options.push_back(std::make_pair(create_table_primary_option, create_table_primary_option_desc));
                 do_usage_internal(helps, options, "create table - add a new table to the cluster", console_mode);
             } else if (subcommand == "datacenter") {

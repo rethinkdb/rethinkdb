@@ -98,8 +98,7 @@ void admin_cluster_link_t::admin_stats_to_table(const std::string& machine,
 }
 
 std::string admin_value_to_string(const hash_region_t<key_range_t>& region) {
-    // TODO(sam): I don't know what is the appropriate sort of thing for an admin_value_to_string call.
-    return strprintf("%" PRIu64 ":%" PRIu64 ":%s", region.beg, region.end, key_range_to_cli_str(region.inner).c_str());
+    return strprintf("%s", key_range_to_cli_str(region.inner).c_str());
 }
 
 std::string admin_value_to_string(const mock::dummy_protocol_t::region_t& region) {
@@ -1189,6 +1188,8 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
     }
 
     // Send the requests
+    std::set<stat_manager_t::stat_id_t> requested_stats;
+    requested_stats.insert(".*");
     for (boost::ptr_map<machine_id_t, admin_stats_request_t>::iterator i = request_map.begin(); i != request_map.end(); ++i) {
         bool found = false;
         // Find machine in directory
@@ -1199,7 +1200,7 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
                 send(&mailbox_manager,
                      j->second.get_stats_mailbox_address,
                      i->second->response_mailbox.get_address(),
-                     std::set<stat_manager_t::stat_id_t>());
+                     requested_stats);
             }
         }
 
@@ -1352,7 +1353,7 @@ void admin_cluster_link_t::list_all(bool long_format, const cluster_semilattice_
     list_all_internal("machine", long_format, cluster_metadata.machines.machines, &table);
     list_all_internal("datacenter", long_format, cluster_metadata.datacenters.datacenters, &table);
     // TODO: better differentiation between table types
-    list_all_internal("table (r)", long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
+    list_all_internal("table", long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
     list_all_internal("table (d)", long_format, cluster_metadata.dummy_namespaces->namespaces, &table);
     list_all_internal("table (m)", long_format, cluster_metadata.memcached_namespaces->namespaces, &table);
 
@@ -1525,7 +1526,8 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
 
     header.push_back("uuid");
     header.push_back("name");
-    header.push_back("protocol");
+    // TODO: fix this once multiple protocols are supported again
+    // header.push_back("protocol");
     if (long_format) {
         header.push_back("shards");
         header.push_back("replicas");
@@ -1547,7 +1549,7 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
     } else if (type == "memcached") {
         add_namespaces(type, long_format, cluster_metadata.memcached_namespaces->namespaces, &table);
     } else {
-        throw admin_parse_exc_t("unrecognized table type: " + type);
+        throw admin_parse_exc_t("unrecognized protocol: " + type);
     }
 
     if (table.size() > 1) {
@@ -1556,8 +1558,10 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
 }
 
 template <class map_type>
-void admin_cluster_link_t::add_namespaces(const std::string& protocol, bool long_format, const map_type& namespaces, std::vector<std::vector<std::string> > *table) {
-
+void admin_cluster_link_t::add_namespaces(UNUSED const std::string& protocol,
+                                          bool long_format,
+                                          const map_type& namespaces,
+                                          std::vector<std::vector<std::string> > *table) {
     for (typename map_type::const_iterator i = namespaces.begin(); i != namespaces.end(); ++i) {
         if (!i->second.is_deleted()) {
             std::vector<std::string> delta;
@@ -1574,7 +1578,8 @@ void admin_cluster_link_t::add_namespaces(const std::string& protocol, bool long
                 delta.push_back("<conflict>");
             }
 
-            delta.push_back(protocol);
+            // TODO: fix this once multiple protocols are supported again
+            // delta.push_back(protocol);
 
             if (long_format) {
                 char buffer[64];
@@ -1763,22 +1768,32 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    std::string protocol = guarantee_param_0(data.params, "protocol");
-    std::string port_str = guarantee_param_0(data.params, "port");
     std::string name = guarantee_param_0(data.params, "name");
-    uint64_t port;
     std::string datacenter_id = guarantee_param_0(data.params, "primary");
     metadata_info_t *datacenter_info = get_info_from_id(datacenter_id);
     datacenter_id_t primary = str_to_uuid(datacenter_info->path[1]);
     namespace_id_t new_id;
+    std::string protocol;
+    uint64_t port;
 
-    // Make sure port is a number
-    if (!strtou64_strict(port_str, 10, &port)) {
-        throw admin_parse_exc_t("port is not a number");
+    // TODO: fix this once multiple protocols are supported again
+    if (data.params.find("protocol") != data.params.end()) {
+        protocol = guarantee_param_0(data.params, "protocol");
+    } else {
+        protocol = "rdb";
     }
 
-    if (port > 65536) {
-        throw admin_parse_exc_t("port is too large: " + port_str);
+    if (protocol == "memcached" || data.params.find("port") != data.params.end()) {
+        // Make sure port is valid
+        std::string port_str = guarantee_param_0(data.params, "port");
+        if (!strtou64_strict(port_str, 10, &port)) {
+            throw admin_parse_exc_t("port is not a number");
+        }
+        if (port > 65536) {
+            throw admin_parse_exc_t("port is too large: " + port_str);
+        }
+    } else {
+        port = 0;
     }
 
     if (datacenter_info->path[0] != "datacenters") {
@@ -1814,9 +1829,9 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
 
 template <class protocol_t>
 namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const std::string& name,
-                                                                        int port,
-                                                                        const datacenter_id_t& primary,
-                                                                        namespaces_semilattice_metadata_t<protocol_t> *ns) {
+                                                                    int port,
+                                                                    const datacenter_id_t& primary,
+                                                                    namespaces_semilattice_metadata_t<protocol_t> *ns) {
     namespace_id_t id = generate_uuid();
     namespace_semilattice_metadata_t<protocol_t>& obj = ns->namespaces[id].get_mutable();
 
@@ -2377,7 +2392,7 @@ template <class protocol_t>
 void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                                                  const namespace_semilattice_metadata_t<protocol_t>& ns,
                                                  const cluster_semilattice_metadata_t& cluster_metadata,
-                                                 const std::string& protocol) {
+                                                 UNUSED const std::string& protocol) {
     if (ns.name.in_conflict() || ns.name.get().empty()) {
         printf("table %s\n", uuid_to_str(ns_id).c_str());
     } else {
@@ -2399,12 +2414,12 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
         printf("primary datacenter <conflict>\n");
     }
 
-    // Print port
-    if (ns.port.in_conflict()) {
-        printf("running %s protocol on port <conflict>\n", protocol.c_str());
-    } else {
-        printf("running %s protocol on port %i\n", protocol.c_str(), ns.port.get());
-    }
+    // TODO: fix this once multiple protocols are supported again
+    // if (ns.port.in_conflict()) {
+    //     printf("running %s protocol on port <conflict>\n", protocol.c_str());
+    // } else {
+    //     printf("running %s protocol on port %i\n", protocol.c_str(), ns.port.get());
+    // }
     printf("\n");
 
     {

@@ -43,8 +43,8 @@ public:
 private:
 
     struct param_options_t {
-        param_options_t(const std::string& _name, int _count, bool _required) :
-            name(_name), count(_count), required(_required) { }
+        param_options_t(const std::string& _name, int _count, bool _required, bool _hidden) :
+            name(_name), count(_count), required(_required), hidden(_hidden) { }
 
         void add_option(const char *term);
         void add_options(const char *term, ...);
@@ -52,6 +52,7 @@ private:
         const std::string name;
         const size_t count; // -1: unlimited, 0: flag only, n: n params expected
         const bool required;
+        const bool hidden;
         std::set<std::string> valid_options; // !uuid or !name or literal
     };
 
@@ -64,8 +65,8 @@ private:
 
         ~command_info_t();
 
-        param_options_t *add_flag(const std::string& name, int count, bool required);
-        param_options_t *add_positional(const std::string& name, int count, bool required);
+        param_options_t *add_flag(const std::string& name, int count, bool required, bool hidden = false);
+        param_options_t *add_positional(const std::string& name, int count, bool required, bool hidden = false);
 
         std::string full_command;
         std::string command;

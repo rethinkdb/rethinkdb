@@ -16,14 +16,14 @@
         {{#if total_keys}}and contains {{total_keys}} keys.{{/if}}
         </li>
         <li class="more_statistics">
-            {{#if max_keys}}
+            {{#if max_keys_defined}}
             Biggest shard has {{max_keys}} keys
             {{else}}
             Loading stats for biggest shards
             {{/if}}
         </li>
         <li class="more_statistics">
-            {{#if min_keys}}
+            {{#if min_keys_defined}}
             Smallest shard has {{min_keys}} keys
             {{else}}
             Loading stats for smallest shards

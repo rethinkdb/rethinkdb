@@ -5,6 +5,7 @@
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "concurrency/one_per_thread.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/stream.hpp"

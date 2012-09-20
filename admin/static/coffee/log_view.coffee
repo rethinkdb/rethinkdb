@@ -456,7 +456,6 @@ module 'LogView', ->
                             else if namespace_id is 'new'
                                 msg += @log_new_something_small_template
                                     type: 'namespace'
-                                    namespace_name: json_data[group]['new']['name']
                             else
                                 attributes = []
                                 for attribute of json_data[group][namespace_id]
@@ -499,7 +498,6 @@ module 'LogView', ->
                             else if datacenter_id is 'new'
                                 msg += @log_new_something_small_template
                                     type: 'datacenter'
-                                    datacenter_name: json_data[group][datacenter_id]['name']
                             else
                                 for attribute of json_data[group][datacenter_id]
                                     attributes = []
@@ -524,8 +522,7 @@ module 'LogView', ->
                                     id: database_id
                             else if database_id is 'new'
                                 msg += @log_new_something_small_template
-                                    type: 'datacenter'
-                                    datacenter_name: json_data[group][database_id]['name']
+                                    type: 'database'
                             else
                                 for attribute of json_data[group][database_id]
                                     attributes = []

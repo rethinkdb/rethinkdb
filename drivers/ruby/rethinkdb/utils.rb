@@ -63,6 +63,7 @@ module RethinkDB
     def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
     def with_var; sym = gensym; yield sym, RQL.var(sym); end
     def r x; RQL.expr(x); end
+    def skip; :skip_2222ebd4_2c16_485e_8c27_bbe43674a852; end
 
     def arg_or_block(*args, &block)
       if args.length == 1 && block

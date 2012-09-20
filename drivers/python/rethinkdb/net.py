@@ -214,7 +214,7 @@ class Connection():
     The connection may be used with Python's `with` statement for
     exception safety.
     """
-    def __init__(self, host=None, port=None, db_name=None):
+    def __init__(self, host, port, db_name):
         """Connect to a RethinkDB cluster. The connection may be
         created by specifying the host (in which case the default port
         will be used), host and port, or no arguments (in which case the
@@ -242,6 +242,7 @@ class Connection():
         self.token = 1
         self.socket = socket.create_connection((host, port))
         self.socket.sendall(struct.pack("<L", 0xaf61ba35))
+        self.db_name = db_name
 
         global last_connection
         last_connection = self
@@ -359,7 +360,7 @@ class Connection():
         cluster."""
         pass
 
-def connect(host_or_list=None, port=None, db_name=None):
+def connect(host='localhost', port=12346, db_name='Welcome-db'):
     """
     Creates a :class:`Connection` object. This method is a shorthand
     for constructing the :class:`Connection` object directly.
@@ -376,5 +377,5 @@ def connect(host_or_list=None, port=None, db_name=None):
     >>>                 'magneto',
     >>>                 ('puzzler', 8181)])
     """
-    return Connection(host_or_list, port, db_name)
+    return Connection(host, port, db_name)
 

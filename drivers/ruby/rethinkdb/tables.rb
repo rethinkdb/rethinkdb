@@ -3,7 +3,6 @@ module RethinkDB
   # shortcut, like:
   #   r.db('Welcome-db')
   class Database
-    @@default_datacenter='Welcome-dc'
     # Refer to the database named <b>+name+</b>.  Usually you would
     # use the <b>+r+</b> shortcut instead:
     #   r.db(name)
@@ -15,13 +14,18 @@ module RethinkDB
     #   r.db('Welcome-db').tbl
     def table(name); Table.new(@db_name, name); end
 
-    # Create a new table in this database.  You should specify the
-    # datacenter it should reside in and the primary key as well
-    # (almost always "id").  When run, either returns <b>+nil+</b> or
-    # throws on error.
-    def create_table(name, datacenter=@@default_datacenter,  primary_key=nil)
-      primary_key_lst = primary_key ? [primary_key] : []
-      Meta_Query.new [:create_table, datacenter, [@db_name, name], *primary_key_lst]
+    # Create a new table in this database.  You may also optionally
+    # specify the datacenter it should reside in, its primary key, and
+    # its cache size.  For example:
+    #   r.db('db').create_table('tbl', {:datacenter  => 'dc',
+    #                                   :primary_key => 'id',
+    #                                   :cache_size  => 1073741824})
+    # When run, either returns <b>+nil+</b> or throws on error.
+    def create_table(name, optargs={})
+      datacenter = optargs[:datacenter] || S.skip
+      pkey = optargs[:primary_key] || S.skip
+      cache_size = optargs[:cache_size] || S.skip
+      Meta_Query.new [:create_table, datacenter, [@db_name, name], pkey, cache_size]
     end
 
     # Drop the table <b>+name+</b> from this database.  When run,

@@ -761,4 +761,8 @@ class Table(ExpressionInner):
         self.table._write_ref_ast(parent.table.table_ref)
 
     def pretty_print(self, printer):
-        return ("table(%r)" % (self.table.db_expr.db_name + "." + self.table.table_name), PRETTY_PRINT_EXPR_WRAPPED)
+        res = ''
+        if self.table.db_expr:
+            res += "db(%r)." % self.table.db_expr.db_name
+        res += "table(%r)" % self.table.table_name
+        return (res, PRETTY_PRINT_EXPR_WRAPPED)
