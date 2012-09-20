@@ -306,10 +306,21 @@ bool do_json_importation(machine_id_t us,
                          namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
                          json_import_target_t target,
                          signal_t *interruptor) {
-    std::string db_name = target.db_name;
-    boost::optional<std::string> datacenter_name = target.datacenter_name;
-    std::string table_name = target.table_name;
-    boost::optional<std::string> maybe_primary_key = target.primary_key;
+
+    const std::string db_name = target.db_name;
+    const boost::optional<std::string> datacenter_name = target.datacenter_name;
+    const std::string table_name = target.table_name;
+    const boost::optional<std::string> maybe_primary_key = target.primary_key;
+
+    // Try early abort on primary key.
+    if (maybe_primary_key && !importer->might_support_primary_key(*maybe_primary_key)) {
+        // TODO: Duplicate code.
+        // The column name cannot be found!  (This logic will be
+        // different when we support primary key autogeneration.)
+        debugf("Requested primary key '%s' not found in import data.\n", maybe_primary_key->c_str());
+        return false;
+    }
+
 
     database_id_t db_id;
     if (!get_or_create_database(us, metadata, db_name, &db_id)) {
@@ -324,6 +335,13 @@ bool do_json_importation(machine_id_t us,
         return false;
     }
 
+    if (!importer->might_support_primary_key(primary_key)) {
+        // The column name cannot be found!  (This logic will be
+        // different when we support primary key autogeneration.)
+        debugf("Primary key '%s' not found in import data.", primary_key.c_str());
+        return false;
+    }
+
     // TODO(sam): What if construction fails?  An exception is thrown?
     namespace_repo_t<rdb_protocol_t>::access_t access(repo, namespace_id, interruptor);
 
@@ -333,7 +351,7 @@ bool do_json_importation(machine_id_t us,
 
     order_source_t order_source;
 
-    for (scoped_cJSON_t json; importer->get_json(&json); json.reset(NULL)) {
+    for (scoped_cJSON_t json; importer->next_json(&json); json.reset(NULL)) {
         debugf("json: %s\n", json.Print().c_str());
 
         cJSON *pkey_value = json.GetObjectItem(primary_key.c_str());
@@ -367,6 +385,7 @@ bool do_json_importation(machine_id_t us,
         rdb_protocol_t::write_response_t response;
         ni->write(rdb_write, &response, order_source.check_in("do_json_importation"), interruptor);
 
+        // TODO(sam): Check stored/duplicat ebehavior.
         if (!boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
             debugf("did not get a point write response\n");
         } else {
@@ -377,6 +396,5 @@ bool do_json_importation(machine_id_t us,
         // We don't care about the response.
     }
 
-    debugf("do_json_importation ... returning bogus success!\n");
     return true;
 }

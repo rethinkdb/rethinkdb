@@ -11,7 +11,10 @@ class scoped_cJSON_t;
 class json_importer_t {
 public:
     // Returns false upon EOF.
-    virtual bool get_json(scoped_cJSON_t *out) = 0;
+    virtual bool next_json(scoped_cJSON_t *out) = 0;
+
+    // Returns true if we can't rule out that key as an acceptable primary key.
+    virtual bool might_support_primary_key(const std::string& primary_key) = 0;
     virtual ~json_importer_t() { }
 };
 
@@ -20,7 +23,9 @@ public:
     csv_to_json_importer_t(std::string separators, std::string filepath);
 
     // Returns false upon EOF.
-    bool get_json(scoped_cJSON_t *out);
+    bool next_json(scoped_cJSON_t *out);
+
+    bool might_support_primary_key(const std::string& primary_key);
 
 private:
     void import_json_from_file(std::string separators, std::string filepath);

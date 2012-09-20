@@ -44,7 +44,7 @@ bool detect_number(const char *s, double *out) {
     return false;
 }
 
-bool csv_to_json_importer_t::get_json(scoped_cJSON_t *out) {
+bool csv_to_json_importer_t::next_json(scoped_cJSON_t *out) {
     guarantee(out->get() == NULL);
 
  try_next_row:
@@ -73,6 +73,11 @@ bool csv_to_json_importer_t::get_json(scoped_cJSON_t *out) {
     }
 
     return true;
+}
+
+bool csv_to_json_importer_t::might_support_primary_key(const std::string &primary_key) {
+    rassert(!primary_key.empty());
+    return std::find(column_names_.begin(), column_names_.end(), primary_key) != column_names_.end();
 }
 
 std::vector<std::string> split_buf(const bitset_t &seps, const char *buf, int64_t size) {
