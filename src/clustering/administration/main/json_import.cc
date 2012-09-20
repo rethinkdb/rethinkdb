@@ -15,7 +15,7 @@
 #include "stl_utils.hpp"
 
 csv_to_json_importer_t::csv_to_json_importer_t(std::string separators, std::string filepath)
-    : position_(0) {
+    : position_(0), num_ignored_rows_(0) {
     thread_pool_t::run_in_blocker_pool(boost::bind(&csv_to_json_importer_t::import_json_from_file, this, separators, filepath));
 }
 
@@ -47,15 +47,18 @@ bool detect_number(const char *s, double *out) {
 bool csv_to_json_importer_t::next_json(scoped_cJSON_t *out) {
     guarantee(out->get() == NULL);
 
+    int64_t num_ignored_rows = 0;
+
  try_next_row:
     if (position_ == rows_.size()) {
+        num_ignored_rows_ += num_ignored_rows;
         return false;
     }
 
     const std::vector<std::string> &row = rows_[position_];
     ++ position_;
-    // TODO(sam): Handle this more gracefully?
-    if (row.size() > column_names_.size()) {
+    if (row.size() != column_names_.size()) {
+        ++num_ignored_rows;
         goto try_next_row;
     }
 
@@ -72,6 +75,7 @@ bool csv_to_json_importer_t::next_json(scoped_cJSON_t *out) {
         out->AddItemToObject(column_names_[i].c_str(), item);
     }
 
+    num_ignored_rows_ += num_ignored_rows;
     return true;
 }
 
@@ -91,7 +95,7 @@ std::vector<std::string> split_buf(const bitset_t &seps, const char *buf, int64_
             break;
         } else if (buf[i] == '"') {
             ++i;
-            // TODO(sam): support \" escapes?
+            // TODO: support \" escapes?
             while (i < size && (buf[i] != '"' || (buf[i] == '"' && i + 1 < size && !seps.test(buf[i + 1])))) { ++i; }
 
             if (i == size) {
@@ -131,8 +135,11 @@ std::vector<std::string> read_lines_from_file(std::string filepath) {
 
     blocking_read_file_stream_t file;
     bool success = file.init(filepath.c_str());
-    // TODO(sam): Fail more cleanly.
-    guarantee(success);
+    if (!success) {
+        // TODO: Fail more cleanly.
+        printf("Trouble opening file %s\n", filepath.c_str());
+        exit(EXIT_FAILURE);
+    }
 
     std::vector<char> buf;
 
@@ -148,8 +155,11 @@ std::vector<std::string> read_lines_from_file(std::string filepath) {
             break;
         }
 
-        // TODO(sam): Fail more cleanly.
-        guarantee(res != -1);
+        if (res == -1) {
+            // TODO: Fail more cleanly.
+            printf("Error when reading file %s.\n", filepath.c_str());
+            exit(EXIT_FAILURE);
+        }
 
         rassert(res > 0);
         size += res;
@@ -172,7 +182,7 @@ std::string rltrim(const std::string &s) {
 }
 
 std::vector<std::string> reprocess_column_names(std::vector<std::string> cols) {
-    // TODO(sam): Avoid allowing super-weird characters in column names like \0.
+    // TODO: Avoid allowing super-weird characters in column names like \0.
 
     // Trim spaces.
     for (size_t i = 0; i < cols.size(); ++i) {
@@ -230,4 +240,8 @@ void csv_to_json_importer_t::import_json_from_file(std::string separators, std::
     }
 
     column_names_ = reprocess_column_names(header_line);
+}
+
+std::string csv_to_json_importer_t::get_error_information() {
+    return strprintf("%s malformed row%s ignored.", num_ignored_rows_, num_ignored_rows_ == 1 ? "" : "s");
 }

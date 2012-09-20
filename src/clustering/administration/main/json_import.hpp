@@ -15,6 +15,9 @@ public:
 
     // Returns true if we can't rule out that key as an acceptable primary key.
     virtual bool might_support_primary_key(const std::string& primary_key) = 0;
+
+    virtual std::string get_error_information() const = 0;
+
     virtual ~json_importer_t() { }
 };
 
@@ -27,6 +30,8 @@ public:
 
     bool might_support_primary_key(const std::string& primary_key);
 
+    std::string get_error_information() const;
+
 private:
     void import_json_from_file(std::string separators, std::string filepath);
 
@@ -34,6 +39,8 @@ private:
     std::vector<std::vector<std::string> > rows_;
 
     size_t position_;
+
+    int64_t num_ignored_rows_;
 
     DISABLE_COPYING(csv_to_json_importer_t);
 };

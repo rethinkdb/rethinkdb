@@ -135,7 +135,6 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_add
 
     peer_id_t other_peer;
     if (!get_other_peer(connectivity_cluster.get_peers_list(), connectivity_cluster.get_me(), &other_peer)) {
-        // TODO(sam): print to stderr?  Improve error reporting?  This is a bogus message?
         printf("Aborting!  Could not find other peer after it connected!\n");
         return false;
     }
@@ -232,7 +231,6 @@ bool get_or_create_namespace(machine_id_t us,
 
         if (dc_error != METADATA_SUCCESS) {
             printf("Could not find datacenter. error = %d\n", dc_error);
-            // TODO(sam): Add a way to produce a good error message.
             *namespace_out = namespace_id_t();
             primary_key_out->clear();
             return false;
@@ -264,7 +262,6 @@ bool get_or_create_namespace(machine_id_t us,
         return true;
     } else {
         printf("Error searching for namespace.\n");
-        // TODO(sam): Add a way to produce a good error message.
         *namespace_out = namespace_id_t();
         primary_key_out->clear();
         return false;
@@ -387,7 +384,6 @@ bool do_json_importation(machine_id_t us,
         rdb_protocol_t::write_response_t response;
         ni->write(rdb_write, &response, order_source.check_in("do_json_importation"), interruptor);
 
-        // TODO(sam): Check stored/duplicat ebehavior.
         if (!boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
             printf("Internal error: Attempted a point write (for key %s), but did not get a point write response.\n", cJSON_print_std_string(pkey_value).c_str());
         } else {
@@ -402,9 +398,9 @@ bool do_json_importation(machine_id_t us,
                 unreachable();
             }
         }
-
-        // We don't care about the response.
     }
+
+    printf("Importation complete.  %s\n", importer->get_error_information().c_str());
 
     return true;
 }
