@@ -259,16 +259,7 @@ bool get_or_create_database(UNUSED machine_id_t us,
         *db_out = it->first;
         return true;
     } else if (error == METADATA_ERR_NONE) {
-        // TODO(sam): Why the heck would we want to create a database?
-
-        // databases_semilattice_metadata_t dbs;
-        // database_semilattice_metadata_t db;
-        // db.name = vclock_t<std::string>(db_name, us);
-        // database_id_t db_id = generate_uuid();
-        // dbs.databases.insert(std::make_pair(db_id, db));
-
-        // databases->join(dbs);
-        // debugf("No database found, created %s\n", uuid_to_str(db_id).c_str());
+        debugf("No database found.\n");
 
         *db_out = database_id_t();
         return false;
