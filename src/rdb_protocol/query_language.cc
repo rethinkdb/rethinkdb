@@ -999,7 +999,7 @@ void execute_query(Query *q, runtime_environment_t *env, Response *res, const sc
         execute_write_query(q->mutable_write_query(), env, res, scopes, backtrace);
     } break; //status set in [execute_write_query]
     case Query::CONTINUE: {
-        if (!stream_cache->serve(q->token(), res)) {
+        if (!stream_cache->serve(q->token(), res, env->interruptor)) {
             throw runtime_exc_t(strprintf("Could not serve key %ld from stream cache.", q->token()), backtrace);
         }
     } break; //status set in [serve]
@@ -1038,7 +1038,7 @@ void execute_read_query(ReadQuery *r, runtime_environment_t *env, Response *res,
         } else {
             stream_cache->insert(r, key, stream);
         }
-        DEBUG_VAR bool b = stream_cache->serve(key, res);
+        DEBUG_VAR bool b = stream_cache->serve(key, res, env->interruptor);
         rassert(b);
         break; //status code set in [serve]
     }
