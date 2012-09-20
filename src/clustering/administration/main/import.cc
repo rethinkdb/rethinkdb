@@ -306,6 +306,7 @@ bool do_json_importation(machine_id_t us,
     const boost::optional<std::string> datacenter_name = target.datacenter_name;
     const std::string table_name = target.table_name;
     const boost::optional<std::string> maybe_primary_key = target.primary_key;
+    const bool autogen = target.autogen;
 
     // Try early abort on primary key.
     if (maybe_primary_key && !importer->might_support_primary_key(*maybe_primary_key)) {
@@ -355,16 +356,21 @@ bool do_json_importation(machine_id_t us,
         for (scoped_cJSON_t json; importer->next_json(&json); json.reset(NULL)) {
             cJSON *pkey_value = json.GetObjectItem(primary_key.c_str());
             if (!pkey_value) {
-                // This can't happen with CSV because we can check headers up front.
-                // This will need to change if autogeneration is turned on.
-                if (!seen_primary_key) {
-                    printf("Some imported objects have no primary key ('%s'), and are ignored.\n", primary_key.c_str());
-                    seen_primary_key = true;
+                if (autogen) {
+                    std::string generated_pk = uuid_to_str(generate_uuid());
+                    json.AddItemToObject(primary_key.c_str(), cJSON_CreateString(generated_pk.c_str()));
+                } else {
+                    // This can't happen with CSV because we can check headers up front.
+                    // This will need to change if autogeneration is turned on.
+                    if (!seen_primary_key) {
+                        printf("Some imported objects have no primary key ('%s'), and are ignored.\n", primary_key.c_str());
+                        seen_primary_key = true;
+                    }
+                    continue;
                 }
-                continue;
             }
 
-            // TODO: This code is duplicated with something.
+            // TODO: This code is duplicated with something.  Like insert(...) in query_language.cc.
             if (pkey_value->type != cJSON_String && pkey_value->type != cJSON_Number) {
                 // This cannot happen with CRSV because we only parse strings and numbers.
                 printf("Primary key spotted with invalid value!  (Neither string nor number.)\n");
