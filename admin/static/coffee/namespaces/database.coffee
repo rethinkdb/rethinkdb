@@ -272,9 +272,6 @@ module 'DatabaseView', ->
             remove_database_dialog = new DatabaseView.RemoveDatabaseModal
             remove_database_dialog.render @model
 
-            model = @model
-
-
         render: =>
             @.$el.html @template {}
             return @
