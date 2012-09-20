@@ -27,6 +27,10 @@ public:
 RDB_MAKE_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);
 RDB_MAKE_EQUALITY_COMPARABLE_1(database_semilattice_metadata_t, name);
 
+void debug_print(append_only_printf_buffer_t *buf, const database_semilattice_metadata_t &x);
+
+
+
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(database_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 cJSON *with_ctx_render_as_json(database_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 void with_ctx_apply_json_to(cJSON *change, database_semilattice_metadata_t *target, const vclock_ctx_t &ctx);

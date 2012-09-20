@@ -44,6 +44,8 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_2(ip, port);
 };
 
+void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address);
+
 class connectivity_cluster_t :
     public connectivity_service_t,
     public message_service_t,

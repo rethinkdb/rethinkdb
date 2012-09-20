@@ -3,16 +3,22 @@
 
 #include "rpc/serialize_macros.hpp"
 
+class append_only_printf_buffer_t;
+
+
 //a deletable wrapper allows a piece of metadata to be deleted (this makes up
 //for the fact that we don't have inverses in semilattices)
 template <class T>
 class deletable_t {
 private:
-template <class TT>
-friend bool operator==(const deletable_t<TT> &, const deletable_t<TT> &);
+    template <class U>
+    friend bool operator==(const deletable_t<U> &, const deletable_t<U> &);
 
-template <class TT>
-friend void semilattice_join(deletable_t<TT> *, const deletable_t<TT> &);
+    template <class U>
+    friend void semilattice_join(deletable_t<U> *, const deletable_t<U> &);
+
+    template <class U>
+    friend void debug_print(append_only_printf_buffer_t *buf, const deletable_t<U> &x);
 
     bool deleted;
 
@@ -63,6 +69,9 @@ bool operator==(const deletable_t<T> &, const deletable_t<T> &);
 
 template <class T>
 void semilattice_join(deletable_t<T> *, const deletable_t<T> &);
+
+template <class T>
+void debug_print(append_only_printf_buffer_t *buf, const deletable_t<T> &x);
 
 #include "rpc/semilattice/joins/deletable.tcc"
 

@@ -8,8 +8,11 @@
 #include "containers/archive/archive.hpp"
 #include "errors.hpp"
 
+class append_only_printf_buffer_t;
+
 /* ip_address_t represents an IPv4 address. */
-struct ip_address_t {
+class ip_address_t {
+public:
     ip_address_t() { }
     explicit ip_address_t(const std::string &);   // Address with hostname or IP
     static ip_address_t us();
@@ -18,11 +21,9 @@ struct ip_address_t {
     bool operator!=(const ip_address_t &x) const;
     bool operator<(const ip_address_t &x) const;
 
-public:
     /* Returns IP address in `a.b.c.d` form. */
     std::string as_dotted_decimal() const;
 
-public:
     struct in_addr addr;
 
 private:
@@ -40,5 +41,7 @@ private:
         return ARCHIVE_SUCCESS;
     }
 };
+
+void debug_print(append_only_printf_buffer_t *buf, const ip_address_t &addr);
 
 #endif /* ARCH_ADDRESS_HPP_ */

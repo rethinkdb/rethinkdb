@@ -36,6 +36,8 @@ public:
 
     virtual ~json_stream_t() { }
 
+    virtual void reset_interruptor(UNUSED signal_t *new_interruptor) { };
+
 private:
     DISABLE_COPYING(json_stream_t);
 };
@@ -87,6 +89,10 @@ public:
 
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
     result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
+
+    virtual void reset_interruptor(signal_t *new_interruptor) {
+        interruptor = new_interruptor;
+    };
 
 private:
     void read_more();

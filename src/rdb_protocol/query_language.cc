@@ -12,6 +12,32 @@
 #include "rdb_protocol/internal_extensions.pb.h"
 #include "rdb_protocol/js.hpp"
 
+void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, namespace_id_t namespace_id, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    /* The following is an ugly hack, but it's probably what we want.  It
+       takes about a third of a second for the new namespace to get to the
+       point where we can do reads/writes on it.  We don't want to return
+       until that has happened, so we try to do a read every `poll_ms`
+       milliseconds until one succeeds, then return. */
+
+    // This read won't succeed, but we care whether it fails with an exception.
+    //  It must be an rget to make sure that access is available to all shards.
+
+    const int poll_ms = 100; //with this value, usually polls twice
+    rdb_protocol_t::rget_read_t bad_rget_read(hash_region_t<key_range_t>::universe());
+    rdb_protocol_t::read_t bad_read(bad_rget_read);
+    for (;;) {
+        signal_timer_t start_poll(poll_ms);
+        wait_interruptible(&start_poll, interruptor);
+        try {
+            namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_id, interruptor);
+            rdb_protocol_t::read_response_t read_res;
+            // TODO: We should not use order_token_t::ignore.
+            ns_access.get_namespace_if()->read(bad_read, &read_res, order_token_t::ignore, interruptor);
+            break;
+        } catch (cannot_perform_query_exc_t e) { } //continue loop
+    }
+}
+
 namespace query_language {
 
 cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
@@ -746,27 +772,8 @@ boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     return js_runner;
 }
 
-class namespace_predicate_t {
-public:
-    bool operator()(namespace_semilattice_metadata_t<rdb_protocol_t> ns) {
-        if (name && (ns.name.in_conflict() || ns.name.get() != *name)) {
-            return false;
-        } else if (db_id && (ns.database.in_conflict() || ns.database.get() != *db_id)) {
-            return false;
-        }
-        return true;
-    }
-    explicit namespace_predicate_t(const std::string &_name): name(&_name), db_id(0) { }
-    explicit namespace_predicate_t(const uuid_t &_db_id): name(0), db_id(&_db_id) { }
-    namespace_predicate_t(const std::string &_name, const uuid_t &_db_id):
-        name(&_name), db_id(&_db_id) { }
-private:
-    const std::string *name;
-    const uuid_t *db_id;
-};
-
-void meta_check(metadata_search_status_t status, metadata_search_status_t want,
-                const std::string &operation, const backtrace_t &backtrace) {
+static void meta_check(metadata_search_status_t status, metadata_search_status_t want,
+                       const std::string &operation, const backtrace_t &backtrace) {
     if (status != want) {
         const char *msg;
         switch (status) {
@@ -892,31 +899,13 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
         env->semilattice_metadata->join(metadata);
 
-        /* The following is an ugly hack, but it's probably what we want.  It
-           takes about a third of a second for the new namespace to get to the
-           point where we can do reads/writes on it.  We don't want to return
-           until that has happened, so we try to do a read every `poll_ms`
-           milliseconds until one succeeds, then return. */
+        /* UGLY HACK BELOW.  SEE wait_for_rdb_table_readiness for more info. */
 
-        int64_t poll_ms = 100; //with this value, usually polls twice
-        // This read won't succeed, but we care whether it fails with an exception.
-        //  It must be an rget to make sure that access is available to all shards.
         // This is performed on the client's thread to make sure that any
         //  immediately following queries will succeed.
         on_thread_t rethreader_original(original_thread);
-        rdb_protocol_t::rget_read_t bad_rget_read(hash_region_t<key_range_t>::universe());
-        rdb_protocol_t::read_t bad_read(bad_rget_read);
         try {
-            for (;;) {
-                signal_timer_t start_poll(poll_ms);
-                wait_interruptible(&start_poll, env->interruptor);
-                try {
-                    namespace_repo_t<rdb_protocol_t>::access_t ns_access(env->ns_repo, namespace_id, env->interruptor);
-                    rdb_protocol_t::read_response_t read_res;
-                    ns_access.get_namespace_if()->read(bad_read, &read_res, order_token_t::ignore, env->interruptor);
-                    break;
-                } catch (cannot_perform_query_exc_t e) { } //continue loop
-            }
+            wait_for_rdb_table_readiness(env->ns_repo, namespace_id, env->interruptor);
         } catch (interrupted_exc_t e) {
             throw runtime_exc_t("Query interrupted, probably by user.", bt);
         }
@@ -999,7 +988,7 @@ void execute_query(Query *q, runtime_environment_t *env, Response *res, const sc
         execute_write_query(q->mutable_write_query(), env, res, scopes, backtrace);
     } break; //status set in [execute_write_query]
     case Query::CONTINUE: {
-        if (!stream_cache->serve(q->token(), res)) {
+        if (!stream_cache->serve(q->token(), res, env->interruptor)) {
             throw runtime_exc_t(strprintf("Could not serve key %ld from stream cache.", q->token()), backtrace);
         }
     } break; //status set in [serve]
@@ -1038,7 +1027,7 @@ void execute_read_query(ReadQuery *r, runtime_environment_t *env, Response *res,
         } else {
             stream_cache->insert(r, key, stream);
         }
-        DEBUG_VAR bool b = stream_cache->serve(key, res);
+        DEBUG_VAR bool b = stream_cache->serve(key, res, env->interruptor);
         rassert(b);
         break; //status code set in [serve]
     }
@@ -1297,7 +1286,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 
         scopes_t scopes_copy = scopes;
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            // TODO: Type-scope?
+            variable_type_scope_t::new_scope_t type_scope_maker(&scopes_copy.type_env.scope, w->for_each().var(), term_info_t(TERM_TYPE_JSON, true));
             variable_val_scope_t::new_scope_t scope_maker(&scopes_copy.scope, w->for_each().var(), json);
 
             for (int i = 0; i < w->for_each().queries_size(); ++i) {
@@ -1850,10 +1839,6 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
             break;
         case Builtin::ADD:
             {
-                std::vector<std::string> argnames;
-                std::vector<boost::shared_ptr<scoped_cJSON_t> > values;
-                scopes.scope.dump(&argnames, &values);
-
                 if (c->args_size() == 0) {
                     return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNull()));
                 }
@@ -2172,7 +2157,11 @@ predicate_t::predicate_t(const Predicate &_pred, runtime_environment_t *_env, co
 
 bool predicate_t::operator()(boost::shared_ptr<scoped_cJSON_t> json) {
     variable_val_scope_t::new_scope_t scope_maker(&scopes.scope, pred.arg(), json);
+    variable_type_scope_t::new_scope_t type_scope_maker(&scopes.type_env.scope, pred.arg(), term_info_t(TERM_TYPE_JSON, true));
+
     implicit_value_setter_t impliciter(&scopes.implicit_attribute_value, json);
+    implicit_type_t::impliciter_t type_impliciter(&scopes.type_env.implicit_type, term_info_t(TERM_TYPE_JSON, true));
+
     boost::shared_ptr<scoped_cJSON_t> a_bool = eval_term_as_json(pred.mutable_body(), env, scopes, backtrace);
 
     if (a_bool->type() == cJSON_True) {
@@ -2227,8 +2216,12 @@ private:
 
 boost::shared_ptr<scoped_cJSON_t> map(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val) {
     scopes_t scopes_copy = scopes;
+
     variable_val_scope_t::new_scope_t scope_maker(&scopes_copy.scope, arg, val);
+    variable_type_scope_t::new_scope_t type_scope_maker(&scopes_copy.type_env.scope, arg, term_info_t(TERM_TYPE_JSON, true));
+
     implicit_value_setter_t impliciter(&scopes_copy.implicit_attribute_value, val);
+    implicit_type_t::impliciter_t type_impliciter(&scopes_copy.type_env.implicit_type, term_info_t(TERM_TYPE_JSON, true));
     return eval_term_as_json(term, env, scopes_copy, backtrace);
 }
 
@@ -2240,7 +2233,10 @@ boost::shared_ptr<scoped_cJSON_t> eval_mapping(Mapping m, runtime_environment_t 
 boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val) {
     scopes_t scopes_copy = scopes;
     variable_val_scope_t::new_scope_t scope_maker(&scopes_copy.scope, arg, val);
+    variable_type_scope_t::new_scope_t type_scope_maker(&scopes_copy.type_env.scope, arg, term_info_t(TERM_TYPE_JSON, true));
+
     implicit_value_setter_t impliciter(&scopes_copy.implicit_attribute_value, val);
+    implicit_type_t::impliciter_t type_impliciter(&scopes_copy.type_env.implicit_type, term_info_t(TERM_TYPE_JSON, true));
     return eval_term_as_stream(term, env, scopes_copy, backtrace);
 }
 

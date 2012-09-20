@@ -31,6 +31,9 @@ template <class K, class V>
 void debug_print(append_only_printf_buffer_t *buf, const std::map<K, V> &map);
 
 template <class T>
+void debug_print(append_only_printf_buffer_t *buf, const std::set<T> &map);
+
+template <class T>
 void debug_print(append_only_printf_buffer_t *buf, const std::vector<T> &vec);
 
 template <class T, class U>

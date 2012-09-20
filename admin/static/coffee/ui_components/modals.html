@@ -92,5 +92,8 @@
     {{#if machine_exists}}
         <p>The chosen server's name is already being used. please choose another one.</p>
     {{/if}}
+    {{#if cache_size_format}}
+        <p>The cache size must be an intger.</p>
+    {{/if}}
   </div>
 </script>
