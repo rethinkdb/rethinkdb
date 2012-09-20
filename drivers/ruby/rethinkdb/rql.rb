@@ -40,22 +40,17 @@ module RethinkDB
     #   db('db1').tbl
     def self.db(db_name); Database.new db_name; end
 
-    # Refer to either a variable or an attribute of the implicit variable (or
-    # the implicit variable itself).  You can refer to a variable by providing a
-    # symbol that starts with a <b>+$+</b> (the implicit variable is
-    # <b>+$_+</b>).  So, for example, the following are all equivalent:
+    # Refer to either an attribute of the implicit variable or the
+    # implicit variable itself. You can refer to the implicit variable
+    # by providing the symbol <b>+$_+</b>. The following examples are
+    # all equivalent:
     #   table.map{|row| r[:id]}
     #   table.map{r[$_][:id]}
     #   table.map{r[:id]}
-    #   table.map{r.let({:a => r[$_]}, r[:$a][:id]}
-    #   table.map{r.let({:a => r[$_]}, r.var('a')[:id]}
+    #   table.map{r.let({:a => r[$_]}, r.letvar('a')[:id]}
     def self.[](ind)
       return JSON_Expression.new [:implicit_var] if ind == :$_
-      if ind.class == Symbol and ind.to_s[0] == ?$
-        return self.var(ind.to_s[1..-1])
-      else
-        return self[:$_][ind]
-      end
+      return self[:$_][ind]
     end
 
     # Convert from a Ruby datatype to an RQL query.  Numbers, strings, booleans,
@@ -80,13 +75,9 @@ module RethinkDB
       end
     end
 
-    # Explicitly construct an RQL variable from a string.  The following are
-    # equivalent:
-    #   r[:$varname]
-    #   r.var('varname')
-    # You want to use the second version if the variable name contains
-    # funny characters that aren't easily expressed in a symbol.
-    def self.var(varname); Var_Expression.new [:var, varname]; end
+    # Explicitly construct an RQL variable from a string:
+    #   r.letvar('varname')
+    def self.letvar(varname); Var_Expression.new [:var, varname]; end
 
     # Provide a literal JSON string that will be parsed by the server.  For
     # example, the following are equivalent:
