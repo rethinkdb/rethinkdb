@@ -94,8 +94,6 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     if (!joins.empty())
         host_port = strprintf("%s:%d", joins[0].host.c_str(), joins[0].port);
 
-    // TODO(sam): Wtf is host_port for?
-
     try {
         if (command_args.empty())
             admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).run_console(exit_on_failure);
@@ -118,7 +116,7 @@ void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<
 
     csv_to_json_importer_t importer(separators, input_filepath);
 
-    // TODO(sam): Make the peer port be configurable.
+    // TODO: Make the peer port be configurable?
     *result_out = run_json_import(spawner_info, look_up_peers_addresses(joins), 0, client_port, target, &importer, &sigint_cond);
 }
 
@@ -420,13 +418,12 @@ po::options_description get_rethinkdb_admin_options() {
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
     desc.add(get_disk_options());
-    // TODO(sam): The admin client doesn't use the io-backend option!  So why are we calling get_disk_options()?
+    // TODO: The admin client doesn't use the io-backend option!  So why are we calling get_disk_options()?
     return desc;
 }
 
 po::options_description get_rethinkdb_import_options() {
     po::options_description desc("Allowed options");
-    // TODO(sam): What is the client-port option?
     desc.add_options()
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
@@ -543,7 +540,6 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
-        // TODO(sam): Is this the proper way to exit?
         return EXIT_FAILURE;
     }
 
@@ -665,7 +661,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-// TODO(sam): Add split_db_table unit test.
+// TODO: Add split_db_table unit test.
 MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_out, std::string *table_name_out) {
     size_t first_pos = db_table.find_first_of('.');
     if (first_pos == std::string::npos || db_table.find_last_of('.') != first_pos) {
@@ -684,18 +680,18 @@ MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_o
 }
 
 int main_rethinkdb_import(int argc, char *argv[]) {
+    // TODO: On errors supply usage information?
     try {
         po::variables_map vm;
         if (!parse_commands(argc - 1, argv + 1, &vm, get_rethinkdb_import_options())) {
             return EXIT_FAILURE;
         }
 
-        // TODO(sam): Does this not work with a zero count?
+        // TODO: Does this not work with a zero count?
         std::vector<host_and_port_t> joins;
         if (vm.count("join") > 0) {
             joins = vm["join"].as<std::vector<host_and_port_t> >();
         }
-        // TODO(sam): I think we and rethinkdb_admin handle client_port differently?  Why?
 #ifndef NDEBUG
         int client_port = vm["client-port"].as<int>();
 #else
@@ -705,7 +701,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         std::string db_name;
         std::string table_name;
         if (!split_db_table(db_table, &db_name, &table_name)) {
-            // TODO(sam): handle error gracefully.
+            printf("--table option should have format database_name.table_name\n");
             return EXIT_FAILURE;
         }
 
@@ -727,10 +723,10 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         }
         std::string input_filepath = vm["input-file"].as<std::string>();
         if (input_filepath.empty()) {
-            // TODO(sam): handle error gracefully.
+            printf("Please supply an --input-file option.\n");
             return EXIT_FAILURE;
         }
-        // TODO(sam): This is an unused option!  Remove it.
+        // TODO: This is an unused option!  Remove it.
         io_backend_t io_backend;
         if (!pull_io_backend_option(vm, &io_backend)) {
             return EXIT_FAILURE;
@@ -753,7 +749,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const std::exception& ex) {
-        // TODO(sam): This generic exception handler is complete fucking bullshit and so are the other ones in this file.
+        // TODO: Sigh.
         logERR("%s\n", ex.what());
         return EXIT_FAILURE;
     }
