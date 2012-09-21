@@ -594,24 +594,26 @@ module 'DataExplorerView', ->
             LIMIT = 20
             id = Math.random()
             @last_id = id
+
+            @current_results = []
+            @count_results = 0
             iter_callback = (data) =>
                 if id is @last_id
-                    @count_results++
-                    @current_results = []
                     if @count_results < LIMIT
                         @current_results.push data
                     else
                         if @count_results is LIMIT
-                            @results_view.render_result @query, data
+                            @results_view.render_result @query, @current_results
+                            @results_view.render_metadata @current_results.length
+                    @count_results++
             last_callback = =>
-                console.log 'last'
                 if id is @last_id
                     execution_time = new Date() - @start_time
                     if @count_results < LIMIT
-                        @results_view.render_result @query, data
+                        @results_view.render_result @query, @current_results
 
                     @.$('.loading_query_img').css 'display', 'none'
-                    @results_view.render_metadata @count_results, execution_time
+                    @results_view.render_metadata @current_results.length, @count_results, execution_time
 
 
             iter: iter_callback
@@ -758,8 +760,8 @@ module 'DataExplorerView', ->
 
         render: =>
             @.$el.html @template
-            @.$el.append @input_query.render().el
-            @.$el.append @results_view.render().el
+            @.$('.input_query_full_container').html @input_query.render().el
+            @.$('.results_container').html @results_view.render().el
             return @
 
         call_codemirror: =>
@@ -1184,19 +1186,20 @@ module 'DataExplorerView', ->
             @mouse_down = false
             @.$('.json_table').toggleClass('resizing', false)
 
-        render_result: (query, result, id) =>
+        render_result: (query, result) =>
             @.$el.html @template
                 query: query
             @.$('#tree_view').html @json_to_tree result
             @.$('#table_view').html @json_to_table result
             @.$('.raw_view_textarea').html JSON.stringify result
+            @expand_raw_textarea()
  
             @.$('.link_to_tree_view').tab 'show'
             @.$('#tree_view').addClass 'active'
             @.$('#table_view').removeClass 'active'
             @.$('#raw_view').removeClass 'active'
 
-        render_metadata: (count_results, execution_time) =>
+        render_metadata: (count_results_displayed, count_results, execution_time) =>
             LIMIT = 20
             if execution_time?
                 if execution_time < 1000
@@ -1208,12 +1211,13 @@ module 'DataExplorerView', ->
                     execution_time_pretty = minutes+"min "+((execution_time-minutes*60*1000)/1000).toFixed(2)+"s"       
 
             @.$('.metadata').html @metadata_template
-                num_rows_displayed: LIMIT
+                num_rows_displayed: count_results_displayed
                 num_rows: count_results
-                execution_time: execution_time if execution_time?
+                execution_time: execution_time_pretty if execution_time_pretty?
 
 
         render: =>
+            @delegateEvents()
             return @
 
         toggle_collapse: (event) =>
