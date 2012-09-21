@@ -194,9 +194,6 @@ rethinkdb.ArrayExpression.prototype.formatQuery = function(bt) {
     if (!bt) {
         return 'r.expr(['+strVals.join(', ')+'])';
     } else {
-        console.log(bt);
-        console.log(bt[0]);
-        console.log(bt[0].split(':'));
         var a = bt[0].split(':');
         goog.asserts.assert(a[0] === 'elem');
         bt.shift();
@@ -646,16 +643,40 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'append',
  * @constructor
  * @extends {rethinkdb.BuiltinExpression}
  * @param {rethinkdb.Expression} leftExpr
- * @param {number} leftExtent
- * @param {number=} opt_rightExtent
+ * @param {number|rethinkdb.Expression} leftExtent
+ * @param {number|rethinkdb.Expression=} opt_rightExtent
  * @ignore
  */
 rethinkdb.SliceExpression = function(leftExpr, leftExtent, opt_rightExtent) {
-    goog.base(this, Builtin.BuiltinType.SLICE, [
-        leftExpr,
-        newExpr_(rethinkdb.NumberExpression, leftExtent),
-        newExpr_(rethinkdb.NumberExpression, opt_rightExtent)
-    ], formatTodo_);
+    leftExtent = wrapIf_(leftExtent);
+    opt_rightExtent = opt_rightExtent ? wrapIf_(opt_rightExtent) :
+        new rethinkdb.JSONExpression(null);
+
+    goog.base(this, Builtin.BuiltinType.SLICE, [leftExpr, leftExtent, opt_rightExtent],
+        function(bt) {
+            if (!bt) {
+                return leftExpr.formatQuery()+'.slice('+leftExtent.formatQuery()+
+                    (opt_rightExtent ? ', '+opt_rightExtent.formatQuery() : '') +')';
+            } else {
+                var a = bt[0].split(':');
+                goog.asserts.assert(a[0] === 'arg');
+                a[1] = parseInt(a[1], 10);
+                bt.shift();
+
+                var it;
+                if (a[1] === 0) {
+                    return leftExpr.formatQuery(bt)+spaceify_('.slice('+leftExtent.formatQuery()+
+                        (opt_rightExtent ? ', '+opt_rightExtent.formatQuery() : '') +')');
+                } else if(a[1] === 1) {
+                    return spaceify_(leftExpr.formatQuery()+'.slice(')+leftExtent.formatQuery(bt)+
+                        spaceify_((opt_rightExtent ? ', '+opt_rightExtent.formatQuery() : '') +')');
+                } else {
+                    goog.asserts.assert(a[1] === [2]);
+                    return spaceify_(leftExpr.formatQuery()+'.slice('+leftExtent.formatQuery(bt)+
+                        ', ')+opt_rightExtent.formatQuery(bt)+' ';
+                }
+            }
+        });
 };
 goog.inherits(rethinkdb.SliceExpression, rethinkdb.BuiltinExpression);
 
@@ -667,7 +688,6 @@ goog.inherits(rethinkdb.SliceExpression, rethinkdb.BuiltinExpression);
  */
 rethinkdb.Expression.prototype.slice = function(startIndex, opt_endIndex) {
     argCheck_(arguments, 1);
-
     return newExpr_(rethinkdb.SliceExpression, this, startIndex, opt_endIndex);
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'slice',
@@ -680,7 +700,6 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'slice',
  */
 rethinkdb.Expression.prototype.limit = function(limit) {
     argCheck_(arguments, 1);
-    typeCheck_(limit, 'number');
     return newExpr_(rethinkdb.SliceExpression, this, 0, limit);
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'limit',
@@ -693,7 +712,6 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'limit',
  */
 rethinkdb.Expression.prototype.skip = function(hop) {
     argCheck_(arguments, 1);
-    typeCheck_(hop, 'number');
     return newExpr_(rethinkdb.SliceExpression, this, hop);
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'skip',
@@ -736,12 +754,60 @@ rethinkdb.Expression.prototype.filter = function(selector) {
             }
         }
         predicateFunction = newExpr_(rethinkdb.FunctionExpression,[''],
-             newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.ALL, ands, formatTodo_));
+             newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.ALL, ands,
+                 function(bt) {
+                    var fomatted = ands.map(function(a) {return a.formatQuery()});
+
+                    if (!bt) {
+                        return fomatted.join(').and(');
+                    } else {
+                        console.log(bt);
+                        var a = bt[0].split(':');
+                        goog.asserts.assert(a[0] === 'arg');
+                        bt.shift();
+                        fomatted = fomatted.map(spaceify_);
+                        fomatted[a[1]] = ands[a[1]].formatQuery(bt);
+                        return fomatted.join('      ');
+                    }
+                 }));
+        /*
+        predicateFunction.formatQuery =  function(bt) {
+            var pairs = [];
+            for (var key in selector) {
+                if (selector.hasOwnProperty(key)) {
+                    pairs.push("'"+key+"':"+selector[key].formatQuery());
+                }
+            }
+
+            if (!bt) {
+                return '{'+pairs.join(', ')+'}';
+            } else {
+                return '???';
+            }
+         };
+         */
     } else {
         predicateFunction = functionWrap_(selector);
     }
 
-    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.FILTER, [this], formatTodo_,
+    var self = this;
+    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.FILTER, [this],
+        function(bt) {
+            if (!bt) {
+                return self.formatQuery()+'.filter('+predicateFunction.formatQuery()+')';
+            } else {
+                if (bt[0] === 'predicate') {
+                    bt.shift();
+                    return spaceify_(self.formatQuery()+'.filter(')+
+                        predicateFunction.formatQuery(bt)+' ';
+                } else {
+                    goog.asserts.assert(bt[0] === 'arg:0');
+                    bt.shift();
+                    return self.formatQuery(bt)+spaceify_('.filter('+
+                        predicateFunction.formatQuery(bt)+')');
+                }
+            }
+        },
         function(builtin) {
             var predicate = new Predicate();
             predicate.setArg(predicateFunction.args[0]);
@@ -766,7 +832,22 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'filter',
  */
 rethinkdb.Expression.prototype.map = function(mapFun) {
     mapFun = functionWrap_(mapFun);
-    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.MAP, [this], formatTodo_,
+    var self = this;
+    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.MAP, [this],
+        function(bt) {
+            if (!bt) {
+                return self.formatQuery()+'.map('+mapFun.formatQuery()+')';
+            } else {
+                if (bt[0] === 'arg:0') {
+                    bt.shift();
+                    return self.formatQuery(bt)+spaceify_('.map('+mapFun.formatQuery(bt)+')');
+                } else {
+                    goog.asserts.assert(bt[0] === 'mapping');
+                    bt.shift();
+                    return spaceify_(self.formatQuery()+'.map(')+mapFun.formatQuery(bt)+' ';
+                }
+            }
+        },
         function(builtin) {
             var mapping = new Mapping();
             mapping.setArg(mapFun.args[0]);
@@ -1047,7 +1128,7 @@ rethinkdb.VarExpression.prototype.compile = function() {
 
 /** @override */
 rethinkdb.VarExpression.prototype.formatQuery = function(bt) {
-    var result = "r.R('$"+this.varName_+"')";
+    var result = "r.letVar('"+this.varName_+"')";
     if (!bt) {
         return result;
     } else {
@@ -1056,22 +1137,27 @@ rethinkdb.VarExpression.prototype.formatQuery = function(bt) {
 };
 
 /**
- * @param {string} varName
  * @constructor
  * @extends {rethinkdb.Expression}
  * @ignore
  */
-rethinkdb.ImplicitVarExpression = function(varName) {
-    this.varName_ = varName;
-};
+rethinkdb.ImplicitVarExpression = function() { };
 goog.inherits(rethinkdb.ImplicitVarExpression, rethinkdb.Expression);
 
 /** @override */
 rethinkdb.ImplicitVarExpression.prototype.compile = function() {
     var term = new Term();
     term.setType(Term.TermType.IMPLICIT_VAR);
-    term.setVar(this.varName_);
     return term;
+};
+
+/** @override */
+rethinkdb.ImplicitVarExpression.prototype.formatQuery = function(bt) {
+    if (!bt) {
+        return "r.R('@')";
+    } else {
+        return "^^^^^^^^";
+    }
 };
 
 /**
@@ -1082,7 +1168,20 @@ rethinkdb.ImplicitVarExpression.prototype.compile = function() {
  * @ignore
  */
 rethinkdb.AttrExpression = function(leftExpr, attrName) {
-    goog.base(this, Builtin.BuiltinType.GETATTR, [leftExpr], formatTodo_, function(builtin) {
+    goog.base(this, Builtin.BuiltinType.GETATTR, [leftExpr], function(bt) {
+        if (!bt) {
+            return leftExpr.formatQuery()+"('"+attrName+"')";
+        } else {
+            console.log(bt);
+            var arg = bt.shift();
+            if (arg === 'arg:0') {
+                return leftExpr.formatQuery(bt)+"('"+attrName+"')";
+            } else {
+                goog.asserts.assert(arg === 'attr');
+                return spaceify_(leftExpr.formatQuery())+carrotify_("('"+attrName+"')");
+            }
+        }
+    }, function(builtin) {
         builtin.setAttr(attrName);
     });
 };
