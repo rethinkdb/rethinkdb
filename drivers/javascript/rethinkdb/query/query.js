@@ -73,12 +73,12 @@ goog.exportProperty(rethinkdb.Query.prototype, 'run',
 /**
  * A shortcut for conn.iter(this). If the connection is omitted the last created
  * connection is used.
- * @param {function()} callback The callback to invoke with the result.
- * @param {rethinkdb.Connection=} conn The connection to run this expression on.
+ * @param {function(...)} callback The callback to invoke with the result.
+ * @param {function(...)=} doneCallback The callback to invoke when the stream has ended.
  */
-rethinkdb.Query.prototype.iter = function(callback, conn) {
-    conn = conn || rethinkdb.last_connection_;
-    conn.iter(this, callback);
+rethinkdb.Query.prototype.iter = function(callback, doneCallback) {
+    var conn = rethinkdb.last_connection_;
+    conn.iter(this, callback, doneCallback);
 };
 goog.exportProperty(rethinkdb.Query.prototype, 'iter',
                     rethinkdb.Query.prototype.iter);

@@ -114,10 +114,12 @@ rethinkdb.Connection.prototype.close = goog.abstractMethod;
  * Construct and run the given query, used by public run and iter methods
  * @param {rethinkdb.Query} expr The expression to run
  * @param {boolean} iterate Iterate callback over results
- * @param {function(...)=} opt_callback Callback to which results are returned
+ * @param {function(...)} opt_callback Callback to which results are returned
+ * @param {function(...)=} opt_doneCallback called when stream has ended.
+ *  Only valid if iterate = true
  * @private
  */
-rethinkdb.Connection.prototype.run_ = function(expr, iterate, opt_callback) {
+rethinkdb.Connection.prototype.run_ = function(expr, iterate, opt_callback, opt_doneCallback) {
     var query = expr.buildQuery();
 
     // Assign a token
@@ -127,6 +129,7 @@ rethinkdb.Connection.prototype.run_ = function(expr, iterate, opt_callback) {
         callback: (opt_callback || null),
         query: expr, // Save origional ast for backtrace reconstructions
         iterate : iterate,
+        done: (opt_doneCallback || null),
         partial : []
     };
 
@@ -173,12 +176,13 @@ goog.exportProperty(rethinkdb.Connection.prototype, 'run',
  * server. Use anytime the result is expected to be very large.
  * @param {rethinkdb.Query} expr The expression to run.
  * @param {function(...)} opt_callback Function to invoke with response.
+ * @param {function(...)=} opt_doneCallback Function to invoke when stream has ended.
  */
-rethinkdb.Connection.prototype.iter = function(expr, opt_callback) {
+rethinkdb.Connection.prototype.iter = function(expr, opt_callback, opt_doneCallback) {
     argCheck_(arguments, 1);
     typeCheck_(expr, rethinkdb.Query);
     typeCheck_(opt_callback, 'function');
-    this.run_(expr, true, opt_callback);
+    this.run_(expr, true, opt_callback, opt_doneCallback);
 };
 goog.exportProperty(rethinkdb.Connection.prototype, 'iter',
                     rethinkdb.Connection.prototype.iter);
@@ -232,11 +236,16 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
                     request.callback(request.partial.concat(results));
                 }
             }
+
+            if (request.done && request.iterate) request.done();
             break;
         case Response.StatusCode.SUCCESS_JSON:
             delete this.outstandingQueries_[response.getToken()]
-            if (request.callback) {
-                var result = JSON.parse(response.getResponse(0));
+            var result = JSON.parse(response.getResponse(0));
+            if (request.iterate) {
+                if (result.forEach && request.callback) result.forEach(request.callback);
+                if (request.done) request.done();
+            } else if (request.callback) {
                 request.callback(result);
             }
             break;
