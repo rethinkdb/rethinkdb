@@ -325,11 +325,6 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.json('[1,2,3]').run, [1,2,3])
   end
 
-  def test_let # LET, CALL, VAR, NUMBER, STRING
-    query = r.let([['a', r.add(1,2)], ['b', r.add(r.letvar('a'),2)]], r.letvar('a') + r.letvar('b'))
-    assert_equal(query.run, 8)
-  end
-
   def test_easy_read # TABLE
     assert_equal($data, id_sort(rdb.run.to_a))
     assert_equal($data, id_sort(r.db('Welcome-db').table('Welcome-rdb').run.to_a))

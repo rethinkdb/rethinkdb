@@ -10,8 +10,13 @@ module RethinkDB
       Connection.last.send(:run, self)
     end
 
-    def initialize(init_body) # :nodoc:
-      @body = init_body
+    def set_body(val, context=nil) # :nodoc:
+      @context = context || caller
+      @body = val
+    end
+
+    def initialize(init_body, context=nil) # :nodoc:
+      set_body(init_body, context)
     end
 
     def ==(rhs) # :nodoc:
@@ -39,6 +44,23 @@ module RethinkDB
     end
     def query(*args) # :nodoc:
       RQL_Protob.query(args == [] ? sexp : S.replace(sexp, *args))
+    end
+
+    def inspect # :nodoc:
+      return @body.inspect if @body.class != Array
+      return "" if @body == []
+      case @body[0]
+      when :call then
+        if @body[2].length == 1
+          @body[2][0].inspect + "." + RQL_Query.new(@body[1],@context).inspect
+        else
+          func = @body[1][0].to_s
+          args = (@body[1][1..-1] + @body[2]).map{|x| x.inspect}
+          func + "(" + args.join(", ") + ")"
+        end
+      else
+        @body[0].to_s + "(" + @body[1..-1].map{|x| x.inspect}.join(", ") + ")"
+      end
     end
 
     # Dereference aliases (see utils.rb) and possibly dispatch to RQL

@@ -60,8 +60,11 @@ module RethinkDB
 
   module S_Mixin #S-expression Utils
     @@gensym_counter = 0
-    def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
-    def with_var; sym = gensym; yield sym, var(sym); end
+    def gensym; '_var_'+(@@gensym_counter += 1).to_s; end
+    def with_var
+      sym = gensym
+      yield sym, var(sym)
+    end
     def var(varname); Var_Expression.new [:var, varname]; end
     def r x; RQL.expr(x); end
     def skip; :skip_2222ebd4_2c16_485e_8c27_bbe43674a852; end
@@ -86,4 +89,16 @@ module RethinkDB
     end
   end
   module S; extend S_Mixin; end
+
+  module B_Mixin # Backtrace utils
+    def sanitize_context(context)
+      if __FILE__ =~ /^(.*\/)[^\/]+.rb$/
+        prefix = $1;
+        context.reject{|x| x =~ /^#{prefix}/}
+      else
+        context
+      end
+    end
+  end
+  module B; extend B_Mixin; end
 end
