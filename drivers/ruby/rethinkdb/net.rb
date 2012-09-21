@@ -12,6 +12,16 @@ module RethinkDB
   # of 1000.  If you need to access to values multiple times, use the <b>+to_a+</b>
   # instance method to get an Array, and then work with that.
   class Query_Results
+    def out_of_date # :nodoc:
+      @conn.conn_id != @conn_id
+    end
+
+    def inspect # :nodoc:
+      state = @run ? "(exhausted)" : "(enumerable)"
+      extra = out_of_date ? " (Connection #{@conn.inspect} reset!)" : ""
+      "#<RethinkDB::Query_Results:#{self.object_id} #{state}#{extra}>"
+    end
+
     def initialize(connection, token) # :nodoc:
       @run = false
       @conn_id = connection.conn_id
@@ -21,7 +31,7 @@ module RethinkDB
 
     def each (&block) # :nodoc:
       raise RuntimeError, "Can only iterate over Query_Results once!" if @run
-      raise RuntimeError, "Connection has been reset!" if @conn.conn_id != @conn_id
+      raise RuntimeError, "Connection has been reset!" if out_of_date
       @conn.token_iter(@token, &block)
       @run = true
       return self
@@ -39,6 +49,11 @@ module RethinkDB
   # (This is because by default, invoking the <b>+run+</b> instance method on a
   # query runs it on the most-recently-opened connection.)
   class Connection
+    def inspect # :nodoc:
+      state = @listener ? "(listening)" : "(closed)"
+      "#<RethinkDB::Connection:#{self.object_id} (#{@host}:#{@port}) #{state}>"
+    end
+
     @@last = nil
     @@magic_number = 0xaf61ba35
 
@@ -104,6 +119,7 @@ module RethinkDB
       @mutex = Mutex.new
       @conn_id += 1
       start_listener
+      self
     end
 
     def dispatch msg # :nodoc:
@@ -134,6 +150,7 @@ module RethinkDB
     end
 
     def error(protob,err=RuntimeError) # :nodoc:
+      PP.pp protob.backtrace
       raise err,"RQL: #{protob.error_message}"
     end
 
@@ -219,7 +236,9 @@ module RethinkDB
     # Close the connection.
     def close
       @listener.terminate! if @listener
+      @listener = nil
       @socket.close
+      @socket = nil
     end
   end
 end
