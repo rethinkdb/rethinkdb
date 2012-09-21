@@ -241,11 +241,17 @@ class Connection():
           explicitly. Equivalent to calling :func:`use`.
         :type db_name: str
         """
-        self.token = 1
-        self.socket = socket.create_connection((host, port))
-        self.socket.sendall(struct.pack("<L", 0xaf61ba35))
+        self.socket = None
         self.db_name = db_name
+        self.token = 1
+        self.host = host
+        self.port = port
+        self.reconnect()
 
+    def reconnect(self):
+        self.close()
+        self.socket = socket.create_connection((self.host, self.port))
+        self.socket.sendall(struct.pack("<L", 0xaf61ba35))
         global last_connection
         last_connection = self
 
@@ -257,7 +263,10 @@ class Connection():
     def _recvall(self, length):
         buf = ""
         while len(buf) != length:
-            buf += self.socket.recv(length - len(buf))
+            chunk = self.socket.recv(length - len(buf))
+            if chunk == '':
+                raise RuntimeError("Socket connection broken")
+            buf += chunk
         return buf
 
     def _run(self, protobuf, query, debug=False):
@@ -360,7 +369,9 @@ class Connection():
     def close(self):
         """Closes all network sockets on this connection object to the
         cluster."""
-        pass
+        if self.socket:
+            self.socket.close()
+            self.socket = None
 
 def connect(host='localhost', port=12346, db_name='test'):
     """
