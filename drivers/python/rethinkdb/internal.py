@@ -118,11 +118,11 @@ class TableCreate(MetaQueryInner):
         if self.cache_size:
             parent.create_table.cache_size = self.cache_size
     def pretty_print(self, printer):
-        return "db(%s).table_create(%r, primary_datacenter=%s, primary_key=%r)" % (
+        return "db(%s).table_create(%r, primary_key=%r, primary_datacenter=%s)" % (
             printer.simple_string(repr(self.db_expr.db_name), ["table_ref", "db_name"]),
             self.table_name,
-            printer.simple_string(repr(self.primary_datacenter), ["datacenter"]),
-            self.primary_key)
+            self.primary_key,
+            printer.simple_string(repr(self.primary_datacenter), ["datacenter"]))
 
 class TableDrop(MetaQueryInner):
     def __init__(self, table_name, db_expr):

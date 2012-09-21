@@ -446,6 +446,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_t *);
 cJSON *render_as_json(const uuid_t *);
 void apply_json_to(cJSON *, uuid_t *);
 void on_subfield_change(uuid_t *);
+std::string to_string_for_json_key(const uuid_t *);
 
 
 namespace boost {
@@ -471,6 +472,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(std::string *);
 cJSON *render_as_json(std::string *);
 void apply_json_to(cJSON *, std::string *);
 void  on_subfield_change(std::string *);
+std::string to_string_for_json_key(const std::string *);
 
 //JSON adapter for std::map
 template <class K, class V, class ctx_t>
