@@ -65,6 +65,8 @@ function formatServerError_(response, queryAst) {
         backtrace = pbBt.frameArray();
     }
 
+    console.log("head");
+    console.log(backtrace);
     return message + "\n\t"+ queryAst.formatQuery() + "\n\t" +
         queryAst.formatQuery(backtrace);
 }
@@ -87,24 +89,31 @@ function makeFormat_(thingName, leftThing, var_args) {
                 return a.toString();
             }
         });
+        var result = leftThing.formatQuery()+"."+thingName+"("+strArgs.join(', ')+")";
         if (!bt) {
-            return leftThing.formatQuery()+"."+thingName+"("+strArgs.join(', ')+")";
+            return result;
         } else {
-            var a = bt[0].split(':');
-            if (a[0] === 'arg') {
-                a[1] = parseInt(a[1], 10);
-                var argSpaces = strArgs.map(spaceify_);
-                var left;
-                if (a[1] === 0) {
-                    left = leftThing.formatQuery(bt.shift());
-                } else {
-                    left = spaceify_(leftThing.formatQuery());
-                    var index = a[1] - 1;
-                    var carrotedThing = args[index].formatQuery(bt.shift());
-                    argSpaces[index] = carrotedThing;
+            if (bt.length === 0) {
+                // This whole function is the error
+                return carrotify_(result);
+            } else {
+                var a = bt[0].split(':');
+                bt.shift();
+                if (a[0] === 'arg') {
+                    a[1] = parseInt(a[1], 10);
+                    var argSpaces = strArgs.map(spaceify_);
+                    var left;
+                    if (a[1] === 0) {
+                        left = leftThing.formatQuery(bt);
+                    } else {
+                        left = spaceify_(leftThing.formatQuery());
+                        var index = a[1] - 1;
+                        var carrotedThing = args[index].formatQuery(bt);
+                        argSpaces[index] = carrotedThing;
+                    }
+                    argSpaces = argSpaces.join('  ');
+                    return left+" "+spaceify_(thingName)+" "+argSpaces+" ";
                 }
-                argSpaces = argSpaces.join('  ');
-                return left+" "+spaceify_(thingName)+" "+argSpaces+" ";
             }
         }
     };
