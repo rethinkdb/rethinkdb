@@ -96,21 +96,27 @@ class DBList(MetaQueryInner):
         return "db_list()"
 
 class TableCreate(MetaQueryInner):
-    def __init__(self, table_name, db_expr, primary_datacenter, primary_key='id'):
+    def __init__(self, table_name, db_expr, primary_key, primary_datacenter, cache_size):
         assert isinstance(table_name, str)
         assert isinstance(db_expr, query.Database)
-        assert isinstance(primary_datacenter, str)
-        assert isinstance(primary_key, str)
+        assert (not primary_key) or isinstance(primary_key, str)
+        assert (not primary_datacenter) or isinstance(primary_datacenter, str)
+        assert (not cache_size) or isinstance(cache_size, int)
         self.table_name = table_name
         self.db_expr = db_expr
-        self.primary_datacenter = primary_datacenter
         self.primary_key = primary_key
+        self.primary_datacenter = primary_datacenter
+        self.cache_size = cache_size
     def _write_meta_query(self, parent):
         parent.type = p.MetaQuery.CREATE_TABLE
-        parent.create_table.datacenter = self.primary_datacenter
         parent.create_table.table_ref.db_name = self.db_expr.db_name
         parent.create_table.table_ref.table_name = self.table_name
-        parent.create_table.primary_key = self.primary_key
+        if self.primary_key:
+            parent.create_table.primary_key = self.primary_key
+        if self.primary_datacenter:
+            parent.create_table.datacenter = self.primary_datacenter
+        if self.cache_size:
+            parent.create_table.cache_size = self.cache_size
     def pretty_print(self, printer):
         return "db(%s).table_create(%r, primary_datacenter=%s, primary_key=%r)" % (
             printer.simple_string(repr(self.db_expr.db_name), ["table_ref", "db_name"]),
