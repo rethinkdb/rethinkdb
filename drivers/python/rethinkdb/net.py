@@ -353,7 +353,7 @@ class Connection():
         >>> conn.use('bar')
         >>> conn.run(q)      # select all users from database 'bar'
         """
-        pass
+        self.db_name = db_name
 
     def close(self):
         """Closes all network sockets on this connection object to the
