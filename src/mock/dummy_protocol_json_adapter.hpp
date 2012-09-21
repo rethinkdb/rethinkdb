@@ -19,6 +19,8 @@ void  on_subfield_change(dummy_protocol_t::region_t *);
 
 std::string render_region_as_string(dummy_protocol_t::region_t *target);
 
+std::string to_string_for_json_key(dummy_protocol_t::region_t *target);
+
 
 }  // namespace mock
 

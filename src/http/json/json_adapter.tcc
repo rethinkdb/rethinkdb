@@ -409,15 +409,8 @@ json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(std::map<K, V>
 
     for (typename std::map<K, V>::iterator it = map->begin(); it != map->end(); ++it) {
         typename std::map<K, V>::key_type key = it->first;
-        try {
-            scoped_cJSON_t scoped_key(render_as_json(&key));
-            res[get_string(scoped_key.get())]
-                = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<V, ctx_t>(&it->second, ctx));
-        } catch (schema_mismatch_exc_t &) {
-            crash("Someone tried to json adapt a std::map with a key type that"
-                   "does not yield a JSON object of string type when"
-                   "render_as_json is applied to it.");
-        }
+        res[to_string_for_json_key(&key)]
+            = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<V, ctx_t>(&it->second, ctx));
 
 #ifdef JSON_SHORTCUTS
         res[strprintf("%d", shortcut_index)] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<V, ctx_t>(&(it->second)));
@@ -476,15 +469,8 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(std::map<K, V> *map) {
 
     for (typename std::map<K, V>::iterator it = map->begin(); it != map->end(); ++it) {
         typename std::map<K, V>::key_type key = it->first;
-        try {
-            scoped_cJSON_t scoped_key(render_as_json(&key));
-            res[get_string(scoped_key.get())]
-                = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<V>(&it->second));
-        } catch (schema_mismatch_exc_t &) {
-            crash("Someone tried to json adapt a std::map with a key type that"
-                   "does not yield a JSON object of string type when"
-                   "render_as_json is applied to it.");
-        }
+        res[to_string_for_json_key(&key)]
+            = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<V>(&it->second));
 
 #ifdef JSON_SHORTCUTS
         res[strprintf("%d", shortcut_index)] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<V>(&(it->second)));

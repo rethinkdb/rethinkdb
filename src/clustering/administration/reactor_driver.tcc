@@ -175,11 +175,20 @@ public:
         /* The nil uuid represents acks from anywhere. */
         int extra_acks = 0;
         for (std::map<datacenter_id_t, int>::const_iterator kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
-            if (!it->first.is_nil()) {
+            if (!kt->first.is_nil()) {
                 if (acks_by_dc.count(kt->first) < static_cast<size_t>(kt->second)) {
                     return false;
                 }
                 extra_acks += acks_by_dc.count(kt->first) - static_cast<size_t>(kt->second);
+            }
+        }
+
+        /* Add in the acks that game from datacenters we had no expectations for. */
+        for (std::multiset<datacenter_id_t>::iterator at  = acks_by_dc.begin();
+                                                      at != acks_by_dc.end();
+                                                      ++at) {
+            if (!std_contains(expected_acks, *at)) {
+                extra_acks++;
             }
         }
 
