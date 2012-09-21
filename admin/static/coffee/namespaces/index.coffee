@@ -342,7 +342,16 @@ module 'NamespaceView', ->
 
         show_advanced_settings: (event) =>
             event.preventDefault()
+            that = @
+            @.$('.show_advanced_settings-link_container').fadeOut 'fast', ->
+                that.$('.hide_advanced_settings-link_container').fadeIn 'fast'
             @.$('.advanced_settings').slideDown 'fast'
+        hide_advanced_settings: (event) =>
+            event.preventDefault()
+            that = @
+            @.$('.hide_advanced_settings-link_container').fadeOut 'fast', ->
+                that.$('.show_advanced_settings-link_container').fadeIn 'fast'
+            @.$('.advanced_settings').slideUp 'fast'
 
         render: ->
             log_render '(rendering) add namespace dialog'
@@ -354,17 +363,12 @@ module 'NamespaceView', ->
                 databases: _.map(databases.models, (database) -> database.toJSON())
 
             @.$('.show_advanced_settings-link').click @show_advanced_settings
+            @.$('.hide_advanced_settings-link').click @hide_advanced_settings
 
         on_submit: =>
             super
 
             formdata = form_data_as_object($('form', @$modal))
-            if formdata.cache_size is ''
-                formdata.cache_size = '1024'
-            ###
-            if formdata.primary_key is ''
-                formdata.#primary_key is 'id'
-            ###
 
             template_error = {}
             input_error = false
@@ -379,9 +383,17 @@ module 'NamespaceView', ->
                         template_error.namespace_exists = true
                         break
 
-            if DataUtils.is_integer(formdata.cache_size) is false
+            if formdata.cache_size isnt '' and DataUtils.is_integer(formdata.cache_size) is false
                 input_error = true
                 template_error.cache_size_format = true
+            else if formdata.cache_size isnt ''
+                cache_size_int = parseInt formdata.cache_size
+                if cache_size_int < 16
+                    input_error = true
+                    template_error.cache_size_too_small = true
+                else if cache_size_int > 1024*64
+                    input_error = true
+                    template_error.cache_size_too_big = true
 
             if input_error is true
                 $('.alert_modal').html @error_template template_error
@@ -401,8 +413,8 @@ module 'NamespaceView', ->
                         primary_uuid: formdata.primary_datacenter
                         database: formdata.database
                         ack_expectations: ack
-                        cache_size: parseInt(formdata.cache_size)*1024*1024
-                        #primary_key: formdata.primary_key
+                        cache_size: parseInt(formdata.cache_size)*1024*1024 if formdata.cache_size isnt ''
+                        primary_key: formdata.primary_key if formdata.primary_key isnt ''
                         )
                     success: @on_success
                     error: @on_error
