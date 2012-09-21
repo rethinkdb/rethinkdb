@@ -11,5 +11,6 @@ int main_rethinkdb_import(int argc, char *argv[]);
 void help_rethinkdb_create();
 void help_rethinkdb_serve();
 void help_rethinkdb_proxy();
+void help_rethinkdb_import();
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_COMMAND_LINE_HPP_ */
