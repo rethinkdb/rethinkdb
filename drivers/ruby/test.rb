@@ -110,13 +110,13 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_let # from python tests
-    assert_equal(r.let([["x", 3]], r.var("x")).run, 3)
-    assert_equal(r.let([["x", 3], ["x", 4]], r.var("x")).run, 4)
-    assert_equal(r.let([["x", 3], ["y", 4]], r.var("x")).run, 3)
-    assert_equal(r.let([['a', 2], ['b', r[:$a]+1]], r[:$b]*2).run, 6)
+    assert_equal(r.let([["x", 3]], r.letvar("x")).run, 3)
+    assert_equal(r.let([["x", 3], ["x", 4]], r.letvar("x")).run, 4)
+    assert_equal(r.let([["x", 3], ["y", 4]], r.letvar("x")).run, 3)
+    assert_equal(r.let([['a', 2], ['b', r.letvar('a')+1]], r.letvar('b')*2).run, 6)
 
-    assert_equal(r.let({:x => 3}, r.var("x")).run, 3)
-    assert_equal(r.let({:x => 3, :y => 4}, r.var("y")).run, 4)
+    assert_equal(r.let({:x => 3}, r.letvar("x")).run, 3)
+    assert_equal(r.let({:x => 3, :y => 4}, r.letvar("y")).run, 4)
   end
 
   def test_if # from python tests
@@ -326,7 +326,7 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_let # LET, CALL, VAR, NUMBER, STRING
-    query = r.let([['a', r.add(1,2)], ['b', r.add(r[:$a],2)]], r.var('a') + r[:$b])
+    query = r.let([['a', r.add(1,2)], ['b', r.add(r.letvar('a'),2)]], r.letvar('a') + r.letvar('b'))
     assert_equal(query.run, 8)
   end
 

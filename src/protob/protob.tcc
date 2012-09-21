@@ -58,7 +58,9 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
             conn->shutdown_write();
             return;
         }
-    } catch (tcp_conn_read_closed_exc_t &) {
+    } catch (const tcp_conn_read_closed_exc_t &) {
+        return;
+    } catch (const tcp_conn_write_closed_exc_t &) {
         return;
     }
 

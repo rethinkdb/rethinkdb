@@ -215,9 +215,14 @@ std::vector<std::string> reprocess_column_names(std::vector<std::string> cols) {
     return cols;
 }
 
+bool is_empty_line(const std::string &line) {
+    return line.empty();
+}
+
 void csv_to_json_importer_t::import_json_from_file(std::string separators, std::string filepath) {
 
     std::vector<std::string> lines = read_lines_from_file(filepath);
+    lines.erase(std::remove_if(lines.begin(), lines.end(), is_empty_line));
     if (lines.size() == 0) {
         return;
     }
