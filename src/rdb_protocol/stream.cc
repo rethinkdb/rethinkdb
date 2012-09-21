@@ -85,10 +85,12 @@ boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rd
 
 batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
                       signal_t *_interruptor, key_range_t _range,
-                      int _batch_size, const backtrace_t &_table_scan_backtrace)
+                      int _batch_size, const backtrace_t &_table_scan_backtrace,
+                      bool _use_outdated)
     : ns_access(_ns_access), interruptor(_interruptor),
       range(_range), batch_size(_batch_size), index(0),
-      finished(false), started(false), table_scan_backtrace(_table_scan_backtrace)
+      finished(false), started(false), use_outdated(_use_outdated),
+      table_scan_backtrace(_table_scan_backtrace)
 { }
 
 boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
@@ -123,7 +125,11 @@ result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::termi
     rdb_protocol_t::read_t read(rget_read);
     try {
         rdb_protocol_t::read_response_t res;
-        ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
+        if (use_outdated) {
+            ns_access.get_namespace_if()->read_outdated(read, &res, interruptor);
+        } else {
+            ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
+        }
         rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         rassert(p_res);
 
@@ -144,7 +150,11 @@ void batched_rget_stream_t::read_more() {
     try {
         guarantee(ns_access.get_namespace_if());
         rdb_protocol_t::read_response_t res;
-        ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
+        if (use_outdated) {
+            ns_access.get_namespace_if()->read_outdated(read, &res, interruptor);
+        } else {
+            ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
+        }
         rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         guarantee(p_res);
 

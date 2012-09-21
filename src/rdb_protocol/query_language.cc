@@ -1506,7 +1506,11 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
             try {
                 rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(cJSON_print_primary(key->get(), backtrace))));
                 rdb_protocol_t::read_response_t res;
-                ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
+                if (t->get_by_key().table_ref().use_outdated()) {
+                    ns_access.get_namespace_if()->read_outdated(read, &res,  env->interruptor);
+                } else {
+                    ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
+                }
 
                 rdb_protocol_t::point_read_response_t *p_res = boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
                 return p_res->data;
@@ -2594,7 +2598,7 @@ view_t eval_term_as_view(Term *t, runtime_environment_t *env, const scopes_t &sc
 view_t eval_table_as_view(Term::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(t->mutable_table_ref(), env, backtrace);
     std::string pk = get_primary_key(t->mutable_table_ref(), env, backtrace);
-    boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace));
+    boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace, t->table_ref().use_outdated()));
     return view_t(ns_access, pk, stream);
 }
 
