@@ -170,6 +170,18 @@ goog.exportProperty(rethinkdb.Connection.prototype, 'run',
                     rethinkdb.Connection.prototype.run);
 
 /**
+ * Version of run that prints the result rather than taking a callback
+ * @param {rethinkdb.Query} expr The expression to run.
+ */
+rethinkdb.Connection.prototype.runp = function(expr) {
+    this.run(expr, function(val) {
+        console.log(val);
+    });
+};
+goog.exportProperty(rethinkdb.Connection.prototype, 'runp',
+                    rethinkdb.Connection.prototype.runp);
+
+/**
  * Evaluates the given ReQL expression on the server and invokes
  * callback with each element of the result. The main advantage of using iter
  * over run is that results are lazily loaded as they are returned from the
