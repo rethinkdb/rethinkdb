@@ -84,10 +84,15 @@ void apply_json_to(cJSON *change, key_range_t *target) {
         } else {
             store_key_t right;
             apply_json_to(second, &right);
+
+            if (left > right) {
+                throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t -- bounds are out of order", get_string(change).c_str()));
+            }
+
             *target = key_range_t(key_range_t::closed, left,
                                   key_range_t::open,   right);
         }
-    } catch (std::runtime_error) {  // TODO Explain wtf can throw a std::runtime_error to us here.
+    } catch (std::runtime_error) {
         throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a memcached_protocol_t::region_t.\n", get_string(change).c_str()));
     }
 }
