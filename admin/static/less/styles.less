@@ -28,12 +28,12 @@ html, body { height: 100%; }
 #sticky-wrap { min-height: 100%; }
 #main-container {
     overflow: auto;
-    padding-bottom: 75px;
+    padding-bottom: 95px;
 }
 #footer {
     position: relative;
-    margin-top: -75px;
-    height: 75px;
+    margin-top: -95px;
+    height: 60px;
     clear: both;
 }
 /* Opera fix */
@@ -50,23 +50,25 @@ body:before {
     Main content
     ----------------------------
 */
-#main-container {
+#sticky-wrap {
     background: url('https://dl.dropbox.com/s/xnjd8qzm0rkoz2q/background.png');
+}
+#main-container {
     padding-top: 30px;
     
     .section {
        padding: 20px 25px; 
        background: #fcfcfc;
-       border-thin: thin solid #cfcfcf;
+       border: thin solid #cfcfcf;
        margin-bottom: 25px;
 
-       @shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 3px rgba(0, 0, 0, 0.3);
+       @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08);
 
         -webkit-box-shadow: @shadow;
            -moz-box-shadow: @shadow;
                 box-shadow: @shadow;
 
-        .border-radius(5px);
+        .border-radius(4px);
 
         h2.title {
             margin-top: 0;
@@ -92,7 +94,7 @@ body:before {
     color: #a3a3a3;
     font-family: @serif;
     font-size: 14px;
-    padding-top: 40px;
+    padding-top: 30px;
     border-top: thin solid #d0d0d0;
     ul {
         float: left;
@@ -248,7 +250,10 @@ body:before {
 */
 #dashboard {
     #cluster_status_container { padding: 0; }
-    .cluster-status table { border-spacing: 0; }
+    .cluster-status table { 
+        border-spacing: 0;
+        width: 100%;
+    }
     .cluster-status td.panel {
         @bad: #e85250;
         @good: #3ba51a;
@@ -260,6 +265,7 @@ body:before {
 
         h3 {
             margin-top: 0;
+            margin-bottom: 10px;
             font-family: @serif;
             font-size: 17px;
             color: #4c4c4c;
@@ -271,93 +277,264 @@ body:before {
         p {
             font-family: @sans;
             font-size: 14px;
+            line-height: 22px;
+            margin: 0;
             color: #4c4c4c;
             span.good { color: @good; }
             span.bad { color: @bad; }
             span.good, span.bad { font-weight: bold; }
-            &.details { margin-bottom: 0; }
         }
 
         &.first { border-left: none; }
     }
 }
 
+
+/*
+    ----------------------------
+    Server list
+    ----------------------------
+*/
+// Get ready to abstract this for use in the server list AND table list TODO
+#server-list {
+    h1.title {
+        font-family: @serif;
+        color: #4d535c;
+        font-size: 19px;
+        margin-bottom: 25px;
+    }
+
+    .actions-bar {
+        float: right;
+        // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
+        .btn {
+            display: inline-block;
+            padding: 6px 14px 5px;
+            margin-bottom: 0;
+            vertical-align: middle;
+
+            font-size: 14px;
+            font-family: @sans;
+            font-weight: 700;
+            color: #464646;
+            line-height: 18px;
+            text-align: center;
+
+            background-color: #f9f9f9;
+            border: thin solid #cbcbcb; 
+            .border-radius(4px);
+
+            @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
+
+            -webkit-box-shadow: @shadow;
+               -moz-box-shadow: @shadow;
+                    box-shadow: @shadow;
+
+            &.disabled {
+                opacity: 0.65;
+                .box-shadow(none);
+            }
+        }
+        .btn { margin-left: 10px; }
+    }
+
+    .section {
+        padding: 0;
+        .header_container {
+            border-bottom: thin solid #CCC;
+            padding: 11px 15px;
+            background: #fff;
+            .border-radius(4px 0px);
+
+            .summary {
+                .element-type, h3.name { 
+                    display: inline-block;
+                    vertical-align: middle;
+                }
+                .element-type {
+                    background: #f7ae41;
+                    .border-radius(2px);
+                    padding: 4px 15px;
+                    text-transform: uppercase;
+                    margin-right: 20px;
+                    color: #fff;
+                    font-size: 10px;
+                    font-weight: 700
+                }
+                h3.name {
+                    font-family: @serif;
+                    font-size: 17px;
+                    color: #61666e;
+                    margin: 0;
+                    a { color: #61666e; }
+                }
+            }
+            
+        }
+
+        .element-list-container {
+            padding: 20px 25px;
+            background: #fafafa;
+            .border-radius(0px 4px);
+        }
+    }
+}
+
+
+
+
+
 /*
     --------------------
     Visualization styles
     --------------------
 */
-#ops_plot_container {
-    position: relative;
-    .chart {
-        border-bottom: solid 1px black;
-        overflow: hidden;
-        display: inline-block;
+// Extra big plot for the dashboard
+// TODO: merge these and come up with a new bigplot class that shifts some things around, we're doing a lot of messy overrides
+#dashboard .ops-plot {
+    @plot_height: 300px;
 
-        border-top: solid 1px black;
-        border-left: solid 1px black;
-        border-right: solid 1px black;
+    .ops-plot-legend { 
+        float: right;
+        color: #a3a3a3;
+        font: 15px @serif;
+        text-align: right;
 
-        .title, { display: none; }
-        .value { display: none; }
-        canvas { display: block; }
-    }
+        .element { 
+            display: inline-block;
+            vertical-align: top;
+            margin-left: 40px;
+        }
 
-    .chart, .haxis, .hgrid, .line { margin-left: 34px; }
+        .reads .color { background-color: #729E51; }
+        .writes .color { background-color: #983434; }
 
-    .haxis, .vaxis, .hgrid, .vgrid {
-        font: 10px sans-serif;
-        line {
-            stroke: #000;
-            shape-rendering: crispEdges;
+        .color {
+            @radius: 4px;
+            width: @radius*2;
+            height: @radius*2;
+            .border-radius(@radius);
+            margin: 2px;
+        }
+
+        .outer-circle {
+            @radius: 6px;
+            width: @radius*2;
+            height: @radius*2;
+            .border-radius(@radius);
+            border: thin solid #CCC;
+            float: left;
+        }
+
+        p {
+            margin: 0;
+            margin-left: 23px;
+            line-height: 15px;
         }
     }
-    .haxis text { -webkit-transition: fill-opacity 250ms linear; }
-    
-    .haxis { margin-top: -9px; }
-
-    .hgrid {
-        height: 200px;
-        position: absolute;
-        top: -3px;
-        left: 0;
-        line { opacity: .2; }
+    .plot-container {
+        background-color: white;
+        border: thin solid #dcdcdc;
+        .border-radius(4px);
+        padding: 10px;
     }
-
-    .vaxis { margin-top: -228px; }
-
-    .vgrid {
-        position: absolute;
-        top: 0;
-        left: 0px;
-        line { opacity: .2; }
-    }
-
-    .line {
-       background: #000;
-       opacity: .2;
-       z-index: 2;
-    }
-
-    .ops_plot_legend { width: 370px; }
-
-    .legend {
+    .plot {
+        .vaxis { 
+            margin-top: -1 * (@plot_height + 26px);
+            .tick { display: none; }
+        }
+        .hgrid {
+            height: @plot_height;
+            display: none;
+        }
+        .chart { 
+            border: none;
+            z-index: 999;
+            position: relative;
+        }
+        .vaxis text, .haxis text {
+            font: 13px @sans;
+            fill: #A3A3A3;
+        }
+        .haxis, .vaxis, .hgrid, .vgrid {
+            line {
+                stroke: #dcdcdc;
+                shape-rendering: crispEdges;
+            }
+            opacity: 1;
+            line {  opacity: 1; }
+        }
+    }    
+}
+.ops-plot {
+    .ops-plot-legend {
+    /*
         .color {
             display: inline-block;
             width: 10px;
             height: 10px;
         }
+    */
         .reads .color { background-color: #729E51; }
         .writes .color { background-color: #983434; }
-        text-transform: uppercase;
-        color: @gray;
-        font-size: 0.7em;
+        .legend-table {
+            width: 370px;
+            td.reads { width: 185px; }
+            td.reads .color { margin-left: 85px; }
+            td.writes { text-align: left; }
+        }
     }
-    .legend-table {
-        width: 370px;
-        td.reads { width: 185px; }
-        td.reads .color { margin-left: 85px; }
-        td.writes { text-align: left; }
+    .plot {
+        position: relative;
+        .chart {
+            border-bottom: solid 1px black;
+            overflow: hidden;
+            display: inline-block;
+
+            border-top: solid 1px black;
+            border-left: solid 1px black;
+            border-right: solid 1px black;
+
+            .title, { display: none; }
+            .value { display: none; }
+            canvas { display: block; }
+        }
+
+        .chart, .haxis, .hgrid, .line { margin-left: 34px; }
+
+        .haxis, .vaxis, .hgrid, .vgrid {
+            font: 10px sans-serif;
+            line {
+                stroke: #000;
+                shape-rendering: crispEdges;
+            }
+        }
+        .haxis text { -webkit-transition: fill-opacity 250ms linear; }
+        
+        .haxis { margin-top: -9px; }
+
+        .hgrid {
+            height: 200px;
+            position: absolute;
+            top: -3px;
+            left: 0;
+            line { opacity: .2; }
+        }
+
+        .vaxis { margin-top: -228px; }
+
+        .vgrid {
+            position: absolute;
+            top: 0;
+            left: 0px;
+            line { opacity: .2; }
+        }
+
+        .line {
+           background: #000;
+           opacity: .2;
+           z-index: 2;
+        }
     }
 }
 

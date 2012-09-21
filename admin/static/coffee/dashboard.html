@@ -31,14 +31,14 @@
                     <a href="#" class="json" rel="dashboard_details" data-content="{{pluralize_noun "Namespace" num_master_offline}} with shards not available: {{links_to_namespaces namespaces_without_masters}}" data-title="Availability problems">
                         {{pluralize_noun "table" num_namespaces_without_masters}}
                     </a>
-                    {{pluralize_verb_to_have num_namespaces_without_masters}} some shards without master.</p>
+                    {{pluralize_verb_to_have num_namespaces_without_masters}} some shards without a master.</p>
                 {{/if}}
             </td>
         {{else}}
             <td class="panel first no-problems-detected availability">
                 <h3>Availability</h3>
                 <p class="message"><span class="good">0</span> issues detected</p>
-                <p class="details"><span class="good">{{num_masters}}/{{num_masters}}</span> {{pluralize_noun "master" num_masters}} are online</p>
+                <p class="details"><span class="good">{{num_masters}}/{{num_masters}}</span> {{pluralize_noun "master" num_masters}} {{pluralize_verb_to_be num_masters}} online</p>
             </td>
         {{/if}}
         {{#if has_persistence_problems}}
@@ -48,9 +48,9 @@
                 <p class="details">
                     <span class="bad">{{num_machines_with_disk_problems}}/{{num_machines}}</span> 
                     <a href="#" class="json" rel="dashboard_details" data-content="The following {{pluralize_noun "server" num_machines_with_disk_problems}} can't write logs: {{links_to_machines machines_with_disk_problems false}}" data-title="Log file write problems">
-                        {{pluralize_noun "server" num_machines}}
+                        {{pluralize_noun "volume" num_machines}}
                     </a>
-                    have disk problems
+                    {{pluralize_verb_to_be num_machines}} are online
                 </p> 
                 <p class="details"><a href="#resolve_issues">Resolve issues</a></p>
             </td>
@@ -58,7 +58,7 @@
             <td class="panel no-problems-detected persistence">
                 <h3>Persistence</h3>
                 <p class="message"><span class="good">0</span> issues detected</p>
-                <p class="details"><span class="good">{{num_machines}}/{{num_machines}}</span> {{pluralize_noun "server" num_machines}} {{pluralize_verb_to_have num_machines}} working disks</p>
+                <p class="details"><span class="good">{{num_machines}}/{{num_machines}}</span> {{pluralize_noun "volume" num_machines}} {{pluralize_verb_to_be num_machines}} are online</p>
             </td>
         {{/if}}
         {{#if has_conflicts_problems}}
@@ -70,8 +70,8 @@
         {{else}}
             <td class="panel no-problems-detected conflicts">
                 <h3>Consistency</h3>
-                <p class="message"><span class="good">0</span> issues detected</p>
-                <p class="details"><span class="good">{{num_namespaces}}/{{num_namespaces}}</span> tables are operating correctly</p>
+                <p class="message"><span class="good">0</span> conflicts detected</p>
+                <p class="details"><span class="good">{{num_namespaces}}/{{num_namespaces}}</span> tables {{pluralize_verb_to_be num_namespaces}} consistent</p>
             </td>
         {{/if}}
         {{#if has_redundancy_problems}}
@@ -83,14 +83,14 @@
                     <a href="#" class="json" rel="dashboard_details" data-content="{{pluralize_noun "replica" num_master_offline}} having problems: {{links_to_replicas_and_namespaces replicas_offline}}" data-title="Redundancy problems">
                         {{pluralize_noun "replica" num_replicas_offline}}
                     </a>    
-                    {{pluralize_verb_to_have num_replicas_offline}} issues
+                    {{pluralize_verb_to_be num_replicas_offline}} online
                 </p>
             </td>
         {{else}}
             <td class="panel no-problems-detected redundancy">
                 <h3>Redundancy</h3>
                 <p class="message"><span class="good">0</span> issues detected</p>
-                <p class="details"><span class="good">{{num_replicas}}/{{num_replicas}}</span> {{pluralize_noun "replica" num_replicas}} are online</p>
+                <p class="details"><span class="good">{{num_replicas}}/{{num_replicas}}</span> {{pluralize_noun "replica" num_replicas}} {{pluralize_verb_to_be num_replicas_offline}} online</p>
             </td>
         {{/if}}
     </tr></tbody></table>

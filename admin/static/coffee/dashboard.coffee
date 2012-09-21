@@ -13,7 +13,12 @@ module 'DashboardView', ->
 
         render: =>
             @.$el.html @template({})
-            @cluster_performance = new Vis.PerformancePanel(computed_cluster.get_stats)
+            @cluster_performance = new Vis.OpsPlot(computed_cluster.get_stats,
+                width:  833             # width in pixels
+                height: 300             # height in pixels
+                seconds: 119            # num seconds to track
+                height_in_units:20500   # scale of the plot on the y-axis when the plot is empty
+            )
 
             @.$('#cluster_status_container').html @cluster_status.render().el
             @.$('#cluster_performance_container').html @cluster_performance.render().el
