@@ -17,7 +17,13 @@ cJSON *render_as_json(store_key_t *target) {
 }
 
 void apply_json_to(cJSON *change, store_key_t *target) {
-    std::string str(percent_unescaped_string(get_string(change)));
+    std::string str;
+    try {
+        str = percent_unescaped_string(get_string(change));
+    } catch (std::runtime_error) {
+        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a store_key_t.\n", get_string(change).c_str()));
+    }
+
     if (!unescaped_str_to_key(str.c_str(), str.length(), target)) {
         throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a store_key_t.\n", get_string(change).c_str()));
     }
@@ -75,25 +81,21 @@ void apply_json_to(cJSON *change, key_range_t *target) {
         throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", get_string(change).c_str()));
     }
 
-    try {
-        store_key_t left;
-        apply_json_to(first, &left);
-        if (second->type == cJSON_NULL) {
-            *target = key_range_t(key_range_t::closed, left,
-                                  key_range_t::none, store_key_t());
-        } else {
-            store_key_t right;
-            apply_json_to(second, &right);
+    store_key_t left;
+    apply_json_to(first, &left);
+    if (second->type == cJSON_NULL) {
+        *target = key_range_t(key_range_t::closed, left,
+                              key_range_t::none, store_key_t());
+    } else {
+        store_key_t right;
+        apply_json_to(second, &right);
 
-            if (left > right) {
-                throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t -- bounds are out of order", get_string(change).c_str()));
-            }
-
-            *target = key_range_t(key_range_t::closed, left,
-                                  key_range_t::open,   right);
+        if (left > right) {
+            throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t -- bounds are out of order", get_string(change).c_str()));
         }
-    } catch (std::runtime_error) {
-        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a memcached_protocol_t::region_t.\n", get_string(change).c_str()));
+
+        *target = key_range_t(key_range_t::closed, left,
+                              key_range_t::open,   right);
     }
 }
 
