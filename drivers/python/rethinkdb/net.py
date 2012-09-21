@@ -181,8 +181,10 @@ class BatchedIterator(object):
 
     def __iter__(self):
         index = 0
-        while not self.complete and index < len(self.data):
+        while True:
             self.read_until(index)
+            if self.complete and index == len(self.data):
+                break
             yield self.data[index]
             index += 1
 
