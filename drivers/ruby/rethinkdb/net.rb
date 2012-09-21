@@ -19,10 +19,11 @@ module RethinkDB
     def inspect # :nodoc:
       state = @run ? "(exhausted)" : "(enumerable)"
       extra = out_of_date ? " (Connection #{@conn.inspect} reset!)" : ""
-      "#<RethinkDB::Query_Results:#{self.object_id} #{state}#{extra}>"
+      "#<RethinkDB::Query_Results:#{self.object_id} #{state}#{extra}: #{@query.inspect}>"
     end
 
-    def initialize(connection, token) # :nodoc:
+    def initialize(query, connection, token) # :nodoc:
+      @query = query
       @run = false
       @conn_id = connection.conn_id
       @conn = connection
@@ -32,7 +33,7 @@ module RethinkDB
     def each (&block) # :nodoc:
       raise RuntimeError, "Can only iterate over Query_Results once!" if @run
       raise RuntimeError, "Connection has been reset!" if out_of_date
-      @conn.token_iter(@token, &block)
+      @conn.token_iter(@query, @token, &block)
       @run = true
       return self
     end
@@ -150,11 +151,13 @@ module RethinkDB
       dispatch msg
     end
 
-    def error(protob,err=RuntimeError) # :nodoc:
-      raise err,"RQL: #{protob.error_message}"
+    def error(query,protob,err=RuntimeError) # :nodoc:
+      msg = "RQL: #{protob.error_message}\n" +
+        query.print_backtrace(protob.backtrace.frame)
+      raise err,msg
     end
 
-    def token_iter(token) # :nodoc:
+    def token_iter(query, token) # :nodoc:
       done = false
       data = []
       loop do
@@ -181,9 +184,9 @@ module RethinkDB
             done = true
           when Response::StatusCode::SUCCESS_EMPTY then
             return false
-          when Response::StatusCode::BAD_QUERY then error protob,SyntaxError
-          when Response::StatusCode::RUNTIME_ERROR then error protob,RuntimeError
-          else error protob
+          when Response::StatusCode::BAD_QUERY then error query,protob,SyntaxError
+          when Response::StatusCode::RUNTIME_ERROR then error query,protob,RuntimeError
+          else error query,protob
           end
         end
         #yield JSON.parse("["+data.shift+"]")[0] if data != []
@@ -227,9 +230,9 @@ module RethinkDB
       protob = query.query(*args)
       if is_atomic
         a = []
-        token_iter(dispatch protob){|row| a.push row} ? a : a[0]
+        token_iter(query, dispatch(protob)){|row| a.push row} ? a : a[0]
       else
-        return Query_Results.new(self, dispatch(protob))
+        return Query_Results.new(query, self, dispatch(protob))
       end
     end
 

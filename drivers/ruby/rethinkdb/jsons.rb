@@ -105,8 +105,8 @@ module RethinkDB
       end
     end
 
-    def inspect # :nodoc:
-      @body[1]
+    def inspect(&b) # :nodoc:
+      real_inspect({:str => @body[1]}, &b)
     end
   end
 

@@ -91,6 +91,7 @@ module RethinkDB
   module S; extend S_Mixin; end
 
   module B_Mixin # Backtrace utils
+    attr_accessor :line
     def sanitize_context(context)
       if __FILE__ =~ /^(.*\/)[^\/]+.rb$/
         prefix = $1;
@@ -98,6 +99,14 @@ module RethinkDB
       else
         context
       end
+    end
+
+    def maybe_highlight(str, args)
+      (args[:highlight] and args[:bt].to_a == []) ? ("\000" * str.length) : str
+    end
+
+    def format_highlights(str)
+      str.chars.map{|x| x == "\000" ? "^" : " "}.join
     end
   end
   module B; extend B_Mixin; end

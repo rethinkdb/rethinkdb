@@ -75,7 +75,7 @@ module RethinkDB
       end
       class << res
         attr_accessor :inspect_str
-        def inspect; @inspect_str; end
+        def inspect(&b); real_inspect({:str => @inspect_str}, &b); end
       end
       res.inspect_str = x.inspect
       return res
@@ -85,7 +85,9 @@ module RethinkDB
     #   r.letvar('varname')
     def self.letvar(varname)
       res = Var_Expression.new [:var, varname]
-      class << res; def inspect; "letvar('#{varname}')"; end; end
+      class << res;
+        def inspect(&b); real_inspect({:str => "letvar('#{varname}')"}, &b); end;
+      end
       return res
     end
 

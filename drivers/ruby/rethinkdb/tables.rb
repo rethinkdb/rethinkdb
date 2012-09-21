@@ -40,8 +40,8 @@ module RethinkDB
       Meta_Query.new [:list_tables, @db_name]
     end
 
-    def inspect # :nodoc:
-      @db_name
+    def inspect(&b) # :nodoc:
+      real_inspect({:str => @db_name}, &b)
     end
   end
 
@@ -49,8 +49,8 @@ module RethinkDB
   # function from Sequence on it, it will be treated as a
   # Stream_Expression reading from the table.
   class Table
-    def inspect # :nodoc:
-      to_mrs.inspect
+    def inspect(&b) # :nodoc:
+      to_mrs.inspect(&b)
     end
 
     # A table named <b>+name+</b> residing in database <b>+db_name+</b>.

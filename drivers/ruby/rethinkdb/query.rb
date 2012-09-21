@@ -46,21 +46,62 @@ module RethinkDB
       RQL_Protob.query(args == [] ? sexp : S.replace(sexp, *args))
     end
 
-    def inspect # :nodoc:
-      return @body.inspect if @body.class != Array
+    def print_backtrace(bt)
+      B.line = nil
+      query = inspect
+      highlights = B.format_highlights(inspect{{:bt => bt, :highlight => true}})
+      line = "Line: #{B.line || "Unknown"}"
+      "#{line}\nQuery: #{query}\n       #{highlights}\n"
+    end
+
+    def pprint(args)
+      elt_bt = other_bt = [:noprint]
+      if args[:bt] != :noprint
+        if args[:bt]
+          elt = args[:bt][0]
+          elt_bt = args[:bt][1..-1]
+        end
+      end
+      elt_b = lambda {{:highlight => args[:highlight], :bt => elt_bt}}
+      other_b = lambda {{:highlight => args[:highlight], :bt => other_bt}}
+      b = other_b
+
+      return @body.inspect(&b) if @body.class != Array
       return "" if @body == []
       case @body[0]
       when :call then
         if @body[2].length == 1
-          @body[2][0].inspect + "." + RQL_Query.new(@body[1],@context).inspect
+          @body[2][0].inspect(&b) + "." + RQL_Query.new(@body[1],@context).inspect(&b)
         else
           func = @body[1][0].to_s
-          args = (@body[1][1..-1] + @body[2]).map{|x| x.inspect}
-          func + "(" + args.join(", ") + ")"
+          func_args = @body[1][1..-1].map{|x| x.inspect(&other_b)}
+          pre_pb_args = @body[2]
+          ind = (elt =~ /arg:([0-9]+)/) ? $1.to_i : -1
+          pb_args = []
+          pre_pb_args.each_index{|i|
+            this_b = (i == ind) ? elt_b : other_b
+            pb_args.push pre_pb_args[i].inspect(&this_b)
+          }
+
+          func + "(" + (func_args + pb_args).join(", ") + ")"
         end
       else
-        @body[0].to_s + "(" + @body[1..-1].map{|x| x.inspect}.join(", ") + ")"
+        @body[0].to_s + "(" + @body[1..-1].map{|x| x.inspect(&b)}.join(", ") + ")"
       end
+    end
+
+    def real_inspect(args, &b)
+      args = b.call.merge(args) if b
+      str = args[:str] || pprint(args)
+      if args[:bt] == []
+        B.line = B.sanitize_context(@context)[0] if !B.line
+        str = B.maybe_highlight(str, args)
+      end
+      return str
+    end
+
+    def inspect(&block)
+      real_inspect(block ? yield : {})
     end
 
     # Dereference aliases (see utils.rb) and possibly dispatch to RQL
