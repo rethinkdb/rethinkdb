@@ -181,8 +181,10 @@ class BatchedIterator(object):
 
     def __iter__(self):
         index = 0
-        while not self.complete and index < len(self.data):
+        while True:
             self.read_until(index)
+            if self.complete and index == len(self.data):
+                break
             yield self.data[index]
             index += 1
 
@@ -353,7 +355,7 @@ class Connection():
         >>> conn.use('bar')
         >>> conn.run(q)      # select all users from database 'bar'
         """
-        pass
+        self.db_name = db_name
 
     def close(self):
         """Closes all network sockets on this connection object to the
