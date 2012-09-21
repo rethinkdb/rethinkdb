@@ -218,7 +218,48 @@ class Mutate(WriteQueryInner):
         self.mapping.write_mapping(parent.mutate.mapping)
 
     def pretty_print(self, printer):
-        return "%s.mutate(%s)" % (
+        return "%s.replace(%s)" % (
+            printer.expr_wrapped(self.parent_view, ["view"]),
+            self.mapping._pretty_print(printer, ["mapping"]))
+
+class PointDelete(WriteQueryInner):
+    def __init__(self, parent_view):
+        self.parent_view = parent_view
+
+    def _write_write_query(self, parent):
+        parent.type = p.WriteQuery.POINTDELETE
+        self.parent_view._inner._write_point_ast(parent.point_delete)
+
+    def pretty_print(self, printer):
+        return "%s.delete()" % printer.expr_wrapped(self.parent_view, ["view"])
+
+class PointUpdate(WriteQueryInner):
+    def __init__(self, parent_view, mapping):
+        self.parent_view = parent_view
+        self.mapping = mapping
+
+    def _write_write_query(self, parent):
+        parent.type = p.WriteQuery.POINTUPDATE
+        self.mapping.write_mapping(parent.point_update.mapping)
+        self.parent_view._inner._write_point_ast(parent.point_update)
+
+    def pretty_print(self, printer):
+        return "%s.update(%s)" % (
+            printer.expr_wrapped(self.parent_view, ["view"]),
+            self.mapping._pretty_print(printer, ["mapping"]))
+
+class PointMutate(WriteQueryInner):
+    def __init__(self, parent_view, mapping):
+        self.parent_view = parent_view
+        self.mapping = mapping
+
+    def _write_write_query(self, parent):
+        parent.type = p.WriteQuery.POINTMUTATE
+        self.mapping.write_mapping(parent.point_mutate.mapping)
+        self.parent_view._inner._write_point_ast(parent.point_mutate)
+
+    def pretty_print(self, printer):
+        return "%s.replace(%s)" % (
             printer.expr_wrapped(self.parent_view, ["view"]),
             self.mapping._pretty_print(printer, ["mapping"]))
 
@@ -609,9 +650,12 @@ class Get(ExpressionInner):
 
     def _write_ast(self, parent):
         parent.type = p.Term.GETBYKEY
-        self.table._write_ref_ast(parent.get_by_key.table_ref)
-        parent.get_by_key.attrname = self.attr_name
-        self.key._inner._write_ast(parent.get_by_key.key)
+        self._write_point_ast(parent.get_by_key)
+
+    def _write_point_ast(self, parent):
+        self.table._write_ref_ast(parent.table_ref)
+        parent.attrname = self.attr_name
+        self.key._inner._write_ast(parent.key)
 
     def pretty_print(self, printer):
         return ("%s.get(%s, attr_name = %r)" % (

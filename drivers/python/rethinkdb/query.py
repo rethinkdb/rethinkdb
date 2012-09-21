@@ -1100,8 +1100,8 @@ class BaseSelection(object):
             mapping = FunctionExpr(mapping)
         return WriteQuery(internal.Update(self, mapping))
 
-    def mutate(self, mapping):
-        """TODO: get rid of this ?"""
+    def replace(self, mapping):
+        """Replace."""
         if not isinstance(mapping, FunctionExpr):
             mapping = FunctionExpr(mapping)
         return WriteQuery(internal.Mutate(self, mapping))
@@ -1109,6 +1109,22 @@ class BaseSelection(object):
 class RowSelection(JSONExpression, BaseSelection):
     """A single row from a table which can be read or written."""
 
+    def delete(self):
+        """Delete the row from the database."""
+        return WriteQuery(internal.PointDelete(self))
+
+    def update(self, mapping):
+        """Update."""
+        if not isinstance(mapping, FunctionExpr):
+            mapping = FunctionExpr(mapping)
+        return WriteQuery(internal.PointUpdate(self, mapping))
+    
+    def replace(self, mapping):
+        """Replace."""
+        if not isinstance(mapping, FunctionExpr):
+            mapping = FunctionExpr(mapping)
+        return WriteQuery(internal.PointMutate(self, mapping))
+    
     def __repr__(self):
         return "<RowSelection %s>" % str(self)
 
