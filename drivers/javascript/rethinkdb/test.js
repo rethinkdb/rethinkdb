@@ -10,14 +10,14 @@ var conn;
 function testConnect() {
     wait();
     conn = r.connect({host:HOST, port:PORT}, function() {
-        r.db('Welcome-db').list().run(function(tables) {
+        r.db('test').list().run(function(tables) {
             wait();
             function drop() {
                 var table = tables.shift();
                 if (table) {
-                    r.db('Welcome-db').drop(table).run(drop);
+                    r.db('test').drop(table).run(drop);
                 } else {
-                    r.db('Welcome-db').create('Welcome-rdb').run(function() {
+                    r.db('test').create('Welcome-rdb').run(function() {
                         done();
                     });
                 }
@@ -250,7 +250,7 @@ function testConcatMap() {
 var tab2 = r.table('table-2');
 function testSetupOtherTable() {
     wait();
-    r.db('Welcome-db').create('table-2').run(function() {
+    r.db('test').create('table-2').run(function() {
         tab2.insert([
             {id:20, name:'bob'},
             {id:19, name:'tom'},
@@ -261,7 +261,7 @@ function testSetupOtherTable() {
 }
 
 function testDropTable() {
-    r.db('Welcome-db').drop('table-2').run();
+    r.db('test').drop('table-2').run();
 }
 
 function testUpdate1() {
