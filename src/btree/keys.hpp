@@ -234,7 +234,7 @@ struct key_range_t {
         return left_ok && right_ok;
     }
 
-    store_key_t last_key_in_range() {
+    store_key_t last_key_in_range() const {
         if (right.unbounded) {
             return store_key_t::max();
         } else {
