@@ -52,3 +52,72 @@ rethinkdb.errors.ClientError = function(opt_msg) {
     this.message = opt_msg || "The RDB client has experienced an error";
 };
 goog.inherits(rethinkdb.errors.ClientError, Error);
+
+/**
+ * Internal utility to format server backtraces
+ * @ignore
+ */
+function formatServerError_(response, queryAst) {
+    var message = response.getErrorMessage();
+    var pbBt = response.getBacktrace();
+    var backtrace = [];
+    if (pbBt) {
+        backtrace = pbBt.frameArray();
+    }
+
+    return message + "\n\t"+ queryAst.formatQuery() + "\n\t" +
+        queryAst.formatQuery(backtrace);
+}
+
+/**
+ * Make a format function for a builtin
+ * @param {string} thingName
+ * @param {rethinkdb.Query} leftThing
+ * @param {...*} var_args
+ * @ignore
+ */
+function makeFormat_(thingName, leftThing, var_args) {
+    var args = Array.prototype.slice.call(arguments, 2);
+
+    return function(bt) {
+        var strArgs = args.map(function(a) {
+            if (a instanceof rethinkdb.Query) {
+                return a.formatQuery();
+            } else {
+                return a.toString();
+            }
+        });
+        if (!bt) {
+            return leftThing.formatQuery()+"."+thingName+"("+strArgs.join(', ')+")";
+        } else {
+            var a = bt[0].split(':');
+            if (a[0] === 'arg') {
+                a[1] = parseInt(a[1], 10);
+                var argSpaces = strArgs.map(spaceify_);
+                var left;
+                if (a[1] === 0) {
+                    left = leftThing.formatQuery(bt.shift());
+                } else {
+                    left = spaceify_(leftThing.formatQuery());
+                    var index = a[1] - 1;
+                    var carrotedThing = args[index].formatQuery(bt.shift());
+                    argSpaces[index] = carrotedThing;
+                }
+                argSpaces = argSpaces.join('  ');
+                return left+" "+spaceify_(thingName)+" "+argSpaces+" ";
+            }
+        }
+    };
+}
+
+function formatTodo_() {
+    return ' todo ';
+}
+
+function spaceify_(str) {
+    return str.replace(/./g, ' ');
+}
+
+function carrotify_(str) {
+    return str.replace(/./g, '^');
+}

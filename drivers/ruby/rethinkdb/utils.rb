@@ -61,7 +61,8 @@ module RethinkDB
   module S_Mixin #S-expression Utils
     @@gensym_counter = 0
     def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
-    def with_var; sym = gensym; yield sym, RQL.var(sym); end
+    def with_var; sym = gensym; yield sym, var(sym); end
+    def var(varname); Var_Expression.new [:var, varname]; end
     def r x; RQL.expr(x); end
     def skip; :skip_2222ebd4_2c16_485e_8c27_bbe43674a852; end
 

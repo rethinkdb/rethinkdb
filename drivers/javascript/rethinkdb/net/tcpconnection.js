@@ -235,10 +235,15 @@ rethinkdb.TcpConnection.prototype.close = function() {
     if (!this.socket_)
         this.error_(new rethinkdb.errors.ClientError("Connection not open"));
 
+    var self = this;
+
     // Clear end event so we don't throw an exception when we close the connecton;
     this.socket_.removeAllListeners('end');
+    this.socket_.on('close', function() {
+        self.socket_ = null;
+    });
+
     this.socket_.end();
-    this.socket_ = null;
 };
 goog.exportProperty(rethinkdb.TcpConnection.prototype, 'close',
                     rethinkdb.TcpConnection.prototype.close);
