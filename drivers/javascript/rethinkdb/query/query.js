@@ -71,6 +71,15 @@ goog.exportProperty(rethinkdb.Query.prototype, 'run',
                     rethinkdb.Query.prototype.run);
 
 /**
+ * A shortcut for conn.runp(this). The last created connection is used.
+ */
+rethinkdb.Query.prototype.runp = function() {
+    rethinkdb.last_connection_.runp(this);
+};
+goog.exportProperty(rethinkdb.Query.prototype, 'runp',
+                    rethinkdb.Query.prototype.runp);
+
+/**
  * A shortcut for conn.iter(this). If the connection is omitted the last created
  * connection is used.
  * @param {function(...)} callback The callback to invoke with the result.

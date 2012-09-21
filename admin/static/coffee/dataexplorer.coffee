@@ -628,7 +628,7 @@ module 'DataExplorerView', ->
 
         execute_query: =>
             clearTimeout @timeout
-            @timeout = setTimeout @connect
+            @timeout = setTimeout @connect, 5*60*1000
             window.result = {}
 
             @query = @codemirror.getValue()
@@ -651,8 +651,10 @@ module 'DataExplorerView', ->
                 i++
 
             @.$('.loading_query_img').css 'display', 'block'
+            
+            
 
-            full_query = @query + '.run(tagged_callback)'
+            full_query = @query+'\n'+'.run(tagged_callback)' # The new line is added in case the last one has an inline comment (//)
             try
                 tagged_callback = @create_tagged_callback()
                 @start_time = new Date()
@@ -738,7 +740,7 @@ module 'DataExplorerView', ->
                 @has_been_initialized.value = true
             
             @connect()
-            @timeout = setTimeout @connect
+            @timeout = setTimeout @connect, 5*60*1000
             window.r = rethinkdb.query
             window.R = r.R
 

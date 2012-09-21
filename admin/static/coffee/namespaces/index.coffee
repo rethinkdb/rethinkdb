@@ -356,10 +356,33 @@ module 'NamespaceView', ->
         render: ->
             log_render '(rendering) add namespace dialog'
 
+            for datacenter in datacenters.models
+                datacenter.set 'num_machines', 0
+
+            for machine in machines.models
+                datacenters.get(machine.get('datacenter_uuid')).set 'num_machines',datacenter.get('num_machines')+1
+
+            ordered_datacenters = _.map(datacenters.models, (datacenter) ->
+                id: datacenter.get('id')
+                name: datacenter.get('name')
+                num_machines: datacenter.get('num_machines')
+            )
+            ordered_datacenters = ordered_datacenters.sort (a, b) ->
+                return b.num_machines-a.num_machines
+
+            slice_index = 0
+            for datacenter in ordered_datacenters
+                if datacenter.num_machines is 0
+                    break
+                slice_index++
+
+            ordered_datacenters = ordered_datacenters.slice 0, slice_index
+
             super
                 modal_title: 'Add a table'
                 btn_primary_text: 'Add'
-                datacenters: _.map(datacenters.models, (datacenter) -> datacenter.toJSON())
+                datacenters: ordered_datacenters
+                all_datacenters: datacenters.length is ordered_datacenters.length
                 databases: _.map(databases.models, (database) -> database.toJSON())
 
             @.$('.show_advanced_settings-link').click @show_advanced_settings
