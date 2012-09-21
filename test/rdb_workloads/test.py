@@ -26,7 +26,13 @@ class RDBTest(unittest.TestCase):
             os.environ.get('HOST', 'localhost'),
             int(os.environ.get('PORT', 12346+2010))
             )
-        cls.table = db(os.environ.get('DB_NAME', 'Welcome-db')).table(os.environ.get('TABLE_NAME', 'Welcome-rdb'))
+        cls.db = db(os.environ.get('DB_NAME', 'test'))
+        cls.table_name = os.environ.get('TABLE_NAME', 'Welcome-rdb')
+        cls.table = cls.db.table(cls.table_name)
+        try:
+            cls.db.table_create(cls.table_name)
+        except:
+            pass
 
     def expect(self, query, expected):
         try:
@@ -488,7 +494,7 @@ class RDBTest(unittest.TestCase):
         docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(10)]
         self.do_insert(docs)
 
-        self.expect(self.table.mutate(lambda x: x), {"modified": len(docs), "deleted": 0, "inserted": 0,  "errors": 0})
+        self.expect(self.table.replace(lambda x: x), {"modified": len(docs), "deleted": 0, "inserted": 0,  "errors": 0})
         self.expect(self.table.orderby("id"), docs)
 
         self.expect(self.table.update(None), {'updated': 0, 'skipped': 10, 'errors': 0})
