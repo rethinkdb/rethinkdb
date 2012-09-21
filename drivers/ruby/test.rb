@@ -26,7 +26,10 @@ require 'test/unit'
 $port_base = ARGV[0].to_i # 0 if none given
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
-  def rdb; @@c.use('test'); r.table('Welcome-rdb'); end
+  def rdb
+    @@c.use('test')
+    r.table('Welcome-rdb')
+  end
   @@c = RethinkDB::Connection.new('localhost', $port_base + 12346)
   def c; @@c; end
   def id_sort x; x.sort_by{|y| y['id']}; end
@@ -574,7 +577,19 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.orderby(:id).run.to_a, $data)
   end
 
-  def test__setup; rdb.delete.run;  rdb.upsert($data).run; end
+  def test___setup
+    begin
+      r.db('test').drop_table('Welcome-rdb').run()
+    rescue
+      # It don't matter to Jesus
+    end
+    r.db('test').create_table('Welcome-rdb').run()
+  end
+
+  def test__setup
+    rdb.delete.run
+    rdb.upsert($data).run
+  end
 
   def test___write_python # from python tests
     rdb.delete.run
