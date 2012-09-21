@@ -218,49 +218,6 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
             semilattice_metadata.databases.databases.insert(std::make_pair(
                 database_id,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
-            {
-                /* add an mc namespace */
-                namespace_id_t namespace_id = generate_uuid();
-                namespace_semilattice_metadata_t<memcached_protocol_t> namespace_metadata;
-
-                namespace_metadata.name = vclock_t<std::string>("Welcome-memcached", our_machine_id);
-                namespace_metadata.port = vclock_t<int>(port_constants::namespace_port, our_machine_id);
-
-                persistable_blueprint_t<memcached_protocol_t> blueprint;
-                {
-                    std::map<hash_region_t<key_range_t>, blueprint_role_t> roles;
-                    roles.insert(std::make_pair(hash_region_t<key_range_t>::universe(), blueprint_role_primary));
-                    blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
-                }
-                namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<memcached_protocol_t> >(blueprint, our_machine_id);
-
-                namespace_metadata.primary_datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);
-
-                std::map<datacenter_id_t, int> affinities;
-                affinities.insert(std::make_pair(datacenter_id, 0));
-                namespace_metadata.replica_affinities = vclock_t<std::map<datacenter_id_t, int> >(affinities, our_machine_id);
-
-                std::map<datacenter_id_t, int> ack_expectations;
-                ack_expectations.insert(std::make_pair(datacenter_id, 1));
-                namespace_metadata.ack_expectations = vclock_t<std::map<datacenter_id_t, int> >(ack_expectations, our_machine_id);
-
-                std::set< hash_region_t<key_range_t> > shards;
-                shards.insert(hash_region_t<key_range_t>::universe());
-                namespace_metadata.shards = vclock_t<std::set<hash_region_t<key_range_t> > >(shards, our_machine_id);
-
-                region_map_t<memcached_protocol_t, machine_id_t> primary_pinnings(hash_region_t<key_range_t>::universe(), nil_uuid());
-                namespace_metadata.primary_pinnings = vclock_t<region_map_t<memcached_protocol_t, machine_id_t> >(primary_pinnings, our_machine_id);
-
-                region_map_t<memcached_protocol_t, std::set<machine_id_t> > secondary_pinnings(hash_region_t<key_range_t>::universe(), std::set<machine_id_t>());
-                namespace_metadata.secondary_pinnings = vclock_t<region_map_t<memcached_protocol_t, std::set<machine_id_t> > >(secondary_pinnings, our_machine_id);
-
-                namespace_metadata.database = vclock_t<datacenter_id_t>(database_id, our_machine_id);
-
-                namespace_metadata.cache_size = vclock_t<int64_t>(GIGABYTE, our_machine_id);
-
-                cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&semilattice_metadata.memcached_namespaces);
-                change.get()->namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
-            }
 
             {
                 /* add an rdb namespace */
