@@ -338,6 +338,8 @@ goog.inherits(rethinkdb.JSFunctionExpression, rethinkdb.FunctionExpression);
 rethinkdb.JSFunctionExpression.parseRegexp_ = /function [^(]*\(([^)]*)\) *{([^]*)}/m;
 
 /**
+ * Not exported in favor of js function syntax. Still used internally though.
+ *
  * Constructs a ReQL expression representing a function of some number of variables.
  * This may be invoked with either some number of strings with a body given as a ReQL
  * expression or as a JavaScript function expression.
@@ -345,7 +347,6 @@ rethinkdb.JSFunctionExpression.parseRegexp_ = /function [^(]*\(([^)]*)\) *{([^]*
         of the function. The last gives the body of the function. Alternatively, a
         single JavaScript function expression may be provided.
  * @return {rethinkdb.FunctionExpression}
- * @export
  */
 rethinkdb.fn = function(var_args) {
     var args;
