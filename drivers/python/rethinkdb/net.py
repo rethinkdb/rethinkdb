@@ -362,7 +362,7 @@ class Connection():
         cluster."""
         pass
 
-def connect(host='localhost', port=12346, db_name='Welcome-db'):
+def connect(host='localhost', port=12346, db_name='test'):
     """
     Creates a :class:`Connection` object. This method is a shorthand
     for constructing the :class:`Connection` object directly.

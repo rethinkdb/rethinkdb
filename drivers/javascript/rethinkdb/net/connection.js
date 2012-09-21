@@ -57,7 +57,7 @@ rethinkdb.Connection.prototype.DEFAULT_PORT = 12346;
  * @constant
  * @type {string}
  */
-rethinkdb.Connection.prototype.DEFAULT_DB = 'Welcome-db';
+rethinkdb.Connection.prototype.DEFAULT_DB = 'test';
 
 /**
  * Closes this connection and reopens a new connection to the same host

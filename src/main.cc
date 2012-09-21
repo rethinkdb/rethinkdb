@@ -63,6 +63,7 @@ int main(int argc, char *argv[]) {
                 puts("    'rethinkdb serve': serve queries and host data");
                 puts("    'rethinkdb proxy': serve queries but don't host data");
                 puts("    'rethinkdb admin': access and modify cluster metadata");
+                puts("    'rethinkdb import': import data from from a file");
                 puts("");
                 puts("For more information, run 'rethinkdb help [subcommand]'.");
                 return 0;
@@ -80,6 +81,8 @@ int main(int argc, char *argv[]) {
                     return 0;
                 } else if (subcommand2 == "proxy") {
                     help_rethinkdb_proxy();
+                } else if (subcommand2 == "import") {
+                    help_rethinkdb_import();
                 } else {
                     printf("ERROR: No help for '%s'\n", subcommand2.c_str());
                     return 1;
