@@ -1,7 +1,9 @@
-#include "unittest/gtest.hpp"
-
 #include "arch/runtime/context_switching.hpp"
+
+#include <stdexcept>
+
 #include "containers/scoped.hpp"
+#include "unittest/gtest.hpp"
 
 namespace unittest {
 
@@ -84,6 +86,21 @@ TEST(ContextSwitchingTest, SwitchBetweenContexts) {
     }
     EXPECT_EQ(test_int, 101);
     original_context = NULL;
+}
+
+__attribute__((noreturn)) static void throw_an_exception() {
+    throw std::runtime_error("This is a test exception");
+}
+
+__attribute__((noreturn)) static void throw_exception_from_coroutine() {
+    artificial_stack_t artificial_stack(&throw_an_exception, 1024*1024);
+    context_ref_t _original_context;
+    context_switch(&_original_context, &artificial_stack.context);
+    unreachable();
+}
+
+TEST(ContextSwitchingTest, UncaughtException) {
+    EXPECT_DEATH(throw_exception_from_coroutine(), "This is a test exception");
 }
 
 }   /* namespace unittest */

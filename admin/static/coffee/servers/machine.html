@@ -38,8 +38,12 @@
     </div>
 </script>
 
-<script id="machine_view-not_found-template" type="text/x-handlebars-template">
-    <p>Server {{id}} could not be found.</p>
+<script id="machine_view-ghost-template" type="text/x-handlebars-template">
+    <h1>Error</h1>
+    <p>This server has been previously killed but is not reconnected.<br/>
+    Please kill the rethinkDB instance on this server.</p>
+    <p>List of IPs: {{comma_separated_simple ips}}</p>
+    <p></p>
 </script>
 
 <script id="machine_view_profile-template" type="text/x-handlebars-template">
@@ -49,9 +53,10 @@
       {{#if assigned_to_datacenter}}
       <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
       {{else}}
-      Unassigned 
+      Unassigned
       {{/if}}
     </p>
+
     <p>Status: {{humanize_machine_reachability status}}</p>
     <p>IP {{pluralize_noun "address" nips}}: {{#if ips}} {{html_list ips}} {{else}} N/A {{/if}}</p>
     <p class="uptime">Uptime: {{uptime}}</p>
@@ -67,6 +72,11 @@
 </script>
 
 <script id="machine_overview-container-template" type="text/x-handlebars-template">
+    {{#unless is_assigned}}
+    <h3>Information</h3>
+    <p>This server is not assigned to any datacenter, and therefore its ressources are not used.<br/>
+    You can assign a datacenter <a href="#servers/{{machine_id}}/operations">here</a>.</p>
+    {{/unless}}
     <h3 class="title">Disk usage</h3>
     <div class="pie_disk-container"></div>
 

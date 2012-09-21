@@ -113,7 +113,7 @@ module 'LogView', ->
 
 
         check_for_new_updates: =>
-            min_timestamp = @current_logs[0].get('timestamp')
+            min_timestamp = @current_logs[0]?.get('timestamp')
             if min_timestamp?
                 route = @route+"&min_timestamp=#{min_timestamp}"
 
@@ -256,7 +256,7 @@ module 'LogView', ->
         render: =>
             json = _.extend @model.toJSON(), @format_msg(@model)
             json = _.extend json,
-                machine_name: machines.get(@model.get('machine_uuid')).get('name')
+                machine_name: if machines.get(@model.get('machine_uuid'))? then machines.get(@model.get('machine_uuid')).get('name') else 'Unknown machine'
                 datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
         
             @.$el.html @template json
@@ -268,7 +268,7 @@ module 'LogView', ->
         render_small: =>
             json = _.extend @model.toJSON(), @format_msg_small(@model)
             json = _.extend json,
-                machine_name: machines.get(@model.get('machine_uuid')).get('name')
+                machine_name: if machines.get(@model.get('machine_uuid'))? then machines.get(@model.get('machine_uuid')).get('name') else 'Unknown machine'
                 datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
         
             @.$el.html @template_small json
@@ -288,7 +288,7 @@ module 'LogView', ->
                 msg = ''
                 json_data = $.parseJSON data
                 for group of json_data
-                    if group is 'memcached_namespaces' or group is 'rdb_namespaces'
+                    if group is 'rdb_namespaces'
                         for namespace_id of json_data[group]
                             if namespace_id is 'new'
                                 msg += @log_new_namespace_template
@@ -426,7 +426,6 @@ module 'LogView', ->
                                             database_id: database_id
                                             database_id_trunked: database_id.slice 24
 
-                    #TODO logs for databases
                     else
                         msg += "We were unable to parse this log. Click on 'More details' to see the raw log"
                 return {
@@ -448,7 +447,7 @@ module 'LogView', ->
                 msg = ''
                 json_data = $.parseJSON data
                 for group of json_data
-                    if group is 'memcached_namespaces' or group is 'rdb_namespaces'
+                    if group is 'rdb_namespaces'
                         for namespace_id of json_data[group]
                             if json_data[group][namespace_id] is null
                                 msg += @log_delete_something_template
@@ -457,7 +456,6 @@ module 'LogView', ->
                             else if namespace_id is 'new'
                                 msg += @log_new_something_small_template
                                     type: 'namespace'
-                                    namespace_name: json_data[group]['new']['name']
                             else
                                 attributes = []
                                 for attribute of json_data[group][namespace_id]
@@ -500,7 +498,6 @@ module 'LogView', ->
                             else if datacenter_id is 'new'
                                 msg += @log_new_something_small_template
                                     type: 'datacenter'
-                                    datacenter_name: json_data[group][datacenter_id]['name']
                             else
                                 for attribute of json_data[group][datacenter_id]
                                     attributes = []
@@ -525,8 +522,7 @@ module 'LogView', ->
                                     id: database_id
                             else if database_id is 'new'
                                 msg += @log_new_something_small_template
-                                    type: 'datacenter'
-                                    datacenter_name: json_data[group][database_id]['name']
+                                    type: 'database'
                             else
                                 for attribute of json_data[group][database_id]
                                     attributes = []
@@ -546,8 +542,6 @@ module 'LogView', ->
 
                     else
                         msg += "We were unable to parse this log. Click on 'More details' to see the raw log"
-
-                        #TODO logs for databases
                 return {
                     msg: msg
                     raw_data: JSON.stringify $.parseJSON(data), undefined, 2

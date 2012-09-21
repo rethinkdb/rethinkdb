@@ -24,14 +24,9 @@ you add or remove subscribers or destroy the publisher while in the middle of
 delivering a notification. */
 
 template<class subscriber_t>
-class publisher_t :
-    public home_thread_mixin_t
-{
+class publisher_t : public home_thread_mixin_t {
 public:
-    class subscription_t :
-        public intrusive_list_node_t<subscription_t>,
-        public home_thread_mixin_t
-    {
+    class subscription_t : public intrusive_list_node_t<subscription_t>, public home_thread_mixin_debug_only_t {
     public:
         /* Construct a `subscription_t` that is not subscribed to any publisher.
         */
@@ -70,6 +65,11 @@ public:
 
         DISABLE_COPYING(subscription_t);
     };
+
+    void rethread(int new_thread) {
+        real_home_thread = new_thread;
+        mutex.rethread(new_thread);
+    }
 
 private:
     friend class subscription_t;
@@ -117,13 +117,10 @@ public:
     }
 
     void rethread(int new_thread) {
-
-        rassertf(publisher.subscriptions.empty(), "Cannot rethread a "
-            "`publisher_t` that has subscribers.");
-
+        rassertf(publisher.subscriptions.empty(),
+                 "Cannot rethread a `publisher_t` that has subscribers.");
+        publisher.rethread(new_thread);
         real_home_thread = new_thread;
-        publisher.real_home_thread = new_thread;
-        publisher.mutex.rethread(new_thread);
     }
 
 private:

@@ -8,7 +8,9 @@
 #include <vector>
 
 #include "errors.hpp"
+#include <boost/enable_shared_from_this.hpp>
 #include <boost/function.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/variant/get.hpp>
 
@@ -25,14 +27,16 @@ class runtime_environment_t;
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
 typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 
-class json_stream_t {
+class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
 public:
     json_stream_t() { }
     virtual boost::shared_ptr<scoped_cJSON_t> next() = 0; //MAY THROW
-    virtual void add_transformation(const rdb_protocol_details::transform_atom_t &) = 0;
-    virtual result_t apply_terminal(const rdb_protocol_details::terminal_t &) = 0;
+    virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
+    virtual result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
 
     virtual ~json_stream_t() { }
+
+    virtual void reset_interruptor(UNUSED signal_t *new_interruptor) { };
 
 private:
     DISABLE_COPYING(json_stream_t);
@@ -40,44 +44,56 @@ private:
 
 class in_memory_stream_t : public json_stream_t {
 public:
-    template <class iterator>
-    in_memory_stream_t(const iterator &begin, const iterator &end, runtime_environment_t *_env)
-        : started(false), raw_data(begin, end), env(_env)
-    { }
-
-
-    in_memory_stream_t(json_array_iterator_t it, runtime_environment_t *env);
-    in_memory_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *env);
+    explicit in_memory_stream_t(json_array_iterator_t it);
+    explicit in_memory_stream_t(boost::shared_ptr<json_stream_t> stream);
 
     template <class Ordering>
     void sort(const Ordering &o) {
-        guarantee(!started);
-        data.sort(o);
+        if (data.size() == 1) {
+            // We want to do this so that we trigger exceptions consistently.
+            o(*data.begin(), *data.begin());
+        } else {
+            data.sort(o);
+        }
     }
 
+    boost::shared_ptr<scoped_cJSON_t> next();
+
+    /* Use default implementation of `add_transformation()` and `apply_terminal()` */
+
+private:
+    json_list_t data;
+};
+
+class transform_stream_t : public json_stream_t {
+public:
+    transform_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *env, const rdb_protocol_details::transform_t &tr);
 
     boost::shared_ptr<scoped_cJSON_t> next();
-    void add_transformation(const rdb_protocol_details::transform_atom_t &t);
-    result_t apply_terminal(const rdb_protocol_details::terminal_t &t);
-private:
-    bool started; //We just use this to make sure people don't consume some of the list and then apply a transformation.
-    rdb_protocol_details::transform_t transform;
+    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
 
-    json_list_t raw_data;
-    json_list_t data;
+private:
+    boost::shared_ptr<json_stream_t> stream;
     runtime_environment_t *env;
+    rdb_protocol_details::transform_t transform;
+    json_list_t data;
 };
 
 class batched_rget_stream_t : public json_stream_t {
 public:
     batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, 
                           signal_t *_interruptor, key_range_t _range, 
-                          int _batch_size, backtrace_t _backtrace);
+                          int _batch_size, const backtrace_t &_table_scan_backtrace,
+                          bool _use_outdated);
 
     boost::shared_ptr<scoped_cJSON_t> next();
 
-    void add_transformation(const rdb_protocol_details::transform_atom_t &t);
-    result_t apply_terminal(const rdb_protocol_details::terminal_t &t);
+    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
+    result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
+
+    virtual void reset_interruptor(signal_t *new_interruptor) {
+        interruptor = new_interruptor;
+    };
 
 private:
     void read_more();
@@ -91,8 +107,9 @@ private:
     json_list_t data;
     int index;
     bool finished, started;
+    bool use_outdated;
 
-    backtrace_t backtrace;
+    backtrace_t table_scan_backtrace;
 };
 
 class union_stream_t : public json_stream_t {
@@ -103,35 +120,13 @@ public:
 
     boost::shared_ptr<scoped_cJSON_t> next();
 
-    void add_transformation(const rdb_protocol_details::transform_atom_t &);
+    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
 
-    result_t apply_terminal(const rdb_protocol_details::terminal_t &);
+    /* TODO: Maybe we can optimize `apply_terminal()`. */
 
 private:
     stream_list_t streams;
     stream_list_t::iterator hd;
-};
-
-template <class P>
-class filter_stream_t : public json_stream_t {
-public:
-    typedef boost::function<bool(boost::shared_ptr<scoped_cJSON_t>)> predicate;  // NOLINT
-    filter_stream_t(boost::shared_ptr<json_stream_t> _stream, const P &_p)
-        : stream(_stream), p(_p)
-    { }
-
-    boost::shared_ptr<scoped_cJSON_t> next() {
-        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            if (p(json)) {
-                return json;
-            }
-        }
-        return boost::shared_ptr<scoped_cJSON_t>();
-    }
-
-private:
-    boost::shared_ptr<json_stream_t> stream;
-    P p;
 };
 
 template <class C>
@@ -151,72 +146,9 @@ public:
         return boost::shared_ptr<scoped_cJSON_t>();
     }
 
-    void add_transformation(const rdb_protocol_details::transform_atom_t &) {
-        crash("not implemented");
-    }
-
-    result_t apply_terminal(const rdb_protocol_details::terminal_t &) {
-        crash("not implemented");
-    }
-
 private:
     boost::shared_ptr<json_stream_t> stream;
     std::set<boost::shared_ptr<scoped_cJSON_t>, C> seen;
-};
-
-template <class F>
-class mapping_stream_t : public json_stream_t {
-public:
-    mapping_stream_t(boost::shared_ptr<json_stream_t> _stream, const F &_f)
-        : stream(_stream), f(_f)
-    { }
-
-    boost::shared_ptr<scoped_cJSON_t> next() {
-        if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            return f(json);
-        } else {
-            return json;
-        }
-    }
-
-private:
-    boost::shared_ptr<json_stream_t> stream;
-    F f;
-};
-
-template <class F>
-class concat_mapping_stream_t : public  json_stream_t {
-public:
-    concat_mapping_stream_t(boost::shared_ptr<json_stream_t> _stream, const F &_f)
-        : stream(_stream), f(_f)
-    {
-        f = _f;
-        if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            substream = f(json);
-        }
-    }
-
-    boost::shared_ptr<scoped_cJSON_t> next() {
-        boost::shared_ptr<scoped_cJSON_t> res;
-
-        while (!res) {
-            if (!substream) {
-                return res;
-            } else if ((res = substream->next())) {
-                continue;
-            } else if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                substream = f(json);
-            } else {
-                substream.reset();
-            }
-        }
-
-        return res;
-    }
-
-private:
-    boost::shared_ptr<json_stream_t> stream, substream;
-    F f;
 };
 
 class slice_stream_t : public json_stream_t {
@@ -242,14 +174,6 @@ public:
         return boost::shared_ptr<scoped_cJSON_t>();
     }
 
-    void add_transformation(const rdb_protocol_details::transform_atom_t &t) {
-        stream->add_transformation(t);
-    }
-
-    result_t apply_terminal(const rdb_protocol_details::terminal_t &) {
-        crash("not implemented");
-    }
-
 private:
     boost::shared_ptr<json_stream_t> stream;
     int start;
@@ -269,14 +193,6 @@ public:
         return stream->next();
     }
 
-    void add_transformation(const rdb_protocol_details::transform_atom_t &t) {
-        stream->add_transformation(t);
-    }
-
-    result_t apply_terminal(const rdb_protocol_details::terminal_t &) {
-        crash("not implemented");
-    }
-
 private:
     boost::shared_ptr<json_stream_t> stream;
     int offset;
@@ -284,39 +200,38 @@ private:
 
 class range_stream_t : public json_stream_t {
 public:
-    range_stream_t(boost::shared_ptr<json_stream_t> _stream, const key_range_t &_range, const std::string &_attrname)
-        : stream(_stream), range(_range), attrname(_attrname)
+    range_stream_t(boost::shared_ptr<json_stream_t> _stream, const key_range_t &_range,
+                   const std::string &_attrname, const backtrace_t &_backtrace)
+        : stream(_stream), range(_range), attrname(_attrname), backtrace(_backtrace)
     { }
 
     boost::shared_ptr<scoped_cJSON_t> next() {
-        // TODO: error handling
+        // TODO: more error handling
         // TODO reevaluate this when we better understand what we're doing for ordering
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+            rassert(json);
+            rassert(json->get());
             if (json->type() != cJSON_Object) {
-                continue;
+                throw runtime_exc_t(strprintf("Got non-object in RANGE query: %s.", json->Print().c_str()), backtrace);
             }
-            cJSON* val = json->GetObjectItem(attrname.c_str());
-            if (val && range.contains_key(store_key_t(cJSON_print_std_string(val)))) {
+            scoped_cJSON_t val(cJSON_DeepCopy(json->GetObjectItem(attrname.c_str())));
+            if (!val.get()) {
+                throw runtime_exc_t(strprintf("Object %s has no attribute %s.", json->Print().c_str(), attrname.c_str()), backtrace);
+            } else if (val.type() != cJSON_Number && val.type() != cJSON_String) {
+                throw runtime_exc_t(strprintf("Primary key must be a number or string, not %s.", val.Print().c_str()), backtrace);
+            } else if (range.contains_key(store_key_t(val.PrintLexicographic()))) {
                 return json;
             }
         }
         return boost::shared_ptr<scoped_cJSON_t>();
     }
 
-    void add_transformation(const rdb_protocol_details::transform_atom_t &t) {
-        stream->add_transformation(t);
-    }
-
-    result_t apply_terminal(const rdb_protocol_details::terminal_t &) {
-        crash("not implemented");
-    }
-
 private:
     boost::shared_ptr<json_stream_t> stream;
     key_range_t range;
     std::string attrname;
+    backtrace_t backtrace;
 };
-
 
 } //namespace query_language
 

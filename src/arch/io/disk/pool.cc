@@ -22,13 +22,11 @@ pool_diskmgr_t::~pool_diskmgr_t() {
 }
 
 void pool_diskmgr_t::action_t::run() {
-    int res;
     if (is_read) {
-        res = pread(fd, buf, count, offset);
+        io_result = pread(fd, buf, count, offset);
     } else {
-        res = pwrite(fd, buf, count, offset);
+        io_result = pwrite(fd, buf, count, offset);
     }
-    guaranteef_err((size_t)res == count, "pread()/pwrite() failed.");
 }
 
 void pool_diskmgr_t::action_t::done() {

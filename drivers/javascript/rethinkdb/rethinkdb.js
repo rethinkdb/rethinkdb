@@ -3,16 +3,17 @@
  * coordinate compilation and loading.
  */
 
-// Entry point for dependency walking
-goog.provide('rethinkdb');
+goog.provide('topLevel');
 
 // All exported modules must be reachable from this file according to the dependency chain
 goog.require('rethinkdb.net');
-goog.require('rethinkdb.query');
+goog.require('rethinkdb.errors');
+goog.require('rethinkdb.Connection');
 goog.require('rethinkdb.query2');
-goog.require('rethinkdb.query.Table');
-goog.require('rethinkdb.query.Database');
-goog.require('rethinkdb.query.Expression');
+goog.require('rethinkdb.Table');
+goog.require('rethinkdb.Database');
+goog.require('rethinkdb.Expression');
+goog.require('rethinkdb');
 
 // Export RethinDB namespace to commonjs module
 if (typeof exports !== 'undefined') {

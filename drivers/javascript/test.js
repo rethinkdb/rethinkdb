@@ -1,11 +1,6 @@
-// Load text encoder, still haven't resolved this issue
-var te = require('./encoding.js');
-global.TextEncoder = te.TextEncoder;
-global.TextDecoder = te.TextDecoder;
-
-global.exit = function() {
-    process.exit();
-}
+HOST = process.argv[2] || 'newton';
+PORT = parseInt(process.argv[3]) || 12346;
 
 global.rethinkdb = require('./rethinkdb');
+require('./test-driver');
 require('./rethinkdb/test.js');

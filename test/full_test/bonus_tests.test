@@ -1,6 +1,6 @@
 # Test heavy backfilling while under continuous load
 do_test(
-    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 1+1 --workload-during '$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' --extra-before 1000",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 1+1 --workload-during '$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' --extra-before 1000",
     repeat = 3,
     inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]
     )
@@ -13,21 +13,21 @@ do_test(
         "--workload-after '$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT --load x' "
         "--workload-during '$RETHINKDB/test/memcached_workloads/simulate_web_ui.py $HOST:$HTTP_PORT'",
     repeat = 3,
-    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads"]
+    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "build/debug/web"]
     )
 
 do_test(
     "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 2+1-1+1-1+1-1+1-1+1-1 "
-        "--workload-during '$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' "
+        "--workload-during '$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' "
         "--workload-during '$RETHINKDB/test/memcached_workloads/simulate_web_ui.py $HOST:$HTTP_PORT'",
     repeat = 3,
-    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]
+    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress", "build/debug/web"]
     )
 
 do_test(
     "$RETHINKDB/test/scenarios/rebalance.py --sequence 0,++++++++,----,++++++++,------------ "
-        "--workload-during '$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' "
+        "--workload-during '$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' "
         "--workload-during '$RETHINKDB/test/memcached_workloads/simulate_web_ui.py $HOST:$HTTP_PORT'",
     repeat = 3,
-    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]
+    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress", "build/debug/web"]
     )

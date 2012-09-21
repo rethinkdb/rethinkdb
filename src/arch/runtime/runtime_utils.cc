@@ -86,7 +86,7 @@ void pet_watchdog() {
             watchdog_start_time = new_value;
             uint64_t difference = new_value - old_value;
             if (difference > MAX_WATCHDOG_DELTA) {
-                debugf("task triggered watchdog, elapsed cycles: %lu, running coroutine: %s", difference,
+                debugf("task triggered watchdog, elapsed cycles: %lu, running coroutine: %s\n", difference,
                        (coro_t::self() == NULL) ? "n/a" : coro_t::self()->get_coroutine_type().c_str());
             }
         }

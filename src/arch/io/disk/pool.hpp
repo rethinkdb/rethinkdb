@@ -13,9 +13,9 @@
 /* The pool disk manager uses a thread pool in conjunction with synchronous
 (blocking) IO calls to asynchronously run IO requests. */
 
-class pool_diskmgr_t : private availability_callback_t, public home_thread_mixin_t {
+class pool_diskmgr_t : private availability_callback_t, public home_thread_mixin_debug_only_t {
 public:
-    struct action_t : private blocker_pool_t::job_t, public home_thread_mixin_t {
+    struct action_t : private blocker_pool_t::job_t, public home_thread_mixin_debug_only_t {
 
         void make_write(fd_t f, const void *b, size_t c, off_t o) {
             is_read = false;
@@ -39,6 +39,8 @@ public:
         size_t get_count() const { return count; }
         off_t get_offset() const { return offset; }
 
+        bool get_succeeded() const { return io_result == static_cast<int>(count); }
+
     private:
         friend class pool_diskmgr_t;
         pool_diskmgr_t *parent;
@@ -48,6 +50,10 @@ public:
         void *buf;
         size_t count;
         off_t offset;
+
+        // TODO: io_result almost probably definitely should be an
+        // int64_t or was at some point, like in libaio.
+        int io_result;
 
         void run();
         void done();

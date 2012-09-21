@@ -7,7 +7,7 @@ workloads = {
     "$RETHINKDB/test/memcached_workloads/deletion.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/expiration.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/flags.py $HOST:$PORT",
-    "$RETHINKDB/test/memcached_workloads/fuzz.py $HOST:$PORT",
+    "$RETHINKDB/test/memcached_workloads/fuzz.py $HOST:$PORT --duration 300",
     "$RETHINKDB/test/memcached_workloads/incr_decr.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/many_keys.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/memcached_suite.py $HOST:$PORT bogus-commands.t",
@@ -26,13 +26,16 @@ workloads = {
     "$RETHINKDB/test/memcached_workloads/pipeline.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/rget.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/rget_huge.py $HOST:$PORT",
-    "$RETHINKDB/test/memcached_workloads/rget_no_blocking.py $HOST:$PORT",
+    # This workload fails because rgets are no longer required not to block
+    # other types of queries.
+    # "$RETHINKDB/test/memcached_workloads/rget_no_blocking.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT",
     "$RETHINKDB/test/memcached_workloads/unappend_unprepend.py $HOST:$PORT"
     ],
     "rdb": [
     "$RETHINKDB/test/rdb_workloads/test.py",
     "$RETHINKDB/test/rdb_workloads/test2.py"
+    "node $RETHINKDB/test/rdb_workloads/test.js $HOST $PORT"
     ]
     }
 
@@ -42,7 +45,7 @@ for protocol, workloads_for_protocol in workloads.iteritems():
             "$RETHINKDB/test/scenarios/static_cluster.py --protocol %s '%s'" % (protocol, workload),
             repeat = 3,
             inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common",
-                "test/memcached_workloads", "test/rdb_workloads", "drivers"]
+                "test/memcached_workloads", "test/rdb_workloads", "drivers", "build/drivers"]
             )
 
 do_test(

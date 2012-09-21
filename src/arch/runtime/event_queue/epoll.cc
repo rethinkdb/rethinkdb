@@ -19,11 +19,12 @@
 
 int user_to_epoll(int mode) {
 
-    rassert((mode & (poll_event_in | poll_event_out)) == mode);
+    rassert((mode & (poll_event_in | poll_event_out | poll_event_rdhup)) == mode);
 
     int out_mode = 0;
     if (mode & poll_event_in) out_mode |= EPOLLIN;
     if (mode & poll_event_out) out_mode |= EPOLLOUT;
+    if (mode & poll_event_rdhup) out_mode |= EPOLLRDHUP;
 
     return out_mode;
 }

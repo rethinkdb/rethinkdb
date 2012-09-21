@@ -44,10 +44,12 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_2(ip, port);
 };
 
+void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address);
+
 class connectivity_cluster_t :
     public connectivity_service_t,
     public message_service_t,
-    public home_thread_mixin_t
+    public home_thread_mixin_debug_only_t
 {
 public:
     class run_t {
@@ -68,7 +70,7 @@ public:
     private:
         friend class connectivity_cluster_t;
 
-        class connection_entry_t : public home_thread_mixin_t {
+        class connection_entry_t : public home_thread_mixin_debug_only_t {
         public:
             /* The constructor registers us in every thread's `connection_map`;
             the destructor deregisters us. Both also notify all subscribers. */
@@ -204,7 +206,7 @@ public:
 
     /* `message_service_t` public methods: */
     connectivity_service_t *get_connectivity_service() THROWS_NOTHING;
-    void send_message(peer_id_t, const boost::function<void(write_stream_t *)> &) THROWS_NOTHING;
+    void send_message(peer_id_t, send_message_write_callback_t *callback) THROWS_NOTHING;
 
     /* Other public methods: */
 

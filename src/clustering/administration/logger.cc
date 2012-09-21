@@ -416,8 +416,7 @@ void thread_pool_log_writer_t::write(const log_message_t &lm) {
         if (!issue.has()) {
             issue.init(new local_issue_tracker_t::entry_t(
                 issue_tracker,
-                local_issue_t("LOGFILE_WRITE_ERROR", true, error_message)
-                ));
+                local_issue_t("LOGFILE_WRITE_ERROR", true, error_message)));
         }
     }
 }

@@ -26,15 +26,17 @@ module 'Sidebar', ->
             if type isnt @type_view
                 @type_view = type
                 @render()
-                ###
-                if type is 'default'
-                    recent_log_entries.on 'add', @render
-                else if type is 'dataexplorer'
-                    recent_log_entries.off()
-                ###
 
         add_query: (query) =>
-            @previous_queries.push query
+            if query.length > 17
+                query_summary = query.slice(0, 5) + '...' + query.slice(query.length-10)
+            else
+                query_summary = query
+
+            @previous_queries.unshift
+                query: query
+                query_summary: query_summary
+
             @render()
 
         write_query_namespace: (event) ->
@@ -42,6 +44,25 @@ module 'Sidebar', ->
 
         write_query_old: (event) ->
             window.router.current_view.write_query_old(event)
+
+        compute_data: =>
+            data_temp = {}
+            for database in databases.models
+                data_temp[database.get('id')] = []
+            for namespace in namespaces.models
+                data_temp[namespace.get('database')].push
+                    name: namespace.get('name')
+                    database: databases.get(namespace.get('database')).get 'name'
+
+            data = {}
+            data['databases'] = []
+            for database_id of data_temp
+                if data_temp[database_id].length > 0
+                    data['databases'].push
+                        name: databases.get(database_id).get 'name'
+                        namespaces: data_temp[database_id] 
+
+            return data
 
         render: =>
             if @type_view is 'default'
@@ -60,19 +81,19 @@ module 'Sidebar', ->
 
                 return @
             else
-                namespaces_data = []
-                for namespace in namespaces.models
-                    namespaces_data.push namespace.get('name')
-
-                
-                @.$el.html @template_dataexplorer
-                    namespaces: namespaces_data
-                    previous_queries: @previous_queries
+                data = @compute_data()
+                data['previous_queries'] = @previous_queries
+                data['has_namespaces'] = data['databases'].length > 0
+                data['has_previous_queries'] = @previous_queries.length > 0
+                @.$el.html @template_dataexplorer data
 
                 # Render issue summary
                 @.$('.issues').html @issues.render().el
 
                 return @
+
+        destroy: =>
+            window.app.off 'all', @render
 
     class @Logs extends Backbone.View
         className: 'recent-log-entries'
@@ -132,13 +153,12 @@ module 'Sidebar', ->
         tagName: 'div'
         template: Handlebars.compile $('#sidebar-client_connection_status-template').html()
 
-        initialize: ->
-            log_initial '(initializing) client connection status view'
-            connection_status.on 'all', => @render()
-            datacenters.on 'all', => @render()
-            machines.on 'all', => @render()
+        initialize: =>
+            connection_status.on 'all', @render
+            datacenters.on 'all', @render
+            machines.on 'all', @render
 
-        render: ->
+        render: =>
             log_render '(rendering) status panel view'
             connected_machine = machines.get(connection_status.get('contact_machine_id'))
             json =
@@ -155,6 +175,11 @@ module 'Sidebar', ->
 
             return @
 
+        destroy: =>
+            connection_status.off 'all', @render
+            datacenters.off 'all', @render
+            machines.off 'all', @render
+
     # Sidebar.ConnectivityStatus
     class @ConnectivityStatus extends Backbone.View
         className: 'connectivity-status'
@@ -162,9 +187,9 @@ module 'Sidebar', ->
 
         initialize: =>
             # Rerender every time some relevant info changes
-            directory.on 'all', (model, collection) => @render()
-            machines.on 'all', (model, collection) => @render()
-            datacenters.on 'all', (model, collection) => @render()
+            directory.on 'all', @render
+            machines.on 'all', @render
+            datacenters.on 'all', @render
 
         compute_connectivity: =>
             # data centers visible
@@ -185,6 +210,12 @@ module 'Sidebar', ->
             @.$el.html @template @compute_connectivity()
             return @
 
+        destroy: =>
+            # Rerender every time some relevant info changes
+            directory.off 'all', @render
+            machines.off 'all', @render
+            datacenters.off 'all', @render
+
     # Sidebar.Issues
     class @Issues extends Backbone.View
         className: 'issues'
@@ -193,7 +224,7 @@ module 'Sidebar', ->
 
         initialize: =>
             log_initial '(initializing) sidebar view: issues'
-            issues.on 'all', => @render()
+            issues.on 'all', @render
 
         render: =>
             # Group critical issues by type
@@ -223,3 +254,6 @@ module 'Sidebar', ->
                     )
                 no_issues: _.keys(critical_issues).length is 0 and _.keys(other_issues).length is 0
             return @
+
+        destroy: =>
+            issues.off 'all', @render

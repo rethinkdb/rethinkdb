@@ -15,15 +15,46 @@ You can send to a `dummy_mailbox_t` with `send()`. */
 struct dummy_mailbox_t {
 private:
     std::set<int> inbox;
-    void on_message(read_stream_t *stream) {
-        int i;
-        int res = deserialize(stream, &i);
-        if (res) { throw fake_archive_exc_t(); }
-        inbox.insert(i);
-    }
+
+    class read_impl_t;
+
+    class write_impl_t : public mailbox_write_callback_t {
+    public:
+        explicit write_impl_t(int _arg) : arg(_arg) { }
+        void write(write_stream_t *stream) {
+            write_message_t msg;
+            msg << arg;
+            int res = send_write_message(stream, &msg);
+            if (res) { throw fake_archive_exc_t(); }
+        }
+    private:
+        friend class read_impl_t;
+        int32_t arg;
+    };
+
+    class read_impl_t : public mailbox_read_callback_t {
+    public:
+        explicit read_impl_t(dummy_mailbox_t *_parent) : parent(_parent) { }
+        void read(read_stream_t *stream) {
+            int i;
+            int res = deserialize(stream, &i);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->inbox.insert(i);
+        }
+        void read(mailbox_write_callback_t *_writer) {
+            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
+            parent->inbox.insert(writer->arg);
+        }
+    private:
+        dummy_mailbox_t *parent;
+    };
+
+    read_impl_t reader;
 public:
+    friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, int);
+
     explicit dummy_mailbox_t(mailbox_manager_t *m) :
-        mailbox(m, mailbox_home_thread, boost::bind(&dummy_mailbox_t::on_message, this, _1))
+        reader(this), mailbox(m, mailbox_home_thread, &reader)
         { }
     void expect(int message) {
         EXPECT_EQ(1, inbox.count(message));
@@ -31,16 +62,9 @@ public:
     raw_mailbox_t mailbox;
 };
 
-void write_integer(int i, write_stream_t *stream) {
-    write_message_t msg;
-    int32_t i_32 = i;
-    msg << i_32;
-    int res = send_write_message(stream, &msg);
-    if (res) { throw fake_archive_exc_t(); }
-}
-
 void send(mailbox_manager_t *c, raw_mailbox_t::address_t dest, int message) {
-    send(c, dest, boost::bind(&write_integer, message, _1));
+    dummy_mailbox_t::write_impl_t writer(message);
+    send(c, dest, &writer);
 }
 
 }   /* anonymous namespace */

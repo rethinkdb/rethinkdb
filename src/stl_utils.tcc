@@ -1,3 +1,4 @@
+
 #ifndef STL_UTILS_TCC_
 #define STL_UTILS_TCC_
 
@@ -65,6 +66,13 @@ template <class K, class V>
 void debug_print(append_only_printf_buffer_t *buf, const std::map<K, V> &map) {
     buf->appendf("{");
     debug_print_iterators(buf, map.begin(), map.end());
+    buf->appendf("}");
+}
+
+template <class T>
+void debug_print(append_only_printf_buffer_t *buf, const std::set<T> &set) {
+    buf->appendf("#{");
+    debug_print_iterators(buf, set.begin(), set.end());
     buf->appendf("}");
 }
 

@@ -17,7 +17,13 @@ cJSON *render_as_json(store_key_t *target) {
 }
 
 void apply_json_to(cJSON *change, store_key_t *target) {
-    std::string str(percent_unescaped_string(get_string(change)));
+    std::string str;
+    try {
+        str = percent_unescaped_string(get_string(change));
+    } catch (std::runtime_error) {
+        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a store_key_t.\n", get_string(change).c_str()));
+    }
+
     if (!unescaped_str_to_key(str.c_str(), str.length(), target)) {
         throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a store_key_t.\n", get_string(change).c_str()));
     }
@@ -25,7 +31,9 @@ void apply_json_to(cJSON *change, store_key_t *target) {
 
 void on_subfield_change(store_key_t *) { }
 
-
+std::string to_string_for_json_key(const store_key_t *target) {
+    return percent_escaped_string(key_to_unescaped_str(*target));
+}
 
 // json adapter for key_range_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(key_range_t *) {
@@ -75,20 +83,21 @@ void apply_json_to(cJSON *change, key_range_t *target) {
         throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", get_string(change).c_str()));
     }
 
-    try {
-        store_key_t left;
-        apply_json_to(first, &left);
-        if (second->type == cJSON_NULL) {
-            *target = key_range_t(key_range_t::closed, left,
-                                  key_range_t::none,   store_key_t(""));
-        } else {
-            store_key_t right;
-            apply_json_to(second, &right);
-            *target = key_range_t(key_range_t::closed, left,
-                                  key_range_t::open,   right);
+    store_key_t left;
+    apply_json_to(first, &left);
+    if (second->type == cJSON_NULL) {
+        *target = key_range_t(key_range_t::closed, left,
+                              key_range_t::none, store_key_t());
+    } else {
+        store_key_t right;
+        apply_json_to(second, &right);
+
+        if (left > right) {
+            throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t -- bounds are out of order", get_string(change).c_str()));
         }
-    } catch (std::runtime_error) {  // TODO Explain wtf can throw a std::runtime_error to us here.
-        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a memcached_protocol_t::region_t.\n", get_string(change).c_str()));
+
+        *target = key_range_t(key_range_t::closed, left,
+                              key_range_t::open,   right);
     }
 }
 
@@ -106,9 +115,14 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(UNUSED hash_region_t<ke
 
 std::string render_region_as_string(hash_region_t<key_range_t> *target) {
     // TODO: ghetto low level hash_region_t assertion.
-    guarantee(target->beg == 0 && target->end == HASH_REGION_HASH_SIZE);
+    // TODO: Reintroduce this ghetto low level hash_region_t assertion.
+    // guarantee(target->beg == 0 && target->end == HASH_REGION_HASH_SIZE);
 
     return render_region_as_string(&target->inner);
+}
+
+std::string to_string_for_json_key(hash_region_t<key_range_t> *target) {
+    return render_region_as_string(target);
 }
 
 cJSON *render_as_json(hash_region_t<key_range_t> *target) {

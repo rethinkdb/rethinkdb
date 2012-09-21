@@ -58,7 +58,12 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
 
     guaranteef_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
 
-    int res = connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)); if (res != 0) {
+    int res;
+    do {
+        res  = connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
+    } while (res == -1 && errno == EINTR);
+
+    if (res != 0) {
         if (errno == EINPROGRESS) {
             linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_out);
             wait_interruptible(&watch, interruptor);
@@ -653,8 +658,7 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
     // Start the accept loop
     accept_loop_drainer.init(new auto_drainer_t);
     coro_t::spawn_sometime(boost::bind(
-        &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())
-        ));
+        &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())));
 
     return true;
 }
@@ -700,6 +704,15 @@ bool linux_nonthrowing_tcp_listener_t::bind_socket() {
         } else {
             crash("Could not bind socket at localhost:%i - %s\n", port, strerror(errno));
         }
+    }
+
+    // If we were told to let the kernel assign the port, figure out what was assigned
+    if (port == 0) {
+        struct sockaddr_in sa;
+        socklen_t sa_len(sizeof(sa));
+        int res2 = getsockname(sock.get(), (struct sockaddr*)&sa, &sa_len);
+        guarantee_err(res2 != -1, "Could not determine socket local port number");
+        port = ntohs(sa.sin_port);
     }
 
     bound = true;
@@ -793,6 +806,10 @@ linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
     }
 }
 
+int linux_tcp_bound_socket_t::get_port() const {
+    return listener->get_port();
+}
+
 linux_tcp_listener_t::linux_tcp_listener_t(int port,
     const boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> &callback) :
         listener(new linux_nonthrowing_tcp_listener_t(port, callback))
@@ -831,7 +848,7 @@ void linux_repeated_nonthrowing_tcp_listener_t::retry_loop(auto_drainer_t::lock_
         for (int retry_interval = 1;
              !bound;
              retry_interval = std::min(10, retry_interval + 2)) {
-            logINF("Could not bind to port %d, retrying in %d seconds.\n",
+            logINF("Will retry binding to port %d in %d seconds.\n",
                     listener.get_port(),
                     retry_interval);
             nap(retry_interval * 1000, lock.get_drain_signal());

@@ -131,18 +131,21 @@ public:
     }
 
     branch_birth_certificate_t<protocol_t> get_branch(branch_id_t branch) THROWS_NOTHING {
+        home_thread_mixin_t::assert_thread();
         typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator it = bh.branches.find(branch);
         guarantee(it != bh.branches.end());
         return it->second;
     }
 
     void create_branch(branch_id_t branch_id, const branch_birth_certificate_t<protocol_t> &bc, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        home_thread_mixin_t::assert_thread();
         guarantee(bh.branches.find(branch_id) == bh.branches.end());
         bh.branches[branch_id] = bc;
         flush(interruptor);
     }
 
     void export_branch_history(branch_id_t branch, branch_history_t<protocol_t> *out) THROWS_NOTHING {
+        home_thread_mixin_t::assert_thread();
         std::set<branch_id_t> to_process;
         if (out->branches.count(branch) == 0) {
             to_process.insert(branch);
@@ -162,6 +165,7 @@ public:
     }
 
     void import_branch_history(const branch_history_t<protocol_t> &new_records, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        home_thread_mixin_t::assert_thread();
         for (typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator it = new_records.branches.begin(); it != new_records.branches.end(); it++) {
             bh.branches.insert(std::make_pair(it->first, it->second));
         }
@@ -202,19 +206,19 @@ void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backen
     standard_serializer_t::dynamic_config_t serializer_dynamic_config;
 
     if (create) {
-        standard_serializer_t::create(
-            io_backender,
-            standard_serializer_t::private_dynamic_config_t(filename),
-            standard_serializer_t::static_config_t()
-        );
+        standard_serializer_t::create(io_backender,
+                                      standard_serializer_t::private_dynamic_config_t(filename),
+                                      standard_serializer_t::static_config_t());
     }
 
-    serializer.init(new standard_serializer_t(
-        standard_serializer_t::dynamic_config_t(),
-        io_backender,
-        standard_serializer_t::private_dynamic_config_t(filename),
-        perfmon_parent
-    ));
+    serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                              io_backender,
+                                              standard_serializer_t::private_dynamic_config_t(filename),
+                                              perfmon_parent));
+
+    if (!serializer->coop_lock_and_check()) {
+        throw file_in_use_exc_t();
+    }
 
     if (create) {
         mirrored_cache_static_config_t cache_static_config;

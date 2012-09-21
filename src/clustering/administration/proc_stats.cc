@@ -253,7 +253,7 @@ proc_stats_collector_t::proc_stats_collector_t(perfmon_collection_t *stats) :
         &net_global_received, "global_net_recv_persec",
         &net_global_sent, "global_net_sent_persec",
         &memory_faults, "memory_faults_persec",
-        NULL)
+        NULLPTR)
 {
     coro_t::spawn_sometime(boost::bind(&proc_stats_collector_t::collect_periodically, this, auto_drainer_t::lock_t(&drainer)));
 }

@@ -30,7 +30,7 @@ struct memcached_stats_t {
               &pm_conns_writing, "conns_writing",
               &pm_conns_acting, "conns_acting",
               &pm_conns, "pm_conns",
-              NULL)
+              NULLPTR)
     { }
 
     perfmon_collection_t parser_collection;

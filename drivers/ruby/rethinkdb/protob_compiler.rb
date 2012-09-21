@@ -40,14 +40,14 @@ module RethinkDB
       #   * Empty arguments
       return args.map {|arg| comp(message_class, arg)} if repeating
       args = args[0] if args.class == Array and args[0].class == Hash
-      raise TypeError,"Cannot construct #{message_class} from #{args}." if args == []
+      raise TypeError,"Can't build #{message_class} from #{args.inspect}." if args == []
 
       # Handle terminal parts of the protobuf, where we have to actually pack values.
       if message_class.kind_of? Symbol
         # It's easier for the user if we allow both atoms and 1-element lists
         args = [args] if args.class != Array
         if args.length != 1
-        then raise TypeError,"Cannot construct #{message_class} from #{args}." end
+        then raise TypeError,"Can't build #{message_class} from #{args.inspect}." end
         # Coercing symbols into strings makes our attribute notation more consistent
         args[0] = args[0].to_s if args[0].class == Symbol
         return args[0]
@@ -91,9 +91,16 @@ module RethinkDB
       elsif args.class == Array
         # Handle the case where we're constructinga the fields in order.
         args = args.map{|x| x == nil ? RQL.expr(x) : x}
-        message.fields.zip(args).each {|_params|;field = _params[0][1];arg = _params[1]
-          message_set(message, field.name,
-                      comp(field.type, arg, field.rule==:repeated)) if arg != nil
+        fields = message.fields.sort_by {|kv| kv[0]}
+        fields.zip(args).each {|_params|;field = _params[0][1];arg = _params[1]
+          if arg == S.skip
+            if field.rule != :optional
+              raise RuntimeError, "Cannot skip non-optional rule."
+            end
+          else
+            message_set(message, field.name,
+                        comp(field.type, arg, field.rule==:repeated)) if arg != nil
+          end
         }
       else
         # Handle the case where the user provided neither an Array nor a Hash,
@@ -113,8 +120,8 @@ module RethinkDB
       raise TypeError, "Cannot build query from #{sexp.inspect}" if sexp.class != Array
       if enum_type(WriteQuery::WriteQueryType, sexp[0])
       then q = comp(Query, [:write, *sexp])
-      elsif enum_type(TableopQuery::TableopQueryType, sexp[0])
-      then q = comp(Query, [:tableop, *sexp])
+      elsif enum_type(MetaQuery::MetaQueryType, sexp[0])
+      then q = comp(Query, [:meta, *sexp])
       else q = comp(Query, [:read, sexp])
       end
       q.token = (@@token += 1)

@@ -186,20 +186,32 @@ int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 
 /* The home thread mixin is a mixin for objects that can only be used
 on a single thread. Its thread ID is exposed as the `home_thread()`
-method. Some subclasses of `home_thread_mixin_t` can move themselves to
+method. Some subclasses of `home_thread_mixin_debug_only_t` can move themselves to
 another thread, modifying the field real_home_thread. */
 
 #define INVALID_THREAD (-1)
 
+class home_thread_mixin_debug_only_t {
+public:
+    void assert_thread() const;
+
+protected:
+    explicit home_thread_mixin_debug_only_t(int specified_home_thread);
+    home_thread_mixin_debug_only_t();
+    virtual ~home_thread_mixin_debug_only_t() { }
+
+private:
+    DISABLE_COPYING(home_thread_mixin_debug_only_t);
+
+#ifndef NDEBUG
+    int real_home_thread;
+#endif
+};
+
 class home_thread_mixin_t {
 public:
     int home_thread() const { return real_home_thread; }
-
-#ifndef NDEBUG
     void assert_thread() const;
-#else
-    void assert_thread() const { }
-#endif  // NDEBUG
 
 protected:
     explicit home_thread_mixin_t(int specified_home_thread);
@@ -281,5 +293,7 @@ private:
 };
 
 std::string sanitize_for_logger(const std::string &s);
+
+#define NULLPTR (static_cast<void *>(0))
 
 #endif // UTILS_HPP_

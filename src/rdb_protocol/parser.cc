@@ -41,7 +41,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                 cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
 
-                if (!std_contains(cluster_metadata.rdb_namespaces.namespaces, namespace_uuid)) {
+                if (!std_contains(cluster_metadata.rdb_namespaces->namespaces, namespace_uuid)) {
                     return http_res_t(HTTP_NOT_FOUND, "text/plain", "Didn't find namespace.");
                 }
 
@@ -95,7 +95,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                 cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
 
-                if (!std_contains(cluster_metadata.rdb_namespaces.namespaces, namespace_uuid)) {
+                if (!std_contains(cluster_metadata.rdb_namespaces->namespaces, namespace_uuid)) {
                     return http_res_t(HTTP_BAD_REQUEST);
                 }
 

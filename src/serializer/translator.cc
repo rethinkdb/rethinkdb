@@ -112,8 +112,7 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
             ser,
             num_on_this_serializer,
             k / underlying.size(),
-            CONFIG_BLOCK_ID   /* Reserve block ID 0 */
-            );
+            CONFIG_BLOCK_ID   /* Reserve block ID 0 */);
     }
 
     ser->free(c);
@@ -251,6 +250,10 @@ block_sequence_id_t translator_serializer_t::get_block_sequence_id(block_id_t bl
 
 block_size_t translator_serializer_t::get_block_size() {
     return inner->get_block_size();
+}
+
+bool translator_serializer_t::coop_lock_and_check() {
+    return inner->coop_lock_and_check();
 }
 
 block_id_t translator_serializer_t::max_block_id() {

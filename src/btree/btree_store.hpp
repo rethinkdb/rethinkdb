@@ -15,33 +15,26 @@ class real_superblock_t;
 
 template <class protocol_t>
 class btree_store_t : public store_view_t<protocol_t> {
-private:
-    scoped_ptr_t<standard_serializer_t> serializer;
-    mirrored_cache_config_t cache_dynamic_config;
-    scoped_ptr_t<cache_t> cache;
-    scoped_ptr_t<btree_slice_t> btree;
-    order_source_t order_source;
-
-    fifo_enforcer_source_t token_source;
-    fifo_enforcer_sink_t token_sink;
-
 public:
+    using home_thread_mixin_t::assert_thread;
+
     btree_store_t(io_backender_t *io_backender,
                   const std::string& filename,
+                  int64_t cache_target,
                   bool create,
                   perfmon_collection_t *parent_perfmon_collection,
                   typename protocol_t::context_t *);
     virtual ~btree_store_t();
 
     /* store_view_t interface */
-    void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
-    void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
+    void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
+    void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
 
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
     void do_get_metainfo(
             order_token_t order_token,
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor,
             metainfo_t *out)
         THROWS_ONLY(interrupted_exc_t);
@@ -49,7 +42,7 @@ public:
     void set_metainfo(
             const metainfo_t &new_metainfo,
             order_token_t order_token,
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -58,7 +51,7 @@ public:
             const typename protocol_t::read_t &read,
             typename protocol_t::read_response_t *response,
             order_token_t order_token,
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -69,7 +62,7 @@ public:
             typename protocol_t::write_response_t *response,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -77,20 +70,20 @@ public:
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<protocol_t> *send_backfill_cb,
             typename protocol_t::backfill_progress_t *progress,
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(
             const typename protocol_t::backfill_chunk_t &chunk,
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -134,14 +127,14 @@ private:
 
     void acquire_superblock_for_read(
             access_t access,
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             scoped_ptr_t<transaction_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_superblock_for_backfill(
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             scoped_ptr_t<transaction_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
@@ -149,8 +142,9 @@ private:
 
     void acquire_superblock_for_write(
             access_t access,
+            repli_timestamp_t timestamp,
             int expected_change_count,
-            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             scoped_ptr_t<transaction_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
@@ -170,6 +164,15 @@ private:
         THROWS_NOTHING;
 
     void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
+
+    scoped_ptr_t<standard_serializer_t> serializer;
+    mirrored_cache_config_t cache_dynamic_config;
+    scoped_ptr_t<cache_t> cache;
+    scoped_ptr_t<btree_slice_t> btree;
+    order_source_t order_source;
+
+    fifo_enforcer_source_t token_source;
+    fifo_enforcer_sink_t token_sink;
 
     perfmon_collection_t perfmon_collection;
     perfmon_membership_t perfmon_collection_membership;

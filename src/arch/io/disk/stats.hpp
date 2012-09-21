@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "errors.hpp"
+#include "utils.hpp"
 #include <boost/function.hpp>
 
 #include "perfmon/types.hpp"
@@ -20,7 +20,7 @@ struct stats_diskmgr_t {
         stats_membership(stats,
             &read_sampler, (name + "_read").c_str(),
             &write_sampler, (name + "_write").c_str(),
-            NULL)
+                         NULLPTR)
     { }
 
     struct action_t : public payload_t {
@@ -78,7 +78,7 @@ struct stats_diskmgr_2_t :
         stats_membership(stats,
             &read_sampler, (name + "_read").c_str(),
             &write_sampler, (name + "_write").c_str(),
-            NULL)
+            NULLPTR)
         { }
     boost::function<void (action_t *)> done_fun;
 

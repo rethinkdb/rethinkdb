@@ -22,18 +22,24 @@ typedef rdb_protocol_t::point_read_response_t point_read_response_t;
 typedef rdb_protocol_t::rget_read_t rget_read_t;
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
 
+typedef rdb_protocol_t::distribution_read_t distribution_read_t;
+typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_t;
+
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
 
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
+typedef rdb_protocol_t::point_modify_t point_modify_t;
+typedef rdb_protocol_t::point_modify_response_t point_modify_response_t;
+
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
 namespace query_language {
     class runtime_environment_t;
-} //namespace query_language 
+} //namespace query_language
 
 class parallel_traversal_progress_t;
 
@@ -71,16 +77,22 @@ private:
 
 point_read_response_t rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock);
 
-point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data,
+point_modify_response_t rdb_modify(const std::string &primary_key, const store_key_t &key, const point_modify::op_t op,
+                                   query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
+                                   const Mapping &mapping,
+                                   btree_slice_t *slice, repli_timestamp_t timestamp,
+                                   transaction_t *txn, superblock_t *superblock);
+
+point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
                        btree_slice_t *slice, repli_timestamp_t timestamp,
                        transaction_t *txn, superblock_t *superblock);
 
 
 class rdb_backfill_callback_t {
 public:
-    virtual void on_delete_range(const key_range_t &range) = 0;
-    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency) = 0;
-    virtual void on_keyvalue(const rdb_protocol_details::backfill_atom_t& atom) = 0;
+    virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_keyvalue(const rdb_protocol_details::backfill_atom_t& atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 protected:
     virtual ~rdb_backfill_callback_t() { }
 };
@@ -108,8 +120,11 @@ struct rget_response_t {
 };
 
 rget_read_response_t rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-                               int maximum, transaction_t *txn, superblock_t *superblock,
-                               query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
-                               boost::optional<rdb_protocol_details::terminal_t> terminal);
+                                    transaction_t *txn, superblock_t *superblock,
+                                    query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
+                                    boost::optional<rdb_protocol_details::terminal_t> terminal);
+
+distribution_read_response_t rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key, 
+                                                 transaction_t *txn, superblock_t *superblock);
 
 #endif /* RDB_PROTOCOL_BTREE_HPP_ */

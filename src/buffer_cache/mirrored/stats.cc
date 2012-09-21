@@ -73,7 +73,7 @@ mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)
           &pm_patches_size_ratio, "patches_size_ratio",
           &pm_n_blocks_evicted, "blocks_evicted",
           &pm_block_size, "block_size",
-          NULL)
+          NULLPTR)
 
 { }
 

@@ -29,42 +29,40 @@ class Namespace extends Backbone.Model
     compute_shards: =>
         @.set 'computed_shards', new DataUtils.Shards [],@
 
-    interval: 0
-    set_interval_key_distr: =>
-        @set_interval = setInterval @load_key_distr, @interval
+    transform_key: (a) ->
+        if a is null
+            a_new = a
+        else if a is ""
+            a_new is -Infinity
+        else if typeof a is "string" and a[0]? and a[0] is 'N'
+            s = a.slice(a.indexOf("%23")+3)
+            if _.isNaN(parseFloat(s)) is false
+                a_new = parseFloat(s)
+        else if typeof a is "string" and a[0]? and a[0] is 'S'
+            a_new = a.slice(1)
+        return a_new
 
-    clear_interval_key_distr: ->
-        if @set_interval?
-            clearInterval @set_interval
-            @interval = 0
+    compare_keys: (a, b) =>
+        a_new = @transform_key(a)
+        b_new = @transform_key(b)
 
-    # Cache key distribution info.
-    load_key_distr: =>
-        $.ajax
-            processData: false
-            url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
-            type: 'GET'
-            contentType: 'application/json'
-            success: (distr_data) =>
-                # Cache the data
-                # Sort the keys and cache that too
-                distr_keys = []
-                for key, count of distr_data
-                    distr_keys.push(key)
-                distr_keys = _.sortBy(distr_keys, _.identity)
-
-                @set('key_distr_sorted', distr_keys)
-                @set('key_distr', distr_data)
-                if @interval isnt 5000
-                    @clear_interval_key_distr()
-                    @interval = 5000
-                    @set_interval_key_distr()
-
-            error: =>
-                if @interval isnt 1000
-                    @clear_interval_key_distr()
-                    @interval = 1000
-                    @set_interval_key_distr()
+        if typeof a_new is 'number' and typeof b_new is 'number'
+            return a_new-b_new
+        else if typeof a_new is 'string' and typeof b_new is 'string'
+            if a_new > b_new
+                return 1
+            else if a_new < b_new
+                return -1
+            else
+                return 0
+        else if typeof a_new isnt typeof b_new
+            if typeof a_new is 'number' and typeof b_new is 'string'
+                return -1
+            else if typeof a_new is 'string' and typeof b_new is 'number'
+                return 1
+            else if a_new is null
+                return 1
+        return 0
 
     load_key_distr_once: =>
         $.ajax
@@ -78,7 +76,7 @@ class Namespace extends Backbone.Model
                 distr_keys = []
                 for key, count of distr_data
                     distr_keys.push(key)
-                distr_keys = _.sortBy(distr_keys, _.identity)
+                distr_keys.sort(@compare_keys)
 
                 @set('key_distr_sorted', distr_keys)
                 @set('key_distr', distr_data)
@@ -100,16 +98,16 @@ class Namespace extends Backbone.Model
         start_key = shard[0]
         end_key = shard[1]
 
-        # TODO: we should probably support interpolation here, but
-        # fuck it for now.
+        # TODO: we should interpolate once we will have decided how to order different type of keys
 
         # find the first key greater than the beginning of our shard
         # and keep summing until we get past our shard boundary.
         count = 0
 
         for key in @get('key_distr_sorted')
-            if key >= start_key or start_key is ""
-                if end_key is null or key < end_key
+            # TODO Might be unsafe when comparing string and integers. Need to be checked when the back end will have decided what to do.
+            if @compare_keys(key, start_key) >= 0
+                if @compare_keys(key, end_key) <= 0
                     if @get('key_distr')[key]?
                         count += @get('key_distr')[key]
 
@@ -592,9 +590,9 @@ module 'DataUtils', ->
     @get_ack_expectations = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
         datacenter = datacenters.get(datacenter_uuid)
-        acks = namespace.get('ack_expectations')[datacenter.get('id')]
+        acks = namespace?.get('ack_expectations')?[datacenter?.get('id')]?
         if acks?
-            return acks
+            return namespace.get('ack_expectations')[datacenter.get('id')]
         else
             return 0
 
@@ -625,7 +623,7 @@ module 'DataUtils', ->
     @get_directory_activities = ->
         activities = {}
         for machine in directory.models
-            bcards = machine.get('memcached_namespaces')['reactor_bcards']
+            bcards = machine.get('rdb_namespaces')['reactor_bcards']
             for namespace_id, activity_map of bcards
                 activity_map = activity_map['activity_map']
                 for activity_id, activity of activity_map
@@ -638,16 +636,6 @@ module 'DataUtils', ->
     @get_directory_activities_by_namespaces = ->
         activities = {}
         for machine in directory.models
-            bcards = machine.get('memcached_namespaces')['reactor_bcards']
-            for namespace_id, activity_map of bcards
-                activity_map = activity_map['activity_map']
-                for activity_id, activity of activity_map
-                    if !(namespace_id of activities)
-                        activities[namespace_id] = {}
-
-                    if !activities[namespace_id][machine.get('id')]?
-                        activities[namespace_id][machine.get('id')] = {}
-                    activities[namespace_id][machine.get('id')][activity[0]] = activity[1]['type']
             bcards = machine.get('rdb_namespaces')['reactor_bcards']
             for namespace_id, activity_map of bcards
                 activity_map = activity_map['activity_map']

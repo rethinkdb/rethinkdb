@@ -55,7 +55,7 @@ class log_serializer_t :
 #ifndef SEMANTIC_SERIALIZER_CHECK
     public serializer_t,
 #else
-    public home_thread_mixin_t,
+    public home_thread_mixin_debug_t,
 #endif  // SEMANTIC_SERIALIZER_CHECK
     private data_block_manager_t::shutdown_callback_t,
     private lba_index_t::shutdown_callback_t
@@ -139,6 +139,8 @@ public:
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
     block_size_t get_block_size();
+
+    bool coop_lock_and_check();
 
 private:
     std::map<ls_block_token_pointee_t*, off64_t> token_offsets;

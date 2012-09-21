@@ -313,6 +313,7 @@ id_t runner_t::compile(
     }
 
     id_visitor_t v(errmsg);
+    //TODO: shouldn't we do something if the visitor returns INVALID_ID?
     return new_id(boost::apply_visitor(v, result));
 }
 

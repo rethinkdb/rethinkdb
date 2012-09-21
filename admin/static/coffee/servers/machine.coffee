@@ -1,10 +1,29 @@
 # Machine view
 module 'MachineView', ->
     class @NotFound extends Backbone.View
-        template: Handlebars.compile $('#machine_view-not_found-template').html()
-        initialize: (id) -> @id = id
+        template: Handlebars.compile $('#element_view-not_found-template').html()
+        ghost_template: Handlebars.compile $('#machine_view-ghost-template').html()
+        initialize: (id) => 
+            @id = id
         render: =>
-            @.$el.html @template id: @id
+            if directory.get(@id)?
+                for issue in issues.models
+                    if issue.get('type') is 'MACHINE_GHOST' and issue.get('ghost') is @id
+                        @.$el.html @ghost_template
+                            id: @id
+                            ips: directory.get(@id).get('ips')
+                        return @
+                @.$el.html @template
+                    id: @id
+                    type: 'server'
+                    type_url: 'servers'
+                    type_all_url: 'servers'
+            else
+                @.$el.html @template
+                    id: @id
+                    type: 'server'
+                    type_url: 'servers'
+                    type_all_url: 'servers'
             return @
 
     # Container
@@ -31,6 +50,18 @@ module 'MachineView', ->
                 route: "/ajax/log/"+@model.get('id')+"_?"
                 template_header: Handlebars.compile $('#log-header-machine-template').html()
 
+            machines.on 'remove', @check_if_still_exists
+
+        check_if_still_exists: =>
+            exist = false
+            for machine in machines.models
+                if machine.get('id') is @model.get('id')
+                    exist = true
+                    break
+            if exist is false
+                window.router.navigate '#servers'
+                window.app.index_servers
+                    alert_message: "The server <a href=\"#servers/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
         change_route: (event) =>
             # Because we are using bootstrap tab. We should remove them later.
             window.router.navigate @.$(event.target).attr('href')
@@ -161,6 +192,7 @@ module 'MachineView', ->
 
 
     class @Overview extends Backbone.View
+        #TODO: Add network and CPU if relevant?
         className: 'machine-overview'
         container_template: Handlebars.compile $('#machine_overview-container-template').html()
         pie_disk_template: Handlebars.compile $('#machine_overview-pie_disk-container-template').html()
@@ -173,11 +205,9 @@ module 'MachineView', ->
             @ram_data = {}
 
         render: =>
-            @.$el.html @container_template {}
-            @render_pie_disk()
-            @render_pie_ram()
-
-            #TODO: Add network and CPU if relevant?
+            @.$el.html @container_template
+                is_assigned: @model.get('datacenter_uuid')?
+                machine_id: @model.get 'id'
             return @
 
         render_pie_disk: =>
@@ -244,14 +274,13 @@ module 'MachineView', ->
                         for key of @model.get('stats')[namespace.get('id')].serializers
                             if @model.get('stats')[namespace.get('id')].serializers[key].cache?.blocks_in_memory?
                                 ram_rdb += parseInt(@model.get('stats')[namespace.get('id')].serializers[key].cache.blocks_in_memory) * parseInt(@model.get('stats')[namespace.get('id')].serializers[key].cache.block_size)
-
                 data =
-                    ram_used: human_readable_units @model.get('stats').proc.global_mem_used, units_space
-                    ram_free: human_readable_units @model.get('stats').proc.global_mem_total-@model.get('stats').proc.global_mem_used, units_space
-                    ram_total: human_readable_units @model.get('stats').proc.global_mem_total, units_space
+                    ram_used: human_readable_units @model.get('stats').proc.global_mem_used*1024, units_space
+                    ram_free: human_readable_units (@model.get('stats').proc.global_mem_total-@model.get('stats').proc.global_mem_used)*1024, units_space
+                    ram_total: human_readable_units @model.get('stats').proc.global_mem_total*1024, units_space
                     ram_used_percent: Math.ceil(100*@model.get('stats').proc.global_mem_used/@model.get('stats').proc.global_mem_total)+'%'
                     ram_rdb: human_readable_units ram_rdb, units_space
-                    ram_rdb_used_percent: Math.ceil(100*ram_rdb/@model.get('stats').proc.global_mem_used)+'%'
+                    ram_rdb_used_percent: Math.ceil(100*ram_rdb/(@model.get('stats').proc.global_mem_used*1024))+'%'
 
                 need_update = false
                 for key of data
@@ -294,7 +323,8 @@ module 'MachineView', ->
 
 
         destroy: =>
-            @model.on 'change:stats', @render_disk
+            @model.off 'change:stats', @render_pie_disk
+            @model.off 'change:stats', @render_pie_ram
 
 
 
@@ -365,7 +395,8 @@ module 'MachineView', ->
 
         initialize: =>
             @directory_entry = directory.get @model.get 'id'
-            @directory_entry.on 'change:memcached_namespaces', @render
+            if @directory_entry?
+                @directory_entry.on 'change:rdb_namespaces', @render
             namespaces.on 'add', @render
             namespaces.on 'remove', @render
             namespaces.on 'reset', @render
@@ -723,7 +754,12 @@ module 'MachineView', ->
             )
 
         destroy: =>
-            @directory_entry.on 'change:memcached_namespaces', @render
+            if @directory_entry?
+                @directory_entry.off 'change:rdb_namespaces', @render
+            namespaces.off 'add', @render
+            namespaces.off 'remove', @render
+            namespaces.off 'reset', @render
+
             for namespace_id of @namespaces_with_listeners
                 namespace = namespaces.get namespace_id
                 namespace.off 'change:shards', @render
@@ -886,7 +922,3 @@ module 'MachineView', ->
         on_success: (response) =>
             machines.get(@machine_to_unassign.get('id')).set('datacenter_uuid', null)
             clear_modals()
-            
-        on_error: (response) =>
-            #TODO implement
-

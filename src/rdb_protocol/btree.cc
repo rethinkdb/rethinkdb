@@ -8,6 +8,7 @@
 #include "btree/backfill.hpp"
 #include "btree/depth_first_traversal.hpp"
 #include "btree/erase_range.hpp"
+#include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -118,14 +119,19 @@ point_read_response_t rdb_get(const store_key_t &store_key, btree_slice_t *slice
     return point_read_response_t(data);
 }
 
-point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data,
-                       btree_slice_t *slice, repli_timestamp_t timestamp,
-                       transaction_t *txn, superblock_t *superblock) {
-    //block_size_t block_size = slice->cache()->get_block_size();
+void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
+                        btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
+    rassert(kv_location->value.has());
+    blob_t blob(kv_location->value->value_ref(), blob::btree_maxreflen);
+    blob.clear(txn);
+    kv_location->value.reset();
+    null_key_modification_callback_t<rdb_value_t> null_cb;
+    apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
+}
 
-    keyvalue_location_t<rdb_value_t> kv_location;
-    find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
-    bool already_existed = kv_location.value.has();
+void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
+                     boost::shared_ptr<scoped_cJSON_t> data,
+                     btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
 
     scoped_malloc_t<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
     bzero(new_value.get(), MAX_RDB_VALUE_SIZE);
@@ -145,29 +151,123 @@ point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_
     blob.write_from_string(sered_data, txn, 0);
 
     // Actually update the leaf, if needed.
-    kv_location.value.reinterpret_swap(new_value);
+    kv_location->value.reinterpret_swap(new_value);
     null_key_modification_callback_t<rdb_value_t> null_cb;
-    apply_keyvalue_change(txn, &kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
-    //                                                                     ^-- That means the key isn't expired.
+    apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
+    //                                                                  ^^^^^ That means the key isn't expired.
+}
 
-    return point_write_response_t(already_existed ? DUPLICATE : STORED);
+point_modify_response_t rdb_modify(const std::string &primary_key, const store_key_t &key, point_modify::op_t op,
+                                   query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
+                                   const Mapping &mapping,
+                                   btree_slice_t *slice, repli_timestamp_t timestamp,
+                                   transaction_t *txn, superblock_t *superblock) {
+    try {
+        keyvalue_location_t<rdb_value_t> kv_location;
+        find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
+
+        boost::shared_ptr<scoped_cJSON_t> lhs;
+        if (!kv_location.value.has()) {
+            switch(op) {
+            case point_modify::MUTATE: lhs.reset(new scoped_cJSON_t(cJSON_CreateNull())); break;
+            case point_modify::UPDATE: return point_modify_response_t(point_modify::SKIPPED); //TODO: err?
+            default:                   unreachable("Bad point_modify::op_t.");
+            }
+        } else {
+            lhs = get_data(kv_location.value.get(), txn);
+            rassert(lhs->GetObjectItem(primary_key.c_str()));
+        }
+        rassert(lhs && ((lhs->type() == cJSON_NULL && op == point_modify::MUTATE) || lhs->type() == cJSON_Object));
+
+        boost::shared_ptr<scoped_cJSON_t> rhs(query_language::eval_mapping(mapping, env, scopes, backtrace, lhs));
+        rassert(rhs);
+        if (rhs->type() == cJSON_NULL) {
+            switch (op) {
+            case point_modify::MUTATE: {
+                if (lhs->type() == cJSON_NULL) return point_modify_response_t(point_modify::NOP);
+                kv_location_delete(&kv_location, key, slice, timestamp, txn);
+                return point_modify_response_t(point_modify::DELETED);
+            } break;
+            case point_modify::UPDATE: return point_modify_response_t(point_modify::SKIPPED);
+            default:                   unreachable("Bad point_modify::op_t.");
+            }
+        } else if (rhs->type() != cJSON_Object) {
+            throw query_language::runtime_exc_t(strprintf("Got %s, but expected Object.", rhs->Print().c_str()), backtrace);
+        }
+        rassert(rhs->type() == cJSON_Object);
+
+        boost::shared_ptr<scoped_cJSON_t> val;
+        switch(op) {
+        case point_modify::MUTATE: val = rhs;                                                          break;
+        case point_modify::UPDATE: val.reset(new scoped_cJSON_t(cJSON_merge(lhs->get(), rhs->get()))); break;
+        default:                   unreachable("Bad point_modify::op_t.");
+        }
+        rassert(val && val->type() == cJSON_Object);
+
+        cJSON *val_pk = val->GetObjectItem(primary_key.c_str());
+        if (!val_pk) {
+            rassert(op == point_modify::MUTATE);
+            throw query_language::runtime_exc_t(strprintf("Object provided by mutate (%s) must contain primary key %s.",
+                                                          val->Print().c_str(), primary_key.c_str()), backtrace);
+        }
+
+        if (lhs->type() == cJSON_NULL) {
+            rassert(op == point_modify::MUTATE);
+            if (val_pk->type != cJSON_Number && val_pk->type != cJSON_String) {
+                throw query_language::runtime_exc_t(strprintf("Cannot create new row with non-number, non-string primary key (%s).",
+                                                              val->Print().c_str()), backtrace);
+            }
+            store_key_t new_key(cJSON_print_lexicographic(val_pk));
+            if (key != new_key) {
+                throw query_language::runtime_exc_t(strprintf("Mutate cannot insert a row with a different primary key."), backtrace);
+            }
+            kv_location_set(&kv_location, key, val, slice, timestamp, txn);
+            return point_modify_response_t(point_modify::INSERTED);
+        }
+
+        rassert(lhs->type() == cJSON_Object);
+        cJSON *lhs_pk = lhs->GetObjectItem(primary_key.c_str());
+        rassert(lhs_pk && val_pk);
+        if (!cJSON_Equal(lhs_pk, val_pk)) {
+            throw query_language::runtime_exc_t(strprintf("Cannot modify primary key (%s -> %s).",
+                                                          cJSON_Print(lhs_pk), cJSON_Print(val_pk)), backtrace);
+        }
+
+        kv_location_set(&kv_location, key, val, slice, timestamp, txn);
+        return point_modify_response_t(point_modify::MODIFIED);
+    } catch (const query_language::runtime_exc_t &e) {
+        return point_modify_response_t(e);
+    }
+}
+
+point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
+                               btree_slice_t *slice, repli_timestamp_t timestamp,
+                               transaction_t *txn, superblock_t *superblock) {
+    //block_size_t block_size = slice->cache()->get_block_size();
+    keyvalue_location_t<rdb_value_t> kv_location;
+    find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
+    bool had_value = kv_location.value.has();
+    if (overwrite || !had_value) {
+        kv_location_set(&kv_location, key, data, slice, timestamp, txn);
+    }
+    return point_write_response_t(had_value ? DUPLICATE : STORED);
 }
 
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
     agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
 
-    void on_delete_range(const key_range_t &range) {
+    void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.is_superset(range));
-        cb_->on_delete_range(range);
+        cb_->on_delete_range(range, interruptor);
     }
 
-    void on_deletion(const btree_key_t *key, repli_timestamp_t recency) {
+    void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.contains_key(key->contents, key->size));
-        cb_->on_deletion(key, recency);
+        cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *val) {
+    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *val, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.contains_key(key->contents, key->size));
         const rdb_value_t *value = static_cast<const rdb_value_t *>(val);
 
@@ -175,7 +275,7 @@ public:
         atom.key.assign(key->size, key->contents);
         atom.value = get_data(value, txn);
         atom.recency = recency;
-        cb_->on_keyvalue(atom);
+        cb_->on_keyvalue(atom, interruptor);
     }
 
     rdb_backfill_callback_t *cb_;
@@ -192,18 +292,12 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
     do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p, interruptor);
 }
 
-point_delete_response_t rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock) {
+point_delete_response_t rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp,
+                                   transaction_t *txn, superblock_t *superblock) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
     bool exists = kv_location.value.has();
-    if(exists) {
-        blob_t blob(kv_location.value->value_ref(), blob::btree_maxreflen);
-        blob.clear(txn);
-        kv_location.value.reset();
-        null_key_modification_callback_t<rdb_value_t> null_cb;
-        apply_keyvalue_change(txn, &kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
-    }
-
+    if (exists) kv_location_delete(&kv_location, key, slice, timestamp, txn);
     return point_delete_response_t(exists ? DELETED : MISSING);
 }
 
@@ -251,71 +345,83 @@ size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*js
 
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
-    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn, int max,
-                                              query_language::runtime_environment_t *_env,
+    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn, query_language::runtime_environment_t *_env,
                                               const rdb_protocol_details::transform_t &_transform,
                                               boost::optional<rdb_protocol_details::terminal_t> _terminal,
                                               const key_range_t &range)
-        : transaction(txn), maximum(max), cumulative_size(0),
+        : bad_init(false), transaction(txn), cumulative_size(0),
           env(_env), transform(_transform), terminal(_terminal)
     {
-        response.last_considered_key = range.left;
+        try {
+            response.last_considered_key = range.left;
 
-        if (terminal) {
-            boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result), *terminal);
+            if (terminal) {
+                boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result, env, terminal->scopes, terminal->backtrace), terminal->variant);
+            }
+        } catch (const query_language::runtime_exc_t &e) {
+            /* Evaluation threw so we're not going to be accepting any more requests. */
+            response.result = e;
+            bad_init = true;
         }
     }
+
     bool handle_pair(const btree_key_t* key, const void *value) {
-        store_key_t store_key(key);
-        if (response.last_considered_key < store_key) {
-            response.last_considered_key = store_key;
-        }
-
-        const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
-
-        json_list_t data;
-        data.push_back(get_data(rdb_value, transaction));
-
-        //Apply transforms to the data
-        typedef rdb_protocol_details::transform_t::iterator tit_t;
-        for (tit_t it  = transform.begin();
-                   it != transform.end();
-                   ++it) {
-            json_list_t tmp;
-
-            for (json_list_t::iterator jt  = data.begin();
-                                       jt != data.end();
-                                       ++jt) {
-                boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env), *it);
-            }
-            data.clear();
-            data.splice(data.begin(), tmp);
-        }
-
-        if (!terminal) {
-            typedef rget_read_response_t::stream_t stream_t;
-            stream_t *stream = boost::get<stream_t>(&response.result);
-            guarantee(stream);
-            for (json_list_t::iterator it =  data.begin();
-                                       it != data.end();
-                                       ++it) {
-                stream->push_back(std::make_pair(key, *it));
+        if (bad_init) return false;
+        try {
+            store_key_t store_key(key);
+            if (response.last_considered_key < store_key) {
+                response.last_considered_key = store_key;
             }
 
-            cumulative_size += estimate_rget_response_size(stream->back().second);
-            // TODO: If we have to cast stream->size(), why is maximum an int?
-            return static_cast<int>(stream->size()) < maximum && cumulative_size < rget_max_chunk_size;
-        } else {
-            for (json_list_t::iterator jt  = data.begin();
-                                       jt != data.end();
-                                       ++jt) {
-                boost::apply_visitor(query_language::terminal_visitor_t(*jt, env, &response.result), *terminal);
+            const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
+
+            json_list_t data;
+            data.push_back(get_data(rdb_value, transaction));
+
+            //Apply transforms to the data
+            typedef rdb_protocol_details::transform_t::iterator tit_t;
+            for (tit_t it  = transform.begin();
+                       it != transform.end();
+                       ++it) {
+                json_list_t tmp;
+
+                for (json_list_t::iterator jt  = data.begin();
+                                           jt != data.end();
+                                           ++jt) {
+                    boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env, it->scopes, it->backtrace), it->variant);
+                }
+                data.clear();
+                data.splice(data.begin(), tmp);
             }
-            return true;
+
+            if (!terminal) {
+                typedef rget_read_response_t::stream_t stream_t;
+                stream_t *stream = boost::get<stream_t>(&response.result);
+                guarantee(stream);
+                for (json_list_t::iterator it =  data.begin();
+                                           it != data.end();
+                                           ++it) {
+                    stream->push_back(std::make_pair(key, *it));
+                    cumulative_size += estimate_rget_response_size(*it);
+                }
+
+                return cumulative_size < rget_max_chunk_size;
+            } else {
+                for (json_list_t::iterator jt  = data.begin();
+                                           jt != data.end();
+                                           ++jt) {
+                    boost::apply_visitor(query_language::terminal_visitor_t(*jt, env, terminal->scopes, terminal->backtrace, &response.result), terminal->variant);
+                }
+                return true;
+            }
+        } catch(const query_language::runtime_exc_t &e) {
+            /* Evaluation threw so we're not going to be accepting any more requests. */
+            response.result = e;
+            return false;
         }
     }
+    bool bad_init;
     transaction_t *transaction;
-    int maximum;
     rget_read_response_t response;
     size_t cumulative_size;
     query_language::runtime_environment_t *env;
@@ -324,16 +430,42 @@ public:
 };
 
 rget_read_response_t rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-                                    int maximum, transaction_t *txn, superblock_t *superblock,
+                                    transaction_t *txn, superblock_t *superblock,
                                     query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
                                     boost::optional<rdb_protocol_details::terminal_t> terminal) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, maximum, env, transform, terminal, range);
+    rdb_rget_depth_first_traversal_callback_t callback(txn, env, transform, terminal, range);
     btree_depth_first_traversal(slice, txn, superblock, range, &callback);
+
     if (callback.cumulative_size >= rget_max_chunk_size) {
         callback.response.truncated = true;
     } else {
         callback.response.truncated = false;
     }
     return callback.response;
+}
+
+distribution_read_response_t rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key, 
+                                                 transaction_t *txn, superblock_t *superblock) {
+    int key_count_out;
+    std::vector<store_key_t> key_splits;
+    get_btree_key_distribution(slice, txn, superblock, max_depth, &key_count_out, &key_splits);
+
+    distribution_read_response_t res;
+
+    int keys_per_bucket;
+    if (key_splits.size() == 0) {
+        keys_per_bucket = key_count_out;
+    } else  {
+        keys_per_bucket = std::max(key_count_out / key_splits.size(), 1ul);
+    }
+    res.key_counts[left_key] = keys_per_bucket;
+
+    for (std::vector<store_key_t>::iterator it  = key_splits.begin();
+                                            it != key_splits.end();
+                                            ++it) {
+        res.key_counts[*it] = keys_per_bucket;
+    }
+
+    return res;
 }
 

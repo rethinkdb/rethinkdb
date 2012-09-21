@@ -29,8 +29,7 @@ public:
 
     multi_throttling_business_card_t<request_type, inner_client_business_card_type> get_business_card() {
         return multi_throttling_business_card_t<request_type, inner_client_business_card_type>(
-            registrar.get_business_card()
-            );
+            registrar.get_business_card());
     }
 
 private:
@@ -65,11 +64,8 @@ private:
                 mailbox_callback_mode_inline))
         {
             send(parent->mailbox_manager, client_bc.intro_addr,
-                server_business_card_t(
-                    request_mailbox->get_address(),
-                    relinquish_tickets_mailbox->get_address()
-                    )
-                );
+                 server_business_card_t(request_mailbox->get_address(),
+                                        relinquish_tickets_mailbox->get_address()));
             parent->clients.push_back(this);
             parent->recompute_allocations();
         }
@@ -90,8 +86,7 @@ private:
             coro_t::spawn_sometime(boost::bind(
                 &client_t::give_tickets_blocking, this,
                 tickets,
-                auto_drainer_t::lock_t(drainer.get())
-                ));
+                auto_drainer_t::lock_t(drainer.get())));
         }
 
         void set_target_tickets(int new_target) {
@@ -99,8 +94,7 @@ private:
                 coro_t::spawn_sometime(boost::bind(
                     &client_t::reclaim_tickets_blocking, this,
                     target_tickets - new_target,
-                    auto_drainer_t::lock_t(drainer.get())
-                    ));
+                    auto_drainer_t::lock_t(drainer.get())));
             }
             target_tickets = new_target;
         }
@@ -127,8 +121,7 @@ private:
             coro_t::spawn_sometime(boost::bind(
                 &client_t::perform_request, this,
                 request,
-                auto_drainer_t::lock_t(drainer.get())
-                ));
+                auto_drainer_t::lock_t(drainer.get())));
         }
 
         void perform_request(const request_type &request, auto_drainer_t::lock_t keepalive) {
@@ -208,10 +201,8 @@ private:
         for (client_t *c = clients.head(); c; c = clients.next(c)) {
             /* This math isn't exact, but it's OK if the target tickets of all
             the clients don't add up to `total_tickets`. */
-            c->set_target_tickets(
-                fair_tickets / clients.size() +
-                qps_tickets * c->estimate_qps() / total_qps
-                );
+            c->set_target_tickets(fair_tickets / clients.size() +
+                                  qps_tickets * c->estimate_qps() / total_qps);
         }
         redistribute_tickets();
     }
@@ -225,11 +216,14 @@ private:
     void redistribute_tickets() {
         static const int chunk_size = 100;
         static const int min_reasonable_tickets = 10;
+        client_t *neediest;
+        int gift_size;
+
+        /* First, look for a client with a critically low number of tickets.
+           They get priority in tickets. This prevents starvation. */
         while (free_tickets > 0) {
-            client_t *neediest = NULL;
-            int gift_size = -1;
-            /* First, look for a client with a critically low number of tickets.
-            They get priority in tickets. This prevents starvation. */
+            gift_size = -1;
+            neediest = NULL;
             for (client_t *c = clients.head(); c; c = clients.next(c)) {
                 if (c->get_current_tickets() < min_reasonable_tickets && c->get_current_tickets() < c->get_target_tickets()) {
                     if (!neediest || c->get_current_tickets() < neediest->get_current_tickets()) {
@@ -238,20 +232,30 @@ private:
                     }
                 }
             }
-            if (!neediest && free_tickets > chunk_size) {
-                /* No clients are starving, so look for clients with a large
-                difference between their target number of tickets and their
-                current number of tickets. But if the difference is less than
-                `chunk_size`, don't send any tickets at all to avoid flooding
-                the network with many small ticket updates. */
-                for (client_t *c = clients.head(); c; c = clients.next(c)) {
-                    int need_size = c->get_target_tickets() - c->get_current_tickets();
-                    if (need_size > chunk_size && (!neediest || need_size > neediest->get_target_tickets() - neediest->get_current_tickets())) {
-                        neediest = c;
-                        gift_size = chunk_size;
-                    }
+
+            if (!neediest) {
+                break;
+            }
+            rassert(gift_size >= 0);
+            free_tickets -= gift_size;
+            neediest->give_tickets(gift_size);
+        }
+
+        /* Next, look for clients with a large difference between their target
+           number of tickets and their current number of tickets. But if the 
+           difference is less than `chunk_size`, don't send any tickets at all
+           to avoid flooding the network with many small ticket updates. */
+        while (free_tickets > chunk_size) {
+            gift_size = -1;
+            neediest = NULL;
+            for (client_t *c = clients.head(); c; c = clients.next(c)) {
+                int need_size = c->get_target_tickets() - c->get_current_tickets();
+                if (need_size > chunk_size && (!neediest || need_size > neediest->get_target_tickets() - neediest->get_current_tickets())) {
+                    neediest = c;
+                    gift_size = chunk_size;
                 }
             }
+
             if (!neediest) {
                 break;
             }

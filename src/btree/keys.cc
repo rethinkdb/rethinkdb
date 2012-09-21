@@ -33,7 +33,7 @@ std::string key_to_debug_str(const store_key_t &key) {
 }
 
 key_range_t::key_range_t() :
-    left(""), right(store_key_t("")) { }
+    left(), right(store_key_t()) { }
 
 key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const store_key_t& r) {
     switch (lm) {
@@ -45,13 +45,14 @@ key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const sto
             if (left.increment()) {
                 break;
             } else {
+                rassert(rm == none);
                 /* Our left bound is the largest possible key, and we are open
                 on the left-hand side. So we are empty. */
                 *this = key_range_t::empty();
                 return;
             }
         case none:
-            left = store_key_t("");
+            left = store_key_t();
             break;
         default:
             unreachable();
@@ -80,6 +81,8 @@ key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const sto
         default:
             unreachable();
     }
+
+    rassert(right.unbounded || left <= right.key, "left_key=%.*s, right_key=%.*s", left.size(), left.contents(), right.key.size(), right.key.contents());
 }
 
 bool key_range_t::is_superset(const key_range_t &other) const {

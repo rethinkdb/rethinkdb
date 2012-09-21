@@ -87,16 +87,18 @@ private:
 
 /* Order sources create order tokens with increasing values for a
    specific bucket. */
-class order_source_t : public home_thread_mixin_t {
+class order_source_t : public home_thread_mixin_debug_only_t {
 public:
 #ifndef NDEBUG
     order_source_t();
+    explicit order_source_t(int specified_home_thread);
     ~order_source_t();
 
     // Makes a write-mode order token.
     order_token_t check_in(const std::string& tag);
 #else
     order_source_t() { }
+    explicit order_source_t(int specified_home_thread) : home_thread_mixin_debug_only_t(specified_home_thread) { }
     ~order_source_t() { }
 
     order_token_t check_in(const std::string&) { return order_token_t(); }
@@ -120,7 +122,7 @@ struct tagged_seen_t {
 
 /* Eventually order tokens get to an order sink, and those of the same
    bucket had better arrive in the right order. */
-class order_sink_t : public home_thread_mixin_t {
+class order_sink_t : public home_thread_mixin_debug_only_t {
 public:
 #ifndef NDEBUG
     order_sink_t();
@@ -154,7 +156,7 @@ private:
 // there's one bucket there's no point in instantiating a `std::map`.
 // TODO: Is a `std::map` of one item really expensive enough to justify
 // having a separate type?
-class plain_sink_t : public home_thread_mixin_t {
+class plain_sink_t : public home_thread_mixin_debug_only_t {
 public:
 #ifndef NDEBUG
     plain_sink_t();
@@ -182,7 +184,7 @@ private:
 
 
 // `order_checkpoint_t` is an `order_sink_t` plus an `order_source_t`.
-class order_checkpoint_t : public home_thread_mixin_t {
+class order_checkpoint_t : public home_thread_mixin_debug_only_t {
 public:
     order_checkpoint_t() { }
 #ifndef NDEBUG

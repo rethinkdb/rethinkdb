@@ -28,7 +28,7 @@ uint64_t hash_region_hasher(const uint8_t *s, ssize_t len);
 // coordinates being a range of hash values.  This doesn't really
 // change _much_ about our perspective of regions, but one thing in
 // particular is that every multistore should have a
-// get_multistore_joined_region return value with .beg == 0, .end ==
+// get_region return value with .beg == 0, .end ==
 // HASH_REGION_HASH_SIZE.
 template <class inner_region_t>
 class hash_region_t {
@@ -130,6 +130,11 @@ template <class inner_region_t>
 bool region_overlaps(const hash_region_t<inner_region_t> &r1, const hash_region_t<inner_region_t> &r2) {
     return r1.beg < r2.end && r2.beg < r1.end
 	&& region_overlaps(r1.inner, r2.inner);
+}
+
+template <class inner_region_t>
+hash_region_t<inner_region_t> drop_cpu_sharding(const hash_region_t<inner_region_t> &r) {
+    return hash_region_t<inner_region_t>(0, HASH_REGION_HASH_SIZE, r.inner);
 }
 
 template <class inner_region_t>

@@ -20,14 +20,15 @@ public:
     bool contains(int64_t key);
     void insert(ReadQuery *r, int64_t key, boost::shared_ptr<query_language::json_stream_t> val);
     void erase(int64_t key);
-    bool serve(int64_t key, Response *res);
+    bool serve(int64_t key, Response *res, signal_t *interruptor);
 private:
     void maybe_evict();
 
     struct entry_t {
         static const int DEFAULT_MAX_CHUNK_SIZE = 1000; // 0 = unbounded
         static const time_t DEFAULT_MAX_AGE = 0; // 0 = never evict
-        entry_t(time_t _last_activity, boost::shared_ptr<query_language::json_stream_t> _stream,
+        entry_t(time_t _last_activity,
+                boost::shared_ptr<query_language::json_stream_t> _stream,
                 ReadQuery *r);
         time_t last_activity;
         boost::shared_ptr<query_language::json_stream_t> stream;

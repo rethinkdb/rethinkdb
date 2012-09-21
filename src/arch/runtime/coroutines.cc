@@ -23,7 +23,7 @@ static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
 static perfmon_multi_membership_t pm_coroutines_membership(&get_global_perfmon_collection(),
     &pm_active_coroutines, "active_coroutines",
     &pm_allocated_coroutines, "allocated_coroutines",
-    NULL);
+    NULLPTR);
 
 size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-line parameter
 
@@ -212,13 +212,11 @@ void coro_t::wait() {   /* class method */
     rassertf(self(), "Not in a coroutine context");
     rassertf(cglobals->assert_finite_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
-        cglobals->finite_waiting_call_sites.top().first.c_str(), cglobals->finite_waiting_call_sites.top().second
-        );
+        cglobals->finite_waiting_call_sites.top().first.c_str(), cglobals->finite_waiting_call_sites.top().second);
 
     rassertf(cglobals->assert_no_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
-        cglobals->no_waiting_call_sites.top().first.c_str(), cglobals->no_waiting_call_sites.top().second
-        );
+        cglobals->no_waiting_call_sites.top().first.c_str(), cglobals->no_waiting_call_sites.top().second);
 
     rassert(!self()->waiting_);
     self()->waiting_ = true;

@@ -19,8 +19,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 
     /* Pick shards */
     std::vector<rdb_protocol_t::region_t> shards;
-    shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::none,   store_key_t(""),  key_range_t::open, store_key_t("n"))));
-    shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") )));
+    shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::none,   store_key_t(),  key_range_t::open, store_key_t("n"))));
+    shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t() )));
 
     boost::ptr_vector<mock::temp_file_t> temp_files;
     for (size_t i = 0; i < shards.size(); ++i) {
@@ -34,7 +34,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     rdb_protocol_t::context_t ctx;
 
     for (size_t i = 0; i < shards.size(); ++i) {
-        underlying_stores.push_back(new rdb_protocol_t::store_t(io_backender.get(), temp_files[i].name(), true, &get_global_perfmon_collection(), &ctx));
+        underlying_stores.push_back(new rdb_protocol_t::store_t(io_backender.get(), temp_files[i].name(), GIGABYTE, true, &get_global_perfmon_collection(), &ctx));
     }
 
     boost::ptr_vector<store_view_t<rdb_protocol_t> > stores;

@@ -5,6 +5,7 @@ import time
 
 tests = [
     'add-a-namespace',
+    'add-a-datacenter',
     'view-dashboard',
 ]
 
@@ -68,7 +69,7 @@ for test_name in test_list:
 
     # If the option to scrape images was specified, add it to the casperjs argument list
     if args.image_output_directory:
-        image_dir = os.path.abspath(os.path.join(args.image_output_directory,test_name))
+        image_dir = os.path.abspath(args.image_output_directory)
         cl.extend(['--images='+image_dir])
 
     # Execute casperjs and pretty-print its output
@@ -80,8 +81,8 @@ for test_name in test_list:
 
     # If the option to save results was specified, save stdout to a file
     if args.result_output_directory:
-        result_dir = os.path.abspath(os.path.join(args.result_output_directory,test_name))
-        result_filename = 'casper-result'
+        result_dir = os.path.abspath(args.result_output_directory)
+        result_filename = "casper-result_%s" % test_name
         result_file = open(os.path.join(result_dir,result_filename),'w')
         for line in stdout:
             result_file.write(line)

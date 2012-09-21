@@ -3,6 +3,7 @@
 
 #include "concurrency/pubsub.hpp"
 #include "rpc/connectivity/connectivity.hpp"
+#include "utils.hpp"
 
 class sync_failed_exc_t : public std::exception {
 public:
@@ -25,7 +26,7 @@ Also, use the same locking scheme as `directory_*_view_t`, where you have to
 hold the lock in order to subscribe. */
 
 template<class metadata_t>
-class semilattice_read_view_t {
+class semilattice_read_view_t : public home_thread_mixin_t {
 
 public:
     virtual metadata_t get() = 0;

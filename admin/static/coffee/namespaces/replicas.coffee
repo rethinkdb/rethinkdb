@@ -38,13 +38,13 @@ module 'NamespaceView', ->
                 primary_uuid: new_dc.get('id')
                 replica_affinities: new_affinities
             modal.render("Are you sure you want to make datacenter " + new_dc.get('name') + " primary?",
-                "/ajax/semilattice/memcached_namespaces/" + @model.get('id'),
+                "/ajax/semilattice/rdb_namespaces/" + @model.get('id'),
                 JSON.stringify(data),
                 (response) =>
                     clear_modals()
                     diff = {}
                     diff[@model.get('id')] = response
-                    apply_to_collection(namespaces, add_protocol_tag(diff, "memcached"))
+                    apply_to_collection(namespaces, add_protocol_tag(diff, "rdb"))
                     # Grab the latest view of things
                     $('#user-alert-space').html(@alert_tmpl
                         namespace_uuid: @model.get('id')
@@ -99,7 +99,7 @@ module 'NamespaceView', ->
 
             @.$el.html @template(json)
 
-
+            #TODO Put these events in the event object...
             # Bind action for primary datacenter
             @.$('#edit-primary').on 'click', (e) =>
                 @modify_replicas(e, datacenters.get(@model.get('primary_uuid')))
@@ -195,6 +195,10 @@ module 'NamespaceView', ->
                 nacks_input = formdata.num_acks
             if DataUtils.is_integer(formdata.num_acks) is false
                 msg_error.push('The number of acks must be an integer.')
+                nreplicas_input = formdata.num_replicas
+                nacks_input = formdata.num_acks
+            if formdata.num_acks is "0"
+                msg_error.push('The number of acks must be greater than 0')
                 nreplicas_input = formdata.num_replicas
                 nacks_input = formdata.num_acks
             if msg_error.length isnt 0

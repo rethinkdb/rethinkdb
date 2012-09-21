@@ -79,10 +79,12 @@ public:
                 inner_client_business_card,
                 intro_mailbox.get_address(),
                 give_tickets_mailbox.get_address(),
-                reclaim_tickets_mailbox.get_address()
-                )
-            ));
-        wait_interruptible(intro_promise.get_ready_signal(), interruptor);
+                reclaim_tickets_mailbox.get_address())));
+        wait_any_t waiter(intro_promise.get_ready_signal(), registrant->get_failed_signal(), interruptor);
+        waiter.wait();
+        if (registrant->get_failed_signal()->is_pulsed()) {
+            throw resource_lost_exc_t();
+        }
         request_addr = intro_promise.get_value().request_addr;
         relinquish_tickets_addr = intro_promise.get_value().relinquish_tickets_addr;
     }
@@ -129,8 +131,7 @@ private:
             coro_t::spawn_sometime(boost::bind(
                 &multi_throttling_client_t<request_type, inner_client_business_card_type>::relinquish_tickets_blocking, this,
                 to_relinquish,
-                auto_drainer_t::lock_t(&drainer)
-                ));
+                auto_drainer_t::lock_t(&drainer)));
         }
     }
 

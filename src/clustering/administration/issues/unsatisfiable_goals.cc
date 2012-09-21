@@ -56,11 +56,11 @@ static bool is_satisfiable(
 }
 
 template<class protocol_t>
-static void make_issues(const namespaces_semilattice_metadata_t<protocol_t> &namespaces,
+static void make_issues(const cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > &namespaces,
         const std::map<datacenter_id_t, int> &actual_machines_in_datacenters,
         std::list<clone_ptr_t<global_issue_t> > *issues_out) {
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it = namespaces.namespaces.begin();
-            it != namespaces.namespaces.end(); it++) {
+    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it = namespaces->namespaces.begin();
+            it != namespaces->namespaces.end(); it++) {
         if (it->second.is_deleted()) {
             continue;
         }
@@ -70,8 +70,7 @@ static void make_issues(const namespaces_semilattice_metadata_t<protocol_t> &nam
         }
         if (!is_satisfiable(ns.primary_datacenter.get(), ns.replica_affinities.get(), actual_machines_in_datacenters)) {
             issues_out->push_back(clone_ptr_t<global_issue_t>(
-                new unsatisfiable_goals_issue_t(it->first, ns.primary_datacenter.get(), ns.replica_affinities.get(), actual_machines_in_datacenters)
-                ));
+                new unsatisfiable_goals_issue_t(it->first, ns.primary_datacenter.get(), ns.replica_affinities.get(), actual_machines_in_datacenters)));
         }
     }
 }
@@ -98,6 +97,7 @@ std::list<clone_ptr_t<global_issue_t> > unsatisfiable_goals_issue_tracker_t::get
     }
 
     std::list<clone_ptr_t<global_issue_t> > issues;
+    make_issues(metadata.rdb_namespaces, actual_machines_in_datacenters, &issues);
     make_issues(metadata.dummy_namespaces, actual_machines_in_datacenters, &issues);
     make_issues(metadata.memcached_namespaces, actual_machines_in_datacenters, &issues);
     return issues;

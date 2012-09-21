@@ -21,15 +21,14 @@ static void run_missing_master_test() {
     mock::simple_mailbox_cluster_t cluster;
 
     /* Set up a reactor directory with no reactors in it */
-    std::map<peer_id_t, reactor_business_card_t<dummy_protocol_t> > empty_reactor_directory;
-    watchable_variable_t<std::map<peer_id_t, reactor_business_card_t<dummy_protocol_t> > > reactor_directory(empty_reactor_directory);
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<dummy_protocol_t> > > empty_reactor_directory;
+    watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<dummy_protocol_t> > > > reactor_directory(empty_reactor_directory);
 
     /* Set up a namespace dispatcher */
     cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(
         cluster.get_mailbox_manager(),
         reactor_directory.get_watchable(),
-        NULL //<-- this should be a valid context by passing null we're assuming this unit test doesn't do anything complicated enough to need it
-        );
+        NULL); //<-- this should be a valid context by passing null we're assuming this unit test doesn't do anything complicated enough to need it
     namespace_interface.get_initial_ready_signal()->wait_lazily_unordered();
 
     order_source_t order_source;

@@ -19,6 +19,8 @@
 #include "clustering/administration/last_seen_tracker.hpp"
 #include "clustering/administration/metadata.hpp"
 
+template <class> class watchable_t;
+
 struct admin_tracker_t {
     admin_tracker_t(
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view,

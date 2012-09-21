@@ -12,6 +12,8 @@ module 'ServerView', ->
         # Use a datacenter-specific template for the datacenter list
         className: 'datacenters_list-container'
         template: Handlebars.compile $('#server_list-template').html()
+        cannot_change_datacenter_alert_template: Handlebars.compile $('#cannot_change_datacenter-alert-template').html()
+        alert_message_template: Handlebars.compile $('#alert_message-template').html()
 
         # Extend the generic list events
         events:
@@ -19,7 +21,7 @@ module 'ServerView', ->
             'click a.btn.set-datacenter': 'set_datacenter'
             'click .close': 'remove_parent_alert'
 
-        initialize: ->
+        initialize: =>
             @add_datacenter_dialog = new ServerView.AddDatacenterModal
             @set_datacenter_dialog = new ServerView.SetDatacenterModal
 
@@ -29,10 +31,14 @@ module 'ServerView', ->
             super datacenters, ServerView.DatacenterListElement, 'div.datacenters'
 
 
-        render: =>
+        render: (message) =>
             super
             @.$('.unassigned-machines').html @unassigned_machines.render().el
             @update_toolbar_buttons()
+
+            if message?
+                @.$('#user-alert-space').append @alert_message_template
+                    message: message
 
             return @
 
@@ -78,11 +84,71 @@ module 'ServerView', ->
         update_toolbar_buttons: =>
             # We need to check which machines have been checked off to decide which buttons to enable/disable
             $set_datacenter_button = @.$('.actions-bar a.btn.set-datacenter')
-            $set_datacenter_button.toggleClass 'disabled', @get_selected_machines().length < 1
+            $set_datacenter_button.toggleClass 'disabled', @check_can_change_datacenter()
+            #$set_datacenter_button.toggleClass 'disabled', @get_selected_machines().length < 1
+
+        check_can_change_datacenter: =>
+            selected_machines = @get_selected_machines()
+            reason_unmovable_machines = {}
+            for machine in selected_machines
+                for namespace in namespaces.models
+                    for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
+                        if machine_uuid is machine.get 'id'
+                            for shard, role of peer_roles
+                                if role is 'role_primary'
+                                    if not (machine.get('id') of reason_unmovable_machines)
+                                        reason_unmovable_machines[machine_uuid] = {}
+                                        reason_unmovable_machines[machine_uuid]['master'] = []
+                                    reason_unmovable_machines[machine_uuid]['master'].push
+                                        namespace_id: namespace.get 'id'
+                                    break
+
+
+            for selected_machine in selected_machines
+                num_machines_in_datacenter = 0
+                for machine in machines.models
+                    if machine.get('datacenter_uuid') is selected_machine.get('datacenter_uuid')
+                        num_machines_in_datacenter++
+
+                for namespace in namespaces.models
+                    if selected_machine.get('datacenter_uuid') of namespace.get('replica_affinities') # If the datacenter has responsabilities
+                        num_replica = namespace.get('replica_affinities')[selected_machine.get('datacenter_uuid')]
+                        if namespace.get('primary_uuid') is selected_machine.get('datacenter_uuid')
+                            num_replica++
+                        if num_machines_in_datacenter <= num_replica
+                            if not (selected_machine.get('id') of reason_unmovable_machines)
+                                reason_unmovable_machines[selected_machine.get('id')] = []
+                                reason_unmovable_machines[selected_machine.get('id')]['goals'] = []
+                            else if not ('goals' of reason_unmovable_machines[selected_machine.get('id')])
+                                reason_unmovable_machines[selected_machine.get('id')]['goals'] = []
+
+                            reason_unmovable_machines[selected_machine.get('id')]['goals'].push
+                                namespace_id: namespace.get 'id'
+
+            num_not_movable_machines = 0
+            for machine_id of reason_unmovable_machines
+                num_not_movable_machines++
+            
+            if num_not_movable_machines > 0
+                if @.$('#reason_cannot_change_datacenter').length > 0
+                    @.$('#reason_cannot_change_datacenter').remove()
+                    @.$('#user-alert-space-set_datacenter').prepend @cannot_change_datacenter_alert_template
+                        reasons: reason_unmovable_machines
+                    @.$('#reason_cannot_change_datacenter').css 'display', 'block'
+                else
+                    @.$('#user-alert-space-set_datacenter').prepend @cannot_change_datacenter_alert_template
+                        reasons: reason_unmovable_machines
+                    @.$('#reason_cannot_change_datacenter').slideDown 200
+            else
+                if @.$('#reason_cannot_change_datacenter').length > 0
+                    @.$('#reason_cannot_change_datacenter').slideUp 200, -> $(this).remove()
+ 
+            return num_not_movable_machines>0 or selected_machines.length is 0
 
         destroy: =>
             super()
             @unassigned_machines.destroy()
+
 
     class @MachineList extends UIComponents.AbstractList
         # Use a machine-specific template for the machine list
@@ -90,19 +156,24 @@ module 'ServerView', ->
         template: Handlebars.compile $('#machine_list-template').html()
 
         initialize: (datacenter_uuid) ->
+            @datacenter_uuid = datacenter_uuid
             @callbacks = []
             super machines, ServerView.MachineListElement, 'tbody.list',
-                filter: (model) -> model.get('datacenter_uuid') is datacenter_uuid
+                {
+                filter: (model) -> model.get('datacenter_uuid') is @datacenter_uuid
+                }
+                , 'machine', 'datacenter'
 
-            machines.on 'change:datacenter_uuid', (machine, new_datacenter_uuid) =>
-                num_elements_removed = @remove_elements machine
-                @render() if num_elements_removed > 0
-
-                if new_datacenter_uuid is datacenter_uuid
-                    @add_element machine
-                    @render()
-
+            machines.on 'change:datacenter_uuid', @changed_datacenter
             return @
+
+        changed_datacenter: (machine, new_datacenter_uuid) =>
+            num_elements_removed = @remove_elements machine
+            @render() if num_elements_removed > 0
+
+            if new_datacenter_uuid is @datacenter_uuid
+                @add_element machine
+                @render()
 
 
         add_element: (element) =>
@@ -115,11 +186,14 @@ module 'ServerView', ->
             @bind_callbacks_to_machine machine_list_element for machine_list_element in @element_views
 
         bind_callbacks_to_machine: (machine_list_element) =>
-            machine_list_element.off 'selected'
-            machine_list_element.on 'selected', => callback() for callback in @callbacks
+            machine_list_element.off 'selected', @call_all_callback
+            machine_list_element.on 'selected', @call_all_callback
+
+        call_all_callback: =>
+            callback() for callback in @callbacks
 
         destroy: ->
-            machines.off()
+            machines.off 'change:datacenter_uuid', @changed_datacenter
 
 
     # Machine list element
@@ -153,7 +227,6 @@ module 'ServerView', ->
                 @history.traffic_recv.push 0
 
             @model.on 'change:name', @render_summary
-            #TODO change callback so we don't refresh the whole element but just the status
             directory.on 'all', @render_summary
 
             # Load abstract list element view with the machine template
@@ -169,7 +242,6 @@ module 'ServerView', ->
         render_summary: =>
             json = _.extend @model.toJSON(),
                 status: DataUtils.get_machine_reachability(@model.get('id'))
-                ip: 'TBD' #TODO
                 primary_count: 0
                 secondary_count: 0
 
@@ -192,146 +264,10 @@ module 'ServerView', ->
 
             if not @model.get('datacenter_uuid')?
                 json.unassigned_machine = true
-            # Stats
-            # Compute main traffic
-            total_traffic =
-                recv: 0
-                sent: 0
-
-            total_data = 0
-
-            max_traffic =
-                recv: 0
-                sent: 0
-
-            num_machine_in_datacenter = 0
-            all_machine_in_datacenter_ready = true
-
-            for machine in machines.models
-                if machine.get('datacenter_uuid') is @model.get('datacenter_uuid')
-                    if machine.get_stats().proc.global_net_recv_persec?
-                        num_machine_in_datacenter++
-
-                        new_traffic_recv = parseFloat machine.get_stats().proc.global_net_recv_persec.avg
-                        total_traffic.recv += new_traffic_recv
-                        if !isNaN(new_traffic_recv) and new_traffic_recv > max_traffic.recv
-                            max_traffic.recv = new_traffic_recv
-
-                        new_traffic_sent = parseFloat machine.get_stats().proc.global_net_sent_persec.avg
-                        total_traffic.sent += new_traffic_sent
-                        if !isNaN(new_traffic_sent) and new_traffic_sent > max_traffic.sent
-                            max_traffic.sent = new_traffic_sent
-
-                        total_data += parseFloat machine.get_used_disk_space()
-                    else
-                        all_machine_in_datacenter_ready = false
-
-            # Generate data for bars and popover
-            # TODO Clean this data if we definitively remove sparklines/bars
-            if @model.get_stats().proc.global_cpu_util?
-                json = _.extend json,
-                    # TODO: add a helper to upgrade/downgrade units dynamically depending on the values
-                    global_cpu_util: Math.floor(@model.get_stats().proc.global_cpu_util.avg * 100)
-                    mem_used: human_readable_units(@model.get_stats().proc.global_mem_used*1024, units_space)
-                    mem_available: human_readable_units(@model.get_stats().proc.global_mem_total*1024, units_space)
-                    global_net_sent: human_readable_units(@model.get_stats().proc.global_net_sent_persec.avg, units_space)
-                    global_total_net_sent: human_readable_units(total_traffic.sent, units_space)
-                    global_net_recv: human_readable_units(@model.get_stats().proc.global_net_recv_persec.avg, units_space)
-                    global_total_net_recv: human_readable_units(total_traffic.recv, units_space)
-                    machine_disk_space: human_readable_units(@model.get_used_disk_space(), units_space)
-                    total_data: human_readable_units(total_data, units_space)
-                    machine_disk_available: human_readable_units(@model.get_used_disk_space()*3, units_space) #TODO replace with real value
-                # Test if a problem exist
-
-                if @model.get_stats().proc.global_mem_total isnt 0
-                    json.mem_used_percent = Math.floor @model.get_stats().proc.global_mem_used/@model.get_stats().proc.global_mem_total*100
-                    json.mem_used_has_problem = true if json.mem_used_percent > @threshold_alert
-                else
-                    json.mem_used_percent = 0
-
-                if total_data isnt 0 and all_machine_in_datacenter_ready
-                    json.machine_data_percent = Math.floor @model.get_used_disk_space()/total_data*100
-                    json.machine_data_has_problem = true if (json.machine_data_percent > @threshold_alert) and num_machine_in_datacenter>1 and @model.get_used_disk_space() isnt 0
-                else
-                    json.machine_data_percent = 0
-
-                if json.machine_disk_available isnt 0
-                    json.machine_disk_percent = Math.floor @model.get_used_disk_space()/(@model.get_used_disk_space()*3)*100 #TODO replace with real values
-                    json.machine_disk_has_problem = true if (json.machine_disk_data_percent>@threshold_alert) and @model.get_used_disk_space() isnt 0
-                else
-                    json.machine_disk_percent = 0
-            else
-                json = _.extend json,
-                    # TODO: add a helper to upgrade/downgrade units dynamically depending on the values
-                    global_cpu_util: 'NA'
-                    mem_used: 'NA'
-                    mem_available: 'NA'
-                    global_net_sent: 'NA'
-                    global_total_net_sent: 'NA'
-                    global_net_recv: 'NA'
-                    global_total_net_recv: 'NA'
-                    machine_disk_space: 'NA'
-                    total_data: 'NA'
-                    machine_disk_available: 'NA'
 
             # Displays bars and text in the popover
             @.$('.machine.summary').html @summary_template json
 
-            ###
-            # Sparklines
-            if @model.get_stats().proc.global_cpu_util?
-                # Update data for the sparklines
-                if !isNaN(json.global_cpu_util)
-                    @history.cpu.shift()
-                    @history.cpu.push json.global_cpu_util
-
-                global_net_sent_percentage = parseInt(@model.get_stats().proc.global_net_sent_persec.avg)
-                if !isNaN(global_net_sent_percentage)
-                    @history.traffic_sent.shift()
-                    @history.traffic_sent.push global_net_sent_percentage
-
-                global_net_recv_percentage = parseInt(@model.get_stats().proc.global_net_recv_persec.avg)
-                if !isNaN(global_net_recv_percentage)
-                    @history.traffic_recv.shift()
-                    @history.traffic_recv.push global_net_recv_percentage
-
-
-                sparkline_attr =
-                    fillColor: false
-                    spotColor: false
-                    minSpotColor: false
-                    maxSpotColor: false
-                    chartRangeMin: 0
-                    width: '75px'
-                    height: '15px'
-
-                # Add some parameters for the CPU sparkline and display it
-                sparkline_attr_cpu =
-                    chartRangeMax: 100
-                if json.global_cpu_util > @threshold_alert
-                    sparkline_attr_cpu.lineColor = 'red'
-                _.extend sparkline_attr_cpu, sparkline_attr
-                @.$('.cpu_sparkline').sparkline @history.cpu, sparkline_attr_cpu
-
-                 # Add some parameters for the traffic sent sparkline and display it
-                sparkline_attr_traffic_sent =
-                    chartRangeMax: human_readable_units(max_traffic.sent, units_space)
-                if total_traffic.sent isnt 0 and num_machine_in_datacenter>1 and @model.get_stats().proc.global_net_sent_persec_avg/total_traffic.sent*100>@threshold_alert
-                    sparkline_attr_traffic_sent.lineColor = 'red'
-                _.extend sparkline_attr_traffic_sent, sparkline_attr
-                @.$('.traffic_sent_sparkline').sparkline @history.traffic_sent, sparkline_attr_traffic_sent
-
-
-
-                # Add some parameters for the traffic recv sparkline and display it
-                sparkline_attr_traffic_recv =
-                    chartRangeMax: human_readable_units(max_traffic.recv, units_space)
-                if total_traffic.sent isnt 0 and num_machine_in_datacenter>1 and @model.get_stats().proc.global_net_recv_persec_avg/total_traffic.recv*100>@threshold_alert
-                    sparkline_attr_traffic_sent.lineColor = 'red'
-                _.extend sparkline_attr_traffic_recv, sparkline_attr
-                @.$('.traffic_recv_sparkline').sparkline @history.traffic_recv, sparkline_attr_traffic_recv
-            ###
-    
             @.delegateEvents()
 
         rename_machine: (event) ->
@@ -343,8 +279,8 @@ module 'ServerView', ->
             $(event.currentTarget).tooltip('show')
 
         destroy: =>
-            @model.off()
-            directory.off()
+            @model.off 'change:name', @render_summary
+            directory.off 'all', @render_summary
 
     # Datacenter list element
     class @DatacenterListElement extends UIComponents.CollapsibleListElement
@@ -410,7 +346,7 @@ module 'ServerView', ->
             _namespaces = []
             for namespace in namespaces.models
                 for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
-                    if machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
+                    if machines.get(machine_uuid)?.get('datacenter_uuid') and machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
                         machine_active_for_namespace = false
                         for shard, role of peer_role
                             if role is 'role_primary'
@@ -442,9 +378,9 @@ module 'ServerView', ->
             @machine_list.register_machine_callbacks callbacks
 
         destroy: ->
-            @model.off()
-            directory.off()
-            @machine_list.off()
+            @model.off 'change', @render_summary
+            directory.off 'all', @render_summary
+            @machine_list.off 'size_changed', @ml_size_changed
 
     # Equivalent of a DatacenterListElement, but for machines that haven't been assigned to a datacenter yet.
     class @UnassignedMachinesListElement extends UIComponents.CollapsibleListElement
@@ -494,8 +430,8 @@ module 'ServerView', ->
             @machine_list.register_machine_callbacks callbacks
 
         destroy: =>
-            machines.off()
-            @machine_list.off()
+            machines.off 'add', (machine) => @render() if machine.get('datacenter_uuid') is null
+            @machine_list.off 'size_changed', @ml_size_changed
 
     class @AddDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#add_datacenter-modal-template').html()
@@ -608,6 +544,7 @@ module 'ServerView', ->
 
     class @SetDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#set_datacenter-modal-template').html()
+        cannot_change_datacenter_alert_template: Handlebars.compile $('#cannot_change_datacenter-alert_content-template').html()
         alert_tmpl: Handlebars.compile $('#set_datacenter-alert-template').html()
         class: 'set-datacenter-modal'
 
@@ -631,6 +568,10 @@ module 'ServerView', ->
             for _m in @machines_list
                 json[_m.get('id')] =
                     datacenter_uuid: @formdata.datacenter_uuid
+            
+            if @can_change_datacenter() is false
+                @reset_buttons()   
+                return @
 
             # Set the datacenters!
             $.ajax
@@ -656,4 +597,53 @@ module 'ServerView', ->
                 machine_count: @machines_list.length
             )
 
-        #TODO Handle error
+        can_change_datacenter: =>
+            selected_machines = @machines_list
+            reason_unmovable_machines = {}
+            for machine in selected_machines
+                for namespace in namespaces.models
+                    for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
+                        if machine_uuid is machine.get 'id'
+                            for shard, role of peer_roles
+                                if role is 'role_primary'
+                                    if not (machine.get('id') of reason_unmovable_machines)
+                                        reason_unmovable_machines[machine_uuid] = {}
+                                        reason_unmovable_machines[machine_uuid]['master'] = []
+                                    reason_unmovable_machines[machine_uuid]['master'].push
+                                        namespace_id: namespace.get 'id'
+                                    break
+
+
+            for selected_machine in selected_machines
+                num_machines_in_datacenter = 0
+                for machine in machines.models
+                    if machine.get('datacenter_uuid') is selected_machine.get('datacenter_uuid')
+                        num_machines_in_datacenter++
+
+                for namespace in namespaces.models
+                    if selected_machine.get('datacenter_uuid') of namespace.get('replica_affinities') # If the datacenter has responsabilities
+                        num_replica = namespace.get('replica_affinities')[selected_machine.get('datacenter_uuid')]
+                        if namespace.get('primary_uuid') is selected_machine.get('datacenter_uuid')
+                            num_replica++
+                        if num_machines_in_datacenter <= num_replica
+                            if not (selected_machine.get('id') of reason_unmovable_machines)
+                                reason_unmovable_machines[selected_machine.get('id')] = []
+                                reason_unmovable_machines[selected_machine.get('id')]['goals'] = []
+                            else if not ('goals' of reason_unmovable_machines[selected_machine.get('id')])
+                                reason_unmovable_machines[selected_machine.get('id')]['goals'] = []
+
+                            reason_unmovable_machines[selected_machine.get('id')]['goals'].push
+                                namespace_id: namespace.get 'id'
+
+            num_not_movable_machines = 0
+            for machine_id of reason_unmovable_machines
+                num_not_movable_machines++
+            
+            if num_not_movable_machines > 0
+                @.$('.alert').html('')
+                @.$('.alert').prepend @cannot_change_datacenter_alert_template
+                    reasons: reason_unmovable_machines
+                    red: true
+                @.$('.alert').slideDown 200
+
+            return num_not_movable_machines is 0

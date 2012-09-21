@@ -38,10 +38,8 @@ linux_diskmgr_aio_t::linux_diskmgr_aio_t(
       queue(_queue),
       source(_source),
       aio_context(MAX_CONCURRENT_IO_REQUESTS) {
-    submitter.init(new linux_aio_submit_sync_t(
-        &aio_context,
-        static_cast<passive_producer_t<iocb *>*>(this)
-        ));
+    submitter.init(new linux_aio_submit_sync_t(&aio_context,
+                                               static_cast<passive_producer_t<iocb *> *>(this)));
 
 #ifdef NO_EVENTFD
     getter.init(new linux_aio_getevents_noeventfd_t(this));
@@ -59,17 +57,15 @@ iocb *linux_diskmgr_aio_t::produce_next_value() {
     return next_iocb;
 }
 
-void linux_diskmgr_aio_t::aio_notify(iocb *event, int result) {
+void linux_diskmgr_aio_t::aio_notify(iocb *event, int64_t result) {
 
     action_t *a = static_cast<action_t *>(event);
 
     // Notify the submitter in case it wants to e.g. send more operations to the OS.
     submitter->notify_done();
 
-    // Check for failure.
-    // TODO: Do we have a use case for passing on errors to higher-level code instead of crashing?
-    // Perhaps we should retry the failed IO operation?
-    guarantee_xerr(result == static_cast<int>(a->u.c.nbytes), -result, "Read or write failed");
+    // Pass result up to higher level code that can decided what to do in case of failure
+    a->io_result = result;
 
     // Pass the notification on up
     done_fun(a);

@@ -66,9 +66,13 @@ ip_address_t ip_address_t::us() {
 }
 
 std::string ip_address_t::as_dotted_decimal() const {
-    char buffer[INET_ADDRSTRLEN + 1];
+    char buffer[INET_ADDRSTRLEN + 1] = { 0 };
     const char *result = inet_ntop(AF_INET, reinterpret_cast<const void*>(&addr),
         buffer, INET_ADDRSTRLEN);
     guaranteef(result == buffer, "Could not format IP address");
     return std::string(buffer);
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const ip_address_t &addr) {
+    buf->appendf("%s", addr.as_dotted_decimal().c_str());
 }

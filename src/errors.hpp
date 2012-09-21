@@ -86,8 +86,10 @@
 #define UNUSED __attribute__((unused))
 #define MUST_USE __attribute__((warn_unused_result))
 
+// TODO: Abort probably is not the right thing to do here.
 #define fail_due_to_user_error(...) do {                                \
         report_user_error(__VA_ARGS__);                                 \
+        BREAKPOINT;                                                     \
         exit(-1);                                                       \
     } while (0)
 
@@ -95,6 +97,12 @@
         report_fatal_error(__FILE__, __LINE__, __VA_ARGS__);            \
         BREAKPOINT; /* this used to be abort(), but it didn't cause VALGRIND to print a backtrace */ \
         abort();                                                    \
+    } while (0)
+
+
+#define nice_crash(...) do {          \
+        fprintf(stderr, __VA_ARGS__); \
+        exit(EXIT_FAILURE);           \
     } while (0)
 
 #define crash_or_trap(...) do {                                     \
@@ -119,15 +127,21 @@ void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
             crash_or_trap(format_assert_message("Guarantee", cond) msg); \
         }                               \
     } while (0)
-#define guarantee(cond) guaranteef(cond, "")
-#define guarantee_xerr(cond, err, ...) do {                             \
-        if (!(cond)) {                                                  \
-            if ((err) == 0) {                                           \
-                crash_or_trap(format_assert_message("Guarantee", cond) __VA_ARGS__); \
-            } else {                                                    \
-                crash_or_trap_err((err), format_assert_message("Guarantee", cond) __VA_ARGS__); \
-            }                                                           \
-        }                                                               \
+
+#define nice_guarantee(cond, ...) do { \
+        if (!(cond)) {                      \
+            nice_crash(__VA_ARGS__); \
+        }                                   \
+    } while (0)
+
+#define guarantee_xerr(cond, err, msg, args...) do {                            \
+        if (!(cond)) {                                                          \
+            if (err == 0) {                                                     \
+                crash_or_trap(format_assert_message("Guarantee", cond) msg, ##args); \
+            } else {                                                            \
+                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, err, strerror(err), ##args);  \
+            }                                                                   \
+        }                                                                       \
     } while (0)
 #define guaranteef_err(cond, ...) guarantee_xerr(cond, errno, __VA_ARGS__)
 #define guarantee_err(cond) guarantee_err(cond, "");

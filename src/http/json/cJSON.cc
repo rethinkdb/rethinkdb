@@ -125,6 +125,7 @@ static char *print_number(cJSON *item)
 {
 	char *str;
 	double d=item->valuedouble;
+        rassert(isfinite(d));
 	if (fabs(((double)item->valueint)-d)<=DBL_EPSILON && d<=INT_MAX && d>=INT_MIN)
 	{
 		str=(char*)cJSON_malloc(21);	/* 2^64+1 can be represented in 21 chars. */
@@ -132,10 +133,10 @@ static char *print_number(cJSON *item)
 	}
 	else
 	{
-		str=(char*)cJSON_malloc(64);	/* This is a nice tradeoff. */
+		str=(char*)cJSON_malloc(512);	/* This is a correct tradeoff. */
 		if (str)
 		{
-			if (fabs(floor(d)-d)<=DBL_EPSILON)			sprintf(str,"%.0f",d); // NOLINT(runtime/printf)
+                    if (fabs(floor(d)-d)<=DBL_EPSILON) sprintf(str,"%.0f",d); // NOLINT(runtime/printf)
 			else if (fabs(d)<1.0e-6 || fabs(d)>1.0e9)	sprintf(str,"%e",d);   // NOLINT(runtime/printf)
 			else										sprintf(str,"%f",d);   // NOLINT(runtime/printf)
 		}
@@ -590,6 +591,7 @@ bool cJSON_Equal(cJSON *x, cJSON *y) {
         } else {
             return false;
         }
+        return false;
         break;
     case cJSON_String:
         return strcmp(x->valuestring, y->valuestring) == 0;
@@ -597,7 +599,7 @@ bool cJSON_Equal(cJSON *x, cJSON *y) {
     case cJSON_Array:
         {
             cJSON *xhd = x->child, *yhd = y->child;
-            while (xhd) { 
+            while (xhd) {
                 if (!yhd) {
                     return false;
                 }
@@ -606,11 +608,11 @@ bool cJSON_Equal(cJSON *x, cJSON *y) {
                     return false;
                 }
 
-                xhd = xhd->next; 
+                xhd = xhd->next;
                 yhd = yhd->next;
             }
 
-            if (!yhd) {
+            if (yhd) {
                 return false;
             }
         }

@@ -7,7 +7,6 @@ module 'NamespaceView', ->
         class: 'edit-replica-modal'
 
         initialize: (namespace, secondary) ->
-            console.log '(initializing) modal dialog: modify replica assignments changes'
             @namespace = namespace
             @secondary = secondary
             _.extend @secondary,
@@ -143,7 +142,6 @@ module 'NamespaceView', ->
             @render_inner()
 
         initialize: (namespace, shard) ->
-            console.log '(initializing) modal dialog: modify master assignment'
             @namespace = namespace
             @shard = shard
             @master_uuid = DataUtils.get_shard_primary_uuid(namespace.get('id'), @shard)

@@ -1,8 +1,8 @@
 .PHONY: build
-LIBS = -lpthread -ldl 
+LIBS = -lpthread -ldl -lprotobuf
 # Do not include main.cc or python_interface.cc in SRC
-SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c
-HEADERS = $(wildcard *.hpp) $(wildcard */*.hpp)
+SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c protocols/query_language.pb.cc
+HEADERS = $(wildcard *.hpp) $(wildcard */*.hpp) $(wildcard *.h) $(wildcard */*.h)
 
 MYSQL ?= 1
 LIBMEMCACHED ?= 0
@@ -30,16 +30,23 @@ EXEC_NAME = stress
 SO_NAME = libstress.so
 CXX = g++
 CFLAGS = -fPIC
-CXXFLAGS = -g $(INCLUDE) -I . $(DEFINES) -fPIC # -O3
+CXXFLAGS = $(INCLUDE) -I . $(DEFINES) -fPIC -g # -O3
+PROTO_DIR = ../../src/rdb_protocol
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 
 build: $(EXEC_NAME) $(SO_NAME)
 
+proto_files:
+	protoc -I $(PROTO_DIR) --cpp_out=protocols $(PROTO_DIR)/query_language.proto
+
+# we need this because of the way Make builds the dependency tree ahead of time
+protocols/query_language.pb.cc: proto_files
+
 %.o: %.cc $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(EXEC_NAME): $(OBJ) main.o $(HEADERS) Makefile
+$(EXEC_NAME): proto_files $(OBJ) main.o $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) main.o -lm -lrt $(TLIB) $(LIBS)
 
 $(SO_NAME): $(OBJ) python_interface.o $(HEADERS) python_interface.h Makefile
@@ -51,5 +58,8 @@ tags: Makefile
 clean:
 	rm -f *~
 	rm -f *.o
+	rm -f */*.o
 	rm -f $(EXEC_NAME)
 	rm -f $(SO_NAME)
+	rm -f protocols/query_language.pb.cc
+	rm -f protocols/query_language.pb.h

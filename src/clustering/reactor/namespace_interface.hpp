@@ -16,6 +16,7 @@
 #include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "clustering/reactor/metadata.hpp"
+#include "containers/cow_ptr.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
@@ -52,7 +53,7 @@ class cluster_namespace_interface_t :
 public:
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > dv,
+            clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > > dv,
             typename protocol_t::context_t *);
 
 
@@ -65,11 +66,11 @@ public:
         return &start_cond;
     }
 
-    void read(typename protocol_t::read_t r, typename protocol_t::read_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read(const typename protocol_t::read_t &r, typename protocol_t::read_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    void read_outdated(typename protocol_t::read_t r, typename protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read_outdated(const typename protocol_t::read_t &r, typename protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    void write(typename protocol_t::write_t w, typename protocol_t::write_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void write(const typename protocol_t::write_t &w, typename protocol_t::write_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     std::set<typename protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
@@ -108,7 +109,7 @@ private:
             /* `how_to_make_token` and `how_to_run_query` have type pointer-to-member-function. */
             void (master_access_t<protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),  // NOLINT
             void (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, op_response_type *response, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
-            op_type op,
+            const op_type &op,
             op_response_type *response,
             order_token_t order_token,
             signal_t *interruptor)
@@ -143,10 +144,10 @@ private:
 
     void update_registrants(bool is_start);
 
-    static boost::optional<boost::optional<master_business_card_t<protocol_t> > > extract_master_business_card(const std::map<peer_id_t, reactor_business_card_t<protocol_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
-    static boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, reactor_business_card_t<protocol_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<master_business_card_t<protocol_t> > > extract_master_business_card(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
 
-    static boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > extract_direct_reader_business_card_from_secondary_up_to_date(const std::map<peer_id_t, reactor_business_card_t<protocol_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > extract_direct_reader_business_card_from_secondary_up_to_date(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
 
 
     void relationship_coroutine(peer_id_t peer_id, reactor_activity_id_t activity_id,
@@ -154,7 +155,7 @@ private:
                                 auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
     mailbox_manager_t *mailbox_manager;
-    clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > directory_view;
+    clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > > directory_view;
     typename protocol_t::context_t *ctx;
 
     rng_t distributor_rng;
@@ -170,7 +171,7 @@ private:
 
     auto_drainer_t relationship_coroutine_auto_drainer;
 
-    typename watchable_t< std::map<peer_id_t, reactor_business_card_t<protocol_t> > >::subscription_t watcher_subscription;
+    typename watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t watcher_subscription;
 
     DISABLE_COPYING(cluster_namespace_interface_t);
 };

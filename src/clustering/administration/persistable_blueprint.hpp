@@ -11,14 +11,10 @@ instead of `peer_id_t`. This is important because peer IDs chan change when a
 node restarts, but machine IDs do not. So data structures that contain peer IDs,
 such as `blueprint_t`, should not be persisted. */
 
-namespace blueprint_details {
-
-json_adapter_if_t::json_adapter_map_t get_json_subfields(role_t *);
-cJSON *render_as_json(role_t *);
-void apply_json_to(cJSON *, role_t *);
-void on_subfield_change(role_t *);
-
-} //namespace blueprint_details
+json_adapter_if_t::json_adapter_map_t get_json_subfields(blueprint_role_t *);
+cJSON *render_as_json(blueprint_role_t *);
+void apply_json_to(cJSON *, blueprint_role_t *);
+void on_subfield_change(blueprint_role_t *);
 
 template<class protocol_t>
 class persistable_blueprint_t {
@@ -27,7 +23,7 @@ public:
     //can get better data structure integrity. It might get a bit tricky
     //though.
 
-    typedef std::map<typename protocol_t::region_t, blueprint_details::role_t> region_to_role_map_t;
+    typedef std::map<typename protocol_t::region_t, blueprint_role_t> region_to_role_map_t;
     typedef std::map<machine_id_t, region_to_role_map_t> role_map_t;
 
     role_map_t machines_roles;
@@ -38,6 +34,10 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(machines_roles);
 };
+
+template <class protocol_t>
+void debug_print(append_only_printf_buffer_t *buf, const persistable_blueprint_t<protocol_t> &x);
+
 
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *);

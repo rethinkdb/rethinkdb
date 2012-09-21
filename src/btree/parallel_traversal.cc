@@ -80,6 +80,7 @@ public:
           transaction_ptr(txn),
           stat_block(NULL_BLOCK_ID),
           helper(_helper),
+          interruptor(_interruptor),
           interrupted(false)
     {
         interruptor_watcher.parent = this;
@@ -108,6 +109,7 @@ public:
     // The helper.
     btree_traversal_helper_t *helper;
 
+    signal_t *interruptor;
     bool interrupted;
     cond_t finished_cond;
 
@@ -446,7 +448,13 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf
     //
     int population_change = 0;
 
-    state->helper->process_a_leaf(state->transaction_ptr, buf->get(), left_exclusive_or_null, right_inclusive_or_null, &population_change);
+    try {
+        state->helper->process_a_leaf(state->transaction_ptr, buf->get(), left_exclusive_or_null, right_inclusive_or_null, &population_change, state->interruptor);
+    } catch (interrupted_exc_t) {
+        rassert(state->interruptor->is_pulsed());
+        /* ignore it; the backfill will come to a stop on its own now that
+        `interruptor` has been pulsed */
+    }
 
     if (state->helper->btree_node_mode() != rwi_write) {
         rassertf(population_change == 0, "A read only operation claims it change the population of a leaf.\n");

@@ -9,9 +9,7 @@
 #include <vector>
 #include <utility>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
+#include "containers/cow_ptr.hpp"
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 #include "logger.hpp"
@@ -393,8 +391,6 @@ void apply_json_to(cJSON *, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T
 template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
 void on_subfield_change(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *) { }
 
-
-
 } //namespace boost
 
 namespace std {
@@ -413,15 +409,8 @@ json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(std::map<K, V>
 
     for (typename std::map<K, V>::iterator it = map->begin(); it != map->end(); ++it) {
         typename std::map<K, V>::key_type key = it->first;
-        try {
-            scoped_cJSON_t scoped_key(render_as_json(&key));
-            res[get_string(scoped_key.get())]
-                = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<V, ctx_t>(&it->second, ctx));
-        } catch (schema_mismatch_exc_t &) {
-            crash("Someone tried to json adapt a std::map with a key type that"
-                   "does not yield a JSON object of string type when"
-                   "render_as_json is applied to it.");
-        }
+        res[to_string_for_json_key(&key)]
+            = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<V, ctx_t>(&it->second, ctx));
 
 #ifdef JSON_SHORTCUTS
         res[strprintf("%d", shortcut_index)] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<V, ctx_t>(&(it->second)));
@@ -480,15 +469,8 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(std::map<K, V> *map) {
 
     for (typename std::map<K, V>::iterator it = map->begin(); it != map->end(); ++it) {
         typename std::map<K, V>::key_type key = it->first;
-        try {
-            scoped_cJSON_t scoped_key(render_as_json(&key));
-            res[get_string(scoped_key.get())]
-                = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<V>(&it->second));
-        } catch (schema_mismatch_exc_t &) {
-            crash("Someone tried to json adapt a std::map with a key type that"
-                   "does not yield a JSON object of string type when"
-                   "render_as_json is applied to it.");
-        }
+        res[to_string_for_json_key(&key)]
+            = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<V>(&it->second));
 
 #ifdef JSON_SHORTCUTS
         res[strprintf("%d", shortcut_index)] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<V>(&(it->second)));
@@ -635,6 +617,56 @@ void on_subfield_change(std::vector<V> *) { }
 
 
 } //namespace std
+
+// ctx-ful JSON adapter for cow_ptr_t
+template <class T, class ctx_t>
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cow_ptr_t<T> *ptr, const ctx_t &ctx) {
+    typename cow_ptr_t<T>::change_t change(ptr);
+    return with_ctx_get_json_subfields(change.get(), ctx);
+}
+
+template <class T, class ctx_t>
+cJSON *with_ctx_render_as_json(cow_ptr_t<T> *ptr, const ctx_t &ctx) {
+    typename cow_ptr_t<T>::change_t change(ptr);
+    return with_ctx_render_as_json(change.get(), ctx);
+}
+
+template <class T, class ctx_t>
+void with_ctx_apply_json_to(cJSON *json, cow_ptr_t<T> *ptr, const ctx_t &ctx) {
+    typename cow_ptr_t<T>::change_t change(ptr);
+    return with_ctx_apply_json_to(json, change.get(), ctx);
+}
+
+template <class T, class ctx_t>
+void with_ctx_on_subfield_change(cow_ptr_t<T> *ptr, const ctx_t &ctx) {
+    typename cow_ptr_t<T>::change_t change(ptr);
+    return with_ctx_on_subfield_change(change.get(), ctx);
+}
+
+// ctx-less JSON adapter for cow_ptr_t
+template <class T>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(cow_ptr_t<T> *ptr) {
+    typename cow_ptr_t<T>::change_t change(ptr);
+    return get_json_subfields(change.get());
+}
+
+template <class T>
+cJSON *render_as_json(cow_ptr_t<T> *ptr) {
+    typename cow_ptr_t<T>::change_t change(ptr);
+    return render_as_json(change.get());
+}
+
+template <class T>
+void apply_json_to(cJSON *json, cow_ptr_t<T> *ptr) {
+    typename cow_ptr_t<T>::change_t change(ptr);
+    return apply_json_to(json, change.get());
+}
+
+template <class T>
+void on_subfield_change(cow_ptr_t<T> *ptr) {
+    typename cow_ptr_t<T>::change_t change(ptr);
+    return on_subfield_change(change.get());
+}
 
 //some convenience functions
 template <class T, class ctx_t>

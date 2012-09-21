@@ -77,7 +77,7 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_2(timestamp, num_reads);
 };
 
-class fifo_enforcer_source_t : public home_thread_mixin_t {
+class fifo_enforcer_source_t : public home_thread_mixin_debug_only_t {
 public:
     fifo_enforcer_source_t() THROWS_NOTHING :
         state(state_timestamp_t::zero(), 0) { }
@@ -98,7 +98,7 @@ private:
     DISABLE_COPYING(fifo_enforcer_source_t);
 };
 
-class fifo_enforcer_sink_t : public home_thread_mixin_t {
+class fifo_enforcer_sink_t : public home_thread_mixin_debug_only_t {
 public:
     /* `internal_exit_{read,write}_t` represents any thing that waits in line to
     go through the FIFO enforcer. It's responsible for adding itself to the FIFO
@@ -234,11 +234,15 @@ public:
 
     fifo_enforcer_sink_t() THROWS_NOTHING :
         popped_state(state_timestamp_t::zero(), 0),
-        finished_state(state_timestamp_t::zero(), 0)
+        finished_state(state_timestamp_t::zero(), 0),
+        in_pump(false)
         { }
 
     explicit fifo_enforcer_sink_t(fifo_enforcer_state_t init) THROWS_NOTHING :
-        popped_state(init), finished_state(init) { }
+        popped_state(init),
+        finished_state(init),
+        in_pump(false)
+        { }
 
     ~fifo_enforcer_sink_t() THROWS_NOTHING;
 
@@ -259,6 +263,12 @@ private:
     operations that are currently running. They have been popped off the queue,
     but they have not finished. */
     fifo_enforcer_state_t popped_state, finished_state;
+
+    /* If `internal_pump()` is called recursively, the inner call will set
+    `pump_should_keep_going` to `true` rather than doing its normal work. That
+    way, we use a loop rather than arbitrarily deep recursion. */
+    bool in_pump, pump_should_keep_going;
+
     DISABLE_COPYING(fifo_enforcer_sink_t);
 };
 

@@ -1,13 +1,13 @@
 <script id="database_list-template" type="text/x-handlebars-template">
-  <h1>Tables in the cluster</h1>
-  <div id="user-alert-space"></div>
-  <div class="actions-bar">
-      <input type="button" class="btn add-database" value="Add database" />
-    <input type="button" class="btn add-namespace" value="Add table" />
-    <input type="button" class="btn for-multiple-elements disabled remove-namespace" value="Remove selected tables" />
-  </div>
-  <div class="collapsible-list">
-  </div>
+    <h1>Tables in the cluster</h1>
+    <div id="user-alert-space"></div>
+    <div class="actions-bar">
+        <input type="button" class="btn add-database" value="Add database" />
+        <input type="button" class="btn add-namespace" value="Add table" />
+        <input type="button" class="btn for-multiple-elements remove-namespace" value="Remove selected tables" disabled="disabled" />
+        <div class="user_alert_space-cannot_create_namespace"></div>
+    </div>
+    <div class="collapsible-list"></div>
 </script>
 
 <script id="namespace_list-template" type="text/x-handlebars-template">
@@ -17,15 +17,11 @@
 
 <script id="database_list_element-template" type="text/x-handlebars-template">
     <div class="header_container">
-        {{#unless no_namespace}}
         <div class="expanded arrow"></div>
-        {{/unless}}
         <div class="database summary"></div>
     </div>
 
-    {{#unless no_namespaces}}
     <div class="element-list-container"></div>
-    {{/unless}}
 </script>
 
 <script id="namespace_list_element-template" type="text/x-handlebars-template">
@@ -41,21 +37,6 @@
             <p class="quick_info">
             {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "server" nmachines}}, replication: {{> backfill_progress_summary}}
             </p>
-    
-            <!--
-            <ul class="list_stats">
-                <li class="stat_name">Total op/sec</li>
-                <li class="opsec_sparkline sparkline_container contains_info" title="{{opsec}} {{pluralize_noun "operation" opsec}} per second"></li>
-            </ul>
-            <ul class="list_stats">
-                <li class="stat_name">Data in RAM</li>
-                <li class="data_in_ram">
-                    <div class="progress contains_info" title="Data in ram: {{data_in_memory}} - Data in disk: {{data_total}}">
-                        <div class="bar" style="width: {{data_in_memory_percent}}%;"></div>
-                    </div>
-                </li>
-            </ul>
-            -->
     </td>
 </script>
 
@@ -64,6 +45,7 @@
     <h3 class="name">
         <a href="#databases/{{id}}">{{name}}</a>
     </h3>
+    <a href="#" class="delete_database-link" data-id={{id}}>Delete</a>
 </script>
 
 
@@ -97,42 +79,39 @@
 
 
 <script id="add_namespace-modal-template" type="text/x-handlebars-template">
-  <div class="alert alert-error error_answer"></div>
-  <form class="form">
-    <fielTablelegend>Table details</legend>
-      <div class="clearfix">
+    <div class="alert alert-error error_answer"></div>
+    <form class="form">
         <label for="name">Name</label>
-        <div class="input">
-          <input class="xlarge" id="focus_namespace_name" name="name" size="30" type="text" />
-        </div>
-      </div>
-      <div class="clearfix">
+        <input class="xlarge" id="focus_namespace_name" name="name" size="30" type="text" />
+
         <label for="primary_datacenter">Select a database:</label>
-        <div class="input">
-          <select class="database" name="database">
+        <select class="database" name="database">
             {{#each databases}}
             <option value="{{this.id}}">{{this.name}}</option>
             {{/each}}
-          </select>
+        </select>
+
+        <p class="show_advanced_settings-link_container"><a href="#" class="show_advanced_settings-link">Show optional settings</a></p>
+        <p class="hide_advanced_settings-link_container"><a href="#" class="hide_advanced_settings-link">Hide optional settings</a></p>
+
+        <div class="advanced_settings">
+            <label for="primary_datacenter">Select a primary datacenter:</label>
+            <select class="primary_datacenter" name="primary_datacenter">
+                {{#each datacenters}}
+                <option value="{{this.id}}">{{this.name}}</option>
+                {{/each}}
+            </select>
+            {{#unless all_datacenters}}
+            <p>Note: The empty datacenters cannot be selected as primary.</p>
+            {{/unless}}
+
+            <label for="name">Primary key</label>
+            <input class="xlarge" name="primary_key" size="30" type="text" placeholder="id"/>
+            <label for="name">Cache size in MB</label>
+            <input class="xlarge" name="cache_size" size="30" type="text" placeholder="1024"/>
         </div>
-      </div>
-      <div class="clearfix">
-        <label for="primary_datacenter">Select a primary datacenter:</label>
-        <div class="input">
-          <select class="primary_datacenter" name="primary_datacenter">
-            {{#each datacenters}}
-            <option value="{{this.id}}">{{this.name}}</option>
-            {{/each}}
-          </select>
-        </div>
-      </div>
-      <hr />
-      <div class="user-tip">
-        <p>* You can tweak configuration options for
-          the table once it's created.</p>
-      </div>
-    </fieldset>
-  </form>
+
+    </form>
 </script>
 
 <script id="added_namespace-alert-template" type="text/x-handlebars-template">
@@ -161,9 +140,15 @@
 </script>
 
 <script id="error_adding_namespace-template" type="text/x-handlebars-template">
-  <div class="alert alert-error" data-alert="alert">
-    <a class="close" href="#">&times;</a>
-    <p>You cannot create a new table without first creating a new datacenter. <a href="#servers">Create one</a></p>
+    <div class="alert reason_cannot_create_namespace">
+        {{#if need_something}}<p>{{/if}}
+        {{#if need_datacenter}}
+        You need to create a datacenter before creating a new table. <a href="#servers">Create one</a>.<br/>
+        {{/if}}
+        {{#if need_database}}
+        You need to create a database before creating a new table. <a href="#" class="add-database">Create one</a>.
+        {{/if}}   
+        {{#if need_something}}</p>{{/if}}
   </div>
 </script>
 

@@ -39,6 +39,11 @@ vclock_t<T>::vclock_t() {
 }
 
 template <class T>
+vclock_t<T>::vclock_t(const T &_t) {
+    values.insert(std::make_pair(vclock_details::version_map_t(), _t));
+}
+
+template <class T>
 vclock_t<T>::vclock_t(const T &_t, const uuid_t &us) {
     stamped_value_t tmp = std::make_pair(vclock_details::version_map_t(), _t);
     tmp.first[us] = 1;
@@ -104,6 +109,14 @@ T &vclock_t<T>::get_mutable() {
     return values.begin()->second;
 }
 
+template <class T>
+std::vector<T> vclock_t<T>::get_all_values() const {
+    std::vector<T> result;
+    for (typename value_map_t::const_iterator i = values.begin(); i != values.end(); ++i)
+        result.push_back(i->second);
+    return result;
+}
+
 //semilattice concept for vclock_t
 template <class T>
 bool operator==(const vclock_t<T> &a, const vclock_t<T> &b) {
@@ -118,11 +131,10 @@ void semilattice_join(vclock_t<T> *a, const vclock_t<T> &b) {
 }
 
 template <class T>
-std::vector<T> vclock_t<T>::get_all_values() const {
-    std::vector<T> result;
-    for (typename value_map_t::const_iterator i = values.begin(); i != values.end(); ++i)
-        result.push_back(i->second);
-    return result;
+void debug_print(append_only_printf_buffer_t *buf, const vclock_t<T> &x) {
+    buf->appendf("vclock{");
+    debug_print(buf, x.values);
+    buf->appendf("}");
 }
 
 #endif  // RPC_SEMILATTICE_JOINS_VCLOCK_TCC_

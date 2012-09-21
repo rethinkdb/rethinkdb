@@ -1,18 +1,37 @@
 <script id="dataexplorer_view-template" type="text/x-handlebars-template">
     <h1 class="title status">Data Explorer</h1>
+    <div id="user-alert-space"></div>
+    <div class="input_query_full_container"></div>
+    <div class="results_container"></div>
 </script>
 
+<script id="alert-connection_fail-template" type="text/x-handlebars-template">
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>The connection to the server failed. Please try to <a href="#" id="reconnect">reconnect</a></p>
+    </div>
+</script>
+
+<script id="alert-reconnection_success-template" type="text/x-handlebars-template">
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>Successfully reconnected.</p>
+    </div>
+</script>
 
 <script id="dataexplorer_input_query-template" type="text/x-handlebars-template">
     <div class="input_query_container" >
-        <textarea class="input_query"></textarea>
+        <textarea class="input_query" id="input_query"></textarea>
+        <div class="button_container">
+            <input type="button" value="execute" class="btn button_query execute_query" />
+            <input type="button" value="clear" class="btn button_query clear_query" />
+        </div>
+
+        <div class="suggestion_full_container">
         <div class="suggestion_list_container">
             <ul class="suggestion_name_list"></ul>
         </div>
         <div class="suggestion_description"></div>
-        <div class="button_container">
-            <input type="button" value="clear" class="btn button_query clear_query" />
-            <input type="button" value="execute" class="btn button_query execute_query" />
         </div>
 
     </div>
@@ -23,7 +42,7 @@
 
 
 <script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
-    <li class="suggestion_name_li" data-id={{id}}>{{suggestion}}</li>
+    <li class="suggestion_name_li" data-has_argument="{{has_argument}}" data-id={{id}}>{{suggestion}}</li>
 </script>
 
 <script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
@@ -35,7 +54,6 @@
 
 
 <script id="dataexplorer_default_view-template" type="text/x-handlebars-template">
-    <h2>Quick Start</h2>
     <p>You can automatically build a query by clicking on a table or on a previous query. You can then modify them as you wish.</p>
     <p>The data explorer is equipped with a suggestion feature, but if you are lost, you can find more details in the <a href="#help">help page</a>.</p>
 
@@ -43,13 +61,16 @@
         <h3>Tables available</h3>
 
         {{#if has_namespaces}}
-        <ul class="namaspaces_available_list">
+        {{#each databases}}
+        <h4>{{name}}</h4>
+        <ul class="namespaces_available_list queries_list">
             {{#each namespaces}}
-            <li class="namespace_element"><a href="#" data-name="{{name}}" class="namespace_link">{{name}}</a></li>
+            <li class="namespace_element"><a href="#" data-database="{{database}}" data-name="{{name}}" class="namespace_link">{{name}}</a></li>
             {{/each}}
         </ul>
+        {{/each}}
         {{else}}
-        There is no table available. <br />Start by <a href="#tables">creating one</a>.
+        <p>There is no table available. <br />Start by <a href="#tables">creating one</a>.</p>
         {{/if}}
    </div>
     <div class="history_queries">
@@ -57,13 +78,13 @@
         
         <div class="history_query_container">
         {{#if has_old_queries}}
-        <ul class="history_queries_list">
+        <ul class="history_queries_list queries_list">
             {{#each old_queries}}
-            <li class="query_element"><a href="#" class="old_query" data-query="{{this}}">{{this}}</a></li>
+            <li class="query_element"><a href="#" class="old_query" data-query="{{query}}">{{query_summary}}</a></li>
             {{/each}}
         </ul>
         {{else}}
-        <p>There are no previous queries</p>
+        <p>There are no previous queries.</p>
         {{/if}}
     </div>
     </div>
@@ -72,37 +93,37 @@
 <script id="dataexplorer-error-template" type="text/x-handlebars-template">
     <h2>Error</h2>
     <p>The following query could not be executed.</p>
+    <p class="query">{{query}}</p>
     <p>Error: {{error}}</p>
 </script>
 
 <script id="dataexplorer_query_list-template" type="text/x-handlebars-template">
-    <ul class="history_query_list">
+    <ul class="history_query_list queries_list">
     </ul>
 </script>
 
 <script id="dataexplorer_query_element-template" type="text/x-handlebars-template">
-    <li class="query_element">{{query}}</a></li>
+    <li class="query_element"><a href="#" class="old_query" data-query="{{query}}">{{query_summary}}</a></li>
 </script>
 
 
 <script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
     <div class="results_header">
         <div class="options_container">
-            <input type="button" value="Home" class="btn button_query home_view" />
             <input type="button" value="Full view" class="btn button_query change_size" />
         </div>
 
         <h2>Results</h2>
         <p class="query_executed">For query: {{query}}</p>
+        <p class="metadata"></p>
 
         <ul class="nav nav-tabs change_view_container"">
             <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view">Raw view</a></li>
             <li><a href="#table_view" data-toggle="tab" class="link_to_table_view">Table view</a></li>
             <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view">Tree view</a></li>
         </ul>
- 
    </div>
-
+   <div class="pagination_container"></div>
    <div class="tab-content">  
         <div class="tab-pane results" id="tree_view">
         </div>
@@ -112,8 +133,16 @@
             <textarea class="raw_view_textarea"></textarea>
         </div>
     </div>
+    <div class="pagination_container"></div>
 </script>
 
+<script id="dataexplorer-metadata-template" type="text/x-handlebars-template">
+    {{#if execution_time}}
+        Executed in {{execution_time}}{{#if num_rows}}, {{num_rows_displayed}} of {{num_rows}} {{pluralize_noun "row" num_rows_displayed}} displayed.{{/if}}
+    {{else}}
+    {{#if num_rows_displayed}}num_rows_displayed {{pluralize_noun "row" num_rows_displayed}} displayed. {{/if}}Computing the total number of rows.
+    {{/if}}
+</script>
 
 <script id="dataexplorer_result_empty-template" type="text/x-handlebars-template">
     <p>No result were returned for this query</p>
@@ -125,17 +154,17 @@
     <span class="jta_arrow jta_arrow_h"></span><div class="json_tree">{{print_safe tree}}</div></script>
 
 <script id="dataexplorer_result_json_tree_span-template" type="text/x-handlebars-template">
-    <span class="jt_editable {{classname}}" contentEditable="true">{{value}}</span></script>
+    <span class="jt_editable {{classname}}" >{{value}}</span></script>
 
 <script id="dataexplorer_result_json_tree_span_with_quotes-template" type="text/x-handlebars-template">
-    <span class="{{classname}}">"</span><span class="jt_editable {{classname}}" contentEditable="true">{{value}}</span><span class="{{classname}}">"</span></script>
+    <span class="{{classname}}">"</span><span class="jt_editable {{classname}}" >{{value}}</span><span class="{{classname}}">"</span></script>
 
 <script id="dataexplorer_result_json_tree_url-template" type="text/xs-handlebars-template">
-    <span class="jt_editable jt_url" contentEditable="true">{{url}}</span>,
+    <span class="jt_editable jt_url" >{{url}}</span>,
     <a href="{{url}}" class="jt_link">»</a></script>
 
 <script id="dataexplorer_result_json_tree_email-template" type="text/xs-handlebars-template">
-    <span class="jt_editable jt_email" contentEditable="true">{{email}}</span>,
+    <span class="jt_editable jt_email" >{{email}}</span>,
     <a href="mailto:{{email}}" class="jt_link">»</a></script>
 
 <script id="dataexplorer_result_json_tree_array-template" type="text/x-handlebars-template">
@@ -229,8 +258,8 @@
         </div>
         {{else}}
         <div class="jta_value {{class_value}} {{classname}}">
-            <span contenteditable="true">
-                {{print_safe value}}
+            <span>
+                {{value}}
             </span>
         </div>
         {{/if}}
@@ -248,7 +277,7 @@
         {{#if need_comma}}, {{/if}}
     </span>
     {{else}}
-    <span contenteditable="true" class={{classname}}>{{print_safe value}}</span>{{#if need_comma}}, {{/if}}
+    <span class={{classname}}>{{print_safe value}}</span>{{#if need_comma}}, {{/if}}
     {{/if}}
 </script>
 

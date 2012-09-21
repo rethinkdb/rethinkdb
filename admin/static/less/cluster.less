@@ -6,7 +6,6 @@
 
 /* Colors */
 @riak_color: #1693A5;
-@memcached_color: #CCCCCC;
 @selected_color: #FCFBE3;
 @link_color: #0069D6;
 @light_red: #FFDEDB;
@@ -77,6 +76,9 @@
     background: #fff; // Need it for full screen
 }
 
+.error-title{
+    margin-bottom: 20px;
+}
 /*
     ----------------------------
     Log view
@@ -242,9 +244,20 @@
             background: url('/images/information-icon_small.png') no-repeat center center;
         }
     }
-    .constrained_li{
-        width: 150px;
-        overflow: hidden;
+    .queries_list{
+        margin: 4px 0px 7px 0px;
+        padding: 0px;
+        list-style: none;
+        .constrained_li{
+            margin: 0px;
+            padding: 0px;
+            width: 150px;
+            overflow: hidden;
+            font-family: monospace;
+        }
+    }
+    .no_query{
+        margin: 4px 0px 7px 0px;
     }
 
     .recent-log-entries {
@@ -374,90 +387,6 @@
 
 /*
     ----------------------------
-    Alerts dropdown
-    ----------------------------
-*/
-
-/*#alerts-dropdown  {
-    .bordered {
-        border-bottom: thin solid @grayLighter;
-    }
-
-    .header {
-        padding: 5px 15px;
-        .bordered;
-    }
-
-    .footer {
-        padding: 10px 15px;
-        font-size: 1.2em;
-        text-align: center;
-        a { font-weight: bold; }
-        .bordered;
-    }
-
-    .alert {
-        background: #F5F5F5;
-        color: #666;
-        height: 32px;
-        padding: 15px;
-        cursor: pointer;
-        .bordered;
-
-        div {
-            display: table-cell;
-            height: 32px;
-            overflow: hidden;
-            padding: 0 0;
-            vertical-align: middle;
-            width: 100%;
-            &.goto {
-                padding-left: 5px;
-                font-size: 2em;
-            }
-        }
-
-        img {
-            float: left;
-            margin-top: 4px;
-            margin-bottom: 4px;
-            margin-right: 15px;
-        }
-
-        &.new {
-            background: #FFF;
-            color: #404040;
-            .element {
-                font-weight: bold;
-            }
-        }
-    }
-*/
-    /* Override Bootstrap */
-/*    padding: 0;
-    max-width: 600px;
-    width: 350px;
-    background-color: @white;
-
-    .border-radius(0 0 0 0);
-
-    a {
-        text-shadow: none;
-        color: @linkColor;
-        &:hover {
-            background: none;
-            text-decoration: underline
-        }
-    }
-
-    color: @black;
-    text-shadow: none;
-
-    p, h1, h2, h3, h4, h5, h6 { padding: 0px 15px; }
-}*/
-
-/*
-    ----------------------------
     Dashboard view
     ----------------------------
 */
@@ -491,6 +420,10 @@
         }
     }
 }
+#cluster_performance_panel_placeholder{
+    margin: 30px 0px 0px 0px;
+}
+
 
 
 .dashboard-view table.status {
@@ -592,6 +525,7 @@
                         border-bottom: 0;
                     }
                     .checkbox-container{
+                        width: 50px;
                         padding: 12px 8px;
                         vertical-align: top;
                         text-align: center;
@@ -606,6 +540,7 @@
                         }
                         .label{
                             float: left;
+                            margin: 0px 7px 00px 0px;
                             padding: 2px 4px 2px;
                             font-size: 11px;
                             font-weight: bold;
@@ -636,14 +571,27 @@
                     background: #f1f1f1;
                 }
             }
+            .no_element{
+                margin: 12px 0px 12px 67px;
+            }
         }
     }
 }
 
-
+.databases_list-container{
+    .reason_cannot_create_namespace{
+        margin: 10px 0px 0px 0px;
+    }
+    p{
+        margin: 4px 0px;
+    }
+    .delete_database-link{
+        margin: 5px 10px 0px 0px;
+        float: right;
+    }
+}
 .namespace-list {
     margin-top: 20px;
-
     .datacenter_list{
         padding: 0px;
         margin: 10px;
@@ -734,129 +682,13 @@
         }
     }
 }
-/*
-.server-list {
-    margin-top: 20px;
-    .label.element-type {
-        text-transform: uppercase;
-        font-size: 10px;
-        margin-right: 15px;
-        display: inline-block;
-        margin-top: -3px;
-    }
 
-
-    .datacenter.details p, .machine.details p {
-        font-size: 11px;
-        text-transform: uppercase;
-        margin-bottom: 0;
-    }
-
-    .datacenter.details p.status .label {
-        vertical-align: text-top;
-        font-size: 10px;
-        margin-right: 5px;
-    }
-    
-    .list_stats {
-        margin: 0px 0px 0px 0px;
-        float: left;
-        list-style: none;
-        li {
-            display: inline-block;
-        }
-        .stat_name{
-            width: 80px;
-        }
-        .minichart{
-            width: 110px;
-            margin-right: 10px;
-        }
-        .sparkline_container{
-            height: 15px;
-            width: 75px;
-            margin: 0px 5px 0px 5px;
-            padding: 0px;
-        }
-        .progress{
-            height: 10px;
-            width: 75px;
-            margin: 0px 5px 0px 5px;
-            padding: 0px;
-        }
-        canvas{
-            border-bottom: 1px solid #ddd;
-            border-left: 1px solid #ddd;
-        }
-        .bar{
-            background: #a0b0b8;
-        }
-        .bar-alert{
-            background: #E62E2E;
-        }
-    }
-    .machine.details {
-        div.toolbar {
-            float: right;
-            margin-top: -25px;
-            text-align: right;
-        }
-        p.status {
-            .label {
-                vertical-align: text-top;
-                font-size: 10px;
-            }
-        }
-        p.actions {
-            text-transform: none;
-            font-size: 13px;
-        }
-    }
-
-    .header {
-        cursor: pointer;
-    }
-
-    .arrow {
-        width: 16px;
-        height: 16px;
-        float: left;
-        &.collapsed {
-            background: url('/images/right-arrow_16x16.png') no-repeat center top;
-        }
-        &.expanded {
-            background: url('/images/down-arrow_16x16.png') no-repeat center top;
-            margin-top: 3px;
-        }
-    }
-
-    .divider {
-       margin-top: 10px;
-       margin-bottom: 20px;
-       border-bottom: 2px solid #DDD;
-       margin-left: 28px;
-    }
-
-    h3.datacenter.name { 
-        line-height: 1em;
-        margin-left: 28px;
-    }
-
-    .datacenter.actions {
-        text-align: right;
-        padding-right: 13px;
-    }
-
-    .datacenter.details {
-        margin-top: 10px;
-        margin-left: 28px;
-    }
-    .machine-list {
-        margin-left: 28px;
+.datacenters_list-container{
+    #reason_cannot_change_datacenter{
+        margin: 10px 0px 0px 0px;
+        display: none;
     }
 }
-*/
-
 
 .modal {
     display: none;
@@ -890,6 +722,12 @@
     .title_center{
         text-align: center;
         margin-bottom: 5px;
+    }
+}
+
+.add-namespace{
+    .hide_advanced_settings-link_container, .advanced_settings{
+        display: none;
     }
 }
 
@@ -973,14 +811,6 @@
                 }
                 &.last-child td {
                     border-bottom: 0;
-                }
-                .checkbox-container{
-                    padding: 12px 8px;
-                    vertical-align: top;
-                    text-align: center;
-                    input{
-                        margin: 10px 0px 0px 0px;
-                    }
                 }
                 .element-detail-container{
                     padding: 12px 8px 12px 0px;
@@ -1141,7 +971,6 @@ Database view
     Namespace view
     ----------------------------
 */
-
 .namespace-view {
 
     .pie_legend{
@@ -1175,6 +1004,8 @@ Database view
     }
 
     .data_repartition-graph{
+        margin: 0px auto;
+        text-align: center;
         rect{
             fill: #ed993e;
         }
@@ -1217,8 +1048,7 @@ Database view
         }
     }
 
-    .namespace-shards{
-        position: relative;
+    .shards_container{
         .alert_for_sharding{
             display: none;
         }
@@ -1414,12 +1244,8 @@ Database view
     }
 }
 
-.popover {
-    .popover-inner { overflow: visible; }
-    .namespace-shard-assign-machine {
-        .chzn-container { margin-bottom: 10px; }
-    }
-}
+
+
 
 /*
     ----------------------------
@@ -1430,12 +1256,12 @@ Database view
 .machine-view {
     .pie_legend{
         .legend{
-            margin: 0px 0px 0px 0px;
+            margin: 0px 0px 15px 0px;
             li{
                 list-style: none;
             }
             .title-legend{
-                margin: 0px 0px 10px 0px;
+                margin: 0px 0px 5px 0px;
             }
             .disk_used-legend{
                 border-left: 40px solid #f00;
@@ -1532,6 +1358,105 @@ Database view
 */
 
 .datacenter-view {
+    .ram_repartition-graph, .disk_repartition-graph{
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .expandable_graph{
+        float: left;
+    }
+    .ram_legend{
+        overflow: auto;
+        .legend{
+            margin: 40px 0px 0px 0px;
+            li{
+                list-style: none;
+            }
+            .title-legend{
+                margin: 0px 0px 10px 0px;
+            }
+            .used_ram-legend{
+                border-left: 40px solid #f00;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .free_ram-legend{
+                border-left: 40px solid #1f77b4;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .used_ram-legend-inline{
+                float: left;
+                margin: 0px 0px 40px 10px;
+            }
+            .free_ram-legend-inline{
+                float: left;
+                margin: 0px 0px 40px 50px;
+            }
+        }
+        .legend-inline{
+            margin: 0px 0px 30px 0px;
+        }
+     }
+     .ram_repartition-graph{
+        .ram_used_bar{
+            fill: #f00;
+        }
+        .ram_free_bar{
+            fill: #1f77b4;
+        }
+        rect{
+            cursor: pointer;
+        }
+    }   
+
+    .disk_legend{
+        .legend{
+            margin: 40px 0px 0px 0px;
+            li{
+                list-style: none;
+            }
+            .title-legend{
+                margin: 0px 0px 10px 0px;
+            }
+            .used_disk-legend{
+                border-left: 40px solid #f00;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .free_disk-legend{
+                border-left: 40px solid #1f77b4;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .used_disk-legend-inline{
+                float: left;
+                margin: 0px 0px 40px 10px;
+            }
+            .free_disk-legend-inline{
+                float: left;
+                margin: 0px 0px 40px 50px;
+            }
+        }
+        .legend-inline{
+            margin: 0px 0px 30px 0px;
+        }
+    }
+    .disk_repartition-graph{
+        .disk_used_bar{
+            fill: #f00;
+        }
+        .disk_free_bar{
+            fill: #1f77b4;
+        }
+        rect{
+            cursor: pointer;
+        }
+    }
+
+
+
     .profile-expandable{
         height: 285px;
         .more_machines{
@@ -2021,6 +1946,10 @@ Database view
 }
 
 .performance_panel {
+    overflow: auto;
+    .title{
+        margin: 10px 0px 10px 0px;
+    }
     .panel-left {
         float: left;
         width: 50%;
@@ -2028,10 +1957,22 @@ Database view
     .panel-right {
         float: left;
     }
-    .two-panel-clear {
-        clear: both;
+}
+
+.more_stats{
+    margin: 0px 0px 0px 50px;
+    p{
+        margin: 2px 0px;
+    }
+    ul{
+        margin: 0px 0px 0px 30px;
+        padding: 0px;
+        li {
+            list-style: square;
+        }
     }
 }
+
 
 .stats_panel {
     margin-left: 1em;
@@ -2157,40 +2098,51 @@ Database view
                 overflow: hidden;
             }
             .button_container{
-                float: right;
+                overflow: auto;
+                margin: 0px 0px 5px 0px;
                 .button_query{
+                    float: right;
                     width: 80px;
+                    margin-left: 10px;
                 }
             }
-            .suggestion_name_list{
-                display: none;
-                padding: 0px;
-                margin: 0px 0px 9px 0px;
-                border: 1px solid #ddd;
-                .suggestion_name_li{
-                    display: inline-block;
-                    margin: 0px;
-                    padding: 5px 5px;
-                    min-width: 103px;
-                    min-height: 18px;
-                    cursor: pointer;
+            .suggestion_full_container{
+                /*
+                position: absolute;
+                width: 700px;
+                background: #ffffff;
+                */
+                .suggestion_name_list{
+                    display: none;
+                    padding: 0px;
+                    margin: 0px 0px 9px 0px;
+                    border: 1px solid #ddd;
+                    .suggestion_name_li{
+                        display: inline-block;
+                        margin: 0px;
+                        padding: 5px 5px;
+                        min-width: 103px;
+                        min-height: 18px;
+                        cursor: pointer;
+                    }
+                    .suggestion_name_li_hl{
+                        color: red;
+                    }
                 }
-                .suggestion_name_li_hl{
-                    color: red;
+                .suggestion_description{
+                    display: none;
+                    padding: 5px;
+                    margin: 0px 0px 9px 0px;
+                    border: 1px solid #ddd;
                 }
-            }
-            .suggestion_description{
-                display: none;
-                padding: 5px;
-                margin: 0px 0px 9px 0px;
-                border: 1px solid #ddd;
             }
         }
         .loading_query{
             text-align: center;
             height: 16px;
+            width: 16px;
             padding: 0px;
-            margin: 0px;
+            margin: 0px auto 10px auto;
             .loading_query_img{
                 display: none;
             }
@@ -2204,37 +2156,63 @@ Database view
             float: left;
             width: 330px;
             padding: 20px 10px 10px 10px;
+            h4 {
+                margin: 7px 0px 5px 0px;
+            }
         }
         .history_queries{
             float: left;
             width: 330px;
             padding: 20px 10px 10px 10px;
+        }
+        .queries_list{
+            margin: 0px;
+            list-style: none;
+            font-family: monospace;
+            li{
+                padding: 0px 0px 0px 7px;
+                margin: 0px;
+                border-left: 1px solid #ccc;
+            }
             .query_element{
                 width: 300px;
                 overflow: hidden;
             }
             .namespace_element{
+                padding: 0px 0px 0px 7px;
+                margin: 0px;
+                border-left: 1px solid #ccc;
+
                 width: 300px;
                 overflow: hidden;
             }
         }
-        .options_container{
-            float: right;
-        }
-        .change_view_container{
-            margin: 0px;
-            padding: 0px 10px 0px 0px;
-            width: 100%;
-        }
-        .nav-tabs > li {
-            float: right;
-        }
-
-        .helper_view{
-            overflow: auto;
-        }
+    }
+    .options_container{
+        float: right;
+    }
+    .change_view_container{
+        margin: 0px;
+        padding: 0px 10px 0px 0px;
+        width: 100%;
+    }
+    .helper_view{
+        overflow: auto;
+    }
+    .nav-tabs > li {
+        float: right;
+    }
+    .query{
+        font-family: monospace;
+        padding: 7px 10px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        background: #eee;
     }
 
+    .pagination_container{
+        display: none;
+    }
     .results{
         width: 700px;
         margin: 15px 0px 0px 0px;
@@ -2412,21 +2390,8 @@ Database view
         width: auto;
     }
 }
-
-/* popover */
-.popover_close {
-  float: right;
-  margin: 7px;
-  font-size: 20px;
-  font-weight: bold;
-  line-height: @baseLineHeight;
-  color: @black;
-  text-shadow: 0 1px 0 rgba(255,255,255,1);
-  .opacity(20);
-  &:hover {
-    color: @black;
-    text-decoration: none;
-    .opacity(40);
-    cursor: pointer;
-  }
+.user-alert-space, #user-alert-space{
+    p{
+        margin: 0px;
+    }
 }

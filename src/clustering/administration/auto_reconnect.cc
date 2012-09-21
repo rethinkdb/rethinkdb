@@ -27,8 +27,7 @@ void auto_reconnector_t::on_connect_or_disconnect() {
                 it->first,
                 std::make_pair(
                     it->second,
-                    connectivity_cluster->get_peer_address(it->first)
-                )));
+                    connectivity_cluster->get_peer_address(it->first))));
         }
     }
     for (std::map<peer_id_t, std::pair<machine_id_t, peer_address_t> >::iterator it = connected_peers.begin();
@@ -38,8 +37,7 @@ void auto_reconnector_t::on_connect_or_disconnect() {
             ++jt;
             coro_t::spawn_sometime(boost::bind(
                 &auto_reconnector_t::try_reconnect, this,
-                it->second.first, it->second.second, auto_drainer_t::lock_t(&drainer)
-                ));
+                it->second.first, it->second.second, auto_drainer_t::lock_t(&drainer)));
             connected_peers.erase(it);
             it = jt;
         } else {

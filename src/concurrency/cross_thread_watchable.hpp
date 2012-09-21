@@ -5,6 +5,13 @@
 #include "concurrency/auto_drainer.hpp"
 #include "timestamps.hpp"
 
+/* `cross_thread_watchable_variable_t` is used to "proxy" a `watchable_t` from
+one thread to another. Create the `cross_thread_watchable_variable_t` on the
+source thread; then call `get_watchable()`, and you will get a watchable that is
+usable on the `_dest_thread` that you passed to the constructor.
+
+See also: `cross_thread_signal_t`, which is the same thing for `signal_t`. */
+
 template <class value_t>
 class cross_thread_watchable_variable_t
 {
@@ -30,7 +37,7 @@ private:
     public:
         explicit w_t(cross_thread_watchable_variable_t<value_t> *p) : parent(p) { }
 
-        w_t *clone() {
+        w_t *clone() const {
             return new w_t(parent);
         }
         value_t get() {
@@ -41,6 +48,9 @@ private:
         }
         rwi_lock_assertion_t *get_rwi_lock_assertion() {
             return &parent->rwi_lock_assertion;
+        }
+        void rethread(int thread) {
+            home_thread_mixin_t::real_home_thread = thread;
         }
         cross_thread_watchable_variable_t<value_t> *parent;
     };
@@ -64,10 +74,12 @@ private:
         explicit rethreader_t(cross_thread_watchable_variable_t *p) :
             parent(p)
         {
+            parent->watchable.rethread(parent->dest_thread);
             parent->rwi_lock_assertion.rethread(parent->dest_thread);
             parent->publisher_controller.rethread(parent->dest_thread);
         }
         ~rethreader_t() {
+            parent->watchable.rethread(parent->watchable_thread);
             parent->rwi_lock_assertion.rethread(parent->watchable_thread);
             parent->publisher_controller.rethread(parent->watchable_thread);
         }

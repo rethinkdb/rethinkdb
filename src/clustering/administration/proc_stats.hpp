@@ -4,7 +4,7 @@
 #include "concurrency/auto_drainer.hpp"
 #include "perfmon/perfmon.hpp"
 
-class proc_stats_collector_t : public home_thread_mixin_t {
+class proc_stats_collector_t : public home_thread_mixin_debug_only_t {
 public:
     explicit proc_stats_collector_t(perfmon_collection_t *stats);
 
