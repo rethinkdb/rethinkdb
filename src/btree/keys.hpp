@@ -202,7 +202,6 @@ struct key_range_t {
     };
 
     key_range_t();   /* creates a range containing no keys */
-    explicit key_range_t(const store_key_t &);
     key_range_t(bound_t, const store_key_t&, bound_t, const store_key_t&);
 
     static key_range_t empty() THROWS_NOTHING {
@@ -215,7 +214,12 @@ struct key_range_t {
     }
 
     bool is_empty() const {
-        return !right.unbounded && left >= right.key;
+        if (right.unbounded) {
+            return false;
+        } else {
+            rassert(left <= right.key);
+            return left == right.key;
+        }
     }
 
     bool contains_key(const store_key_t& key) const {
@@ -230,7 +234,7 @@ struct key_range_t {
         return left_ok && right_ok;
     }
 
-    store_key_t last_key_in_range() {
+    store_key_t last_key_in_range() const {
         if (right.unbounded) {
             return store_key_t::max();
         } else {
