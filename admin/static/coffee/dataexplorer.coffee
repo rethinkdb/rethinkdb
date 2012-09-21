@@ -1,27 +1,3 @@
-#TODO remove the test functions
-generate_id = (n) ->
-    chars = '0123456789qwertasdfgzxcvbyuioplkjhnm'
-    result = ''
-    for i in [0..n]
-        num = Math.floor(Math.random()*(chars.length+1))
-        result += chars.substring(num, num+1)
-
-    return result
-
-
-generate_number = (n) ->
-    return Math.floor(Math.random()*n)
-
-generate_string = (n) ->
-    chars = 'qwertasdfgzxcvbyuioplkjhnm'
-    result = ''
-    limit = Math.floor(Math.random()*n)+3
-    for i in [Math.floor(limit/2)..limit]
-        num = Math.floor(Math.random()*(chars.length+1))
-        result += chars.substring(num, num+1)
-
-    return result
-
 module 'DataExplorerView', ->
     class @Container extends Backbone.View
         className: 'dataexplorer_container'
@@ -39,7 +15,6 @@ module 'DataExplorerView', ->
             'click .execute_query': 'execute_query'
             'click .namespace_link': 'write_query_namespace'
             'click .old_query': 'write_query_old'
-            'click .home_view': 'display_home'
             'click .change_size': 'toggle_size'
             'click #reconnect': 'reconnect'
 
@@ -615,22 +590,36 @@ module 'DataExplorerView', ->
                 @hide_suggestion()
             return @
 
-        create_tagged_callback: =>
+        create_tagged_callbacks: =>
+            LIMIT = 20
             id = Math.random()
             @last_id = id
-            tagged_callback = (data) =>
+            iter_callback = (data) =>
+                if id is @last_id
+                    @count_results++
+                    @current_results = []
+                    if @count_results < LIMIT
+                        @current_results.push data
+                    else
+                        if @count_results is LIMIT
+                            @results_view.render_result @query, data
+            last_callback = =>
+                console.log 'last'
                 if id is @last_id
                     execution_time = new Date() - @start_time
-                    @.$('.loading_query_img').css 'display', 'none'
-                    @data_container.render(@query, data, execution_time)
+                    if @count_results < LIMIT
+                        @results_view.render_result @query, data
 
-            return tagged_callback
+                    @.$('.loading_query_img').css 'display', 'none'
+                    @results_view.render_metadata @count_results, execution_time
+
+
+            iter: iter_callback
+            last: last_callback
 
         execute_query: =>
             clearTimeout @timeout
             @timeout = setTimeout @connect, 5*60*1000
-            window.result = {}
-
             @query = @codemirror.getValue()
 
             # Replace new lines with \n so the query is not splitted.
@@ -654,36 +643,21 @@ module 'DataExplorerView', ->
             
             
 
-            full_query = @query+'\n'+'.run(tagged_callback)' # The new line is added in case the last one has an inline comment (//)
+            full_query = @query+'\n'+'.iter(iter_callback, last_callback)' # The new line is added in case the last one has an inline comment (//)
             try
-                tagged_callback = @create_tagged_callback()
+                callbacks = @create_tagged_callbacks()
+                iter_callback = callbacks.iter
+                last_callback = callbacks.last
                 @start_time = new Date()
                 eval(full_query)
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
-                @data_container.render_error(full_query, err)
+                @results_view.render_error(@query, err)
             
-            # Display query in sidebar and home view
-            @data_container.add_query @codemirror.getValue()
+            # Display query in sidebar
             window.app.sidebar.add_query @codemirror.getValue()
 
         clear_query: =>
-            #TODO remove when not testing
-            ###
-            welcome = r.db('Welcome-db').table('Welcome-rdb')
-            welcome.insert({
-                id: generate_id(25)
-                name: generate_string(9)+' '+generate_string(9)
-                mail: generate_string(8)+'@'+generate_string(6)+'.com'
-                age: generate_number(100)
-                possess_car: false
-                driver_license: null
-                phone:
-                    home: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
-                    mobile: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
-                website: 'http://www.'+generate_string(12)+'.com'
-                }).run()
-            ###
             @codemirror.setValue ''
             @codemirror.focus()
 
@@ -708,17 +682,10 @@ module 'DataExplorerView', ->
                 line: Infinity
                 ch: Infinity
         connect: (data) =>
-            try
-                if window.conn? and window.conn.N isnt null
-                    window.conn.close()
-            catch err
-                #console.log 'Could not close previous connection'
             host = window.location.hostname
-            port = window.location.port
-            if port is ''
-                port = 13457
+            port = parseInt window.location.port
             try
-                window.conn = new rethinkdb.net.HttpConnection
+                r.connect
                     host: host
                     port: port
                 if data? and data.reconnecting is true
@@ -739,10 +706,11 @@ module 'DataExplorerView', ->
                     @suggestions.table.push suggestion
                 @has_been_initialized.value = true
             
-            @connect()
             @timeout = setTimeout @connect, 5*60*1000
-            window.r = rethinkdb.query
+            window.r = rethinkdb
             window.R = r.R
+
+            @connect()
 
             # We escape the last function because we are building a regex on top of it.
             @unsafe_to_safe_regexstr = []
@@ -784,14 +752,14 @@ module 'DataExplorerView', ->
                 replacement: '\\}'
 
             @input_query = new DataExplorerView.InputQuery
-            @data_container = new DataExplorerView.DataContainer
+            @results_view = new DataExplorerView.ResultView
 
             @render()
 
         render: =>
             @.$el.html @template
             @.$el.append @input_query.render().el
-            @.$el.append @data_container.render().el
+            @.$el.append @results_view.render().el
             return @
 
         call_codemirror: =>
@@ -806,11 +774,6 @@ module 'DataExplorerView', ->
                 matchBrackets: true
 
             @codemirror.setSize 698, 100
-
-        # Go home
-        display_home: =>
-            @.$el.append @data_container.render().el
-            return @
 
         toggle_size: =>
             if @displaying_full_view
@@ -845,11 +808,13 @@ module 'DataExplorerView', ->
         destroy: =>
             @display_normal()
             @input_query.destroy()
-            @data_container.destroy()
+            @results_view.destroy()
+            ###
             try
                 window.conn.close()
             catch err
                 #console.log 'Could not destroy connection'
+            ###
             clearTimeout @timeout
     
     class @InputQuery extends Backbone.View
@@ -860,45 +825,11 @@ module 'DataExplorerView', ->
             @.$el.html @template()
             return @
 
-    class @DataContainer extends Backbone.View
-        className: 'data_container'
-        error_template: Handlebars.compile $('#dataexplorer-error-template').html()
-        events:
-            'click .home_view': 'display_home'
-
-        initialize: ->
-            @default_view = new DataExplorerView.DefaultView
-            @result_view = new DataExplorerView.ResultView
-
-        add_query: (query) =>
-            @default_view.add_query(query)
-
-        display_home: (event) =>
-            window.app.current_view.display_home(event)
-
-        render: (query, result, execution_time) =>
-            if query? and result isnt undefined
-                @.$el.html @result_view.render(query, result, execution_time).el
-                @result_view.delegateEvents()
-            else
-                @.$el.html @default_view.render().el
-
-            return @
-
-        render_error: (query, err) =>
-            @.$el.html @error_template 
-                query: query
-                error: err.toString()
-            return @
-
-        destroy: =>
-            @default_view.destroy()
-            @result_view.destroy()
-
-
     class @ResultView extends Backbone.View
         className: 'result_view'
         template: Handlebars.compile $('#dataexplorer_result_container-template').html()
+        metadata_template: Handlebars.compile $('#dataexplorer-metadata-template').html()
+        error_template: Handlebars.compile $('#dataexplorer-error-template').html()
         template_no_result: Handlebars.compile $('#dataexplorer_result_empty-template').html()
         template_json_tree: 
             'container' : Handlebars.compile $('#dataexplorer_result_json_tree_container-template').html()
@@ -934,6 +865,12 @@ module 'DataExplorerView', ->
         initialize: =>
             $(document).mousemove @handle_mousemove
             $(document).mouseup @handle_mouseup
+
+        render_error: (query, err) =>
+            @.$el.html @error_template 
+                query: query
+                error: err.toString()
+            return @
 
         json_to_tree: (result) =>
             return @template_json_tree.container 
@@ -1247,43 +1184,36 @@ module 'DataExplorerView', ->
             @mouse_down = false
             @.$('.json_table').toggleClass('resizing', false)
 
-        render: (query, result, execution_time) =>
-            @current_result = result
-
-            if execution_time < 1000
-                execution_time_pretty = execution_time+"ms"
-            else if execution_time < 60*1000
-                execution_time_pretty = (execution_time/1000).toFixed(2)+"s"
-            else # We do not expect query to last one hour.
-                minutes = Math.floor(execution_time/(60*1000))
-                execution_time_pretty = minutes+"min "+((execution_time-minutes*60*1000)/1000).toFixed(2)+"s"
-
-            if @current_result.constructor? and @current_result.constructor is Array
-                num_rows = @current_result.length
-            else
-                num_rows = 1
-
+        render_result: (query, result, id) =>
             @.$el.html @template
                 query: query
-                execution_time: execution_time_pretty
-                num_rows: num_rows
-            
-            if @current_result is null or @current_result.length is 0
-                @.$('.results').html @template_no_result
-                @.$('#tree_view').addClass 'active'
-                return @
-
-            @.$('#tree_view').html @json_to_tree @current_result
-            @.$('#table_view').html @json_to_table @current_result
-            @.$('.raw_view_textarea').html JSON.stringify @current_result
+            @.$('#tree_view').html @json_to_tree result
+            @.$('#table_view').html @json_to_table result
+            @.$('.raw_view_textarea').html JSON.stringify result
  
             @.$('.link_to_tree_view').tab 'show'
             @.$('#tree_view').addClass 'active'
             @.$('#table_view').removeClass 'active'
             @.$('#raw_view').removeClass 'active'
 
-            @delegateEvents()
+        render_metadata: (count_results, execution_time) =>
+            LIMIT = 20
+            if execution_time?
+                if execution_time < 1000
+                    execution_time_pretty = execution_time+"ms"
+                else if execution_time < 60*1000
+                    execution_time_pretty = (execution_time/1000).toFixed(2)+"s"
+                else # We do not expect query to last one hour.
+                    minutes = Math.floor(execution_time/(60*1000))
+                    execution_time_pretty = minutes+"min "+((execution_time-minutes*60*1000)/1000).toFixed(2)+"s"       
 
+            @.$('.metadata').html @metadata_template
+                num_rows_displayed: LIMIT
+                num_rows: count_results
+                execution_time: execution_time if execution_time?
+
+
+        render: =>
             return @
 
         toggle_collapse: (event) =>
@@ -1315,74 +1245,3 @@ module 'DataExplorerView', ->
         destroy: =>
             $(document).unbind 'mousemove', @handle_mousemove
             $(document).unbind 'mouseup', @handle_mouseup
-
-    class @DefaultView extends Backbone.View
-        className: 'helper_view'
-        template: Handlebars.compile $('#dataexplorer_default_view-template').html()
-        template_query: Handlebars.compile $('#dataexplorer_query_element-template').html()
-        template_query_list: Handlebars.compile $('#dataexplorer_query_list-template').html()
-
-
-        history_queries: []
-
-        initialize :->
-            @data = {}
-            @compare_data()
-            namespaces.on 'all', @compare_data
-
-        compute_data: =>
-            data_temp = {}
-            for database in databases.models
-                data_temp[database.get('id')] = []
-            for namespace in namespaces.models
-                data_temp[namespace.get('database')].push
-                    name: namespace.get('name')
-                    database: databases.get(namespace.get('database')).get 'name'
-
-            data = {}
-            data['databases'] = []
-            for database_id of data_temp
-                if data_temp[database_id].length > 0
-                    data['databases'].push
-                        name: databases.get(database_id).get 'name'
-                        namespaces: data_temp[database_id] 
-
-            return data
-
-        compare_data: (data) => #So we don't refresh every five seconds.
-            data = @compute_data()
-            if objects_are_equal(data, @data) is false
-                @data = data
-                @render()
-
-        add_query: (query) =>
-            if query.length > 35
-                query_summary = query.slice(0, 10) + '...' + query.slice(query.length-24)
-            else
-                query_summary = query
-
-            @history_queries.unshift
-                query: query
-                query_summary: query_summary
-
-            if @history_queries.length is 1
-                @.$('.history_query_container').html @template_query_list
-
-            @.$('.history_query_list').prepend @template_query 
-                query: query
-                query_summary: query_summary
-
-        render: =>
-            data = {}
-            data = _.extend data, @data
-
-            data.has_namespaces = data['databases'].length > 0
-            data.has_old_queries = @history_queries.length > 0
-            data.old_queries = @history_queries
-
-            @.$el.html @template data
-        
-            return @
-
-        destroy: ->
-            namespaces.off 'all', @compute_data

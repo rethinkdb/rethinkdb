@@ -114,7 +114,7 @@
 
         <h2>Results</h2>
         <p class="query_executed">For query: {{query}}</p>
-        <p>Executed in {{execution_time}}, {{num_rows}} {{pluralize_noun "row" num_rows}} returned</p>
+        <p class="metadata"></p>
 
         <ul class="nav nav-tabs change_view_container"">
             <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view">Raw view</a></li>
@@ -135,6 +135,15 @@
     </div>
 </script>
 
+<script id="dataexplorer-metadata-template" type="text/x-handlebars-template">
+    {{#if execution_time}}
+        Executed in {{execution_time}}{{#if num_rows}},{{num_rows_displayed}} of {{num_rows}} {{pluralize_noun "row" num_rows_displayed}} displayed.{{/if}}
+    {{else}}
+        {{#if num_rows}}
+        {{num_rows_displayed}} {{pluralize_noun "row" num_rows_displayed}} displayed, computing total number of rows
+        {{/if}}
+    {{/if}}
+</script>
 
 <script id="dataexplorer_result_empty-template" type="text/x-handlebars-template">
     <p>No result were returned for this query</p>
