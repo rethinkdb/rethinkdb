@@ -1,6 +1,8 @@
 <script id="dataexplorer_view-template" type="text/x-handlebars-template">
     <h1 class="title status">Data Explorer</h1>
     <div id="user-alert-space"></div>
+    <div class="input_query_full_container"></div>
+    <div class="results_container"></div>
 </script>
 
 <script id="alert-connection_fail-template" type="text/x-handlebars-template">
@@ -114,16 +116,15 @@
 
         <h2>Results</h2>
         <p class="query_executed">For query: {{query}}</p>
-        <p>Executed in {{execution_time}}, {{num_rows}} {{pluralize_noun "row" num_rows}} returned</p>
+        <p class="metadata"></p>
 
         <ul class="nav nav-tabs change_view_container"">
             <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view">Raw view</a></li>
             <li><a href="#table_view" data-toggle="tab" class="link_to_table_view">Table view</a></li>
             <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view">Tree view</a></li>
         </ul>
- 
    </div>
-
+   <div class="pagination"></div>
    <div class="tab-content">  
         <div class="tab-pane results" id="tree_view">
         </div>
@@ -133,8 +134,16 @@
             <textarea class="raw_view_textarea"></textarea>
         </div>
     </div>
+    <div class="pagination"></div>
 </script>
 
+<script id="dataexplorer-metadata-template" type="text/x-handlebars-template">
+    {{#if execution_time}}
+        Executed in {{execution_time}}{{#if num_rows}}, {{num_rows_displayed}} of {{num_rows}} {{pluralize_noun "row" num_rows_displayed}} displayed.{{/if}}
+    {{else}}
+    {{#if num_rows_displayed}}num_rows_displayed {{pluralize_noun "row" num_rows_displayed}} displayed. {{/if}}Computing the total number of rows.
+    {{/if}}
+</script>
 
 <script id="dataexplorer_result_empty-template" type="text/x-handlebars-template">
     <p>No result were returned for this query</p>
