@@ -63,6 +63,7 @@ int main(int argc, char *argv[]) {
                 puts("    'rethinkdb serve': serve queries and host data");
                 puts("    'rethinkdb proxy': serve queries but don't host data");
                 puts("    'rethinkdb admin': access and modify cluster metadata");
+                puts("    'rethinkdb import': import data from from a file");
                 puts("");
                 puts("For more information, run 'rethinkdb help [subcommand]'.");
                 return 0;
