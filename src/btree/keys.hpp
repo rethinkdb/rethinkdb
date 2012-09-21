@@ -214,7 +214,12 @@ struct key_range_t {
     }
 
     bool is_empty() const {
-        return !right.unbounded && left >= right.key;
+        if (right.unbounded) {
+            return false;
+        } else {
+            rassert(left <= right.key);
+            return left == right.key;
+        }
     }
 
     bool contains_key(const store_key_t& key) const {
