@@ -302,7 +302,7 @@ message MetaQuery {
     optional string db_name = 2;
 
     message CreateTable {
-        optional string datacenter  = 1 [default = 'Welcome-dc'];
+        optional string datacenter  = 1 [default = 'universe'];
         required TableRef table_ref = 3;
         optional string primary_key = 4 [default = "id"];
         optional int64 cache_size = 5 [default = 1073741824]; //notice that's a gigabyte right there.
