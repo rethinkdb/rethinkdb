@@ -109,10 +109,6 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
     ns.primary_key        = vc.build(key);
     ns.port               = vc.build(port);
 
-    std::map<uuid_t, int> affinities;
-    affinities.insert(std::make_pair(datacenter, 0));
-    ns.replica_affinities = vc.build(affinities);
-
     std::map<uuid_t, int> ack_expectations;
     ack_expectations.insert(std::make_pair(datacenter, 1));
     ns.ack_expectations = vc.build(ack_expectations);
