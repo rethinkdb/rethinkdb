@@ -95,7 +95,6 @@
     <p>The following query could not be executed.</p>
     <p class="query">{{query}}</p>
     <p>Error: {{error}}</p>
-    <p><a href="#dataexplorer" class="home_view">Read quick start</a></p>
 </script>
 
 <script id="dataexplorer_query_list-template" type="text/x-handlebars-template">
@@ -124,7 +123,7 @@
             <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view">Tree view</a></li>
         </ul>
    </div>
-   <div class="pagination"></div>
+   <div class="pagination_container"></div>
    <div class="tab-content">  
         <div class="tab-pane results" id="tree_view">
         </div>
@@ -134,7 +133,7 @@
             <textarea class="raw_view_textarea"></textarea>
         </div>
     </div>
-    <div class="pagination"></div>
+    <div class="pagination_container"></div>
 </script>
 
 <script id="dataexplorer-metadata-template" type="text/x-handlebars-template">

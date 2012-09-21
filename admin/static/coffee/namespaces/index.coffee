@@ -360,7 +360,8 @@ module 'NamespaceView', ->
                 datacenter.set 'num_machines', 0
 
             for machine in machines.models
-                datacenters.get(machine.get('datacenter_uuid')).set 'num_machines',datacenter.get('num_machines')+1
+                if machine.get('datacenter_uuid')?
+                    datacenters.get(machine.get('datacenter_uuid')).set 'num_machines',datacenter.get('num_machines')+1
 
             ordered_datacenters = _.map(datacenters.models, (datacenter) ->
                 id: datacenter.get('id')

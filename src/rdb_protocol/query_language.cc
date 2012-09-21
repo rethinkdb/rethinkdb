@@ -879,7 +879,11 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         int64_t cache_size = m->create_table().cache_size();
 
         uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("table_ref").with("db_name"));
-        uuid_t dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name, bt.with("datacenter"));
+
+        uuid_t dc_id = nil_uuid();
+        if (m->create_table().has_datacenter()) {
+            dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name, bt.with("datacenter"));
+        }
 
         /* Ensure table doesn't already exist. */
         metadata_search_status_t status;
