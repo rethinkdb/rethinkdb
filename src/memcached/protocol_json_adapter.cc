@@ -25,7 +25,9 @@ void apply_json_to(cJSON *change, store_key_t *target) {
 
 void on_subfield_change(store_key_t *) { }
 
-
+std::string to_string_for_json_key(const store_key_t *target) {
+    return percent_escaped_string(key_to_unescaped_str(*target));
+}
 
 // json adapter for key_range_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(key_range_t *) {
@@ -110,6 +112,10 @@ std::string render_region_as_string(hash_region_t<key_range_t> *target) {
     // guarantee(target->beg == 0 && target->end == HASH_REGION_HASH_SIZE);
 
     return render_region_as_string(&target->inner);
+}
+
+std::string to_string_for_json_key(hash_region_t<key_range_t> *target) {
+    return render_region_as_string(target);
 }
 
 cJSON *render_as_json(hash_region_t<key_range_t> *target) {
