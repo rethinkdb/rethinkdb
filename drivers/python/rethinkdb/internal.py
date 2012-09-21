@@ -283,6 +283,8 @@ class LiteralArray(ExpressionInner):
 
 class LiteralObject(ExpressionInner):
     def __init__(self, value):
+        for k, v in value.iteritems():
+            assert isinstance(k, str)
         self.value = dict((k, query.expr(v)) for k, v in value.iteritems())
     def _write_ast(self, parent):
         parent.type = p.Term.OBJECT
