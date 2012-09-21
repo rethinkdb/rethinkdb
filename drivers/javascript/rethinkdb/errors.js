@@ -65,8 +65,6 @@ function formatServerError_(response, queryAst) {
         backtrace = pbBt.frameArray();
     }
 
-    console.log("head");
-    console.log(backtrace);
     return message + "\n\t"+ queryAst.formatQuery() + "\n\t" +
         queryAst.formatQuery(backtrace);
 }
