@@ -50,8 +50,9 @@ module RethinkDB
   # query runs it on the most-recently-opened connection.)
   class Connection
     def inspect # :nodoc:
+      properties = "(#{@host}:#{@port}) (Default Database: '#{@default_db}')"
       state = @listener ? "(listening)" : "(closed)"
-      "#<RethinkDB::Connection:#{self.object_id} (#{@host}:#{@port}) #{state}>"
+      "#<RethinkDB::Connection:#{self.object_id} #{properties} #{state}>"
     end
 
     @@last = nil
@@ -150,7 +151,6 @@ module RethinkDB
     end
 
     def error(protob,err=RuntimeError) # :nodoc:
-      PP.pp protob.backtrace
       raise err,"RQL: #{protob.error_message}"
     end
 
