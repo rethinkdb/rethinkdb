@@ -18,7 +18,7 @@ module RethinkDB
           if q.class != Write_Query
             raise TypeError, "Foreach requires query #{q.inspect} to be a write query."
           end}
-        Write_Query.new [:foreach, @body, vname, queries]
+        Write_Query.new [:foreach, self, vname, queries]
       }
     end
 
@@ -47,7 +47,7 @@ module RethinkDB
         end
       else
         S.with_var{|vname,v|
-          self.class.new [:call, [:filter, vname, S.r(yield(v))], [@body]]}
+          self.class.new [:call, [:filter, vname, S.r(yield(v))], [self]]}
       end
     end
 
@@ -60,7 +60,7 @@ module RethinkDB
     #   table.map{|row| [row[:id], row[:id]*2]}.reduce([]){|a,b| r.union(a,b)}
     def concatmap
       S.with_var { |vname,v|
-        self.class.new [:call, [:concatmap, vname, S.r(yield(v))], [@body]]}
+        self.class.new [:call, [:concatmap, vname, S.r(yield(v))], [self]]}
     end
 
     # Gets all rows with keys between <b>+start_key+</b> and
@@ -77,10 +77,9 @@ module RethinkDB
     #   table.between(nil,7,:index)
     #   table.filter{|row| row[:index] <= 7}
     def between(start_key, end_key, keyname=:id)
-      opts = {:attrname => keyname}
-      opts[:lowerbound] = (S.r start_key).sexp if not start_key.nil?
-      opts[:upperbound] = (S.r end_key).sexp   if not end_key.nil?
-      self.class.new [:call, [:range, opts], [@body]]
+      start_key = S.r(start_key || S.skip)
+      end_key = S.r(end_key || S.skip)
+      self.class.new [:call, [:range, keyname, start_key, end_key], [self]]
     end
 
     # Map a function over a sequence.  The provided block should take
@@ -91,7 +90,7 @@ module RethinkDB
     #   table.map {r[:id]} # uses implicit variable
     def map
       S.with_var{|vname,v|
-        self.class.new [:call, [:map, vname, S.r(yield(v))], [@body]]}
+        self.class.new [:call, [:map, vname, S.r(yield(v))], [self]]}
     end
 
     # For each element of a sequence, picks out the specified
@@ -116,7 +115,7 @@ module RethinkDB
     # order.
     def orderby(*orderings)
       orderings.map!{|x| x.class == Array ? x : [x, true]}
-      self.class.new [:call, [:orderby, *orderings], [@body]]
+      self.class.new [:call, [:orderby, *orderings], [self]]
     end
 
     # Reduce a function over the sequence.  Note that unlike Ruby's reduce, you
@@ -137,7 +136,7 @@ module RethinkDB
         S.with_var { |bname,b|
           JSON_Expression.new [:call,
                                [:reduce, S.r(base), aname, bname, S.r(yield(a,b))],
-                               [@body]]}}
+                               [self]]}}
     end
 
     # This one is a little complicated.  The logic is as follows:
@@ -164,7 +163,7 @@ module RethinkDB
                                    grouping_term,
                                    mapping_term,
                                    reduction_term],
-                           [@body]]
+                           [self]]
     end
 
     # Gets one or more elements from the sequence, much like [] in Ruby.
@@ -186,13 +185,13 @@ module RethinkDB
     def [](ind)
       case ind.class.hash
       when Fixnum.hash then
-        JSON_Expression.new [:call, [:nth], [@body, RQL.expr(ind)]]
+        JSON_Expression.new [:call, [:nth], [self, RQL.expr(ind)]]
       when Range.hash then
         b = RQL.expr(ind.begin)
         if ind.exclude_end? then e = ind.end
                             else e = (ind.end == -1 ? nil : RQL.expr(ind.end+1))
         end
-        self.class.new [:call, [:slice], [@body, RQL.expr(b), RQL.expr(e)]]
+        self.class.new [:call, [:slice], [self, RQL.expr(b), RQL.expr(e)]]
       else raise SyntaxError, "RQL_Query#[] can't handle #{ind.inspect}."
       end
     end
@@ -227,7 +226,7 @@ module RethinkDB
     #   r[[{:x => 1}, {:x => 2}, {:x => 1}]].distinct(:x)
     def distinct(attr=nil);
       if attr then self.map{|row| row[attr]}.distinct
-              else self.class.new [:call, [:distinct], [@body]];
+              else self.class.new [:call, [:distinct], [self]];
       end
     end
 
@@ -236,7 +235,7 @@ module RethinkDB
     # equivalent:
     #   table[0...5].length
     #   r[[1,2,3,4,5]].length
-    def length(); JSON_Expression.new [:call, [:length], [@body]]; end
+    def length(); JSON_Expression.new [:call, [:length], [self]]; end
 
     # Get element <b>+n+</b> of the sequence.  For example, the following are
     # equivalent:
@@ -244,7 +243,7 @@ module RethinkDB
     #   r[[0,1,2,3]].nth(2)
     # (Note the 0-indexing.)
     def nth(n)
-      JSON_Expression.new [:call, [:nth], [@body, S.r(n)]]
+      JSON_Expression.new [:call, [:nth], [self, S.r(n)]]
     end
   end
 end

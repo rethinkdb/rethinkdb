@@ -60,10 +60,21 @@ module RethinkDB
 
   module S_Mixin #S-expression Utils
     @@gensym_counter = 0
-    def gensym; 'gensym_'+(@@gensym_counter += 1).to_s; end
-    def with_var; sym = gensym; yield sym, var(sym); end
-    def var(varname); Var_Expression.new [:var, varname]; end
-    def r x; RQL.expr(x); end
+    def gensym; '_var_'+(@@gensym_counter += 1).to_s; end
+    def with_var
+      sym = gensym
+      yield sym, var(sym)
+    end
+    def var(varname)
+      res = Var_Expression.new [:var, varname]
+      class << res
+        attr_accessor :varname
+        def inspect(&b); real_inspect({:str => @body[1]}, &b); end
+      end
+      res.varname = varname
+      return res
+    end
+    def r x; x.equal?(skip) ? x : RQL.expr(x); end
     def skip; :skip_2222ebd4_2c16_485e_8c27_bbe43674a852; end
 
     def arg_or_block(*args, &block)
@@ -86,4 +97,117 @@ module RethinkDB
     end
   end
   module S; extend S_Mixin; end
+
+  module B_Mixin # Backtrace utils
+    attr_accessor :highlight, :line
+
+    def sanitize_context(context)
+      if __FILE__ =~ /^(.*\/)[^\/]+.rb$/
+        prefix = $1;
+        context.reject{|x| x =~ /^#{prefix}/}
+      else
+        context
+      end
+    end
+
+    def format_highlights(str)
+      str.chars.map{|x| x == "\000" ? "^" : " "}.join.rstrip
+    end
+
+    def force_raise(query)
+      obj = query.run
+      if (err = obj['first_error'])
+        lines = err.split("\n")
+        raise RuntimeError,lines[0]+"\n"+query.print_backtrace(lines[1..-1])
+      end
+      obj
+    end
+
+    def set(sym,val)
+      @map = {} if not @map
+      res, @map[sym] = @map[sym], val
+      return res
+    end
+    def consume sym
+      res, @map[sym] = @map[sym], nil
+      return res.nil? ? 0 : res
+    end
+
+    def expand arg
+      case arg
+      when /arg:([0-9]+)/     then [2, $1.to_i]
+      when 'mapping'          then [1, 2]
+
+      when 'reduction'        then set(:reduce, -1); [1, 3]
+      when 'group_mapping'    then [1, 1, 1]
+      when 'value_mapping'    then [1, 2, 1]
+      when 'reduce'           then [1]
+      when 'base'             then [1+consume(:reduce)]
+      when 'body'             then [4+consume(:reduce)]
+
+      # TODO: how to test?
+      when /query:([0-9]+)/   then [3, $1.to_i]
+      when 'stream'           then [1]
+
+      # insert
+      when /term:([0-9]+)/    then [2, $1.to_i]
+
+      # object
+      when /key:(.+)$/        then [1..-1, $1]
+
+      # let
+      when /bind:(.+)$/       then [1, $1]
+      when /expr/             then [2]
+
+      when 'lowerbound'       then [1, 2]
+      when 'upperbound'       then [1, 3]
+      else  [:error]
+      end
+    end
+
+    def recur(arr, lst, val)
+      if lst[0].class == String
+        entry = arr[0..-1].find{|x| x[0].to_s == lst[0]}
+        raise RuntimeError if not entry
+        mark(entry[1], lst[1..-1], val)
+      elsif lst[0].class == Fixnum || lst[0].class == Range
+        mark(arr[lst[0]], lst[1..-1], val) if lst != []
+      else
+        raise RuntimeError
+      end
+    end
+    def mark(query, lst, val)
+      PP.pp [lst, query]
+      if query.class == Array
+        recur(query, lst, val) if lst != []
+      elsif query.kind_of? RQL_Query
+        if lst == []
+          @line = sanitize_context(query.context)[0]
+          val,query.marked = query.marked, val
+          val
+        else
+          recur(query.body, lst, val)
+        end
+      else raise RuntimeError
+      end
+    end
+
+    def with_marked_error(query, bt)
+      @map = {}
+      bt = bt.map{|x| expand x}.flatten
+      raise RuntimeError if bt.any?{|x| x == :error}
+      old = mark(query, bt, :error)
+      res = yield
+      mark(query, bt, old)
+      return res
+    end
+
+    def with_highlight
+      @highlight = true
+      str = yield
+      @highlight = false
+      str.chars.map{|x| x == "\000" ? "^" : " "}.join.rstrip
+    end
+  end
+  module B; extend B_Mixin; end
 end
