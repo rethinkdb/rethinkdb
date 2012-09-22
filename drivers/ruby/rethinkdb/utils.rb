@@ -154,7 +154,10 @@ module RethinkDB
 
       # object
       when /key:(.+)$/        then [1..-1, $1]
+
+      # let
       when /bind:(.+)$/       then [1, $1]
+      when /expr/             then [2]
 
       when 'lowerbound'       then [1, 2]
       when 'upperbound'       then [1, 3]

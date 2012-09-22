@@ -170,9 +170,9 @@ term_info_t get_term_type(const Term &t, type_checking_environment_t *env, const
             bool test_is_det;
             check_term_type(t.if_().test(), TERM_TYPE_JSON, env, &test_is_det, backtrace.with("test"));
 
-            term_info_t true_branch = get_term_type(t.if_().true_branch(), env, backtrace.with("true_branch"));
+            term_info_t true_branch = get_term_type(t.if_().true_branch(), env, backtrace.with("true"));
 
-            term_info_t false_branch = get_term_type(t.if_().false_branch(), env, backtrace.with("false_branch"));
+            term_info_t false_branch = get_term_type(t.if_().false_branch(), env, backtrace.with("false"));
 
             term_info_t combined_type;
             if (!term_type_least_upper_bound(true_branch, false_branch, &combined_type)) {
