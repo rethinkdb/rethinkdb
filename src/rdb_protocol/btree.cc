@@ -97,7 +97,7 @@ boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction
     vector_read_stream_t read_stream(&data_vec);
 
     int res = deserialize(&read_stream, &data);
-    guarantee_err(res == 0, "corruption detected... this should probably be an exception\n");
+    guarantee_unreviewed_err(res == 0, "corruption detected... this should probably be an exception\n");
 
     return data;
 }
@@ -121,7 +121,7 @@ point_read_response_t rdb_get(const store_key_t &store_key, btree_slice_t *slice
 
 void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
                         btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
-    rassert(kv_location->value.has());
+    rassert_unreviewed(kv_location->value.has());
     blob_t blob(kv_location->value->value_ref(), blob::btree_maxreflen);
     blob.clear(txn);
     kv_location->value.reset();
@@ -141,7 +141,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     wm << data;
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
-    guarantee_err(res == 0, "Serialization for json data failed... this shouldn't happen.\n");
+    guarantee_unreviewed_err(res == 0, "Serialization for json data failed... this shouldn't happen.\n");
 
     blob_t blob(new_value->value_ref(), blob::btree_maxreflen);
 
@@ -175,12 +175,12 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
             }
         } else {
             lhs = get_data(kv_location.value.get(), txn);
-            rassert(lhs->GetObjectItem(primary_key.c_str()));
+            rassert_unreviewed(lhs->GetObjectItem(primary_key.c_str()));
         }
-        rassert(lhs && ((lhs->type() == cJSON_NULL && op == point_modify::MUTATE) || lhs->type() == cJSON_Object));
+        rassert_unreviewed(lhs && ((lhs->type() == cJSON_NULL && op == point_modify::MUTATE) || lhs->type() == cJSON_Object));
 
         boost::shared_ptr<scoped_cJSON_t> rhs(query_language::eval_mapping(mapping, env, scopes, backtrace, lhs));
-        rassert(rhs);
+        rassert_unreviewed(rhs);
         if (rhs->type() == cJSON_NULL) {
             switch (op) {
             case point_modify::MUTATE: {
@@ -194,7 +194,7 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
         } else if (rhs->type() != cJSON_Object) {
             throw query_language::runtime_exc_t(strprintf("Got %s, but expected Object.", rhs->Print().c_str()), backtrace);
         }
-        rassert(rhs->type() == cJSON_Object);
+        rassert_unreviewed(rhs->type() == cJSON_Object);
 
         boost::shared_ptr<scoped_cJSON_t> val;
         switch(op) {
@@ -202,17 +202,17 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
         case point_modify::UPDATE: val.reset(new scoped_cJSON_t(cJSON_merge(lhs->get(), rhs->get()))); break;
         default:                   unreachable("Bad point_modify::op_t.");
         }
-        rassert(val && val->type() == cJSON_Object);
+        rassert_unreviewed(val && val->type() == cJSON_Object);
 
         cJSON *val_pk = val->GetObjectItem(primary_key.c_str());
         if (!val_pk) {
-            rassert(op == point_modify::MUTATE);
+            rassert_unreviewed(op == point_modify::MUTATE);
             throw query_language::runtime_exc_t(strprintf("Object provided by mutate (%s) must contain primary key %s.",
                                                           val->Print().c_str(), primary_key.c_str()), backtrace);
         }
 
         if (lhs->type() == cJSON_NULL) {
-            rassert(op == point_modify::MUTATE);
+            rassert_unreviewed(op == point_modify::MUTATE);
             if (val_pk->type != cJSON_Number && val_pk->type != cJSON_String) {
                 throw query_language::runtime_exc_t(strprintf("Cannot create new row with non-number, non-string primary key (%s).",
                                                               val->Print().c_str()), backtrace);
@@ -225,9 +225,9 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
             return point_modify_response_t(point_modify::INSERTED);
         }
 
-        rassert(lhs->type() == cJSON_Object);
+        rassert_unreviewed(lhs->type() == cJSON_Object);
         cJSON *lhs_pk = lhs->GetObjectItem(primary_key.c_str());
-        rassert(lhs_pk && val_pk);
+        rassert_unreviewed(lhs_pk && val_pk);
         if (!cJSON_Equal(lhs_pk, val_pk)) {
             throw query_language::runtime_exc_t(strprintf("Cannot modify primary key (%s -> %s).",
                                                           cJSON_Print(lhs_pk), cJSON_Print(val_pk)), backtrace);
@@ -258,17 +258,17 @@ public:
     agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
 
     void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.is_superset(range));
+        rassert_unreviewed(kr_.is_superset(range));
         cb_->on_delete_range(range, interruptor);
     }
 
     void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.contains_key(key->contents, key->size));
+        rassert_unreviewed(kr_.contains_key(key->contents, key->size));
         cb_->on_deletion(key, recency, interruptor);
     }
 
     void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *val, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.contains_key(key->contents, key->size));
+        rassert_unreviewed(kr_.contains_key(key->contents, key->size));
         const rdb_value_t *value = static_cast<const rdb_value_t *>(val);
 
         rdb_protocol_details::backfill_atom_t atom;
@@ -397,7 +397,7 @@ public:
             if (!terminal) {
                 typedef rget_read_response_t::stream_t stream_t;
                 stream_t *stream = boost::get<stream_t>(&response.result);
-                guarantee(stream);
+                guarantee_unreviewed(stream);
                 for (json_list_t::iterator it =  data.begin();
                                            it != data.end();
                                            ++it) {

@@ -95,7 +95,7 @@ public:
 
     void spawn_request(const request_type &request, ticket_acq_t *ticket_acq, signal_t *interruptor) {
         wait_interruptible(ticket_acq, interruptor);
-        rassert(ticket_acq->state == ticket_acq_t::state_acquired_ticket);
+        rassert_unreviewed(ticket_acq->state == ticket_acq_t::state_acquired_ticket);
         ticket_acq->state = ticket_acq_t::state_used_ticket;
         send(mailbox_manager, request_addr, request);
     }

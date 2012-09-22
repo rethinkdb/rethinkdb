@@ -30,7 +30,7 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
     // Add a CAS to the value if necessary
     if (the_value.has()) {
         if (the_value->has_cas()) {
-            rassert(proposed_cas != BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
+            rassert_unreviewed(proposed_cas != BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
             the_value->set_cas(block_size, proposed_cas);
         }
     }

@@ -15,7 +15,7 @@ void sanitize_routes(DEBUG_VAR const std::map<std::string, http_app_t *> routes)
     for (std::map<std::string, http_app_t *>::const_iterator it =  routes.begin();
                                                                 it != routes.end();
                                                                 it++) {
-        rassert(strchr(it->first.c_str(), '/') == NULL, "Routes should not contain '/'s");
+        rassert_unreviewed(strchr(it->first.c_str(), '/') == NULL, "Routes should not contain '/'s");
     }
 #endif
 }

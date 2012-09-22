@@ -132,7 +132,7 @@ public:
         {
             mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
             namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
-            rassert(directory.reactor_bcards.count(namespace_id_) == 1);
+            rassert_unreviewed(directory.reactor_bcards.count(namespace_id_) == 1);
             directory.reactor_bcards.erase(namespace_id_);
             parent_->watchable_variable.set_value(directory);
         }
@@ -250,7 +250,7 @@ private:
                     reactor_->get_reactor_directory(), &reactor_directory_freeze));
             mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
             namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
-            rassert(directory.reactor_bcards.count(namespace_id_) == 0);
+            rassert_unreviewed(directory.reactor_bcards.count(namespace_id_) == 0);
             directory.reactor_bcards.insert(std::make_pair(namespace_id_, reactor_->get_reactor_directory()->get()));
             parent_->watchable_variable.set_value(directory);
         }

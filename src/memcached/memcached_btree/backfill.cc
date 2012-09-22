@@ -13,17 +13,17 @@ public:
     agnostic_memcached_backfill_callback_t(backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
 
     void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.is_superset(range));
+        rassert_unreviewed(kr_.is_superset(range));
         cb_->on_delete_range(range, interruptor);
     }
 
     void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.contains_key(key->contents, key->size));
+        rassert_unreviewed(kr_.contains_key(key->contents, key->size));
         cb_->on_deletion(key, recency, interruptor);
     }
 
     void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *val, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.contains_key(key->contents, key->size));
+        rassert_unreviewed(kr_.contains_key(key->contents, key->size));
         const memcached_value_t *value = static_cast<const memcached_value_t *>(val);
         intrusive_ptr_t<data_buffer_t> data_provider = value_to_data_buffer(value, txn);
         backfill_atom_t atom;

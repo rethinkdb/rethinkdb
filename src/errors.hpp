@@ -118,6 +118,10 @@ void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
         }                               \
     } while (0)
 
+// TODO(sam): This lists unreviewed guarantees in the clustering code.
+// All uses of this should be gone by the time I merge into master.
+#define guarantee_unreviewed(...) guarantee(__VA_ARGS__)
+
 #define nice_guarantee(cond, msg, ...) do { \
         if (!(cond)) {                      \
             nice_crash(msg, ##__VA_ARGS__); \
@@ -134,6 +138,8 @@ void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
         }                                                                       \
     } while (0)
 #define guarantee_err(cond, msg, args...) guarantee_xerr(cond, errno, msg, ##args)
+
+#define guarantee_unreviewed_err(...) guarantee_err(__VA_ARGS__)
 
 #define unreachable(msg, ...) crash("Unreachable code: " msg, ##__VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
 #define not_implemented(msg, ...) crash_or_trap("Not implemented: " msg, ##__VA_ARGS__)
@@ -157,6 +163,11 @@ void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
         }                                                                   \
     } while (0)
 #endif
+
+// TODO(sam): This lists unreviewed assertions in the clustering code.
+// All uses of this should be gone by the time I merge into master.
+#define rassert_unreviewed(...) rassert(__VA_ARGS__)
+#define rassert_unreviewed_err(...) rassert(__VA_ARGS__)
 
 void install_generic_crash_handler();
 

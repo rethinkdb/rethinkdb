@@ -112,7 +112,7 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
 }
 
 boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED runtime_environment_t *env2, const scopes_t &scopes, const backtrace_t &per_op_backtrace) {
-    guarantee(!started);
+    guarantee_unreviewed(!started);
     transform.push_back(rdb_protocol_details::transform_atom_t(t, scopes, per_op_backtrace));
     return shared_from_this();
 }
@@ -131,7 +131,7 @@ result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::termi
             ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
         }
         rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
-        rassert(p_res);
+        rassert_unreviewed(p_res);
 
         /* Re throw an exception if we got one. */
         if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
@@ -148,7 +148,7 @@ void batched_rget_stream_t::read_more() {
     rdb_protocol_t::rget_read_t rget_read(rdb_protocol_t::region_t(range), transform);
     rdb_protocol_t::read_t read(rget_read);
     try {
-        guarantee(ns_access.get_namespace_if());
+        guarantee_unreviewed(ns_access.get_namespace_if());
         rdb_protocol_t::read_response_t res;
         if (use_outdated) {
             ns_access.get_namespace_if()->read_outdated(read, &res, interruptor);
@@ -156,7 +156,7 @@ void batched_rget_stream_t::read_more() {
             ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
         }
         rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
-        guarantee(p_res);
+        guarantee_unreviewed(p_res);
 
         /* Re throw an exception if we got one. */
         if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
@@ -166,11 +166,11 @@ void batched_rget_stream_t::read_more() {
         // todo: just do a straight copy?
         typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
         stream_t *stream = boost::get<stream_t>(&p_res->result);
-        guarantee(stream);
+        guarantee_unreviewed(stream);
 
         for (stream_t::iterator i = stream->begin(); i != stream->end(); ++i) {
             data.push_back(i->second);
-            rassert(data.back());
+            rassert_unreviewed(data.back());
         }
 
         range.left = p_res->last_considered_key;

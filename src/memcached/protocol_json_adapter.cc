@@ -116,7 +116,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(UNUSED hash_region_t<ke
 std::string render_region_as_string(hash_region_t<key_range_t> *target) {
     // TODO: ghetto low level hash_region_t assertion.
     // TODO: Reintroduce this ghetto low level hash_region_t assertion.
-    // guarantee(target->beg == 0 && target->end == HASH_REGION_HASH_SIZE);
+    // guarantee_unreviewed(target->beg == 0 && target->end == HASH_REGION_HASH_SIZE);
 
     return render_region_as_string(&target->inner);
 }

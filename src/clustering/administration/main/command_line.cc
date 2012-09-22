@@ -112,7 +112,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
 
 void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<host_and_port_t> joins, int client_port, json_import_target_t target, std::string separators, std::string input_filepath, bool *result_out) {
     os_signal_cond_t sigint_cond;
-    guarantee(!joins.empty());
+    guarantee_unreviewed(!joins.empty());
 
     csv_to_json_importer_t importer(separators, input_filepath);
 
@@ -272,7 +272,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
 void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
-    guarantee(!joins.empty());
+    guarantee_unreviewed(!joins.empty());
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
@@ -634,8 +634,8 @@ MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_o
 
     db_name_out->assign(db_table.data(), first_pos);
     table_name_out->assign(db_table.data() + first_pos + 1, db_table.data() + db_table.size());
-    rassert(db_name_out->size() > 0);
-    rassert(table_name_out->size() > 0);
+    rassert_unreviewed(db_name_out->size() > 0);
+    rassert_unreviewed(table_name_out->size() > 0);
     return true;
 }
 

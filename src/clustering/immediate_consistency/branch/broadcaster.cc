@@ -23,7 +23,7 @@ broadcaster_t<protocol_t>::write_callback_t::write_callback_t() : write(NULL) { 
 template <class protocol_t>
 broadcaster_t<protocol_t>::write_callback_t::~write_callback_t() {
     if (write) {
-        rassert(write->callback == this);
+        rassert_unreviewed(write->callback == this);
         write->callback = NULL;
     }
 }
@@ -117,7 +117,7 @@ broadcaster_business_card_t<protocol_t> broadcaster_t<protocol_t>::get_business_
 
 template <class protocol_t>
 store_view_t<protocol_t> *broadcaster_t<protocol_t>::release_bootstrap_svs_for_listener() {
-    rassert(bootstrap_svs != NULL);
+    rassert_unreviewed(bootstrap_svs != NULL);
     store_view_t<protocol_t> *tmp = bootstrap_svs;
     bootstrap_svs = NULL;
     return tmp;
@@ -159,7 +159,7 @@ class broadcaster_t<protocol_t>::incomplete_write_ref_t {
 public:
     incomplete_write_ref_t() { }
     explicit incomplete_write_ref_t(const boost::shared_ptr<incomplete_write_t> &w) : write(w) {
-        rassert(w);
+        rassert_unreviewed(w);
         w->incomplete_count++;
     }
     incomplete_write_ref_t(const incomplete_write_ref_t &r) : write(r.write) {
@@ -273,7 +273,7 @@ private:
             THROWS_NOTHING {
         mutex_assertion_t::acq_t acq(&controller->mutex);
         ASSERT_FINITE_CORO_WAITING;
-        rassert(!is_readable);
+        rassert_unreviewed(!is_readable);
         is_readable = true;
         writeread_mailbox = wrm;
         read_mailbox = rm;
@@ -284,7 +284,7 @@ private:
         {
             mutex_assertion_t::acq_t acq(&controller->mutex);
             ASSERT_FINITE_CORO_WAITING;
-            rassert(is_readable);
+            rassert_unreviewed(is_readable);
             is_readable = false;
             controller->readable_dispatchees.remove(this);
         }
@@ -466,7 +466,7 @@ void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &
         this, write, timestamp, cb);
     incomplete_writes.push_back(write_wrapper);
 
-    rassert(cb->write == NULL, "You can't reuse the same callback for two writes.");
+    rassert_unreviewed(cb->write == NULL, "You can't reuse the same callback for two writes.");
     cb->write = write_wrapper.get();
 
     /* Create a reference so that `write` doesn't declare itself
@@ -559,12 +559,12 @@ void broadcaster_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> 
     while (newest_complete_timestamp < write->timestamp.timestamp_after()) {
         boost::shared_ptr<incomplete_write_t> removed_write = incomplete_writes.front();
         incomplete_writes.pop_front();
-        rassert(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
+        rassert_unreviewed(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
         newest_complete_timestamp = removed_write->timestamp.timestamp_after();
     }
     write->sem_acq.reset();
     if (write->callback) {
-        rassert(write->callback->write == write.get());
+        rassert_unreviewed(write->callback->write == write.get());
         write->callback->write = NULL;
         write->callback->on_done();
     }
@@ -580,10 +580,10 @@ void broadcaster_t<protocol_t>::sanity_check() {
     state_timestamp_t ts = newest_complete_timestamp;
     for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
          it != incomplete_writes.end(); it++) {
-        rassert(ts == (*it)->timestamp.timestamp_before());
+        rassert_unreviewed(ts == (*it)->timestamp.timestamp_before());
         ts = (*it)->timestamp.timestamp_after();
     }
-    rassert(ts == current_timestamp);
+    rassert_unreviewed(ts == current_timestamp);
 #endif
 }
 

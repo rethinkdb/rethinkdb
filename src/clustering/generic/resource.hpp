@@ -58,7 +58,7 @@ public:
 
     /* Returns a string that describes why `get_failed_signal()` is pulsed. */
     std::string get_failed_reason() {
-        rassert(failed_signal.is_pulsed());
+        rassert_unreviewed(failed_signal.is_pulsed());
         return failed_reason;
     }
 
@@ -67,14 +67,14 @@ public:
     business_card_t access() THROWS_ONLY(resource_lost_exc_t) {
         boost::optional<boost::optional<business_card_t> > maybe_maybe_value = metadata_view->get();
         if (!maybe_maybe_value) {
-            rassert(failed_signal.is_pulsed());
+            rassert_unreviewed(failed_signal.is_pulsed());
             throw resource_lost_exc_t();
         }
         if (!maybe_maybe_value.get()) {
-            rassert(failed_signal.is_pulsed());
+            rassert_unreviewed(failed_signal.is_pulsed());
             throw resource_lost_exc_t();
         }
-        rassert(!failed_signal.is_pulsed());
+        rassert_unreviewed(!failed_signal.is_pulsed());
         return maybe_maybe_value.get().get();
     }
 

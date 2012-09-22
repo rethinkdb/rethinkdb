@@ -19,7 +19,7 @@
 #include "http/json.hpp"
 
 /* A note about json adapter exceptions: When an operation throws an exception
- * there is no guarantee that the target object has been left in tact.
+ * there is no guarantee_unreviewed that the target object has been left in tact.
  * Generally this is okay because we first apply changes and then join them in
  * to semilattice metadata. Generally once a particular object has thrown one
  * of these exceptions it should probably not be used anymore. */

@@ -72,7 +72,7 @@ directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::set(typename 
 
 template <class protocol_t>
 directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_without_changing_id(typename reactor_business_card_t<protocol_t>::activity_t activity) {
-    rassert(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
+    rassert_unreviewed(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
     typename directory_echo_writer_t<cow_ptr_t<reactor_business_card_t<protocol_t> > >::our_value_change_t our_value_change(&parent->directory_echo_writer);
     {
         typename cow_ptr_t<reactor_business_card_t<protocol_t> >::change_t cow_ptr_change(&our_value_change.buffer);
@@ -97,7 +97,7 @@ template<class protocol_t>
 void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
     blueprint_t<protocol_t> blueprint = blueprint_watchable->get();
     blueprint.assert_valid();
-    rassert(std_contains(blueprint.peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
+    rassert_unreviewed(std_contains(blueprint.peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
 
     std::map<typename protocol_t::region_t, blueprint_role_t> blueprint_roles =
         blueprint.peers_roles.find(get_me())->second;
@@ -125,7 +125,7 @@ void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
 template<class protocol_t>
 void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
     blueprint_t<protocol_t> blueprint = blueprint_watchable->get();
-    rassert(std_contains(blueprint.peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
+    rassert_unreviewed(std_contains(blueprint.peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
 
     std::map<typename protocol_t::region_t, blueprint_role_t> blueprint_roles =
         blueprint.peers_roles.find(get_me())->second;
@@ -190,7 +190,7 @@ void reactor_t<protocol_t>::run_role(
         //and interruptions... so we just unify those signals
         wait_any_t wait_any(&role->abort, keepalive.get_drain_signal());
 
-        // guarantee(CLUSTER_CPU_SHARDING_FACTOR == svs_subview.num_stores());
+        // guarantee_unreviewed(CLUSTER_CPU_SHARDING_FACTOR == svs_subview.num_stores());
 
         pmap(svs_subview.num_stores(), boost::bind(&reactor_t<protocol_t>::run_cpu_sharded_role, this, _1, role, region, &svs_subview, &wait_any));
     }

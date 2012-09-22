@@ -100,7 +100,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         while (0 == access(file_name_for(namespace_id, num_stores).c_str(), R_OK | W_OK)) {
             ++num_stores;
         }
-        guarantee(num_stores == CLUSTER_CPU_SHARDING_FACTOR);
+        guarantee_unreviewed(num_stores == CLUSTER_CPU_SHARDING_FACTOR);
 
         // The files already exist, thus we don't create them.
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
@@ -142,7 +142,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
 
         order_source_t order_source;  // TODO: order_token_t::ignore.  Use the svs.
 
-        guarantee((*svs_out)->get_region() == protocol_t::region_t::universe());
+        guarantee_unreviewed((*svs_out)->get_region() == protocol_t::region_t::universe());
         (*svs_out)->set_metainfo(region_map_t<protocol_t, binary_blob_t>((*svs_out)->get_region(),
                                                                          binary_blob_t(version_range_t(version_t::zero()))),
                                  order_source.check_in("file_based_svs_by_namespace_t"),

@@ -154,8 +154,8 @@ void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
 {
     immediate_op_info_t<fifo_enforcer_token_type> *master_to_contact = &(*masters_to_contact)[i];
     op_type sharded_op = operation->shard(master_to_contact->region);
-    rassert(region_is_superset(master_to_contact->region, sharded_op.get_region()));
-    rassert(region_is_superset(operation->get_region(), sharded_op.get_region()));
+    rassert_unreviewed(region_is_superset(master_to_contact->region, sharded_op.get_region()));
+    rassert_unreviewed(region_is_superset(operation->get_region(), sharded_op.get_region()));
 
     try {
         (master_to_contact->master_access->*how_to_run_query)(sharded_op,
@@ -168,7 +168,7 @@ void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
     } catch (const cannot_perform_query_exc_t& e) {
         failures->at(i).assign("master error: " + std::string(e.what()));
     } catch (const interrupted_exc_t&) {
-        rassert(interruptor->is_pulsed());
+        rassert_unreviewed(interruptor->is_pulsed());
         /* Ignore `interrupted_exc_t` and just return immediately.
            `dispatch_immediate_op()` will notice the interruptor has been
            pulsed and won't try to access our result. */
@@ -249,8 +249,8 @@ void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
 {
     outdated_read_info_t *direct_reader_to_contact = &(*direct_readers_to_contact)[i];
     typename protocol_t::read_t sharded_op = operation->shard(direct_reader_to_contact->region);
-    rassert(region_is_superset(direct_reader_to_contact->region, sharded_op.get_region()));
-    rassert(region_is_superset(operation->get_region(), sharded_op.get_region()));
+    rassert_unreviewed(region_is_superset(direct_reader_to_contact->region, sharded_op.get_region()));
+    rassert_unreviewed(region_is_superset(operation->get_region(), sharded_op.get_region()));
 
     try {
         cond_t done;
@@ -265,7 +265,7 @@ void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
     } catch (resource_lost_exc_t) {
         failures->at(i).assign("lost contact with direct reader");
     } catch (interrupted_exc_t) {
-        rassert(interruptor->is_pulsed());
+        rassert_unreviewed(interruptor->is_pulsed());
         /* Ignore `interrupted_exc_t` and return immediately.
            `read_outdated()` will notice that the interruptor has been pulsed
            and won't try to access our result. */
@@ -402,7 +402,7 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
                                                                                              &relationship_record);
 
         if (is_start) {
-            rassert(start_count > 0);
+            rassert_unreviewed(start_count > 0);
             start_count--;
             if (start_count == 0) {
                 start_cond.pulse();
@@ -426,7 +426,7 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
     }
 
     if (is_start) {
-        rassert(start_count > 0);
+        rassert_unreviewed(start_count > 0);
         start_count--;
         if (start_count == 0) {
             start_cond.pulse();

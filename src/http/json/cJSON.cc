@@ -125,7 +125,7 @@ static char *print_number(cJSON *item)
 {
 	char *str;
 	double d=item->valuedouble;
-        rassert(isfinite(d));
+        rassert_unreviewed(isfinite(d));
 	if (fabs(((double)item->valueint)-d)<=DBL_EPSILON && d<=INT_MAX && d>=INT_MIN)
 	{
 		str=(char*)cJSON_malloc(21);	/* 2^64+1 can be represented in 21 chars. */
@@ -586,7 +586,7 @@ bool cJSON_Equal(cJSON *x, cJSON *y) {
         break;
     case cJSON_Number:
         if (x->valuedouble == y->valuedouble) {
-            rassert(x->valueint == y->valueint);
+            rassert_unreviewed(x->valueint == y->valueint);
             return true;
         } else {
             return false;

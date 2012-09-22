@@ -10,7 +10,7 @@ master_t<protocol_t>::master_t(mailbox_manager_t *mm, ack_checker_t *ac,
       broadcaster(b),
       region(r),
       multi_throttling_server(mm, this, broadcaster_t<protocol_t>::MAX_OUTSTANDING_WRITES) {
-    rassert(ack_checker);
+    rassert_unreviewed(ack_checker);
 }
 
 template <class protocol_t>
@@ -104,7 +104,7 @@ void master_t<protocol_t>::client_t::perform_request(
             send(parent->mailbox_manager, write->cont_addr,
                  boost::variant<typename protocol_t::write_response_t, std::string>(write_callback.response_promise.get_value()));
         } else {
-            rassert(write_callback.done_cond.is_pulsed());
+            rassert_unreviewed(write_callback.done_cond.is_pulsed());
             send(parent->mailbox_manager, write->cont_addr,
                  boost::variant<typename protocol_t::write_response_t, std::string>("not enough replicas responded"));
         }

@@ -47,7 +47,7 @@ bool do_serve(
     machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
     std::string web_assets, signal_t *stop_cond)
 try {
-    guarantee(spawner_info);
+    guarantee_unreviewed(spawner_info);
     extproc::pool_group_t extproc_pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
 
     local_issue_tracker_t local_issue_tracker;
@@ -102,7 +102,7 @@ try {
     if (0 == ports.port) {
         ports.port = connectivity_cluster_run.get_port();
     } else {
-        guarantee(ports.port == connectivity_cluster_run.get_port());
+        guarantee_unreviewed(ports.port == connectivity_cluster_run.get_port());
     }
     logINF("Listening for intracluster traffic on port %d.\n", ports.port);
 
@@ -275,7 +275,7 @@ try {
                     ports.http_port = ports.port + port_offsets::http;
 
                 // TODO: Pardon me what, but is this how we fail here?
-                guarantee(ports.http_port < 65536);
+                guarantee_unreviewed(ports.http_port < 65536);
 
                 administrative_http_server_manager_t administrative_http_interface(
                     ports.http_port,

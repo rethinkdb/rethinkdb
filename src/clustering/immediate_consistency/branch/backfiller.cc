@@ -36,7 +36,7 @@ backfiller_business_card_t<protocol_t> backfiller_t<protocol_t>::get_business_ca
 template <class protocol_t>
 bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, DEBUG_VAR region_map_t<protocol_t, version_range_t> start_point,
                                                          mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_cont) {
-    rassert(metainfo.get_domain() == start_point.get_domain());
+    rassert_unreviewed(metainfo.get_domain() == start_point.get_domain());
     region_map_t<protocol_t, version_range_t> end_point =
         region_map_transform<protocol_t, binary_blob_t, version_range_t>(metainfo,
                                                                          &binary_blob_t::get<version_range_t>);
@@ -61,8 +61,8 @@ bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<p
                 if (!region_is_empty(ixn)) {
                     version_t start = it->second.latest;
                     version_t end = jt->second.earliest;
-                    rassert(start.timestamp <= end.timestamp);
-                    rassert(version_is_ancestor(branch_history_manager, start, end, ixn));
+                    rassert_unreviewed(start.timestamp <= end.timestamp);
+                    rassert_unreviewed(version_is_ancestor(branch_history_manager, start, end, ixn));
                 }
             }
         }
@@ -142,7 +142,7 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
                                            auto_drainer_t::lock_t keepalive) {
 
     assert_thread();
-    rassert(region_is_superset(svs->get_region(), start_point.get_domain()));
+    rassert_unreviewed(region_is_superset(svs->get_region(), start_point.get_domain()));
 
     /* Set up a local interruptor cond and put it in the map so that this
        session can be interrupted if the backfillee decides to abort */

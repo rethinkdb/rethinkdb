@@ -36,7 +36,7 @@ public:
           js_runner(_js_runner),
           interruptor(_interruptor),
           this_machine(_this_machine)
-    { rassert(js_runner); }
+    { rassert_unreviewed(js_runner); }
 
     runtime_environment_t(
         extproc::pool_group_t *_pool_group,
@@ -59,7 +59,7 @@ public:
           js_runner(_js_runner),
           interruptor(_interruptor),
           this_machine(_this_machine)
-    { rassert(js_runner); }
+    { rassert_unreviewed(js_runner); }
 
     extproc::pool_t *pool;      // for running external JS jobs
     namespace_repo_t<rdb_protocol_t> *ns_repo;

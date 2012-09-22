@@ -9,12 +9,12 @@ bool stream_cache_t::contains(int64_t key) {
 void stream_cache_t::insert(ReadQuery *r, int64_t key,
                             boost::shared_ptr<query_language::json_stream_t> val) {
     maybe_evict();
-    rassert(!contains(key));
+    rassert_unreviewed(!contains(key));
     streams.insert(std::pair<int64_t, entry_t>(key, entry_t(time(0), val, r)));
 }
 
 void stream_cache_t::erase(int64_t key) {
-    rassert(contains(key));
+    rassert_unreviewed(contains(key));
     streams.erase(streams.find(key));
 }
 

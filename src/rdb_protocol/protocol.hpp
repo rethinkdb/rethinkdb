@@ -326,7 +326,7 @@ struct rdb_protocol_t {
         query_language::runtime_exc_t exc;
         point_modify_response_t() { }
         explicit point_modify_response_t(point_modify::result_t _result)
-            : result(_result) { rassert(result != point_modify::ERROR); }
+            : result(_result) { rassert_unreviewed(result != point_modify::ERROR); }
         explicit point_modify_response_t(const query_language::runtime_exc_t &_exc)
             : result(point_modify::ERROR), exc(_exc) { }
         RDB_MAKE_ME_SERIALIZABLE_2(result, exc);

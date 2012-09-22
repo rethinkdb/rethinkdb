@@ -73,7 +73,7 @@ void auto_reconnector_t::try_reconnect(machine_id_t machine, peer_address_t last
             connectivity_cluster_run->join(last_known_address);
             signal_timer_t timer(backoff_ms);
             wait_interruptible(&timer, &interruptor);
-            rassert(backoff_ms * backoff_growth_rate > backoff_ms, "rounding screwed it up");
+            rassert_unreviewed(backoff_ms * backoff_growth_rate > backoff_ms, "rounding screwed it up");
             backoff_ms = std::min(static_cast<int>(backoff_ms * backoff_growth_rate), max_backoff_ms);
         }
     } catch (interrupted_exc_t) {

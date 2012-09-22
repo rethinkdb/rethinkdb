@@ -32,7 +32,7 @@ void http_req_t::resource_t::assign(const std::string &_val) {
 }
 
 void http_req_t::resource_t::assign(const char * _val, size_t size) {
-    rassert(size > 0 && _val[0] == resource_parts_sep_char[0], "resource path must start with a '/'");
+    rassert_unreviewed(size > 0 && _val[0] == resource_parts_sep_char[0], "resource path must start with a '/'");
     val.reset(new char[size]);
     memcpy(val.get(), _val, size);
     val_size = size;
@@ -57,7 +57,7 @@ std::string http_req_t::resource_t::as_string(const http_req_t::resource_t::iter
     } else {
         // -1 for the '/' before the token start
         const char* sub_resource = token_start_position(it) - 1;
-        rassert(sub_resource >= val.get() && sub_resource < val.get() + val_size);
+        rassert_unreviewed(sub_resource >= val.get() && sub_resource < val.get() + val_size);
 
         size_t sub_resource_len = val_size - (sub_resource - val.get());
         return std::string(sub_resource, sub_resource_len);
@@ -158,10 +158,10 @@ void http_res_t::add_header_line(const std::string& key, const std::string& val)
 
 void http_res_t::set_body(const std::string& content_type, const std::string& content) {
     for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); it++) {
-        rassert(it->key != "Content-Type");
-        rassert(it->key != "Content-Length");
+        rassert_unreviewed(it->key != "Content-Type");
+        rassert_unreviewed(it->key != "Content-Length");
     }
-    rassert(body.size() == 0);
+    rassert_unreviewed(body.size() == 0);
 
     add_header_line("Content-Type", content_type);
 
@@ -284,7 +284,7 @@ std::string human_readable_status(int code) {
     case 505:
         return "HTTP Version Not Supported";
     default:
-        rassert(false, "Unknown code %d.", code);
+        rassert_unreviewed(false, "Unknown code %d.", code);
         return "(Unknown status code)";
     }
 }

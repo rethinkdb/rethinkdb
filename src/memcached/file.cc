@@ -53,7 +53,7 @@ public:
 };
 
 void import_memcache(const char *filename, namespace_interface_t<memcached_protocol_t> *nsi, signal_t *interrupt) {
-    rassert(interrupt);
+    rassert_unreviewed(interrupt);
     interrupt->assert_thread();
 
     file_memcached_interface_t interface(filename);

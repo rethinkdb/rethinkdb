@@ -147,19 +147,19 @@ struct r_shard_visitor : public boost::static_visitor<read_t> {
     { }
 
     read_t operator()(const point_read_t &pr) const {
-        rassert(rdb_protocol_t::monokey_region(pr.key) == region);
+        rassert_unreviewed(rdb_protocol_t::monokey_region(pr.key) == region);
         return read_t(pr);
     }
 
     read_t operator()(const rget_read_t &rg) const {
-        rassert(region_is_superset(rg.region, region));
+        rassert_unreviewed(region_is_superset(rg.region, region));
         rget_read_t _rg(rg);
         _rg.region = region;
         return read_t(_rg);
     }
 
     read_t operator()(const distribution_read_t &dg) const {
-        rassert(region_is_superset(dg.region, region));
+        rassert_unreviewed(region_is_superset(dg.region, region));
         distribution_read_t _dg(dg);
         _dg.region = region;
         return read_t(_dg);
@@ -177,9 +177,9 @@ read_t read_t::shard(const region_t &region) const THROWS_NOTHING {
 /* read_t::unshard implementation */
 bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
     const rget_read_response_t *lr = boost::get<rget_read_response_t>(&l.response);
-    rassert(lr);
+    rassert_unreviewed(lr);
     const rget_read_response_t *rr = boost::get<rget_read_response_t>(&r.response);
-    rassert(rr);
+    rassert_unreviewed(rr);
     return lr->key_range < rr->key_range;
 }
 
@@ -209,8 +209,8 @@ public:
     { }
 
     void operator()(const point_read_t &) {
-        rassert(count == 1);
-        rassert(boost::get<point_read_response_t>(&responses[0].response));
+        rassert_unreviewed(count == 1);
+        rassert_unreviewed(boost::get<point_read_response_t>(&responses[0].response));
         *response_out = responses[0];
     }
 
@@ -226,7 +226,7 @@ public:
             for(size_t i = 0; i < count; ++i) {
                 // TODO: we're ignoring the limit when recombining.
                 const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                rassert(_rr);
+                rassert_unreviewed(_rr);
 
                 if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&(_rr->result))) {
                     throw *e;
@@ -240,7 +240,7 @@ public:
                 for(size_t i = 0; i < count; ++i) {
                     // TODO: we're ignoring the limit when recombining.
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    rassert(_rr);
+                    rassert_unreviewed(_rr);
 
                     const stream_t *stream = boost::get<stream_t>(&(_rr->result));
 
@@ -256,7 +256,7 @@ public:
                 groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
                 for(size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
+                    guarantee_unreviewed(_rr);
 
                     const groups_t *groups = boost::get<groups_t>(&(_rr->result));
 
@@ -285,7 +285,7 @@ public:
 
                 for(size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
+                    guarantee_unreviewed(_rr);
 
                     const atom_t *atom = boost::get<atom_t>(&(_rr->result));
 
@@ -303,7 +303,7 @@ public:
 
                 for(size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
+                    guarantee_unreviewed(_rr);
 
                     const length_t *length = boost::get<length_t>(&(_rr->result));
                     res_length->length += length->length;
@@ -315,7 +315,7 @@ public:
 
                 for(size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
+                    guarantee_unreviewed(_rr);
 
                     const inserted_t *inserted = boost::get<inserted_t>(&(_rr->result));
                     res_inserted->inserted += inserted->inserted;
@@ -332,11 +332,11 @@ public:
         // TODO: do this without copying so much and/or without dynamic memory
         // Sort results by region
         std::vector<distribution_read_response_t> results(count);
-        rassert(count > 0);
+        rassert_unreviewed(count > 0);
 
         for (size_t i = 0; i < count; ++i) {
             const distribution_read_response_t *result = boost::get<distribution_read_response_t>(&responses[i].response);
-            rassert(result, "Bad boost::get\n");
+            rassert_unreviewed(result, "Bad boost::get\n");
             results[i] = *result;
         }
 
@@ -372,7 +372,7 @@ public:
                 // Scale up the selected hash shard
                 double scale_factor = static_cast<double>(total_range_keys) / static_cast<double>(largest_size);
 
-                rassert(scale_factor >= 1.0);  // Directly provable from the code above.
+                rassert_unreviewed(scale_factor >= 1.0);  // Directly provable from the code above.
 
                 for (std::map<store_key_t, int>::iterator mit = results[largest_index].key_counts.begin();
                      mit != results[largest_index].key_counts.end();
@@ -438,15 +438,15 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     { }
 
     write_t operator()(const point_write_t &pw) const {
-        rassert(rdb_protocol_t::monokey_region(pw.key) == region);
+        rassert_unreviewed(rdb_protocol_t::monokey_region(pw.key) == region);
         return write_t(pw);
     }
     write_t operator()(const point_modify_t &pw) const {
-        rassert(rdb_protocol_t::monokey_region(pw.key) == region);
+        rassert_unreviewed(rdb_protocol_t::monokey_region(pw.key) == region);
         return write_t(pw);
     }
     write_t operator()(const point_delete_t &pd) const {
-        rassert(rdb_protocol_t::monokey_region(pd.key) == region);
+        rassert_unreviewed(rdb_protocol_t::monokey_region(pd.key) == region);
         return write_t(pd);
     }
     const region_t &region;
@@ -459,7 +459,7 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
 }
 
 void write_t::unshard(const write_response_t *responses, DEBUG_VAR size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
-    rassert(count == 1);
+    rassert_unreviewed(count == 1);
     *response = responses[0];
 }
 
@@ -763,8 +763,8 @@ void store_t::protocol_reset_data(const region_t& subregion,
 }
 
 region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
-    rassert(subregion_number >= 0);
-    rassert(subregion_number < num_cpu_shards);
+    rassert_unreviewed(subregion_number >= 0);
+    rassert_unreviewed(subregion_number < num_cpu_shards);
 
     // We have to be careful with the math here, to avoid overflow.
     uint64_t width = HASH_REGION_HASH_SIZE / num_cpu_shards;
@@ -782,17 +782,17 @@ public:
     explicit backfill_chunk_shard_visitor_t(const rdb_protocol_t::region_t &_region) : region(_region) { }
     rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_key_t &del) {
         rdb_protocol_t::backfill_chunk_t ret(del);
-        rassert(region_is_superset(region, ret.get_region()));
+        rassert_unreviewed(region_is_superset(region, ret.get_region()));
         return ret;
     }
     rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_range_t &del) {
         rdb_protocol_t::region_t r = region_intersection(del.range, region);
-        rassert(!region_is_empty(r));
+        rassert_unreviewed(!region_is_empty(r));
         return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::delete_range_t(r));
     }
     rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
         rdb_protocol_t::backfill_chunk_t ret(kv);
-        rassert(region_is_superset(region, ret.get_region()));
+        rassert_unreviewed(region_is_superset(region, ret.get_region()));
         return ret;
     }
 private:

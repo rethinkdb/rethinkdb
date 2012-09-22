@@ -150,9 +150,9 @@ class runner_t :
 
   private:
     id_t new_id(id_t id) {
-        rassert(connected());
+        rassert_unreviewed(connected());
 #ifndef NDEBUG
-        rassert(!used_ids_.count(id));
+        rassert_unreviewed(!used_ids_.count(id));
         if (id != INVALID_ID) {
             used_ids_.insert(id);
         }

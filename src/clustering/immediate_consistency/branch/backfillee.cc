@@ -86,7 +86,7 @@ public:
                      * decided to send out an allocation as well. */
                     ASSERT_NO_CORO_WAITING;
                     ++unacked_chunks;
-                    rassert(unacked_chunks <= ALLOCATION_CHUNK);
+                    rassert_unreviewed(unacked_chunks <= ALLOCATION_CHUNK);
                     if (unacked_chunks == ALLOCATION_CHUNK) {
                         unacked_chunks = 0;
                         chunks_to_send_out = ALLOCATION_CHUNK;
@@ -101,7 +101,7 @@ public:
             } else {
                 /* This is a fake backfill "chunk" that just indicates
                    that the backfill is over */
-                rassert(!done_message_arrived);
+                rassert_unreviewed(!done_message_arrived);
                 done_message_arrived = true;
                 chunk_queue->finish_write(chunk.write_token);
             }
@@ -151,7 +151,7 @@ void backfillee(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
-    rassert(region_is_superset(svs->get_region(), region));
+    rassert_unreviewed(region_is_superset(svs->get_region(), region));
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
@@ -250,7 +250,7 @@ void backfillee(
 
             /* Throw an exception if backfiller died */
             backfiller.access();
-            rassert(end_point_cond.get_ready_signal()->is_pulsed());
+            rassert_unreviewed(end_point_cond.get_ready_signal()->is_pulsed());
         }
 
         /* Record the updated branch history information that we got. It's
@@ -288,7 +288,7 @@ void backfillee(
                      jt++) {
                     typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
                     if (!region_is_empty(ixn)) {
-                        rassert(version_is_ancestor(branch_history_manager,
+                        rassert_unreviewed(version_is_ancestor(branch_history_manager,
                                                     it->second.earliest,
                                                     jt->second.latest,
                                                     ixn),
@@ -326,7 +326,7 @@ void backfillee(
             /* Throw an exception if backfiller died */
             backfiller.access();
 
-            rassert(chunk_callback.done_cond.is_pulsed());
+            rassert_unreviewed(chunk_callback.done_cond.is_pulsed());
         }
 
         /* All went well, so don't send a cancel message to the backfiller */

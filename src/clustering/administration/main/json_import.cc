@@ -45,7 +45,7 @@ bool detect_number(const char *s, double *out) {
 }
 
 bool csv_to_json_importer_t::next_json(scoped_cJSON_t *out) {
-    guarantee(out->get() == NULL);
+    guarantee_unreviewed(out->get() == NULL);
 
     int64_t num_ignored_rows = 0;
 
@@ -80,7 +80,7 @@ bool csv_to_json_importer_t::next_json(scoped_cJSON_t *out) {
 }
 
 bool csv_to_json_importer_t::might_support_primary_key(const std::string &primary_key) {
-    rassert(!primary_key.empty());
+    rassert_unreviewed(!primary_key.empty());
     return std::find(column_names_.begin(), column_names_.end(), primary_key) != column_names_.end();
 }
 
@@ -106,7 +106,7 @@ std::vector<std::string> split_buf(const bitset_t &seps, const char *buf, int64_
                 break;
             } else {
                 ret.push_back(std::string(buf + p + 1, buf + i));
-                rassert(seps.test(buf[i + 1]));
+                rassert_unreviewed(seps.test(buf[i + 1]));
                 p = i + 2;
             }
         } else {
@@ -123,7 +123,7 @@ std::vector<std::string> split_buf(const bitset_t &seps, const char *buf, int64_
 }
 
 void separators_to_bitset(const std::string &separators, bitset_t *out) {
-    rassert(out->count() == 0);
+    rassert_unreviewed(out->count() == 0);
 
     for (size_t i = 0; i < separators.size(); ++i) {
         out->set(static_cast<unsigned char>(separators[i]));
@@ -131,7 +131,7 @@ void separators_to_bitset(const std::string &separators, bitset_t *out) {
 }
 
 std::vector<std::string> read_lines_from_file(std::string filepath) {
-    rassert(i_am_in_blocker_pool_thread());
+    rassert_unreviewed(i_am_in_blocker_pool_thread());
 
     blocking_read_file_stream_t file;
     bool success = file.init(filepath.c_str());
@@ -161,7 +161,7 @@ std::vector<std::string> read_lines_from_file(std::string filepath) {
             exit(EXIT_FAILURE);
         }
 
-        rassert(res > 0);
+        rassert_unreviewed(res > 0);
         size += res;
     }
 
@@ -201,7 +201,7 @@ std::vector<std::string> reprocess_column_names(std::vector<std::string> cols) {
             while (candidate = cols[i] + strprintf("%d", suffix), used.find(candidate) != used.end()) {
                 ++suffix;
                 // If there are 2 billion header fields, it's okay to crash.
-                guarantee(suffix != INT_MAX);
+                guarantee_unreviewed(suffix != INT_MAX);
             }
 
             cols[i] = candidate;
@@ -211,7 +211,7 @@ std::vector<std::string> reprocess_column_names(std::vector<std::string> cols) {
         }
     }
 
-    rassert(used.size() == cols.size());
+    rassert_unreviewed(used.size() == cols.size());
     return cols;
 }
 
@@ -227,8 +227,8 @@ void csv_to_json_importer_t::import_json_from_file(std::string separators, std::
         return;
     }
 
-    rassert(column_names_.empty());
-    rassert(rows_.empty());
+    rassert_unreviewed(column_names_.empty());
+    rassert_unreviewed(rows_.empty());
 
     std::string line0 = lines[0];
     if (!line0.empty() && line0[0] == '#') {

@@ -24,7 +24,7 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_
         }
 
         typename std::map<typename protocol_t::region_t, blueprint_role_t>::const_iterator r_it = p_it->second.find(drop_cpu_sharding(region));
-        rassert(r_it != p_it->second.end(), "Invalid blueprint issued, different peers have different sharding schemes.\n");
+        rassert_unreviewed(r_it != p_it->second.end(), "Invalid blueprint issued, different peers have different sharding schemes.\n");
 
         /* Whether or not we found a directory entry for this peer */
         bool found = false;

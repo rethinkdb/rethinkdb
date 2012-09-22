@@ -121,11 +121,11 @@ public:
         class variable_setter_t {
         public:
             variable_setter_t(run_t **var, run_t *val) THROWS_NOTHING : variable(var), value(val) {
-                rassert(*variable == NULL);
+                rassert_unreviewed(*variable == NULL);
                 *variable = value;
             }
             ~variable_setter_t() THROWS_NOTHING {
-                rassert(*variable == value);
+                rassert_unreviewed(*variable == value);
                 *variable = NULL;
             }
         private:

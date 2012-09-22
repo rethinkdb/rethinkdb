@@ -69,7 +69,7 @@ public:
         cas_t ret;
         bool hascas = metadata_memcached_cas(metadata_flags, contents, &ret);
         (void)hascas;
-        rassert(hascas);
+        rassert_unreviewed(hascas);
         return ret;
     }
 
