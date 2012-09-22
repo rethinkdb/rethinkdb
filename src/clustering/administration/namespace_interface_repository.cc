@@ -2,11 +2,20 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/ptr_container/ptr_map.hpp>
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 
 #define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
+
+template <class protocol_t>
+struct namespace_repo_t<protocol_t>::namespace_cache_t {
+public:
+    boost::ptr_map<namespace_id_t, namespace_cache_entry_t> entries;
+    auto_drainer_t drainer;
+};
+
 
 template <class protocol_t>
 namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
@@ -16,6 +25,9 @@ namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manag
       namespaces_directory_metadata(_namespaces_directory_metadata),
       ctx(_ctx)
 { }
+
+template <class protocol_t>
+namespace_repo_t<protocol_t>::~namespace_repo_t() { }
 
 template <class protocol_t>
 std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > get_reactor_business_cards(
