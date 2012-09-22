@@ -143,12 +143,12 @@ connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::~entry_
     }
 }
 
-void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
+void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
     parent->assert_thread();
 
     // conn gets owned by the tcp_conn_stream_t.
     tcp_conn_t *conn;
-    nconn->ennervate(&conn);
+    nconn->make_overcomplicated(&conn);
     tcp_conn_stream_t conn_stream(conn);
 
     handle(&conn_stream, boost::none, boost::none, lock);
@@ -561,8 +561,16 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
     }
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING
-    std::cerr << "from " << me << " to " << dest << std::endl;
-    print_hd(buffer.vector().data(), 0, buffer.vector().size());
+    {
+        printf_buffer_t<500> buf;
+        buf.appendf("from ");
+        debug_print(&buf, me);
+        buf.appendf(" to ");
+        debug_print(&buf, dest);
+        buf.appendf("\n");
+        fprintf(stderr, "%s", buf.c_str());
+        print_hd(buffer.vector().data(), 0, buffer.vector().size());
+    }
 #endif
 
 #ifndef NDEBUG

@@ -39,22 +39,30 @@ module RethinkDB
     def list_tables
       Meta_Query.new [:list_tables, @db_name]
     end
+
+    def inspect(&b) # :nodoc:
+      real_inspect({:str => @db_name}, &b)
+    end
   end
 
   # A table in a particular RethinkDB database.  If you call a
   # function from Sequence on it, it will be treated as a
   # Stream_Expression reading from the table.
   class Table
-    # A table named <b>+name+</b> residing in database <b>+db_name+</b>.
+    def inspect(&b) # :nodoc:
+      to_mrs.inspect(&b)
+    end
 
+    # A table named <b>+name+</b> residing in database <b>+db_name+</b>.
     def initialize(db_name, name);
       @db_name = db_name;
       @table_name = name;
+      @context = caller
       @body = [:table, @db_name, @table_name] # when used as stream
     end
 
     # Insert one or more rows into the table.  If you try to insert a
-    # row with a primary key already in the table, you will get abck
+    # row with a primary key already in the table, you will get back
     # an error.  For example, if you have a table <b>+table+</b>:
     #   table.insert({:id => 1}, {:id => 1})
     # Will return something like:
@@ -82,11 +90,11 @@ module RethinkDB
     end
 
     def method_missing(m, *args, &block) # :nodoc:
-      Multi_Row_Selection.new(@body).send(m, *args, &block);
+      to_mrs.send(m, *args, &block);
     end
 
     def to_mrs # :nodoc:
-      Multi_Row_Selection.new(@body)
+      Multi_Row_Selection.new(@body, @context)
     end
   end
 end

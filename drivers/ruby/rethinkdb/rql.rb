@@ -60,7 +60,7 @@ module RethinkDB
     #   r[r[5]]
     def self.expr x
       return x if x.kind_of? RQL_Query
-      case x.class().hash
+      res = case x.class().hash
       when Table.hash      then x.to_mrs
       when String.hash     then JSON_Expression.new [:string, x]
       when Fixnum.hash     then JSON_Expression.new [:number, x]
@@ -73,11 +73,25 @@ module RethinkDB
         JSON_Expression.new [:object, *x.map{|var,term| [var, expr(term)]}]
       else raise TypeError, "RQL.expr can't handle '#{x.class()}'"
       end
+      class << res
+        attr_accessor :expr
+        def inspect(&b); real_inspect({:str => expr.inspect}, &b); end
+      end
+      res.expr = x
+      return res
     end
 
     # Explicitly construct an RQL variable from a string:
     #   r.letvar('varname')
-    def self.letvar(varname); Var_Expression.new [:var, varname]; end
+    def self.letvar(varname)
+      res = Var_Expression.new [:var, varname]
+      class << res;
+        attr_accessor :varname
+        def inspect(&b); real_inspect({:str => "letvar('#{@varname}')"}, &b); end;
+      end
+      res.varname = varname
+      return res
+    end
 
     # Provide a literal JSON string that will be parsed by the server.  For
     # example, the following are equivalent:
@@ -117,6 +131,7 @@ module RethinkDB
     #   r.let({:a => 2, :b => 3}, r[:$a] + r[:$b])
     #   r.expr(5)
     def self.let(varbinds, body)
+      varbinds = varbinds.to_a
       varbinds.map! { |pair|
         raise SyntaxError,"Malformed LET expression #{body.inspect}" if pair.length != 2
         [pair[0].to_s, expr(pair[1])]}
