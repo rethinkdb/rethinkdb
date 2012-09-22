@@ -177,7 +177,7 @@ module RethinkDB
       end
     end
     def mark(query, lst, val)
-      PP.pp [lst, query]
+      #PP.pp [lst, query]
       if query.class == Array
         recur(query, lst, val) if lst != []
       elsif query.kind_of? RQL_Query

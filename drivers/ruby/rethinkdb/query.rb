@@ -45,7 +45,7 @@ module RethinkDB
     end
 
     def print_backtrace(bt)
-      PP.pp [bt, bt.map{|x| B.expand x}.flatten, sexp]
+      #PP.pp [bt, bt.map{|x| B.expand x}.flatten, sexp]
       begin
         B.with_marked_error(self, bt) {
           query = "Query: #{inspect}\n       #{B.with_highlight {inspect}}"
