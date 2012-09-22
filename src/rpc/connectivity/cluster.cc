@@ -555,8 +555,16 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
     }
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING
-    std::cerr << "from " << me << " to " << dest << std::endl;
-    print_hd(buffer.vector().data(), 0, buffer.vector().size());
+    {
+        printf_buffer_t<500> buf;
+        buf.appendf("from ");
+        debug_print(&buf, me);
+        buf.appendf(" to ");
+        debug_print(&buf, dest);
+        buf.appendf("\n");
+        fprintf(stderr, "%s", buf.c_str());
+        print_hd(buffer.vector().data(), 0, buffer.vector().size());
+    }
 #endif
 
 #ifndef NDEBUG

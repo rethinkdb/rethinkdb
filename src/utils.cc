@@ -25,7 +25,7 @@
 #include "logger.hpp"
 #include "thread_local.hpp"
 
-// fast non-null terminated string comparison
+// fast-ish non-null terminated string comparison
 int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
     int min_len = std::min(len1, len2);
     int res = memcmp(str1, str2, min_len);
