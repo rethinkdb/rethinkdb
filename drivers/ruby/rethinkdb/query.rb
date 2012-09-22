@@ -48,10 +48,12 @@ module RethinkDB
       PP.pp [bt, bt.map{|x| B.expand x}.flatten, sexp]
       begin
         B.with_marked_error(self, bt) {
-          "Query: #{inspect}\n       #{B.with_highlight {inspect}}\n" +
-          "Line: #{B.line || "Unknown"}"
+          query = "Query: #{inspect}\n       #{B.with_highlight {inspect}}"
+          line = "Line: #{B.line || "Unknown"}"
+          line + "\n" + query
         }
-      rescue
+      rescue Exception => e
+        PP.pp e if $DEBUG
         "<Internal error in query pretty printer.>"
       end
     end

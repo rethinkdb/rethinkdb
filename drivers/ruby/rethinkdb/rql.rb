@@ -74,10 +74,10 @@ module RethinkDB
       else raise TypeError, "RQL.expr can't handle '#{x.class()}'"
       end
       class << res
-        attr_accessor :inspect_str
-        def inspect(&b); real_inspect({:str => @inspect_str}, &b); end
+        attr_accessor :expr
+        def inspect(&b); real_inspect({:str => expr.inspect}, &b); end
       end
-      res.inspect_str = x.inspect
+      res.expr = x
       return res
     end
 
