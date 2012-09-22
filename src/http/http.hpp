@@ -172,6 +172,6 @@ private:
 
 std::string percent_escaped_string(const std::string &s);
 
-std::string percent_unescaped_string(const std::string &s) THROWS_ONLY(std::runtime_error);
+bool percent_unescape_string(const std::string &s, std::string *out);
 
 #endif /* HTTP_HTTP_HPP_ */

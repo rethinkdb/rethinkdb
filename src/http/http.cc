@@ -504,7 +504,9 @@ std::string percent_escaped_string(const std::string &s) {
     return res;
 }
 
-std::string percent_unescaped_string(const std::string &s) THROWS_ONLY(std::runtime_error) {
+bool percent_unescape_string(const std::string &s, std::string *out) {
+    rassert(out->empty());
+
     std::string res;
     for (std::string::const_iterator it  = s.begin();
                                      it != s.end();
@@ -513,31 +515,32 @@ std::string percent_unescaped_string(const std::string &s) THROWS_ONLY(std::runt
             //read an escaped character
             it++;
             if (it == s.end()) {
-                throw std::runtime_error("Bad escape sequence % with nothing after it.");
+                return false;
             }
             int digit1;
             if (!hex_to_int(*it, &digit1)) {
-                throw std::runtime_error("Bad hex char.");
+                return false;
             }
 
             it++;
             if (it == s.end()) {
-                throw std::runtime_error("Bad escaped sequence % with only one digit after it.");
+                return false;
             }
             int digit2;
             if (!hex_to_int(*it, &digit2)) {
-                throw std::runtime_error("Bad hex char.");
+                return false;
             }
 
             res.push_back((digit1 << 4) + digit2);
         } else {
             if (!is_safe(*it)) {
-                throw std::runtime_error("Unsafe character in string.");
+                return false;
             }
 
             res.push_back(*it);
         }
     }
 
-    return res;
+    *out = res;
+    return true;
 }
