@@ -126,12 +126,12 @@ public:
                 , value(val)
 #endif
             {
-                rassert(*variable == NULL);
+                guarantee_reviewed(*variable == NULL);
                 *variable = value;
             }
 
             ~variable_setter_t() THROWS_NOTHING {
-                rassert(*variable == value);
+                guarantee_reviewed(*variable == value);
                 *variable = NULL;
             }
         private:
