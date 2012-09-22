@@ -82,7 +82,7 @@ key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const sto
             unreachable();
     }
 
-    rassert(right.unbounded || left <= right.key, "left_key=%.*s, right_key=%.*s", left.size(), left.contents(), right.key.size(), right.key.contents());
+    rassertf(right.unbounded || left <= right.key, "left_key=%.*s, right_key=%.*s", left.size(), left.contents(), right.key.size(), right.key.contents());
 }
 
 bool key_range_t::is_superset(const key_range_t &other) const {

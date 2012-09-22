@@ -122,11 +122,14 @@ void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
 #define stringify(x) #x
 
 #define format_assert_message(assert_type, cond) assert_type " failed: [" stringify(cond) "] "
+
 #define guaranteef(cond, msg...) do {    \
         if (!(cond)) {                  \
             crash_or_trap(format_assert_message("Guarantee", cond) msg); \
         }                               \
     } while (0)
+
+#define guarantee(cond) guaranteef(cond, "");
 
 #define nice_guarantee(cond, ...) do { \
         if (!(cond)) {                      \

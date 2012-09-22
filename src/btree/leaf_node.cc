@@ -1248,7 +1248,7 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t<void> *sizer, leaf_node_
         inserted. */
         DEBUG_VAR int index2;
         rassert(!find_key(node, key, &index2));
-        rassert(index == index2, "garbage_collect() failed to preserve index");
+        rassertf(index == index2, "garbage_collect() failed to preserve index");
     }
 
     /* Compute where in the node to put the new entry */
@@ -1407,8 +1407,8 @@ void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *ke
 
     /* Confirm that the key is already in the node */
     DEBUG_VAR int index;
-    rassert(find_key(node, key, &index), "remove() called on key that's not in node");
-    rassert(entry_is_live(get_entry(node, node->pair_offsets[index])), "remove() called on key with dead entry");
+    rassertf(find_key(node, key, &index), "remove() called on key that's not in node");
+    rassertf(entry_is_live(get_entry(node, node->pair_offsets[index])), "remove() called on key with dead entry");
 
     /* If the deletion entry would fall after `tstamp_cutpoint`, then it
     shouldn't be written at all. If that's the case, then

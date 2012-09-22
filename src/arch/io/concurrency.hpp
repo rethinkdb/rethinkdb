@@ -25,7 +25,7 @@ public:
             guaranteef(res == 0, "Could not acquire pthread mutex.");
         }
         void unlock() {
-            guarantee(parent);
+            guaranteef(parent);
             int res = pthread_mutex_unlock(&parent->m);
             guaranteef(res == 0, "Could not release pthread mutex.");
             parent = NULL;

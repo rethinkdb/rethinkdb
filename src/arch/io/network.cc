@@ -711,7 +711,7 @@ bool linux_nonthrowing_tcp_listener_t::bind_socket() {
         struct sockaddr_in sa;
         socklen_t sa_len(sizeof(sa));
         int res2 = getsockname(sock.get(), (struct sockaddr*)&sa, &sa_len);
-        guarantee_err(res2 != -1, "Could not determine socket local port number");
+        guaranteef_err(res2 != -1, "Could not determine socket local port number");
         port = ntohs(sa.sin_port);
     }
 

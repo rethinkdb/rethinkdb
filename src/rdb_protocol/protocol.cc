@@ -336,7 +336,7 @@ public:
 
         for (size_t i = 0; i < count; ++i) {
             const distribution_read_response_t *result = boost::get<distribution_read_response_t>(&responses[i].response);
-            rassert(result, "Bad boost::get\n");
+            rassert(result);
             results[i] = *result;
         }
 
