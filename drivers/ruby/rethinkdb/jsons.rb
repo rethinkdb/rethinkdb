@@ -104,10 +104,6 @@ module RethinkDB
       else raise TypeError, 'Can only call to_s on RQL_Queries representing variables.'
       end
     end
-
-    def inspect(&b) # :nodoc:
-      real_inspect({:str => @body[1]}, &b)
-    end
   end
 
   # Like Multi_Row_Selection, but for a single row.  E.g.:

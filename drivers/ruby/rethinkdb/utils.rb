@@ -65,7 +65,15 @@ module RethinkDB
       sym = gensym
       yield sym, var(sym)
     end
-    def var(varname); Var_Expression.new [:var, varname]; end
+    def var(varname)
+      res = Var_Expression.new [:var, varname]
+      class << res
+        attr_accessor :varname
+        def inspect(&b); real_inspect({:str => @body[1]}, &b); end
+      end
+      res.varname = varname
+      return res
+    end
     def r x; x.equal?(skip) ? x : RQL.expr(x); end
     def skip; :skip_2222ebd4_2c16_485e_8c27_bbe43674a852; end
 
@@ -145,7 +153,8 @@ module RethinkDB
       when /term:([0-9]+)/    then [2, $1.to_i]
 
       # object
-      when /key:(.+)$/        then [$1]
+      when /key:(.+)$/        then [1..-1, $1]
+      when /bind:(.+)$/       then [1, $1]
 
       when 'lowerbound'       then [1, 2]
       when 'upperbound'       then [1, 3]
@@ -155,11 +164,10 @@ module RethinkDB
 
     def recur(arr, lst, val)
       if lst[0].class == String
-        raise RuntimeError if arr[0] != :object
-        entry = arr[1..-1].find{|x| x[0].to_s == lst[0]}
+        entry = arr[0..-1].find{|x| x[0].to_s == lst[0]}
         raise RuntimeError if not entry
         mark(entry[1], lst[1..-1], val)
-      elsif lst[0].class == Fixnum
+      elsif lst[0].class == Fixnum || lst[0].class == Range
         mark(arr[lst[0]], lst[1..-1], val) if lst != []
       else
         raise RuntimeError

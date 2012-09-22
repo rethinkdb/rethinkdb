@@ -86,8 +86,10 @@ module RethinkDB
     def self.letvar(varname)
       res = Var_Expression.new [:var, varname]
       class << res;
-        def inspect(&b); real_inspect({:str => "letvar('#{varname}')"}, &b); end;
+        attr_accessor :varname
+        def inspect(&b); real_inspect({:str => "letvar('#{@varname}')"}, &b); end;
       end
+      res.varname = varname
       return res
     end
 
