@@ -2384,7 +2384,7 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
                     lowerbound = eval_term_as_json(r->mutable_lowerbound(), env, scopes, backtrace.with("lowerbound"));
                     if (lowerbound->type() != cJSON_Number && lowerbound->type() != cJSON_String) {
                         throw runtime_exc_t(strprintf("Lower bound of RANGE must be a string or a number, not %s.",
-                                                      lowerbound->Print().c_str()), backtrace);
+                                                      lowerbound->Print().c_str()), backtrace.with("lowerbound"));
                     }
                 }
 
@@ -2392,7 +2392,7 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
                     upperbound = eval_term_as_json(r->mutable_upperbound(), env, scopes, backtrace.with("upperbound"));
                     if (upperbound->type() != cJSON_Number && upperbound->type() != cJSON_String) {
                         throw runtime_exc_t(strprintf("Lower bound of RANGE must be a string or a number, not %s.",
-                                                      upperbound->Print().c_str()), backtrace);
+                                                      upperbound->Print().c_str()), backtrace.with("upperbound"));
                     }
                 }
 

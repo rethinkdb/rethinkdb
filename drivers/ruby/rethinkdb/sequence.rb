@@ -77,10 +77,9 @@ module RethinkDB
     #   table.between(nil,7,:index)
     #   table.filter{|row| row[:index] <= 7}
     def between(start_key, end_key, keyname=:id)
-      opts = {:attrname => keyname}
-      opts[:lowerbound] = (S.r start_key).sexp if not start_key.nil?
-      opts[:upperbound] = (S.r end_key).sexp   if not end_key.nil?
-      self.class.new [:call, [:range, opts], [self]]
+      start_key = S.r(start_key || S.skip)
+      end_key = S.r(end_key || S.skip)
+      self.class.new [:call, [:range, keyname, start_key, end_key], [self]]
     end
 
     # Map a function over a sequence.  The provided block should take

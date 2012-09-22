@@ -66,7 +66,7 @@ module RethinkDB
       yield sym, var(sym)
     end
     def var(varname); Var_Expression.new [:var, varname]; end
-    def r x; RQL.expr(x); end
+    def r x; x.equal?(skip) ? x : RQL.expr(x); end
     def skip; :skip_2222ebd4_2c16_485e_8c27_bbe43674a852; end
 
     def arg_or_block(*args, &block)
@@ -91,7 +91,8 @@ module RethinkDB
   module S; extend S_Mixin; end
 
   module B_Mixin # Backtrace utils
-    attr_accessor :line
+    attr_accessor :highlight, :line
+
     def sanitize_context(context)
       if __FILE__ =~ /^(.*\/)[^\/]+.rb$/
         prefix = $1;
@@ -101,12 +102,55 @@ module RethinkDB
       end
     end
 
-    def maybe_highlight(str, args)
-      (args[:highlight] and args[:bt].to_a == []) ? ("\000" * str.length) : str
+    def format_highlights(str)
+      str.chars.map{|x| x == "\000" ? "^" : " "}.join.rstrip
     end
 
-    def format_highlights(str)
-      str.chars.map{|x| x == "\000" ? "^" : " "}.join
+    def expand arg
+      case arg
+      when /arg:([0-9]+)/ then [2, $1.to_i]
+      when /mapping/      then [1, 2]
+
+      when /reduce/       then [1]
+      when /base/         then [1]
+      when /body/         then [4]
+
+      when /lowerbound/   then [1, 2]
+      when /upperbound/   then [1, 3]
+      else  [:error]
+      end
+    end
+
+    def mark(query, lst, val)
+      #PP.pp [lst, query, val]
+      if query.class == Array
+        mark(query[lst[0]], lst[1..-1], val) if lst != []
+      elsif query.kind_of? RQL_Query
+        if lst == []
+          @line = sanitize_context(query.context)[0]
+          val,query.marked = query.marked, val
+          val
+        else
+          mark(query.body[lst[0]], lst[1..-1], val)
+        end
+      else raise RuntimeError
+      end
+    end
+
+    def with_marked_error(query, bt)
+      bt = bt.map{|x| expand x}.flatten
+      raise RuntimeError if bt.any?{|x| x.class != Fixnum}
+      old = mark(query, bt, :error)
+      res = yield
+      mark(query, bt, old)
+      return res
+    end
+
+    def with_highlight
+      @highlight = true
+      str = yield
+      @highlight = false
+      str.chars.map{|x| x == "\000" ? "^" : " "}.join.rstrip
     end
   end
   module B; extend B_Mixin; end

@@ -152,8 +152,8 @@ module RethinkDB
     end
 
     def error(query,protob,err=RuntimeError) # :nodoc:
-      msg = "RQL: #{protob.error_message}\n" +
-        query.print_backtrace(protob.backtrace.frame)
+      bt = protob.backtrace ? protob.backtrace.frame : []
+      msg = "RQL: #{protob.error_message}\n" + query.print_backtrace(bt)
       raise err,msg
     end
 
