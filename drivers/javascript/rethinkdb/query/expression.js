@@ -761,7 +761,6 @@ rethinkdb.Expression.prototype.filter = function(selector) {
                     if (!bt) {
                         return fomatted.join(').and(');
                     } else {
-                        console.log(bt);
                         var a = bt[0].split(':');
                         goog.asserts.assert(a[0] === 'arg');
                         bt.shift();
@@ -1172,7 +1171,6 @@ rethinkdb.AttrExpression = function(leftExpr, attrName) {
         if (!bt) {
             return leftExpr.formatQuery()+"('"+attrName+"')";
         } else {
-            console.log(bt);
             var arg = bt.shift();
             if (arg === 'arg:0') {
                 return leftExpr.formatQuery(bt)+"('"+attrName+"')";
