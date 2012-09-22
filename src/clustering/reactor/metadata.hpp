@@ -109,16 +109,18 @@ public:
 template <class protocol_t>
 class secondary_without_primary_t {
 public:
-    secondary_without_primary_t(region_map_t<protocol_t, version_range_t> _current_state, backfiller_business_card_t<protocol_t> _backfiller)
-        : current_state(_current_state), backfiller(_backfiller)
+    secondary_without_primary_t(region_map_t<protocol_t, version_range_t> _current_state, backfiller_business_card_t<protocol_t> _backfiller,
+                                direct_reader_business_card_t<protocol_t> _direct_reader)
+        : current_state(_current_state), backfiller(_backfiller), direct_reader(_direct_reader)
     { }
 
     secondary_without_primary_t() { }
 
     region_map_t<protocol_t, version_range_t> current_state;
     backfiller_business_card_t<protocol_t> backfiller;
+    direct_reader_business_card_t<protocol_t> direct_reader;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(current_state, backfiller);
+    RDB_MAKE_ME_SERIALIZABLE_3(current_state, backfiller, direct_reader);
 };
 
 /* This peer is in the process of becoming a secondary, barring failures it
