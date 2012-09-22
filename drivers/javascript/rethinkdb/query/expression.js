@@ -354,14 +354,14 @@ rethinkdb.fn = function(var_args) {
 
         args = [];
         for (var i = 0; i < var_args.length; i++) {
-            args.push('genSym'+args.length);
+            args.push('arg'+args.length);
         }
 
         body = var_args.apply(null, args.map(function(argName) {
             return rethinkdb.letVar(argName);
         }));
 
-        if (body === undefined) {
+        if (!(body instanceof rethinkdb.Query)) {
             throw new rethinkdb.errors.ClientError("ReQL function must return ReQL expression");
         }
 
