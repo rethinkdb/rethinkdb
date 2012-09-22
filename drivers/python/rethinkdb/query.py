@@ -1078,7 +1078,7 @@ class FunctionExpr(object):
     def _pretty_print(self, printer, backtrace_steps):
         args = self.args
         if not args:
-            args = ['_']
+            return printer.expr_unwrapped(self.body, backtrace_steps)
         return ("lambda %s: " % ", ".join(args)) + printer.expr_unwrapped(self.body, backtrace_steps)
 
 class BaseSelection(object):
