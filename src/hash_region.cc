@@ -6,6 +6,7 @@
 
 // TODO: Perhaps move key_range_t region stuff to btree/keys.hpp.
 #include "memcached/region.hpp"
+#include "stl_utils.hpp"
 
 // TODO: Replace this with a real hash function, if it is not one
 // already.  It needs the property that values are uniformly
@@ -232,6 +233,9 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
     if (granular_width <= 0 || granular_height <= 0) {
         guarantee(vec.size() == 0 || (vec[0].beg == 0 && vec[0].end == 0 && vec[0].inner.is_empty()));
         *out = hash_region_t<key_range_t>();
+#ifdef REGION_JOIN_DEBUG
+        debugf_print("region_join no granular dimensions", vec);
+#endif
         return REGION_JOIN_OK;
     }
 
@@ -261,6 +265,10 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
                 debugf("gasp i=%d x=%d y=%d ix=%d covered=%d\n", i, x, y, ix, covered[ix]);
 #endif
                 if (covered[ix]) {
+#ifdef REGION_JOIN_DEBUG
+                    debugf_print("region_join bad join, double-coverage", vec);
+                    debugf("double coverage at (%d,%d)\n", x, y);
+#endif
                     return REGION_JOIN_BAD_JOIN;
                 }
                 covered[ix] = true;
@@ -270,6 +278,9 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
     }
 
     if (num_covered < granular_width * granular_height) {
+#ifdef REGION_JOIN_DEBUG
+        debugf_print("region_join bad region, lack of coverage", vec);
+#endif
         return REGION_JOIN_BAD_REGION;
     }
 
@@ -281,8 +292,14 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
     rassert(out_left != NULL);
 
     if (out_right != NULL) {
+#ifdef REGION_JOIN_DEBUG
+        debugf_print("region_join OK, out_right not null", vec);
+#endif
         *out = hash_region_t<key_range_t>(out_beg, out_end, key_range_t(key_range_t::closed, *out_left, key_range_t::open, *out_right));
     } else {
+#ifdef REGION_JOIN_DEBUG
+        debugf_print("region_join OK, out_right is null", vec);
+#endif
         *out = hash_region_t<key_range_t>(out_beg, out_end, key_range_t(key_range_t::closed, *out_left, key_range_t::none, store_key_t()));
     }
 

@@ -1,7 +1,7 @@
 module RethinkDB
   # A database stored on the cluster.  Usually created with the <b>+r+</b>
   # shortcut, like:
-  #   r.db('Welcome-db')
+  #   r.db('test')
   class Database
     # Refer to the database named <b>+name+</b>.  Usually you would
     # use the <b>+r+</b> shortcut instead:
@@ -10,8 +10,8 @@ module RethinkDB
 
     # Access the table <b>+name+</b> in this database.  May also use the table
     # name as a member function for convenience.  The following are equivalent:
-    #   r.db('Welcome-db').table('tbl')
-    #   r.db('Welcome-db').tbl
+    #   r.db('test').table('tbl')
+    #   r.db('test').tbl
     def table(name); Table.new(@db_name, name); end
 
     # Create a new table in this database.  You may also optionally

@@ -1,5 +1,5 @@
 HOST = process.argv[2] || 'newton';
-PORT = process.argv[3] || 12346;
+PORT = parseInt(process.argv[3]) || 12346;
 
 global.rethinkdb = require('./rethinkdb');
 require('./test-driver');

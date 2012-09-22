@@ -181,6 +181,7 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
                                                                   typename protocol_t::read_response_t *response,
                                                                   signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
     boost::ptr_vector<outdated_read_info_t> direct_readers_to_contact;
@@ -292,6 +293,9 @@ void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start
             } else if (boost::get<reactor_business_card_details::secondary_up_to_date_t<protocol_t> >(&amit->second.activity)) {
                 has_anything_useful = true;
                 is_primary = false;
+            } else if (boost::get<reactor_business_card_details::secondary_without_primary_t<protocol_t> >(&amit->second.activity)) {
+                has_anything_useful = true;
+                is_primary = false;
             } else {
                 has_anything_useful = false;
                 is_primary = false;  // Appease -Wconditional-uninitialized
@@ -358,7 +362,7 @@ cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_f
 
 template <class protocol_t>
 boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > >
-cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary_up_to_date(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
+cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > ret;
     typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = map.find(peer);
     if (it != map.end()) {
@@ -369,11 +373,14 @@ cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_f
                 boost::get<reactor_business_card_details::secondary_up_to_date_t<protocol_t> >(&jt->second.activity)) {
                 ret.get() = secondary_up_to_date_record->direct_reader;
             }
+            if (const reactor_business_card_details::secondary_without_primary_t<protocol_t> *secondary_without_primary =
+                boost::get<reactor_business_card_details::secondary_without_primary_t<protocol_t> >(&jt->second.activity)) {
+                ret.get() = secondary_without_primary->direct_reader;
+            }
         }
     }
     return ret;
 }
-
 
 template <class protocol_t>
 void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t peer_id, reactor_activity_id_t activity_id,
@@ -388,7 +395,7 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
                                                                lock.get_drain_signal()));
             direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary, _1, peer_id, activity_id))));
         } else {
-            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary_up_to_date, _1, peer_id, activity_id))));
+            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary, _1, peer_id, activity_id))));
         }
 
         relationship_t relationship_record;

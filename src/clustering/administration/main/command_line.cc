@@ -153,6 +153,24 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
     }
 }
 
+void add_rdb_namespace(const char *name, machine_id_t our_machine_id, database_id_t database_id,
+                       datacenter_id_t datacenter_id, cluster_semilattice_metadata_t &semilattice_metadata) {
+    /* add an rdb namespace */
+    namespace_id_t namespace_id = generate_uuid();
+
+    namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata =
+        new_namespace<rdb_protocol_t>(our_machine_id, database_id, datacenter_id, name, "id", port_constants::namespace_port, GIGABYTE);
+
+    persistable_blueprint_t<rdb_protocol_t> blueprint;
+    std::map<rdb_protocol_t::region_t, blueprint_role_t> roles;
+    roles.insert(std::make_pair(rdb_protocol_t::region_t::universe(), blueprint_role_primary));
+    blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
+    namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<rdb_protocol_t> >(blueprint, our_machine_id);
+
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&semilattice_metadata.rdb_namespaces);
+    change.get()->namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
+}
+
 void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets, bool new_directory) {
     os_signal_cond_t sigint_cond;
 
@@ -196,12 +214,12 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
             datacenter_id_t datacenter_id = generate_uuid();
             datacenter_semilattice_metadata_t datacenter_metadata;
-            datacenter_metadata.name = vclock_t<std::string>("Welcome-dc", our_machine_id);
+            datacenter_metadata.name = vclock_t<std::string>("universe", our_machine_id);
             semilattice_metadata.datacenters.datacenters.insert(std::make_pair(
                 datacenter_id,
                 deletable_t<datacenter_semilattice_metadata_t>(datacenter_metadata)));
 
-            /* Add ourselves as a member of the "Welcome" datacenter. */
+            /* Add ourselves as a member of the "universe" datacenter. */
             machine_semilattice_metadata_t our_machine_metadata;
             our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);
             our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
@@ -211,73 +229,16 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                 deletable_t<machine_semilattice_metadata_t>(our_machine_metadata)));
 
 
-            /* Create a welcome database. */
+            /* Create a test database. */
             database_id_t database_id = generate_uuid();
             database_semilattice_metadata_t database_metadata;
-            database_metadata.name = vclock_t<std::string>("Welcome-db", our_machine_id);
+            database_metadata.name = vclock_t<std::string>("test", our_machine_id);
             semilattice_metadata.databases.databases.insert(std::make_pair(
                 database_id,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
-            {
-                /* add an mc namespace */
-                namespace_id_t namespace_id = generate_uuid();
-                namespace_semilattice_metadata_t<memcached_protocol_t> namespace_metadata;
 
-                namespace_metadata.name = vclock_t<std::string>("Welcome-memcached", our_machine_id);
-                namespace_metadata.port = vclock_t<int>(port_constants::namespace_port, our_machine_id);
-
-                persistable_blueprint_t<memcached_protocol_t> blueprint;
-                {
-                    std::map<hash_region_t<key_range_t>, blueprint_role_t> roles;
-                    roles.insert(std::make_pair(hash_region_t<key_range_t>::universe(), blueprint_role_primary));
-                    blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
-                }
-                namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<memcached_protocol_t> >(blueprint, our_machine_id);
-
-                namespace_metadata.primary_datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);
-
-                std::map<datacenter_id_t, int> affinities;
-                affinities.insert(std::make_pair(datacenter_id, 0));
-                namespace_metadata.replica_affinities = vclock_t<std::map<datacenter_id_t, int> >(affinities, our_machine_id);
-
-                std::map<datacenter_id_t, int> ack_expectations;
-                ack_expectations.insert(std::make_pair(datacenter_id, 1));
-                namespace_metadata.ack_expectations = vclock_t<std::map<datacenter_id_t, int> >(ack_expectations, our_machine_id);
-
-                std::set< hash_region_t<key_range_t> > shards;
-                shards.insert(hash_region_t<key_range_t>::universe());
-                namespace_metadata.shards = vclock_t<std::set<hash_region_t<key_range_t> > >(shards, our_machine_id);
-
-                region_map_t<memcached_protocol_t, machine_id_t> primary_pinnings(hash_region_t<key_range_t>::universe(), nil_uuid());
-                namespace_metadata.primary_pinnings = vclock_t<region_map_t<memcached_protocol_t, machine_id_t> >(primary_pinnings, our_machine_id);
-
-                region_map_t<memcached_protocol_t, std::set<machine_id_t> > secondary_pinnings(hash_region_t<key_range_t>::universe(), std::set<machine_id_t>());
-                namespace_metadata.secondary_pinnings = vclock_t<region_map_t<memcached_protocol_t, std::set<machine_id_t> > >(secondary_pinnings, our_machine_id);
-
-                namespace_metadata.database = vclock_t<datacenter_id_t>(database_id, our_machine_id);
-
-                namespace_metadata.cache_size = vclock_t<int64_t>(GIGABYTE, our_machine_id);
-
-                cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&semilattice_metadata.memcached_namespaces);
-                change.get()->namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
-            }
-
-            {
-                /* add an rdb namespace */
-                namespace_id_t namespace_id = generate_uuid();
-
-                namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata =
-                    new_namespace<rdb_protocol_t>(our_machine_id, database_id, datacenter_id, "Welcome-rdb", "id", port_constants::namespace_port, GIGABYTE);
-
-                persistable_blueprint_t<rdb_protocol_t> blueprint;
-                std::map<rdb_protocol_t::region_t, blueprint_role_t> roles;
-                roles.insert(std::make_pair(rdb_protocol_t::region_t::universe(), blueprint_role_primary));
-                blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
-                namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<rdb_protocol_t> >(blueprint, our_machine_id);
-
-                cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&semilattice_metadata.rdb_namespaces);
-                change.get()->namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
-            }
+            // We could use add_rdb_namespace() here if we wanted a
+            // default namespace
 
         } else {
             machine_semilattice_metadata_t our_machine_metadata;
@@ -435,11 +396,8 @@ po::options_description get_rethinkdb_import_options() {
         ("primary-key", po::value<std::string>()->default_value(""), "the primary key to create a new table with, or expected primary key")
         // TODO: Rename the autogen-key option?
         ("autogen", po::value<bool>()->zero_tokens(), "use an autogenerated primary key, makes --primary-key default to 'id'")
-        ("separators,s", po::value<std::string>()->default_value("\t,"), "list of characters to be used as whitespace -- uses \" \t,\" by default")
+        ("separators,s", po::value<std::string>()->default_value("\t,"), "list of characters to be used as whitespace -- uses \"\\t,\" by default")
         ("input-file", po::value<std::string>()->default_value(""), "the csv input file");
-    desc.add(get_disk_options());
-
-    // TODO: log-file option?
 
     return desc;
 }
@@ -733,11 +691,6 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             printf("Please supply an --input-file option.\n");
             return EXIT_FAILURE;
         }
-        // TODO: This is an unused option!  Remove it.
-        io_backend_t io_backend;
-        if (!pull_io_backend_option(vm, &io_backend)) {
-            return EXIT_FAILURE;
-        }
 
         extproc::spawner_t::info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);
@@ -845,4 +798,11 @@ void help_rethinkdb_proxy() {
     std::stringstream sstream;
     sstream << get_rethinkdb_proxy_options();
     printf("%s\n", sstream.str().c_str());
+}
+
+void help_rethinkdb_import() {
+    printf("'rethinkdb import' imports content from a CSV file.\n");
+    std::stringstream s;
+    s << get_rethinkdb_import_options();
+    printf("%s\n", s.str().c_str());
 }

@@ -26,7 +26,10 @@ require 'test/unit'
 $port_base = ARGV[0].to_i # 0 if none given
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
-  def rdb; @@c.use('Welcome-db'); r.table('Welcome-rdb'); end
+  def rdb
+    @@c.use('test')
+    r.table('Welcome-rdb')
+  end
   @@c = RethinkDB::Connection.new('localhost', $port_base + 12346)
   def c; @@c; end
   def id_sort x; x.sort_by{|y| y['id']}; end
@@ -327,7 +330,7 @@ class ClientTest < Test::Unit::TestCase
 
   def test_easy_read # TABLE
     assert_equal($data, id_sort(rdb.run.to_a))
-    assert_equal($data, id_sort(r.db('Welcome-db').table('Welcome-rdb').run.to_a))
+    assert_equal($data, id_sort(r.db('test').table('Welcome-rdb').run.to_a))
   end
 
   def test_error # IF, JSON, ERROR
@@ -569,7 +572,19 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.orderby(:id).run.to_a, $data)
   end
 
-  def test__setup; rdb.delete.run;  rdb.upsert($data).run; end
+  def test___setup
+    begin
+      r.db('test').drop_table('Welcome-rdb').run()
+    rescue
+      # It don't matter to Jesus
+    end
+    r.db('test').create_table('Welcome-rdb').run()
+  end
+
+  def test__setup
+    rdb.delete.run
+    rdb.upsert($data).run
+  end
 
   def test___write_python # from python tests
     rdb.delete.run
@@ -897,7 +912,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.db(db_name).list_tables.run.length, 2)
 
     assert_raise(RuntimeError){r.db('').table('').run.to_a}
-    assert_raise(RuntimeError){r.db('Welcome-db').table(table_name).run.to_a}
+    assert_raise(RuntimeError){r.db('test').table(table_name).run.to_a}
     assert_raise(RuntimeError){r.db(db_name).table('').run.to_a}
 
     assert_equal(r.db(db_name).drop_table(table_name+table_name).run, nil)

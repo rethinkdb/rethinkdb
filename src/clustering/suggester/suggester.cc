@@ -156,7 +156,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
     priority_queue_t<priority_t> primary_candidates;
     for (std::map<machine_id_t, datacenter_id_t>::const_iterator it = machine_data_centers.begin();
             it != machine_data_centers.end(); it++) {
-        if (it->second == primary_datacenter) {
+        if (it->second == primary_datacenter || primary_datacenter.is_nil()) {
             bool pinned = std_contains(primary_pinnings, it->first);
 
             bool would_rob_secondary = std_contains(secondary_pinnings, it->first);

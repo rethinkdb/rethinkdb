@@ -96,27 +96,33 @@ class DBList(MetaQueryInner):
         return "db_list()"
 
 class TableCreate(MetaQueryInner):
-    def __init__(self, table_name, db_expr, primary_datacenter, primary_key='id'):
+    def __init__(self, table_name, db_expr, primary_key, primary_datacenter, cache_size):
         assert isinstance(table_name, str)
         assert isinstance(db_expr, query.Database)
-        assert isinstance(primary_datacenter, str)
-        assert isinstance(primary_key, str)
+        assert (not primary_key) or isinstance(primary_key, str)
+        assert (not primary_datacenter) or isinstance(primary_datacenter, str)
+        assert (not cache_size) or isinstance(cache_size, int)
         self.table_name = table_name
         self.db_expr = db_expr
-        self.primary_datacenter = primary_datacenter
         self.primary_key = primary_key
+        self.primary_datacenter = primary_datacenter
+        self.cache_size = cache_size
     def _write_meta_query(self, parent):
         parent.type = p.MetaQuery.CREATE_TABLE
-        parent.create_table.datacenter = self.primary_datacenter
         parent.create_table.table_ref.db_name = self.db_expr.db_name
         parent.create_table.table_ref.table_name = self.table_name
-        parent.create_table.primary_key = self.primary_key
+        if self.primary_key:
+            parent.create_table.primary_key = self.primary_key
+        if self.primary_datacenter:
+            parent.create_table.datacenter = self.primary_datacenter
+        if self.cache_size:
+            parent.create_table.cache_size = self.cache_size
     def pretty_print(self, printer):
-        return "db(%s).table_create(%r, primary_datacenter=%s, primary_key=%r)" % (
+        return "db(%s).table_create(%r, primary_key=%r, primary_datacenter=%s)" % (
             printer.simple_string(repr(self.db_expr.db_name), ["table_ref", "db_name"]),
             self.table_name,
-            printer.simple_string(repr(self.primary_datacenter), ["datacenter"]),
-            self.primary_key)
+            self.primary_key,
+            printer.simple_string(repr(self.primary_datacenter), ["datacenter"]))
 
 class TableDrop(MetaQueryInner):
     def __init__(self, table_name, db_expr):
@@ -212,7 +218,48 @@ class Mutate(WriteQueryInner):
         self.mapping.write_mapping(parent.mutate.mapping)
 
     def pretty_print(self, printer):
-        return "%s.mutate(%s)" % (
+        return "%s.replace(%s)" % (
+            printer.expr_wrapped(self.parent_view, ["view"]),
+            self.mapping._pretty_print(printer, ["mapping"]))
+
+class PointDelete(WriteQueryInner):
+    def __init__(self, parent_view):
+        self.parent_view = parent_view
+
+    def _write_write_query(self, parent):
+        parent.type = p.WriteQuery.POINTDELETE
+        self.parent_view._inner._write_point_ast(parent.point_delete)
+
+    def pretty_print(self, printer):
+        return "%s.delete()" % printer.expr_wrapped(self.parent_view, ["view"])
+
+class PointUpdate(WriteQueryInner):
+    def __init__(self, parent_view, mapping):
+        self.parent_view = parent_view
+        self.mapping = mapping
+
+    def _write_write_query(self, parent):
+        parent.type = p.WriteQuery.POINTUPDATE
+        self.mapping.write_mapping(parent.point_update.mapping)
+        self.parent_view._inner._write_point_ast(parent.point_update)
+
+    def pretty_print(self, printer):
+        return "%s.update(%s)" % (
+            printer.expr_wrapped(self.parent_view, ["view"]),
+            self.mapping._pretty_print(printer, ["mapping"]))
+
+class PointMutate(WriteQueryInner):
+    def __init__(self, parent_view, mapping):
+        self.parent_view = parent_view
+        self.mapping = mapping
+
+    def _write_write_query(self, parent):
+        parent.type = p.WriteQuery.POINTMUTATE
+        self.mapping.write_mapping(parent.point_mutate.mapping)
+        self.parent_view._inner._write_point_ast(parent.point_mutate)
+
+    def pretty_print(self, printer):
+        return "%s.replace(%s)" % (
             printer.expr_wrapped(self.parent_view, ["view"]),
             self.mapping._pretty_print(printer, ["mapping"]))
 
@@ -277,6 +324,8 @@ class LiteralArray(ExpressionInner):
 
 class LiteralObject(ExpressionInner):
     def __init__(self, value):
+        for k, v in value.iteritems():
+            assert isinstance(k, str)
         self.value = dict((k, query.expr(v)) for k, v in value.iteritems())
     def _write_ast(self, parent):
         parent.type = p.Term.OBJECT
@@ -601,9 +650,12 @@ class Get(ExpressionInner):
 
     def _write_ast(self, parent):
         parent.type = p.Term.GETBYKEY
-        self.table._write_ref_ast(parent.get_by_key.table_ref)
-        parent.get_by_key.attrname = self.attr_name
-        self.key._inner._write_ast(parent.get_by_key.key)
+        self._write_point_ast(parent.get_by_key)
+
+    def _write_point_ast(self, parent):
+        self.table._write_ref_ast(parent.table_ref)
+        parent.attrname = self.attr_name
+        self.key._inner._write_ast(parent.key)
 
     def pretty_print(self, printer):
         return ("%s.get(%s, attr_name = %r)" % (

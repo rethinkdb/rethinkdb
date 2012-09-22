@@ -351,7 +351,7 @@ void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
         goto tryagain;
     }
 
-    nice_guarantee(size_t(res) != length, "I/O operation failed. Exiting.");
+    nice_guarantee(size_t(res) == length, "Blocking read from file failed. Exiting.");
 }
 
 void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf) {
@@ -362,7 +362,7 @@ void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf)
         goto tryagain;
     }
 
-    nice_guarantee(size_t(res) != length, "I/O operation failed. Exiting.");
+    nice_guarantee(size_t(res) == length, "Blocking write from file failed. Exiting.");
 }
 
 bool linux_file_t::coop_lock_and_check() {

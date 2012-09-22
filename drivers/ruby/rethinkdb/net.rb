@@ -200,7 +200,7 @@ module RethinkDB
     # You may also optionally provide a default database to use when
     # running queries over that connection.  Example:
     #   c = Connection.new('localhost', 12346, 'default_db')
-    def initialize(host='localhost', port=12346, default_db='Welcome-db')
+    def initialize(host='localhost', port=12346, default_db='test')
       @@last = self
       @host = host
       @port = port
