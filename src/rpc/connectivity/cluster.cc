@@ -136,12 +136,12 @@ connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::~entry_
     }
 }
 
-void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
+void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
     parent->assert_thread();
 
     // conn gets owned by the tcp_conn_stream_t.
     tcp_conn_t *conn;
-    nconn->ennervate(&conn);
+    nconn->make_overcomplicated(&conn);
     tcp_conn_stream_t conn_stream(conn);
 
     handle(&conn_stream, boost::none, boost::none, lock);

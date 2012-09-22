@@ -298,9 +298,9 @@ void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) T
     conn->write(res.body.c_str(), res.body.size(), closer);
 }
 
-void http_server_t::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t keepalive) {
+void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t keepalive) {
     scoped_ptr_t<tcp_conn_t> conn;
-    nconn->ennervate(&conn);
+    nconn->make_overcomplicated(&conn);
 
     http_req_t req;
     tcp_http_msg_parser_t http_msg_parser;
