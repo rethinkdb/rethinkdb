@@ -3,9 +3,6 @@
 
 #include <map>
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
-
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 
@@ -29,6 +26,7 @@ public:
     namespace_repo_t(mailbox_manager_t *,
                      clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > >,
                      typename protocol_t::context_t *);
+    ~namespace_repo_t();
 
     class access_t {
     public:
@@ -67,12 +65,6 @@ private:
         int ref_count;
         cond_t *pulse_when_ref_count_becomes_zero;
         cond_t *pulse_when_ref_count_becomes_nonzero;
-    };
-
-    struct namespace_cache_t {
-    public:
-        boost::ptr_map<namespace_id_t, namespace_cache_entry_t> entries;
-        auto_drainer_t drainer;
     };
 
     mailbox_manager_t *mailbox_manager;

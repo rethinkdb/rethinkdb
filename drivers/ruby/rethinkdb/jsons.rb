@@ -28,7 +28,7 @@ module RethinkDB
     # Otherwise, if <b>+ind+</b> is a number or a range, invokes RQL::[]
     def [](ind)
       if ind.class == Symbol || ind.class == String
-        JSON_Expression.new [:call, [:getattr, ind], [@body]]
+        JSON_Expression.new [:call, [:getattr, ind], [self]]
       else
         super
       end
@@ -38,14 +38,14 @@ module RethinkDB
     #   r[[1,2,3,4]]
     #   r[[1,2,3]].append(4)
     def append(el)
-      JSON_Expression.new [:call, [:arrayappend], [@body, S.r(el)]]
+      JSON_Expression.new [:call, [:arrayappend], [self, S.r(el)]]
     end
 
     # Get an attribute of a JSON object.  The following are equivalent:
     #   r[{:id => 1}].getattr(:id)
     #   r[1]
     def getattr(attrname)
-      JSON_Expression.new [:call, [:getattr, attrname], [@body]]
+      JSON_Expression.new [:call, [:getattr, attrname], [self]]
     end
 
     # Check whether a JSON object has a particular attribute.  The
@@ -53,7 +53,7 @@ module RethinkDB
     #   r[{:id => 1}].hasattr(:id)
     #   r[true]
     def hasattr(attrname)
-      JSON_Expression.new [:call, [:hasattr, attrname], [@body]]
+      JSON_Expression.new [:call, [:hasattr, attrname], [self]]
     end
 
     # Construct a JSON object that has a subset of the attributes of
@@ -61,7 +61,7 @@ module RethinkDB
     #   r[{:a => 1, :b => 2, :c => 3}].pickattrs(:a, :c)
     #   r[{:a => 1, :c => 3}]
     def pickattrs(*attrnames)
-      JSON_Expression.new [:call, [:pickattrs, *attrnames], [@body]]
+      JSON_Expression.new [:call, [:pickattrs, *attrnames], [self]]
     end
 
     # Construct a JSON object that has a subset of the attributes of
@@ -69,7 +69,7 @@ module RethinkDB
     #   r[{:a => 1, :b => 2, :c => 3}].without(:a, :c)
     #   r[{:b => 2}]
     def without(*attrnames)
-      JSON_Expression.new [:call, [:without, *attrnames], [@body]]
+      JSON_Expression.new [:call, [:without, *attrnames], [self]]
     end
 
     # Convert from an array to a stream.  Also has the synonym
@@ -80,16 +80,16 @@ module RethinkDB
     # working with effects error handling.  The following are equivalent:
     #   r[[1,2,3]].arraytostream
     #   r[[1,2,3]].to_stream
-    def arraytostream(); Stream_Expression.new [:call, [:arraytostream], [@body]]; end
+    def arraytostream(); Stream_Expression.new [:call, [:arraytostream], [self]]; end
 
     # Prefix numeric -.  The following are equivalent:
     #   -r[1]
     #   r[-1]
-    def -@; JSON_Expression.new [:call, [:subtract], [@body]]; end
+    def -@; JSON_Expression.new [:call, [:subtract], [self]]; end
     # Prefix numeric +.  The following are equivalent:
     #   +r[-1]
     #   r[-1]
-    def +@; JSON_Expression.new [:call, [:add], [@body]]; end
+    def +@; JSON_Expression.new [:call, [:add], [self]]; end
   end
 
   # A query representing a variable.  Produced by e.g. RQL::var.  This
