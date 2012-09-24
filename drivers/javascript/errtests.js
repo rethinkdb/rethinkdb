@@ -16,5 +16,9 @@ var c = r.connect({}, function() {
     arr.reduce('a', function(acc, row) {return row.add(acc)}).runp();
     r.expr([{a:1}]).filter({a:one.div(zero)}).runp();
 
+    r.ifThenElse(r.expr(false), r.expr(1), r.error()).runp();
+
+    r.table('test').orderby('id').runp();
+
     c.close();
 });

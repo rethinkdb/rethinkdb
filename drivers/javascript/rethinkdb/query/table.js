@@ -34,6 +34,23 @@ rethinkdb.Table.prototype.compile = function() {
     return term;
 };
 
+/** @override */
+rethinkdb.Table.prototype.formatQuery = function(bt) {
+    if (!bt) {
+        if (this.db_) {
+            return "r.db("+this.db_+").table("+this.name_+")";
+        } else {
+            return "r.table("+this.name_+")";
+        }
+    } else {
+        if (this.db_) {
+            return carrotify_("r.db("+this.db_+").table("+this.name_+")");
+        } else {
+            return carrotify_("r.table("+this.name_+")");
+        }
+    }
+};
+
 /**
  * @constructor
  * @extends {rethinkdb.Expression}

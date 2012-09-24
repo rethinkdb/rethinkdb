@@ -65,6 +65,10 @@ rethinkdb.Query = function() { };
  */
 rethinkdb.Query.prototype.run = function(callback, opt_conn) {
     opt_conn = opt_conn || rethinkdb.last_connection_;
+    if (!opt_conn) {
+        throw new rethinkdb.errors.ClientError("No connection specified "+
+                    "and no last connection to default to");
+    }
     opt_conn.run(this, callback);
 };
 goog.exportProperty(rethinkdb.Query.prototype, 'run',
@@ -74,6 +78,9 @@ goog.exportProperty(rethinkdb.Query.prototype, 'run',
  * A shortcut for conn.runp(this). The last created connection is used.
  */
 rethinkdb.Query.prototype.runp = function() {
+    if (!rethinkdb.last_connection_) {
+        throw new rethinkdb.errors.ClientError("No last connection to use");
+    }
     rethinkdb.last_connection_.runp(this);
 };
 goog.exportProperty(rethinkdb.Query.prototype, 'runp',
@@ -87,6 +94,9 @@ goog.exportProperty(rethinkdb.Query.prototype, 'runp',
  */
 rethinkdb.Query.prototype.iter = function(callback, doneCallback) {
     var conn = rethinkdb.last_connection_;
+    if (conn) {
+        throw new rethinkdb.errors.ClientError("No last connection to use");
+    }
     conn.iter(this, callback, doneCallback);
 };
 goog.exportProperty(rethinkdb.Query.prototype, 'iter',

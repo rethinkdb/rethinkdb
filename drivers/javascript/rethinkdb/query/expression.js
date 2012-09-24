@@ -129,6 +129,16 @@ rethinkdb.BooleanExpression.prototype.compile = function() {
     return term;
 };
 
+/** @override */
+rethinkdb.BooleanExpression.prototype.formatQuery = function(bt) {
+    var result = "r.expr("+this.value_+")";
+    if (!bt) {
+        return result;
+    } else {
+        return carrotify_(result);
+    }
+};
+
 /**
  * @constructor
  * @param {string} string
@@ -874,7 +884,18 @@ rethinkdb.Expression.prototype.orderby = function(var_args) {
     var orderings = Array.prototype.slice.call(arguments, 0);
     orderings.forEach(function(order) {typeCheck_(order, 'string')});
 
-    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.ORDERBY, [this], formatTodo_,
+    var self = this;
+    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.ORDERBY, [this],
+        function(bt) {
+            var os = orderings.map(function(o) {return "'"+o+"'";});
+            if (!bt) {
+                return self.formatQuery()+".orderby("+os.join(', ')+")";
+            } else {
+                goog.asserts.assert(bt[0] === 'arg:0');
+                bt.shift();
+                return self.formatQuery(bt)+spaceify_(".orderby("+os.join(', ')+")");
+            }
+        },
         function(builtin) {
             for (var i = 0; i < orderings.length; i++) {
                 var ascending = true;
@@ -1298,6 +1319,29 @@ rethinkdb.IfExpression.prototype.compile = function() {
     term.setIf(if_);
 
     return term;
+};
+
+/** @override */
+rethinkdb.IfExpression.prototype.formatQuery = function(bt) {
+    if (!bt) {
+        return "r.ifThenElse("+this.test_.formatQuery()+", "+this.trueBranch_.formatQuery()+
+               ", "+this.falseBranch_.formatQuery()+")";
+    } else {
+        var spot = bt.shift();
+        var test = spaceify_(this.test_.formatQuery());
+        var t = spaceify_(this.trueBranch_.formatQuery());
+        var f = spaceify_(this.falseBranch_.formatQuery());
+        if (spot === 'test') {
+            test = this.test_.formatQuery(bt);
+        } else if (spot === 'true') {
+            t = this.trueBranch_.formatQuery(bt);
+        } else {
+            goog.asserts.assert(spot === 'false');
+            f = this.falseBranch_.formatQuery(bt);
+        }
+
+        return "             "+test+"  "+t+"  "+f+" ";
+    }
 };
 
 /**
