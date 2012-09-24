@@ -49,7 +49,7 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
         // Copy in the string. TODO(rntz): cJSON requires null termination. We
         // should switch away from cJSON.
         v8::Handle<v8::String> string = value->ToString();
-        rassert_unreviewed(!string.IsEmpty());
+        guarantee_reviewed(!string.IsEmpty());
         int length = string->Utf8Length() + 1; // +1 for null byte
 
         p->type = cJSON_String;
@@ -78,7 +78,7 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
             uint32_t len = arrayh->Length();
             for (uint32_t i = 0; i < len; ++i) {
                 v8::Handle<v8::Value> elth = arrayh->Get(i);
-                rassert_unreviewed(!elth.IsEmpty()); // FIXME
+                guarantee_reviewed(!elth.IsEmpty()); // FIXME
 
                 cJSON *eltj = mkJSON(elth, recursion_limit, errmsg);
                 if (NULL == eltj) return NULL;
@@ -102,9 +102,9 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
         } else {
             // Treat it as a dictionary.
             v8::Handle<v8::Object> objh = value->ToObject();
-            rassert_unreviewed(!objh.IsEmpty()); // FIXME
+            guarantee_reviewed(!objh.IsEmpty()); // FIXME
             v8::Handle<v8::Array> props = objh->GetPropertyNames();
-            rassert_unreviewed(!props.IsEmpty()); // FIXME
+            guarantee_reviewed(!props.IsEmpty()); // FIXME
 
             scoped_cJSON_t objj(cJSON_CreateObject());
             if (NULL == objj.get()) {
@@ -116,9 +116,9 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
             uint32_t len = props->Length();
             for (uint32_t i = 0; i < len; ++i) {
                 v8::Handle<v8::String> keyh = props->Get(i)->ToString();
-                rassert_unreviewed(!keyh.IsEmpty()); // FIXME
+                guarantee_reviewed(!keyh.IsEmpty()); // FIXME
                 v8::Handle<v8::Value> valueh = objh->Get(keyh);
-                rassert_unreviewed(!valueh.IsEmpty()); // FIXME
+                guarantee_reviewed(!valueh.IsEmpty()); // FIXME
 
                 scoped_cJSON_t valuej(mkJSON(valueh, recursion_limit, errmsg));
                 if (NULL == valuej.get()) return NULL;
@@ -164,8 +164,8 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
 }
 
 boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value, std::string *errmsg) {
-    rassert_unreviewed(!value.IsEmpty());
-    rassert_unreviewed(errmsg);
+    guarantee_reviewed(!value.IsEmpty());
+    guarantee_reviewed(errmsg);
 
     // TODO (rntz): probably want a TryCatch for javascript errors that might happen.
     v8::HandleScope handle_scope;
@@ -198,7 +198,7 @@ v8::Handle<v8::Value> fromJSON(const cJSON &json) {
           for (cJSON *child = json.child; child; child = child->next, ++index) {
               v8::HandleScope scope;
               v8::Handle<v8::Value> val = fromJSON(*child);
-              rassert_unreviewed(!val.IsEmpty());
+              guarantee_reviewed(!val.IsEmpty());
               array->Set(index, val);
               // FIXME: try_catch code
           }
@@ -213,7 +213,7 @@ v8::Handle<v8::Value> fromJSON(const cJSON &json) {
               v8::HandleScope scope;
               v8::Handle<v8::Value> key = v8::String::New(child->string);
               v8::Handle<v8::Value> val = fromJSON(*child);
-              rassert_unreviewed(!key.IsEmpty() && !val.IsEmpty());
+              guarantee_reviewed(!key.IsEmpty() && !val.IsEmpty());
 
               obj->Set(key, val); // FIXME: try_catch code
           }
