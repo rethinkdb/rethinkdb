@@ -1173,7 +1173,7 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'pick',
  * @param {string|Array.<string>} attrs The attributes NOT to include in the result.
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.without = function(attrs) {
+rethinkdb.Expression.prototype.unpick = function(attrs) {
     if (!goog.isArray(attrs)) {
         attrs = [attrs];
     }
@@ -1186,8 +1186,8 @@ rethinkdb.Expression.prototype.without = function(attrs) {
             }
         });
 };
-goog.exportProperty(rethinkdb.Expression.prototype, 'without',
-                    rethinkdb.Expression.prototype.without);
+goog.exportProperty(rethinkdb.Expression.prototype, 'unpick',
+                    rethinkdb.Expression.prototype.unpick);
 
 /**
  * Shortcut to map a pick attrs over a sequence.
