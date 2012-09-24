@@ -16,7 +16,7 @@ public:
     semilattice_member_read_view_t(key_t k, boost::shared_ptr<semilattice_read_view_t<std::map<key_t, value_t> > > sv) :
         key(k), superview(sv)
     {
-        rassert_unreviewed(superview->get().count(key) != 0);
+        rassert_reviewed(superview->get().count(key) != 0);
     }
 
     value_t get() {
@@ -44,7 +44,7 @@ public:
     semilattice_member_readwrite_view_t(key_t k, boost::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > > sv) :
         key(k), superview(sv)
     {
-        rassert_unreviewed(superview->get().count(key) != 0);
+        rassert_reviewed(superview->get().count(key) != 0);
     }
 
     value_t get() {
@@ -98,7 +98,7 @@ boost::shared_ptr<semilattice_readwrite_view_t<value_t> > metadata_new_member(
     key_t key,
     boost::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > > outer)
 {
-    rassert_unreviewed(outer->get().count(key) == 0);
+    rassert_reviewed(outer->get().count(key) == 0);
     std::map<key_t, value_t> new_value;
     new_value.insert(std::pair<key_t, value_t>(key, value_t()));
     outer->join(new_value);

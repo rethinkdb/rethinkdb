@@ -51,9 +51,9 @@ public:
             semilattice_join(&(extractor(value)), new_inner);
             inner_t expected_value = extractor(value);
             semilattice_join(&copy, value);
-            rassert_unreviewed(expected_value == extractor(copy), "Function view used on a non direct semilattice.");
+            rassert_reviewed(expected_value == extractor(copy), "Function view used on a non direct semilattice.");
         }
-#endif
+#endif  // NDEBUG
         outer_t value = outer->get();
         semilattice_join(&(extractor(value)), new_inner);
         outer->join(value);
