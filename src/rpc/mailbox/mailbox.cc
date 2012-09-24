@@ -24,7 +24,7 @@ bool raw_mailbox_t::address_t::is_nil() const {
 }
 
 peer_id_t raw_mailbox_t::address_t::get_peer() const {
-    rassert_unreviewed(!is_nil(), "A nil address has no peer");
+    guarantee_reviewed(!is_nil(), "A nil address has no peer");
     return peer;
 }
 
@@ -51,7 +51,7 @@ raw_mailbox_t::address_t raw_mailbox_t::get_address() const {
     if (thread_mode == mailbox_any_thread) {
         a.thread = address_t::ANY_THREAD;
     } else {
-        rassert_unreviewed(thread_mode == mailbox_home_thread);
+        guarantee_reviewed(thread_mode == mailbox_home_thread);
         a.thread = home_thread();
     }
     a.mailbox_id = mailbox_id;
@@ -82,8 +82,8 @@ private:
 };
 
 void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, mailbox_write_callback_t *callback) {
-    rassert_unreviewed(src);
-    rassert_unreviewed(!dest.is_nil());
+    guarantee_reviewed(src);
+    guarantee_reviewed(!dest.is_nil());
 
     if (dest.peer == src->get_connectivity_service()->get_me()) {
         // Message is local, we can skip the connectivity service and serialization/deserialization
@@ -120,8 +120,8 @@ mailbox_manager_t::mailbox_table_t::mailbox_table_t() {
 }
 
 mailbox_manager_t::mailbox_table_t::~mailbox_table_t() {
-    rassert_unreviewed(mailboxes.empty(), "Please destroy all mailboxes before destroying "
-        "the cluster");
+    guarantee_reviewed(mailboxes.empty(), "Please destroy all mailboxes before destroying "
+                       "the cluster");
 }
 
 raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::id_t id) {
@@ -192,8 +192,10 @@ void mailbox_manager_t::register_mailbox_wrapper(raw_mailbox_t *mb, raw_mailbox_
 }
 
 void mailbox_manager_t::register_mailbox_internal(raw_mailbox_t *mb, raw_mailbox_t::id_t id) {
-    rassert_unreviewed(mailbox_tables.get()->mailboxes.count(id) == 0);
-    mailbox_tables.get()->mailboxes[id] = mb;
+    std::map<raw_mailbox_t::id_t, raw_mailbox_t *> *mailboxes = &mailbox_tables.get()->mailboxes;
+    std::pair<std::map<raw_mailbox_t::id_t, raw_mailbox_t *>::iterator, bool> res
+        = mailboxes->insert(std::make_pair(id, mb));
+    guarantee_reviewed(res.second);  // Assert a new element was inserted.
 }
 
 void mailbox_manager_t::unregister_mailbox(raw_mailbox_t::id_t id) {
@@ -211,7 +213,7 @@ void mailbox_manager_t::unregister_mailbox_wrapper(raw_mailbox_t::id_t id, int t
 }
 
 void mailbox_manager_t::unregister_mailbox_internal(raw_mailbox_t::id_t id) {
-    rassert_unreviewed(mailbox_tables.get()->mailboxes.count(id) == 1);
-    mailbox_tables.get()->mailboxes.erase(id);
+    size_t num_elements_erased = mailbox_tables.get()->mailboxes.erase(id);
+    guarantee_reviewed(num_elements_erased == 1);
 }
 
