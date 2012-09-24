@@ -802,7 +802,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
     // This must be performed on the semilattice_metadata's home thread,
     int original_thread = get_thread_id();
     int metadata_home_thread = env->semilattice_metadata->home_thread();
-    rassert_unreviewed(env->directory_read_manager->home_thread() == metadata_home_thread);
+    guarantee_reviewed(env->directory_read_manager->home_thread() == metadata_home_thread);
     cross_thread_signal_t ct_interruptor(env->interruptor, metadata_home_thread);
     on_thread_t rethreader(metadata_home_thread);
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > directory_metadata =
@@ -841,7 +841,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         metadata_searcher_t<database_semilattice_metadata_t>::iterator
             db_metadata = db_searcher.find_uniq(db_name, &status);
         meta_check(status, METADATA_SUCCESS, "DROP_DB " + db_name, bt);
-        rassert_unreviewed(!db_metadata->second.is_deleted());
+        guarantee_reviewed(!db_metadata->second.is_deleted());
         uuid_t db_id = db_metadata->first;
 
         // Delete all tables in database.
@@ -849,7 +849,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
                  ::iterator it = ns_searcher.find_next(ns_searcher.begin(), pred);
              it != ns_searcher.end(); it = ns_searcher.find_next(++it, pred)) {
-            rassert_unreviewed(!it->second.is_deleted());
+            guarantee_reviewed(!it->second.is_deleted());
             it->second.mark_deleted();
         }
 
@@ -864,7 +864,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
              it != db_searcher.end(); it = db_searcher.find_next(++it)) {
 
             // For each undeleted and unconflicted entry in the metadata, add a response.
-            rassert_unreviewed(!it->second.is_deleted());
+            guarantee_reviewed(!it->second.is_deleted());
             if (it->second.get().name.in_conflict()) continue;
             scoped_cJSON_t json(cJSON_CreateString(it->second.get().name.get().c_str()));
             res->add_response(json.PrintUnformatted());
@@ -927,7 +927,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
             ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
         std::string op = strprintf("FIND_TABLE %s.%s", db_name.c_str(), table_name.c_str());
         meta_check(status, METADATA_SUCCESS, op, bt.with("table_name"));
-        rassert_unreviewed(!ns_metadata->second.is_deleted());
+        guarantee_reviewed(!ns_metadata->second.is_deleted());
 
         // Delete namespace
         ns_metadata->second.mark_deleted();
@@ -943,7 +943,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
              it != ns_searcher.end(); it = ns_searcher.find_next(++it, pred)) {
 
             // For each undeleted and unconflicted entry in the metadata, add a response.
-            rassert_unreviewed(!it->second.is_deleted());
+            guarantee_reviewed(!it->second.is_deleted());
             if (it->second.get().name.in_conflict()) continue;
             scoped_cJSON_t json(cJSON_CreateString(it->second.get().name.get().c_str()));
             res->add_response(json.PrintUnformatted());
@@ -973,7 +973,7 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
         ns_metadata_it = ns_searcher.find_uniq(pred, &status);
     meta_check(status, METADATA_SUCCESS, "FIND_TABLE " + table_name, bt);
-    rassert_unreviewed(!ns_metadata_it->second.is_deleted());
+    guarantee_reviewed(!ns_metadata_it->second.is_deleted());
     if (ns_metadata_it->second.get().primary_key.in_conflict()) {
         throw runtime_exc_t(strprintf(
             "Table %s.%s has a primary key in conflict, which should never happen.",
@@ -983,7 +983,7 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
 }
 
 void execute_query(Query *q, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    rassert_unreviewed(q->token() == res->token());
+    guarantee_reviewed(q->token() == res->token());
     switch(q->type()) {
     case Query::READ: {
         execute_read_query(q->mutable_read_query(), env, res, scopes, backtrace, stream_cache);
@@ -1031,8 +1031,8 @@ void execute_read_query(ReadQuery *r, runtime_environment_t *env, Response *res,
         } else {
             stream_cache->insert(r, key, stream);
         }
-        DEBUG_VAR bool b = stream_cache->serve(key, res, env->interruptor);
-        rassert_unreviewed(b);
+        bool b = stream_cache->serve(key, res, env->interruptor);
+        guarantee_reviewed(b);
         break; //status code set in [serve]
     }
     case TERM_TYPE_ARBITRARY: {
@@ -1126,13 +1126,13 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 
         int updated = 0, errors = 0, skipped = 0;
         while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-            rassert_unreviewed(json && json->type() == cJSON_Object);
+            guarantee_reviewed(json && json->type() == cJSON_Object);
             try {
                 std::string pk = view.primary_key;
                 cJSON *id = json->GetObjectItem(pk.c_str());
                 point_modify::result_t mres =
                     point_modify(view.access, pk, id, point_modify::UPDATE, env, w->update().mapping(), scopes, backtrace);
-                rassert_unreviewed(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
+                guarantee_reviewed(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
                 updated += (mres == point_modify::MODIFIED);
                 skipped += (mres == point_modify::SKIPPED);
             } catch (const query_language::broken_client_exc_t &e) {
@@ -1156,13 +1156,13 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         int modified = 0, deleted = 0, errors = 0;
         std::string reported_error = "";
         while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-            rassert_unreviewed(json && json->type() == cJSON_Object);
+            guarantee_reviewed(json && json->type() == cJSON_Object);
             try {
                 std::string pk = view.primary_key;
                 cJSON *id = json->GetObjectItem(pk.c_str());
                 point_modify::result_t mres =
                     point_modify(view.access, pk, id, point_modify::MUTATE, env, w->mutate().mapping(), scopes, backtrace);
-                rassert_unreviewed(mres == point_modify::MODIFIED || mres == point_modify::DELETED);
+                guarantee_reviewed(mres == point_modify::MODIFIED || mres == point_modify::DELETED);
                 modified += (mres == point_modify::MODIFIED);
                 deleted += (mres == point_modify::DELETED);
             } catch (const query_language::broken_client_exc_t &e) {
@@ -1295,11 +1295,11 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 
             for (int i = 0; i < w->for_each().queries_size(); ++i) {
                 // Run the write query and retrieve the result.
-                rassert_unreviewed(res->response_size() == 0);
+                guarantee_reviewed(res->response_size() == 0);
                 scoped_cJSON_t rhs(0);
                 try {
                     execute_write_query(w->mutable_for_each()->mutable_queries(i), env, res, scopes_copy, backtrace.with(strprintf("query:%d", i)));
-                    rassert_unreviewed(res->response_size() == 1);
+                    guarantee_reviewed(res->response_size() == 1);
                     rhs.reset(cJSON_Parse(res->response(0).c_str()));
                 } catch (const runtime_exc_t &e) {
                     rhs.reset(cJSON_CreateObject());
@@ -1314,7 +1314,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 scoped_cJSON_t merged(cJSON_merge(lhs.get(), rhs.get()));
                 for (int f = 0; f < merged.GetArraySize(); ++f) {
                     cJSON *el = merged.GetArrayItem(f);
-                    rassert_unreviewed(el);
+                    guarantee_reviewed(el);
                     cJSON *lhs_el = lhs.GetObjectItem(el->string);
                     cJSON *rhs_el = rhs.GetObjectItem(el->string);
                     if (lhs_el && lhs_el->type == cJSON_Number &&
@@ -1335,7 +1335,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_update()->mutable_key(), env, scopes, backtrace);
         point_modify::result_t mres =
             point_modify(ns_access, pk, id->get(), point_modify::UPDATE, env, w->point_update().mapping(), scopes, backtrace);
-        rassert_unreviewed(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
+        guarantee_reviewed(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
         res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}",
                                     mres == point_modify::MODIFIED, mres == point_modify::SKIPPED, 0));
     } break;
@@ -1344,7 +1344,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(w->mutable_point_delete()->mutable_table_ref(), env, backtrace);
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_delete()->mutable_key(), env, scopes, backtrace.with("key"));
         point_delete(ns_access, id, env, backtrace, &deleted);
-        rassert_unreviewed(deleted == 0 || deleted == 1);
+        guarantee_reviewed(deleted == 0 || deleted == 1);
 
         res->add_response(strprintf("{\"deleted\": %d}", deleted));
     } break;
@@ -1355,8 +1355,8 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_mutate()->mutable_key(), env, scopes, backtrace);
         point_modify::result_t mres =
             point_modify(ns_access, pk, id->get(), point_modify::MUTATE, env, w->point_mutate().mapping(), scopes, backtrace);
-        rassert_unreviewed(mres == point_modify::MODIFIED || mres == point_modify::INSERTED ||
-                mres == point_modify::DELETED  || mres == point_modify::NOP);
+        guarantee_reviewed(mres == point_modify::MODIFIED || mres == point_modify::INSERTED ||
+                           mres == point_modify::DELETED  || mres == point_modify::NOP);
         res->add_response(strprintf("{\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d}",
                                     mres == point_modify::MODIFIED, mres == point_modify::INSERTED, mres == point_modify::DELETED, 0));
     } break;
@@ -1407,7 +1407,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json_and_check_either(Term *t, ru
 boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
     switch (t->type()) {
     case Term::IMPLICIT_VAR:
-        rassert_unreviewed(scopes.implicit_attribute_value.has_value());
+        guarantee_reviewed(scopes.implicit_attribute_value.has_value());
         return scopes.implicit_attribute_value.get_value();
     case Term::VAR:
         return scopes.scope.get(t->var());
@@ -1670,7 +1670,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 if (c->builtin().type() == Builtin::GETATTR) {
                     data = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
                 } else {
-                    rassert_unreviewed(scopes.implicit_attribute_value.has_value());
+                    guarantee_reviewed(scopes.implicit_attribute_value.has_value());
                     data = scopes.implicit_attribute_value.get_value();
                 }
 
@@ -1694,7 +1694,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 if (c->builtin().type() == Builtin::HASATTR) {
                     data = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
                 } else {
-                    rassert_unreviewed(scopes.implicit_attribute_value.has_value());
+                    guarantee_reviewed(scopes.implicit_attribute_value.has_value());
                     data = scopes.implicit_attribute_value.get_value();
                 }
 
@@ -1717,8 +1717,8 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
             if (c->builtin().type() == Builtin::WITHOUT) {
                 data = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
             } else {
-                rassert_unreviewed(c->builtin().type() == Builtin::IMPLICIT_WITHOUT);
-                rassert_unreviewed(scopes.implicit_attribute_value.has_value());
+                guarantee_reviewed(c->builtin().type() == Builtin::IMPLICIT_WITHOUT);
+                guarantee_reviewed(scopes.implicit_attribute_value.has_value());
                 data = scopes.implicit_attribute_value.get_value();
             }
             if (!data->type() == cJSON_Object) {
@@ -1737,7 +1737,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 if (c->builtin().type() == Builtin::PICKATTRS) {
                     data = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
                 } else {
-                    rassert_unreviewed(scopes.implicit_attribute_value.has_value());
+                    guarantee_reviewed(scopes.implicit_attribute_value.has_value());
                     data = scopes.implicit_attribute_value.get_value();
                 }
 
