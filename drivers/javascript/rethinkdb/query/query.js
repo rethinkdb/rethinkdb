@@ -94,7 +94,7 @@ goog.exportProperty(rethinkdb.Query.prototype, 'runp',
  */
 rethinkdb.Query.prototype.iter = function(callback, doneCallback) {
     var conn = rethinkdb.last_connection_;
-    if (conn) {
+    if (!conn) {
         throw new rethinkdb.errors.ClientError("No last connection to use");
     }
     conn.iter(this, callback, doneCallback);

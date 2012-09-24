@@ -255,8 +255,14 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
             delete this.outstandingQueries_[response.getToken()]
             var result = JSON.parse(response.getResponse(0));
             if (request.iterate) {
-                if (result.forEach && request.callback) result.forEach(request.callback);
-                if (request.done) request.done();
+                if (result.forEach && request.callback) {
+                    result.forEach(request.callback);
+                } else if (request.callback) {
+                    request.callback(result);
+                }
+                if (request.done) {
+                    request.done();
+                }
             } else if (request.callback) {
                 request.callback(result);
             }
