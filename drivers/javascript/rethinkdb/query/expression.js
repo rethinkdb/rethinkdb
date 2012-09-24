@@ -1017,7 +1017,41 @@ rethinkdb.Expression.prototype.groupedMapReduce = function(grouping, mapping, ba
     base     = wrapIf_(base);
     reduce   = functionWrap_(reduce);
 
-    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.GROUPEDMAPREDUCE, [this], formatTodo_,
+    var self = this;
+    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.GROUPEDMAPREDUCE, [this],
+        function(bt) {
+            var l = self.formatQuery();
+            var g = grouping.formatQuery();
+            var m = mapping.formatQuery();
+            var b = base.formatQuery();
+            var r = reduce.formatQuery();
+            if (!bt) {
+                return l+".groupedMapReduce("+g+", "+m+", "+b+", "+r+")";
+            } else {
+                var a = bt.shift();
+                if (a === 'arg:0') {
+                    return self.formatQuery(bt)+
+                        spaceify_(".groupedMapReduce("+g+", "+m+", "+b+", "+r+")");
+                } else if (a === 'group_mapping') {
+                    return spaceify_(l+".groupedMapReduce(")+grouping.formatQuery(bt)+
+                        spaceify_(", "+m+", "+b+", "+r+")");
+                } else if (a === 'value_mapping') {
+                    return spaceify_(l+".groupedMapReduce("+g+", ")+
+                        mapping.formatQuery(bt)+spaceify_(", "+b+", "+r+")");
+                } else {
+                    goog.asserts.assert(a === 'reduction');
+                    a = bt.shift();
+                    if (a === 'base') {
+                        return spaceify_(l+".groupedMapReduce("+g+", "+
+                            m+", ")+base.formatQuery(bt)+spaceify_(", "+r+")");
+                    } else {
+                        goog.asserts.assert(a === 'body');
+                        return spaceify_(l+".groupedMapReduce("+g+", "+
+                            m+", "+b+", ")+reduce.formatQuery(bt)+" ";
+                    }
+                }
+            }
+        },
         function(builtin) {
             var groupMapping = new Mapping();
             groupMapping.setArg(grouping.args[0]);

@@ -22,5 +22,13 @@ var c = r.connect({}, function() {
 
     r.expr([{id:0},{id:1}]).distinct().runp();
 
+    r.expr([1,2,3]).groupedMapReduce(function(row) {
+        return row;
+    }, function(row) {
+        return row;
+    }, r.error(), function(acc, row) {
+        return r.error();
+    }).runp();
+
     c.close();
 });
