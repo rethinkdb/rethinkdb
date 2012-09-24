@@ -1139,7 +1139,7 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'getAttr',
  * Returns a new object containing only the requested attributes from this.
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.pickAttrs = function() {
+rethinkdb.Expression.prototype.pick = function() {
     var attrs = Array.prototype.slice.call(arguments, 0);
     if (!goog.isArray(attrs)) {
         attrs = [attrs];
@@ -1153,8 +1153,8 @@ rethinkdb.Expression.prototype.pickAttrs = function() {
             }
         });
 };
-goog.exportProperty(rethinkdb.Expression.prototype, 'pickAttrs',
-                    rethinkdb.Expression.prototype.pickAttrs);
+goog.exportProperty(rethinkdb.Expression.prototype, 'pick',
+                    rethinkdb.Expression.prototype.pick);
 
 /**
  * Inverse of pickattrs. Returns an object consisting of all the attributes in this not
@@ -1186,7 +1186,7 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'without',
 rethinkdb.Expression.prototype.pluck = function() {
     var args = Array.prototype.slice.call(arguments, 0);
     return this.map(function(a) {
-        return rethinkdb.Expression.prototype.pickAttrs.apply(a, args)
+        return rethinkdb.Expression.prototype.pick.apply(a, args)
     });
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'pluck',

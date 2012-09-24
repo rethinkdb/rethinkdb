@@ -137,8 +137,8 @@ function testGetAttr() {
 }
 
 function testPickAttrs() {
-    tobj.pickAttrs('a').run(objeq({a:1}));
-    tobj.pickAttrs('a', 'b').run(objeq({a:1,b:2}));
+    tobj.pick('a').run(objeq({a:1}));
+    tobj.pick('a', 'b').run(objeq({a:1,b:2}));
 }
 
 function testWithout() {
@@ -170,7 +170,7 @@ function testGet() {
 
 function testOrderby() {
     tab.orderby('num').nth(2).run(objeq({id:7,num:13}));
-    tab.orderby('num').nth(2).pickAttrs('num').run(objeq({num:13}));
+    tab.orderby('num').nth(2).pick('num').run(objeq({num:13}));
 }
 
 function testPluck() {
@@ -310,7 +310,7 @@ function testPointUpdate2() {
 
 function testMutate1() {
     tab.mutate(function(a) {
-        return a.pickAttrs('id').extend({mutated:true});
+        return a.pick('id').extend({mutated:true});
         //return q.expr({id:a.getAttr('id'), mutated:true});
     }).run(objeq({
         deleted:0,
@@ -333,7 +333,7 @@ function testMutate2() {
 
 function testPointMutate1() {
     tab.get(0).mutate(function(a) {
-        return a.pickAttrs('id').extend({pointmutated:true});
+        return a.pick('id').extend({pointmutated:true});
         //return {id:a.id, pointmutated:true};
     }).run(objeq({
         deleted:0,
