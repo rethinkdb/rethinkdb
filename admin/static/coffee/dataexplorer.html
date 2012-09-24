@@ -40,7 +40,7 @@
     </div>
 </script>
 
-
+ 
 <script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
     <li class="suggestion_name_li" data-has_argument="{{has_argument}}" data-id={{id}}>{{suggestion}}</li>
 </script>
@@ -116,6 +116,7 @@
         <h2>Results</h2>
         <p class="query_executed">For query: {{query}}</p>
         <p class="metadata"></p>
+        
 
         <ul class="nav nav-tabs change_view_container"">
             <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view">Raw view</a></li>
@@ -123,8 +124,29 @@
             <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view">Tree view</a></li>
         </ul>
    </div>
-   <div class="pagination_container"></div>
-   <div class="tab-content">  
+    <div class="pagination_container">
+        <div class="classic_navigation_container">
+            <div class="goto_previous_container">
+                <button class="btn goto_first">&lt;&lt;</button>
+                <button class="btn goto_previous">&lt;</button>
+            </div>
+
+            <div class="goto_next_container">
+                <button class="btn goto_next">&gt;</button>
+                <button class="btn goto_last">&gt;&gt;</button>
+            </div>
+
+            <p class="manual_jump"><button class="btn display_button">Display</button> <input type="text" class="limit_value" name="skip_value" value="20" /> rows starting from <input class="skip_value" name="skip_value" type="text" value="0"></p>
+        </div>
+
+        <div class="jump_container">
+            <select name="jumg_page" class="jump_page">
+                <option value="1" selected="selected">1</option>
+                <option value="2">2</option>
+            </select>
+        </div>
+    </div>
+    <div class="tab-content">  
         <div class="tab-pane results" id="tree_view">
         </div>
         <div class="tab-pane results" id="table_view">
@@ -133,14 +155,35 @@
             <textarea class="raw_view_textarea"></textarea>
         </div>
     </div>
-    <div class="pagination_container"></div>
+    <div class="pagination_container">
+        <div class="classic_navigation_container">
+            <div class="goto_previous_container">
+                <button class="goto_first">&lt;&lt;</button>
+                <button class="goto_previous">&lt;</button>
+            </div>
+
+            <div class="goto_next_container">
+                <button class="goto_last">&gt;</button>
+                <button class="goto_next">&gt;&gt;</button>
+            </div>
+
+            <p class="manual_jump">Display <input type="text" class="limit_value" name="skip_value" value="20" /> rows starting from <input class="skip_value" name="skip_value" type="text" value="0"></p>
+        </div>
+
+        <div class="jump_container">
+            <select name="jumg_page" class="jump_page">
+                <option value="1" selected="selected">1</option>
+                <option value="2">2</option>
+            </select>
+        </div>
+    </div>
 </script>
 
 <script id="dataexplorer-metadata-template" type="text/x-handlebars-template">
     {{#if execution_time}}
-        Executed in {{execution_time}}{{#if num_rows}}, {{num_rows_displayed}} of {{num_rows}} {{pluralize_noun "row" num_rows_displayed}} displayed.{{/if}}
+        Executed in {{execution_time}}{{#if num_rows}}, {{limit_value}} of {{num_rows}} {{pluralize_noun "row" limit_value}} displayed.{{/if}}
     {{else}}
-    {{#if num_rows_displayed}}num_rows_displayed {{pluralize_noun "row" num_rows_displayed}} displayed. {{/if}}Computing the total number of rows.
+    {{#if limit_value}}limit_value {{pluralize_noun "row" limit_value}} displayed. {{/if}}Computing the total number of rows.
     {{/if}}
 </script>
 

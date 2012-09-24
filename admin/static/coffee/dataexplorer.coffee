@@ -18,6 +18,11 @@ module 'DataExplorerView', ->
             'click .change_size': 'toggle_size'
             'click #reconnect': 'reconnect'
 
+            'click .goto_first': 'execute_paginating_query'
+            'click .goto_previous': 'execute_paginating_query'
+            'click .goto_next': 'execute_paginating_query'
+            'click .goto_last': 'execute_paginating_query'
+
         displaying_full_view: false
         has_been_initialized:
             value: false #We use that boolean to track if suggestions['stream'] has been append to suggestions['table']
@@ -604,7 +609,8 @@ module 'DataExplorerView', ->
                     else
                         if @count_results is LIMIT
                             @results_view.render_result @query, @current_results
-                            @results_view.render_metadata @current_results.length
+
+                            @results_view.render_metadata LIMIT, 0, undefined, undefined, @query
                     @count_results++
             last_callback = =>
                 if id is @last_id
@@ -613,7 +619,7 @@ module 'DataExplorerView', ->
                         @results_view.render_result @query, @current_results
 
                     @.$('.loading_query_img').css 'display', 'none'
-                    @results_view.render_metadata @current_results.length, @count_results, execution_time
+                    @results_view.render_metadata @current_results.length, 0, @count_results, execution_time, @query
 
 
             iter: iter_callback
@@ -642,8 +648,6 @@ module 'DataExplorerView', ->
                 i++
 
             @.$('.loading_query_img').css 'display', 'block'
-            
-            
 
             full_query = @query+'\n'+'.iter(iter_callback, last_callback)' # The new line is added in case the last one has an inline comment (//)
             try
@@ -658,6 +662,55 @@ module 'DataExplorerView', ->
             
             # Display query in sidebar
             window.app.sidebar.add_query @codemirror.getValue()
+
+        execute_paginating_query: (event) =>
+            skip_value = @.$(event.target).data 'skip_value'
+            limit_value = @.$(event.target).data 'limit_value'
+            query = @.$(event.target).data 'query'
+            count_results = @.$(event.target).data 'count_results'
+
+            console.log query, count_results, skip_value, limit_value
+            @paginate_query query, count_results, skip_value, limit_value
+            return @
+
+        create_tagged_paginating_callbacks: (skip_value, limit_value) =>
+            LIMIT = 20
+            id = Math.random()
+            @last_id = id
+
+            @current_results = []
+            iter_callback = (data) =>
+                if id is @last_id
+                    @current_results.push data
+
+            last_callback = =>
+                if id is @last_id
+                    execution_time = new Date() - @start_time
+
+                    @results_view.render_result @query+'.skip('+skip_value+').limit('+limit_value+')', @current_results
+                    @.$('.loading_query_img').css 'display', 'none'
+                    @results_view.render_metadata limit_value, skip_value, @count_results, execution_time, @query
+
+            iter: iter_callback
+            last: last_callback
+
+        paginate_query: (query, count_results, skip_value, limit_value) =>
+            # Make sure that we have to good query
+            @query = query
+            @count_results = count_results
+
+            @.$('.loading_query_img').css 'display', 'block'
+            full_query = @query+'\n'+'.skip('+skip_value+').limit('+limit_value+')'+'.iter(iter_callback, last_callback)' # The new line is added in case the last one has an inline comment (//)
+            try
+                callbacks = @create_tagged_paginating_callbacks skip_value, limit_value
+                iter_callback = callbacks.iter
+                last_callback = callbacks.last
+                @start_time = new Date()
+                eval(full_query)
+            catch err
+                @.$('.loading_query_img').css 'display', 'none'
+                @results_view.render_error(@query, err)
+
 
         clear_query: =>
             @codemirror.setValue ''
@@ -860,7 +913,6 @@ module 'DataExplorerView', ->
             'mousedown td': 'handle_mousedown'
             'click .jta_arrow_v': 'expand_tree_in_table'
             'click .jta_arrow_h': 'expand_table_in_table'
-
 
         current_result: []
 
@@ -1198,8 +1250,8 @@ module 'DataExplorerView', ->
             @.$('#tree_view').addClass 'active'
             @.$('#table_view').removeClass 'active'
             @.$('#raw_view').removeClass 'active'
-
-        render_metadata: (count_results_displayed, count_results, execution_time) =>
+        #TODO Fix the calls with limit/skip_value
+        render_metadata: (limit_value, skip_value, count_results, execution_time, query) =>
             LIMIT = 20
             if execution_time?
                 if execution_time < 1000
@@ -1208,12 +1260,52 @@ module 'DataExplorerView', ->
                     execution_time_pretty = (execution_time/1000).toFixed(2)+"s"
                 else # We do not expect query to last one hour.
                     minutes = Math.floor(execution_time/(60*1000))
-                    execution_time_pretty = minutes+"min "+((execution_time-minutes*60*1000)/1000).toFixed(2)+"s"       
+                    execution_time_pretty = minutes+"min "+((execution_time-minutes*60*1000)/1000).toFixed(2)+"s"
 
             @.$('.metadata').html @metadata_template
-                num_rows_displayed: count_results_displayed
-                num_rows: count_results
+                skip_value: skip_value
+                limit_value: limit_value
+                num_rows: count_results if count_results?
                 execution_time: execution_time_pretty if execution_time_pretty?
+
+            #render pagination
+            if limit_value < count_results or skip_value > 0
+                #TODO complete
+                @.$('.pagination_container').css 'display', 'block'
+                if skip_value > 0
+                    @.$('.goto_first').removeProp 'disabled'
+                    @.$('.goto_previous').removeProp 'disabled'
+
+                    @.$('.goto_first').data 'skip_value', 0
+                    @.$('.goto_first').data 'limit_value', LIMIT
+                    @.$('.goto_first').data 'count_results', count_results
+                    @.$('.goto_first').data 'query', query
+
+                    new_skip_value = Math.max 0, skip_value-limit_value
+                    @.$('.goto_previous').data 'skip_value', new_skip_value
+                    @.$('.goto_previous').data 'limit_value', LIMIT
+                    @.$('.goto_previous').data 'count_results', count_results
+                    @.$('.goto_previous').data 'query', query
+                else
+                    @.$('.goto_first').prop 'disabled', 'disabled'
+                    @.$('.goto_previous').prop 'disabled', 'disabled'
+
+                if limit_value < count_results
+                    @.$('.goto_next').removeProp 'disabled'
+                    @.$('.goto_last').removeProp 'disabled'
+
+                    @.$('.goto_next').data 'skip_value', skip_value+limit_value
+                    @.$('.goto_next').data 'limit_value', LIMIT
+                    @.$('.goto_next').data 'count_results', count_results
+                    @.$('.goto_next').data 'query', query
+
+                    @.$('.goto_last').data 'skip_value', count_results-limit_value
+                    @.$('.goto_last').data 'limit_value', LIMIT
+                    @.$('.goto_last').data 'count_results', count_results
+                    @.$('.goto_last').data 'query', query
+                else
+                    @.$('.goto_next').prop 'disabled', 'disabled'
+                    @.$('.goto_last').prop 'disabled', 'disabled'
 
 
         render: =>
