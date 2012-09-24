@@ -1083,15 +1083,15 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'groupedMapReduce',
  * @param {string} attr Attribute to test.
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.hasAttr = function(attr) {
+rethinkdb.Expression.prototype.contains = function(attr) {
     typeCheck_(attr, 'string');
     return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.HASATTR, [this], formatTodo_,
         function(builtin) {
             builtin.setAttr(attr);
         });
 };
-goog.exportProperty(rethinkdb.Expression.prototype, 'hasAttr',
-                    rethinkdb.Expression.prototype.hasAttr);
+goog.exportProperty(rethinkdb.Expression.prototype, 'contains',
+                    rethinkdb.Expression.prototype.contains);
 
 /**
  * Returns the value of the given attribute from this.

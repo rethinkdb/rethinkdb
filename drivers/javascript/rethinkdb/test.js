@@ -118,9 +118,9 @@ function testFilter() {
 }
 
 var tobj = r.expr({a:1,b:2,c:3});
-function testHasAttr() {
-    tobj.hasAttr('a').run(aeq(true));
-    tobj.hasAttr('d').run(aeq(false));
+function testContains() {
+    tobj.contains('a').run(aeq(true));
+    tobj.contains('d').run(aeq(false));
 }
 
 function testGetAttr() {
@@ -129,7 +129,7 @@ function testGetAttr() {
     tobj.getAttr('c').run(aeq(3));
 
     r.let({a:tobj},
-        r.ifThenElse(r.letVar('a').hasAttr('b'),
+        r.ifThenElse(r.letVar('a').contains('b'),
             r.letVar('a.b'),
             r.error("No attribute b")
         )
@@ -409,7 +409,7 @@ runTests([
     testMap,
     testReduce,
     testFilter,
-    testHasAttr,
+    testContains,
     testGetAttr,
     testPickAttrs,
     testWithout,
