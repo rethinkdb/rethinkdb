@@ -298,9 +298,9 @@ void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) T
     conn->write(res.body.c_str(), res.body.size(), closer);
 }
 
-void http_server_t::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t keepalive) {
+void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t keepalive) {
     scoped_ptr_t<tcp_conn_t> conn;
-    nconn->ennervate(&conn);
+    nconn->make_overcomplicated(&conn);
 
     http_req_t req;
     tcp_http_msg_parser_t http_msg_parser;
@@ -504,7 +504,9 @@ std::string percent_escaped_string(const std::string &s) {
     return res;
 }
 
-std::string percent_unescaped_string(const std::string &s) THROWS_ONLY(std::runtime_error) {
+bool percent_unescape_string(const std::string &s, std::string *out) {
+    rassert(out->empty());
+
     std::string res;
     for (std::string::const_iterator it  = s.begin();
                                      it != s.end();
@@ -513,31 +515,32 @@ std::string percent_unescaped_string(const std::string &s) THROWS_ONLY(std::runt
             //read an escaped character
             it++;
             if (it == s.end()) {
-                throw std::runtime_error("Bad escape sequence % with nothing after it.");
+                return false;
             }
             int digit1;
             if (!hex_to_int(*it, &digit1)) {
-                throw std::runtime_error("Bad hex char.");
+                return false;
             }
 
             it++;
             if (it == s.end()) {
-                throw std::runtime_error("Bad escaped sequence % with only one digit after it.");
+                return false;
             }
             int digit2;
             if (!hex_to_int(*it, &digit2)) {
-                throw std::runtime_error("Bad hex char.");
+                return false;
             }
 
             res.push_back((digit1 << 4) + digit2);
         } else {
             if (!is_safe(*it)) {
-                throw std::runtime_error("Unsafe character in string.");
+                return false;
             }
 
             res.push_back(*it);
         }
     }
 
-    return res;
+    *out = res;
+    return true;
 }

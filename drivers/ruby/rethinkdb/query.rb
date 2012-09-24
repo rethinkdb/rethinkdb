@@ -10,8 +10,13 @@ module RethinkDB
       Connection.last.send(:run, self)
     end
 
-    def initialize(init_body) # :nodoc:
-      @body = init_body
+    def set_body(val, context=nil) # :nodoc:
+      @context = context || caller
+      @body = val
+    end
+
+    def initialize(init_body, context=nil) # :nodoc:
+      set_body(init_body, context)
     end
 
     def ==(rhs) # :nodoc:
@@ -29,9 +34,7 @@ module RethinkDB
     def sexp
       S.clean_lst @body
     end
-    def body # :nodoc:
-      @body
-    end
+    attr_accessor :body, :marked, :context
 
     # Compile into either a protobuf class or a query.
     def as _class # :nodoc:
@@ -39,6 +42,49 @@ module RethinkDB
     end
     def query(*args) # :nodoc:
       RQL_Protob.query(args == [] ? sexp : S.replace(sexp, *args))
+    end
+
+    def print_backtrace(bt)
+      #PP.pp [bt, bt.map{|x| B.expand x}.flatten, sexp]
+      begin
+        B.with_marked_error(self, bt) {
+          query = "Query: #{inspect}\n       #{B.with_highlight {inspect}}"
+          line = "Line: #{B.line || "Unknown"}"
+          line + "\n" + query
+        }
+      rescue Exception => e
+        PP.pp e if $DEBUG
+        "<Internal error in query pretty printer.>"
+      end
+    end
+
+    def pprint
+      return @body.inspect if @body.class != Array
+      return "" if @body == []
+      case @body[0]
+      when :call then
+        if @body[2].length == 1
+          @body[2][0].inspect + "." + RQL_Query.new(@body[1],@context).inspect
+        else
+          func = @body[1][0].to_s
+          func_args = @body[1][1..-1].map{|x| x.inspect}
+          call_args = @body[2].map{|x| x.inspect}
+          func + "(" + (func_args + call_args).join(", ") + ")"
+        end
+      else
+        func = @body[0].to_s
+        func_args = @body[1..-1].map{|x| x.inspect}
+        func + "(" + func_args.join(", ") + ")"
+      end
+    end
+
+    def real_inspect(args)
+      str = args[:str] || pprint
+      (B.highlight and @marked) ? "\000"*str.length : str
+    end
+
+    def inspect
+      real_inspect({})
     end
 
     # Dereference aliases (see utils.rb) and possibly dispatch to RQL

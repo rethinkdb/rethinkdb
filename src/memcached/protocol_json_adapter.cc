@@ -18,9 +18,7 @@ cJSON *render_as_json(store_key_t *target) {
 
 void apply_json_to(cJSON *change, store_key_t *target) {
     std::string str;
-    try {
-        str = percent_unescaped_string(get_string(change));
-    } catch (std::runtime_error) {
+    if (!percent_unescape_string(get_string(change), &str)) {
         throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a store_key_t.\n", get_string(change).c_str()));
     }
 

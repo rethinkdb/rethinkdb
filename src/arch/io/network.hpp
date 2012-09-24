@@ -35,7 +35,7 @@ class linux_tcp_conn_t :
     public home_thread_mixin_t,
     private linux_event_callback_t {
 public:
-    friend class linux_nascent_tcp_conn_t;
+    friend class linux_tcp_conn_descriptor_t;
 
     class connect_failed_exc_t : public std::exception {
     public:
@@ -317,25 +317,25 @@ private:
     scoped_ptr_t<auto_drainer_t> drainer;
 };
 
-class linux_nascent_tcp_conn_t {
+class linux_tcp_conn_descriptor_t {
 public:
-    ~linux_nascent_tcp_conn_t();
+    ~linux_tcp_conn_descriptor_t();
 
-    void ennervate(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn);
+    void make_overcomplicated(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn);
 
     // Must get called exactly once during lifetime of this object.
     // Call it on the thread you'll use the connection on.
-    void ennervate(linux_tcp_conn_t **tcp_conn_out);
+    void make_overcomplicated(linux_tcp_conn_t **tcp_conn_out);
 
 private:
     friend class linux_nonthrowing_tcp_listener_t;
 
-    explicit linux_nascent_tcp_conn_t(fd_t fd);
+    explicit linux_tcp_conn_descriptor_t(fd_t fd);
 
 private:
     fd_t fd_;
 
-    DISABLE_COPYING(linux_nascent_tcp_conn_t);
+    DISABLE_COPYING(linux_tcp_conn_descriptor_t);
 };
 
 /* The linux_nonthrowing_tcp_listener_t is used to listen on a network port for incoming
@@ -345,7 +345,7 @@ the provided callback will be called in a new coroutine every time something con
 class linux_nonthrowing_tcp_listener_t : private linux_event_callback_t {
 public:
     linux_nonthrowing_tcp_listener_t(int _port,
-        const boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> &callback);
+        const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
 
     ~linux_nonthrowing_tcp_listener_t();
 
@@ -385,7 +385,7 @@ protected:
     linux_event_watcher_t event_watcher;
 
     // The callback to call when we get a connection
-    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback;
+    boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> callback;
 
     bool log_next_error;
 };
@@ -405,9 +405,9 @@ private:
 class linux_tcp_listener_t {
 public:
     linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
-        const boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> &callback);
+        const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
     linux_tcp_listener_t(int port,
-        const boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> &callback);
+        const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
 
 private:
     scoped_ptr_t<linux_nonthrowing_tcp_listener_t> listener;
@@ -417,7 +417,7 @@ private:
 class linux_repeated_nonthrowing_tcp_listener_t {
 public:
     linux_repeated_nonthrowing_tcp_listener_t(int port,
-        const boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> &callback);
+        const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
     void begin_repeated_listening_attempts();
     signal_t *get_bound_signal();
 
