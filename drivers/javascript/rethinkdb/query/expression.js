@@ -1145,7 +1145,18 @@ rethinkdb.Expression.prototype.pick = function() {
         attrs = [attrs];
     }
     attrs.forEach(function(attr){typeCheck_(attr, 'string');});
-    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.PICKATTRS, [this], formatTodo_,
+    var self = this;
+    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.PICKATTRS, [this],
+        function(bt) {
+            var strAttrs = attrs.map(function(a) {return "'"+a+"'"});
+            if (!bt) {
+                return self.formatQuery()+".pick("+strAttrs.join(', ')+')';
+            } else {
+                var a = bt.shift();
+                goog.asserts.assert(a === 'arg:0');
+                return self.formatQuery(bt)+spaceify_(".pick("+strAttrs.join(', ')+')');
+            }
+        },
         function(builtin) {
             for (var key in attrs) {
                 var attr = attrs[key];

@@ -17,9 +17,7 @@ var c = r.connect({}, function() {
     r.expr([{a:1}]).filter({a:one.div(zero)}).runp();
 
     r.ifThenElse(r.expr(false), r.expr(1), r.error()).runp();
-
     r.table('test').orderby('id').runp();
-
     r.expr([{id:0},{id:1}]).distinct().runp();
 
     r.expr([1,2,3]).groupedMapReduce(function(row) {
@@ -31,6 +29,7 @@ var c = r.connect({}, function() {
     }).runp();
 
     r.expr({id:r.error()}).contains('b').runp();
+    r.expr({id:1}).pick('a').runp();
 
     c.close();
 });
