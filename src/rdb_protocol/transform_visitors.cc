@@ -98,7 +98,7 @@ terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
 void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
     //we assume the result has already been set to groups_t
     rget_read_response_t::groups_t *res_groups = boost::get<rget_read_response_t::groups_t>(out);
-    guarantee_unreviewed(res_groups);
+    guarantee_reviewed(res_groups);
 
     //Grab the grouping
     boost::shared_ptr<scoped_cJSON_t> grouping;
@@ -130,8 +130,8 @@ void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
 void terminal_visitor_t::operator()(const Reduction &r) const {
     //we assume the result has already been set to groups_t
     rget_read_response_t::atom_t *res_atom = boost::get<rget_read_response_t::atom_t>(out);
-    guarantee_unreviewed(res_atom);
-    guarantee_unreviewed(*res_atom);
+    guarantee_reviewed(res_atom);
+    guarantee_reviewed(*res_atom);
 
     scopes_t scopes_copy = scopes;
     new_val_scope_t inner_scope(&scopes_copy.scope);
@@ -143,8 +143,8 @@ void terminal_visitor_t::operator()(const Reduction &r) const {
 
 void terminal_visitor_t::operator()(const rdb_protocol_details::Length &) const {
     rget_read_response_t::length_t *res_length = boost::get<rget_read_response_t::length_t>(out);
-    guarantee_unreviewed(res_length);
-    res_length->length++;
+    guarantee_reviewed(res_length);
+    ++res_length->length;
 }
 
 void terminal_visitor_t::operator()(const WriteQuery_ForEach &w) const {

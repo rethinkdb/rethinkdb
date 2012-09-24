@@ -80,7 +80,7 @@ class task_t :
 
     void run_job(DEBUG_VAR control_t *control, void *extra) {
         env_t *env = static_cast<env_t *>(extra);
-        rassert_unreviewed(control == env->control());
+        guarantee_reviewed(control == env->control());
         context_t cx(env);
         run(env);
     }
@@ -99,7 +99,7 @@ struct id_visitor_t {
     explicit id_visitor_t(std::string *errmsg) : errmsg_(errmsg) {}
     std::string *errmsg_;
     id_t operator()(const id_t &id) {
-        rassert_unreviewed(id != INVALID_ID);
+        guarantee_reviewed(id != INVALID_ID);
         return id;
     }
     id_t operator()(const std::string &msg) {
