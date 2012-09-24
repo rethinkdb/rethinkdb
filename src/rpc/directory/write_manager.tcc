@@ -12,7 +12,7 @@ directory_write_manager_t<metadata_t>::directory_write_manager_t(
     connectivity_subscription(this) {
     typename watchable_t<metadata_t>::freeze_t value_freeze(value_watchable);
     connectivity_service_t::peers_list_freeze_t connectivity_freeze(message_service->get_connectivity_service());
-    rassert_unreviewed(message_service->get_connectivity_service()->get_peers_list().empty());
+    guarantee_reviewed(message_service->get_connectivity_service()->get_peers_list().empty());
     value_subscription.reset(value_watchable, &value_freeze);
     connectivity_subscription.reset(message_service->get_connectivity_service(), &connectivity_freeze);
 }

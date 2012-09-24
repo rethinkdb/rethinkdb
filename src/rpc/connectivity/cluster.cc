@@ -491,7 +491,7 @@ void connectivity_cluster_t::run_t::handle(
             called. */
         }
 
-        guarantee_unreviewed(!conn->is_read_open(), "the connection is still open for "
+        guarantee_reviewed(!conn->is_read_open(), "the connection is still open for "
             "read, which means we had a problem other than the TCP "
             "connection closing or dying");
 

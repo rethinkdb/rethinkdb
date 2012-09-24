@@ -92,7 +92,6 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     assert_thread();
 
     /* Remove the `global_peer_info_t` object from the table */
-    rassert_unreviewed(sessions.count(peer) == 1);
     typename boost::ptr_map<peer_id_t, session_t>::iterator it = sessions.find(peer);
     guarantee_reviewed(it != sessions.end());
     session_t *session_to_destroy = sessions.release(it).release();

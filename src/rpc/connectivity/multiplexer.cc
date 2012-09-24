@@ -99,10 +99,8 @@ message_multiplexer_t::message_multiplexer_t(message_service_t *super_ms) :
 
 message_multiplexer_t::~message_multiplexer_t() {
     guarantee_reviewed(run == NULL);
-#ifndef NDEBUG
     for (int i = 0; i < max_tag; i++) {
-        rassert_unreviewed(clients[i] == NULL);
+        guarantee_reviewed(clients[i] == NULL);
     }
-#endif  // NDEBUG
 }
 
