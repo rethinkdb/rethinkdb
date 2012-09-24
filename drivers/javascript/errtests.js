@@ -20,5 +20,7 @@ var c = r.connect({}, function() {
 
     r.table('test').orderby('id').runp();
 
+    r.error().runp();
+
     c.close();
 });

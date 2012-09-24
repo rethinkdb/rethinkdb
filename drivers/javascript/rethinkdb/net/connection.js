@@ -82,7 +82,13 @@ rethinkdb.Connection.prototype.error_ = function(error) {
         this.errorHandler_(error);
     } else {
         // Simply rethrow the error. It'll go uncaught and show up in the developer's console.
-        throw error;
+
+        // THIS IS A HACAK, but Slava wants it
+        if (this.printErr_) {
+            console.log(error.name + ":" + error.message);
+        } else {
+            throw error;
+        }
     }
 };
 
@@ -161,6 +167,9 @@ rethinkdb.Connection.prototype.sendProtoBuf_ = function(pbObj) {
  * @param {function(...)} opt_callback Function to invoke with response.
  */
 rethinkdb.Connection.prototype.run = function(expr, opt_callback) {
+    // THIS IS A HACAK, but Slava wants it
+    this.printErr_ = false;
+
     argCheck_(arguments, 1);
     typeCheck_(expr, rethinkdb.Query);
     typeCheck_(opt_callback, 'function');
@@ -174,7 +183,10 @@ goog.exportProperty(rethinkdb.Connection.prototype, 'run',
  * @param {rethinkdb.Query} expr The expression to run.
  */
 rethinkdb.Connection.prototype.runp = function(expr) {
-    this.run(expr, function(val) {
+    // THIS IS A HACAK, but Slava wants it
+    this.printErr_ = true;
+
+    this.run_(expr, false, function(val) {
         console.log(val);
     });
 };
@@ -191,6 +203,9 @@ goog.exportProperty(rethinkdb.Connection.prototype, 'runp',
  * @param {function(...)=} opt_doneCallback Function to invoke when stream has ended.
  */
 rethinkdb.Connection.prototype.iter = function(expr, opt_callback, opt_doneCallback) {
+    // THIS IS A HACAK, but Slava wants it
+    this.printErr_ = false;
+
     argCheck_(arguments, 1);
     typeCheck_(expr, rethinkdb.Query);
     typeCheck_(opt_callback, 'function');
