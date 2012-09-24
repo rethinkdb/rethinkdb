@@ -120,12 +120,7 @@ public:
         the `run_t` are constructed. */
         class variable_setter_t {
         public:
-            variable_setter_t(run_t **var, run_t *val)
-                : variable(var)
-#ifndef NDEBUG
-                , value(val)
-#endif
-            {
+            variable_setter_t(run_t **var, run_t *val) : variable(var) , value(val) {
                 guarantee_reviewed(*variable == NULL);
                 *variable = value;
             }
@@ -136,9 +131,7 @@ public:
             }
         private:
             run_t **variable;
-#ifndef NDEBUG
             run_t *value;
-#endif
             DISABLE_COPYING(variable_setter_t);
         };
 
