@@ -30,5 +30,7 @@ var c = r.connect({}, function() {
         return r.error();
     }).runp();
 
+    r.expr({id:r.error()}).contains('b').runp();
+
     c.close();
 });

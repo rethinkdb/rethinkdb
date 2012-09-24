@@ -1085,7 +1085,20 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'groupedMapReduce',
  */
 rethinkdb.Expression.prototype.contains = function(attr) {
     typeCheck_(attr, 'string');
-    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.HASATTR, [this], formatTodo_,
+    var self = this;
+    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.HASATTR, [this],
+        function(bt) {
+            if (!bt) {
+                return self.formatQuery()+".contains("+attr+")";
+            } else {
+                var a = bt.shift();
+                if (a === 'arg:0') {
+                    return self.formatQuery(bt)+spaceify_(".contains("+attr+")");
+                } else {
+                    return spaceify_(self.formatQuery())+carrotify_(".contains("+attr+")");
+                }
+            }
+        },
         function(builtin) {
             builtin.setAttr(attr);
         });
