@@ -20,7 +20,7 @@ var c = r.connect({}, function() {
 
     r.table('test').orderby('id').runp();
 
-    r.error().runp();
+    r.expr([{id:0},{id:1}]).distinct().runp();
 
     c.close();
 });
