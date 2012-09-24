@@ -17,7 +17,7 @@ goog.require('goog.proto2.WireFormatSerializer');
  * @constructor
  */
 rethinkdb.Connection = function(host, opt_errorHandler) {
-    if (typeof host === undefined) {
+    if (typeof host === 'undefined') {
         host = {};
     } else if (typeof host === 'string') {
         host = {'host':host};
