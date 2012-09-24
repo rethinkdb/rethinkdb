@@ -11,20 +11,20 @@ directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_serv
     variable(std::map<peer_id_t, metadata_t>()),
     connectivity_subscription(this) {
     connectivity_service_t::peers_list_freeze_t freeze(connectivity_service);
-    rassert_unreviewed(connectivity_service->get_peers_list().empty());
+    guarantee_reviewed(connectivity_service->get_peers_list().empty());
     connectivity_subscription.reset(connectivity_service, &freeze);
 }
 
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::~directory_read_manager_t() THROWS_NOTHING {
-    rassert_unreviewed(connectivity_service->get_peers_list().empty());
+    guarantee_reviewed(connectivity_service->get_peers_list().empty());
 }
 
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOTHING {
     assert_thread();
-    rassert_unreviewed(sessions.count(peer) == 0);
-    sessions.insert(peer, new session_t(connectivity_service->get_connection_session_id(peer)));
+    std::pair<typename boost::ptr_map<peer_id_t, session_t>::iterator, bool> res = sessions.insert(peer, new session_t(connectivity_service->get_connection_session_id(peer)));
+    guarantee_reviewed(res.second);
 }
 
 template<class metadata_t>
@@ -32,7 +32,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, rea
     uint8_t code = 0;
     {
         int res = deserialize(s, &code);
-        guarantee_unreviewed(!res);  // We do unreachable below...
+        guarantee_reviewed(!res);  // We do unreachable below...
     }
 
     switch (code) {
@@ -42,9 +42,9 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, rea
             fifo_enforcer_state_t metadata_fifo_state;
             {
                 int res = deserialize(s, &initial_value);
-                guarantee_unreviewed(!res);  // In the spirit of unreachable...
+                guarantee_reviewed(!res);  // In the spirit of unreachable...
                 res = deserialize(s, &metadata_fifo_state);
-                guarantee_unreviewed(!res);
+                guarantee_reviewed(!res);
             }
 
             /* Spawn a new coroutine because we might not be on the home thread
@@ -64,9 +64,9 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, rea
             fifo_enforcer_write_token_t metadata_fifo_token;
             {
                 int res = deserialize(s, &new_value);
-                guarantee_unreviewed(!res);  // In the spirit of unreachable...
+                guarantee_reviewed(!res);  // In the spirit of unreachable...
                 res = deserialize(s, &metadata_fifo_token);
-                guarantee_unreviewed(!res);  // In the spirit of unreachable...
+                guarantee_reviewed(!res);  // In the spirit of unreachable...
 
                 // TODO Don't fail catastrophically just because there's bad data on the stream.
             }
@@ -93,7 +93,9 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
 
     /* Remove the `global_peer_info_t` object from the table */
     rassert_unreviewed(sessions.count(peer) == 1);
-    session_t *session_to_destroy = sessions.release(sessions.find(peer)).release();
+    typename boost::ptr_map<peer_id_t, session_t>::iterator it = sessions.find(peer);
+    guarantee_reviewed(it != sessions.end());
+    session_t *session_to_destroy = sessions.release(it).release();
 
     bool got_initialization = session_to_destroy->got_initial_message.is_pulsed();
 
@@ -110,8 +112,8 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     if (got_initialization) {
         mutex_assertion_t::acq_t acq(&variable_lock);
         std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
-        rassert_unreviewed(map.count(peer) == 1);
-        map.erase(peer);
+        size_t num_erased = map.erase(peer);
+        guarantee_reviewed(num_erased == 1);
         variable.set_value(map);
     }
 }
@@ -140,8 +142,11 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
     {
         mutex_assertion_t::acq_t acq(&variable_lock);
         std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
-        rassert_unreviewed(map.count(peer) == 0);
-        map.insert(std::make_pair(peer, initial_value));
+
+        std::pair<typename std::map<peer_id_t, metadata_t>::iterator, bool> res
+            = map.insert(std::make_pair(peer, initial_value));
+        guarantee_reviewed(res.second);
+
         variable.set_value(map);
     }
 
@@ -193,8 +198,10 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         {
             mutex_assertion_t::acq_t acq(&variable_lock);
             std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
-            rassert_unreviewed(map.count(peer) == 1);
-            map[peer] = new_value;
+
+            typename std::map<peer_id_t, metadata_t>::iterator it = map.find(peer);
+            guarantee_reviewed(it != map.end());
+            it->second = new_value;
             variable.set_value(map);
         }
 
