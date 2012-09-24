@@ -55,9 +55,7 @@ class scoped_id_t {
 
 
 // A handle to a running "javascript evaluator" job.
-class runner_t :
-    private extproc::job_handle_t
-{
+class runner_t : private extproc::job_handle_t {
     friend class run_task_t;
 
   public:
@@ -123,9 +121,7 @@ class runner_t :
 
   private:
     // The actual job that runs all this stuff.
-    class job_t :
-        public extproc::auto_job_t<job_t>
-    {
+    class job_t : public extproc::auto_job_t<job_t> {
       public:
         job_t() {}
         virtual void run_job(control_t *control, void *extra);
@@ -149,22 +145,19 @@ class runner_t :
     };
 
   private:
-    id_t new_id(id_t id) {
-        rassert_unreviewed(connected());
-#ifndef NDEBUG
-        rassert_unreviewed(!used_ids_.count(id));
+    // TODO: This function one of those "identity function with assertion" functions.
+    void note_id(id_t id) {
+        guarantee_reviewed(connected());
         if (id != INVALID_ID) {
-            used_ids_.insert(id);
+            std::pair<std::set<id_t>::iterator, bool> res = used_ids_.insert(id);
+            guarantee_reviewed(res.second);
         }
-#endif
-        return id;
     }
 
   private:
-#ifndef NDEBUG
+    // Used only for assertions and guarantees.
     bool running_task_;
     std::set<id_t> used_ids_;
-#endif
 };
 
 } // namespace js
