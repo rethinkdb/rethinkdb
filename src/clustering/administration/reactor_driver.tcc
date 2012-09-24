@@ -368,7 +368,6 @@ void reactor_driver_t<protocol_t>::on_change() {
                  * haven't seen before). Or send the new blueprint to the
                  * existing reactor. */
                 if (!std_contains(reactor_data, it->first)) {
-                    namespace_id_t tmp = it->first;
                     int64_t cache_size;
                     if (it->second.get().cache_size.in_conflict()) {
                         cache_size = GIGABYTE;
@@ -376,6 +375,21 @@ void reactor_driver_t<protocol_t>::on_change() {
                         cache_size = it->second.get().cache_size.get();
                     }
 
+                    if (cache_size < 16 * MEGABYTE) {
+                        cache_size = 16 * MEGABYTE;
+                        logINF("Namespace %s(%s) has too small of a cache size. Increasing it to 16 megabytes.\n",
+                                uuid_to_str(it->first).c_str(),
+                                it->second.get().name.in_conflict() ? "Name in conflict" : it->second.get().name.get().c_str());
+                    }
+
+                    if (cache_size > 64 * GIGABYTE) {
+                        cache_size = 16 * GIGABYTE;
+                        logINF("Namespace %s(%s) has too large of a cache size. Decreasing it to 64 gigabyes.\n",
+                                uuid_to_str(it->first).c_str(),
+                                it->second.get().name.in_conflict() ? "Name in conflict" : it->second.get().name.get().c_str());
+                    }
+
+                    namespace_id_t tmp = it->first;
                     reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
                 } else {
                     reactor_data.find(it->first)->second->watchable.set_value(bp);
