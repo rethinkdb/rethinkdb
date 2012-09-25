@@ -35,7 +35,7 @@ Response on_unparsable_query(Query *q, std::string msg) {
 Response query_server_t::handle(Query *q, context_t *query_context) {
     stream_cache_t *stream_cache = &query_context->stream_cache;
     signal_t *interruptor = query_context->interruptor;
-    rassert_unreviewed(interruptor);
+    guarantee_reviewed(interruptor);
     Response res;
     res.set_token(q->token());
 
