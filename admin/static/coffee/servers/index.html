@@ -12,9 +12,43 @@
     </div>
 </script>
 
-<script id="machine_list-template" type="text/x-handlebars-template">
-    <div class="list">
+<script id="datacenter_list_element-template" type="text/x-handlebars-template">
+    <div class="section">
+        <div class="header_container">
+            <div class="expanded arrow"></div>
+            <div class="datacenter summary"></div>
+        </div>
+        <div class="element-list-container"></div>
     </div>
+</script>
+
+<script id="datacenter_list_element-summary-template" type="text/x-handlebars-template">
+    <div class="element-type">Datacenter</div>
+    <h3 class="name">
+        <a href="#datacenters/{{id}}">{{name}}</a>
+    </h3>
+    <div class="buttons">
+        <a href="#" class="btn hide-servers">&ndash; Hide Servers</a>
+        <a href="#" class="btn remove-datacenter">X</a>
+    </div>
+</script>
+
+<script id="unassigned_machines_list_element-template" type="text/x-handlebars-template">
+    {{# unless no_machines}}
+    <div class="section">
+        <div class="header_container">
+            <div class="expanded arrow"></div>
+            <div class="datacenter summary">
+                <div class="element-type">Unasssigned servers</div>
+            </div>
+        </div>
+        <div class="element-list-container"></div>
+    </div>
+    {{/unless}}
+</script>
+
+<script id="machine_list-template" type="text/x-handlebars-template">
+    <div class="list"></div>
 </script>
 
 <script id="machine_list_element-template" type="text/x-handlebars-template">
@@ -39,68 +73,6 @@
         </div>
     </div>
 </script>
-
-<script id="alert_message-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert">
-    <a class="close" href="#">&times;</a>
-        {{print_safe message}}
-    </div>
-</script>
-
-<script id="cannot_change_datacenter-alert-template" type="text/x-handlebars-template">
-    <div id="reason_cannot_change_datacenter" class="alert" data-alert="alert">
-    <p>You cannot change the datacenter of the selected machines because:
-        <ul>
-            {{display_reasons_cannot_move reasons}}
-        </ul>
-    </p>
-  </div>
-</script>
-
-<script id="cannot_change_datacenter-alert_content-template" type="text/x-handlebars-template">
-    <a class="close" href="#">&times;</a
-    <p>You cannot change the datacenter of the selected machines because:
-        <ul>
-            {{display_reasons_cannot_move reasons}}
-        </ul>
-    </p>
-</script>
-
-<script id="datacenter_list_element-template" type="text/x-handlebars-template">
-    <div class="section">
-        <div class="header_container">
-            <div class="expanded arrow"></div>
-            <div class="datacenter summary"></div>
-        </div>
-        <div class="element-list-container"></div>
-    </div>
-</script>
-
-<script id="datacenter_list_element-summary-template" type="text/x-handlebars-template">
-    <div class="element-type">Datacenter</div>
-    <h3 class="name">
-        <a href="#datacenters/{{id}}">{{name}}</a>
-    </h3>
-    <div class="buttons">
-        <a href="#" class="btn hide-machines">&ndash; Hide Machines</a>
-        <a href="#" class="btn remove-datacenter">X</a>
-    </div>
-</script>
-
-<script id="unassigned_machines_list_element-template" type="text/x-handlebars-template">
-    {{# unless no_machines}}
-    <div class="section">
-        <div class="header_container">
-            <div class="expanded arrow"></div>
-            <div class="datacenter summary">
-                <div class="element-type">Unasssigned servers</div>
-            </div>
-        </div>
-        <div class="element-list-container"></div>
-    </div>
-    {{/unless}}
-</script>
-
 <script id="add_datacenter-modal-template" type="text/x-handlebars-template"> 
   <div class="alert alert-error error_answer"></div>
   <form class="form">
@@ -171,5 +143,31 @@
     <a class="close" href="#">&times;</a>
     <p>Set datacenter for {{pluralize_noun "server" machine_count}} {{machines_first.name}}{{#each machines_rest}}, {{name}}{{/each}} to {{datacenter_name}}.</p>
   </div>
+</script>
+
+<script id="alert_message-template" type="text/x-handlebars-template">
+    <div class="alert" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+        {{print_safe message}}
+    </div>
+</script>
+
+<script id="cannot_change_datacenter-alert-template" type="text/x-handlebars-template">
+    <div id="reason_cannot_change_datacenter" class="alert" data-alert="alert">
+    <p>You cannot change the datacenter of the selected machines because:
+        <ul>
+            {{display_reasons_cannot_move reasons}}
+        </ul>
+    </p>
+  </div>
+</script>
+
+<script id="cannot_change_datacenter-alert_content-template" type="text/x-handlebars-template">
+    <a class="close" href="#">&times;</a
+    <p>You cannot change the datacenter of the selected machines because:
+        <ul>
+            {{display_reasons_cannot_move reasons}}
+        </ul>
+    </p>
 </script>
 

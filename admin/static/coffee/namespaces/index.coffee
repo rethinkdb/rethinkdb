@@ -186,11 +186,9 @@ module 'NamespaceView', ->
     # Show a list of namespaces
     class @NamespaceList extends UIComponents.AbstractList
         # Use a namespace-specific template for the namespace list
-        tagName: 'table'
+        tagName: 'div'
         template: Handlebars.compile $('#namespace_list-template').html()
         error_template: Handlebars.compile $('#error_adding_namespace-template').html()
-
-
 
         initialize:  (database_id) =>
             log_initial '(initializing) namespace list view'
@@ -198,7 +196,7 @@ module 'NamespaceView', ->
             @add_namespace_dialog = new NamespaceView.AddNamespaceModal
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
         
-            super namespaces, NamespaceView.NamespaceListElement, 'tbody.list',
+            super namespaces, NamespaceView.NamespaceListElement, '.list',
                 {
                 filter: (model) -> model.get('database') is database_id
                 }
@@ -247,6 +245,7 @@ module 'NamespaceView', ->
     # Namespace list element
     class @NamespaceListElement extends UIComponents.CheckboxListElement
         template: Handlebars.compile $('#namespace_list_element-template').html()
+        tagName: 'div'
 
         #history_opsec: []
 
@@ -270,7 +269,6 @@ module 'NamespaceView', ->
 
         destroy: =>
             super
-
 
     class @AddDatabaseModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#add_database-modal-template').html()
@@ -426,7 +424,6 @@ module 'NamespaceView', ->
 
         on_submit: ->
             super
-
 
             # For when /ajax will handle post request
             data = {}
