@@ -30,6 +30,8 @@ var c = r.connect({}, function() {
 
     r.expr({id:r.error()}).contains('b').runp();
     r.expr({id:1}).pick('a').runp();
+    r.expr({a:r.error()}).extend({b:1}).runp();
+    r.expr({a:1}).extend({b:r.error()}).runp();
 
     c.close();
 });

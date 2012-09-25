@@ -1178,6 +1178,7 @@ rethinkdb.Expression.prototype.unpick = function(attrs) {
         attrs = [attrs];
     }
     attrs.forEach(function(attr){typeCheck_(attr, 'string')});
+    var self = this;
     return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.WITHOUT, [this],
         function(bt) {
             var strAttrs = attrs.map(function(a) {return "'"+a+"'"});
@@ -1366,7 +1367,21 @@ rethinkdb.letVar = function(varString) {
  */
 rethinkdb.Expression.prototype.extend = function(other) {
     other = wrapIf_(other);
-    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.MAPMERGE, [this, other], formatTodo_);
+    var self = this;
+    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.MAPMERGE, [this, other],
+        function(bt) {
+            if (!bt) {
+                return self.formatQuery()+".extend("+other.formatQuery()+")";
+            } else {
+                var a = bt.shift();
+                if (a === 'arg:0') {
+                    return self.formatQuery(bt)+spaceify_(".extend("+other.formatQuery()+")");
+                } else {
+                    goog.asserts.assert(a === 'arg:1');
+                    return spaceify_(self.formatQuery()+".extend(")+other.formatQuery(bt)+" ";
+                }
+            }
+        });
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'extend',
                     rethinkdb.Expression.prototype.extend);
