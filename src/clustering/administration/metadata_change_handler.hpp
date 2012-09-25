@@ -28,7 +28,7 @@ public:
     { }
 
     ~metadata_change_handler_t() {
-        rassert_unreviewed(coro_invalid_conditions.empty());
+        guarantee_reviewed(coro_invalid_conditions.empty());
     }
 
     // Mailbox to be used for remote changes
@@ -148,7 +148,7 @@ private:
         wait_any_t waiter(&commit_done, &dc_watcher);
         waiter.wait();
 
-        rassert_unreviewed(commit_done.is_pulsed() || dc_watcher.is_pulsed());
+        guarantee_reviewed(commit_done.is_pulsed() || dc_watcher.is_pulsed());
         coro_invalid_conditions.erase(&invalid_condition);
     }
 
@@ -156,8 +156,7 @@ private:
                        const cond_t *invalid_condition,
                        bool commit,
                        metadata_t metadata,
-                       typename result_mailbox_t::address_t result_mailbox)
-    {
+                       typename result_mailbox_t::address_t result_mailbox) {
         // The other side may abandon their change request, in which case we do nothing
         if (commit) {
             bool success = !invalid_condition->is_pulsed();
