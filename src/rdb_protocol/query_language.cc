@@ -1171,17 +1171,9 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 std::string pk = view.primary_key;
                 cJSON *id = json->GetObjectItem(pk.c_str());
                 point_modify::result_t mres =
-<<<<<<< HEAD
-                    point_modify(view.access, pk, id, point_modify::MUTATE, env, w->mutate().mapping(), scopes, backtrace);
-                guarantee_reviewed(mres == point_modify::MODIFIED || mres == point_modify::DELETED);
-||||||| merged common ancestors
-                    point_modify(view.access, pk, id, point_modify::MUTATE, env, w->mutate().mapping(), scopes, backtrace);
-                rassert(mres == point_modify::MODIFIED || mres == point_modify::DELETED);
-=======
                     point_modify(view.access, pk, id, point_modify::MUTATE, env,
                                  w->mutate().mapping(), scopes, backtrace.with("modify_map"));
-                rassert(mres == point_modify::MODIFIED || mres == point_modify::DELETED);
->>>>>>> master
+                guarantee_reviewed(mres == point_modify::MODIFIED || mres == point_modify::DELETED);
                 modified += (mres == point_modify::MODIFIED);
                 deleted += (mres == point_modify::DELETED);
             } catch (const query_language::broken_client_exc_t &e) {
@@ -1361,17 +1353,9 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_update()->mutable_key(),
                                                                  env, scopes, backtrace.with("key"));
         point_modify::result_t mres =
-<<<<<<< HEAD
-            point_modify(ns_access, pk, id->get(), point_modify::UPDATE, env, w->point_update().mapping(), scopes, backtrace);
-        guarantee_reviewed(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
-||||||| merged common ancestors
-            point_modify(ns_access, pk, id->get(), point_modify::UPDATE, env, w->point_update().mapping(), scopes, backtrace);
-        rassert(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
-=======
             point_modify(ns_access, pk, id->get(), point_modify::UPDATE, env,
                          w->point_update().mapping(), scopes, backtrace.with("point_map"));
-        rassert(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
->>>>>>> master
+        guarantee_reviewed(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
         res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}",
                                     mres == point_modify::MODIFIED, mres == point_modify::SKIPPED, 0));
     } break;
@@ -1396,20 +1380,10 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_mutate()->mutable_key(),
                                                                  env, scopes, backtrace.with("key"));
         point_modify::result_t mres =
-<<<<<<< HEAD
-            point_modify(ns_access, pk, id->get(), point_modify::MUTATE, env, w->point_mutate().mapping(), scopes, backtrace);
-        guarantee_reviewed(mres == point_modify::MODIFIED || mres == point_modify::INSERTED ||
-                           mres == point_modify::DELETED  || mres == point_modify::NOP);
-||||||| merged common ancestors
-            point_modify(ns_access, pk, id->get(), point_modify::MUTATE, env, w->point_mutate().mapping(), scopes, backtrace);
-        rassert(mres == point_modify::MODIFIED || mres == point_modify::INSERTED ||
-                mres == point_modify::DELETED  || mres == point_modify::NOP);
-=======
             point_modify(ns_access, pk, id->get(), point_modify::MUTATE, env,
                          w->point_mutate().mapping(), scopes, backtrace.with("point_map"));
-        rassert(mres == point_modify::MODIFIED || mres == point_modify::INSERTED ||
-                mres == point_modify::DELETED  || mres == point_modify::NOP);
->>>>>>> master
+        guarantee_reviewed(mres == point_modify::MODIFIED || mres == point_modify::INSERTED ||
+                           mres == point_modify::DELETED  || mres == point_modify::NOP);
         res->add_response(strprintf("{\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d}",
                                     mres == point_modify::MODIFIED, mres == point_modify::INSERTED, mres == point_modify::DELETED, 0));
     } break;
