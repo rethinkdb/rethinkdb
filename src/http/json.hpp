@@ -53,60 +53,60 @@ public:
     }
     /* Retrieve item number "item" from array "array". Returns NULL if unsuccessful. */
     cJSON* GetArrayItem(int item) const {
-        rassert_unreviewed(item >= 0);
+        guarantee_reviewed(item >= 0);
         return cJSON_GetArrayItem(val, item);
     }
     /* Get item "string" from object. Case insensitive. Returns NULL if unsuccessful. */
     cJSON* GetObjectItem(const char *string) const {
-        rassert_unreviewed(string);
+        guarantee_reviewed(string);
         return cJSON_GetObjectItem(val, string);
     }
 
     /* Append item to the specified array/object. */
     void AddItemToArray(cJSON *item) {
-        rassert_unreviewed(item);
+        guarantee_reviewed(item);
         return cJSON_AddItemToArray(val, item);
     }
     void AddItemToObject(const char *string, cJSON *item) {
-        rassert_unreviewed(string);
-        rassert_unreviewed(item);
+        guarantee_reviewed(string);
+        guarantee_reviewed(item);
         return cJSON_AddItemToObject(val, string, item);
     }
 
     /* Remove/Detatch items from Arrays/Objects. Returns NULL if unsuccessful. */
     cJSON* DetachItemFromArray(int which) {
-        rassert_unreviewed(which >= 0);
+        guarantee_reviewed(which >= 0);
         return cJSON_DetachItemFromArray(val, which);
     }
     void DeleteItemFromArray(int which) {
-        rassert_unreviewed(which >= 0);
+        guarantee_reviewed(which >= 0);
         cJSON_DeleteItemFromArray(val, which);
     }
     cJSON* DetachItemFromObject(const char *string) {
-        rassert_unreviewed(string);
+        guarantee_reviewed(string);
         return cJSON_DetachItemFromObject(val, string);
     }
     void DeleteItemFromObject(const char *string) {
-        rassert_unreviewed(string);
+        guarantee_reviewed(string);
         cJSON_DeleteItemFromObject(val, string);
     }
 
     /* Update array items. */
     void ReplaceItemInArray(int which, cJSON *newitem) {
-        rassert_unreviewed(which >= 0);
-        rassert_unreviewed(newitem);
+        guarantee_reviewed(which >= 0);
+        guarantee_reviewed(newitem);
         return cJSON_ReplaceItemInArray(val, which, newitem);
     }
     void ReplaceItemInObject(const char *string, cJSON *newitem) {
-        rassert_unreviewed(string);
-        rassert_unreviewed(newitem);
+        guarantee_reviewed(string);
+        guarantee_reviewed(newitem);
         return cJSON_ReplaceItemInObject(val, string, newitem);
     }
 
     /* Copy function. */
     cJSON* DeepCopy() const {
         cJSON *retval = cJSON_DeepCopy(val);
-        rassert_unreviewed(retval);
+        guarantee_reviewed(retval);
         return retval;
     }
 };
