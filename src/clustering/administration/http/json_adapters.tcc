@@ -285,7 +285,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(region_map_t<protocol_t
                                                               it != target->end();
                                                               ++it) {
         scoped_cJSON_t key(render_as_json(&it->first));
-        rassert_unreviewed(key.get()->type == cJSON_String);
+        guarantee_reviewed(key.get()->type == cJSON_String);
         res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t>(new json_region_adapter_t<protocol_t, value_t>(target, it->first));
     }
 
