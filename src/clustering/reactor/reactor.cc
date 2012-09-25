@@ -45,7 +45,7 @@ reactor_t<protocol_t>::reactor_t(
 {
     {
         typename watchable_t<blueprint_t<protocol_t> >::freeze_t freeze(blueprint_watchable);
-        blueprint_watchable->get().assert_valid();
+        blueprint_watchable->get().assert_valid_unreviewed();
         try_spawn_roles();
         blueprint_subscription.reset(blueprint_watchable, &freeze);
     }
@@ -96,7 +96,7 @@ reactor_t<protocol_t>::directory_entry_t::~directory_entry_t() {
 template<class protocol_t>
 void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
     blueprint_t<protocol_t> blueprint = blueprint_watchable->get();
-    blueprint.assert_valid();
+    blueprint.assert_valid_unreviewed();
 
     typename std::map<peer_id_t, std::map<typename protocol_t::region_t, blueprint_role_t> >::const_iterator role_it = blueprint.peers_roles.find(get_me());
     guarantee_reviewed(role_it != blueprint.peers_roles.end(), "reactor_t assumes that it is mentioned in the blueprint it's given.");
