@@ -571,12 +571,11 @@ void listener_t<protocol_t>::on_read(const typename protocol_t::read_t &read,
 
 template <class protocol_t>
 void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &read,
-        DEBUG_VAR state_timestamp_t expected_timestamp,
+        state_timestamp_t expected_timestamp,
         order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,
-        auto_drainer_t::lock_t keepalive) THROWS_NOTHING
-{
+        auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     try {
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
         {
