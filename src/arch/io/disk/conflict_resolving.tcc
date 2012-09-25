@@ -142,6 +142,7 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
         // TODO: Refine the perfmon such that it measures the actual time that ops spend
         // in a waiting state
         conflict_sampler.record(1);
+        action->set_successful_due_to_conflict();
     }
 }
 
