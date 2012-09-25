@@ -6,13 +6,16 @@ goog.require('rethinkdb.Expression');
 /**
  * @class A table in a database
  * @param {string} tableName
- * @param {string=} opt_dbName
+ * @param {string} dbName
+ * @param {boolean=} opt_allowOutdated
  * @constructor
  * @extends {rethinkdb.Expression}
  */
-rethinkdb.Table = function(tableName, opt_dbName) {
-    this.db_ = opt_dbName || null;
+rethinkdb.Table = function(tableName, dbName, opt_allowOutdated) {
     this.name_ = tableName;
+    this.db_ = dbName;
+    this.allowOutdated_ = (typeof opt_allowOutdated === 'boolean') ?
+        opt_allowOutdated : null;
 };
 goog.inherits(rethinkdb.Table, rethinkdb.Expression);
 
@@ -20,7 +23,7 @@ goog.inherits(rethinkdb.Table, rethinkdb.Expression);
  * @override
  * @ignore
  */
-rethinkdb.Table.prototype.compile = function() {
+rethinkdb.Table.prototype.compile = function(opt_buildOpts) {
     var term = new Term();
     term.setType(Term.TermType.TABLE);
 
@@ -28,6 +31,19 @@ rethinkdb.Table.prototype.compile = function() {
     var tableRef = new TableRef();
     tableRef.setDbName(this.db_ || rethinkdb.last_connection_.getDefaultDb());
     tableRef.setTableName(this.name_);
+
+    var allowOutdated;
+    if (this.allowOutdated_ !== null) {
+        allowOutdated = this.allowOutdated;
+    } else {
+        if (opt_buildOpts && (opt_buildOpts.defaultAllowOutdated !== undefined)) {
+            allowOutdated = opt_buildOpts.defaultAllowOutdated;
+        } else {
+            allowOutdated = false;
+        }
+    }
+    tableRef.setUseOutdated(allowOutdated);
+
     table.setTableRef(tableRef);
 
     term.setTable(table);
@@ -63,14 +79,14 @@ rethinkdb.GetExpression = function(table, key) {
 goog.inherits(rethinkdb.GetExpression, rethinkdb.Expression);
 
 /** @override */
-rethinkdb.GetExpression.prototype.compile = function() {
-    var tableTerm = this.table_.compile();
+rethinkdb.GetExpression.prototype.compile = function(opt_buildOpts) {
+    var tableTerm = this.table_.compile(opt_buildOpts);
     var tableRef = tableTerm.getTable().getTableRefOrDefault();
 
     var get = new Term.GetByKey();
     get.setTableRef(tableRef);
     get.setAttrname('id');
-    get.setKey(this.key_.compile());
+    get.setKey(this.key_.compile(opt_buildOpts));
 
     var term = new Term();
     term.setType(Term.TermType.GETBYKEY);
@@ -105,15 +121,15 @@ rethinkdb.InsertQuery = function(table, docs) {
 goog.inherits(rethinkdb.InsertQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.InsertQuery.prototype.buildQuery = function() {
-    var tableTerm = this.table_.compile();
+rethinkdb.InsertQuery.prototype.buildQuery = function(opt_buildOpts) {
+    var tableTerm = this.table_.compile(opt_buildOpts);
     var tableRef = tableTerm.getTable().getTableRefOrDefault();
 
     var insert = new WriteQuery.Insert();
     insert.setTableRef(tableRef);
 
     for (var i = 0; i < this.docs_.length; i++) {
-        insert.addTerms(this.docs_[i].compile());
+        insert.addTerms(this.docs_[i].compile(opt_buildOpts));
     }
 
     var writeQuery = new WriteQuery();
@@ -153,9 +169,9 @@ rethinkdb.DeleteQuery = function(view) {
 goog.inherits(rethinkdb.DeleteQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.DeleteQuery.prototype.buildQuery = function() {
+rethinkdb.DeleteQuery.prototype.buildQuery = function(opt_buildOpts) {
     var del = new WriteQuery.Delete();
-    del.setView(this.view_.compile());
+    del.setView(this.view_.compile(opt_buildOpts));
 
     var write = new WriteQuery();
     write.setType(WriteQuery.WriteQueryType.DELETE);
@@ -182,11 +198,11 @@ rethinkdb.PointDeleteQuery = function(table, key) {
 goog.inherits(rethinkdb.PointDeleteQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.PointDeleteQuery.prototype.buildQuery = function() {
+rethinkdb.PointDeleteQuery.prototype.buildQuery = function(opt_buildOpts) {
     var pointdelete = new WriteQuery.PointDelete();
-    pointdelete.setTableRef(this.table_.compile().getTableOrDefault().getTableRefOrDefault());
+    pointdelete.setTableRef(this.table_.compile(opt_buildOpts).getTableOrDefault().getTableRefOrDefault());
     pointdelete.setAttrname('id');
-    pointdelete.setKey(this.key_.compile());
+    pointdelete.setKey(this.key_.compile(opt_buildOpts));
 
     var write = new WriteQuery();
     write.setType(WriteQuery.WriteQueryType.POINTDELETE);
@@ -226,13 +242,13 @@ rethinkdb.UpdateQuery = function(view, mapping) {
 goog.inherits(rethinkdb.UpdateQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.UpdateQuery.prototype.buildQuery = function() {
+rethinkdb.UpdateQuery.prototype.buildQuery = function(opt_buildOpts) {
     var mapping = new Mapping();
     mapping.setArg(this.mapping_.args[0]);
-    mapping.setBody(this.mapping_.body.compile());
+    mapping.setBody(this.mapping_.body.compile(opt_buildOpts));
 
     var update = new WriteQuery.Update();
-    update.setView(this.view_.compile());
+    update.setView(this.view_.compile(opt_buildOpts));
     update.setMapping(mapping);
 
     var write = new WriteQuery();
@@ -262,15 +278,15 @@ rethinkdb.PointUpdateQuery = function(table, key, mapping) {
 goog.inherits(rethinkdb.PointUpdateQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.PointUpdateQuery.prototype.buildQuery = function() {
+rethinkdb.PointUpdateQuery.prototype.buildQuery = function(opt_buildOpts) {
     var mapping = new Mapping();
     mapping.setArg(this.mapping_.args[0]);
-    mapping.setBody(this.mapping_.body.compile());
+    mapping.setBody(this.mapping_.body.compile(opt_buildOpts));
 
     var pointupdate = new WriteQuery.PointUpdate();
-    pointupdate.setTableRef(this.table_.compile().getTableOrDefault().getTableRefOrDefault());
+    pointupdate.setTableRef(this.table_.compile(opt_buildOpts).getTableOrDefault().getTableRefOrDefault());
     pointupdate.setAttrname('id');
-    pointupdate.setKey(this.key_.compile());
+    pointupdate.setKey(this.key_.compile(opt_buildOpts));
     pointupdate.setMapping(mapping);
 
     var write = new WriteQuery();
@@ -317,13 +333,13 @@ rethinkdb.MutateQuery = function(view, mapping) {
 goog.inherits(rethinkdb.MutateQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.MutateQuery.prototype.buildQuery = function() {
+rethinkdb.MutateQuery.prototype.buildQuery = function(opt_buildOpts) {
     var mapping = new Mapping();
     mapping.setArg(this.mapping_.args[0]);
-    mapping.setBody(this.mapping_.body.compile());
+    mapping.setBody(this.mapping_.body.compile(opt_buildOpts));
 
     var mutate = new WriteQuery.Mutate();
-    mutate.setView(this.view_.compile());
+    mutate.setView(this.view_.compile(opt_buildOpts));
     mutate.setMapping(mapping);
 
     var write = new WriteQuery();
@@ -353,15 +369,15 @@ rethinkdb.PointMutateQuery = function(table, key, mapping) {
 goog.inherits(rethinkdb.PointMutateQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.PointMutateQuery.prototype.buildQuery = function() {
+rethinkdb.PointMutateQuery.prototype.buildQuery = function(opt_buildOpts) {
     var mapping = new Mapping();
     mapping.setArg(this.mapping_.args[0]);
-    mapping.setBody(this.mapping_.body.compile());
+    mapping.setBody(this.mapping_.body.compile(opt_buildOpts));
 
     var pointmutate = new WriteQuery.PointMutate();
-    pointmutate.setTableRef(this.table_.compile().getTableOrDefault().getTableRefOrDefault());
+    pointmutate.setTableRef(this.table_.compile(opt_buildOpts).getTableOrDefault().getTableRefOrDefault());
     pointmutate.setAttrname('id');
-    pointmutate.setKey(this.key_.compile());
+    pointmutate.setKey(this.key_.compile(opt_buildOpts));
     pointmutate.setMapping(mapping);
 
     var write = new WriteQuery();
