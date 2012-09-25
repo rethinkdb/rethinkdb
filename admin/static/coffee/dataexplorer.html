@@ -119,9 +119,9 @@
         
 
         <ul class="nav nav-tabs change_view_container"">
-            <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view">Raw view</a></li>
-            <li><a href="#table_view" data-toggle="tab" class="link_to_table_view">Table view</a></li>
-            <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view">Tree view</a></li>
+            <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view" data-view="raw">Raw view</a></li>
+            <li><a href="#table_view" data-toggle="tab" class="link_to_table_view" data-view="table">Table view</a></li>
+            <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view active" data-view="tree">Tree view</a></li>
         </ul>
    </div>
     <div class="pagination_container">
@@ -136,18 +136,22 @@
                 <button class="btn goto_last">&gt;&gt;</button>
             </div>
 
-            <p class="manual_jump"><button class="btn display_button">Display</button> <input type="text" class="limit_value" name="skip_value" value="20" /> rows starting from <input class="skip_value" name="skip_value" type="text" value="0"></p>
+            <p class="manual_jump">
+            <button class="btn display_button" data-id="0">Display</button>
+                <input type="text" class="limit_value" name="skip_value" value="20" data-id="0"/>
+                rows starting from 
+                <input class="skip_value" name="skip_value" type="text" value="0" data-id="0">
+            </p>
         </div>
 
         <div class="jump_container">
             <select name="jumg_page" class="jump_page">
-                <option value="1" selected="selected">1</option>
-                <option value="2">2</option>
+
             </select>
         </div>
     </div>
     <div class="tab-content">  
-        <div class="tab-pane results" id="tree_view">
+        <div class="tab-pane results active" id="tree_view">
         </div>
         <div class="tab-pane results" id="table_view">
         </div>
@@ -158,25 +162,32 @@
     <div class="pagination_container">
         <div class="classic_navigation_container">
             <div class="goto_previous_container">
-                <button class="goto_first">&lt;&lt;</button>
-                <button class="goto_previous">&lt;</button>
+                <button class="btn goto_first">&lt;&lt;</button>
+                <button class="btn goto_previous">&lt;</button>
             </div>
 
             <div class="goto_next_container">
-                <button class="goto_last">&gt;</button>
-                <button class="goto_next">&gt;&gt;</button>
+                <button class="btn goto_next">&gt;</button>
+                <button class="btn goto_last">&gt;&gt;</button>
             </div>
 
-            <p class="manual_jump">Display <input type="text" class="limit_value" name="skip_value" value="20" /> rows starting from <input class="skip_value" name="skip_value" type="text" value="0"></p>
+            <p class="manual_jump">
+                <button class="btn display_button" data-id="1">Display</button>
+                <input type="text" class="limit_value" name="skip_value" value="20" data-id="1" />
+                rows starting from 
+                <input class="skip_value" name="skip_value" type="text" value="0"  data-id="1" />
+            </p>
         </div>
 
         <div class="jump_container">
             <select name="jumg_page" class="jump_page">
-                <option value="1" selected="selected">1</option>
-                <option value="2">2</option>
             </select>
         </div>
     </div>
+</script>
+
+<script id="dataexplorer-option_page-template" type="text/x-handlebars-template">
+    <option class="page" value="{{page}}" {{#if selected}}selected="selected"{{/if}}>{{page}}</option>
 </script>
 
 <script id="dataexplorer-metadata-template" type="text/x-handlebars-template">

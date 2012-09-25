@@ -5,7 +5,7 @@ module 'DataExplorerView', ->
         template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
         alert_connection_fail_template: Handlebars.compile $('#alert-connection_fail-template').html()
         alert_reconnection_success_template: Handlebars.compile $('#alert-reconnection_success-template').html()
-
+        
         events:
             'click .CodeMirror': 'handle_keypress'
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
@@ -22,6 +22,18 @@ module 'DataExplorerView', ->
             'click .goto_previous': 'execute_paginating_query'
             'click .goto_next': 'execute_paginating_query'
             'click .goto_last': 'execute_paginating_query'
+            'keypress .limit_value': 'paginating_keypress'
+            'keypress .skip_value': 'paginating_keypress'
+            'click .display_button': 'paginating_custom'
+            'change .jump_page': 'paginating_jump'
+
+            'click .link_to_tree_view': 'save_tab'
+            'click .link_to_table_view': 'save_tab'
+            'click .link_to_raw_view': 'save_tab'
+            
+        save_tab: (event) =>
+            @results_view.set_view @.$(event.target).data('view')
+
 
         displaying_full_view: false
         has_been_initialized:
@@ -596,7 +608,6 @@ module 'DataExplorerView', ->
             return @
 
         create_tagged_callbacks: =>
-            LIMIT = 20
             id = Math.random()
             @last_id = id
 
@@ -604,22 +615,24 @@ module 'DataExplorerView', ->
             @count_results = 0
             iter_callback = (data) =>
                 if id is @last_id
-                    if @count_results < LIMIT
+                    if @count_results < @limit
                         @current_results.push data
                     else
-                        if @count_results is LIMIT
+                        if @count_results is @limit
                             @results_view.render_result @query, @current_results
 
-                            @results_view.render_metadata LIMIT, 0, undefined, undefined, @query
+                            @results_view.render_metadata @limit, 0, undefined, undefined, @query
                     @count_results++
             last_callback = =>
                 if id is @last_id
                     execution_time = new Date() - @start_time
-                    if @count_results < LIMIT
+                    if @count_results < @limit
                         @results_view.render_result @query, @current_results
 
                     @.$('.loading_query_img').css 'display', 'none'
                     @results_view.render_metadata @current_results.length, 0, @count_results, execution_time, @query
+                    @last_completed_query = @query
+                    @last_executed_count_results = @count_results
 
 
             iter: iter_callback
@@ -663,18 +676,46 @@ module 'DataExplorerView', ->
             # Display query in sidebar
             window.app.sidebar.add_query @codemirror.getValue()
 
+        paginating_keypress: (event) =>
+            if event.which is 13
+                @paginating_custom event
+
+        paginating_custom: (event) =>
+            id = @.$(event.target).data 'id'
+            skip_value = @.$('.skip_value:eq('+id+')').val()
+            limit_value = @.$('.limit_value:eq('+id+')').val()
+
+            if _.isNaN(parseInt(skip_value)) is false
+                skip_value = parseInt skip_value
+            if _.isNaN(parseInt(limit_value)) is false
+                limit_value = parseInt limit_value
+
+            
+            @results_view.set_limit limit_value
+            @results_view.set_skip skip_value
+
+            @paginate_query @last_completed_query, @last_executed_count_results, skip_value, limit_value
+
+        paginating_jump: (event) =>
+            limit_value = @.$(event.target).data('limit_value')
+            skip_value = @.$(event.target).val() * @.$(event.target).data('limit_value')
+
+            skip_value = parseInt skip_value
+            limit_value = parseInt limit_value
+
+            @results_view.set_limit limit_value
+            @results_view.set_skip skip_value
+            @paginate_query @last_completed_query, @last_executed_count_results, skip_value, limit_value
+
+
         execute_paginating_query: (event) =>
             skip_value = @.$(event.target).data 'skip_value'
             limit_value = @.$(event.target).data 'limit_value'
-            query = @.$(event.target).data 'query'
-            count_results = @.$(event.target).data 'count_results'
 
-            console.log query, count_results, skip_value, limit_value
-            @paginate_query query, count_results, skip_value, limit_value
+            @paginate_query @last_completed_query, @last_executed_count_results, skip_value, limit_value
             return @
 
         create_tagged_paginating_callbacks: (skip_value, limit_value) =>
-            LIMIT = 20
             id = Math.random()
             @last_id = id
 
@@ -690,6 +731,9 @@ module 'DataExplorerView', ->
                     @results_view.render_result @query+'.skip('+skip_value+').limit('+limit_value+')', @current_results
                     @.$('.loading_query_img').css 'display', 'none'
                     @results_view.render_metadata limit_value, skip_value, @count_results, execution_time, @query
+                    @last_completed_query = @query
+                    @last_executed_count_results = @count_results
+
 
             iter: iter_callback
             last: last_callback
@@ -767,6 +811,8 @@ module 'DataExplorerView', ->
 
             @connect()
 
+            @limit = 20
+
             # We escape the last function because we are building a regex on top of it.
             @unsafe_to_safe_regexstr = []
             @unsafe_to_safe_regexstr.push # This one has to be firest
@@ -807,7 +853,7 @@ module 'DataExplorerView', ->
                 replacement: '\\}'
 
             @input_query = new DataExplorerView.InputQuery
-            @results_view = new DataExplorerView.ResultView
+            @results_view = new DataExplorerView.ResultView @limit
 
             @render()
 
@@ -884,6 +930,7 @@ module 'DataExplorerView', ->
         className: 'result_view'
         template: Handlebars.compile $('#dataexplorer_result_container-template').html()
         metadata_template: Handlebars.compile $('#dataexplorer-metadata-template').html()
+        option_template: Handlebars.compile $('#dataexplorer-option_page-template').html()
         error_template: Handlebars.compile $('#dataexplorer-error-template').html()
         template_no_result: Handlebars.compile $('#dataexplorer_result_empty-template').html()
         template_json_tree: 
@@ -916,9 +963,19 @@ module 'DataExplorerView', ->
 
         current_result: []
 
-        initialize: =>
+        initialize: (limit) =>
+            @set_limit limit
+            @set_skip 0
+            @set_view 'tree'
             $(document).mousemove @handle_mousemove
             $(document).mouseup @handle_mouseup
+
+        set_limit: (limit) =>
+            @limit = limit
+        set_skip: (skip) =>
+            @skip = skip
+        set_view: (view) =>
+            @view = view
 
         render_error: (query, err) =>
             @.$el.html @error_template 
@@ -1245,14 +1302,18 @@ module 'DataExplorerView', ->
             @.$('#table_view').html @json_to_table result
             @.$('.raw_view_textarea').html JSON.stringify result
             @expand_raw_textarea()
+
+            switch @view
+                when 'tree'
+                    @.$('.link_to_tree_view').tab 'show'
+                when 'table'
+                    @.$('.link_to_table_view').tab 'show'
+                when 'raw'
+                    @.$('.link_to_raw_view').tab 'show'
  
-            @.$('.link_to_tree_view').tab 'show'
-            @.$('#tree_view').addClass 'active'
-            @.$('#table_view').removeClass 'active'
-            @.$('#raw_view').removeClass 'active'
+
         #TODO Fix the calls with limit/skip_value
         render_metadata: (limit_value, skip_value, count_results, execution_time, query) =>
-            LIMIT = 20
             if execution_time?
                 if execution_time < 1000
                     execution_time_pretty = execution_time+"ms"
@@ -1261,6 +1322,8 @@ module 'DataExplorerView', ->
                 else # We do not expect query to last one hour.
                     minutes = Math.floor(execution_time/(60*1000))
                     execution_time_pretty = minutes+"min "+((execution_time-minutes*60*1000)/1000).toFixed(2)+"s"
+
+
 
             @.$('.metadata').html @metadata_template
                 skip_value: skip_value
@@ -1277,37 +1340,39 @@ module 'DataExplorerView', ->
                     @.$('.goto_previous').removeProp 'disabled'
 
                     @.$('.goto_first').data 'skip_value', 0
-                    @.$('.goto_first').data 'limit_value', LIMIT
-                    @.$('.goto_first').data 'count_results', count_results
-                    @.$('.goto_first').data 'query', query
+                    @.$('.goto_first').data 'limit_value', @limit
 
                     new_skip_value = Math.max 0, skip_value-limit_value
                     @.$('.goto_previous').data 'skip_value', new_skip_value
-                    @.$('.goto_previous').data 'limit_value', LIMIT
-                    @.$('.goto_previous').data 'count_results', count_results
-                    @.$('.goto_previous').data 'query', query
+                    @.$('.goto_previous').data 'limit_value', @limit
                 else
                     @.$('.goto_first').prop 'disabled', 'disabled'
                     @.$('.goto_previous').prop 'disabled', 'disabled'
 
-                if limit_value < count_results
+                if skip_value+limit_value < count_results
                     @.$('.goto_next').removeProp 'disabled'
                     @.$('.goto_last').removeProp 'disabled'
 
                     @.$('.goto_next').data 'skip_value', skip_value+limit_value
-                    @.$('.goto_next').data 'limit_value', LIMIT
-                    @.$('.goto_next').data 'count_results', count_results
-                    @.$('.goto_next').data 'query', query
+                    @.$('.goto_next').data 'limit_value', @limit
 
                     @.$('.goto_last').data 'skip_value', count_results-limit_value
-                    @.$('.goto_last').data 'limit_value', LIMIT
-                    @.$('.goto_last').data 'count_results', count_results
-                    @.$('.goto_last').data 'query', query
+                    @.$('.goto_last').data 'limit_value', @limit
                 else
                     @.$('.goto_next').prop 'disabled', 'disabled'
                     @.$('.goto_last').prop 'disabled', 'disabled'
 
-
+                @.$('.skip_value').val skip_value
+                @.$('.limit_value').val limit_value
+                @.$('.jump_page').data 'limit_value', limit_value
+            page = 0
+            while page*limit_value < count_results
+                @.$('.jump_page').append @option_template
+                    page: page
+                    limit_value: limit_value
+                    selected: page*limit_value is skip_value
+                page++
+                
         render: =>
             @delegateEvents()
             return @
