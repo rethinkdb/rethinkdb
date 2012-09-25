@@ -89,6 +89,11 @@ module RethinkDB
       return sexp.map{|x| replace x,old,new} if sexp.class == Array
       return (sexp == old) ? new : sexp
     end
+
+    def checkdict s
+      return s.to_s if s.class == String || s.class == Symbol
+      raise RuntimeError, "Invalid JSON dict key: #{s.inspect}"
+    end
   end
   module S; extend S_Mixin; end
 

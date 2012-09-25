@@ -70,7 +70,7 @@ module RethinkDB
       when NilClass.hash   then JSON_Expression.new [:json_null]
       when Array.hash      then JSON_Expression.new [:array, *x.map{|y| expr(y)}]
       when Hash.hash       then
-        JSON_Expression.new [:object, *x.map{|var,term| [var, expr(term)]}]
+        JSON_Expression.new [:object, *x.map{|var,term| [S.checkdict(var), expr(term)]}]
       else raise TypeError, "RQL.expr can't handle '#{x.class()}'"
       end) { x.inspect }
     end
