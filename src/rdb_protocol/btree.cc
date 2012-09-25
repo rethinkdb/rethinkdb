@@ -175,9 +175,9 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
             }
         } else {
             lhs = get_data(kv_location.value.get(), txn);
-            rassert_unreviewed(lhs->GetObjectItem(primary_key.c_str()));
+            rassert_reviewed(NULL != lhs->GetObjectItem(primary_key.c_str()));
         }
-        rassert_unreviewed(lhs && ((lhs->type() == cJSON_NULL && op == point_modify::MUTATE) || lhs->type() == cJSON_Object));
+        guarantee_reviewed(lhs != NULL && ((lhs->type() == cJSON_NULL && op == point_modify::MUTATE) || lhs->type() == cJSON_Object));
 
         boost::shared_ptr<scoped_cJSON_t> rhs(query_language::eval_mapping(mapping, env, scopes, backtrace, lhs));
         guarantee_reviewed(rhs);
