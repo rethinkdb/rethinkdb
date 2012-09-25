@@ -7,6 +7,17 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#namespace_view-replica-template').html()
         alert_tmpl: Handlebars.compile $('#changed_primary_dc-replica-template').html()
 
+        events:
+            'click .edit_replicas': 'modify_replicas'
+            'click .make_primary': 'make_primary'
+
+        modify_replicas: (event) =>
+            event.preventDefault()
+            datacenter_id = @.$(event.target).data 'id' #We do not let people change the number of replicas of Universe.
+            @modify_replicas datacenters.get(id)
+            modal = new NamespaceView.ModifyReplicasModal @model, datacenter
+            modal.render()
+
         initialize: ->
             # @model is a namespace.  somebody is supposed to pass model: namespace to the constructor.
             @model.on 'all', @render
@@ -14,13 +25,14 @@ module 'NamespaceView', ->
             progress_list.on 'all', @render
             log_initial '(initializing) namespace view: replica'
 
-        modify_replicas: (e, datacenter) ->
-            log_action 'modify replica clicked'
-            modal = new NamespaceView.ModifyReplicasModal @model, datacenter
-            modal.render()
-            e.preventDefault()
+        make_primary: (event) ->
+            event.preventDefault()
+            id = @.$(event.target).data('id')
+            if datacenters.get(id)?
+                new_dc = datacenters.get(id)
+            else
+                new_dc = universe_datacenter
 
-        make_primary: (e, new_dc) ->
             log_action 'make primary clicked'
             modal = new UIComponents.ConfirmationDialogModal
             # Increase replica affinities in the old primary
@@ -30,7 +42,10 @@ module 'NamespaceView', ->
             # have to worry about this number going negative,
             # since we can't make primary a datacenter with no
             # replicas.
-            old_dc = datacenters.get(@model.get('primary_uuid'))
+            if @model.get('primary_uuid') is universe_datacenter.get('id')
+                old_dc = universe_datacenter
+            else
+                old_dc = datacenters.get(@model.get('primary_uuid'))
             new_affinities = {}
             new_affinities[old_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), old_dc.get('id')) + 1
             new_affinities[new_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), new_dc.get('id')) - 1
@@ -55,11 +70,12 @@ module 'NamespaceView', ->
                         old_datacenter_name: old_dc.get('name')
                         )
                 )
-            e.preventDefault()
 
         render: =>
+            found_universe = false
             data = @model.toJSON()
             if @model.get('primary_uuid') is universe_datacenter.get('id')
+                found_universe = true
                 data = _.extend data,
                     primary:
                         id: @model.get('primary_uuid')
@@ -92,6 +108,8 @@ module 'NamespaceView', ->
             _.each @model.get('replica_affinities'), (replica_count, id) =>
                 if id != @model.get('primary_uuid') and replica_count > 0
                     secondary_affinities[id] = replica_count
+                    if id is universe_datacenter.get('id')
+                        found_universe = true
 
             # List of datacenters we're not replicating to
             nothings = []
@@ -102,7 +120,8 @@ module 'NamespaceView', ->
                     nothings.push
                         id: dc.get('id')
                         name: dc.get('name')
-            if @model.get('primary_uuid') isnt universe_datacenter.get('id')
+
+            if found_universe is false
                 nothings.push
                     id: universe_datacenter.get('id')
                     name: universe_datacenter.get('name')
@@ -110,8 +129,12 @@ module 'NamespaceView', ->
             data = _.extend data,
                 secondaries:
                     _.map secondary_affinities, (replica_count, uuid) =>
+                        if datacenters.get(uuid)?
+                            datacenter = datacenters.get(uuid)
+                        else
+                            datacenter = universe_datacenter
                         id: uuid
-                        name: datacenters.get(uuid).get('name')
+                        name: datacenter.get('name')
                         replicas: replica_count
                         total_machines: DataUtils.get_datacenter_machines(uuid).length
                         acks: DataUtils.get_ack_expectations(@model.get('id'), uuid)
@@ -119,23 +142,6 @@ module 'NamespaceView', ->
                 nothings: nothings
 
             @.$el.html @template data
-
-            #TODO Put these events in the event object...
-            # Bind action for primary datacenter
-            @.$('#edit-primary').on 'click', (e) =>
-                @modify_replicas(e, datacenters.get(@model.get('primary_uuid')))
-
-            # Bind the link actions for each datacenter with replicas
-            _.each _.keys(@model.get('replica_affinities')), (dc_uuid) =>
-                @.$(".edit-secondary.#{dc_uuid}").on 'click', (e) =>
-                    @modify_replicas(e, datacenters.get(dc_uuid))
-                @.$(".make-primary.#{dc_uuid}").on 'click', (e) =>
-                    @make_primary(e, datacenters.get(dc_uuid))
-
-            # Bind the link actions for each datacenter with no replicas
-            _.each nothings, (nothing_dc) =>
-                @.$(".edit-nothing.#{nothing_dc.id}").on 'click', (e) =>
-                    @modify_replicas(e, datacenters.get(nothing_dc.id))
 
             return @
 

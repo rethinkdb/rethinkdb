@@ -601,7 +601,10 @@ module 'DataUtils', ->
 
     @get_replica_affinities = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
-        datacenter = datacenters.get(datacenter_uuid)
+        if datacenter_uuid is universe_datacenter.get('id')
+            datacenter = universe_datacenter
+        else
+            datacenter = datacenters.get(datacenter_uuid)
         affs = namespace.get('replica_affinities')[datacenter.get('id')]
         if affs?
             return affs
