@@ -43,7 +43,7 @@ private:
 
     scoped_ptr_t<repeated_nonthrowing_tcp_listener_t> tcp_listener;
 
-    void handle(auto_drainer_t::lock_t keepalive, const scoped_ptr_t<nascent_tcp_conn_t>& conn);
+    void handle(auto_drainer_t::lock_t keepalive, const scoped_ptr_t<tcp_conn_descriptor_t>& conn);
 };
 
 #endif /* MEMCACHED_TCP_CONN_HPP_ */
