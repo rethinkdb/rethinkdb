@@ -165,14 +165,16 @@
     Set datacenter <a href="#databases/{{database_id}}">{{database_id_trunked}}</a>'s name to {{name}}<br/>
 </script>
 
-
-
 <script id="log-entry-small_template" type="text/x-handlebars-template">
-    <div class="message">
-        {{print_safe msg}}
+    <div class="row-fluid">
+        <div class="span9">
+            <p class="message">{{print_safe msg}}</p>
+            <p class="from-machine">Posted by <a href="#servers/{{machine_uuid}}">{{machine_name}}</a></p>
+        </div>
+        <div class="span3">
+            <p class="datetime">{{timeago_timestamp}}</p>
+        </div>
     </div>
-    <p class="from-machine">From <a href="#servers/{{machine_uuid}}">{{machine_name}}</a></p>
-    <p class="datetime">{{timeago_timestamp}}</p>
 </script>
 
 <script id="log-namespace_value-small_template" type="text/x-handlebars-template">

@@ -19,7 +19,6 @@ module 'Sidebar', ->
             @servers_connected = new Sidebar.ServersConnected()
             @datacenters_connected = new Sidebar.DatacentersConnected()
             @issues = new Sidebar.Issues()
-            @logs = new Sidebar.Logs()
 
             window.app.on 'all', @render
 
@@ -78,9 +77,6 @@ module 'Sidebar', ->
                 # Render issue summary
                 @.$('.issues').html @issues.render().el
 
-                # Render log
-                @.$('.recent-log-entries-container').html @logs.render().el
-
                 return @
             else
                 data = @compute_data()
@@ -96,59 +92,6 @@ module 'Sidebar', ->
 
         destroy: =>
             window.app.off 'all', @render
-
-    # TODO: Logs were dropped from the sidebar (now topbar), this code needs to be retired.
-    class @Logs extends Backbone.View
-        className: 'recent-log-entries'
-        tagName: 'ul'
-        min_timestamp: 0
-        max_entry_logs: 5
-        interval_update_log: 10000
-
-        initialize: ->
-            @fetch_log()
-            @set_interval = setInterval @fetch_log, @interval_update_log
-            @log_entries = []
-
-        fetch_log: =>
-            $.ajax({
-                contentType: 'application/json'
-                url: '/ajax/log/_?max_length='+@max_entry_logs+'&min_timestamp='+@min_timestamp
-                dataType: 'json'
-                success: @set_log_entries
-            })
-
-        set_log_entries: (response) =>
-            need_render = false
-            for machine_id, data of response
-                for new_log_entry in data
-                    for old_log_entry, i in @log_entries
-                        if parseFloat(new_log_entry.timestamp) > parseFloat(old_log_entry.get('timestamp'))
-                            entry = new LogEntry new_log_entry
-                            entry.set('machine_uuid', machine_id)
-                            @log_entries.splice i, 0, entry
-                            need_render = true
-                            break
-
-                    if @log_entries.length < @max_entry_logs
-                        entry = new LogEntry new_log_entry
-                        entry.set('machine_uuid', machine_id)
-                        @log_entries.push entry
-                        need_render = true
-                    else if @log_entries.length > @max_entry_logs
-                        @log_entries.pop()
-
-            if need_render
-                @render()
-
-            @min_timestamp = parseFloat(@log_entries[0].get('timestamp'))+1
-
-        render: =>
-            @.$el.html ''
-            for log in @log_entries
-                view = new LogView.LogEntry model: log
-                @.$el.append view.render_small().$el
-            return @
 
     # Sidebar.ClientConnectionStatus
     class @ClientConnectionStatus extends Backbone.View

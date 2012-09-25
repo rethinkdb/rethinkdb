@@ -292,12 +292,55 @@ body:before {
 
         &.first { border-left: none; }
     }
+    #recent_logs_container {
+        // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
+        .btn.view-logs {
+            float: right;
+            padding: 6px 14px 4px;
+            margin-bottom: 0;
+            vertical-align: middle;
+
+            font-size: 13px;
+            font-family: @sans;
+            color: #FFF;
+            text-align: center;
+
+            background-color: #509ecb;
+            border: thin solid #509ecb; 
+            .border-radius(3px);
+
+            @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
+
+            -webkit-box-shadow: @shadow;
+               -moz-box-shadow: @shadow;
+                    box-shadow: @shadow;
+
+        }
+        .recent-log-entries-container { margin-bottom: 5px; }
+        ul.recent-log-entries {
+            list-style-type: none;
+            padding-left: 0;
+
+            li.log-entry {
+                border-top: thin solid #f0f0f0;
+                background: left center no-repeat url('https://dl.dropbox.com/s/aintt5c3jlkd495/pencil_icon.png');
+                padding: 20px 0 20px 55px;
+                p { margin: 0; }
+                .message { font-size: 14px; }
+                .from-machine {
+                    font-style: italic;
+                    font-family: @sans;
+                    margin-top: 7px;
+                }
+            }
+        }
+    }
 }
 
 
 /*
     ----------------------------
-    Server list
+    Server list and table list
     ----------------------------
 */
 // Get ready to abstract this for use in the server list AND table list TODO
