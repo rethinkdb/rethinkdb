@@ -259,7 +259,8 @@ term_info_t get_term_type(const Term &t, type_checking_environment_t *env, const
 
 void check_term_type(const Term &t, term_type_t expected, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
     term_info_t actual = get_term_type(t, env, backtrace);
-    if (!term_type_is_convertible(actual.type, expected)) {
+    if (expected != TERM_TYPE_ARBITRARY &&
+        !term_type_is_convertible(actual.type, expected)) {
         throw bad_query_exc_t(strprintf("expected a %s; got a %s",
                 term_type_name(expected).c_str(), term_type_name(actual.type).c_str()),
             backtrace);
