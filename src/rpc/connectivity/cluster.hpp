@@ -120,17 +120,19 @@ public:
         the `run_t` are constructed. */
         class variable_setter_t {
         public:
-            variable_setter_t(run_t **var, run_t *val) THROWS_NOTHING : variable(var), value(val) {
-                rassert(*variable == NULL);
+            variable_setter_t(run_t **var, run_t *val) : variable(var) , value(val) {
+                guarantee(*variable == NULL);
                 *variable = value;
             }
+
             ~variable_setter_t() THROWS_NOTHING {
-                rassert(*variable == value);
+                guarantee(*variable == value);
                 *variable = NULL;
             }
         private:
             run_t **variable;
             run_t *value;
+            DISABLE_COPYING(variable_setter_t);
         };
 
         void on_new_connection(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING;

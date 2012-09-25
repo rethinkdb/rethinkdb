@@ -45,7 +45,7 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inn
       internal_sources_(inner->num_stores()),
       internal_sinks_(inner->num_stores()) {
 
-    rassert(region_is_superset(inner->region_, region));
+    guarantee(region_is_superset(inner->region_, region));
 
     initialize(inner->store_views_.data());
 }

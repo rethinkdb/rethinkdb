@@ -158,6 +158,7 @@ void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
     } while (0)
 #endif
 
+
 void install_generic_crash_handler();
 
 // If you include errors.hpp before including a Boost library, then Boost assertion

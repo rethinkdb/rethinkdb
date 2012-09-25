@@ -35,8 +35,9 @@ public:
           directory_read_manager(_directory_read_manager),
           js_runner(_js_runner),
           interruptor(_interruptor),
-          this_machine(_this_machine)
-    { rassert(js_runner); }
+          this_machine(_this_machine) {
+        guarantee(js_runner);
+    }
 
     runtime_environment_t(
         extproc::pool_group_t *_pool_group,
@@ -58,8 +59,9 @@ public:
           directory_read_manager(NULL),
           js_runner(_js_runner),
           interruptor(_interruptor),
-          this_machine(_this_machine)
-    { rassert(js_runner); }
+          this_machine(_this_machine) {
+        guarantee(js_runner);
+    }
 
     extproc::pool_t *pool;      // for running external JS jobs
     namespace_repo_t<rdb_protocol_t> *ns_repo;
@@ -72,7 +74,7 @@ public:
         semilattice_metadata;
     directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
 
-  private:
+private:
     // Ideally this would be a scoped_ptr_t<js::runner_t>. We used to copy
     // `runtime_environment_t` to capture scope, which is why this is a
     // `boost::shared_ptr`. But now we pass scope around separately, so this
@@ -88,7 +90,7 @@ public:
     // multiplex queries onto worker processes.
     boost::shared_ptr<js::runner_t> js_runner;
 
-  public:
+public:
     // Returns js_runner, but first calls js_runner->begin() if it hasn't
     // already been called.
     boost::shared_ptr<js::runner_t> get_js_runner();
@@ -96,7 +98,7 @@ public:
     signal_t *interruptor;
     uuid_t this_machine;
 
-  private:
+private:
     DISABLE_COPYING(runtime_environment_t);
 };
 

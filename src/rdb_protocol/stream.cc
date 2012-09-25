@@ -131,7 +131,7 @@ result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::termi
             ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
         }
         rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
-        rassert(p_res);
+        guarantee(p_res);
 
         /* Re throw an exception if we got one. */
         if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
@@ -169,8 +169,8 @@ void batched_rget_stream_t::read_more() {
         guarantee(stream);
 
         for (stream_t::iterator i = stream->begin(); i != stream->end(); ++i) {
+            guarantee(i->second);
             data.push_back(i->second);
-            rassert(data.back());
         }
 
         range.left = p_res->last_considered_key;

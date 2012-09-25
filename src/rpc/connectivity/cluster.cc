@@ -31,7 +31,8 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int port,
         message_handler_t *mh,
         int client_port) THROWS_ONLY(address_in_use_exc_t) :
-    parent(p), message_handler(mh),
+    parent(p),
+    message_handler(mh),
 
     /* The local port to use when connecting to the cluster port of peers */
     cluster_client_port(client_port),
@@ -100,7 +101,7 @@ connectivity_cluster_t::run_t::connection_entry_t::~connection_entry_t() THROWS_
 
     /* `~entry_installation_t` destroys the `auto_drainer_t`'s in entries,
     so nothing can be holding the `send_mutex`. */
-    rassert(!send_mutex.is_locked());
+    guarantee(!send_mutex.is_locked());
 }
 
 static void ping_connection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
@@ -118,9 +119,12 @@ connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::entry_i
     {
         ASSERT_FINITE_CORO_WAITING;
         rwi_lock_assertion_t::write_acq_t acq(&ti->lock);
-        rassert(ti->connection_map.find(that_->peer) == ti->connection_map.end());
-        ti->connection_map[that_->peer] =
-            std::make_pair(that_, auto_drainer_t::lock_t(&drainer_));
+
+        std::pair<std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator, bool>
+            res = ti->connection_map.insert(std::make_pair(that_->peer,
+                                                           std::make_pair(that_, auto_drainer_t::lock_t(&drainer_))));
+        guarantee(res.second, "Map entry was not present.");
+
         ti->publisher.publish(boost::bind(&ping_connection_watcher, that_->peer, _1));
     }
 }
@@ -130,7 +134,10 @@ connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::~entry_
     {
         ASSERT_FINITE_CORO_WAITING;
         rwi_lock_assertion_t::write_acq_t acq(&ti->lock);
-        rassert(ti->connection_map[that_->peer].first == that_);
+
+        std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator entry
+            = ti->connection_map.find(that_->peer);
+        guarantee(entry != ti->connection_map.end() && entry->second.first == that_);
         ti->connection_map.erase(that_->peer);
         ti->publisher.publish(boost::bind(&ping_disconnection_watcher, that_->peer, _1));
     }
@@ -267,7 +274,7 @@ void connectivity_cluster_t::run_t::handle(
             r = conn->read(data, header_size - i);
             if (-1 == r)
                 return;         // network error.
-            rassert (r >= 0);
+            rassert(r >= 0);
             // If EOF or data does not match header, terminate connection.
             if (0 == r || memcmp(cluster_proto_header + i, data, r)) {
                 // Wrong header.
@@ -470,7 +477,6 @@ void connectivity_cluster_t::run_t::handle(
                 just a length and a byte vector. This is obviously slow and we
                 should change it when we care about performance. */
                 std::string message;
-                rassert(get_thread_id() == chosen_thread);
                 if (deserialize_and_check(conn, &message, peername))
                     break;
 
@@ -502,7 +508,7 @@ connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     { }
 
 connectivity_cluster_t::~connectivity_cluster_t() THROWS_NOTHING {
-    rassert(!current_run);
+    guarantee(!current_run);
 }
 
 peer_id_t connectivity_cluster_t::get_me() THROWS_NOTHING {
@@ -525,11 +531,11 @@ uuid_t connectivity_cluster_t::get_connection_session_id(peer_id_t peer) THROWS_
         &thread_info.get()->connection_map;
     std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator it =
         connection_map->find(peer);
-    rassert(it != connection_map->end(), "You're trying to access the session "
+    guarantee(it != connection_map->end(), "You're trying to access the session "
         "ID for an unconnected peer. Note that we are not considered to be "
         "connected to ourself until after a connectivity_cluster_t::run_t "
         "has been created.");
-    return (*it).second.first->session_id;
+    return it->second.first->session_id;
 }
 
 connectivity_service_t *connectivity_cluster_t::get_connectivity_service() THROWS_NOTHING {
@@ -542,7 +548,7 @@ connectivity_service_t *connectivity_cluster_t::get_connectivity_service() THROW
 void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_callback_t *callback) THROWS_NOTHING {
     // We could be on _any_ thread.
 
-    rassert(!dest.is_nil());
+    guarantee(!dest.is_nil());
 
     /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
@@ -595,14 +601,14 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
     if (conn_structure->conn == NULL) {
         // We're sending a message to ourself
-        rassert(dest == me);
+        guarantee(dest == me);
         // We could be on any thread here! Oh no!
         vector_read_stream_t buffer2(&buffer.vector());
         current_run->message_handler->on_message(me, &buffer2);
         conn_structure->pm_bytes_sent.record(buffer.vector().size());
 
     } else {
-        rassert(dest != me);
+        guarantee(dest != me);
         on_thread_t threader(conn_structure->conn->home_thread());
 
         /* Acquire the send-mutex so we don't collide with other things trying
@@ -632,11 +638,11 @@ peer_address_t connectivity_cluster_t::get_peer_address(peer_id_t p) THROWS_NOTH
         &thread_info.get()->connection_map;
     std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator it =
         connection_map->find(p);
-    rassert(it != connection_map->end(), "You can only call get_peer_address() "
+    guarantee(it != connection_map->end(), "You can only call get_peer_address() "
         "on a peer that we're currently connected to. Note that we're not "
         "considered to be connected to ourself until after the "
         "connectivity_cluster_t::run_t has been constructed.");
-    return (*it).second.first->address;
+    return it->second.first->address;
 }
 
 rwi_lock_assertion_t *connectivity_cluster_t::get_peers_list_lock() THROWS_NOTHING {

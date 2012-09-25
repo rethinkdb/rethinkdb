@@ -17,6 +17,7 @@ class json_stream_t;
 
 class stream_cache_t {
 public:
+    // TODO: Uses of contains can all just try insert or erase and look at return codes.
     bool contains(int64_t key);
     void insert(ReadQuery *r, int64_t key, boost::shared_ptr<query_language::json_stream_t> val);
     void erase(int64_t key);

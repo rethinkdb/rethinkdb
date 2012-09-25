@@ -36,8 +36,8 @@ public:
 
         for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it = masked.begin(); it != masked.end(); ++it) {
             version_range_t range = binary_blob_t::get<version_range_t>(it->second);
-            rassert(range.earliest.timestamp == range.latest.timestamp);
-            rassert(range.latest.timestamp <= tstamp_);
+            guarantee(range.earliest.timestamp == range.latest.timestamp);
+            guarantee(range.latest.timestamp <= tstamp_);
         }
     }
 
@@ -106,7 +106,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
        but if there's an error it would be nice to catch it where the action
        was initiated. */
 
-    guarantee(region_is_superset(our_branch_region_, svs_->get_region()));
+    rassert(region_is_superset(our_branch_region_, svs_->get_region()));
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs_->new_read_token(&read_token);
@@ -201,8 +201,8 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = backfill_end_point.begin();
          it != backfill_end_point.end();
          ++it) {
-        rassert(it->second.is_coherent());
-        rassert(it->second.earliest.branch == branch_id_);
+        guarantee(it->second.is_coherent());
+        guarantee(it->second.earliest.branch == branch_id_);
         backfill_end_timestamp = std::max(backfill_end_timestamp, it->second.earliest.timestamp);
     }
 
@@ -394,8 +394,8 @@ void listener_t<protocol_t>::on_write(const typename protocol_t::write_t &write,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
-    guarantee(region_is_superset(our_branch_region_, write.get_region()));
-    guarantee(!region_is_empty(write.get_region()));
+    rassert(region_is_superset(our_branch_region_, write.get_region()));
+    rassert(!region_is_empty(write.get_region()));
     order_token.assert_write_mode();
 
     coro_t::spawn_sometime(boost::bind(
@@ -557,8 +557,7 @@ void listener_t<protocol_t>::on_read(const typename protocol_t::read_t &read,
         order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
-        THROWS_NOTHING
-{
+        THROWS_NOTHING {
     rassert(region_is_superset(our_branch_region_, read.get_region()));
     rassert(!region_is_empty(read.get_region()));
     rassert(region_is_superset(svs_->get_region(), read.get_region()));
@@ -572,12 +571,11 @@ void listener_t<protocol_t>::on_read(const typename protocol_t::read_t &read,
 
 template <class protocol_t>
 void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &read,
-        DEBUG_VAR state_timestamp_t expected_timestamp,
+        state_timestamp_t expected_timestamp,
         order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,
-        auto_drainer_t::lock_t keepalive) THROWS_NOTHING
-{
+        auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     try {
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
         {
@@ -590,7 +588,7 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
             fifo_enforcer_sink_t::exit_read_t fifo_exit_2(&store_entrance_sink_, fifo_token);
             wait_interruptible(&fifo_exit_2, keepalive.get_drain_signal());
 
-            rassert(current_timestamp_ == expected_timestamp);
+            guarantee(current_timestamp_ == expected_timestamp);
 
             svs_->new_read_token(&read_token);
         }
@@ -627,14 +625,15 @@ void listener_t<protocol_t>::wait_for_version(state_timestamp_t timestamp, signa
 
 template <class protocol_t>
 void listener_t<protocol_t>::advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp) {
-    rassert(timestamp.timestamp_before() == current_timestamp_);
+    guarantee(timestamp.timestamp_before() == current_timestamp_);
     current_timestamp_ = timestamp.timestamp_after();
 
     for (std::multimap<state_timestamp_t, cond_t *>::const_iterator it = synchronize_waiters_.begin();
          it != synchronize_waiters_.upper_bound(current_timestamp_);
          ++it) {
         if (it->first < current_timestamp_) {
-            rassert(it->second->is_pulsed(), "This cond should have already been pulsed because we assume timestamps move in discrete minimal steps.");
+            // This cond should have already been pulsed because we assume timestamps move in discrete minimal steps.
+            guarantee(it->second->is_pulsed());
         } else {
             // TODO: What if something's waiting eagerly?
             it->second->pulse();
