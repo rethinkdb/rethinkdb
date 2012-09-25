@@ -101,18 +101,19 @@ module 'Vis', ->
         initialize: (_stats_fn, options) ->
             log_initial '(initializing) ops plot'
 
-            # Kludgey way to override custom options given Slava's class variable approach.
-            # A sane options object for the entire class would have been preferable.
-            @HEIGHT_IN_PIXELS =  options.height          if options.height?
-            @HEIGHT_IN_UNITS =   options.height_in_units if options.height_in_units?
-            @WIDTH_IN_PIXELS =   options.width           if options.width?
-            @WIDTH_IN_SECONDS =  options.seconds         if options.seconds?
-            if options.haxis?
-                @HAXIS_TICK_INTERVAL_IN_SECS =   options.haxis.seconds_per_tick if options.haxis.seconds_per_tick?
-                @HAXIS_MINOR_SUBDIVISION_COUNT = options.haxis.ticks_per_label  if options.haxis.ticks_per_label?
-            if options.vaxis?
-                @VAXIS_TICK_SUBDIVISION_COUNT =  options.vaxis.num_ticks        if options.vaxis.num_ticks?
-                @VAXIS_MINOR_SUBDIVISION_COUNT = options.vaxis.ticks_per_label  if options.vaxis.ticks_per_label?
+            if options?
+                # Kludgey way to override custom options given Slava's class variable approach.
+                # A sane options object for the entire class would have been preferable.
+                @HEIGHT_IN_PIXELS =  options.height          if options.height?
+                @HEIGHT_IN_UNITS =   options.height_in_units if options.height_in_units?
+                @WIDTH_IN_PIXELS =   options.width           if options.width?
+                @WIDTH_IN_SECONDS =  options.seconds         if options.seconds?
+                if options.haxis?
+                    @HAXIS_TICK_INTERVAL_IN_SECS =   options.haxis.seconds_per_tick if options.haxis.seconds_per_tick?
+                    @HAXIS_MINOR_SUBDIVISION_COUNT = options.haxis.ticks_per_label  if options.haxis.ticks_per_label?
+                if options.vaxis?
+                    @VAXIS_TICK_SUBDIVISION_COUNT =  options.vaxis.num_ticks        if options.vaxis.num_ticks?
+                    @VAXIS_MINOR_SUBDIVISION_COUNT = options.vaxis.ticks_per_label  if options.vaxis.ticks_per_label?
 
             super
             # Set up cubism context
