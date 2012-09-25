@@ -360,7 +360,7 @@ module 'NamespaceView', ->
                 datacenter.set 'num_machines', 0
 
             for machine in machines.models
-                if machine.get('datacenter_uuid')?
+                if machine.get('datacenter_uuid') isnt universe_datacenter.get('id')
                     datacenters.get(machine.get('datacenter_uuid')).set 'num_machines',datacenter.get('num_machines')+1
 
             ordered_datacenters = _.map(datacenters.models, (datacenter) ->

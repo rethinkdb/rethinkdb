@@ -58,32 +58,27 @@ module 'NamespaceView', ->
             e.preventDefault()
 
         render: =>
-            log_render '(rendering) namespace view: replica'
-            # Walk over json and add datacenter names to the model (in
-            # addition to datacenter ids)
-            secondary_affinities = {}
-            _.each @model.get('replica_affinities'), (replica_count, id) =>
-                if id != @model.get('primary_uuid') and replica_count > 0
-                    secondary_affinities[id] = replica_count
-            # List of datacenters we're not replicating to
-            nothings = []
-            for dc in datacenters.models
-                is_primary = dc.get('id') is @model.get('primary_uuid')
-                is_secondary = dc.get('id') in _.map(secondary_affinities, (obj, id)->id)
-                if not is_primary and not is_secondary
-                    nothings[nothings.length] =
-                        id: dc.get('id')
-                        name: dc.get('name')
-            # create json
-            if @model.get('primary_uuid')?
-                primary_replica_count = @model.get('replica_affinities')[@model.get('primary_uuid')]
-                if not primary_replica_count?
-                    # replica affinities may be missing for new namespaces
-                    primary_replica_count = 0
+            data = @model.toJSON()
+            if @model.get('primary_uuid') is universe_datacenter.get('id')
+                data = _.extend data,
+                    primary:
+                        id: @model.get('primary_uuid')
+                        name: universe_datacenter.get('name')
+                        replicas: 1 # we're adding one because primary is also a replica
+                        total_machines: machines.length
+                        acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
+                        is_universe: true
+                        #status: DataUtils.get_namespace_status(@model.get('id'), @model.get('primary_uuid'))
+
             else
-                primary_replica_count = 0
-            if @model.get('primary_uuid')?
-                json = _.extend @model.toJSON(),
+                if not @model.get('primary_uuid')?
+                    primary_replica_count = 0
+                else
+                    primary_replica_count = @model.get('replica_affinities')[@model.get('primary_uuid')]
+                    if not primary_replica_count?
+                        primary_replica_count = 0
+
+                data = _.extend data,
                     primary:
                         id: @model.get('primary_uuid')
                         name: datacenters.get(@model.get('primary_uuid')).get('name')
@@ -91,9 +86,28 @@ module 'NamespaceView', ->
                         total_machines: DataUtils.get_datacenter_machines(@model.get('primary_uuid')).length
                         acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
                         status: DataUtils.get_namespace_status(@model.get('id'), @model.get('primary_uuid'))
-            else
-                json = @model.toJSON()
-            json = _.extend json,
+
+            # Walk over json and add datacenter names to the model (in addition to datacenter ids)
+            secondary_affinities = {}
+            _.each @model.get('replica_affinities'), (replica_count, id) =>
+                if id != @model.get('primary_uuid') and replica_count > 0
+                    secondary_affinities[id] = replica_count
+
+            # List of datacenters we're not replicating to
+            nothings = []
+            for dc in datacenters.models
+                is_primary = dc.get('id') is @model.get('primary_uuid')
+                is_secondary = dc.get('id') in _.map(secondary_affinities, (obj, id)->id)
+                if not is_primary and not is_secondary
+                    nothings.push
+                        id: dc.get('id')
+                        name: dc.get('name')
+            if @model.get('primary_uuid') isnt universe_datacenter.get('id')
+                nothings.push
+                    id: universe_datacenter.get('id')
+                    name: universe_datacenter.get('name')
+
+            data = _.extend data,
                 secondaries:
                     _.map secondary_affinities, (replica_count, uuid) =>
                         id: uuid
@@ -104,7 +118,7 @@ module 'NamespaceView', ->
                         status: DataUtils.get_namespace_status(@model.get('id'), uuid)
                 nothings: nothings
 
-            @.$el.html @template(json)
+            @.$el.html @template data
 
             #TODO Put these events in the event object...
             # Bind action for primary datacenter
