@@ -118,9 +118,9 @@ function testFilter() {
 }
 
 var tobj = r.expr({a:1,b:2,c:3});
-function testHasAttr() {
-    tobj.hasAttr('a').run(aeq(true));
-    tobj.hasAttr('d').run(aeq(false));
+function testContains() {
+    tobj.contains('a').run(aeq(true));
+    tobj.contains('d').run(aeq(false));
 }
 
 function testGetAttr() {
@@ -129,7 +129,7 @@ function testGetAttr() {
     tobj.getAttr('c').run(aeq(3));
 
     r.let({a:tobj},
-        r.ifThenElse(r.letVar('a').hasAttr('b'),
+        r.ifThenElse(r.letVar('a').contains('b'),
             r.letVar('a.b'),
             r.error("No attribute b")
         )
@@ -137,13 +137,13 @@ function testGetAttr() {
 }
 
 function testPickAttrs() {
-    tobj.pickAttrs('a').run(objeq({a:1}));
-    tobj.pickAttrs('a', 'b').run(objeq({a:1,b:2}));
+    tobj.pick('a').run(objeq({a:1}));
+    tobj.pick('a', 'b').run(objeq({a:1,b:2}));
 }
 
-function testWithout() {
-    tobj.without('a').run(objeq({b:2,c:3}));
-    tobj.without(['a','b']).run(objeq({c:3}));
+function testUnpick() {
+    tobj.unpick('a').run(objeq({b:2,c:3}));
+    tobj.unpick(['a','b']).run(objeq({c:3}));
 }
 
 function testR() {
@@ -170,11 +170,15 @@ function testGet() {
 
 function testOrderby() {
     tab.orderby('num').nth(2).run(objeq({id:7,num:13}));
-    tab.orderby('num').nth(2).pickAttrs('num').run(objeq({num:13}));
+    tab.orderby('num').nth(2).pick('num').run(objeq({num:13}));
 }
 
 function testPluck() {
     tab.orderby('num').pluck('num').nth(0).run(objeq({num:11}));
+}
+
+function testWithout() {
+    tab.orderby('num').without('num').nth(0).run(objeq({id:9}));
 }
 
 function testTabFilter() {
@@ -310,7 +314,7 @@ function testPointUpdate2() {
 
 function testMutate1() {
     tab.mutate(function(a) {
-        return a.pickAttrs('id').extend({mutated:true});
+        return a.pick('id').extend({mutated:true});
         //return q.expr({id:a.getAttr('id'), mutated:true});
     }).run(objeq({
         deleted:0,
@@ -333,7 +337,7 @@ function testMutate2() {
 
 function testPointMutate1() {
     tab.get(0).mutate(function(a) {
-        return a.pickAttrs('id').extend({pointmutated:true});
+        return a.pick('id').extend({pointmutated:true});
         //return {id:a.id, pointmutated:true};
     }).run(objeq({
         deleted:0,
@@ -409,15 +413,16 @@ runTests([
     testMap,
     testReduce,
     testFilter,
-    testHasAttr,
+    testContains,
     testGetAttr,
     testPickAttrs,
-    testWithout,
+    testUnpick,
     testR,
     testInsert,
     testGet,
     testOrderby,
     testPluck,
+    testWithout,
     testTabFilter,
     testTabMap,
     testTabReduce,
