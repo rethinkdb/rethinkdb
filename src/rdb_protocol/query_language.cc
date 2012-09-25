@@ -497,8 +497,7 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
 
                 {
                     implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
-                    //TODO: why is this commented out?
-                    //check_mapping_type(b.concat_map().mapping(), TERM_TYPE_STREAM, env, &deterministic, deterministic, backtrace.with("mapping"));
+                    check_mapping_type(b.concat_map().mapping(), TERM_TYPE_ARBITRARY, env, &deterministic, deterministic, backtrace.with("mapping"));
                 }
                 term_info_t res = get_term_type(c.args(0), env, backtrace);
                 res.deterministic &= deterministic;
