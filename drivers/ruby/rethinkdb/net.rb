@@ -72,7 +72,7 @@ module RethinkDB
 
     def start_listener # :nodoc:
       class << @socket
-        def read_exn(len)
+        def read_exn(len) # :nodoc:
           buf = read len
           raise RuntimeError,"Connection closed by server." if !buf or buf.length != len
           return buf

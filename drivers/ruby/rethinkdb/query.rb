@@ -44,7 +44,7 @@ module RethinkDB
       RQL_Protob.query(args == [] ? sexp : S.replace(sexp, *args))
     end
 
-    def print_backtrace(bt)
+    def print_backtrace(bt) # :nodoc:
       #PP.pp [bt, bt.map{|x| B.expand x}.flatten, sexp]
       begin
         B.with_marked_error(self, bt) {
@@ -58,7 +58,7 @@ module RethinkDB
       end
     end
 
-    def pprint
+    def pprint # :nodoc:
       return @body.inspect if @body.class != Array
       return "" if @body == []
       case @body[0]
@@ -78,12 +78,12 @@ module RethinkDB
       end
     end
 
-    def real_inspect(args)
+    def real_inspect(args) # :nodoc:
       str = args[:str] || pprint
       (B.highlight and @marked) ? "\000"*str.length : str
     end
 
-    def inspect
+    def inspect # :nodoc:
       real_inspect({})
     end
 

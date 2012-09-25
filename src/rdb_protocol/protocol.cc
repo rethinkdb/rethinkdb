@@ -177,9 +177,9 @@ read_t read_t::shard(const region_t &region) const THROWS_NOTHING {
 /* read_t::unshard implementation */
 bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
     const rget_read_response_t *lr = boost::get<rget_read_response_t>(&l.response);
-    rassert(lr);
+    guarantee(lr);
     const rget_read_response_t *rr = boost::get<rget_read_response_t>(&r.response);
-    rassert(rr);
+    guarantee(rr);
     return lr->key_range < rr->key_range;
 }
 
@@ -209,8 +209,8 @@ public:
     { }
 
     void operator()(const point_read_t &) {
-        rassert(count == 1);
-        rassert(boost::get<point_read_response_t>(&responses[0].response));
+        guarantee(count == 1);
+        guarantee(boost::get<point_read_response_t>(&responses[0].response));
         *response_out = responses[0];
     }
 
@@ -226,7 +226,7 @@ public:
             for(size_t i = 0; i < count; ++i) {
                 // TODO: we're ignoring the limit when recombining.
                 const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                rassert(_rr);
+                guarantee(_rr);
 
                 if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&(_rr->result))) {
                     throw *e;
@@ -240,7 +240,7 @@ public:
                 for(size_t i = 0; i < count; ++i) {
                     // TODO: we're ignoring the limit when recombining.
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    rassert(_rr);
+                    guarantee(_rr);
 
                     const stream_t *stream = boost::get<stream_t>(&(_rr->result));
 
@@ -332,11 +332,11 @@ public:
         // TODO: do this without copying so much and/or without dynamic memory
         // Sort results by region
         std::vector<distribution_read_response_t> results(count);
-        rassert(count > 0);
+        guarantee(count > 0);
 
         for (size_t i = 0; i < count; ++i) {
             const distribution_read_response_t *result = boost::get<distribution_read_response_t>(&responses[i].response);
-            rassert(result, "Bad boost::get\n");
+            guarantee(result, "Bad boost::get\n");
             results[i] = *result;
         }
 
@@ -372,7 +372,7 @@ public:
                 // Scale up the selected hash shard
                 double scale_factor = static_cast<double>(total_range_keys) / static_cast<double>(largest_size);
 
-                rassert(scale_factor >= 1.0);  // Directly provable from the code above.
+                guarantee(scale_factor >= 1.0);  // Directly provable from the code above.
 
                 for (std::map<store_key_t, int>::iterator mit = results[largest_index].key_counts.begin();
                      mit != results[largest_index].key_counts.end();
@@ -458,8 +458,8 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(w_shard_visitor(region), write);
 }
 
-void write_t::unshard(const write_response_t *responses, DEBUG_VAR size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
-    rassert(count == 1);
+void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
+    guarantee(count == 1);
     *response = responses[0];
 }
 
@@ -763,8 +763,8 @@ void store_t::protocol_reset_data(const region_t& subregion,
 }
 
 region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
-    rassert(subregion_number >= 0);
-    rassert(subregion_number < num_cpu_shards);
+    guarantee(subregion_number >= 0);
+    guarantee(subregion_number < num_cpu_shards);
 
     // We have to be careful with the math here, to avoid overflow.
     uint64_t width = HASH_REGION_HASH_SIZE / num_cpu_shards;

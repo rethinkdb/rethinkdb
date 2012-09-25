@@ -209,8 +209,8 @@ public:
         // TODO: more error handling
         // TODO reevaluate this when we better understand what we're doing for ordering
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            rassert(json);
-            rassert(json->get());
+            guarantee(json);
+            guarantee(json->get());
             if (json->type() != cJSON_Object) {
                 throw runtime_exc_t(strprintf("Got non-object in RANGE query: %s.", json->Print().c_str()), backtrace);
             }

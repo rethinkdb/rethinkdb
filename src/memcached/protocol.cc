@@ -70,7 +70,7 @@ archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *b
 
         if (num_read == -1) { return ARCHIVE_SOCK_ERROR; }
         if (num_read < size) { return ARCHIVE_SOCK_EOF; }
-        rassert(num_read == size);
+        guarantee(num_read == size);
     }
     return ARCHIVE_SUCCESS;
 }
@@ -175,7 +175,7 @@ public:
         int cmp = x.key.compare(y.key);
 
         // We should never have equal keys.
-        rassert(cmp != 0);
+        guarantee(cmp != 0);
         return cmp < 0;
     }
 };
@@ -194,7 +194,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 
     explicit read_unshard_visitor_t(const read_response_t *b, size_t c) : bits(b), count(c) { }
     read_response_t operator()(UNUSED get_query_t get) {
-        rassert(count == 1);
+        guarantee(count == 1);
         return read_response_t(boost::get<get_result_t>(bits[0].result));
     }
     read_response_t operator()(rget_query_t rget) {
@@ -227,11 +227,11 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
         // TODO: do this without copying so much and/or without dynamic memory
         // Sort results by region
         std::vector<distribution_result_t> results(count);
-        rassert(count > 0);
+        guarantee(count > 0);
 
         for (size_t i = 0; i < count; ++i) {
             const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
-            rassert(result, "Bad boost::get\n");
+            guarantee(result, "Bad boost::get\n");
             results[i] = *result;
         }
 
@@ -267,7 +267,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
             if (largest_size > 0) {
                 double scale_factor = static_cast<double>(total_range_keys) / static_cast<double>(largest_size);
 
-                rassert(scale_factor >= 1.0);  // Directly provable from the code above.
+                guarantee(scale_factor >= 1.0);  // Directly provable from the code above.
 
                 for (std::map<store_key_t, int>::iterator mit = results[largest_index].key_counts.begin();
                      mit != results[largest_index].key_counts.end();
@@ -318,9 +318,9 @@ write_t write_t::shard(DEBUG_VAR const region_t &region) const THROWS_NOTHING {
 
 /* `write_response_t::unshard()` */
 
-void write_t::unshard(const write_response_t *responses, DEBUG_VAR size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
+void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
     /* TODO: Make sure the request type matches the response type */
-    rassert(count == 1);
+    guarantee(count == 1);
     *response = responses[0];
 }
 
@@ -401,8 +401,8 @@ repli_timestamp_t backfill_chunk_t::get_btree_repli_timestamp() const THROWS_NOT
 }
 
 region_t memcached_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
-    rassert(subregion_number >= 0);
-    rassert(subregion_number < num_cpu_shards);
+    guarantee(subregion_number >= 0);
+    guarantee(subregion_number < num_cpu_shards);
 
     // We have to be careful with the math here, to avoid overflow.
     uint64_t width = HASH_REGION_HASH_SIZE / num_cpu_shards;
@@ -497,7 +497,7 @@ struct write_visitor_t : public boost::static_visitor<write_response_t> {
             memcached_append_prepend(m.key, btree, m.data, (m.kind == append_prepend_APPEND), proposed_cas, effective_time, timestamp, txn, superblock));
     }
     write_response_t operator()(const delete_mutation_t &m) {
-        rassert(proposed_cas == INVALID_CAS);
+        guarantee(proposed_cas == INVALID_CAS);
         return write_response_t(
             memcached_delete(m.key, m.dont_put_in_delete_queue, btree, effective_time, timestamp, txn, superblock));
     }

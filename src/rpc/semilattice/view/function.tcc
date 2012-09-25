@@ -53,7 +53,7 @@ public:
             semilattice_join(&copy, value);
             rassert(expected_value == extractor(copy), "Function view used on a non direct semilattice.");
         }
-#endif
+#endif  // NDEBUG
         outer_t value = outer->get();
         semilattice_join(&(extractor(value)), new_inner);
         outer->join(value);

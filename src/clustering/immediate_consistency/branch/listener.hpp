@@ -94,12 +94,12 @@ public:
     // Getters used by the replier :(
     // TODO: Some of these can and should be passed directly to the replier?
     store_view_t<protocol_t> *svs() const {
-        rassert(svs_ != NULL);
+        guarantee(svs_ != NULL);
         return svs_;
     }
 
     branch_id_t branch_id() const {
-        rassert(branch_id_ != nil_uuid());
+        guarantee(!branch_id_.is_nil());
         return branch_id_;
     }
 

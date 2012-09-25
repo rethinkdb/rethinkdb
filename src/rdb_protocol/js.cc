@@ -23,7 +23,8 @@ static void append_caught_error(std::string *errmsg, const v8::TryCatch &try_cat
 
     int len = msg->Utf8Length();
     scoped_array_t<char> buf(len);
-    guarantee(len == msg->WriteUtf8(buf.data(), len));
+    int written = msg->WriteUtf8(buf.data(), len);
+    guarantee(len == written);
 
     errmsg->append(":\n");
     errmsg->append(buf.data(), len);
@@ -35,7 +36,7 @@ scoped_id_t::~scoped_id_t() {
 }
 
 void scoped_id_t::reset(id_t id) {
-    rassert(id_ != id);
+    guarantee(id_ != id);
     if (!empty()) {
         parent_->release_id(id_);
     }
@@ -64,7 +65,8 @@ env_t::~env_t() {
 
 void env_t::run() {
     while (!should_quit_) {
-        guarantee(-1 != extproc::job_t::accept_job(control_, this));
+        int res = extproc::job_t::accept_job(control_, this);
+        guarantee(-1 != res);
     }
 }
 
@@ -92,7 +94,8 @@ id_t env_t::new_id() {
 
 void env_t::forget(id_t id) {
     guarantee(id < next_id_);
-    guarantee(1 == values_.erase(id));
+    size_t num_erased = values_.erase(id);
+    guarantee(1 == num_erased);
 }
 
 
@@ -118,7 +121,8 @@ runner_t::~runner_t() {
 
 void runner_t::begin(extproc::pool_t *pool) {
     // TODO(rntz): might eventually want to handle external process failure
-    guarantee(0 == extproc::job_handle_t::begin(pool, job_t()));
+    int res = extproc::job_handle_t::begin(pool, job_t());
+    guarantee(0 == res);
 }
 
 void runner_t::interrupt() {
@@ -131,7 +135,7 @@ struct quit_task_t : auto_task_t<quit_task_t> {
 };
 
 void runner_t::finish() {
-    rassert(connected());
+    guarantee(connected());
     run_task_t(this, default_req_config(), quit_task_t());
     extproc::job_handle_t::release();
 }
@@ -146,7 +150,7 @@ void runner_t::job_t::run_job(control_t *control, UNUSED void *extra) {
 runner_t::run_task_t::run_task_t(runner_t *runner, const req_config_t *config, const task_t &task)
     : runner_(runner)
 {
-    rassert(!runner_->running_task_);
+    guarantee(!runner_->running_task_);
     DEBUG_ONLY_CODE(runner_->running_task_ = true);
 
     if (NULL == config)
@@ -154,11 +158,12 @@ runner_t::run_task_t::run_task_t(runner_t *runner, const req_config_t *config, c
     if (config->timeout_ms)
         timer_.init(new signal_timer_t(config->timeout_ms));
 
-    guarantee(0 == task.send_over(this));
+    int res = task.send_over(this);
+    guarantee(0 == res);
 }
 
 runner_t::run_task_t::~run_task_t() {
-    rassert(runner_->running_task_);
+    guarantee(runner_->running_task_);
     DEBUG_ONLY_CODE(runner_->running_task_ = false);
 }
 
@@ -184,12 +189,13 @@ struct release_task_t : auto_task_t<release_task_t> {
 };
 
 void runner_t::release_id(id_t id) {
-    rassert(connected());
-    rassert(used_ids_.count(id));
+    guarantee(connected());
+    std::set<id_t>::iterator it = used_ids_.find(id);
+    guarantee(it != used_ids_.end());
 
     run_task_t(this, default_req_config(), release_task_t(id));
 
-    DEBUG_ONLY_CODE(used_ids_.erase(id));
+    used_ids_.erase(it);
 }
 
 // ----- compile() -----
@@ -212,11 +218,10 @@ struct compile_task_t : auto_task_t<compile_task_t> {
             medsz = strlen(med),
             endsz = strlen(end);
 
-        int nargs = args_.size();
-        rassert(args_.size() == (size_t) nargs); // sanity
+        size_t nargs = args_.size();
 
         ssize_t size = begsz + medsz + endsz + src_.size();
-        for (int i = 0; i < nargs; ++i) {
+        for (size_t i = 0; i < nargs; ++i) {
             // + (i > 0) accounts for the preceding comma on extra arguments
             // beyond the first
             size += args_[i].size() + (i > 0);
@@ -228,8 +233,10 @@ struct compile_task_t : auto_task_t<compile_task_t> {
         memcpy(p, beg, begsz);
         p += begsz;
 
-        for (int i = 0; i < nargs; ++i) {
-            if (i) *p++ = ',';
+        for (size_t i = 0; i < nargs; ++i) {
+            if (i != 0) {
+                *p++ = ',';
+            }
             const std::string &s = args_[i];
             memcpy(p, s.data(), s.size());
             p += s.size();
@@ -242,7 +249,7 @@ struct compile_task_t : auto_task_t<compile_task_t> {
         p += src_.size();
 
         memcpy(p, end, endsz);
-        rassert(p - buf->data() == size - endsz,
+        guarantee(p - buf->data() == size - endsz,
                 "\np - buf->data() = %ld\nsize = %ld\nendsz = %lu",
                 p - buf->data(),
                 size,
@@ -278,7 +285,7 @@ struct compile_task_t : auto_task_t<compile_task_t> {
             return result;
         }
         result = v8::Handle<v8::Function>::Cast(funcv);
-        rassert(!result.IsEmpty());
+        guarantee(!result.IsEmpty());
         return result;
     }
 
@@ -295,7 +302,8 @@ struct compile_task_t : auto_task_t<compile_task_t> {
 
         write_message_t msg;
         msg << result;
-        guarantee(0 == send_write_message(env->control(), &msg));
+        int sendres = send_write_message(env->control(), &msg);
+        guarantee(0 == sendres);
     }
 };
 
@@ -309,12 +317,15 @@ id_t runner_t::compile(
 
     {
         run_task_t run(this, config, compile_task_t(args, source));
-        guarantee(ARCHIVE_SUCCESS == deserialize(&run, &result));
+        int res = deserialize(&run, &result);
+        guarantee(ARCHIVE_SUCCESS == res);
     }
 
     id_visitor_t v(errmsg);
     //TODO: shouldn't we do something if the visitor returns INVALID_ID?
-    return new_id(boost::apply_visitor(v, result));
+    id_t id = boost::apply_visitor(v, result);
+    note_id(id);
+    return id;
 }
 
 // ----- call() -----
@@ -327,7 +338,7 @@ struct call_task_t : auto_task_t<call_task_t> {
     {
         if (NULL != obj.get()) {
             obj_ = obj;
-            rassert(obj->type() == cJSON_Object);
+            guarantee(obj->type() == cJSON_Object);
         }
     }
 
@@ -343,16 +354,15 @@ struct call_task_t : auto_task_t<call_task_t> {
         // Construct receiver object.
         v8::Handle<v8::Object> obj = obj_ ? fromJSON(*obj_.get()->get())->ToObject()
                                           : v8::Object::New();
-        rassert(!obj.IsEmpty());
+        guarantee(!obj.IsEmpty());
 
         // Construct arguments.
         size_t nargs = args_.size();
-        guarantee(args_.size() == nargs);
 
         scoped_array_t<v8::Handle<v8::Value> > handles(nargs);
         for (size_t i = 0; i < nargs; ++i) {
             handles[i] = fromJSON(*args_[i]->get());
-            rassert(!handles[i].IsEmpty());
+            guarantee(!handles[i].IsEmpty());
         }
 
         // Call function with environment as its receiver.
@@ -371,7 +381,7 @@ struct call_task_t : auto_task_t<call_task_t> {
 
         v8::HandleScope handle_scope;
         v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(env->findValue(func_id_));
-        rassert(!func.IsEmpty());
+        guarantee(!func.IsEmpty());
 
         v8::Handle<v8::Value> value = eval(func, errmsg);
         if (!value.IsEmpty()) {
@@ -384,7 +394,8 @@ struct call_task_t : auto_task_t<call_task_t> {
 
         write_message_t msg;
         msg << result;
-        guarantee(0 == send_write_message(env->control(), &msg));
+        int sendres = send_write_message(env->control(), &msg);
+        guarantee(0 == sendres);
     }
 };
 
@@ -396,11 +407,12 @@ boost::shared_ptr<scoped_cJSON_t> runner_t::call(
     const req_config_t *config)
 {
     json_result_t result;
-    rassert(!object || object->type() == cJSON_Object);
+    guarantee(!object || object->type() == cJSON_Object);
 
     {
         run_task_t run(this, config, call_task_t(func_id, object, args));
-        guarantee(ARCHIVE_SUCCESS == deserialize(&run, &result));
+        int res = deserialize(&run, &result);
+        guarantee(ARCHIVE_SUCCESS == res);
     }
 
     json_visitor_t v(errmsg);
