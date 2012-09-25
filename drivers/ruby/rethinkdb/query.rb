@@ -53,7 +53,7 @@ module RethinkDB
           line + "\n" + query
         }
       rescue Exception => e
-        PP.pp e if $DEBUG
+        PP.pp [bt, e] if $DEBUG
         "<Internal error in query pretty printer.>"
       end
     end

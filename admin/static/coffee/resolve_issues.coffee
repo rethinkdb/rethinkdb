@@ -393,16 +393,18 @@ module 'ResolveIssuesView', ->
                 datacenters_with_issues: []
 
             namespace = namespaces.get(@model.get('namespace_id'))
-            
-            for datacenter_id of @model.get('replica_affinities')
-                number_replicas = if datacenter_id is @model.get('primary_datacenter') then @model.get('replica_affinities')[datacenter_id]+1 else @model.get('replica_affinities')[datacenter_id]
-                
-                if number_replicas > @model.get('actual_machines_in_datacenters')[datacenter_id]
-                    json.datacenters_with_issues.push
-                        datacenter_id: datacenter_id
-                        datacenter_name: datacenters.get(datacenter_id).get('name')
-                        num_replicas: number_replicas
-                        num_machines: @model.get('actual_machines_in_datacenters')[datacenter_id]
+            if not namespace.get('primary_uuid')?
+                json.no_primary = true
+            else
+                for datacenter_id of @model.get('replica_affinities')
+                    number_replicas = if datacenter_id is @model.get('primary_datacenter') then @model.get('replica_affinities')[datacenter_id]+1 else @model.get('replica_affinities')[datacenter_id]
+                    
+                    if number_replicas > @model.get('actual_machines_in_datacenters')[datacenter_id]
+                        json.datacenters_with_issues.push
+                            datacenter_id: datacenter_id
+                            datacenter_name: datacenters.get(datacenter_id).get('name')
+                            num_replicas: number_replicas
+                            num_machines: @model.get('actual_machines_in_datacenters')[datacenter_id]
 
             @.$el.html _template(json)
             # bind resolution events

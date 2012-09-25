@@ -2194,7 +2194,7 @@ Database view
     .change_view_container{
         margin: 0px;
         padding: 0px 10px 0px 0px;
-        width: 100%;
+        width: 690px;
     }
     .helper_view{
         overflow: auto;
@@ -2212,6 +2212,55 @@ Database view
 
     .pagination_container{
         display: none;
+        overflow: auto;
+        width: 700px;
+        .classic_navigation_container{
+            float: left;
+            width: 600px;
+            overflow: auto;
+            margin: 10px 0px 0px 0px;
+            .goto_previous_container{
+                float: left;
+                overflow: auto;
+                width: 70px;
+            }
+            .manual_jump{
+                width: 460px;
+                margin: 0px 0px 0px 70px;
+                padding: 3px 0px 0px 0px;
+                text-align: center;
+                .limit_value, .skip_value{
+                    width: 20px;
+                    padding: 3px 4px;
+                    margin: 0px;
+                }
+            }
+            .goto_next_container{
+                float: right;
+                overflow: auto;
+                width: 70px;
+            }
+            .goto_first, .goto_previous, .goto_next, .goto_last{
+                float: left;
+                padding: 3px 4px;
+                margin: 3px 3px;
+                .border-radius(3px 3px 3px 3px);
+            }
+            .display_button{
+                display: inline-block;
+            }
+        }
+        .jump_container{
+            float: right;
+            text-align: right;
+            width: 100px;
+            margin: 10px 0px 0px 0px;
+            .jump_page{
+                width: 40px;
+                padding: 3px 4px;
+                margin: 3px 0px 0px 0px;
+            }
+        }
     }
     .results{
         width: 700px;
