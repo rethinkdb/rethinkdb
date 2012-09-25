@@ -33,16 +33,18 @@ class Namespace extends Backbone.Model
         if a is null
             a_new = a
         else if a is ""
-            a_new is -Infinity
+            a_new = -Infinity
         else if typeof a is "string" and a[0]? and a[0] is 'N'
             s = a.slice(a.indexOf("%23")+3)
             if _.isNaN(parseFloat(s)) is false
                 a_new = parseFloat(s)
         else if typeof a is "string" and a[0]? and a[0] is 'S'
             a_new = a.slice(1)
+
         return a_new
 
     compare_keys: (a, b) =>
+        #return 1 if a > b
         a_new = @transform_key(a)
         b_new = @transform_key(b)
 
@@ -60,9 +62,9 @@ class Namespace extends Backbone.Model
                 return -1
             else if typeof a_new is 'string' and typeof b_new is 'number'
                 return 1
-            else if a_new is null
+            else if a_new is null and b_new isnt null
                 return 1
-            else if b_new is null
+            else if b_new is null and a_new isnt null
                 return -1
         return 0
 
