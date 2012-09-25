@@ -9,19 +9,19 @@
 #include <vector>
 
 template <class T>
-inline void assert_T(const T &) { }
+inline void guarantee_T(const T &) { }
 
 template <>
-inline void assert_T<boost::shared_ptr<scoped_cJSON_t> >(DEBUG_VAR const boost::shared_ptr<scoped_cJSON_t> &j) {
-    rassert(j);
+inline void guarantee_T<boost::shared_ptr<scoped_cJSON_t> >(const boost::shared_ptr<scoped_cJSON_t> &j) {
+    guarantee(j);
 }
 
 template <class T>
 class variable_scope_t {
 public:
     void put_in_scope(const std::string &name, const T &t) {
-        assert_T(t);
-        rassert(!scopes.empty());
+        guarantee_T(t);
+        guarantee(!scopes.empty());
         scopes.front()[name] = t;
     }
 

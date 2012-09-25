@@ -52,11 +52,11 @@ public:
     }
 };
 
-void import_memcache(const char *filename, namespace_interface_t<memcached_protocol_t> *nsi, signal_t *interrupt) {
-    rassert(interrupt);
-    interrupt->assert_thread();
+void import_memcache(const char *filename, namespace_interface_t<memcached_protocol_t> *nsi, signal_t *interrupter) {
+    guarantee(interrupter);
+    interrupter->assert_thread();
 
     file_memcached_interface_t interface(filename);
 
-    handle_memcache(&interface, nsi, MAX_CONCURRENT_QUEURIES_ON_IMPORT, NULL, interrupt);
+    handle_memcache(&interface, nsi, MAX_CONCURRENT_QUEURIES_ON_IMPORT, NULL, interrupter);
 }

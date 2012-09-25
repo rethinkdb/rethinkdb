@@ -7,17 +7,19 @@
 #include "rpc/connectivity/connectivity.hpp"
 
 message_multiplexer_t::run_t::run_t(message_multiplexer_t *p) : parent(p) {
-    rassert(parent->run == NULL);
+    guarantee(parent->run == NULL);
     parent->run = this;
+#ifndef NDEBUG
     for (int i = 0; i < max_tag; i++) {
         if (parent->clients[i]) {
             rassert(parent->clients[i]->run);
         }
     }
+#endif  // NDEBUG
 }
 
 message_multiplexer_t::run_t::~run_t() {
-    rassert(parent->run == this);
+    guarantee(parent->run == this);
     parent->run = NULL;
 }
 
@@ -34,28 +36,28 @@ void message_multiplexer_t::run_t::on_message(peer_id_t source, read_stream_t *s
 message_multiplexer_t::client_t::run_t::run_t(client_t *c, message_handler_t *m) :
     parent(c), message_handler(m)
 {
-    rassert(parent->parent->run == NULL);
-    rassert(parent->run == NULL);
+    guarantee(parent->parent->run == NULL);
+    guarantee(parent->run == NULL);
     parent->run = this;
 }
 
 message_multiplexer_t::client_t::run_t::~run_t() {
-    rassert(parent->parent->run == NULL);
-    rassert(parent->run == this);
+    guarantee(parent->parent->run == NULL);
+    guarantee(parent->run == this);
     parent->run = NULL;
 }
 
 message_multiplexer_t::client_t::client_t(message_multiplexer_t *p, tag_t t) :
     parent(p), tag(t), run(NULL)
 {
-    rassert(parent->run == NULL);
-    rassert(parent->clients[tag] == NULL);
+    guarantee(parent->run == NULL);
+    guarantee(parent->clients[tag] == NULL);
     parent->clients[tag] = this;
 }
 
 message_multiplexer_t::client_t::~client_t() {
-    rassert(parent->run == NULL);
-    rassert(parent->clients[tag] == this);
+    guarantee(parent->run == NULL);
+    guarantee(parent->clients[tag] == this);
     parent->clients[tag] = NULL;
 }
 
@@ -96,9 +98,9 @@ message_multiplexer_t::message_multiplexer_t(message_service_t *super_ms) :
 }
 
 message_multiplexer_t::~message_multiplexer_t() {
-    rassert(run == NULL);
+    guarantee(run == NULL);
     for (int i = 0; i < max_tag; i++) {
-        rassert(clients[i] == NULL);
+        guarantee(clients[i] == NULL);
     }
 }
 

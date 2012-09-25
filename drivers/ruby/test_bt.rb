@@ -115,27 +115,27 @@ class ClientBacktraceTest < Test::Unit::TestCase
 
   def test_reduce
     check($rdb.reduce(0){|a,b| a+b},
-          'Query: table("test", "tbl").reduce(0, "_var_1014", "_var_1015", add(_var_1014, _var_1015))',
-          '                                                                               ^^^^^^^^^')
+          'Query: db("test").table("tbl").reduce(0, "_var_1014", "_var_1015", add(_var_1014, _var_1015))',
+          '                                                                                  ^^^^^^^^^')
     check($rdb.map{|x| x[:id]}.reduce(r.add(1,"a")){|a,b| a+b},
-          'Query: table("test", "tbl").map("_var_1016", _var_1016[:id]).reduce(add(1, "a"), "_var_1017", "_var_1018", add(_var_1017, _var_1018))',
-          '                                                                           ^^^')
+          'Query: db("test").table("tbl").map("_var_1016", _var_1016[:id]).reduce(add(1, "a"), "_var_1017", "_var_1018", add(_var_1017, _var_1018))',
+          '                                                                              ^^^')
     check($rdb.map{|x| x[:id]}.reduce($rdb){|a,b| a+b},
-          'Query: table("test", "tbl").map("_var_1019", _var_1019[:id]).reduce(table("test", "tbl"), "_var_1020", "_var_1021", add(_var_1020, _var_1021))',
-          '                                                                    ^^^^^^^^^^^^^^^^^^^^')
+          'Query: db("test").table("tbl").map("_var_1019", _var_1019[:id]).reduce(db("test").table("tbl"), "_var_1020", "_var_1021", add(_var_1020, _var_1021))',
+          '                                                                       ^^^^^^^^^^^^^^^^^^^^^^^')
 
     check($rdb.groupedmapreduce(lambda {|x| x[:id] % "a"}, lambda {|x| x[:id]}, 0, lambda {|a,b| a+b}),
-          'Query: table("test", "tbl").groupedmapreduce(["_var_1030", modulo(_var_1030[:id], "a")], ["_var_1031", _var_1031[:id]], [0, "_var_1032", "_var_1033", add(_var_1032, _var_1033)])',
-          '                                                                                  ^^^')
+          'Query: db("test").table("tbl").groupedmapreduce(["_var_1030", modulo(_var_1030[:id], "a")], ["_var_1031", _var_1031[:id]], [0, "_var_1032", "_var_1033", add(_var_1032, _var_1033)])',
+          '                                                                                     ^^^')
     check($rdb.groupedmapreduce(lambda {|x| x[:id] % 4}, lambda {|x| x[:id]+"a"}, 0, lambda {|a,b| a+b}),
-          'Query: table("test", "tbl").groupedmapreduce(["_var_1034", modulo(_var_1034[:id], 4)], ["_var_1035", add(_var_1035[:id], "a")], [0, "_var_1036", "_var_1037", add(_var_1036, _var_1037)])',
-          '                                                                                                                         ^^^')
+          'Query: db("test").table("tbl").groupedmapreduce(["_var_1034", modulo(_var_1034[:id], 4)], ["_var_1035", add(_var_1035[:id], "a")], [0, "_var_1036", "_var_1037", add(_var_1036, _var_1037)])',
+          '                                                                                                                            ^^^')
     check($rdb.groupedmapreduce(lambda {|x| x[:id] % 4}, lambda {|x| x[:id]}, r.add(1,"a"), lambda {|a,b| a+b}),
-          'Query: table("test", "tbl").groupedmapreduce(["_var_1038", modulo(_var_1038[:id], 4)], ["_var_1039", _var_1039[:id]], [add(1, "a"), "_var_1040", "_var_1041", add(_var_1040, _var_1041)])',
-          '                                                                                                                              ^^^')
+          'Query: db("test").table("tbl").groupedmapreduce(["_var_1038", modulo(_var_1038[:id], 4)], ["_var_1039", _var_1039[:id]], [add(1, "a"), "_var_1040", "_var_1041", add(_var_1040, _var_1041)])',
+          '                                                                                                                                 ^^^')
     check($rdb.groupedmapreduce(lambda {|x| x[:id] % 4}, lambda {|x| x[:id]}, 0, lambda {|a,b| a+b+"a"}),
-          'Query: table("test", "tbl").groupedmapreduce(["_var_1042", modulo(_var_1042[:id], 4)], ["_var_1043", _var_1043[:id]], [0, "_var_1044", "_var_1045", add(add(_var_1044, _var_1045), "a")])',
-          '                                                                                                                                                                                   ^^^')
+          'Query: db("test").table("tbl").groupedmapreduce(["_var_1042", modulo(_var_1042[:id], 4)], ["_var_1043", _var_1043[:id]], [0, "_var_1044", "_var_1045", add(add(_var_1044, _var_1045), "a")])',
+          '                                                                                                                                                                                      ^^^')
   end
 
   def test_meta
@@ -167,71 +167,71 @@ class ClientBacktraceTest < Test::Unit::TestCase
 
   def test_between
     check($rdb.between({}, 4),
-          'Query: table("test", "tbl").range(:id, {}, 4)',
-          '                                       ^^')
-    check($rdb.between(0, {}),
-          'Query: table("test", "tbl").range(:id, 0, {})',
+          'Query: db("test").table("tbl").range(:id, {}, 4)',
           '                                          ^^')
+    check($rdb.between(0, {}),
+          'Query: db("test").table("tbl").range(:id, 0, {})',
+          '                                             ^^')
     check($rdb.between(r.add(1,"a"), r.add(1,"a")),
-          'Query: table("test", "tbl").range(:id, add(1, "a"), add(1, "a"))',
-          '                                              ^^^')
-    check($rdb.between(0, r.add(1,"a")),
-          'Query: table("test", "tbl").range(:id, 0, add(1, "a"))',
+          'Query: db("test").table("tbl").range(:id, add(1, "a"), add(1, "a"))',
           '                                                 ^^^')
+    check($rdb.between(0, r.add(1,"a")),
+          'Query: db("test").table("tbl").range(:id, 0, add(1, "a"))',
+          '                                                    ^^^')
   end
 
   def test_streamops
     check($rdb.map{|x| r.add(1,x)},
-          'Query: table("test", "tbl").map("_var_1050", add(1, _var_1050))',
-          '                                                    ^^^^^^^^^')
+          'Query: db("test").table("tbl").map("_var_1050", add(1, _var_1050))',
+          '                                                       ^^^^^^^^^')
     check(r.db('a').table('b').update{{}},
-          'Query: update(table("a", "b"), ["_var_1007", {}])',
-          '              ^^^^^^^^^^^^^^^')
+          'Query: update(db("a").table("b"), ["_var_1007", {}])',
+          '              ^^^^^^^^^^^^^^^^^^')
     check($rdb.update{{:new => r.add(1, "a")}},
-          'Query: update(table("test", "tbl"), ["_var_1052", {:new=>add(1, "a")}])',
-          '                                                                ^^^')
+          'Query: update(db("test").table("tbl"), ["_var_1052", {:new=>add(1, "a")}])',
+          '                                                                   ^^^')
     check($rdb.update{{:id => -1}},
-          'Query: update(table("test", "tbl"), ["_var_1054", {:id=>-1}])',
-          '                                                  ^^^^^^^^^')
+          'Query: update(db("test").table("tbl"), ["_var_1054", {:id=>-1}])',
+          '                                                     ^^^^^^^^^')
     check(r.db('a').table('b').mutate{{}},
-          'Query: mutate(table("a", "b"), ["_var_1008", {}])',
-          '              ^^^^^^^^^^^^^^^')
+          'Query: mutate(db("a").table("b"), ["_var_1008", {}])',
+          '              ^^^^^^^^^^^^^^^^^^')
     check($rdb.mutate{{:new => r.add(1, "a")}},
-          'Query: mutate(table("test", "tbl"), ["_var_1056", {:new=>add(1, "a")}])',
-          '                                                                ^^^')
+          'Query: mutate(db("test").table("tbl"), ["_var_1056", {:new=>add(1, "a")}])',
+          '                                                                   ^^^')
     check($rdb.mutate{{:new => 1}},
-          'Query: mutate(table("test", "tbl"), ["_var_1056", {:new=>1}])',
-          '                                                  ^^^^^^^^^')
+          'Query: mutate(db("test").table("tbl"), ["_var_1056", {:new=>1}])',
+          '                                                     ^^^^^^^^^')
     check($rdb.filter{1},
-          'Query: table("test", "tbl").filter("_var_1060", 1)',
-          '                                                ^')
+          'Query: db("test").table("tbl").filter("_var_1060", 1)',
+          '                                                   ^')
     check($rdb.filter{$rdb},
-          'Query: table("test", "tbl").filter("_var_1061", table("test", "tbl"))',
-          '                                                ^^^^^^^^^^^^^^^^^^^^')
+          'Query: db("test").table("tbl").filter("_var_1061", db("test").table("tbl"))',
+          '                                                   ^^^^^^^^^^^^^^^^^^^^^^^')
     check($rdb.filter{|row| r.eq(row[:id], r.add(1, "a"))},
-          'Query: table("test", "tbl").filter("_var_1062", compare(:eq, _var_1062[:id], add(1, "a")))',
-          '                                                                                    ^^^')
+          'Query: db("test").table("tbl").filter("_var_1062", compare(:eq, _var_1062[:id], add(1, "a")))',
+          '                                                                                       ^^^')
     check($rdb.filter{|row| row[:id]},
-          'Query: table("test", "tbl").filter("_var_1002", _var_1002[:id])',
-          '                                                ^^^^^^^^^^^^^^')
+          'Query: db("test").table("tbl").filter("_var_1002", _var_1002[:id])',
+          '                                                   ^^^^^^^^^^^^^^')
   end
 
   def test_orderby
     check($rdb.orderby(:bah),
-          'Query: table("test", "tbl").orderby([:bah, true])',
-          '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+          'Query: db("test").table("tbl").orderby([:bah, true])',
+          '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
   end
 
   def test_foreach
     check(r.db('a').table('b').foreach{|row| $rdb.get(0).update{{:new => row[:id]}}},
-          'Query: foreach(table("a", "b"), "_var_1066", [pointupdate(["test", "tbl"], :id, 0, ["_var_1067", {:new=>_var_1066[:id]}])])',
-          '               ^^^^^^^^^^^^^^^')
+          'Query: foreach(db("a").table("b"), "_var_1066", [pointupdate(["test", "tbl"], :id, 0, ["_var_1067", {:new=>_var_1066[:id]}])])',
+          '               ^^^^^^^^^^^^^^^^^^')
     check($rdb.foreach{|row| [$rdb.get(0).update{{:id => row[:id]}}, $rdb.mutate{|row| row}]},
-          'Query: foreach(table("test", "tbl"), "_var_1071", [pointupdate(["test", "tbl"], :id, 0, ["_var_1072", {:id=>_var_1071[:id]}]), mutate(table("test", "tbl"), ["_var_1073", _var_1073])])',
-          '                                                                                                      ^^^^^^^^^^^^^^^^^^^^^')
+          'Query: foreach(db("test").table("tbl"), "_var_1071", [pointupdate(["test", "tbl"], :id, 0, ["_var_1072", {:id=>_var_1071[:id]}]), mutate(db("test").table("tbl"), ["_var_1073", _var_1073])])',
+          '                                                                                                         ^^^^^^^^^^^^^^^^^^^^^')
     check($rdb.foreach{|row| [$rdb.get(0).update{{:new => row[:id]}}, $rdb.mutate{|row| {}}]},
-          'Query: foreach(table("test", "tbl"), "_var_1001", [pointupdate(["test", "tbl"], :id, 0, ["_var_1002", {:new=>_var_1001[:id]}]), mutate(table("test", "tbl"), ["_var_1003", {}])])',
-          '                                                                                                                                                                           ^^')
+          'Query: foreach(db("test").table("tbl"), "_var_1001", [pointupdate(["test", "tbl"], :id, 0, ["_var_1002", {:new=>_var_1001[:id]}]), mutate(db("test").table("tbl"), ["_var_1003", {}])])',
+          '                                                                                                                                                                                 ^^')
   end
 
   def test_obj_access

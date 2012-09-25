@@ -41,6 +41,15 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.mul(1e100,1e100).run, 1e200)
   end
 
+  def test_outdated_raise
+    outdated = r.db('test').table('Welcome-rdb', {:use_outdated => true})
+    assert_raise(RuntimeError){outdated.upsert({:id => 0})}
+    assert_raise(RuntimeError){outdated.filter{|row| row[:id] < 5}.update{{}}}
+    assert_raise(RuntimeError){outdated.update{{}}}
+    assert_raise(RuntimeError){outdated.filter{|row| row[:id] < 5}.delete}
+    assert_raise(RuntimeError){outdated.filter{|row| row[:id] < 5}.between(2,3).mutate{nil}}
+  end
+
   def test_cmp # from python tests
     assert_equal(r.eq(3, 3).run, true)
     assert_equal(r.eq(3, 4).run, false)

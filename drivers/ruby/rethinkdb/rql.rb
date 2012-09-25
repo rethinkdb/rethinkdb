@@ -408,8 +408,8 @@ module RethinkDB
     # then the following are equivalent:
     #   c.run(r.table('tbl_name'))
     #   c.run(r.db('db_name').table('tbl_name')
-    def self.table(tbl_name)
-      Table.new(:default_db, tbl_name)
+    def self.table(name, opts={})
+      Table.new(:default_db, name, opts)
     end
   end
 end

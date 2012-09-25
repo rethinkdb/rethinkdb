@@ -144,7 +144,7 @@ void terminal_visitor_t::operator()(const Reduction &r) const {
 void terminal_visitor_t::operator()(const rdb_protocol_details::Length &) const {
     rget_read_response_t::length_t *res_length = boost::get<rget_read_response_t::length_t>(out);
     guarantee(res_length);
-    res_length->length++;
+    ++res_length->length;
 }
 
 void terminal_visitor_t::operator()(const WriteQuery_ForEach &w) const {
