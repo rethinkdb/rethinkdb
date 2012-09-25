@@ -141,7 +141,7 @@ function testPickAttrs() {
     tobj.pick('a', 'b').run(objeq({a:1,b:2}));
 }
 
-function testWithout() {
+function testUnpick() {
     tobj.unpick('a').run(objeq({b:2,c:3}));
     tobj.unpick(['a','b']).run(objeq({c:3}));
 }
@@ -175,6 +175,10 @@ function testOrderby() {
 
 function testPluck() {
     tab.orderby('num').pluck('num').nth(0).run(objeq({num:11}));
+}
+
+function testWithout() {
+    tab.orderby('num').without('num').nth(0).run(objeq({id:9}));
 }
 
 function testTabFilter() {
@@ -412,12 +416,13 @@ runTests([
     testContains,
     testGetAttr,
     testPickAttrs,
-    testWithout,
+    testUnpick,
     testR,
     testInsert,
     testGet,
     testOrderby,
     testPluck,
+    testWithout,
     testTabFilter,
     testTabMap,
     testTabReduce,

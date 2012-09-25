@@ -1190,7 +1190,7 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'unpick',
                     rethinkdb.Expression.prototype.unpick);
 
 /**
- * Shortcut to map a pick attrs over a sequence.
+ * Shortcut to map a pick over a sequence.
  * table('foo').pluck('a', 'b') returns a stream of objects only with 'a' and 'b' attributes.
  * @return {rethinkdb.Expression}
  */
@@ -1202,6 +1202,20 @@ rethinkdb.Expression.prototype.pluck = function() {
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'pluck',
                     rethinkdb.Expression.prototype.pluck);
+
+/**
+ * Shortcut to map a unpick over a sequence.
+ * table('foo').pluck('a', 'b') returns a stream of objects without 'a' and 'b' attributes.
+ * @return {rethinkdb.Expression}
+ */
+rethinkdb.Expression.prototype.without = function() {
+    var args = Array.prototype.slice.call(arguments, 0);
+    return this.map(function(a) {
+        return rethinkdb.Expression.prototype.unpick.apply(a, args)
+    });
+};
+goog.exportProperty(rethinkdb.Expression.prototype, 'without',
+                    rethinkdb.Expression.prototype.without);
 
 /**
  * @param {string} varName
