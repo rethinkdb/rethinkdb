@@ -2433,6 +2433,12 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
                 }
 
                 if (lowerbound && upperbound) {
+                    if (cJSON_cmp(lowerbound->get(), upperbound->get(), backtrace) >= 0) {
+                        throw runtime_exc_t(strprintf("Lower bound of RANGE must be <= upper bound (%s vs. %s).",
+                                                      lowerbound->Print().c_str(), upperbound->Print().c_str()),
+                                            backtrace.with("lowerbound"));
+                    }
+
                     range = key_range_t(key_range_t::closed, store_key_t(cJSON_print_primary(lowerbound->get(), backtrace)),
                                         key_range_t::closed, store_key_t(cJSON_print_primary(upperbound->get(), backtrace)));
                 } else if (lowerbound) {

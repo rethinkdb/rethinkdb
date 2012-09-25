@@ -24,11 +24,7 @@ public:
     explicit shared_scoped_less_t(const backtrace_t &bt) : backtrace(bt) { }
     bool operator()(const boost::shared_ptr<scoped_cJSON_t> &a,
                       const boost::shared_ptr<scoped_cJSON_t> &b) {
-        if (a->type() == b->type()) {
-            return cJSON_cmp(a->get(), b->get(), backtrace) < 0;
-        } else {
-            return a->type() > b->type();
-        }
+        return cJSON_cmp(a->get(), b->get(), backtrace) < 0;
     }
 private:
     backtrace_t backtrace;

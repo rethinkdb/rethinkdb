@@ -451,6 +451,7 @@ class ClientTest < Test::Unit::TestCase
 
   def test_range # RANGE
     assert_raise(RuntimeError){rdb.between(1, r.expr([3])).run.to_a}
+    assert_raise(RuntimeError){rdb.between(2, 1).run.to_a}
     assert_equal(id_sort(rdb.between(1,3).run.to_a), $data[1..3])
     assert_equal(id_sort(rdb.between(2,nil).run.to_a), $data[2..-1])
     assert_equal(id_sort(rdb.between(1, 3).run.to_a), $data[1..3])
