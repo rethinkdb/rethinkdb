@@ -26,13 +26,13 @@
 
 const std::vector<std::string>& guarantee_param_vec(const std::map<std::string, std::vector<std::string> >& params, const std::string& name) {
     std::map<std::string, std::vector<std::string> >::const_iterator it = params.find(name);
-    guarantee_unreviewed(it != params.end());
+    guarantee_reviewed(it != params.end());
     return it->second;
 }
 
 const std::string& guarantee_param_0(const std::map<std::string, std::vector<std::string> >& params, const std::string& name) {
     const std::vector<std::string> &vec = guarantee_param_vec(params, name);
-    guarantee_unreviewed(vec.size() == 1);
+    guarantee_reviewed(vec.size() == 1);
     return vec[0];
 }
 
@@ -475,7 +475,7 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
 
     std::map<std::string, std::vector<std::string> >::const_iterator master_it = data.params.find("master");
     if (master_it != data.params.end()) {
-        guarantee_unreviewed(master_it->second.size() == 1);
+        guarantee_reviewed(master_it->second.size() == 1);
         primary.assign(master_it->second[0]);  // TODO: How do we know the vector is non-empty?
     }
 
@@ -558,7 +558,7 @@ typename protocol_t::region_t admin_cluster_link_t::find_shard_in_namespace(cons
     const std::set<typename protocol_t::region_t> shards_value = ns.shards.get();
     for (typename std::set<typename protocol_t::region_t>::const_iterator s = shards_value.begin(); s != shards_value.end(); ++s) {
         // TODO: This is a low level assertion.
-        guarantee_unreviewed(s->beg == 0 && s->end == HASH_REGION_HASH_SIZE);
+        guarantee_reviewed(s->beg == 0 && s->end == HASH_REGION_HASH_SIZE);
 
         if (shard_in.left.exists && s->inner.left != shard_in.left.key) {
             // do nothing
@@ -604,7 +604,7 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(const shard_input_t& shar
     typename protocol_t::region_t shard = find_shard_in_namespace(*ns, shard_in);
 
     // TODO: low-level hash_region_t shard assertion
-    guarantee_unreviewed(shard.beg == 0 && shard.end == HASH_REGION_HASH_SIZE);
+    guarantee_reviewed(shard.beg == 0 && shard.end == HASH_REGION_HASH_SIZE);
 
     // Verify primary is a valid machine and matches the primary datacenter
     if (set_primary) {
@@ -643,7 +643,7 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(const shard_input_t& shar
     for (secondaries_shard = secondary_pinnings.begin();
          secondaries_shard != secondary_pinnings.end(); ++secondaries_shard) {
         // TODO: low level hash_region_t assertion
-        guarantee_unreviewed(secondaries_shard->first.beg == 0 && secondaries_shard->first.end == HASH_REGION_HASH_SIZE);
+        guarantee_reviewed(secondaries_shard->first.beg == 0 && secondaries_shard->first.end == HASH_REGION_HASH_SIZE);
 
         if (secondaries_shard->first.inner.contains_key(shard.inner.left)) {
             break;
@@ -688,7 +688,7 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(const shard_input_t& shar
              ++primary_shard) {
 
             // TODO: Low level assertion
-            guarantee_unreviewed(primary_shard->first.beg == 0 && primary_shard->first.end == HASH_REGION_HASH_SIZE);
+            guarantee_reviewed(primary_shard->first.beg == 0 && primary_shard->first.end == HASH_REGION_HASH_SIZE);
 
             if (primary_shard->first.inner.contains_key(shard.inner.left)) {
                 if (secondaries.count(primary_shard->second) != 0)
@@ -717,7 +717,7 @@ void insert_pinning(map_type& region_map, const key_range_t& shard, value_type& 
 
     for (typename map_type::iterator i = region_map.begin(); i != region_map.end(); ++i) {
         // TODO: low level hash_region_t assertion.
-        guarantee_unreviewed(i->first.beg == 0 && i->first.end == HASH_REGION_HASH_SIZE);
+        guarantee_reviewed(i->first.beg == 0 && i->first.end == HASH_REGION_HASH_SIZE);
         if (i->first.inner.contains_key(shard.left)) {
             if (i->first.inner.left != shard.left) {
                 key_range_t new_shard(key_range_t::closed, i->first.inner.left, key_range_t::open, shard.left);
@@ -838,7 +838,7 @@ std::string admin_cluster_link_t::split_shards(vclock_t<std::set<hash_region_t<k
                 std::set<hash_region_t<key_range_t> >::iterator shard = shards.begin();
                 while (true) {
                     // TODO: This assertion is too low-level, there should be a function for hash_region_t that computes the expression.
-                    guarantee_unreviewed(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
+                    guarantee_reviewed(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
 
                     if (shard == shards.end()) {
                         throw admin_cluster_exc_t("split point could not be placed: " + split_points[i]);
@@ -958,12 +958,12 @@ std::string admin_cluster_link_t::merge_shards(vclock_t<std::set<hash_region_t<k
 
             std::set< hash_region_t<key_range_t> >::iterator prev = shard;
             // TODO: This assertion's expression is too low-level, there should be a function for it.
-            guarantee_unreviewed(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
+            guarantee_reviewed(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
 
             ++shard;
             while (true) {
                 // TODO: This assertion's expression is too low-level, there should be a function for it.
-                guarantee_unreviewed(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
+                guarantee_reviewed(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
 
                 if (shard == shards.end()) {
                     throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
@@ -1057,7 +1057,7 @@ void admin_cluster_link_t::list_pinnings(const namespace_semilattice_metadata_t<
     typename protocol_t::region_t shard = find_shard_in_namespace(ns, shard_in);
 
     // TODO: this is a low-level assertion.
-    guarantee_unreviewed(shard.beg == 0 && shard.end == HASH_REGION_HASH_SIZE);
+    guarantee_reviewed(shard.beg == 0 && shard.end == HASH_REGION_HASH_SIZE);
 
     list_pinnings_internal(ns.blueprint.get(), shard.inner, cluster_metadata);
 }
@@ -2853,8 +2853,8 @@ bool getline(FILE *stream, std::string *out) {
 
         if (res) {
             int len = strlen(buf);
-            guarantee_unreviewed(len < size);
-            guarantee_unreviewed(len > 0);
+            guarantee_reviewed(len < size);
+            guarantee_reviewed(len > 0);
 
             if (buf[len - 1] == '\n') {
                 buf[len - 1] = '\0';
