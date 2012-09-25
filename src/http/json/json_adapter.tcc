@@ -287,9 +287,10 @@ void json_adapter_with_inserter_t<container_t>::reset_impl() {
 
 template <class container_t>
 json_adapter_if_t::json_adapter_map_t json_adapter_with_inserter_t<container_t>::get_subfields_impl() {
-    json_adapter_map_t res = get_json_subfields(target);
-    rassert_unreviewed(res.find(inserter_key) == res.end(), "Error, inserter_key %s  conflicts with another field of the target, (you probably want to change the value of inserter_key).", inserter_key.c_str());
-    res[inserter_key] = boost::shared_ptr<json_adapter_if_t>(new json_map_inserter_t<container_t>(target, generator, initial_value));
+    std::map<std::string, boost::shared_ptr<json_adapter_if_t> > res = get_json_subfields(target);
+    std::pair<std::map<std::string, boost::shared_ptr<json_adapter_if_t> >::iterator, bool> insertion_res
+        = res.insert(std::make_pair(inserter_key, boost::shared_ptr<json_adapter_if_t>(new json_map_inserter_t<container_t>(target, generator, initial_value))));
+    guarantee_reviewed(insertion_res.second);
 
     return res;
 }
@@ -329,9 +330,10 @@ void json_ctx_adapter_with_inserter_t<container_t, ctx_t>::reset_impl() {
 
 template <class container_t, class ctx_t>
 json_adapter_if_t::json_adapter_map_t json_ctx_adapter_with_inserter_t<container_t, ctx_t>::get_subfields_impl() {
-    json_adapter_map_t res = with_ctx_get_json_subfields(target, ctx);
-    rassert_unreviewed(res.find(inserter_key) == res.end(), "Error, inserter_key %s  conflicts with another field of the target, (you probably want to change the value of inserter_key).", inserter_key.c_str());
-    res[inserter_key] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_map_inserter_t<container_t, ctx_t>(target, generator, ctx, initial_value));
+    std::map<std::string, boost::shared_ptr<json_adapter_if_t> > res = with_ctx_get_json_subfields(target, ctx);
+    std::pair<std::map<std::string, boost::shared_ptr<json_adapter_if_t> >::iterator, bool> insertion_res
+        = res.insert(std::make_pair(inserter_key, boost::shared_ptr<json_adapter_if_t>(new json_ctx_map_inserter_t<container_t, ctx_t>(target, generator, ctx, initial_value))));
+    guarantee_reviewed(insertion_res.second);
 
     return res;
 }
