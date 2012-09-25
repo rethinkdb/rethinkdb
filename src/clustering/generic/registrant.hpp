@@ -55,7 +55,7 @@ public:
     }
 
     std::string get_failed_reason() THROWS_NOTHING {
-        rassert_unreviewed(get_failed_signal()->is_pulsed());
+        guarantee_reviewed(get_failed_signal()->is_pulsed());
         return registrar.get_failed_reason();
     }
 

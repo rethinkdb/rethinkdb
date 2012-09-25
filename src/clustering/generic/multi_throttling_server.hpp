@@ -76,7 +76,7 @@ private:
             request_mailbox.reset();
             relinquish_tickets_mailbox.reset();
             drainer.reset();
-            rassert_unreviewed(in_use_tickets == 0);
+            guarantee_reviewed(in_use_tickets == 0);
             parent->return_tickets(held_tickets);
         }
 
@@ -115,7 +115,7 @@ private:
 
     private:
         void on_request(const request_type &request) {
-            rassert_unreviewed(held_tickets > 0);
+            guarantee_reviewed(held_tickets > 0);
             held_tickets--;
             in_use_tickets++;
             coro_t::spawn_sometime(boost::bind(
@@ -209,7 +209,7 @@ private:
 
     void return_tickets(int tickets) {
         free_tickets += tickets;
-        rassert_unreviewed(free_tickets <= total_tickets);
+        guarantee_reviewed(free_tickets <= total_tickets);
         redistribute_tickets();
     }
 
@@ -236,7 +236,7 @@ private:
             if (!neediest) {
                 break;
             }
-            rassert_unreviewed(gift_size >= 0);
+            guarantee_reviewed(gift_size >= 0);
             free_tickets -= gift_size;
             neediest->give_tickets(gift_size);
         }
@@ -259,7 +259,7 @@ private:
             if (!neediest) {
                 break;
             }
-            rassert_unreviewed(gift_size >= 0);
+            guarantee_reviewed(gift_size >= 0);
             free_tickets -= gift_size;
             neediest->give_tickets(gift_size);
         }
@@ -274,6 +274,9 @@ private:
     repeating_timer_t reallocate_timer;
 
     registrar_t<client_business_card_t, multi_throttling_server_t *, client_t> registrar;
+
+private:
+    DISABLE_COPYING(multi_throttling_server_t);
 };
 
 #endif /* CLUSTERING_GENERIC_MULTI_THROTTLING_SERVER_HPP_ */
