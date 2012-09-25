@@ -10,7 +10,7 @@ network_logger_t::network_logger_t(
     semilattice_subscription(boost::bind(&network_logger_t::on_change, this))
 {
     watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> >::freeze_t directory_freeze(directory_view);
-    rassert_unreviewed(directory_view->get().empty());
+    guarantee_reviewed(directory_view->get().empty());
     directory_subscription.reset(directory_view, &directory_freeze);
     semilattice_subscription.reset(semilattice_view);
 }
@@ -74,7 +74,7 @@ void network_logger_t::on_change() {
 std::string network_logger_t::pretty_print_machine(machine_id_t id) {
     machines_semilattice_metadata_t semilattice = semilattice_view->get();
     machines_semilattice_metadata_t::machine_map_t::iterator jt = semilattice.machines.find(id);
-    rassert_unreviewed(jt != semilattice.machines.end());
+    guarantee_reviewed(jt != semilattice.machines.end());
     std::string name;
     if (jt->second.is_deleted()) {
         name = "<ghost machine>";
