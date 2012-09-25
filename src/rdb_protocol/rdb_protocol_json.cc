@@ -5,7 +5,7 @@
 #include "utils.hpp"
 
 write_message_t &operator<<(write_message_t &msg, const boost::shared_ptr<scoped_cJSON_t> &cjson) {
-    rassert_reviewed(NULL != cjson.get() && NULL != cjson->get());
+    rassert(NULL != cjson.get() && NULL != cjson->get());
     msg << *cjson->get();
     return msg;
 }

@@ -156,9 +156,9 @@ public:
     slice_stream_t(boost::shared_ptr<json_stream_t> _stream, int _start, bool _unbounded, int _stop)
         : stream(_stream), start(_start), unbounded(_unbounded), stop(_stop)
     {
-        guarantee_reviewed(start >= 0);
-        guarantee_reviewed(stop >= 0);
-        guarantee_reviewed(unbounded || stop >= start);
+        guarantee(start >= 0);
+        guarantee(stop >= 0);
+        guarantee(unbounded || stop >= start);
         stop -= start;
     }
 
@@ -186,7 +186,7 @@ public:
     skip_stream_t(boost::shared_ptr<json_stream_t> _stream, int _offset)
         : stream(_stream), offset(_offset)
     {
-        guarantee_reviewed(offset >= 0);
+        guarantee(offset >= 0);
     }
 
     boost::shared_ptr<scoped_cJSON_t> next() {
@@ -209,8 +209,8 @@ public:
         // TODO: more error handling
         // TODO reevaluate this when we better understand what we're doing for ordering
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            guarantee_reviewed(json);
-            guarantee_reviewed(json->get());
+            guarantee(json);
+            guarantee(json->get());
             if (json->type() != cJSON_Object) {
                 throw runtime_exc_t(strprintf("Got non-object in RANGE query: %s.", json->Print().c_str()), backtrace);
             }

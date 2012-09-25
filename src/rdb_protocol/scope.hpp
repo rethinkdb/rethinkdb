@@ -13,7 +13,7 @@ inline void guarantee_T(const T &) { }
 
 template <>
 inline void guarantee_T<boost::shared_ptr<scoped_cJSON_t> >(const boost::shared_ptr<scoped_cJSON_t> &j) {
-    guarantee_reviewed(j);
+    guarantee(j);
 }
 
 template <class T>
@@ -21,7 +21,7 @@ class variable_scope_t {
 public:
     void put_in_scope(const std::string &name, const T &t) {
         guarantee_T(t);
-        guarantee_reviewed(!scopes.empty());
+        guarantee(!scopes.empty());
         scopes.front()[name] = t;
     }
 

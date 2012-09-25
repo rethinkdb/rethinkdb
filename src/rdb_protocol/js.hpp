@@ -147,10 +147,10 @@ class runner_t : private extproc::job_handle_t {
   private:
     // TODO: This function one of those "identity function with assertion" functions.
     void note_id(id_t id) {
-        guarantee_reviewed(connected());
+        guarantee(connected());
         if (id != INVALID_ID) {
             std::pair<std::set<id_t>::iterator, bool> res = used_ids_.insert(id);
-            guarantee_reviewed(res.second);
+            guarantee(res.second);
         }
     }
 

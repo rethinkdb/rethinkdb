@@ -133,7 +133,7 @@ public:
             mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
             namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
             size_t num_erased = directory.reactor_bcards.erase(namespace_id_);
-            guarantee_reviewed(num_erased == 1);
+            guarantee(num_erased == 1);
             parent_->watchable_variable.set_value(directory);
         }
 
@@ -252,7 +252,7 @@ private:
             namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
             std::pair<typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::iterator, bool> insert_res
                 = directory.reactor_bcards.insert(std::make_pair(namespace_id_, reactor_->get_reactor_directory()->get()));
-            guarantee_reviewed(insert_res.second);  // Ensure a value did not already exist.
+            guarantee(insert_res.second);  // Ensure a value did not already exist.
             parent_->watchable_variable.set_value(directory);
         }
 

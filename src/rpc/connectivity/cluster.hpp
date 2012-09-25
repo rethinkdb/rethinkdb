@@ -121,12 +121,12 @@ public:
         class variable_setter_t {
         public:
             variable_setter_t(run_t **var, run_t *val) : variable(var) , value(val) {
-                guarantee_reviewed(*variable == NULL);
+                guarantee(*variable == NULL);
                 *variable = value;
             }
 
             ~variable_setter_t() THROWS_NOTHING {
-                guarantee_reviewed(*variable == value);
+                guarantee(*variable == value);
                 *variable = NULL;
             }
         private:

@@ -101,16 +101,16 @@ connectivity_cluster_t::run_t::connection_entry_t::~connection_entry_t() THROWS_
 
     /* `~entry_installation_t` destroys the `auto_drainer_t`'s in entries,
     so nothing can be holding the `send_mutex`. */
-    guarantee_reviewed(!send_mutex.is_locked());
+    guarantee(!send_mutex.is_locked());
 }
 
 static void ping_connection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
-    rassert_reviewed(connect_disconnect_cb != NULL);
+    rassert(connect_disconnect_cb != NULL);
     connect_disconnect_cb->on_connect(peer);
 }
 
 static void ping_disconnection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
-    rassert_reviewed(connect_disconnect_cb != NULL);
+    rassert(connect_disconnect_cb != NULL);
     connect_disconnect_cb->on_disconnect(peer);
 }
 
@@ -123,7 +123,7 @@ connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::entry_i
         std::pair<std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator, bool>
             res = ti->connection_map.insert(std::make_pair(that_->peer,
                                                            std::make_pair(that_, auto_drainer_t::lock_t(&drainer_))));
-        guarantee_reviewed(res.second, "Map entry was not present.");
+        guarantee(res.second, "Map entry was not present.");
 
         ti->publisher.publish(boost::bind(&ping_connection_watcher, that_->peer, _1));
     }
@@ -137,7 +137,7 @@ connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::~entry_
 
         std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator entry
             = ti->connection_map.find(that_->peer);
-        guarantee_reviewed(entry != ti->connection_map.end() && entry->second.first != that_);
+        guarantee(entry != ti->connection_map.end() && entry->second.first != that_);
         ti->connection_map.erase(that_->peer);
         ti->publisher.publish(boost::bind(&ping_disconnection_watcher, that_->peer, _1));
     }
@@ -274,7 +274,7 @@ void connectivity_cluster_t::run_t::handle(
             r = conn->read(data, header_size - i);
             if (-1 == r)
                 return;         // network error.
-            rassert_reviewed(r >= 0);
+            rassert(r >= 0);
             // If EOF or data does not match header, terminate connection.
             if (0 == r || memcmp(cluster_proto_header + i, data, r)) {
                 // Wrong header.
@@ -491,7 +491,7 @@ void connectivity_cluster_t::run_t::handle(
             called. */
         }
 
-        guarantee_reviewed(!conn->is_read_open(), "the connection is still open for "
+        guarantee(!conn->is_read_open(), "the connection is still open for "
             "read, which means we had a problem other than the TCP "
             "connection closing or dying");
 
@@ -508,7 +508,7 @@ connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     { }
 
 connectivity_cluster_t::~connectivity_cluster_t() THROWS_NOTHING {
-    guarantee_reviewed(!current_run);
+    guarantee(!current_run);
 }
 
 peer_id_t connectivity_cluster_t::get_me() THROWS_NOTHING {
@@ -531,7 +531,7 @@ uuid_t connectivity_cluster_t::get_connection_session_id(peer_id_t peer) THROWS_
         &thread_info.get()->connection_map;
     std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator it =
         connection_map->find(peer);
-    guarantee_reviewed(it != connection_map->end(), "You're trying to access the session "
+    guarantee(it != connection_map->end(), "You're trying to access the session "
         "ID for an unconnected peer. Note that we are not considered to be "
         "connected to ourself until after a connectivity_cluster_t::run_t "
         "has been created.");
@@ -548,7 +548,7 @@ connectivity_service_t *connectivity_cluster_t::get_connectivity_service() THROW
 void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_callback_t *callback) THROWS_NOTHING {
     // We could be on _any_ thread.
 
-    guarantee_reviewed(!dest.is_nil());
+    guarantee(!dest.is_nil());
 
     /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
@@ -601,14 +601,14 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
     if (conn_structure->conn == NULL) {
         // We're sending a message to ourself
-        guarantee_reviewed(dest == me);
+        guarantee(dest == me);
         // We could be on any thread here! Oh no!
         vector_read_stream_t buffer2(&buffer.vector());
         current_run->message_handler->on_message(me, &buffer2);
         conn_structure->pm_bytes_sent.record(buffer.vector().size());
 
     } else {
-        guarantee_reviewed(dest != me);
+        guarantee(dest != me);
         on_thread_t threader(conn_structure->conn->home_thread());
 
         /* Acquire the send-mutex so we don't collide with other things trying
@@ -638,7 +638,7 @@ peer_address_t connectivity_cluster_t::get_peer_address(peer_id_t p) THROWS_NOTH
         &thread_info.get()->connection_map;
     std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator it =
         connection_map->find(p);
-    guarantee_reviewed(it != connection_map->end(), "You can only call get_peer_address() "
+    guarantee(it != connection_map->end(), "You can only call get_peer_address() "
         "on a peer that we're currently connected to. Note that we're not "
         "considered to be connected to ourself until after the "
         "connectivity_cluster_t::run_t has been constructed.");

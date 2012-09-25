@@ -36,8 +36,8 @@ public:
 
         for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it = masked.begin(); it != masked.end(); ++it) {
             version_range_t range = binary_blob_t::get<version_range_t>(it->second);
-            guarantee_reviewed(range.earliest.timestamp == range.latest.timestamp);
-            guarantee_reviewed(range.latest.timestamp <= tstamp_);
+            guarantee(range.earliest.timestamp == range.latest.timestamp);
+            guarantee(range.latest.timestamp <= tstamp_);
         }
     }
 
@@ -106,7 +106,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
        but if there's an error it would be nice to catch it where the action
        was initiated. */
 
-    rassert_reviewed(region_is_superset(our_branch_region_, svs_->get_region()));
+    rassert(region_is_superset(our_branch_region_, svs_->get_region()));
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs_->new_read_token(&read_token);
@@ -121,7 +121,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
              ++it) {
 
             version_t version = it->second.latest;
-            rassert_reviewed(version.branch == branch_id_ ||
+            rassert(version.branch == branch_id_ ||
                     version_is_ancestor(branch_history_manager,
                                         version,
                                         version_t(branch_id_, this_branch_history.initial_timestamp),
@@ -132,7 +132,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
     /* Attempt to register for reads and writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
-    guarantee_reviewed(registration_done_cond_.get_ready_signal()->is_pulsed());
+    guarantee(registration_done_cond_.get_ready_signal()->is_pulsed());
 
     state_timestamp_t streaming_begin_point =
         registration_done_cond_.get_value().broadcaster_begin_timestamp;
@@ -177,7 +177,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     /* Sanity checking. */
 
     /* Make sure the region is not empty. */
-    guarantee_reviewed(backfill_end_point.begin() != backfill_end_point.end());
+    guarantee(backfill_end_point.begin() != backfill_end_point.end());
 
     /* The end timestamp is the maximum of the timestamps we've seen. If you've
     been following closely (which you probably haven't because this is
@@ -201,12 +201,12 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = backfill_end_point.begin();
          it != backfill_end_point.end();
          ++it) {
-        guarantee_reviewed(it->second.is_coherent());
-        guarantee_reviewed(it->second.earliest.branch == branch_id_);
+        guarantee(it->second.is_coherent());
+        guarantee(it->second.earliest.branch == branch_id_);
         backfill_end_timestamp = std::max(backfill_end_timestamp, it->second.earliest.timestamp);
     }
 
-    guarantee_reviewed(backfill_end_timestamp >= streaming_begin_point);
+    guarantee(backfill_end_timestamp >= streaming_begin_point);
 
     current_timestamp_ = backfill_end_timestamp;
     write_queue_coro_pool_callback_.init(
@@ -267,14 +267,14 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     /* Confirm that `broadcaster_metadata` corresponds to `broadcaster` */
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
         broadcaster_metadata->get();
-    rassert_reviewed(business_card && business_card.get());
-    rassert_reviewed(business_card.get().get().branch_id == broadcaster->get_branch_id());
+    rassert(business_card && business_card.get());
+    rassert(business_card.get().get().branch_id == broadcaster->get_branch_id());
 
     /* Make sure the initial state of the store is sane. Note that we assume
     that we're using the same `branch_history_manager_t` as the broadcaster, so
     an entry should already be present for the branch we're trying to join, and
     we skip calling `import_branch_history()`. */
-    rassert_reviewed(svs_->get_region() == this_branch_history.region);
+    rassert(svs_->get_region() == this_branch_history.region);
 
     /* Snapshot the metainfo before we start receiving writes */
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
@@ -286,14 +286,14 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
     /* Attempt to register for writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
-    guarantee_reviewed(registration_done_cond_.get_ready_signal()->is_pulsed());
+    guarantee(registration_done_cond_.get_ready_signal()->is_pulsed());
 
 #ifndef NDEBUG
     region_map_t<protocol_t, version_range_t> expected_initial_metainfo(svs_->get_region(),
                                                                         version_range_t(version_t(branch_id_,
                                                                                                   registration_done_cond_.get_value().broadcaster_begin_timestamp)));
 
-    rassert_reviewed(expected_initial_metainfo == initial_metainfo);
+    rassert(expected_initial_metainfo == initial_metainfo);
 #endif
 
     /* Start streaming, just like we do after we finish a backfill */
@@ -350,7 +350,7 @@ class intro_receiver_t : public signal_t {
 public:
     listener_intro_t<protocol_t> intro;
     void fill(listener_intro_t<protocol_t> _intro) {
-        guarantee_reviewed(!is_pulsed());
+        guarantee(!is_pulsed());
         intro = _intro;
         pulse();
     }
@@ -383,7 +383,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
     if (registrant_->get_failed_signal()->is_pulsed()) {
         throw broadcaster_lost_exc_t();
     } else {
-        guarantee_reviewed(intro_receiver.is_pulsed());
+        guarantee(intro_receiver.is_pulsed());
         registration_done_cond_.pulse(intro_receiver.intro);
     }
 }
@@ -394,8 +394,8 @@ void listener_t<protocol_t>::on_write(const typename protocol_t::write_t &write,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
-    rassert_reviewed(region_is_superset(our_branch_region_, write.get_region()));
-    rassert_reviewed(!region_is_empty(write.get_region()));
+    rassert(region_is_superset(our_branch_region_, write.get_region()));
+    rassert(!region_is_empty(write.get_region()));
     order_token.assert_write_mode();
 
     coro_t::spawn_sometime(boost::bind(
@@ -478,9 +478,9 @@ void listener_t<protocol_t>::on_writeread(const typename protocol_t::write_t &wr
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
         THROWS_NOTHING
 {
-    rassert_reviewed(region_is_superset(our_branch_region_, write.get_region()));
-    rassert_reviewed(!region_is_empty(write.get_region()));
-    rassert_reviewed(region_is_superset(svs_->get_region(), write.get_region()));
+    rassert(region_is_superset(our_branch_region_, write.get_region()));
+    rassert(!region_is_empty(write.get_region()));
+    rassert(region_is_superset(svs_->get_region(), write.get_region()));
     order_token.assert_write_mode();
 
     coro_t::spawn_sometime(boost::bind(
@@ -520,7 +520,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
 
         // Make sure we can serve the entire operation without masking it.
         // (We shouldn't have been signed up for writereads if we couldn't.)
-        rassert_reviewed(region_is_superset(svs_->get_region(), write.get_region()));
+        rassert(region_is_superset(svs_->get_region(), write.get_region()));
 
 
 #ifndef NDEBUG
@@ -558,9 +558,9 @@ void listener_t<protocol_t>::on_read(const typename protocol_t::read_t &read,
         fifo_enforcer_read_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
         THROWS_NOTHING {
-    rassert_reviewed(region_is_superset(our_branch_region_, read.get_region()));
-    rassert_reviewed(!region_is_empty(read.get_region()));
-    rassert_reviewed(region_is_superset(svs_->get_region(), read.get_region()));
+    rassert(region_is_superset(our_branch_region_, read.get_region()));
+    rassert(!region_is_empty(read.get_region()));
+    rassert(region_is_superset(svs_->get_region(), read.get_region()));
     order_token.assert_read_mode();
 
     coro_t::spawn_sometime(boost::bind(
@@ -588,7 +588,7 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
             fifo_enforcer_sink_t::exit_read_t fifo_exit_2(&store_entrance_sink_, fifo_token);
             wait_interruptible(&fifo_exit_2, keepalive.get_drain_signal());
 
-            guarantee_reviewed(current_timestamp_ == expected_timestamp);
+            guarantee(current_timestamp_ == expected_timestamp);
 
             svs_->new_read_token(&read_token);
         }
@@ -625,7 +625,7 @@ void listener_t<protocol_t>::wait_for_version(state_timestamp_t timestamp, signa
 
 template <class protocol_t>
 void listener_t<protocol_t>::advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp) {
-    guarantee_reviewed(timestamp.timestamp_before() == current_timestamp_);
+    guarantee(timestamp.timestamp_before() == current_timestamp_);
     current_timestamp_ = timestamp.timestamp_after();
 
     for (std::multimap<state_timestamp_t, cond_t *>::const_iterator it = synchronize_waiters_.begin();
@@ -633,7 +633,7 @@ void listener_t<protocol_t>::advance_current_timestamp_and_pulse_waiters(transit
          ++it) {
         if (it->first < current_timestamp_) {
             // This cond should have already been pulsed because we assume timestamps move in discrete minimal steps.
-            guarantee_reviewed(it->second->is_pulsed());
+            guarantee(it->second->is_pulsed());
         } else {
             // TODO: What if something's waiting eagerly?
             it->second->pulse();

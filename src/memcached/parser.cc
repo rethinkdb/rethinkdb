@@ -220,19 +220,19 @@ public:
         begin_operation();
     }
     ~pipeliner_acq_t() {
-        guarantee_reviewed(state_ == has_ended_write);
+        guarantee(state_ == has_ended_write);
     }
 
 private:
     void begin_operation() {
-        guarantee_reviewed(state_ == untouched);
+        guarantee(state_ == untouched);
         DEBUG_ONLY_CODE(state_ = has_begun_operation);
         fifo_acq_.enter(&pipeliner_->fifo);
     }
 
 public:
     void done_argparsing() {
-        guarantee_reviewed(state_ == has_begun_operation);
+        guarantee(state_ == has_begun_operation);
         DEBUG_ONLY_CODE(state_ = has_done_argparsing);
 
         unlock_mutex(&pipeliner_->argparsing_mutex);
@@ -240,14 +240,14 @@ public:
     }
 
     void begin_write() {
-        guarantee_reviewed(state_ == has_done_argparsing);
+        guarantee(state_ == has_done_argparsing);
         DEBUG_ONLY_CODE(state_ = has_begun_write);
         fifo_acq_.leave();
         mutex_acq_.reset(&pipeliner_->mutex);
     }
 
     void end_write() {
-        guarantee_reviewed(state_ == has_begun_write);
+        guarantee(state_ == has_begun_write);
         DEBUG_ONLY_CODE(state_ = has_ended_write);
 
         {
@@ -305,8 +305,8 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
     // We should already be spawned within a coroutine.
     pipeliner_acq_t pipeliner_acq(pipeliner);
 
-    guarantee_reviewed(argc >= 1);
-    rassert_reviewed(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
+    guarantee(argc >= 1);
+    rassert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
     /* Vector to store the keys and the task-objects */
     std::vector<get_t> gets;
@@ -372,7 +372,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
                 if (with_cas) {
                     rh->write_value_header(reinterpret_cast<const char *>(key.contents()), key.size(), res.flags, res.value->size(), res.cas);
                 } else {
-                    guarantee_reviewed(res.cas == 0);
+                    guarantee(res.cas == 0);
                     rh->write_value_header(reinterpret_cast<const char *>(key.contents()), key.size(), res.flags, res.value->size());
                 }
 
@@ -485,13 +485,13 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
         {
             key_range_t::right_bound_t bound(store_key_t::min());
             for (std::set< hash_region_t<key_range_t> >::const_iterator it = shards.begin(); it != shards.end(); it++) {
-                guarantee_reviewed(!bound.unbounded);
-                guarantee_reviewed(it->beg == 0);
-                guarantee_reviewed(it->end == HASH_REGION_HASH_SIZE);
-                guarantee_reviewed(bound.key == it->inner.left);
+                guarantee(!bound.unbounded);
+                guarantee(it->beg == 0);
+                guarantee(it->end == HASH_REGION_HASH_SIZE);
+                guarantee(bound.key == it->inner.left);
                 bound = it->inner.right;
             }
-            guarantee_reviewed(bound.unbounded);
+            guarantee(bound.unbounded);
         }
 
         /* Find the shard that we're going to start in. */
@@ -517,7 +517,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
                 /* This round of the range scan stopped because the chunk was
                 getting too big. We need to submit another range scan with the left
                 key equal to the rightmost key of the results we got */
-                guarantee_reviewed(!results.pairs.empty());
+                guarantee(!results.pairs.empty());
                 range.left = results.pairs.back().key;
                 range.left.increment();
             } else {
@@ -544,7 +544,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
                 }
             }
 
-            guarantee_reviewed(results.pairs.size() <= max_items);
+            guarantee(results.pairs.size() <= max_items);
             max_items -= results.pairs.size();
         }
         rh->write_end();

@@ -26,12 +26,12 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         uint64_t number;
 
         blob_t b((*value)->value_ref(), blob::btree_maxreflen);
-        rassert_reviewed(50 <= blob::btree_maxreflen);
+        rassert(50 <= blob::btree_maxreflen);
         if (b.valuesize() < 50) {
             buffer_group_t buffergroup;
             blob_acq_t acqs;
             b.expose_region(txn, rwi_read, 0, b.valuesize(), &buffergroup, &acqs);
-            rassert_reviewed(buffergroup.num_buffers() == 1);
+            rassert(buffergroup.num_buffers() == 1);
 
             char buffer[50];
             memcpy(buffer, buffergroup.get_buffer(0).data, buffergroup.get_buffer(0).size);
@@ -75,8 +75,8 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         buffer_group_t group;
         blob_acq_t acqs;
         b.expose_region(txn, rwi_write, 0, b.valuesize(), &group, &acqs);
-        rassert_reviewed(group.num_buffers() == 1);
-        rassert_reviewed(group.get_buffer(0).size == tmp.size(), "expecting %zd == %d", group.get_buffer(0).size, tmp.size());
+        rassert(group.num_buffers() == 1);
+        rassert(group.get_buffer(0).size == tmp.size(), "expecting %zd == %d", group.get_buffer(0).size, tmp.size());
         memcpy(group.get_buffer(0).data, tmp.data(), tmp.size());
 
         return true;

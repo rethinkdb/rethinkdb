@@ -36,7 +36,7 @@ public:
           js_runner(_js_runner),
           interruptor(_interruptor),
           this_machine(_this_machine) {
-        guarantee_reviewed(js_runner);
+        guarantee(js_runner);
     }
 
     runtime_environment_t(
@@ -60,7 +60,7 @@ public:
           js_runner(_js_runner),
           interruptor(_interruptor),
           this_machine(_this_machine) {
-        guarantee_reviewed(js_runner);
+        guarantee(js_runner);
     }
 
     extproc::pool_t *pool;      // for running external JS jobs

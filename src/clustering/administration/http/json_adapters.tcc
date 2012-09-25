@@ -115,7 +115,7 @@ json_adapter_if_t::json_adapter_map_t json_vclock_adapter_t<T>::get_subfields_im
         = res.insert(std::make_pair(std::string("resolve"), boost::shared_ptr<json_adapter_if_t>(new json_vclock_resolver_t<T>(target_, ctx_))));
 
     // We cannot put anything with a "resolve" field in a vector clock.
-    guarantee_reviewed(insert_res.second);
+    guarantee(insert_res.second);
 
     return res;
 }
@@ -285,7 +285,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(region_map_t<protocol_t
                                                               it != target->end();
                                                               ++it) {
         scoped_cJSON_t key(render_as_json(&it->first));
-        guarantee_reviewed(key.get()->type == cJSON_String);
+        guarantee(key.get()->type == cJSON_String);
         res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t>(new json_region_adapter_t<protocol_t, value_t>(target, it->first));
     }
 

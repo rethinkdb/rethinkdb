@@ -72,7 +72,7 @@ directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::set(typename 
 
 template <class protocol_t>
 directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_without_changing_id(typename reactor_business_card_t<protocol_t>::activity_t activity) {
-    guarantee_reviewed(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
+    guarantee(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
     typename directory_echo_writer_t<cow_ptr_t<reactor_business_card_t<protocol_t> > >::our_value_change_t our_value_change(&parent->directory_echo_writer);
     {
         typename cow_ptr_t<reactor_business_card_t<protocol_t> >::change_t cow_ptr_change(&our_value_change.buffer);
@@ -99,7 +99,7 @@ void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
     blueprint.guarantee_valid();
 
     typename std::map<peer_id_t, std::map<typename protocol_t::region_t, blueprint_role_t> >::const_iterator role_it = blueprint.peers_roles.find(get_me());
-    guarantee_reviewed(role_it != blueprint.peers_roles.end(), "reactor_t assumes that it is mentioned in the blueprint it's given.");
+    guarantee(role_it != blueprint.peers_roles.end(), "reactor_t assumes that it is mentioned in the blueprint it's given.");
 
     std::map<typename protocol_t::region_t, blueprint_role_t> blueprint_roles = role_it->second;
     for (typename std::map<typename protocol_t::region_t, current_role_t *>::iterator it = current_roles.begin();
@@ -128,7 +128,7 @@ void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
     blueprint_t<protocol_t> blueprint = blueprint_watchable->get();
 
     typename std::map<peer_id_t, std::map<typename protocol_t::region_t, blueprint_role_t> >::const_iterator role_it = blueprint.peers_roles.find(get_me());
-    guarantee_reviewed(role_it != blueprint.peers_roles.end(), "reactor_t assumes that it is mentioned in the blueprint it's given.");
+    guarantee(role_it != blueprint.peers_roles.end(), "reactor_t assumes that it is mentioned in the blueprint it's given.");
 
     std::map<typename protocol_t::region_t, blueprint_role_t> blueprint_roles = role_it->second;
     for (typename std::map<typename protocol_t::region_t, blueprint_role_t>::iterator it = blueprint_roles.begin();

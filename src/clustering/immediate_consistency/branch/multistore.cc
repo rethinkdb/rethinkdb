@@ -20,7 +20,7 @@ struct multistore_ptr_t<protocol_t>::switch_read_token_t {
 
 template <class protocol_t>
 store_view_t<protocol_t> *multistore_ptr_t<protocol_t>::get_store(int i) const {
-    guarantee_reviewed(0 <= i && i < num_stores());
+    guarantee(0 <= i && i < num_stores());
     return store_views_[i];
 }
 
@@ -45,7 +45,7 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inn
       internal_sources_(inner->num_stores()),
       internal_sinks_(inner->num_stores()) {
 
-    guarantee_reviewed(region_is_superset(inner->region_, region));
+    guarantee(region_is_superset(inner->region_, region));
 
     initialize(inner->store_views_.data());
 }
@@ -75,7 +75,7 @@ void multistore_ptr_t<protocol_t>::initialize(store_view_t<protocol_t> **store_v
 
 template <class protocol_t>
 void do_destroy(int i, store_view_t<protocol_t> **store_views) {
-    guarantee_reviewed(store_views[i] != NULL);
+    guarantee(store_views[i] != NULL);
 
     on_thread_t th(store_views[i]->home_thread());
 
@@ -166,13 +166,13 @@ void multistore_ptr_t<protocol_t>::do_get_metainfo(order_token_t order_token,
         throw interrupted_exc_t();
     }
 
-    rassert_reviewed(out->get_domain() == region_);
+    rassert(out->get_domain() == region_);
 }
 
 
 template <class protocol_t>
 typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_a_region(int i) const {
-    guarantee_reviewed(0 <= i && i < num_stores());
+    guarantee(0 <= i && i < num_stores());
 
     return store_views_[i]->get_region();
 }

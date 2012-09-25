@@ -9,7 +9,7 @@ routing_http_app_t::routing_http_app_t(http_app_t *_defaultroute, std::map<std::
 { }
 
 void routing_http_app_t::add_route(const std::string& route, http_app_t *server) {
-    guarantee_reviewed(strchr(route.c_str(), '/') == NULL, "Routes should not contain '/'s");
+    guarantee(strchr(route.c_str(), '/') == NULL, "Routes should not contain '/'s");
     subroutes[route] = server;
 }
 

@@ -35,24 +35,24 @@ public:
         std::set<typename protocol_t::region_t> ref_regions = keys(ref_role_map);
 
         typename protocol_t::region_t join;
-        guarantee_reviewed(REGION_JOIN_OK == region_join(std::vector<typename protocol_t::region_t>(ref_regions.begin(), ref_regions.end()), &join));
+        guarantee(REGION_JOIN_OK == region_join(std::vector<typename protocol_t::region_t>(ref_regions.begin(), ref_regions.end()), &join));
 
         for (typename role_map_t::const_iterator it =  peers_roles.begin();
                                                  it != peers_roles.end();
                                                  it++) {
-            guarantee_reviewed(keys(it->second) == ref_regions, "Found blueprint with different peers having different sharding schemes.");
+            guarantee(keys(it->second) == ref_regions, "Found blueprint with different peers having different sharding schemes.");
         }
     }
 
     void add_peer(const peer_id_t &id) {
         std::pair<typename std::map<peer_id_t, std::map<typename protocol_t::region_t, blueprint_role_t> >::iterator, bool>
             insert_res = peers_roles.insert(std::make_pair(id, std::map<typename protocol_t::region_t, blueprint_role_t>()));
-        guarantee_reviewed(insert_res.second);
+        guarantee(insert_res.second);
     }
 
     void add_role(const peer_id_t &id, const typename protocol_t::region_t &region, blueprint_role_t role) {
         typename std::map<peer_id_t, std::map<typename protocol_t::region_t, blueprint_role_t> >::iterator it = peers_roles.find(id);
-        guarantee_reviewed(it != peers_roles.end());
+        guarantee(it != peers_roles.end());
         it->second.insert(std::make_pair(region, role));
 
         //TODO here we should assert that the range we just inserted does not

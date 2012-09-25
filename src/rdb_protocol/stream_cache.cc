@@ -10,12 +10,12 @@ void stream_cache_t::insert(ReadQuery *r, int64_t key,
                             boost::shared_ptr<query_language::json_stream_t> val) {
     maybe_evict();
     std::pair<std::map<int64_t, entry_t>::iterator, bool> res = streams.insert(std::pair<int64_t, entry_t>(key, entry_t(time(0), val, r)));
-    guarantee_reviewed(res.second);
+    guarantee(res.second);
 }
 
 void stream_cache_t::erase(int64_t key) {
     size_t num_erased = streams.erase(key);
-    guarantee_reviewed(num_erased == 1);
+    guarantee(num_erased == 1);
 }
 
 bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {

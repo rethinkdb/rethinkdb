@@ -76,7 +76,7 @@ private:
             request_mailbox.reset();
             relinquish_tickets_mailbox.reset();
             drainer.reset();
-            guarantee_reviewed(in_use_tickets == 0);
+            guarantee(in_use_tickets == 0);
             parent->return_tickets(held_tickets);
         }
 
@@ -115,7 +115,7 @@ private:
 
     private:
         void on_request(const request_type &request) {
-            guarantee_reviewed(held_tickets > 0);
+            guarantee(held_tickets > 0);
             held_tickets--;
             in_use_tickets++;
             coro_t::spawn_sometime(boost::bind(
@@ -209,7 +209,7 @@ private:
 
     void return_tickets(int tickets) {
         free_tickets += tickets;
-        guarantee_reviewed(free_tickets <= total_tickets);
+        guarantee(free_tickets <= total_tickets);
         redistribute_tickets();
     }
 
@@ -236,7 +236,7 @@ private:
             if (!neediest) {
                 break;
             }
-            guarantee_reviewed(gift_size >= 0);
+            guarantee(gift_size >= 0);
             free_tickets -= gift_size;
             neediest->give_tickets(gift_size);
         }
@@ -259,7 +259,7 @@ private:
             if (!neediest) {
                 break;
             }
-            guarantee_reviewed(gift_size >= 0);
+            guarantee(gift_size >= 0);
             free_tickets -= gift_size;
             neediest->give_tickets(gift_size);
         }

@@ -9,7 +9,7 @@ void connectivity_service_t::peers_list_freeze_t::assert_is_holding(connectivity
 
 connectivity_service_t::peers_list_subscription_t::peers_list_subscription_t(peers_list_callback_t *connect_disconnect_cb)
      : subs(connect_disconnect_cb) {
-    guarantee_reviewed(connect_disconnect_cb != NULL);
+    guarantee(connect_disconnect_cb != NULL);
 }
 
 void connectivity_service_t::peers_list_subscription_t::reset() {

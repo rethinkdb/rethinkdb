@@ -28,7 +28,7 @@ public:
     { }
 
     ~metadata_change_handler_t() {
-        guarantee_reviewed(coro_invalid_conditions.empty());
+        guarantee(coro_invalid_conditions.empty());
     }
 
     // Mailbox to be used for remote changes
@@ -148,7 +148,7 @@ private:
         wait_any_t waiter(&commit_done, &dc_watcher);
         waiter.wait();
 
-        guarantee_reviewed(commit_done.is_pulsed() || dc_watcher.is_pulsed());
+        guarantee(commit_done.is_pulsed() || dc_watcher.is_pulsed());
         coro_invalid_conditions.erase(&invalid_condition);
     }
 

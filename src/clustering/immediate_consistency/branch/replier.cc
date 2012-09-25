@@ -27,7 +27,7 @@ replier_t<protocol_t>::replier_t(listener_t<protocol_t> *li,
         // TODO: Lose the need to switch threads for this assertion.
         typename protocol_t::region_t svs_region = listener_->svs()->get_region();
         on_thread_t th(branch_history_manager->home_thread());
-        guarantee_reviewed(svs_region == branch_history_manager->get_branch(listener_->branch_id()).region,
+        guarantee(svs_region == branch_history_manager->get_branch(listener_->branch_id()).region,
                            "Even though you can have a listener that only watches some subset "
                            "of a branch, you can't have a replier for some subset of a "
                            "branch.");

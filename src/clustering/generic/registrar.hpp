@@ -43,7 +43,7 @@ private:
         NULL in the `registrations` map. */
         typename std::map<registration_id_t, cond_t *>::iterator it = registrations.find(rid);
         if (it != registrations.end()) {
-            guarantee_reviewed(it->second == NULL);
+            guarantee(it->second == NULL);
             registrations.erase(it);
             return;
         }
@@ -103,7 +103,7 @@ private:
             registrations.find(rid);
         if (it != registrations.end()) {
             cond_t *deleter = (*it).second;
-            guarantee_reviewed(!deleter->is_pulsed());
+            guarantee(!deleter->is_pulsed());
             deleter->pulse();
         } else {
             /* We got here because the registrant was deleted right after being

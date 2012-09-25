@@ -70,7 +70,7 @@ archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *b
 
         if (num_read == -1) { return ARCHIVE_SOCK_ERROR; }
         if (num_read < size) { return ARCHIVE_SOCK_EOF; }
-        guarantee_reviewed(num_read == size);
+        guarantee(num_read == size);
     }
     return ARCHIVE_SUCCESS;
 }
@@ -143,16 +143,16 @@ struct read_shard_visitor_t : public boost::static_visitor<read_t> {
     exptime_t effective_time;
 
     read_t operator()(get_query_t get) {
-        rassert_reviewed(region == monokey_region(get.key));
+        rassert(region == monokey_region(get.key));
         return read_t(get, effective_time);
     }
     read_t operator()(rget_query_t rget) {
-        rassert_reviewed(region_is_superset(rget.region, region));
+        rassert(region_is_superset(rget.region, region));
         rget.region = region;
         return read_t(rget, effective_time);
     }
     read_t operator()(distribution_get_query_t distribution_get) {
-        rassert_reviewed(region_is_superset(distribution_get.region, region));
+        rassert(region_is_superset(distribution_get.region, region));
         distribution_get.region = region;
         return read_t(distribution_get, effective_time);
     }
@@ -175,7 +175,7 @@ public:
         int cmp = x.key.compare(y.key);
 
         // We should never have equal keys.
-        guarantee_reviewed(cmp != 0);
+        guarantee(cmp != 0);
         return cmp < 0;
     }
 };
@@ -194,7 +194,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 
     explicit read_unshard_visitor_t(const read_response_t *b, size_t c) : bits(b), count(c) { }
     read_response_t operator()(UNUSED get_query_t get) {
-        guarantee_reviewed(count == 1);
+        guarantee(count == 1);
         return read_response_t(boost::get<get_result_t>(bits[0].result));
     }
     read_response_t operator()(rget_query_t rget) {
@@ -227,11 +227,11 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
         // TODO: do this without copying so much and/or without dynamic memory
         // Sort results by region
         std::vector<distribution_result_t> results(count);
-        guarantee_reviewed(count > 0);
+        guarantee(count > 0);
 
         for (size_t i = 0; i < count; ++i) {
             const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
-            guarantee_reviewed(result, "Bad boost::get\n");
+            guarantee(result, "Bad boost::get\n");
             results[i] = *result;
         }
 
@@ -267,7 +267,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
             if (largest_size > 0) {
                 double scale_factor = static_cast<double>(total_range_keys) / static_cast<double>(largest_size);
 
-                guarantee_reviewed(scale_factor >= 1.0);  // Directly provable from the code above.
+                guarantee(scale_factor >= 1.0);  // Directly provable from the code above.
 
                 for (std::map<store_key_t, int>::iterator mit = results[largest_index].key_counts.begin();
                      mit != results[largest_index].key_counts.end();
@@ -312,7 +312,7 @@ region_t write_t::get_region() const THROWS_NOTHING {
 /* `write_t::shard()` */
 
 write_t write_t::shard(DEBUG_VAR const region_t &region) const THROWS_NOTHING {
-    rassert_reviewed(region == get_region());
+    rassert(region == get_region());
     return *this;
 }
 
@@ -320,7 +320,7 @@ write_t write_t::shard(DEBUG_VAR const region_t &region) const THROWS_NOTHING {
 
 void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
     /* TODO: Make sure the request type matches the response type */
-    guarantee_reviewed(count == 1);
+    guarantee(count == 1);
     *response = responses[0];
 }
 
@@ -354,17 +354,17 @@ public:
     explicit backfill_chunk_shard_visitor_t(const region_t &_region) : region(_region) { }
     backfill_chunk_t operator()(const backfill_chunk_t::delete_key_t &del) {
         backfill_chunk_t ret(del);
-        rassert_reviewed(region_is_superset(region, ret.get_region()));
+        rassert(region_is_superset(region, ret.get_region()));
         return ret;
     }
     backfill_chunk_t operator()(const backfill_chunk_t::delete_range_t &del) {
         region_t r = region_intersection(del.range, region);
-        rassert_reviewed(!region_is_empty(r));
+        rassert(!region_is_empty(r));
         return backfill_chunk_t(backfill_chunk_t::delete_range_t(r));
     }
     backfill_chunk_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
         backfill_chunk_t ret(kv);
-        rassert_reviewed(region_is_superset(region, ret.get_region()));
+        rassert(region_is_superset(region, ret.get_region()));
         return ret;
     }
 private:
@@ -401,8 +401,8 @@ repli_timestamp_t backfill_chunk_t::get_btree_repli_timestamp() const THROWS_NOT
 }
 
 region_t memcached_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
-    guarantee_reviewed(subregion_number >= 0);
-    guarantee_reviewed(subregion_number < num_cpu_shards);
+    guarantee(subregion_number >= 0);
+    guarantee(subregion_number < num_cpu_shards);
 
     // We have to be careful with the math here, to avoid overflow.
     uint64_t width = HASH_REGION_HASH_SIZE / num_cpu_shards;
@@ -497,7 +497,7 @@ struct write_visitor_t : public boost::static_visitor<write_response_t> {
             memcached_append_prepend(m.key, btree, m.data, (m.kind == append_prepend_APPEND), proposed_cas, effective_time, timestamp, txn, superblock));
     }
     write_response_t operator()(const delete_mutation_t &m) {
-        guarantee_reviewed(proposed_cas == INVALID_CAS);
+        guarantee(proposed_cas == INVALID_CAS);
         return write_response_t(
             memcached_delete(m.key, m.dont_put_in_delete_queue, btree, effective_time, timestamp, txn, superblock));
     }

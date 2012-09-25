@@ -421,14 +421,14 @@ admin_command_parser_t::admin_command_parser_t(const std::string& peer_string, c
     console_mode(false),
     interruptor(_interruptor)
 {
-    guarantee_reviewed(instance == NULL);
+    guarantee(instance == NULL);
     instance = this;
 
     build_command_descriptions();
 }
 
 admin_command_parser_t::~admin_command_parser_t() {
-    guarantee_reviewed(instance == this);
+    guarantee(instance == this);
     instance = NULL;
 
     destroy_command_descriptions(&commands);
@@ -478,7 +478,7 @@ admin_command_parser_t::command_info_t *admin_command_parser_t::add_command(cons
 }
 
 void admin_command_parser_t::build_command_descriptions() {
-    guarantee_reviewed(commands.empty());
+    guarantee(commands.empty());
     command_info_t *info = NULL;
 
     info = add_command(pin_shard_command, pin_shard_command, pin_shard_usage, &admin_cluster_link_t::do_admin_pin_shard, &commands);
