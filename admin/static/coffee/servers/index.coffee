@@ -152,13 +152,13 @@ module 'ServerView', ->
 
     class @MachineList extends UIComponents.AbstractList
         # Use a machine-specific template for the machine list
-        tagName: 'table'
+        tagName: 'div'
         template: Handlebars.compile $('#machine_list-template').html()
 
         initialize: (datacenter_uuid) ->
             @datacenter_uuid = datacenter_uuid
             @callbacks = []
-            super machines, ServerView.MachineListElement, 'tbody.list',
+            super machines, ServerView.MachineListElement, '.list',
                 {
                 filter: (model) -> model.get('datacenter_uuid') is @datacenter_uuid
                 }
@@ -201,6 +201,7 @@ module 'ServerView', ->
         template: Handlebars.compile $('#machine_list_element-template').html()
         summary_template: Handlebars.compile $('#machine_list_element-summary-template').html()
         className: 'element'
+        tagName: 'div'
 
         threshold_alert: 90
         history:

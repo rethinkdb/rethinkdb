@@ -145,6 +145,7 @@ module 'UIComponents', ->
         events: ->
             'click': 'clicked'
             'click a': 'link_clicked'
+            'click label': 'link_clicked'
 
         initialize: (template) ->
             @template = template

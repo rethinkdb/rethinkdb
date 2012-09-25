@@ -10,6 +10,11 @@
 @import "bootstrap/grid.less";
 @import "bootstrap/layouts.less";
 
+// Components: Popovers
+@import "bootstrap/modals.less";
+@import "bootstrap/tooltip.less";
+@import "bootstrap/popovers.less";
+
 // Utility classes
 @import "bootstrap/utilities.less"; // Has to be last to override when necessary
 
@@ -297,6 +302,36 @@ body:before {
 */
 // Get ready to abstract this for use in the server list AND table list TODO
 #server-list {
+    // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
+    .btn {
+        display: inline-block;
+        padding: 6px 14px 5px;
+        margin-bottom: 0;
+        margin-left: 7px;
+        vertical-align: middle;
+
+        font-size: 14px;
+        font-family: @sans;
+        font-weight: 700;
+        color: #464646;
+        line-height: 18px;
+        text-align: center;
+
+        background-color: #f9f9f9;
+        border: thin solid #cbcbcb; 
+        .border-radius(4px);
+
+        @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
+
+        -webkit-box-shadow: @shadow;
+           -moz-box-shadow: @shadow;
+                box-shadow: @shadow;
+
+        &.disabled {
+            opacity: 0.65;
+            .box-shadow(none);
+        }
+    }
     h1.title {
         font-family: @serif;
         color: #4d535c;
@@ -304,47 +339,15 @@ body:before {
         margin-bottom: 25px;
     }
 
-    .actions-bar {
-        float: right;
-        // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
-        .btn {
-            display: inline-block;
-            padding: 6px 14px 5px;
-            margin-bottom: 0;
-            vertical-align: middle;
-
-            font-size: 14px;
-            font-family: @sans;
-            font-weight: 700;
-            color: #464646;
-            line-height: 18px;
-            text-align: center;
-
-            background-color: #f9f9f9;
-            border: thin solid #cbcbcb; 
-            .border-radius(4px);
-
-            @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
-
-            -webkit-box-shadow: @shadow;
-               -moz-box-shadow: @shadow;
-                    box-shadow: @shadow;
-
-            &.disabled {
-                opacity: 0.65;
-                .box-shadow(none);
-            }
-        }
-        .btn { margin-left: 10px; }
-    }
+    .actions-bar { float: right; }
 
     .section {
         padding: 0;
         .header_container {
             border-bottom: thin solid #CCC;
-            padding: 11px 15px;
+            padding: 13px 15px;
             background: #fff;
-            .border-radius(4px 0px);
+            .border-radius(4px 4px 0px 0px);
 
             .summary {
                 .element-type, h3.name { 
@@ -368,21 +371,108 @@ body:before {
                     margin: 0;
                     a { color: #61666e; }
                 }
+
+                .buttons {
+                    float: right;
+                    margin-top: -2px;
+                }
             }
-            
         }
 
         .element-list-container {
-            padding: 20px 25px;
+            padding: 0px 13px 12px 13px;
             background: #fafafa;
-            .border-radius(0px 4px);
+            .border-radius(0px 0px 4px 4px);
+            .element-detail-container {
+            }
         }
+
+        .element {
+            @bar_height: 44px;
+            height: @bar_height;
+            background: #FFF;
+            border: thin solid #cfcfcf;
+            .border-radius(3px);
+            margin-top: 12px;
+        
+            @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08);
+
+            -webkit-box-shadow: @shadow;
+               -moz-box-shadow: @shadow;
+                    box-shadow: @shadow;
+
+            .checkbox-container {
+                float: left;
+
+                label {
+                    display: inline;
+                    margin: 14px;
+                }
+                input[type="checkbox"] { display: none; }
+
+                input[type="checkbox"] + label {
+                    border: thin solid #cfcfcf;
+                    .border-radius(3px);
+                    padding: 7px;
+                    display: inline-block;
+                    position: relative;
+                    &:active { box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0 1px 3px rgba(0,0,0,0.1); }
+                }
+                input[type="checkbox"]:checked + label:after {
+                    content: '\2714';
+                    font-size: 15px;
+                    position: absolute;
+                    top: -2px;
+                    left: 1px;
+                    color: #7c7c7c;
+                }
+            }
+
+            .machine.details { 
+                position: relative;
+                margin-left: 45px;
+
+                @border_padding: 20px;
+
+                p {
+                    margin: 0;
+                    font-family: @sans;
+                }
+                .name, .quick_info, .status {
+                    @offset: 8px;
+                    position: absolute;
+                    line-height: @bar_height - @offset*2;
+                    margin-top: @offset;
+                    border-left: thin solid #e4e4e4;
+                }
+                .name {
+                    background: @border_padding center no-repeat url('https://dl.dropbox.com/s/q9ifud52cq0p00p/server-icon.png');
+                    padding-left: 38px + @border_padding;
+                    a { color: #0597d8; }
+                    font-size: 16px;
+                    font-weight: bold;
+                }
+                .quick_info {
+                    right: 150px;
+                    background: @border_padding center no-repeat url('https://dl.dropbox.com/s/mentx127cdmq08s/graph-icon.png');
+                    color: #626264;
+                    padding-left: 30px + @border_padding;
+                }
+                .status {
+                    right: 0;
+                    padding-right: 20px;
+                    color: #818181;
+                    .label-success {
+                        background: @border_padding center no-repeat url('https://dl.dropbox.com/s/rbv9luv0kmy1uz0/green-light_glow.png');
+                        padding-left: 23px + @border_padding;
+                    }
+                }
+
+            }
+        }
+
     }
 }
-
-
-
-
 
 /*
     --------------------

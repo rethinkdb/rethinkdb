@@ -1,11 +1,11 @@
 <script id="server_list-template" type="text/x-handlebars-template">
     <div id="server-list">
         <div class="actions-bar">
-            <a href="#" class="btn add-datacenter">Add datacenter</a>
-            <a href="#" class="btn for-multiple-elements disabled set-datacenter">Set datacenter</a>
-            <div id="user-alert-space-set_datacenter"></div>
+            <a href="#" class="btn add-datacenter">+ Add Datacenter</a>
+            <a href="#" class="btn for-multiple-elements disabled set-datacenter">Set Datacenter</a>
         </div>
         <h1 class="title">Servers connected to the cluster</h1>
+        <div id="user-alert-space-set_datacenter"></div>
         <div id="user-alert-space"></div>
         <div class="datacenters collapsible-list"></div>
         <div class="unassigned-machines collapsible-list"></div>
@@ -13,17 +13,31 @@
 </script>
 
 <script id="machine_list-template" type="text/x-handlebars-template">
-    <tbody class="list">
-    </tbody>
+    <div class="list">
+    </div>
 </script>
 
 <script id="machine_list_element-template" type="text/x-handlebars-template">
-    <td class="checkbox-container">
-        <input type="checkbox"></input>    
-    </td>
-    <td class="element-detail-container">
+    <div class="checkbox-container">
+        <input type="checkbox" id="checkbox_machine_list_{{id}}"></input><label for="checkbox_machine_list_{{id}}"></label>    
+    </div>
+    <div class="element-detail-container">
         <div class="machine summary"></div>
-    </td>
+    </div>
+</script>
+
+<script id="machine_list_element-summary-template" type="text/x-handlebars-template">
+    <div class="machine details">
+        <p class="name"><a href="#servers/{{id}}">{{name}}</a></p>
+        {{#if unassigned_machine}}
+            <p class="quick_info">Not assigned to any datacenter</p>
+        {{else}}
+            <p class="quick_info">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Tables: {{namespace_count}}</p>
+        {{/if}}
+        <div class="status">
+            {{humanize_machine_reachability status}}
+        </div>
+    </div>
 </script>
 
 <script id="alert_message-template" type="text/x-handlebars-template">
@@ -44,28 +58,12 @@
 </script>
 
 <script id="cannot_change_datacenter-alert_content-template" type="text/x-handlebars-template">
-    <a class="close" href="#">&times;</a>
+    <a class="close" href="#">&times;</a
     <p>You cannot change the datacenter of the selected machines because:
         <ul>
             {{display_reasons_cannot_move reasons}}
         </ul>
     </p>
-</script>
-
-<script id="machine_list_element-summary-template" type="text/x-handlebars-template">
-    <div class="machine details">
-        <span class="status">{{humanize_machine_reachability status}}</span>
-
-        <div class="label label-machine">Server</div>
-        <span class="name">
-            <a href="#servers/{{id}}">{{name}}</a>
-        </span>
-        {{#if unassigned_machine}}
-        <p class="quick_info">Not assigned to any datacenter</p>
-        {{else}}
-        <p class="quick_info">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Tables: {{namespace_count}}</p>
-        {{/if}}
-    </div>
 </script>
 
 <script id="datacenter_list_element-template" type="text/x-handlebars-template">
@@ -83,12 +81,10 @@
     <h3 class="name">
         <a href="#datacenters/{{id}}">{{name}}</a>
     </h3>
-    <!--
-    <div class="datacenter details">
-        <p class="status">{{humanize_datacenter_reachability status}}</p>
-        <p class="contains">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Tables: {{namespace_count}}</p>
+    <div class="buttons">
+        <a href="#" class="btn hide-machines">&ndash; Hide Machines</a>
+        <a href="#" class="btn remove-datacenter">X</a>
     </div>
-    -->
 </script>
 
 <script id="unassigned_machines_list_element-template" type="text/x-handlebars-template">
