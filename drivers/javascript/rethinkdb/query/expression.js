@@ -14,6 +14,7 @@ goog.inherits(rethinkdb.Expression, rethinkdb.ReadQuery);
 
 /**
  * @function
+ * @param {Object=} opt_buildOpts
  * @return {!Term}
  * @ignore
  */
@@ -32,7 +33,7 @@ rethinkdb.ErrorExpression = function(opt_msg) {
 goog.inherits(rethinkdb.ErrorExpression, rethinkdb.Expression);
 
 /** @override */
-rethinkdb.ErrorExpression.prototype.compile = function() {
+rethinkdb.ErrorExpression.prototype.compile = function(opt_buildOpts) {
     var term = new Term();
     term.setType(Term.TermType.ERROR);
     term.setError(this.msg_);
@@ -68,7 +69,7 @@ rethinkdb.JSONExpression = function(json_value) {
 goog.inherits(rethinkdb.JSONExpression, rethinkdb.Expression);
 
 /** @override */
-rethinkdb.JSONExpression.prototype.compile = function() {
+rethinkdb.JSONExpression.prototype.compile = function(opt_buildOpts) {
     var term = new Term();
     term.setType(Term.TermType.JSON);
     term.setJsonstring(JSON.stringify(this.value_));
@@ -87,7 +88,7 @@ rethinkdb.NumberExpression = function(number) {
 goog.inherits(rethinkdb.NumberExpression, rethinkdb.Expression);
 
 /** @override */
-rethinkdb.NumberExpression.prototype.compile = function() {
+rethinkdb.NumberExpression.prototype.compile = function(opt_buildOpts) {
     var term = new Term();
     if (this.value_ === null) {
         term.setType(Term.TermType.JSON_NULL);
@@ -121,7 +122,7 @@ rethinkdb.BooleanExpression = function(bool) {
 goog.inherits(rethinkdb.BooleanExpression, rethinkdb.Expression);
 
 /** @override */
-rethinkdb.BooleanExpression.prototype.compile = function() {
+rethinkdb.BooleanExpression.prototype.compile = function(opt_buildOpts) {
     var term = new Term();
     term.setType(Term.TermType.BOOL);
     term.setValuebool(this.value_);
@@ -151,7 +152,7 @@ rethinkdb.StringExpression = function(string) {
 goog.inherits(rethinkdb.StringExpression, rethinkdb.Expression);
 
 /** @override */
-rethinkdb.StringExpression.prototype.compile = function() {
+rethinkdb.StringExpression.prototype.compile = function(opt_buildOpts) {
     var term = new Term();
     term.setType(Term.TermType.STRING);
     term.setValuestring(this.value_);
@@ -187,12 +188,12 @@ goog.inherits(rethinkdb.ArrayExpression, rethinkdb.Expression);
 
 
 /** @override */
-rethinkdb.ArrayExpression.prototype.compile = function() {
+rethinkdb.ArrayExpression.prototype.compile = function(opt_buildOpts) {
     var term = new Term();
     term.setType(Term.TermType.ARRAY);
 
     for (var i = 0; i < this.value_.length; i++) {
-        term.addArray(this.value_[i].compile());
+        term.addArray(this.value_[i].compile(opt_buildOpts));
     }
 
     return term;
@@ -237,7 +238,7 @@ rethinkdb.ObjectExpression = function(object) {
 goog.inherits(rethinkdb.ObjectExpression, rethinkdb.Expression);
 
 /** @override */
-rethinkdb.ObjectExpression.prototype.compile = function() {
+rethinkdb.ObjectExpression.prototype.compile = function(opt_buildOpts) {
     var term = new Term();
     term.setType(Term.TermType.OBJECT);
 
@@ -245,7 +246,7 @@ rethinkdb.ObjectExpression.prototype.compile = function() {
         if (this.value_.hasOwnProperty(key)) {
             var tuple = new VarTermTuple();
             tuple.setVar(key);
-            tuple.setTerm(this.value_[key].compile());
+            tuple.setTerm(this.value_[key].compile(opt_buildOpts));
 
             term.addObject(tuple);
         }
@@ -300,7 +301,7 @@ rethinkdb.JSExpression = function(expr) {
 goog.inherits(rethinkdb.JSExpression, rethinkdb.Expression);
 
 /** @override */
-rethinkdb.JSExpression.prototype.compile = function() {
+rethinkdb.JSExpression.prototype.compile = function(opt_buildOpts) {
     var term = new Term();
     term.setType(Term.TermType.JAVASCRIPT);
     term.setJavascript(this.src_);
@@ -413,7 +414,7 @@ rethinkdb.BuiltinExpression = function(builtinType, args, formatQuery,
 goog.inherits(rethinkdb.BuiltinExpression, rethinkdb.Expression);
 
 /** @override */
-rethinkdb.BuiltinExpression.prototype.compile = function() {
+rethinkdb.BuiltinExpression.prototype.compile = function(opt_buildOpts) {
     var builtin = new Builtin();
     builtin.setType(this.builtinType_);
     if (this.additional_) {
@@ -423,7 +424,7 @@ rethinkdb.BuiltinExpression.prototype.compile = function() {
     var call = new Term.Call();
     call.setBuiltin(builtin);
     for (var key in this.args_) {
-        call.addArgs(this.args_[key].compile());
+        call.addArgs(this.args_[key].compile(opt_buildOpts));
     }
 
     var term = new Term();
@@ -460,7 +461,7 @@ function makeComparison(comparison, chainName) {
         other = wrapIf_(other);
         return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.COMPARE,
                 [this, other], makeFormat_(chainName, this, other),
-            function(builtin) {
+            function(builtin, opt_buildOpts) {
                 builtin.setComparison(comparison);
             });
     };
@@ -633,11 +634,11 @@ rethinkdb.Expression.prototype.between =
 
     return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.RANGE, [this],
         makeFormat_('between', this, startKey, endKey, keyName),
-            function(builtin) {
+            function(builtin, opt_buildOpts) {
                 var range = new Builtin.Range();
                 range.setAttrname(keyName);
-                range.setLowerbound(startKey.compile());
-                range.setUpperbound(endKey.compile());
+                range.setLowerbound(startKey.compile(opt_buildOpts));
+                range.setUpperbound(endKey.compile(opt_buildOpts));
                 builtin.setRange(range);
             });
 };
@@ -826,10 +827,10 @@ rethinkdb.Expression.prototype.filter = function(selector) {
                 }
             }
         },
-        function(builtin) {
+        function(builtin, opt_buildOpts) {
             var predicate = new Predicate();
             predicate.setArg(predicateFunction.args[0]);
-            predicate.setBody(predicateFunction.body.compile());
+            predicate.setBody(predicateFunction.body.compile(opt_buildOpts));
 
             var filter = new Builtin.Filter();
             filter.setPredicate(predicate);
@@ -866,10 +867,10 @@ rethinkdb.Expression.prototype.map = function(mapFun) {
                 }
             }
         },
-        function(builtin) {
+        function(builtin, opt_buildOpts) {
             var mapping = new Mapping();
             mapping.setArg(mapFun.args[0]);
-            mapping.setBody(mapFun.body.compile());
+            mapping.setBody(mapFun.body.compile(opt_buildOpts));
 
             var map = new Builtin.Map();
             map.setMapping(mapping);
@@ -905,7 +906,7 @@ rethinkdb.Expression.prototype.orderby = function(var_args) {
                 return self.formatQuery(bt)+spaceify_(".orderby("+os.join(', ')+")");
             }
         },
-        function(builtin) {
+        function(builtin, opt_buildOpts) {
             for (var i = 0; i < orderings.length; i++) {
                 var ascending = true;
                 var attr = orderings[i];
@@ -987,12 +988,12 @@ rethinkdb.Expression.prototype.reduce = function(base, reduce) {
                 }
             }
         },
-        function(builtin) {
+        function(builtin, opt_buildOpts) {
             var reduction = new Reduction();
-            reduction.setBase(base.compile());
+            reduction.setBase(base.compile(opt_buildOpts));
             reduction.setVar1(reduce.args[0]);
             reduction.setVar2(reduce.args[1]);
-            reduction.setBody(reduce.body.compile());
+            reduction.setBody(reduce.body.compile(opt_buildOpts));
 
             builtin.setReduce(reduction);
         });
@@ -1052,20 +1053,20 @@ rethinkdb.Expression.prototype.groupedMapReduce = function(grouping, mapping, ba
                 }
             }
         },
-        function(builtin) {
+        function(builtin, opt_buildOpts) {
             var groupMapping = new Mapping();
             groupMapping.setArg(grouping.args[0]);
-            groupMapping.setBody(grouping.body.compile());
+            groupMapping.setBody(grouping.body.compile(opt_buildOpts));
 
             var valueMapping = new Mapping();
             valueMapping.setArg(mapping.args[0]);
-            valueMapping.setBody(mapping.body.compile());
+            valueMapping.setBody(mapping.body.compile(opt_buildOpts));
 
             var reduction = new Reduction();
-            reduction.setBase(base.compile());
+            reduction.setBase(base.compile(opt_buildOpts));
             reduction.setVar1(reduce.args[0]);
             reduction.setVar2(reduce.args[1]);
-            reduction.setBody(reduce.body.compile());
+            reduction.setBody(reduce.body.compile(opt_buildOpts));
 
             var groupedMapReduce = new Builtin.GroupedMapReduce();
             groupedMapReduce.setGroupMapping(groupMapping);
@@ -1099,7 +1100,7 @@ rethinkdb.Expression.prototype.contains = function(attr) {
                 }
             }
         },
-        function(builtin) {
+        function(builtin, opt_buildOpts) {
             builtin.setAttr(attr);
         });
 };
@@ -1128,7 +1129,7 @@ rethinkdb.Expression.prototype.getAttr = function(attr) {
                 }
             }
         },
-        function(builtin) {
+        function(builtin, opt_buildOpts) {
             builtin.setAttr(attr);
         });
 };
@@ -1157,7 +1158,7 @@ rethinkdb.Expression.prototype.pick = function() {
                 return self.formatQuery(bt)+spaceify_(".pick("+strAttrs.join(', ')+')');
             }
         },
-        function(builtin) {
+        function(builtin, opt_buildOpts) {
             for (var key in attrs) {
                 var attr = attrs[key];
                 builtin.addAttrs(attr);
@@ -1190,7 +1191,7 @@ rethinkdb.Expression.prototype.unpick = function(attrs) {
                 return self.formatQuery(bt)+spaceify_(".unpick("+strAttrs.join(', ')+')');
             }
         },
-        function(builtin) {
+        function(builtin, opt_buildOpts) {
             for (var key in attrs) {
                 var attr = attrs[key];
                 builtin.addAttrs(attr);
@@ -1240,7 +1241,7 @@ rethinkdb.VarExpression = function(varName) {
 goog.inherits(rethinkdb.VarExpression, rethinkdb.Expression);
 
 /** @override */
-rethinkdb.VarExpression.prototype.compile = function() {
+rethinkdb.VarExpression.prototype.compile = function(opt_buildOpts) {
     var term = new Term();
     term.setType(Term.TermType.VAR);
     term.setVar(this.varName_);
@@ -1266,7 +1267,7 @@ rethinkdb.ImplicitVarExpression = function() { };
 goog.inherits(rethinkdb.ImplicitVarExpression, rethinkdb.Expression);
 
 /** @override */
-rethinkdb.ImplicitVarExpression.prototype.compile = function() {
+rethinkdb.ImplicitVarExpression.prototype.compile = function(opt_buildOpts) {
     var term = new Term();
     term.setType(Term.TermType.IMPLICIT_VAR);
     return term;
@@ -1301,7 +1302,7 @@ rethinkdb.AttrExpression = function(leftExpr, attrName) {
                 return spaceify_(leftExpr.formatQuery())+carrotify_("('"+attrName+"')");
             }
         }
-    }, function(builtin) {
+    }, function(builtin, opt_buildOpts) {
         builtin.setAttr(attrName);
     });
 };
@@ -1409,10 +1410,10 @@ rethinkdb.Expression.prototype.concatMap = function(mapFun) {
                 }
             }
         },
-        function(builtin) {
+        function(builtin, opt_buildOpts) {
             var mapping = new Mapping();
             mapping.setArg(mapFun.args[0]);
-            mapping.setBody(mapFun.body.compile());
+            mapping.setBody(mapFun.body.compile(opt_buildOpts));
 
             var concatmap = new Builtin.ConcatMap();
             concatmap.setMapping(mapping);
@@ -1436,12 +1437,12 @@ rethinkdb.IfExpression = function(test, trueBranch, falseBranch) {
 goog.inherits(rethinkdb.IfExpression, rethinkdb.Expression);
 
 /** @override */
-rethinkdb.IfExpression.prototype.compile = function() {
+rethinkdb.IfExpression.prototype.compile = function(opt_buildOpts) {
     var if_ = new Term.If();
 
-    if_.setTest(this.test_.compile());
-    if_.setTrueBranch(this.trueBranch_.compile());
-    if_.setFalseBranch(this.falseBranch_.compile());
+    if_.setTest(this.test_.compile(opt_buildOpts));
+    if_.setTrueBranch(this.trueBranch_.compile(opt_buildOpts));
+    if_.setFalseBranch(this.falseBranch_.compile(opt_buildOpts));
 
     var term = new Term();
     term.setType(Term.TermType.IF);
@@ -1501,7 +1502,7 @@ rethinkdb.LetExpression = function(bindings, body) {
 goog.inherits(rethinkdb.LetExpression, rethinkdb.Expression);
 
 /** @override */
-rethinkdb.LetExpression.prototype.compile = function() {
+rethinkdb.LetExpression.prototype.compile = function(opt_buildOpts) {
     var let_ = new Term.Let();
 
     for (var varName in this.bindings_) {
@@ -1510,12 +1511,12 @@ rethinkdb.LetExpression.prototype.compile = function() {
 
             var tuple = new VarTermTuple();
             tuple.setVar(varName);
-            tuple.setTerm(expr.compile());
+            tuple.setTerm(expr.compile(opt_buildOpts));
 
             let_.addBinds(tuple);
         }
     }
-    let_.setExpr(this.body_.compile());
+    let_.setExpr(this.body_.compile(opt_buildOpts));
 
     var term = new Term();
     term.setType(Term.TermType.LET);
@@ -1555,12 +1556,12 @@ rethinkdb.ForEachQuery = function(leftExpr, fun) {
 goog.inherits(rethinkdb.ForEachQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.ForEachQuery.prototype.buildQuery = function() {
+rethinkdb.ForEachQuery.prototype.buildQuery = function(opt_buildOpts) {
     var foreach = new WriteQuery.ForEach();
-    foreach.setStream(this.leftExpr_.compile());
+    foreach.setStream(this.leftExpr_.compile(opt_buildOpts));
     foreach.setVar(this.fun_.args[0]);
 
-    var sub = this.fun_.body.buildQuery().getWriteQuery();
+    var sub = this.fun_.body.buildQuery(opt_buildOpts).getWriteQuery();
     if (!sub) {
         throw new rethinkdb.errors.ClientError("For each requires a write query to execute");
     }

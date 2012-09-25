@@ -12,6 +12,16 @@
 #include "rdb_protocol/internal_extensions.pb.h"
 #include "rdb_protocol/js.hpp"
 
+#ifndef NDEBUG
+#define guarantee_debug_throw_release(cond, backtrace) guarantee(cond)
+#else
+#define guarantee_debug_throw_release(cond, backtrace) do {                                     \
+    if (!(cond)) {                                                                              \
+        throw runtime_exc_t(format_assert_message("BROKEN SERVER GUARANTEE", cond), backtrace); \
+    }                                                                                           \
+} while (0)
+#endif // NDEBUG
+
 void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, namespace_id_t namespace_id, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     /* The following is an ugly hack, but it's probably what we want.  It
        takes about a third of a second for the new namespace to get to the
@@ -20,7 +30,7 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, nam
        milliseconds until one succeeds, then return. */
 
     // This read won't succeed, but we care whether it fails with an exception.
-    //  It must be an rget to make sure that access is available to all shards.
+    // It must be an rget to make sure that access is available to all shards.
 
     const int poll_ms = 100; //with this value, usually polls twice
     rdb_protocol_t::rget_read_t bad_rget_read(hash_region_t<key_range_t>::universe());
@@ -992,7 +1002,7 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
 }
 
 void execute_query(Query *q, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    guarantee(q->token() == res->token());
+    guarantee_debug_throw_release(q->token() == res->token(), backtrace);
     switch(q->type()) {
     case Query::READ: {
         execute_read_query(q->mutable_read_query(), env, res, scopes, backtrace, stream_cache);
@@ -1041,7 +1051,7 @@ void execute_read_query(ReadQuery *r, runtime_environment_t *env, Response *res,
             stream_cache->insert(r, key, stream);
         }
         bool b = stream_cache->serve(key, res, env->interruptor);
-        guarantee(b);
+        guarantee_debug_throw_release(b, backtrace);
         break; //status code set in [serve]
     }
     case TERM_TYPE_ARBITRARY: {
@@ -1135,7 +1145,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 
         int updated = 0, errors = 0, skipped = 0;
         while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-            guarantee(json && json->type() == cJSON_Object);
+            guarantee_debug_throw_release(json && json->type() == cJSON_Object, backtrace);
             try {
                 std::string pk = view.primary_key;
                 cJSON *id = json->GetObjectItem(pk.c_str());
@@ -1166,7 +1176,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         int modified = 0, deleted = 0, errors = 0;
         std::string reported_error = "";
         while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-            guarantee(json && json->type() == cJSON_Object);
+            guarantee_debug_throw_release(json && json->type() == cJSON_Object, backtrace);
             try {
                 std::string pk = view.primary_key;
                 cJSON *id = json->GetObjectItem(pk.c_str());
@@ -1308,11 +1318,11 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 
             for (int i = 0; i < w->for_each().queries_size(); ++i) {
                 // Run the write query and retrieve the result.
-                guarantee(res->response_size() == 0);
+                guarantee_debug_throw_release(res->response_size() == 0, backtrace);
                 scoped_cJSON_t rhs(0);
                 try {
                     execute_write_query(w->mutable_for_each()->mutable_queries(i), env, res, scopes_copy, backtrace.with(strprintf("query:%d", i)));
-                    guarantee(res->response_size() == 1);
+                    guarantee_debug_throw_release(res->response_size() == 1, backtrace);
                     rhs.reset(cJSON_Parse(res->response(0).c_str()));
                 } catch (const runtime_exc_t &e) {
                     rhs.reset(cJSON_CreateObject());
@@ -1327,7 +1337,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 scoped_cJSON_t merged(cJSON_merge(lhs.get(), rhs.get()));
                 for (int f = 0; f < merged.GetArraySize(); ++f) {
                     cJSON *el = merged.GetArrayItem(f);
-                    guarantee(el);
+                    guarantee_debug_throw_release(el, backtrace);
                     cJSON *lhs_el = lhs.GetObjectItem(el->string);
                     cJSON *rhs_el = rhs.GetObjectItem(el->string);
                     if (lhs_el && lhs_el->type == cJSON_Number &&
@@ -1364,7 +1374,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(w->mutable_point_delete()->mutable_table_ref(), env, backtrace);
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_delete()->mutable_key(), env, scopes, backtrace.with("key"));
         point_delete(ns_access, id, env, backtrace, &deleted);
-        guarantee(deleted == 0 || deleted == 1);
+        guarantee_debug_throw_release(deleted == 0 || deleted == 1, backtrace);
 
         res->add_response(strprintf("{\"deleted\": %d}", deleted));
     } break;
@@ -1434,7 +1444,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json_and_check_either(Term *t, ru
 boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
     switch (t->type()) {
     case Term::IMPLICIT_VAR:
-        guarantee(scopes.implicit_attribute_value.has_value());
+        guarantee_debug_throw_release(scopes.implicit_attribute_value.has_value(), backtrace);
         return scopes.implicit_attribute_value.get_value();
     case Term::VAR:
         return scopes.scope.get(t->var());
@@ -1697,7 +1707,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 if (c->builtin().type() == Builtin::GETATTR) {
                     data = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
                 } else {
-                    guarantee(scopes.implicit_attribute_value.has_value());
+                    guarantee_debug_throw_release(scopes.implicit_attribute_value.has_value(), backtrace);
                     data = scopes.implicit_attribute_value.get_value();
                 }
 
@@ -1721,7 +1731,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 if (c->builtin().type() == Builtin::HASATTR) {
                     data = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
                 } else {
-                    guarantee(scopes.implicit_attribute_value.has_value());
+                    guarantee_debug_throw_release(scopes.implicit_attribute_value.has_value(), backtrace);
                     data = scopes.implicit_attribute_value.get_value();
                 }
 
@@ -1745,7 +1755,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 data = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
             } else {
                 guarantee(c->builtin().type() == Builtin::IMPLICIT_WITHOUT);
-                guarantee(scopes.implicit_attribute_value.has_value());
+                guarantee_debug_throw_release(scopes.implicit_attribute_value.has_value(), backtrace);
                 data = scopes.implicit_attribute_value.get_value();
             }
             if (data->type() != cJSON_Object) {
@@ -1764,7 +1774,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 if (c->builtin().type() == Builtin::PICKATTRS) {
                     data = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
                 } else {
-                    guarantee(scopes.implicit_attribute_value.has_value());
+                    guarantee_debug_throw_release(scopes.implicit_attribute_value.has_value(), backtrace);
                     data = scopes.implicit_attribute_value.get_value();
                 }
 
@@ -2639,3 +2649,5 @@ view_t eval_table_as_view(Term::Table *t, runtime_environment_t *env, const back
 }
 
 } //namespace query_language
+
+#undef guarantee_debug_throw_release

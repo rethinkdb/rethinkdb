@@ -100,9 +100,7 @@ void env_t::forget(id_t id) {
 
 
 // ---------- runner_t ----------
-runner_t::runner_t()
-    DEBUG_ONLY(: running_task_(false))
-{}
+runner_t::runner_t() : running_task_(false) { }
 
 const runner_t::req_config_t *runner_t::default_req_config() {
     static req_config_t config;
@@ -151,7 +149,7 @@ runner_t::run_task_t::run_task_t(runner_t *runner, const req_config_t *config, c
     : runner_(runner)
 {
     guarantee(!runner_->running_task_);
-    DEBUG_ONLY_CODE(runner_->running_task_ = true);
+    runner_->running_task_ = true;
 
     if (NULL == config)
         config = runner->default_req_config();
@@ -164,7 +162,7 @@ runner_t::run_task_t::run_task_t(runner_t *runner, const req_config_t *config, c
 
 runner_t::run_task_t::~run_task_t() {
     guarantee(runner_->running_task_);
-    DEBUG_ONLY_CODE(runner_->running_task_ = false);
+    runner_->running_task_ = false;
 }
 
 int64_t runner_t::run_task_t::read(void *p, int64_t n) {

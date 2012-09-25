@@ -18,7 +18,7 @@ rethinkdb.MetaQuery = function(type, opt_dbName) {
 goog.inherits(rethinkdb.MetaQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.MetaQuery.prototype.buildQuery = function() {
+rethinkdb.MetaQuery.prototype.buildQuery = function(opt_buildOpts) {
     var meta = new MetaQuery();
     meta.setType(this.type_);
     if (this.dbName_) {
@@ -113,7 +113,7 @@ rethinkdb.CreateTableQuery = function(dataCenter, dbName, tableName, primaryKey,
 goog.inherits(rethinkdb.CreateTableQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.CreateTableQuery.prototype.buildQuery = function() {
+rethinkdb.CreateTableQuery.prototype.buildQuery = function(opt_buildOpts) {
     var tableref = new TableRef();
     tableref.setDbName(this.dbName_);
     tableref.setTableName(this.tableName_);
@@ -180,7 +180,7 @@ rethinkdb.DropTableQuery = function(dbName, tableName) {
 goog.inherits(rethinkdb.DropTableQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.DropTableQuery.prototype.buildQuery = function() {
+rethinkdb.DropTableQuery.prototype.buildQuery = function(opt_buildOpts) {
     var tableref = new TableRef();
     tableref.setDbName(this.dbName_);
     tableref.setTableName(this.tableName_);
@@ -211,11 +211,13 @@ goog.exportProperty(rethinkdb.Database.prototype, 'drop',
 /**
  * Construct a table reference for a table in this database
  * @param {string} tableName
+ * @param {boolean=} opt_allowOutdated
  */
-rethinkdb.Database.prototype.table = function(tableName) {
+rethinkdb.Database.prototype.table = function(tableName, opt_allowOutdated) {
     argCheck_(arguments, 1);
     typeCheck_(tableName, 'string');
-    return new rethinkdb.Table(tableName, this.name_);
+    typeCheck_(opt_allowOutdated, 'boolean');
+    return new rethinkdb.Table(tableName, this.name_, opt_allowOutdated);
 };
 goog.exportProperty(rethinkdb.Database.prototype, 'table',
                     rethinkdb.Database.prototype.table);

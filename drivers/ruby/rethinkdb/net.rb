@@ -3,6 +3,10 @@ require 'thread'
 require 'json'
 
 module RethinkDB
+  module Faux_Abort # :nodoc
+    class Abort # :nodoc
+    end
+  end
   # The result of a calling Connection#run on a query that returns a stream.
   # This class is <b>+Enumerable+</b>.  You can find documentation on Enumerable
   # classes at http://ruby-doc.org/core-1.9.3/Enumerable.html .
@@ -166,7 +170,7 @@ module RethinkDB
 
           begin
             protob = wait token
-          rescue IRB::Abort => e
+          rescue @abort_module::Abort => e
             print "\nAborting query and reconnecting...\n"
             self.reconnect()
             raise e
@@ -201,6 +205,11 @@ module RethinkDB
     # running queries over that connection.  Example:
     #   c = Connection.new('localhost', 12346, 'default_db')
     def initialize(host='localhost', port=12346, default_db='test')
+      begin
+        @abort_module = ::IRB
+      rescue NameError => e
+        @abort_module = Faux_Abort
+      end
       @@last = self
       @host = host
       @port = port

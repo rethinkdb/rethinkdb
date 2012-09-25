@@ -2,6 +2,7 @@ goog.provide('rethinkdb.Connection');
 
 goog.require('rethinkdb.errors');
 goog.require('goog.math.Long');
+goog.require('goog.object');
 goog.require('goog.proto2.WireFormatSerializer');
 
 /**
@@ -118,24 +119,37 @@ rethinkdb.Connection.prototype.close = goog.abstractMethod;
 
 /**
  * Construct and run the given query, used by public run and iter methods
- * @param {rethinkdb.Query} expr The expression to run
- * @param {boolean} iterate Iterate callback over results
- * @param {function(...)} opt_callback Callback to which results are returned
- * @param {function(...)=} opt_doneCallback called when stream has ended.
+ * @param {Object} options Run options
  *  Only valid if iterate = true
  * @private
  */
-rethinkdb.Connection.prototype.run_ = function(expr, iterate, opt_callback, opt_doneCallback) {
-    var query = expr.buildQuery();
+rethinkdb.Connection.prototype.run_ = function(options) {
+    // Defaults
+    var opts = {
+        'expr':rethinkdb.expr(null),
+        'callback':function(){},
+        'iterate':false,
+        'doneCallback':function(){},
+        'allowOutdated':false
+    };
+    goog.object.extend(opts, options);
+
+    typeCheck_(opts['expr'], rethinkdb.Query);
+    typeCheck_(opts['callback'], 'function');
+    typeCheck_(opts['iterate'], 'boolean');
+    typeCheck_(opts['doneCallback'], 'function');
+    typeCheck_(opts['allowOutdated'], 'boolean');
+
+    var query = opts['expr'].buildQuery({defaultAllowOutdated:opts['allowOutdated']});
 
     // Assign a token
     query.setToken((this.nextToken_++).toString());
 
     this.outstandingQueries_[query.getToken()] = {
-        callback: (opt_callback || null),
-        query: expr, // Save origional ast for backtrace reconstructions
-        iterate : iterate,
-        done: (opt_doneCallback || null),
+        callback: opts['callback'],
+        query: opts['expr'], // Save origional ast for backtrace reconstructions
+        iterate : opts['iterate'],
+        done: opts['doneCallback'],
         partial : []
     };
 
@@ -163,32 +177,51 @@ rethinkdb.Connection.prototype.sendProtoBuf_ = function(pbObj) {
 /**
  * Evaluates the given ReQL expression on the server and invokes
  * callback with the result.
- * @param {rethinkdb.Query} expr The expression to run.
- * @param {function(...)} opt_callback Function to invoke with response.
+ * @param {rethinkdb.Query|Object} exprOrOpts The expression to run.
+ * @param {function(...)=} opt_callback Function to invoke with response.
  */
-rethinkdb.Connection.prototype.run = function(expr, opt_callback) {
+rethinkdb.Connection.prototype.run = function(exprOrOpts, opt_callback) {
+    argCheck_(arguments, 1);
+
     // THIS IS A HACAK, but Slava wants it
     this.printErr_ = false;
 
-    argCheck_(arguments, 1);
-    typeCheck_(expr, rethinkdb.Query);
-    typeCheck_(opt_callback, 'function');
-    this.run_(expr, false, opt_callback);
+    var opts = {};
+    if (exprOrOpts instanceof rethinkdb.Query) {
+        opts['expr'] = exprOrOpts;
+        opts['callback'] = opt_callback;
+    } else {
+        goog.object.extend(opts, exprOrOpts);
+    }
+
+    this.run_(opts);
 };
 goog.exportProperty(rethinkdb.Connection.prototype, 'run',
                     rethinkdb.Connection.prototype.run);
 
 /**
  * Version of run that prints the result rather than taking a callback
- * @param {rethinkdb.Query} expr The expression to run.
+ * @param {rethinkdb.Query|Object} exprOrOpts The expression to run.
  */
-rethinkdb.Connection.prototype.runp = function(expr) {
+rethinkdb.Connection.prototype.runp = function(exprOrOpts) {
+    argCheck_(arguments, 1);
+
     // THIS IS A HACAK, but Slava wants it
     this.printErr_ = true;
 
-    this.run_(expr, false, function(val) {
+    var opts = {};
+    if (exprOrOpts instanceof rethinkdb.Query) {
+        opts['expr'] = exprOrOpts;
+    } else {
+        goog.object.extend(opts, exprOrOpts);
+    }
+
+    // That which makes runp different from run
+    opts['callback'] = function(val) {
         console.log(val);
-    });
+    };
+
+    this.run_(opts);
 };
 goog.exportProperty(rethinkdb.Connection.prototype, 'runp',
                     rethinkdb.Connection.prototype.runp);
@@ -198,18 +231,29 @@ goog.exportProperty(rethinkdb.Connection.prototype, 'runp',
  * callback with each element of the result. The main advantage of using iter
  * over run is that results are lazily loaded as they are returned from the
  * server. Use anytime the result is expected to be very large.
- * @param {rethinkdb.Query} expr The expression to run.
+ * @param {rethinkdb.Query|Object} exprOrOpts The expression to run.
  * @param {function(...)} opt_callback Function to invoke with response.
  * @param {function(...)=} opt_doneCallback Function to invoke when stream has ended.
  */
-rethinkdb.Connection.prototype.iter = function(expr, opt_callback, opt_doneCallback) {
+rethinkdb.Connection.prototype.iter = function(exprOrOpts, opt_callback, opt_doneCallback) {
+    argCheck_(arguments, 1);
+
     // THIS IS A HACAK, but Slava wants it
     this.printErr_ = false;
 
-    argCheck_(arguments, 1);
-    typeCheck_(expr, rethinkdb.Query);
-    typeCheck_(opt_callback, 'function');
-    this.run_(expr, true, opt_callback, opt_doneCallback);
+    var opts = {};
+    if (exprOrOpts instanceof rethinkdb.Query) {
+        opts['expr'] = exprOrOpts;
+        opts['callback'] = opt_callback
+        opts['doneCallback'] = opt_doneCallback
+    } else {
+        goog.object.extend(opts, exprOrOpts);
+    }
+
+    // That which makes iter different from run
+    opts['iterate'] = true;
+
+    this.run_(opts);
 };
 goog.exportProperty(rethinkdb.Connection.prototype, 'iter',
                     rethinkdb.Connection.prototype.iter);
