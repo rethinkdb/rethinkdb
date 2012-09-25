@@ -25,6 +25,7 @@ struct test_driver_t {
         size_t get_count() const { return count; }
         // TODO: sizeof(off_t) seems to be 8 on linux but let's use off64_t, neh?
         off_t get_offset() const { return offset; }
+        void set_successful_due_to_conflict() { }
 
         bool is_read;
         void *buf;
