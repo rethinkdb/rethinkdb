@@ -1597,7 +1597,17 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'forEach',
  * @return {rethinkdb.Expression}
  */
 rethinkdb.Expression.prototype.streamToArray = function() {
-    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.STREAMTOARRAY, [this], formatTodo_);
+    var self = this;
+    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.STREAMTOARRAY, [this],
+        function(bt) {
+            if (!bt) {
+                return self.formatQuery()+".streamToArray()";
+            } else {
+                var a = bt.shift();
+                goog.asserts.assert(a === 'arg:0');
+                return self.formatQuery(bt)+"                ";
+            }
+        });
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'streamToArray',
                     rethinkdb.Expression.prototype.streamToArray);
@@ -1607,7 +1617,17 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'streamToArray',
  * @return {rethinkdb.Expression}
  */
 rethinkdb.Expression.prototype.arrayToStream = function() {
-    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.ARRAYTOSTREAM, [this], formatTodo_);
+    var self = this;
+    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.ARRAYTOSTREAM, [this],
+        function(bt) {
+            if (!bt) {
+                return self.formatQuery()+".arrayToStream()";
+            } else {
+                var a = bt.shift();
+                goog.asserts.assert(a === 'arg:0');
+                return self.formatQuery(bt)+"                ";
+            }
+        });
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'arrayToStream',
                     rethinkdb.Expression.prototype.arrayToStream);

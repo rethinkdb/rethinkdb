@@ -34,5 +34,7 @@ var c = r.connect({}, function() {
     r.expr({a:1}).extend({b:r.error()}).runp();
     r.expr([1,2]).concatMap(function(a) {return r.expr([r.error()])}).runp();
 
+    r.expr([1,2,r.error()]).arrayToStream().runp();
+
     c.close();
 });
