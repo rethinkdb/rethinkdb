@@ -26,11 +26,7 @@ public:
     typedef std::map<typename protocol_t::region_t, blueprint_role_t> region_to_role_map_t;
     typedef std::map<peer_id_t, std::map<typename protocol_t::region_t, blueprint_role_t> > role_map_t;
 
-    void assert_valid_unreviewed() const {
-        return assert_valid_reviewed();
-    }
-
-    void assert_valid_reviewed() const THROWS_NOTHING {
+    void guarantee_valid() const THROWS_NOTHING {
         if (peers_roles.empty()) {
             return; //any empty blueprint is valid
         }
@@ -39,12 +35,12 @@ public:
         std::set<typename protocol_t::region_t> ref_regions = keys(ref_role_map);
 
         typename protocol_t::region_t join;
-        rassert_reviewed(REGION_JOIN_OK == region_join(std::vector<typename protocol_t::region_t>(ref_regions.begin(), ref_regions.end()), &join));
+        guarantee_reviewed(REGION_JOIN_OK == region_join(std::vector<typename protocol_t::region_t>(ref_regions.begin(), ref_regions.end()), &join));
 
         for (typename role_map_t::const_iterator it =  peers_roles.begin();
                                                  it != peers_roles.end();
                                                  it++) {
-            rassert_reviewed(keys(it->second) == ref_regions, "Found blueprint with different peers having different sharding schemes.");
+            guarantee_reviewed(keys(it->second) == ref_regions, "Found blueprint with different peers having different sharding schemes.");
         }
     }
 
