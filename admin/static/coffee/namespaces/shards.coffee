@@ -298,9 +298,6 @@ module 'NamespaceView', ->
                     empty_master_pin[shard] = null
                     empty_replica_pins[shard] = []
 
-                console.log shard_set
-                console.log @model.get('key_distr_sorted')
-
                 data =
                     shards: shard_set
                     primary_pinnings: empty_master_pin
@@ -418,10 +415,6 @@ module 'NamespaceView', ->
                 shards: shard_set
                 primary_pinnings: empty_master_pin
                 secondary_pinnings: empty_replica_pins
-
-            console.log shard_set
-            console.log @model.get('key_distr_sorted')
-            console.log '======'
 
             @data_sent = data
 
