@@ -75,18 +75,25 @@ module 'NamespaceView', ->
                         id: dc.get('id')
                         name: dc.get('name')
             # create json
-            primary_replica_count = @model.get('replica_affinities')[@model.get('primary_uuid')]
-            if not primary_replica_count?
-                # replica affinities may be missing for new namespaces
+            if @model.get('primary_uuid')?
+                primary_replica_count = @model.get('replica_affinities')[@model.get('primary_uuid')]
+                if not primary_replica_count?
+                    # replica affinities may be missing for new namespaces
+                    primary_replica_count = 0
+            else
                 primary_replica_count = 0
-            json = _.extend @model.toJSON(),
-                primary:
-                    id: @model.get('primary_uuid')
-                    name: datacenters.get(@model.get('primary_uuid')).get('name')
-                    replicas: primary_replica_count + 1 # we're adding one because primary is also a replica
-                    total_machines: DataUtils.get_datacenter_machines(@model.get('primary_uuid')).length
-                    acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
-                    status: DataUtils.get_namespace_status(@model.get('id'), @model.get('primary_uuid'))
+            if @model.get('primary_uuid')?
+                json = _.extend @model.toJSON(),
+                    primary:
+                        id: @model.get('primary_uuid')
+                        name: datacenters.get(@model.get('primary_uuid')).get('name')
+                        replicas: primary_replica_count + 1 # we're adding one because primary is also a replica
+                        total_machines: DataUtils.get_datacenter_machines(@model.get('primary_uuid')).length
+                        acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
+                        status: DataUtils.get_namespace_status(@model.get('id'), @model.get('primary_uuid'))
+            else
+                json = @model.toJSON()
+            json = _.extend json,
                 secondaries:
                     _.map secondary_affinities, (replica_count, uuid) =>
                         id: uuid

@@ -172,10 +172,13 @@
         </div>
         <hr />
         <h4>The goals you have specified are impossible for the table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a></h4>
+        {{#if no_primary}}You have to <a href="#tables/{{namespace_id}}/replication">choose</a> a primary datacenter to make this table works.{{/if}}
         {{#each datacenters_with_issues}}
         <p class="description">You require {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} for the datacenter <a href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> but you only have {{num_machines}} {{pluralize_noun "server" this.num_machines}} available.</p>
         {{/each}}
+        {{#if datacenters_with_issues}}
         <p class="description">To solve this issue, you can lower the number of replicas or connect a new server to the datacenter.</p>
+        {{/if}}
 
         <p><a class="btn large danger solve_unsatisfiable_goals">Lower the number of replicas</a></p>
   </div>

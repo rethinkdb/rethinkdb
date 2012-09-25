@@ -10,28 +10,29 @@
       <th>Status</th>
       <th>&nbsp;</th>
     </tr>
-    <!-- Primary datacenter -->
-    {{#with primary}}
-    <tr>
-      <td>{{name}}</td>
-      <td>Primary</td>
-      <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "server" total_machines}})</td>
-      <td>{{acks}}</td>
-      <td>
-        {{#if status}}
-        {{#with status}}
-        <span class="master-status">{{nashards}} of {{nshards}} masters live</span>
-        {{#if nreplicas}}
-        <span class="replica-status">{{nareplicas}} of {{nreplicas}} replicas live</span>
-        {{/if}}
-        <span class="replication-status">{{> backfill_progress_summary}}</span>
+    {{#if primary}}
+        {{#with primary}}
+        <tr>
+          <td>{{name}}</td>
+          <td>Primary</td>
+          <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "server" total_machines}})</td>
+          <td>{{acks}}</td>
+          <td>
+            {{#if status}}
+            {{#with status}}
+            <span class="master-status">{{nashards}} of {{nshards}} masters live</span>
+            {{#if nreplicas}}
+            <span class="replica-status">{{nareplicas}} of {{nreplicas}} replicas live</span>
+            {{/if}}
+            <span class="replication-status">{{> backfill_progress_summary}}</span>
+            {{/with}}
+            {{/if}}
+          </td>
+          <td><a id="edit-primary" href="#">Edit replicas</a></td>
+        </tr>
         {{/with}}
-        {{/if}}
-      </td>
-      <td><a id="edit-primary" href="#">Edit replicas</a></td>
-    </tr>
-    {{/with}}
-    <!-- Secondary datacenters -->
+    {{/if}}
+
     {{#each secondaries}}
     <tr>
       <td>{{name}}</td>
@@ -47,7 +48,7 @@
       <td><a class="edit-secondary {{this.id}}" href="#">Edit replicas</a> | <a class="make-primary {{this.id}}" href="#">Make primary</a></td>
     </tr>
     {{/each}}
-    <!-- Rest of the datacenters (ones we're not replicating to) -->
+
     {{#each nothings}}
     <tr>
       <td>{{name}}</td>
