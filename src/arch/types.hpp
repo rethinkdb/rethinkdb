@@ -78,8 +78,8 @@ typedef linux_tcp_listener_t tcp_listener_t;
 class linux_repeated_nonthrowing_tcp_listener_t;
 typedef linux_repeated_nonthrowing_tcp_listener_t repeated_nonthrowing_tcp_listener_t;
 
-class linux_nascent_tcp_conn_t;
-typedef linux_nascent_tcp_conn_t nascent_tcp_conn_t;
+class linux_tcp_conn_descriptor_t;
+typedef linux_tcp_conn_descriptor_t tcp_conn_descriptor_t;
 
 class linux_tcp_conn_t;
 typedef linux_tcp_conn_t tcp_conn_t;

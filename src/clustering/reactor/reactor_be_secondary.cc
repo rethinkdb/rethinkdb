@@ -176,10 +176,12 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 region_map_t<protocol_t, binary_blob_t> metainfo_blob;
                 svs->do_get_metainfo(order_source.check_in("reactor_t::be_secondary").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
 
+                direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
+
                 on_thread_t th2(this->home_thread());
 
                 typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
-                    activity(to_version_range_map(metainfo_blob), backfiller.get_business_card());
+                    activity(to_version_range_map(metainfo_blob), backfiller.get_business_card(), direct_reader.get_business_card());
 
                 directory_entry.set(activity);
 

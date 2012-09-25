@@ -607,20 +607,20 @@ void linux_tcp_conn_t::on_event(int events) {
 
 
 
-linux_nascent_tcp_conn_t::linux_nascent_tcp_conn_t(fd_t fd) : fd_(fd) {
+linux_tcp_conn_descriptor_t::linux_tcp_conn_descriptor_t(fd_t fd) : fd_(fd) {
     rassert(fd != -1);
 }
 
-linux_nascent_tcp_conn_t::~linux_nascent_tcp_conn_t() {
+linux_tcp_conn_descriptor_t::~linux_tcp_conn_descriptor_t() {
     rassert(fd_ == -1);
 }
 
-void linux_nascent_tcp_conn_t::ennervate(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn) {
+void linux_tcp_conn_descriptor_t::make_overcomplicated(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn) {
     tcp_conn->init(new linux_tcp_conn_t(fd_));
     fd_ = -1;
 }
 
-void linux_nascent_tcp_conn_t::ennervate(linux_tcp_conn_t **tcp_conn_out) {
+void linux_tcp_conn_descriptor_t::make_overcomplicated(linux_tcp_conn_t **tcp_conn_out) {
     *tcp_conn_out = new linux_tcp_conn_t(fd_);
     fd_ = -1;
 }
@@ -631,7 +631,7 @@ void linux_nascent_tcp_conn_t::ennervate(linux_tcp_conn_t **tcp_conn_out) {
 
 linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
         int _port,
-        const boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> &cb) :
+        const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &cb) :
     port(_port),
     bound(false),
     sock(socket(AF_INET, SOCK_STREAM, 0)),
@@ -769,7 +769,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
 }
 
 void linux_nonthrowing_tcp_listener_t::handle(fd_t socket) {
-    scoped_ptr_t<linux_nascent_tcp_conn_t> nconn(new linux_nascent_tcp_conn_t(socket));
+    scoped_ptr_t<linux_tcp_conn_descriptor_t> nconn(new linux_tcp_conn_descriptor_t(socket));
     callback(nconn);
 }
 
@@ -796,7 +796,7 @@ void linux_nonthrowing_tcp_listener_t::on_event(int) {
     }
 }
 
-void noop_fun(UNUSED const scoped_ptr_t<linux_nascent_tcp_conn_t>& arg) { }
+void noop_fun(UNUSED const scoped_ptr_t<linux_tcp_conn_descriptor_t>& arg) { }
 
 linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
         listener(new linux_nonthrowing_tcp_listener_t(_port, noop_fun))
@@ -811,7 +811,7 @@ int linux_tcp_bound_socket_t::get_port() const {
 }
 
 linux_tcp_listener_t::linux_tcp_listener_t(int port,
-    const boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> &callback) :
+    const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
         listener(new linux_nonthrowing_tcp_listener_t(port, callback))
 {
     if (!listener->begin_listening()) {
@@ -821,7 +821,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(int port,
 
 linux_tcp_listener_t::linux_tcp_listener_t(
     linux_tcp_bound_socket_t *bound_socket,
-    const boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> &callback) :
+    const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
         listener(bound_socket->listener.release())
 {
     listener->callback = callback;
@@ -831,7 +831,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(
 }
 
 linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(int port,
-    const boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> &callback) :
+    const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
         listener(port, callback)
 { }
 

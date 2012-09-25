@@ -160,14 +160,26 @@ class BatchedIterator(object):
         self.more_query.token = token
         self.more_query.type = p.Query.CONTINUE
 
+        # Add ourselves to the list of cursors on the connection (so
+        # that the connection can invalidate us if it breaks)
+        self.conn.cursors.append(self)
+
+    def invalidate(self):
+        self.conn.cursors.remove(self)
+        self.conn = None
+
     def read_more(self):
         if self.complete:
             return
+
+        if not self.conn:
+            raise RuntimeError("The connection has been invalidated")
 
         more_data, status = self.conn._run(self.more_query, self.query)
 
         if status == p.Response.SUCCESS_STREAM:
             self.complete = True
+            self.conn.cursors.remove(self)
 
         self.data += more_data
 
@@ -241,11 +253,20 @@ class Connection():
           explicitly. Equivalent to calling :func:`use`.
         :type db_name: str
         """
-        self.token = 1
-        self.socket = socket.create_connection((host, port))
-        self.socket.sendall(struct.pack("<L", 0xaf61ba35))
+        self.socket = None
         self.db_name = db_name
+        self.token = 1
+        self.host = host
+        self.port = port
+        self.cursors = []
+        self.reconnect()
 
+    def reconnect(self):
+        self.close()
+        for c in self.cursors:
+            c.invalidate()
+        self.socket = socket.create_connection((self.host, self.port))
+        self.socket.sendall(struct.pack("<L", 0xaf61ba35))
         global last_connection
         last_connection = self
 
@@ -257,7 +278,10 @@ class Connection():
     def _recvall(self, length):
         buf = ""
         while len(buf) != length:
-            buf += self.socket.recv(length - len(buf))
+            chunk = self.socket.recv(length - len(buf))
+            if chunk == '':
+                raise RuntimeError("Socket connection broken")
+            buf += chunk
         return buf
 
     def _run(self, protobuf, query, debug=False):
@@ -266,13 +290,17 @@ class Connection():
 
         serialized = protobuf.SerializeToString()
 
-        header = struct.pack("<L", len(serialized))
-        self.socket.sendall(header + serialized)
-        resp_header = self._recvall(4)
-        msglen = struct.unpack("<L", resp_header)[0]
-        response_serialized = self._recvall(msglen)
-        response = p.Response()
-        response.ParseFromString(response_serialized)
+        try:
+            header = struct.pack("<L", len(serialized))
+            self.socket.sendall(header + serialized)
+            resp_header = self._recvall(4)
+            msglen = struct.unpack("<L", resp_header)[0]
+            response_serialized = self._recvall(msglen)
+            response = p.Response()
+            response.ParseFromString(response_serialized)
+        except KeyboardInterrupt as ki:
+            self.reconnect()
+            raise ki
 
         if debug:
             print "response:", response
@@ -360,7 +388,9 @@ class Connection():
     def close(self):
         """Closes all network sockets on this connection object to the
         cluster."""
-        pass
+        if self.socket:
+            self.socket.close()
+            self.socket = None
 
 def connect(host='localhost', port=12346, db_name='test'):
     """

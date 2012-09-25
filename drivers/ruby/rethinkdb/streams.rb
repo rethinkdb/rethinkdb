@@ -15,7 +15,7 @@ module RethinkDB
     #   r[[1,1,1]]
     #   table.limit(3).map{1}.streamtoarray
     #   table.limit(3).map{1}.to_array
-    def streamtoarray(); JSON_Expression.new [:call, [:streamtoarray], [@body]]; end
+    def streamtoarray(); JSON_Expression.new [:call, [:streamtoarray], [self]]; end
   end
 
   # A special case of Stream_Expression that you can write to.  You
@@ -38,7 +38,7 @@ module RethinkDB
     #   table.filter{|row| row[:id] < 5}.delete
     # will delete everything with <b>+id+</b> less than 5 in <b>+table+</b>
     def delete
-      Write_Query.new [:delete, @body]
+      Write_Query.new [:delete, self]
     end
 
     # Update all of the selected rows.  For example, if we have a table <b>+table+</b>:
@@ -49,7 +49,7 @@ module RethinkDB
     # still be added to the new row.
     def update(*args, &b)
       b = S.arg_or_block(*args, &b)
-      S.with_var{|vname,v| Write_Query.new [:update, @body, [vname, S.r(b.call(v))]]}
+      S.with_var{|vname,v| Write_Query.new [:update, self, [vname, S.r(b.call(v))]]}
     end
 
     # Replace all of the selected rows.  Unlike <b>+update+</b>, must return the
@@ -61,7 +61,7 @@ module RethinkDB
     # will delete everything with id less than 5, but leave the other rows untouched.
     def mutate(*args, &b)
       b = S.arg_or_block(*args, &b)
-      S.with_var{|vname,v| Write_Query.new [:mutate, @body, [vname, S.r(b.call(v))]]}
+      S.with_var{|vname,v| Write_Query.new [:mutate, self, [vname, S.r(b.call(v))]]}
     end
   end
 end
