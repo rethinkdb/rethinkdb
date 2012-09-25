@@ -1394,7 +1394,21 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'extend',
  */
 rethinkdb.Expression.prototype.concatMap = function(mapFun) {
     mapFun = functionWrap_(mapFun);
-    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.CONCATMAP, [this], formatTodo_,
+    var self = this;
+    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.CONCATMAP, [this],
+        function(bt) {
+            if (!bt) {
+                return self.formatQuery()+".concatMap("+mapFun.formatQuery()+")";
+            } else {
+                var a = bt.shift();
+                if (a === 'arg:0') {
+                    return self.formatQuery(bt)+spaceify_(".concatMap("+mapFun.formatQuery()+")");
+                } else {
+                    goog.asserts.assert(a === 'mapping');
+                    return spaceify_(self.formatQuery()+".concatMap(")+mapFun.formatQuery(bt)+" ";
+                }
+            }
+        },
         function(builtin) {
             var mapping = new Mapping();
             mapping.setArg(mapFun.args[0]);
