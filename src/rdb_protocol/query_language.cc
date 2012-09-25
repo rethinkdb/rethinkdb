@@ -672,7 +672,7 @@ void check_write_query_type(const WriteQuery &w, type_checking_environment_t *en
     } break;
     case WriteQuery::FOREACH: {
         check_protobuf(w.has_for_each());
-        //check_term_type(w.for_each().stream(), TERM_TYPE_STREAM, env, is_det_out, backtrace.with("stream"));
+        check_term_type(w.for_each().stream(), TERM_TYPE_ARBITRARY, env, is_det_out, backtrace.with("stream"));
 
         new_scope_t scope_maker(&env->scope, w.for_each().var(), term_info_t(TERM_TYPE_JSON, *is_det_out));
         for (int i = 0; i < w.for_each().queries_size(); ++i) {
@@ -2327,15 +2327,14 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
                 return stream->add_transformation(c->builtin().concat_map(), env, scopes, backtrace.with("mapping"));
             }
             break;
-        case Builtin::ORDERBY:
-            {
-                ordering_t o(c->builtin().order_by(), backtrace.with("order_by"));
-                boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
+        case Builtin::ORDERBY: {
+            ordering_t o(c->builtin().order_by(), backtrace.with("order_by"));
+            boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
 
-                boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(stream));
-                sorted_stream->sort(o);
-                return sorted_stream;
-            }
+            boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(stream));
+            sorted_stream->sort(o);
+            return sorted_stream;
+        }
             break;
         case Builtin::DISTINCT:
             {
@@ -2447,6 +2446,7 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
                 return boost::shared_ptr<json_stream_t>(
                     new range_stream_t(stream, range, r->attrname(), backtrace));
             }
+            //TODO: wtf is this still doing here?
             throw runtime_exc_t("Unimplemented: Builtin::RANGE", backtrace);
             break;
         default:
