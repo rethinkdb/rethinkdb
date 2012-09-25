@@ -378,6 +378,9 @@ module 'NamespaceView', ->
                 slice_index++
 
             ordered_datacenters = ordered_datacenters.slice 0, slice_index
+            ordered_datacenters.unshift
+                id: universe_datacenter.get('id')
+                name: universe_datacenter.get('name')
 
             super
                 modal_title: 'Add a table'
