@@ -125,7 +125,7 @@ static char *print_number(cJSON *item)
 {
 	char *str;
 	double d=item->valuedouble;
-        rassert(isfinite(d));
+        guarantee(isfinite(d));
 	if (fabs(((double)item->valueint)-d)<=DBL_EPSILON && d<=INT_MAX && d>=INT_MIN)
 	{
 		str=(char*)cJSON_malloc(21);	/* 2^64+1 can be represented in 21 chars. */
@@ -525,6 +525,7 @@ cJSON *cJSON_CreateDoubleArray(double *numbers,int count)		{int i;cJSON *n=0,*p=
 cJSON *cJSON_CreateStringArray(const char **strings,int count)	{int i;cJSON *n=0,*p=0,*a=cJSON_CreateArray();for(i=0;a && i<count;i++){n=cJSON_CreateString(strings[i]);if(!i)a->child=n;else suffix_object(p,n);p=n;}return a;}
 
 cJSON *cJSON_DeepCopy(cJSON *target) {
+    if (!target) return 0;
     cJSON *hd;
     switch (target->type) {
     case cJSON_False:

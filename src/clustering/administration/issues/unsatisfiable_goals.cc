@@ -36,19 +36,36 @@ static bool is_satisfiable(
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &replica_affinities,
         const std::map<datacenter_id_t, int> &actual_machines_in_datacenters) {
-    for (std::map<datacenter_id_t, int>::const_iterator it = replica_affinities.begin(); it != replica_affinities.end(); it++) {
+    int extra_machines = 0;
+    for (std::map<datacenter_id_t, int>::const_iterator it = replica_affinities.begin(); it != replica_affinities.end(); ++it) {
         int need = it->second;
         if (it->first == primary_datacenter) {
             need++;
         }
         std::map<datacenter_id_t, int>::const_iterator jt = actual_machines_in_datacenters.find(it->first);
         if (jt == actual_machines_in_datacenters.end() || jt->second < need) {
+            debugf("Not enough secondaries for %s\n", uuid_to_str(it->first).c_str());
             return false;
+        } else {
+            extra_machines += need - jt->second;
         }
     }
-    if (replica_affinities.find(primary_datacenter) == replica_affinities.end()) {
+
+    for (std::map<datacenter_id_t, int>::const_iterator it = actual_machines_in_datacenters.begin(); it != actual_machines_in_datacenters.end(); ++it) {
+        if (!std_contains(replica_affinities, it->first)) {
+            extra_machines += it->second;
+        }
+    }
+
+    if (primary_datacenter.is_nil()) {
+        if (extra_machines == 0) {
+            debugf("No extra machines\n");
+            return false;
+        }
+    } else if (replica_affinities.find(primary_datacenter) == replica_affinities.end()) {
         std::map<datacenter_id_t, int>::const_iterator jt = actual_machines_in_datacenters.find(primary_datacenter);
         if (jt == actual_machines_in_datacenters.end() || jt->second < 1) {
+            debugf("No space in primary datacenter\n");
             return false;
         }
     }
@@ -79,20 +96,17 @@ std::list<clone_ptr_t<global_issue_t> > unsatisfiable_goals_issue_tracker_t::get
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
 
     std::map<datacenter_id_t, int> actual_machines_in_datacenters;
-    for (datacenters_semilattice_metadata_t::datacenter_map_t::iterator it = metadata.datacenters.datacenters.begin();
-            it != metadata.datacenters.datacenters.end(); it++) {
-        if (!it->second.is_deleted()) {
-            actual_machines_in_datacenters.insert(std::make_pair(it->first, 0));
-        }
-    }
+    //for (datacenters_semilattice_metadata_t::datacenter_map_t::iterator it = metadata.datacenters.datacenters.begin();
+    //        it != metadata.datacenters.datacenters.end(); it++) {
+    //    if (!it->second.is_deleted()) {
+    //        actual_machines_in_datacenters.insert(std::make_pair(it->first, 0));
+    //    }
+    //}
 
     for (machines_semilattice_metadata_t::machine_map_t::iterator it = metadata.machines.machines.begin();
             it != metadata.machines.machines.end(); it++) {
         if (!it->second.is_deleted() && !it->second.get().datacenter.in_conflict()) {
-            std::map<datacenter_id_t, int>::iterator jt = actual_machines_in_datacenters.find(it->second.get().datacenter.get());
-            if (jt != actual_machines_in_datacenters.end()) {
-                jt->second++;
-            }
+            get_with_default(actual_machines_in_datacenters, it->second.get().datacenter.get(), 0)++;
         }
     }
 

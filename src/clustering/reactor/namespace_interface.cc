@@ -168,7 +168,7 @@ void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
     } catch (const cannot_perform_query_exc_t& e) {
         failures->at(i).assign("master error: " + std::string(e.what()));
     } catch (const interrupted_exc_t&) {
-        rassert(interruptor->is_pulsed());
+        guarantee(interruptor->is_pulsed());
         /* Ignore `interrupted_exc_t` and just return immediately.
            `dispatch_immediate_op()` will notice the interruptor has been
            pulsed and won't try to access our result. */
@@ -266,7 +266,7 @@ void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
     } catch (resource_lost_exc_t) {
         failures->at(i).assign("lost contact with direct reader");
     } catch (interrupted_exc_t) {
-        rassert(interruptor->is_pulsed());
+        guarantee(interruptor->is_pulsed());
         /* Ignore `interrupted_exc_t` and return immediately.
            `read_outdated()` will notice that the interruptor has been pulsed
            and won't try to access our result. */
@@ -409,7 +409,7 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
                                                                                              &relationship_record);
 
         if (is_start) {
-            rassert(start_count > 0);
+            guarantee(start_count > 0);
             start_count--;
             if (start_count == 0) {
                 start_cond.pulse();
@@ -433,7 +433,7 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
     }
 
     if (is_start) {
-        rassert(start_count > 0);
+        guarantee(start_count > 0);
         start_count--;
         if (start_count == 0) {
             start_cond.pulse();

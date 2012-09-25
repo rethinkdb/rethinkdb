@@ -11,20 +11,20 @@ directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_serv
     variable(std::map<peer_id_t, metadata_t>()),
     connectivity_subscription(this) {
     connectivity_service_t::peers_list_freeze_t freeze(connectivity_service);
-    rassert(connectivity_service->get_peers_list().empty());
+    guarantee(connectivity_service->get_peers_list().empty());
     connectivity_subscription.reset(connectivity_service, &freeze);
 }
 
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::~directory_read_manager_t() THROWS_NOTHING {
-    rassert(connectivity_service->get_peers_list().empty());
+    guarantee(connectivity_service->get_peers_list().empty());
 }
 
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOTHING {
     assert_thread();
-    rassert(sessions.count(peer) == 0);
-    sessions.insert(peer, new session_t(connectivity_service->get_connection_session_id(peer)));
+    std::pair<typename boost::ptr_map<peer_id_t, session_t>::iterator, bool> res = sessions.insert(peer, new session_t(connectivity_service->get_connection_session_id(peer)));
+    guarantee(res.second);
 }
 
 template<class metadata_t>
@@ -92,8 +92,9 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     assert_thread();
 
     /* Remove the `global_peer_info_t` object from the table */
-    rassert(sessions.count(peer) == 1);
-    session_t *session_to_destroy = sessions.release(sessions.find(peer)).release();
+    typename boost::ptr_map<peer_id_t, session_t>::iterator it = sessions.find(peer);
+    guarantee(it != sessions.end());
+    session_t *session_to_destroy = sessions.release(it).release();
 
     bool got_initialization = session_to_destroy->got_initial_message.is_pulsed();
 
@@ -110,8 +111,8 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     if (got_initialization) {
         mutex_assertion_t::acq_t acq(&variable_lock);
         std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
-        rassert(map.count(peer) == 1);
-        map.erase(peer);
+        size_t num_erased = map.erase(peer);
+        guarantee(num_erased == 1);
         variable.set_value(map);
     }
 }
@@ -140,8 +141,11 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
     {
         mutex_assertion_t::acq_t acq(&variable_lock);
         std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
-        rassert(map.count(peer) == 0);
-        map.insert(std::make_pair(peer, initial_value));
+
+        std::pair<typename std::map<peer_id_t, metadata_t>::iterator, bool> res
+            = map.insert(std::make_pair(peer, initial_value));
+        guarantee(res.second);
+
         variable.set_value(map);
     }
 
@@ -193,8 +197,10 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         {
             mutex_assertion_t::acq_t acq(&variable_lock);
             std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
-            rassert(map.count(peer) == 1);
-            map[peer] = new_value;
+
+            typename std::map<peer_id_t, metadata_t>::iterator var_it = map.find(peer);
+            guarantee(var_it != map.end());
+            var_it->second = new_value;
             variable.set_value(map);
         }
 

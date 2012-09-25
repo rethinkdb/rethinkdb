@@ -41,6 +41,15 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.mul(1e100,1e100).run, 1e200)
   end
 
+  def test_outdated_raise
+    outdated = r.db('test').table('Welcome-rdb', {:use_outdated => true})
+    assert_raise(RuntimeError){outdated.upsert({:id => 0})}
+    assert_raise(RuntimeError){outdated.filter{|row| row[:id] < 5}.update{{}}}
+    assert_raise(RuntimeError){outdated.update{{}}}
+    assert_raise(RuntimeError){outdated.filter{|row| row[:id] < 5}.delete}
+    assert_raise(RuntimeError){outdated.filter{|row| row[:id] < 5}.between(2,3).mutate{nil}}
+  end
+
   def test_cmp # from python tests
     assert_equal(r.eq(3, 3).run, true)
     assert_equal(r.eq(3, 4).run, false)
@@ -443,7 +452,7 @@ class ClientTest < Test::Unit::TestCase
     assert_raise(RuntimeError){r.expr([[1],2]).concatmap{|x| x}.run.to_a}
     assert_raise(RuntimeError){r.expr(1).concatmap{|x| x}.run.to_a}
     assert_equal(r.expr([[1],[2]]).concatmap{|x| x}.run.to_a, [1,2])
-    query = rdb.concatmap{|row| rdb.map{r[:id] * row[:id]}}.distinct
+    query = rdb.concatmap{|row| rdb.map{ |row2| row2[:id] * row[:id]}}.distinct
     nums = $data.map{|o| o['id']}
     want = nums.map{|n| nums.map{|m| n*m}}.flatten(1).uniq
     assert_equal(query.run.to_a.sort, want.sort)
@@ -451,6 +460,7 @@ class ClientTest < Test::Unit::TestCase
 
   def test_range # RANGE
     assert_raise(RuntimeError){rdb.between(1, r.expr([3])).run.to_a}
+    assert_raise(RuntimeError){rdb.between(2, 1).run.to_a}
     assert_equal(id_sort(rdb.between(1,3).run.to_a), $data[1..3])
     assert_equal(id_sort(rdb.between(2,nil).run.to_a), $data[2..-1])
     assert_equal(id_sort(rdb.between(1, 3).run.to_a), $data[1..3])

@@ -153,10 +153,26 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
 
     std::map<machine_id_t, blueprint_role_t> sub_blueprint;
 
+    std::map<datacenter_id_t, int> extra_machines;
+    /* We only need this if the datacenter is nil. */
+    if (primary_datacenter.is_nil()) {
+        for (std::map<machine_id_t, datacenter_id_t>::const_iterator it = machine_data_centers.begin();
+                it != machine_data_centers.end(); ++it) {
+            get_with_default(extra_machines, it->second, 0)++;
+        }
+
+        for (std::map<datacenter_id_t, int>::const_iterator it = datacenter_affinities.begin(); it != datacenter_affinities.end(); it++) {
+            if (std_contains(extra_machines, it->first)) {
+                extra_machines[it->first] -= it->second;
+            }
+        }
+    }
+
     priority_queue_t<priority_t> primary_candidates;
     for (std::map<machine_id_t, datacenter_id_t>::const_iterator it = machine_data_centers.begin();
             it != machine_data_centers.end(); it++) {
-        if (it->second == primary_datacenter || primary_datacenter.is_nil()) {
+        if (it->second == primary_datacenter ||
+            (primary_datacenter.is_nil() && std_contains(extra_machines, it->second) && extra_machines[it->second] > 0)) {
             bool pinned = std_contains(primary_pinnings, it->first);
 
             bool would_rob_secondary = std_contains(secondary_pinnings, it->first);

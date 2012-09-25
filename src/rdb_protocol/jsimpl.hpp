@@ -78,9 +78,9 @@ class task_t :
   public:
     virtual void run(env_t *env) = 0;
 
-    void run_job(DEBUG_VAR control_t *control, void *extra) {
+    void run_job(control_t *control, void *extra) {
         env_t *env = static_cast<env_t *>(extra);
-        rassert(control == env->control());
+        guarantee(control == env->control());
         context_t cx(env);
         run(env);
     }
@@ -99,7 +99,7 @@ struct id_visitor_t {
     explicit id_visitor_t(std::string *errmsg) : errmsg_(errmsg) {}
     std::string *errmsg_;
     id_t operator()(const id_t &id) {
-        rassert(id != INVALID_ID);
+        guarantee(id != INVALID_ID);
         return id;
     }
     id_t operator()(const std::string &msg) {

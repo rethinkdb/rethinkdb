@@ -634,8 +634,8 @@ MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_o
 
     db_name_out->assign(db_table.data(), first_pos);
     table_name_out->assign(db_table.data() + first_pos + 1, db_table.data() + db_table.size());
-    rassert(db_name_out->size() > 0);
-    rassert(table_name_out->size() > 0);
+    guarantee(db_name_out->size() > 0);
+    guarantee(table_name_out->size() > 0);
     return true;
 }
 

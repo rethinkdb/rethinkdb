@@ -20,8 +20,8 @@ http_res_t http_json_res(cJSON *json) {
 }
 
 cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
-    rassert(lhs->type == cJSON_Object);
-    rassert(rhs->type == cJSON_Object);
+    guarantee(lhs->type == cJSON_Object);
+    guarantee(rhs->type == cJSON_Object);
     cJSON *obj = cJSON_DeepCopy(lhs);
 
     for (int i = 0; i < cJSON_GetArraySize(rhs); ++i) {
@@ -34,7 +34,7 @@ cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
 
 std::string cJSON_print_lexicographic(const cJSON *json) {
     std::string acc;
-    rassert(json->type == cJSON_Number || json->type == cJSON_String);
+    guarantee(json->type == cJSON_Number || json->type == cJSON_String);
     if (json->type == cJSON_Number) {
         acc += "N";
 
@@ -63,7 +63,7 @@ std::string cJSON_print_lexicographic(const cJSON *json) {
         acc += strprintf("%.*lx", static_cast<int>(sizeof(double)*2), packed.u);
         acc += strprintf("#%.20g", json->valuedouble);
     } else {
-        rassert(json->type == cJSON_String);
+        guarantee(json->type == cJSON_String);
         acc += "S";
         acc += json->valuestring;
     }
@@ -87,7 +87,7 @@ std::string scoped_cJSON_t::Print() const THROWS_NOTHING {
 /* Render a cJSON entity to text for transfer/storage without any formatting. */
 std::string scoped_cJSON_t::PrintUnformatted() const THROWS_NOTHING {
     char *s = cJSON_PrintUnformatted(val);
-    rassert(s);
+    guarantee(s);
     std::string res(s);
     free(s);
 
@@ -130,21 +130,21 @@ cJSON *json_iterator_t::next() {
 json_object_iterator_t::json_object_iterator_t(cJSON *target)
     : json_iterator_t(target)
 {
-    rassert(target);
-    rassert(target->type == cJSON_Object);
+    guarantee(target);
+    guarantee(target->type == cJSON_Object);
 }
 
 json_array_iterator_t::json_array_iterator_t(cJSON *target)
     : json_iterator_t(target)
 {
-    rassert(target);
-    rassert(target->type == cJSON_Array);
+    guarantee(target);
+    guarantee(target->type == cJSON_Array);
 }
 
 std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING {
-    rassert(json);
+    guarantee(json);
     char *s = cJSON_Print(json);
-    rassert(s);
+    guarantee(s);
     std::string res(s);
     free(s);
 
@@ -152,9 +152,9 @@ std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING {
 }
 
 std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING {
-    rassert(json);
+    guarantee(json);
     char *s = cJSON_PrintUnformatted(json);
-    rassert(s);
+    guarantee(s);
     std::string res(s);
     free(s);
 
@@ -162,15 +162,15 @@ std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING {
 }
 
 void project(cJSON *json, std::set<std::string> keys) {
-    rassert(json);
-    rassert(json->type == cJSON_Object);
+    guarantee(json);
+    guarantee(json->type == cJSON_Object);
 
     json_object_iterator_t it(json);
 
     std::vector<std::string> keys_to_delete;
 
     while (cJSON *node = it.next()) {
-        rassert(node->string);
+        guarantee(node->string);
         std::string str(node->string);
         if (!std_contains(keys, str)) {
             keys_to_delete.push_back(str);
@@ -190,7 +190,7 @@ cJSON *merge(cJSON *x, cJSON *y) {
     cJSON *hd;
 
     while ((hd = xit.next())) {
-        rassert(hd->string);
+        guarantee(hd->string);
         keys.insert(hd->string);
     }
 
@@ -203,13 +203,14 @@ cJSON *merge(cJSON *x, cJSON *y) {
     keys.clear();
 
     while ((hd = yit.next())) {
-        rassert(hd->string);
+        guarantee(hd->string);
         keys.insert(hd->string);
     }
 
     for (std::set<std::string>::iterator it = keys.begin();
                                          it != keys.end();
                                          ++it) {
+        // TODO: Make this a guarantee, or have a new cJSON_AddItemToObject implementation that checks this.
         rassert(!cJSON_GetObjectItem(res, it->c_str()), "Overlapping names in merge, name was: %s\n", it->c_str());
         cJSON_AddItemToObject(res, it->c_str(), cJSON_DetachItemFromObject(y, it->c_str()));
     }
@@ -243,29 +244,25 @@ write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
     case cJSON_Number:
         msg << cjson.valuedouble;
         break;
-    case cJSON_String:
-        {
-            rassert(cjson.valuestring);
-            std::string s(cjson.valuestring);
-            msg << s;
-        }
-        break;
+    case cJSON_String: {
+        guarantee(cjson.valuestring);
+        std::string s(cjson.valuestring);
+        msg << s;
+    } break;
     case cJSON_Array:
-    case cJSON_Object:
-        {
-            msg << cJSON_GetArraySize(&cjson);
+    case cJSON_Object: {
+        msg << cJSON_GetArraySize(&cjson);
 
-            cJSON *hd = cjson.child;
-            while (hd) {
-                if (cjson.type == cJSON_Object) {
-                    rassert(hd->string);
-                    msg << std::string(hd->string);
-                }
-                msg << *hd;
-                hd = hd->next;
+        cJSON *hd = cjson.child;
+        while (hd) {
+            if (cjson.type == cJSON_Object) {
+                guarantee(hd->string);
+                msg << std::string(hd->string);
             }
+            msg << *hd;
+            hd = hd->next;
         }
-        break;
+    } break;
     default:
         crash("Unreachable");
         break;

@@ -6,13 +6,14 @@ module RethinkDB
     # Refer to the database named <b>+name+</b>.  Usually you would
     # use the <b>+r+</b> shortcut instead:
     #   r.db(name)
-    def initialize(name); @db_name = name; end
+    def initialize(name); @db_name = name.to_s; end
 
-    # Access the table <b>+name+</b> in this database.  May also use the table
-    # name as a member function for convenience.  The following are equivalent:
+    # Access the table <b>+name+</b> in this database.  For example:
     #   r.db('test').table('tbl')
-    #   r.db('test').tbl
-    def table(name); Table.new(@db_name, name); end
+    # May also provide a set of options OPTS.  Right now the only
+    # useful option is :use_outdated:
+    #   r.db('test').table('tbl', {:use_outdated => true})
+    def table(name, opts={}); Table.new(@db_name, name, opts); end
 
     # Create a new table in this database.  You may also optionally
     # specify the datacenter it should reside in, its primary key, and
@@ -59,12 +60,14 @@ module RethinkDB
       to_mrs.inspect
     end
 
+    attr_accessor :opts
     # A table named <b>+name+</b> residing in database <b>+db_name+</b>.
-    def initialize(db_name, name);
+    def initialize(db_name, name, opts)
       @db_name = db_name;
       @table_name = name;
+      @opts = opts
       @context = caller
-      @body = [:table, @db_name, @table_name] # when used as stream
+      @body = [:table, @db_name, @table_name, !!@opts[:use_outdated]]
     end
 
     # Insert one or more rows into the table.  If you try to insert a
@@ -78,11 +81,13 @@ module RethinkDB
     #   r.db('new_db').create_table('new_table').run
     #   r.db('new_db').new_table.insert(table).run
     def insert(rows)
+      raise_if_outdated
       rows = [rows] if rows.class != Array
       Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| S.r(x)}, false]
     end
 
     def upsert(rows) # :nodoc:
+      raise_if_outdated
       rows = [rows] if rows.class != Array
       Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| S.r(x)}, true]
     end
@@ -100,7 +105,9 @@ module RethinkDB
     end
 
     def to_mrs # :nodoc:
-      Multi_Row_Selection.new(@body, @context)
+      B.alt_inspect(Multi_Row_Selection.new(@body, @context, @opts)) {
+        "db(#{@db_name.inspect}).table(#{@table_name.inspect})"
+      }
     end
   end
 end

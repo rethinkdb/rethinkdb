@@ -139,8 +139,9 @@ public:
 
     void create_branch(branch_id_t branch_id, const branch_birth_certificate_t<protocol_t> &bc, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        guarantee(bh.branches.find(branch_id) == bh.branches.end());
-        bh.branches[branch_id] = bc;
+        std::pair<typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::iterator, bool>
+            insert_res = bh.branches.insert(std::make_pair(branch_id, bc));
+        guarantee(insert_res.second);
         flush(interruptor);
     }
 
@@ -154,8 +155,9 @@ public:
             branch_id_t next = *to_process.begin();
             to_process.erase(next);
             branch_birth_certificate_t<protocol_t> bc = get_branch(next);
-            guarantee(out->branches.count(next) == 0);
-            out->branches[next] = bc;
+            std::pair<typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::iterator, bool>
+                insert_res = out->branches.insert(std::make_pair(next, bc));
+            guarantee(insert_res.second);
             for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = bc.origin.begin(); it != bc.origin.end(); it++) {
                 if (!it->second.latest.branch.is_nil() && out->branches.count(it->second.latest.branch) == 0) {
                     to_process.insert(it->second.latest.branch);

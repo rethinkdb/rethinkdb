@@ -133,6 +133,7 @@ private:
         raw_mailbox_t::id_t next_local_mailbox_id;
         raw_mailbox_t::id_t next_global_mailbox_id;
         // RSI: use a buffered structure to reduce dynamic allocation
+        // TODO: ^R.S.I.
         std::map<raw_mailbox_t::id_t, raw_mailbox_t *> mailboxes;
         raw_mailbox_t *find_mailbox(raw_mailbox_t::id_t);
     };

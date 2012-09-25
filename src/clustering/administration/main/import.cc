@@ -281,7 +281,7 @@ bool get_or_create_namespace(machine_id_t us,
 bool get_or_create_database(UNUSED machine_id_t us,
                             const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
                             std::string db_name, database_id_t *db_out) {
-    rassert(!db_name.empty());
+    guarantee(!db_name.empty());
     boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> > databases = metadata_field(&cluster_semilattice_metadata_t::databases, metadata);
     std::map<database_id_t, deletable_t<database_semilattice_metadata_t> > dbmap = databases->get().databases;
     metadata_searcher_t<database_semilattice_metadata_t> searcher(&dbmap);
