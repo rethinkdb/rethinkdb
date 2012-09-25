@@ -137,7 +137,7 @@ connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::~entry_
 
         std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator entry
             = ti->connection_map.find(that_->peer);
-        guarantee(entry != ti->connection_map.end() && entry->second.first != that_);
+        guarantee(entry != ti->connection_map.end() && entry->second.first == that_);
         ti->connection_map.erase(that_->peer);
         ti->publisher.publish(boost::bind(&ping_disconnection_watcher, that_->peer, _1));
     }
