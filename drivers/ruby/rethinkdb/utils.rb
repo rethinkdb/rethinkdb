@@ -59,20 +59,14 @@ module RethinkDB
   module P; extend P_Mixin; end
 
   module S_Mixin #S-expression Utils
-    @@gensym_counter = 0
+    @@gensym_counter = 1000
     def gensym; '_var_'+(@@gensym_counter += 1).to_s; end
     def with_var
       sym = gensym
       yield sym, var(sym)
     end
     def var(varname)
-      res = Var_Expression.new [:var, varname]
-      class << res
-        attr_accessor :varname
-        def inspect(&b); real_inspect({:str => @body[1]}, &b); end
-      end
-      res.varname = varname
-      return res
+      B.alt_inspect(Var_Expression.new [:var, varname]) { |expr| expr.body[1] }
     end
     def r x; x.equal?(skip) ? x : RQL.expr(x); end
     def skip; :skip_2222ebd4_2c16_485e_8c27_bbe43674a852; end
@@ -116,9 +110,13 @@ module RethinkDB
 
     def force_raise(query)
       obj = query.run
-      if (err = obj['first_error'])
-        lines = err.split("\n")
-        raise RuntimeError,lines[0]+"\n"+query.print_backtrace(lines[1..-1])
+      if obj.class == Query_Results
+        obj = obj.to_a
+      elsif (err = obj['first_error'])
+        parts = err.split("\nBacktrace:\n")
+        errline = parts[0] || ""
+        bt = (parts[1] && parts[1].split("\n")) || []
+        raise RuntimeError,errline+"\n"+query.print_backtrace(bt)
       end
       obj
     end
@@ -129,38 +127,44 @@ module RethinkDB
       return res
     end
     def consume sym
+      @map = {} if not @map
       res, @map[sym] = @map[sym], nil
       return res.nil? ? 0 : res
     end
-
     def expand arg
       case arg
-      when /arg:([0-9]+)/     then [2, $1.to_i]
-      when 'mapping'          then [1, 2]
-
-      when 'reduction'        then set(:reduce, -1); [1, 3]
-      when 'group_mapping'    then [1, 1, 1]
-      when 'value_mapping'    then [1, 2, 1]
-      when 'reduce'           then [1]
-      when 'base'             then [1+consume(:reduce)]
-      when 'body'             then [4+consume(:reduce)]
-
-      # TODO: how to test?
-      when /query:([0-9]+)/   then [3, $1.to_i]
-      when 'stream'           then [1]
-
-      # insert
-      when /term:([0-9]+)/    then [2, $1.to_i]
-
-      # object
-      when /key:(.+)$/        then [1..-1, $1]
-
-      # let
-      when /bind:(.+)$/       then [1, $1]
-      when /expr/             then [2]
-
-      when 'lowerbound'       then [1, 2]
-      when 'upperbound'       then [1, 3]
+      when 'attr'           then []
+      when 'attrname'       then []
+      when 'base'           then [1+consume(:reduce)]
+      when 'body'           then [4+consume(:reduce)]
+      when 'db_name'        then []
+      when 'expr'           then [2]
+      when 'false'          then [3]
+      when 'group_mapping'  then [1, 1, 1]
+      when 'key'            then [3]
+      when 'keyname'        then []
+      when 'lowerbound'     then [1, 2]
+      when 'mapping'        then [1, 2]
+      when 'modify_map'     then [2, 1]
+      when 'order_by'       then []
+      when 'point_map'      then [4, 1]
+      when 'predicate'      then [1, 2]
+      when 'reduce'         then [1]
+      when 'reduction'      then set(:reduce, -1); [1, 3]
+      when 'stream'         then [1]
+      when 'table_name'     then []
+      when 'table_ref'      then []
+      when 'test'           then [1]
+      when 'true'           then [2]
+      when 'upperbound'     then [1, 3]
+      when 'value_mapping'  then [1, 2, 1]
+      when 'view'           then [1]
+      when /arg:([0-9]+)/   then [2, $1.to_i]
+      when /attrs:([0-9]+)/ then []
+      when /bind:(.+)$/     then [1, $1]
+      when /key:(.+)$/      then [1..-1, $1]
+      when /query:([0-9]+)/ then [3, $1.to_i]
+      when /term:([0-9]+)/  then [2, $1.to_i]
       else  [:error]
       end
     end
@@ -177,7 +181,7 @@ module RethinkDB
       end
     end
     def mark(query, lst, val)
-      #PP.pp [lst, query]
+      #PP.pp [lst, query.class, query]
       if query.class == Array
         recur(query, lst, val) if lst != []
       elsif query.kind_of? RQL_Query
@@ -207,6 +211,15 @@ module RethinkDB
       str = yield
       @highlight = false
       str.chars.map{|x| x == "\000" ? "^" : " "}.join.rstrip
+    end
+
+    def alt_inspect(query, &block)
+      class << query
+        attr_accessor :str_block
+        def inspect; real_inspect({:str => @str_block.call(self)}); end
+      end
+      query.str_block = block
+      query
     end
   end
   module B; extend B_Mixin; end
