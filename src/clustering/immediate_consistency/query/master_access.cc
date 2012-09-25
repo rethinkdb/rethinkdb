@@ -43,7 +43,7 @@ void master_access_t<protocol_t>::read(
         fifo_enforcer_sink_t::exit_read_t *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) {
-    rassert_unreviewed(region_is_superset(region, read.get_region()));
+    rassert_reviewed(region_is_superset(region, read.get_region()));
 
     promise_t<boost::variant<typename protocol_t::read_response_t, std::string> > result_or_failure;
     mailbox_t<void(boost::variant<typename protocol_t::read_response_t, std::string>)> result_or_failure_mailbox(
@@ -97,7 +97,7 @@ void master_access_t<protocol_t>::write(
         fifo_enforcer_sink_t::exit_write_t *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) {
-    rassert_unreviewed(region_is_superset(region, write.get_region()));
+    rassert_reviewed(region_is_superset(region, write.get_region()));
 
     promise_t<boost::variant<typename protocol_t::write_response_t, std::string> > result_or_failure;
     mailbox_t<void(boost::variant<typename protocol_t::write_response_t, std::string>)> result_or_failure_mailbox(
