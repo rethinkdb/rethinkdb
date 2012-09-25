@@ -46,7 +46,7 @@ bool get_other_peer(const std::set<peer_id_t> &peers_list, const peer_id_t &me, 
 
 bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_address_t> joins, int ports_port, int ports_client_port, json_import_target_t target, json_importer_t *importer, signal_t *stop_cond) {
 
-    guarantee_unreviewed(spawner_info);
+    guarantee_reviewed(spawner_info);
     extproc::pool_group_t extproc_pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
 
     machine_id_t machine_id = generate_uuid();
@@ -96,7 +96,7 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_add
     if (0 == ports_port) {
         ports_port = connectivity_cluster_run.get_port();
     } else {
-        guarantee_unreviewed(ports_port == connectivity_cluster_run.get_port());
+        guarantee_reviewed(ports_port == connectivity_cluster_run.get_port());
     }
     logINF("Listening for intracluster traffic on port %d.\n", ports_port);
 
@@ -281,7 +281,7 @@ bool get_or_create_namespace(machine_id_t us,
 bool get_or_create_database(UNUSED machine_id_t us,
                             const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
                             std::string db_name, database_id_t *db_out) {
-    rassert_unreviewed(!db_name.empty());
+    guarantee_reviewed(!db_name.empty());
     boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> > databases = metadata_field(&cluster_semilattice_metadata_t::databases, metadata);
     std::map<database_id_t, deletable_t<database_semilattice_metadata_t> > dbmap = databases->get().databases;
     metadata_searcher_t<database_semilattice_metadata_t> searcher(&dbmap);

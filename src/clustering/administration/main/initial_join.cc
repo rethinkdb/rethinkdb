@@ -15,7 +15,7 @@ initial_joiner_t::initial_joiner_t(
     peers_not_heard_from(peers),
     subs(this),
     successful_connection(false) {
-    rassert_unreviewed(!peers.empty());
+    guarantee_reviewed(!peers.empty());
 
     if (peers_not_heard_from.erase(cluster->get_peer_address(cluster->get_me())) != 0) {
         logWRN("Attempted to join self, peer ignored");
