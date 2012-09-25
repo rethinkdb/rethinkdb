@@ -60,7 +60,7 @@ module RethinkDB
     #   r[r[5]]
     def self.expr x
       return x if x.kind_of? RQL_Query
-      res = case x.class().hash
+      B.alt_inspect(case x.class().hash
       when Table.hash      then x.to_mrs
       when String.hash     then JSON_Expression.new [:string, x]
       when Fixnum.hash     then JSON_Expression.new [:number, x]
@@ -72,25 +72,13 @@ module RethinkDB
       when Hash.hash       then
         JSON_Expression.new [:object, *x.map{|var,term| [var, expr(term)]}]
       else raise TypeError, "RQL.expr can't handle '#{x.class()}'"
-      end
-      class << res
-        attr_accessor :expr
-        def inspect(&b); real_inspect({:str => expr.inspect}, &b); end
-      end
-      res.expr = x
-      return res
+      end) { x.inspect }
     end
 
     # Explicitly construct an RQL variable from a string:
     #   r.letvar('varname')
     def self.letvar(varname)
-      res = Var_Expression.new [:var, varname]
-      class << res;
-        attr_accessor :varname
-        def inspect(&b); real_inspect({:str => "letvar('#{@varname}')"}, &b); end;
-      end
-      res.varname = varname
-      return res
+      B.alt_inspect(Var_Expression.new [:var, varname]) { "letvar(#{varname.inspect})" }
     end
 
     # Provide a literal JSON string that will be parsed by the server.  For
@@ -159,7 +147,7 @@ module RethinkDB
     #   r[[1,2,3]]
     #   r.add([1, 2], [3])
     def self.add(a, b, *rest)
-      JSON_Expression.new [:call, [:add], [S.r(a), S.r(b), *(rest.map{|x| expr x})]];
+      JSON_Expression.new [:call, [:add], [S.r(a), S.r(b), *(rest.map{|x| S.r x})]];
     end
 
     # Subtract one number from another.

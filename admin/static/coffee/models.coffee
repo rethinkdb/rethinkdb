@@ -62,6 +62,8 @@ class Namespace extends Backbone.Model
                 return 1
             else if a_new is null
                 return 1
+            else if b_new is null
+                return -1
         return 0
 
     load_key_distr_once: =>
