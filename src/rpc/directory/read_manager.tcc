@@ -198,9 +198,9 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
             mutex_assertion_t::acq_t acq(&variable_lock);
             std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
 
-            typename std::map<peer_id_t, metadata_t>::iterator it = map.find(peer);
-            guarantee_reviewed(it != map.end());
-            it->second = new_value;
+            typename std::map<peer_id_t, metadata_t>::iterator var_it = map.find(peer);
+            guarantee_reviewed(var_it != map.end());
+            var_it->second = new_value;
             variable.set_value(map);
         }
 
