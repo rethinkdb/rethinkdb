@@ -1178,7 +1178,17 @@ rethinkdb.Expression.prototype.unpick = function(attrs) {
         attrs = [attrs];
     }
     attrs.forEach(function(attr){typeCheck_(attr, 'string')});
-    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.WITHOUT, [this], formatTodo_,
+    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.WITHOUT, [this],
+        function(bt) {
+            var strAttrs = attrs.map(function(a) {return "'"+a+"'"});
+            if (!bt) {
+                return self.formatQuery()+".unpick("+strAttrs.join(', ')+')';
+            } else {
+                var a = bt.shift();
+                goog.asserts.assert(a === 'arg:0');
+                return self.formatQuery(bt)+spaceify_(".unpick("+strAttrs.join(', ')+')');
+            }
+        },
         function(builtin) {
             for (var key in attrs) {
                 var attr = attrs[key];
