@@ -40,15 +40,17 @@ rethinkdb.js = function(jsExpr) {
 
 /**
  * Construct a table reference
- * @param {string} table_name A string giving a table name.
+ * @param {string} tableName A string giving a table name
+ * @param {boolean=} opt_allowOutdated Accept potentially outdated data to reduce latency
  * @returns {rethinkdb.Expression}
  * @export
  */
-rethinkdb.table = function(table_name) {
+rethinkdb.table = function(tableName, opt_allowOutdated) {
     argCheck_(arguments, 1);
-    typeCheck_(table_name, 'string');
+    typeCheck_(tableName, 'string');
+    typeCheck_(opt_allowOutdated, 'boolean');
 
-    return newExpr_(rethinkdb.Table, table_name);
+    return newExpr_(rethinkdb.Table, tableName, null, opt_allowOutdated);
 };
 
 /**
@@ -60,28 +62,58 @@ rethinkdb.Query = function() { };
 /**
  * A shortcut for conn.run(this). If the connection is omitted the last created
  * connection is used.
- * @param {function(...)} callback The callback to invoke with the result.
+ * @param {function(...)|Object} callbackOrOpts The callback to invoke with the result.
  * @param {rethinkdb.Connection=} opt_conn The connection to run this expression on.
  */
-rethinkdb.Query.prototype.run = function(callback, opt_conn) {
-    opt_conn = opt_conn || rethinkdb.last_connection_;
-    if (!opt_conn) {
-        throw new rethinkdb.errors.ClientError("No connection specified "+
-                    "and no last connection to default to");
+rethinkdb.Query.prototype.run = function(callbackOrOpts, opt_conn) {
+
+    var conn;
+    var opts = {};
+    if (!callbackOrOpts || typeof callbackOrOpts === 'function') {
+        conn = opt_conn || rethinkdb.last_connection_;
+        opts['callback'] = callbackOrOpts;
+    } else {
+        conn = callbackOrOpts['conn'] || rethinkdb.last_connection_;
+        goog.object.extend(opts, callbackOrOpts);
+        delete opts['conn'];
     }
-    opt_conn.run(this, callback);
+
+    opts['expr'] = this;
+
+    if (!conn) {
+        throw new rethinkdb.errors.ClientError("No connection specified "+
+            "and no last connection to default to.");
+    }
+
+    conn.run(opts);
 };
 goog.exportProperty(rethinkdb.Query.prototype, 'run',
                     rethinkdb.Query.prototype.run);
 
 /**
- * A shortcut for conn.runp(this). The last created connection is used.
+ * A shortcut for conn.runp(this). If the connection is omitted the last created
+ * connection is used.
+ * @param {rethinkdb.Connection|Object=} connOrOpts The connection to run this expression on.
  */
-rethinkdb.Query.prototype.runp = function() {
-    if (!rethinkdb.last_connection_) {
-        throw new rethinkdb.errors.ClientError("No last connection to use");
+rethinkdb.Query.prototype.runp = function(connOrOpts) {
+    var conn;
+    var opts = {};
+    if (!connOrOpts || connOrOpts instanceof rethinkdb.Connection) {
+        conn = connOrOpts || rethinkdb.last_connection_;
+    } else {
+        conn = connOrOpts['conn'] || rethinkdb.last_connection_;
+        goog.object.extend(opts, connOrOpts);
+        delete opts['conn'];
     }
-    rethinkdb.last_connection_.runp(this);
+
+    opts['expr'] = this;
+
+    if (!conn) {
+        throw new rethinkdb.errors.ClientError("No connection specified "+
+            "and no last connection to default to.");
+    }
+
+    conn.runp(opts);
 };
 goog.exportProperty(rethinkdb.Query.prototype, 'runp',
                     rethinkdb.Query.prototype.runp);
@@ -89,15 +121,29 @@ goog.exportProperty(rethinkdb.Query.prototype, 'runp',
 /**
  * A shortcut for conn.iter(this). If the connection is omitted the last created
  * connection is used.
- * @param {function(...)} callback The callback to invoke with the result.
- * @param {function(...)=} doneCallback The callback to invoke when the stream has ended.
+ * @param {function(...)|Object} callbackOrOpts The callback to invoke with the result.
+ * @param {rethinkdb.Connection=} opt_conn The connection to run this expression on.
  */
-rethinkdb.Query.prototype.iter = function(callback, doneCallback) {
-    var conn = rethinkdb.last_connection_;
-    if (!conn) {
-        throw new rethinkdb.errors.ClientError("No last connection to use");
+rethinkdb.Query.prototype.iter = function(callbackOrOpts, opt_conn) {
+    var conn;
+    var opts = {};
+    if (!callbackOrOpts || typeof callbackOrOpts === 'function') {
+        conn = opt_conn || rethinkdb.last_connection_;
+        opts['callback'] = callbackOrOpts;
+    } else {
+        conn = callbackOrOpts['conn'] || rethinkdb.last_connection_;
+        goog.object.extend(opts, callbackOrOpts);
+        delete opts['conn'];
     }
-    conn.iter(this, callback, doneCallback);
+
+    opts['expr'] = this;
+
+    if (!conn) {
+        throw new rethinkdb.errors.ClientError("No connection specified "+
+            "and no last connection to default to.");
+    }
+
+    conn.iter(opts);
 };
 goog.exportProperty(rethinkdb.Query.prototype, 'iter',
                     rethinkdb.Query.prototype.iter);
@@ -105,6 +151,7 @@ goog.exportProperty(rethinkdb.Query.prototype, 'iter',
 /**
  * Returns a protobuf message tree for this query ast
  * @function
+ * @param {Object=} opt_buildOpts
  * @return {!Query}
  * @ignore
  */
@@ -131,9 +178,9 @@ rethinkdb.ReadQuery = function() { };
 goog.inherits(rethinkdb.ReadQuery, rethinkdb.Query);
 
 /** @override */
-rethinkdb.ReadQuery.prototype.buildQuery = function() {
+rethinkdb.ReadQuery.prototype.buildQuery = function(opt_buildOpts) {
     var readQuery = new ReadQuery();
-    var term = this.compile();
+    var term = this.compile(opt_buildOpts);
     readQuery.setTerm(term);
 
     var query = new Query();
