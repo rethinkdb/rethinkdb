@@ -44,12 +44,12 @@ static void write_blob(transaction_t *txn, char *ref, int maxreflen, const T &va
     for (write_buffer_t *p = buffers->head(); p != NULL; p = buffers->next(p)) {
         str.append(p->data, p->size);
     }
-    guarantee_unreviewed(str.size() == slen);
+    guarantee_reviewed(str.size() == slen);
     blob_t blob(ref, maxreflen);
     blob.clear(txn);
     blob.append_region(txn, str.size());
     blob.write_from_string(str, txn, 0);
-    guarantee_unreviewed(blob.valuesize() == static_cast<int64_t>(slen));
+    guarantee_reviewed(blob.valuesize() == static_cast<int64_t>(slen));
 }
 
 template<class T>
@@ -58,7 +58,7 @@ static void read_blob(transaction_t *txn, const char *ref, int maxreflen, T *val
     std::string str = blob.read_to_string(txn, 0, blob.valuesize());
     read_string_stream_t ss(str);
     int res = deserialize(&ss, value_out);
-    guarantee_unreviewed(res == 0);
+    guarantee_reviewed(res == 0);
 }
 
 persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::string &filename, perfmon_collection_t *perfmon_parent) {
@@ -133,14 +133,15 @@ public:
     branch_birth_certificate_t<protocol_t> get_branch(branch_id_t branch) THROWS_NOTHING {
         home_thread_mixin_t::assert_thread();
         typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator it = bh.branches.find(branch);
-        guarantee_unreviewed(it != bh.branches.end(), "no such branch");
+        guarantee_reviewed(it != bh.branches.end(), "no such branch");
         return it->second;
     }
 
     void create_branch(branch_id_t branch_id, const branch_birth_certificate_t<protocol_t> &bc, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        guarantee_unreviewed(bh.branches.find(branch_id) == bh.branches.end());
-        bh.branches[branch_id] = bc;
+        std::pair<typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::iterator, bool>
+            insert_res = bh.branches.insert(std::make_pair(branch_id, bc));
+        guarantee_reviewed(insert_res.second);
         flush(interruptor);
     }
 
@@ -154,8 +155,9 @@ public:
             branch_id_t next = *to_process.begin();
             to_process.erase(next);
             branch_birth_certificate_t<protocol_t> bc = get_branch(next);
-            guarantee_unreviewed(out->branches.count(next) == 0);
-            out->branches[next] = bc;
+            std::pair<typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::iterator, bool>
+                insert_res = out->branches.insert(std::make_pair(next, bc));
+            guarantee_reviewed(insert_res.second);
             for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = bc.origin.begin(); it != bc.origin.end(); it++) {
                 if (!it->second.latest.branch.is_nil() && out->branches.count(it->second.latest.branch) == 0) {
                     to_process.insert(it->second.latest.branch);
