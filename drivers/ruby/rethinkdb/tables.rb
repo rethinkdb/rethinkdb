@@ -22,26 +22,32 @@ module RethinkDB
     #                                   :cache_size  => 1073741824})
     # When run, either returns <b>+nil+</b> or throws on error.
     def create_table(name, optargs={})
-      datacenter = optargs[:datacenter] || S.skip
+      dc = optargs[:datacenter] || S.skip
       pkey = optargs[:primary_key] || S.skip
-      cache_size = optargs[:cache_size] || S.skip
-      Meta_Query.new [:create_table, datacenter, [@db_name, name], pkey, cache_size]
+      cache = optargs[:cache_size] || S.skip
+      B.alt_inspect(Meta_Query.new [:create_table, dc, [@db_name, name], pkey, cache]) {
+        "db(#{@db_name.inspect}).create_table(#{name.inspect})"
+      }
     end
 
     # Drop the table <b>+name+</b> from this database.  When run,
     # either returns <b>+nil+</b> or throws on error.
     def drop_table(name)
-      Meta_Query.new [:drop_table, @db_name, name]
+      B.alt_inspect(Meta_Query.new [:drop_table, @db_name, name]) {
+        "db(#{@db_name.inspect}).drop_table(#{name.inspect})"
+      }
     end
 
     # List all the tables in this database.  When run, either returns
     # <b>+nil+</b> or throws on error.
     def list_tables
-      Meta_Query.new [:list_tables, @db_name]
+      B.alt_inspect(Meta_Query.new [:list_tables, @db_name]) {
+        "db(#{@db_name.inspect}).list_tables"
+      }
     end
 
-    def inspect(&b) # :nodoc:
-      real_inspect({:str => @db_name}, &b)
+    def inspect # :nodoc:
+      real_inspect({:str => @db_name})
     end
   end
 
@@ -49,8 +55,8 @@ module RethinkDB
   # function from Sequence on it, it will be treated as a
   # Stream_Expression reading from the table.
   class Table
-    def inspect(&b) # :nodoc:
-      to_mrs.inspect(&b)
+    def inspect # :nodoc:
+      to_mrs.inspect
     end
 
     # A table named <b>+name+</b> residing in database <b>+db_name+</b>.
