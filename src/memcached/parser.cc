@@ -216,28 +216,23 @@ private:
 
 class pipeliner_acq_t {
 public:
-    explicit pipeliner_acq_t(pipeliner_t *pipeliner)
-        : pipeliner_(pipeliner)
-#ifndef NDEBUG
-        , state_(untouched)
-#endif
-    {
+    explicit pipeliner_acq_t(pipeliner_t *pipeliner) : pipeliner_(pipeliner), state_(untouched) {
         begin_operation();
     }
     ~pipeliner_acq_t() {
-        rassert_unreviewed(state_ == has_ended_write);
+        guarantee_reviewed(state_ == has_ended_write);
     }
 
 private:
     void begin_operation() {
-        rassert_unreviewed(state_ == untouched);
+        guarantee_reviewed(state_ == untouched);
         DEBUG_ONLY_CODE(state_ = has_begun_operation);
         fifo_acq_.enter(&pipeliner_->fifo);
     }
 
 public:
     void done_argparsing() {
-        rassert_unreviewed(state_ == has_begun_operation);
+        guarantee_reviewed(state_ == has_begun_operation);
         DEBUG_ONLY_CODE(state_ = has_done_argparsing);
 
         unlock_mutex(&pipeliner_->argparsing_mutex);
@@ -245,14 +240,14 @@ public:
     }
 
     void begin_write() {
-        rassert_unreviewed(state_ == has_done_argparsing);
+        guarantee_reviewed(state_ == has_done_argparsing);
         DEBUG_ONLY_CODE(state_ = has_begun_write);
         fifo_acq_.leave();
         mutex_acq_.reset(&pipeliner_->mutex);
     }
 
     void end_write() {
-        rassert_unreviewed(state_ == has_begun_write);
+        guarantee_reviewed(state_ == has_begun_write);
         DEBUG_ONLY_CODE(state_ = has_ended_write);
 
         {
@@ -268,9 +263,9 @@ private:
     pipeliner_t *pipeliner_;
     mutex_t::acq_t mutex_acq_;
     coro_fifo_acq_t fifo_acq_;
-#ifndef NDEBUG
+
     enum { untouched, has_begun_operation, has_done_argparsing, has_begun_write, has_ended_write } state_;
-#endif
+
     DISABLE_COPYING(pipeliner_acq_t);
 };
 /* do_get() is used for "get" and "gets" commands. */
@@ -310,8 +305,8 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
     // We should already be spawned within a coroutine.
     pipeliner_acq_t pipeliner_acq(pipeliner);
 
-    rassert_unreviewed(argc >= 1);
-    rassert_unreviewed(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
+    guarantee_reviewed(argc >= 1);
+    rassert_reviewed(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
     /* Vector to store the keys and the task-objects */
     std::vector<get_t> gets;
@@ -377,7 +372,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
                 if (with_cas) {
                     rh->write_value_header(reinterpret_cast<const char *>(key.contents()), key.size(), res.flags, res.value->size(), res.cas);
                 } else {
-                    rassert_unreviewed(res.cas == 0);
+                    guarantee_reviewed(res.cas == 0);
                     rh->write_value_header(reinterpret_cast<const char *>(key.contents()), key.size(), res.flags, res.value->size());
                 }
 
@@ -490,13 +485,13 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
         {
             key_range_t::right_bound_t bound(store_key_t::min());
             for (std::set< hash_region_t<key_range_t> >::const_iterator it = shards.begin(); it != shards.end(); it++) {
-                guarantee_unreviewed(!bound.unbounded);
-                guarantee_unreviewed(it->beg == 0);
-                guarantee_unreviewed(it->end == HASH_REGION_HASH_SIZE);
-                guarantee_unreviewed(bound.key == it->inner.left);
+                guarantee_reviewed(!bound.unbounded);
+                guarantee_reviewed(it->beg == 0);
+                guarantee_reviewed(it->end == HASH_REGION_HASH_SIZE);
+                guarantee_reviewed(bound.key == it->inner.left);
                 bound = it->inner.right;
             }
-            rassert_unreviewed(bound.unbounded);
+            guarantee_reviewed(bound.unbounded);
         }
 
         /* Find the shard that we're going to start in. */
@@ -522,7 +517,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
                 /* This round of the range scan stopped because the chunk was
                 getting too big. We need to submit another range scan with the left
                 key equal to the rightmost key of the results we got */
-                rassert_unreviewed(!results.pairs.empty());
+                guarantee_reviewed(!results.pairs.empty());
                 range.left = results.pairs.back().key;
                 range.left.increment();
             } else {
@@ -549,7 +544,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
                 }
             }
 
-            rassert_unreviewed(results.pairs.size() <= max_items);
+            guarantee_reviewed(results.pairs.size() <= max_items);
             max_items -= results.pairs.size();
         }
         rh->write_end();
