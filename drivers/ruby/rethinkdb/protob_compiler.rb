@@ -76,18 +76,7 @@ module RethinkDB
           message_set(message, query_type,
                       comp(field.type, query_args,field.rule==:repeated))
         end
-      # Both of the following cases handle cases where we aren't constructing a
-      # toplevel variant type.
-      elsif args.class == Hash
-        # Handle the case where we're constructing the fields by specifying
-        # names in a hash, e.g. if some are optional.
-        args_tmp = {}
-        args = args.each{|k,v| args_tmp[k] = (v == nil ? RQL.expr(v) : v)}
-        args = args_tmp
-        message.fields.each {|_field|; field = _field[1]; arg = args[field.name]
-          message_set(message, field.name,
-                      comp(field.type, arg, field.rule==:repeated)) if arg != nil
-        }
+      # Handle cases where we aren't constructing a toplevel variant type.
       elsif args.class == Array
         # Handle the case where we're constructinga the fields in order.
         args = args.map{|x| x == nil ? RQL.expr(x) : x}
