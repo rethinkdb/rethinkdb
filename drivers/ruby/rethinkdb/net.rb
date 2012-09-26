@@ -3,6 +3,10 @@ require 'thread'
 require 'json'
 
 module RethinkDB
+  module Faux_Abort # :nodoc:
+    class Abort # :nodoc:
+    end
+  end
   # The result of a calling Connection#run on a query that returns a stream.
   # This class is <b>+Enumerable+</b>.  You can find documentation on Enumerable
   # classes at http://ruby-doc.org/core-1.9.3/Enumerable.html .
@@ -166,7 +170,7 @@ module RethinkDB
 
           begin
             protob = wait token
-          rescue IRB::Abort => e
+          rescue @abort_module::Abort => e
             print "\nAborting query and reconnecting...\n"
             self.reconnect()
             raise e
@@ -201,6 +205,11 @@ module RethinkDB
     # running queries over that connection.  Example:
     #   c = Connection.new('localhost', 12346, 'default_db')
     def initialize(host='localhost', port=12346, default_db='test')
+      begin
+        @abort_module = ::IRB
+      rescue NameError => e
+        @abort_module = Faux_Abort
+      end
       @@last = self
       @host = host
       @port = port
@@ -220,14 +229,23 @@ module RethinkDB
     # a query that returns a stream of results (e.g. filtering a table), you get
     # back an enumerable object of class RethinkDB::Query_Results.
     #
+    # You may also provide some options as an optional second
+    # argument.  The only useful option right now is
+    # <b>+:use_outdated+</b>, which specifies whether tables can use
+    # outdated information.  (If you specified this on a per-table
+    # basis, specifying it again here won't override the original
+    # choice.)
+    #
     # <b>NOTE:</b> unlike most enumerably objects, you can only iterate over the
     # result once.  See RethinkDB::Query_Results for more details.
-    def run (query)
+    def run (query, opts={})
       is_atomic = (query.kind_of?(JSON_Expression) ||
                    query.kind_of?(Meta_Query) ||
                    query.kind_of?(Write_Query))
-      args = @default_db ? [:default_db, @default_db] : []
-      protob = query.query(*args)
+      map = {}
+      map[:default_db] = @default_db if @default_db
+      map[S.conn_outdated] = !!opts[:use_outdated]
+      protob = query.query(map)
       if is_atomic
         a = []
         token_iter(query, dispatch(protob)){|row| a.push row} ? a : a[0]

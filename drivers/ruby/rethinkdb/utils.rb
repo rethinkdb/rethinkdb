@@ -70,6 +70,7 @@ module RethinkDB
     end
     def r x; x.equal?(skip) ? x : RQL.expr(x); end
     def skip; :skip_2222ebd4_2c16_485e_8c27_bbe43674a852; end
+    def conn_outdated; :conn_outdated_2222ebd4_2c16_485e_8c27_bbe43674a852; end
 
     def arg_or_block(*args, &block)
       if args.length == 1 && block
@@ -85,9 +86,9 @@ module RethinkDB
       return lst.class == Array ? lst.map{|z| clean_lst(z)} : lst
     end
 
-    def replace(sexp, old, new)
-      return sexp.map{|x| replace x,old,new} if sexp.class == Array
-      return (sexp == old) ? new : sexp
+    def replace(sexp, map)
+      return sexp.map{|x| replace x,map} if sexp.class == Array
+      return (map.include? sexp) ? map[sexp] : sexp
     end
 
     def checkdict s
