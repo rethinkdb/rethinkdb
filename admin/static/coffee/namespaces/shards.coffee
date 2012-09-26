@@ -11,8 +11,8 @@ module 'NamespaceView', ->
         rebalance_shards_success_alert_template: Handlebars.compile $('#rebalance_shards-success-alert-template').html()
         className: 'shards_container'
         events:
-            'click #change_shards-link': 'show_change_shards'
-            'click .rebalance_shards-link': 'rebalance_shards'
+            'click .change_shards-button': 'confirm_shards_changes'
+            'keypress .num_shards': 'keypress_shards_changes'
 
         initialize: =>
             # Forbid changes if issues
@@ -33,8 +33,13 @@ module 'NamespaceView', ->
                 parent: @
            
 
-        show_change_shards: (event) =>
+        keypress_shards_changes: (event) =>
+            if event.which is 13
+                @confirm_shards_changes(event)
+
+        confirm_shards_changes: (event) =>
             event.preventDefault()
+            @change_shards_modal.set_num_shards @.$('.num_shards').val()
             @change_shards_modal.render()
 
         check_has_unsatisfiable_goals: =>
@@ -91,7 +96,7 @@ module 'NamespaceView', ->
                         boundaries: shard
                         num_keys: parseInt @model.compute_shard_rows_approximation shard
                     shards.push new_shard
-                total_keys += new_shard.num_keys
+                    total_keys += new_shard.num_keys
                 max_keys = d3.max shards, (d) -> return d.num_keys
                 min_keys = d3.min shards, (d) -> return d.num_keys
 
@@ -128,7 +133,7 @@ module 'NamespaceView', ->
             data = {}
             if shards.length > 1
                 data.has_shards = true
-                if shards.length > 11
+                if shards.length > 9
                     data.numerous_shards = true
             else
                 data.has_shards = false
@@ -146,15 +151,12 @@ module 'NamespaceView', ->
 
                 svg_height = 270
 
-                if data.numerous_shards? and data.numerous_shards
-                    if margin_width+margin_width_inner+(width+margin_bar)*@model.get('shards').length+margin_width_inner+margin_width > 700
-                        svg_width = margin_width+margin_width_inner+(width+margin_bar)*@model.get('shards').length+margin_width_inner+margin_width
-                        svg_width = Math.min svg_width, 700
-                        width_and_margin = (svg_width-margin_width*2-margin_width_inner*2)/@model.get('shards').length
-                        width = width_and_margin/@model.get('shards').length*(@model.get('shards').length-2)
-                        margin_bar = width_and_margin/@model.get('shards').length*2
-                    else
-                        svg_width = margin_width+margin_width_inner+(width+margin_bar)*@model.get('shards').length+margin_width_inner+margin_width
+                if data.numerous_shards? and data.numerous_shards is true
+                    svg_width = margin_width+margin_width_inner+(width+margin_bar)*@model.get('shards').length+margin_width_inner+margin_width
+                    svg_width = Math.min svg_width, 350
+                    width_and_margin = (svg_width-margin_width*2-margin_width_inner*2)/@model.get('shards').length
+                    width = width_and_margin/@model.get('shards').length*(@model.get('shards').length-2)
+                    margin_bar = width_and_margin/@model.get('shards').length*2
                     container_width = svg_width
                 else
                     svg_width = margin_width+margin_width_inner+(width+margin_bar)*@model.get('shards').length+margin_width_inner+margin_width
@@ -239,85 +241,6 @@ module 'NamespaceView', ->
                 @delegateEvents()
             return @
 
-        rebalance_shards: (event) =>
-            event.preventDefault()
-            confirmation_modal = new UIComponents.ConfirmationDialogModal
-            confirmation_modal.render("Are you sure you want to rebalance the shards for the namespace "+@model.get('name')+"? This operation might take some time.",
-                "",
-                {},
-                undefined)
-            confirmation_modal.on_submit = =>
-                confirmation_modal.$('.btn-primary').button('loading')
-                confirmation_modal.$('.cancel').button('loading')
-
-                new_num_shards = ''+@model.get('shards').length
-
-                if DataUtils.is_integer(new_num_shards) is false
-                    error_msg = "The number of shards must be an integer."
-                    @display_error error_msg
-                    return
-                
-                if new_num_shards < 1 or new_num_shards > MAX_SHARD_COUNT
-                    error_msg = "The number of shards must be beteen 1 and " + MAX_SHARD_COUNT + "."
-                    @display_error error_msg
-                    return
-
-                data = @model.get('key_distr')
-                distr_keys = @model.get('key_distr_sorted')
-                total_rows = _.reduce distr_keys, ((agg, key) => return agg + data[key]), 0
-                rows_per_shard = total_rows / new_num_shards
-
-                if distr_keys.length < 2
-                    error_msg = "There is not enough data in the database to make balanced shards."
-                    @display_error error_msg
-                    return
-
-                current_shard_count = 0
-                split_points = [""]
-                no_more_splits = false
-                for key in distr_keys
-                    if split_points.length >= new_num_shards
-                        no_more_splits = true
-                    current_shard_count += data[key]
-                    if current_shard_count >= rows_per_shard and not no_more_splits
-                        split_points.push(key)
-                        current_shard_count = 0
-                split_points.push(null)
-
-                shard_set = []
-                for splitIndex in [0..(split_points.length - 2)]
-                    shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
-
-                if shard_set.length < new_num_shards
-                    @error_msg = "There is only enough data to make " + shard_set.length + " balanced shards."
-                    return
-
-                empty_master_pin = {}
-                empty_replica_pins = {}
-                for shard in shard_set
-                    empty_master_pin[shard] = null
-                    empty_replica_pins[shard] = []
-
-                data =
-                    shards: shard_set
-                    primary_pinnings: empty_master_pin
-                    secondary_pinnings: empty_replica_pins
-
-                @data_sent = data
-
-                that = @
-                $.ajax
-                    processData: false
-                    url: "/ajax/semilattice/#{@model.get('protocol')}_namespaces/#{@model.get('id')}"
-                    type: 'POST'
-                    contentType: 'application/json'
-                    data: JSON.stringify(data)
-                    success: (response) =>
-                        that.$('.user-alert-space').html that.rebalance_shards_success_alert_template({})
-                        clear_modals()
-                        namespaces.get(that.model.get('id')).set(that.data_sent)
-
-
         destroy: =>
             issues.on 'all', @check_has_unsatisfiable_goals
             @model.off 'change:shards', @check_num_shards_changed
@@ -338,14 +261,17 @@ module 'NamespaceView', ->
             @parent = data.parent
             super
 
+        set_num_shards: (num_shards) =>
+            @num_shards = num_shards
 
         render: =>
             @model.load_key_distr_once()
 
             super
-                modal_title: "Change the number of shards"
+                modal_title: "Confirm rebalancing shards"
                 btn_primary_text: "Shard"
-            $('#new_num_shards').focus()
+                num_shards: @num_shards
+            $('.btn-primary').focus()
 
 
         display_error: (error) =>
@@ -356,7 +282,7 @@ module 'NamespaceView', ->
 
         on_submit: =>
             super
-            new_num_shards = @.$('#new_num_shards').val()
+            new_num_shards = @num_shards
             @.$('.change_shards-btn').button('loading')
 
             if DataUtils.is_integer(new_num_shards) is false
