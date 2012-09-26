@@ -239,7 +239,7 @@ void connectivity_cluster_t::run_t::handle(
     ip_address_t peer_addr;
     std::string peerstr = "(unknown)";
     if (!conn->get_underlying_conn()->getpeername(&peer_addr))
-        peerstr = peer_addr.as_dotted_decimal();
+        peerstr = peer_addr.primary_as_dotted_decimal();
     const char *peername = peerstr.c_str();
 
     // Make sure that if we're ordered to shut down, any pending read

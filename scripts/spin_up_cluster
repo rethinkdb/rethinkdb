@@ -104,11 +104,11 @@ else:
         # cleanup the directory
         if not keep_data:
             os.system("rm -rf " + directory)
-        binary = "../build/debug/rethinkdb"
+        binary = "../build/debug_clang/rethinkdb"
         if (i == 0):
             cl = [binary, "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
         else:
-            cl = [binary, "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "newton:%d" % port, "--port-offset", str(i+port)]
+            cl = [binary, "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "localhost:%d" % port, "--port-offset", str(i+port)]
         print ' '.join(cl)
         kids += [subprocess.Popen(cl, stdout=sys.stdout, stderr=sys.stderr)]
         time.sleep(1)

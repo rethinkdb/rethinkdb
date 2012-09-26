@@ -9,7 +9,7 @@
 initial_joiner_t::initial_joiner_t(
         connectivity_cluster_t *cluster_,
         connectivity_cluster_t::run_t *cluster_run,
-        const std::set<peer_address_t> &peers,
+        const peer_address_set_t &peers,
         int timeout_ms) :
     cluster(cluster_),
     peers_not_heard_from(peers),
@@ -44,7 +44,7 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
     try {
         int retry_interval_ms = initial_retry_interval_ms;
         do {
-            for (std::set<peer_address_t>::const_iterator it = peers_not_heard_from.begin(); it != peers_not_heard_from.end(); it++) {
+            for (peer_address_set_t::const_iterator it = peers_not_heard_from.begin(); it != peers_not_heard_from.end(); it++) {
                 cluster_run->join(*it);
             }
             signal_timer_t retry_timer(retry_interval_ms);
@@ -56,10 +56,10 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
             retry_interval_ms = std::min(static_cast<int>(retry_interval_ms * retry_interval_growth_rate), max_retry_interval_ms);
         } while (!peers_not_heard_from.empty() && (!grace_period_timer.has() || !grace_period_timer->is_pulsed()));
         if (!peers_not_heard_from.empty()) {
-            std::set<peer_address_t>::const_iterator it = peers_not_heard_from.begin();
-            std::string s = strprintf("%s:%d", it->ip.as_dotted_decimal().c_str(), it->port);
+            peer_address_set_t::const_iterator it = peers_not_heard_from.begin();
+            std::string s = strprintf("%s:%d", it->ip.primary_as_dotted_decimal().c_str(), it->port);
             for (it++; it != peers_not_heard_from.end(); it++) {
-                s += strprintf(", %s:%d", it->ip.as_dotted_decimal().c_str(), it->port);
+                s += strprintf(", %s:%d", it->ip.primary_as_dotted_decimal().c_str(), it->port);
             }
             logWRN("We were unable to connect to the following peer(s): %s", s.c_str());
         }

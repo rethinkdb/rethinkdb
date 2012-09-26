@@ -413,7 +413,7 @@ void admin_command_parser_t::do_usage(bool console) {
     do_usage_internal(helps, options, header_string, console);
 }
 
-admin_command_parser_t::admin_command_parser_t(const std::string& peer_string, const std::set<peer_address_t>& joins, int client_port, signal_t *_interruptor) :
+admin_command_parser_t::admin_command_parser_t(const std::string& peer_string, const peer_address_set_t& joins, int client_port, signal_t *_interruptor) :
     join_peer(peer_string),
     joins_param(joins),
     client_port_param(client_port),
