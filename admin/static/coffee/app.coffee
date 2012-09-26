@@ -226,7 +226,7 @@ $ ->
     window.last_update_tstamp = 0
     window.universe_datacenter = new Datacenter
         id: '00000000-0000-0000-0000-000000000000'
-        name: '_Universe'
+        name: 'Universe'
 
     # Load the data bootstrapped from the HTML template
     # reset_collections()
