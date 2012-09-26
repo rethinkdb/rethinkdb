@@ -157,7 +157,7 @@ class TableList(MetaQueryInner):
 #################
 
 class WriteQueryInner(object):
-    def _write_write_query(self, parent):
+    def _write_write_query(self, parent, opts):
         raise NotImplementedError()
     def pretty_print(self, printer):
         raise NotImplementedError()
@@ -170,11 +170,11 @@ class Insert(WriteQueryInner):
         else:
             self.entries = [query.expr(e) for e in entries]
 
-    def _write_write_query(self, parent):
+    def _write_write_query(self, parent, opts):
         parent.type = p.WriteQuery.INSERT
-        self.table._write_ref_ast(parent.insert.table_ref)
+        self.table._write_ref_ast(parent.insert.table_ref, opts)
         for entry in self.entries:
-            entry._inner._write_ast(parent.insert.terms.add())
+            entry._inner._write_ast(parent.insert.terms.add(), opts)
 
     def pretty_print(self, printer):
         return "%s.insert([%s])" % (
@@ -185,9 +185,9 @@ class Delete(WriteQueryInner):
     def __init__(self, parent_view):
         self.parent_view = parent_view
 
-    def _write_write_query(self, parent):
+    def _write_write_query(self, parent, opts):
         parent.type = p.WriteQuery.DELETE
-        self.parent_view._inner._write_ast(parent.delete.view)
+        self.parent_view._inner._write_ast(parent.delete.view, opts)
 
     def pretty_print(self, printer):
         return "%s.delete()" % printer.expr_wrapped(self.parent_view, ["view"])
@@ -197,10 +197,10 @@ class Update(WriteQueryInner):
         self.parent_view = parent_view
         self.mapping = mapping
 
-    def _write_write_query(self, parent):
+    def _write_write_query(self, parent, opts):
         parent.type = p.WriteQuery.UPDATE
-        self.parent_view._inner._write_ast(parent.update.view)
-        self.mapping.write_mapping(parent.update.mapping)
+        self.parent_view._inner._write_ast(parent.update.view, opts)
+        self.mapping.write_mapping(parent.update.mapping, opts)
 
     def pretty_print(self, printer):
         return "%s.update(%s)" % (
@@ -212,10 +212,10 @@ class Mutate(WriteQueryInner):
         self.parent_view = parent_view
         self.mapping = mapping
 
-    def _write_write_query(self, parent):
+    def _write_write_query(self, parent, opts):
         parent.type = p.WriteQuery.MUTATE
-        self.parent_view._inner._write_ast(parent.mutate.view)
-        self.mapping.write_mapping(parent.mutate.mapping)
+        self.parent_view._inner._write_ast(parent.mutate.view, opts)
+        self.mapping.write_mapping(parent.mutate.mapping, opts)
 
     def pretty_print(self, printer):
         return "%s.replace(%s)" % (
@@ -226,9 +226,9 @@ class PointDelete(WriteQueryInner):
     def __init__(self, parent_view):
         self.parent_view = parent_view
 
-    def _write_write_query(self, parent):
+    def _write_write_query(self, parent, opts):
         parent.type = p.WriteQuery.POINTDELETE
-        self.parent_view._inner._write_point_ast(parent.point_delete)
+        self.parent_view._inner._write_point_ast(parent.point_delete, opts)
 
     def pretty_print(self, printer):
         return "%s.delete()" % printer.expr_wrapped(self.parent_view, ["view"])
@@ -238,10 +238,10 @@ class PointUpdate(WriteQueryInner):
         self.parent_view = parent_view
         self.mapping = mapping
 
-    def _write_write_query(self, parent):
+    def _write_write_query(self, parent, opts):
         parent.type = p.WriteQuery.POINTUPDATE
-        self.mapping.write_mapping(parent.point_update.mapping)
-        self.parent_view._inner._write_point_ast(parent.point_update)
+        self.mapping.write_mapping(parent.point_update.mapping, opts)
+        self.parent_view._inner._write_point_ast(parent.point_update, opts)
 
     def pretty_print(self, printer):
         return "%s.update(%s)" % (
@@ -253,10 +253,10 @@ class PointMutate(WriteQueryInner):
         self.parent_view = parent_view
         self.mapping = mapping
 
-    def _write_write_query(self, parent):
+    def _write_write_query(self, parent, opts):
         parent.type = p.WriteQuery.POINTMUTATE
-        self.mapping.write_mapping(parent.point_mutate.mapping)
-        self.parent_view._inner._write_point_ast(parent.point_mutate)
+        self.mapping.write_mapping(parent.point_mutate.mapping, opts)
+        self.parent_view._inner._write_point_ast(parent.point_mutate, opts)
 
     def pretty_print(self, printer):
         return "%s.replace(%s)" % (
@@ -268,19 +268,19 @@ class PointMutate(WriteQueryInner):
 ################
 
 class ExpressionInner(object):
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         raise NotImplementedError()
-    def _write_call(self, parent, builtin, *args):
+    def _write_call(self, parent, builtin, opts, *args):
         parent.type = p.Term.CALL
         parent.call.builtin.type = builtin
         for arg in args:
-            arg._inner._write_ast(parent.call.args.add())
+            arg._inner._write_ast(parent.call.args.add(), opts)
         return parent.call.builtin
     def pretty_print(self, pp):
         raise NotImplementedError()
 
 class LiteralNull(ExpressionInner):
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         parent.type = p.Term.JSON_NULL
     def pretty_print(self, printer):
         return ("None", PRETTY_PRINT_EXPR_UNWRAPPED)
@@ -288,7 +288,7 @@ class LiteralNull(ExpressionInner):
 class LiteralBool(ExpressionInner):
     def __init__(self, value):
         self.value = value
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         parent.type = p.Term.BOOL
         parent.valuebool = self.value
     def pretty_print(self, printer):
@@ -297,7 +297,7 @@ class LiteralBool(ExpressionInner):
 class LiteralNumber(ExpressionInner):
     def __init__(self, value):
         self.value = value
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         parent.type = p.Term.NUMBER
         parent.number = self.value
     def pretty_print(self, printer):
@@ -306,7 +306,7 @@ class LiteralNumber(ExpressionInner):
 class LiteralString(ExpressionInner):
     def __init__(self, value):
         self.value = value
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         parent.type = p.Term.STRING
         parent.valuestring = self.value
     def pretty_print(self, printer):
@@ -315,10 +315,10 @@ class LiteralString(ExpressionInner):
 class LiteralArray(ExpressionInner):
     def __init__(self, value):
         self.value = [query.expr(e) for e in value]
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         parent.type = p.Term.ARRAY
         for e in self.value:
-            e._inner._write_ast(parent.array.add())
+            e._inner._write_ast(parent.array.add(), opts)
     def pretty_print(self, printer):
         return ("[" + ", ".join(printer.expr_unwrapped(e, ["elem:%d" % i]) for i, e in enumerate(self.value)) + "]", PRETTY_PRINT_EXPR_UNWRAPPED)
 
@@ -327,12 +327,12 @@ class LiteralObject(ExpressionInner):
         for k, v in value.iteritems():
             assert isinstance(k, str)
         self.value = dict((k, query.expr(v)) for k, v in value.iteritems())
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         parent.type = p.Term.OBJECT
         for k, v in self.value.iteritems():
             pair = parent.object.add()
             pair.var = k
-            v._inner._write_ast(pair.term)
+            v._inner._write_ast(pair.term, opts)
     def pretty_print(self, printer):
         return ("{" + ", ".join(repr(k) + ": " + printer.expr_unwrapped(v, ["key:%s" % k]) for k, v in self.value.iteritems()) + "}", PRETTY_PRINT_EXPR_UNWRAPPED)
 
@@ -340,7 +340,7 @@ class Javascript(ExpressionInner):
     def __init__(self, body):
         self.body = body
 
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         parent.type = p.Term.JAVASCRIPT
         parent.javascript = self.body
 
@@ -350,8 +350,8 @@ class Javascript(ExpressionInner):
 class ToArray(ExpressionInner):
     def __init__(self, stream):
         self.stream = stream
-    def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.STREAMTOARRAY, self.stream)
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.STREAMTOARRAY, opts, self.stream)
     def pretty_print(self, printer):
         return ("%s.to_array()" % printer.expr_wrapped(self.stream, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
 
@@ -369,8 +369,8 @@ class Builtin(ExpressionInner):
     def __init__(self, *args):
         self.args = [query.expr(arg) for arg in args]
         assert len(self.args) == len(self.arg_wrapped_flags)
-    def _write_ast(self, parent):
-        self._write_call(parent, self.builtin, *self.args)
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, self.builtin, opts, *self.args)
     def pretty_print(self, printer):
         printed_args = []
         assert len(self.args) == len(self.arg_wrapped_flags), "bad format for %r" % type(self)
@@ -444,8 +444,8 @@ class Append(Builtin):
     wrapped_flag = PRETTY_PRINT_EXPR_WRAPPED
 
 class Comparison(Builtin):
-    def _write_ast(self, parent):
-        builtin = self._write_call(parent, p.Builtin.COMPARE, *self.args)
+    def _write_ast(self, parent, opts):
+        builtin = self._write_call(parent, p.Builtin.COMPARE, opts, *self.args)
         builtin.comparison = self.comparison
 
 class CompareLT(Comparison):
@@ -489,8 +489,8 @@ class CompareGE(Comparison):
 class All(ExpressionInner):
     def __init__(self, *args):
         self.args = [query.expr(a) for a in args]
-    def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.ALL, *self.args)
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.ALL, opts, *self.args)
     def pretty_print(self, printer):
         return ("(" + " & ".join(printer.expr_wrapped(a, ["arg:%d" % i]) for i, a in enumerate(self.args)) + ")",
             PRETTY_PRINT_EXPR_WRAPPED)
@@ -499,8 +499,8 @@ class Has(ExpressionInner):
     def __init__(self, parent, key):
         self.parent = query.expr(parent)
         self.key = key
-    def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.HASATTR, self.parent)
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.HASATTR, opts, self.parent)
         parent.call.builtin.attr = self.key
     def pretty_print(self, printer):
         return ("%s.has_attr(%r)" % (printer.expr_wrapped(self.parent, ["arg:0"]), self.key), PRETTY_PRINT_EXPR_WRAPPED)
@@ -508,8 +508,8 @@ class Has(ExpressionInner):
 class Length(ExpressionInner):
     def __init__(self, seq):
         self.seq = seq
-    def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.LENGTH, self.seq)
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.LENGTH, opts, self.seq)
     def pretty_print(self, printer):
         return ("%s.length()" % printer.expr_wrapped(self.seq, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
 
@@ -517,8 +517,8 @@ class Attr(ExpressionInner):
     def __init__(self, parent, key):
         self.parent = query.expr(parent)
         self.key = key
-    def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.GETATTR, self.parent)
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.GETATTR, opts, self.parent)
         parent.call.builtin.attr = self.key
     def pretty_print(self, printer):
         return ("%s[%s]" % (
@@ -529,14 +529,14 @@ class Attr(ExpressionInner):
 class ImplicitAttr(ExpressionInner):
     def __init__(self, attr):
         self.attr = attr
-    def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.IMPLICIT_GETATTR)
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.IMPLICIT_GETATTR, opts)
         parent.call.builtin.attr = self.attr
     def pretty_print(self, printer):
         return ("r[%s]" % printer.simple_string(repr(self.attr), ["attr"]), PRETTY_PRINT_EXPR_WRAPPED)
 
 class ImplicitVar(ExpressionInner):
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         parent.type = p.Term.IMPLICIT_VAR
     def pretty_print(self, printer):
         return ("r['@']", PRETTY_PRINT_EXPR_WRAPPED)
@@ -544,8 +544,8 @@ class ImplicitVar(ExpressionInner):
 class ToStream(ExpressionInner):
     def __init__(self, array):
         self.array = query.expr(array)
-    def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.ARRAYTOSTREAM, self.array)
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.ARRAYTOSTREAM, opts, self.array)
     def pretty_print(self, printer):
         return ("%s.to_stream()" % printer.expr_wrapped(self.array, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
 
@@ -553,8 +553,8 @@ class Nth(ExpressionInner):
     def __init__(self, stream, index):
         self.stream = stream
         self.index = query.expr(index)
-    def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.NTH, self.stream, self.index)
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.NTH, opts, self.stream, self.index)
     def pretty_print(self, printer):
         return ("%s[%s]" % (printer.expr_wrapped(self.stream, ["arg:0"]), printer.expr_unwrapped(self.index, ["arg:1"])), PRETTY_PRINT_EXPR_WRAPPED)
 
@@ -564,8 +564,8 @@ class Slice(ExpressionInner):
         self.start = query.expr(start)
         self.stop = query.expr(stop)
 
-    def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.SLICE, self.parent, self.start, self.stop)
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.SLICE, opts, self.parent, self.start, self.stop)
 
     def pretty_print(self, printer):
         return ("%s[%s:%s]" % (
@@ -579,8 +579,8 @@ class Skip(ExpressionInner):
         self.parent = parent
         self.offset = query.expr(offset)
 
-    def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.SKIP, self.parent, self.offset)
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.SKIP, opts, self.parent, self.offset)
 
     def pretty_print(self, printer):
         return ("%s[%s:]" % (
@@ -593,9 +593,9 @@ class Filter(ExpressionInner):
         self.parent = parent
         self.selector = selector
 
-    def _write_ast(self, parent):
-        builtin = self._write_call(parent, p.Builtin.FILTER, self.parent)
-        self.selector.write_mapping(builtin.filter.predicate)
+    def _write_ast(self, parent, opts):
+        builtin = self._write_call(parent, p.Builtin.FILTER, opts, self.parent)
+        self.selector.write_mapping(builtin.filter.predicate, opts)
 
     def pretty_print(self, printer):
         return ("%s.filter(%s)" % (
@@ -608,8 +608,8 @@ class OrderBy(ExpressionInner):
         self.parent = parent
         self.ordering = ordering
 
-    def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.ORDERBY, self.parent)
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.ORDERBY, opts, self.parent)
         for key, val in self.ordering:
             elem = parent.call.builtin.order_by.add()
             elem.attr = key
@@ -628,11 +628,11 @@ class Range(ExpressionInner):
         self.upperbound = query.expr(upperbound)
         self.attrname = attrname
 
-    def _write_ast(self, parent):
-        builtin = self._write_call(parent, p.Builtin.RANGE, self.parent)
+    def _write_ast(self, parent, opts):
+        builtin = self._write_call(parent, p.Builtin.RANGE, opts, self.parent)
         builtin.range.attrname = self.attrname
-        self.lowerbound._inner._write_ast(builtin.range.lowerbound)
-        self.upperbound._inner._write_ast(builtin.range.upperbound)
+        self.lowerbound._inner._write_ast(builtin.range.lowerbound, opts)
+        self.upperbound._inner._write_ast(builtin.range.upperbound, opts)
 
     def pretty_print(self, printer):
         return ("%s.range(%s, %s%s)" % (
@@ -648,14 +648,14 @@ class Get(ExpressionInner):
         self.key = query.expr(key)
         self.attr_name = attr_name
 
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         parent.type = p.Term.GETBYKEY
-        self._write_point_ast(parent.get_by_key)
+        self._write_point_ast(parent.get_by_key, opts)
 
-    def _write_point_ast(self, parent):
-        self.table._write_ref_ast(parent.table_ref)
+    def _write_point_ast(self, parent, opts):
+        self.table._write_ref_ast(parent.table_ref, opts)
         parent.attrname = self.attr_name
-        self.key._inner._write_ast(parent.key)
+        self.key._inner._write_ast(parent.key, opts)
 
     def pretty_print(self, printer):
         return ("%s.get(%s, attr_name = %r)" % (
@@ -671,11 +671,11 @@ class If(ExpressionInner):
         self.true_branch = query.expr(true_branch)
         self.false_branch = query.expr(false_branch)
 
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         parent.type = p.Term.IF
-        self.test._inner._write_ast(parent.if_.test)
-        self.true_branch._inner._write_ast(parent.if_.true_branch)
-        self.false_branch._inner._write_ast(parent.if_.false_branch)
+        self.test._inner._write_ast(parent.if_.test, opts)
+        self.true_branch._inner._write_ast(parent.if_.true_branch, opts)
+        self.false_branch._inner._write_ast(parent.if_.false_branch, opts)
 
     def pretty_print(self, printer):
         return ("if_then_else(%s, %s, %s)" % (
@@ -689,9 +689,9 @@ class Map(ExpressionInner):
         self.parent = parent
         self.mapping = mapping
 
-    def _write_ast(self, parent):
-        builtin = self._write_call(parent, p.Builtin.MAP, self.parent)
-        self.mapping.write_mapping(builtin.map.mapping)
+    def _write_ast(self, parent, opts):
+        builtin = self._write_call(parent, p.Builtin.MAP, opts, self.parent)
+        self.mapping.write_mapping(builtin.map.mapping, opts)
 
     def pretty_print(self, printer):
         return ("%s.map(%s)" % (
@@ -704,9 +704,9 @@ class ConcatMap(ExpressionInner):
         self.parent = parent
         self.mapping = mapping
 
-    def _write_ast(self, parent):
-        builtin = self._write_call(parent, p.Builtin.CONCATMAP, self.parent)
-        self.mapping.write_mapping(builtin.concat_map.mapping)
+    def _write_ast(self, parent, opts):
+        builtin = self._write_call(parent, p.Builtin.CONCATMAP, opts, self.parent)
+        self.mapping.write_mapping(builtin.concat_map.mapping, opts)
 
     def pretty_print(self, printer):
         return ("%s.concat_map(%s)" % (
@@ -722,11 +722,11 @@ class GroupedMapReduce(ExpressionInner):
         self.reduction_base = query.expr(reduction_base)
         self.reduction_func = reduction_func
 
-    def _write_ast(self, parent):
-        builtin = self._write_call(parent, p.Builtin.GROUPEDMAPREDUCE, self.input)
-        self.group_mapping.write_mapping(builtin.grouped_map_reduce.group_mapping)
-        self.value_mapping.write_mapping(builtin.grouped_map_reduce.value_mapping)
-        self.reduction_func.write_reduction(builtin.grouped_map_reduce.reduction, self.reduction_base)
+    def _write_ast(self, parent, opts):
+        builtin = self._write_call(parent, p.Builtin.GROUPEDMAPREDUCE, opts, self.input)
+        self.group_mapping.write_mapping(builtin.grouped_map_reduce.group_mapping, opts)
+        self.value_mapping.write_mapping(builtin.grouped_map_reduce.value_mapping, opts)
+        self.reduction_func.write_reduction(builtin.grouped_map_reduce.reduction, self.reduction_base, opts)
 
     def pretty_print(self, printer):
         return ("%s.grouped_map_reduce(%s, %s, %s, %s)" % (
@@ -741,8 +741,8 @@ class Distinct(ExpressionInner):
     def __init__(self, parent):
         self.parent = parent
 
-    def _write_ast(self, parent):
-        self._write_call(parent, p.Builtin.DISTINCT, self.parent)
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.DISTINCT, opts, self.parent)
 
     def pretty_print(self, printer):
         return ("%s.distinct()" % printer.expr_wrapped(self.parent, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
@@ -753,9 +753,9 @@ class Reduce(ExpressionInner):
         self.base = query.expr(base)
         self.reduction = reduction
 
-    def _write_ast(self, parent):
-        builtin = self._write_call(parent, p.Builtin.REDUCE, self.parent)
-        self.reduction.write_reduction(builtin.reduce, self.base)
+    def _write_ast(self, parent, opts):
+        builtin = self._write_call(parent, p.Builtin.REDUCE, opts, self.parent)
+        self.reduction.write_reduction(builtin.reduce, self.base, opts)
 
     def pretty_print(self, printer):
         return ("%s.reduce(%s, %s)" % (
@@ -771,13 +771,13 @@ class Let(ExpressionInner):
         for var, val in bindings:
             self.bindings.append((var, query.expr(val)))
 
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         parent.type = p.Term.LET
         for var, value in self.bindings:
             binding = parent.let.binds.add()
             binding.var = var
-            value._inner._write_ast(binding.term)
-        self.expr._inner._write_ast(parent.let.expr)
+            value._inner._write_ast(binding.term, opts)
+        self.expr._inner._write_ast(parent.let.expr, opts)
 
     def pretty_print(self, printer):
         return ("let(%s, %s)" % (
@@ -790,7 +790,7 @@ class Var(ExpressionInner):
     def __init__(self, name):
         self.name = name
 
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         parent.type = p.Term.VAR
         parent.var = self.name
 
@@ -802,9 +802,9 @@ class Table(ExpressionInner):
         assert isinstance(table, query.Table)
         self.table = table
 
-    def _write_ast(self, parent):
+    def _write_ast(self, parent, opts):
         parent.type = p.Term.TABLE
-        self.table._write_ref_ast(parent.table.table_ref)
+        self.table._write_ref_ast(parent.table.table_ref, opts)
 
     def pretty_print(self, printer):
         res = ''
