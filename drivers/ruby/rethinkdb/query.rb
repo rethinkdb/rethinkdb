@@ -6,8 +6,8 @@ module RethinkDB
   class RQL_Query
     # Run the invoking query using the most recently opened connection.  See
     # Connection#run for more details.
-    def run
-      Connection.last.send(:run, self)
+    def run(*args)
+      Connection.last.send(:run, self, *args)
     end
 
     def set_body(val, context=nil) # :nodoc:
@@ -40,8 +40,8 @@ module RethinkDB
     def as _class # :nodoc:
       RQL_Protob.comp(_class, sexp)
     end
-    def query(*args) # :nodoc:
-      RQL_Protob.query(args == [] ? sexp : S.replace(sexp, *args))
+    def query(map={S.conn_outdated => false}) # :nodoc:
+      RQL_Protob.query(S.replace(sexp, map))
     end
 
     def print_backtrace(bt) # :nodoc:
