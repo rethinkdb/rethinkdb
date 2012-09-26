@@ -45,7 +45,6 @@ private:
             guarantee(sizeof(it->s_addr) == sizeof(uint32_t));
             msg << it->s_addr;
         }
-        //msg.append(&addr, sizeof(addr));
     }
 
     friend class archive_deserializer_t;
@@ -65,10 +64,6 @@ private:
             if (num_read < int64_t(sizeof(new_addr.s_addr))) {return ARCHIVE_SOCK_EOF;}
             addrs.push_back(new_addr);
         }
-        // int64_t num_read = force_read(s, &addr, sizeof(addr));
-        // if (num_read == -1) { return ARCHIVE_SOCK_ERROR; }
-        // if (num_read < int64_t(sizeof(addr))) { return ARCHIVE_SOCK_EOF; }
-        // rassert(num_read == sizeof(addr));
         return ARCHIVE_SUCCESS;
     }
 };
