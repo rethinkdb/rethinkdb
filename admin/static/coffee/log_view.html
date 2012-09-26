@@ -109,7 +109,13 @@
     Set table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}} to:
     <ul class="pretty_logs_ul">
         {{#each datacenters}}
-        <li class="pretty_logs_li">Datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>: {{value}}</li>
+        <li class="pretty_logs_li">Datacenter
+            {{#if is_universe}}
+            {{datacenter_name}}
+            {{else}}
+            <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>
+            {{/if}}
+        : {{value}}</li>
         {{/each}}
     </ul>
 </script>

@@ -14,7 +14,7 @@ module 'NamespaceView', ->
         modify_replicas: (event) =>
             event.preventDefault()
             datacenter_id = @.$(event.target).data 'id' #We do not let people change the number of replicas of Universe.
-            @modify_replicas datacenters.get(id)
+            datacenter = datacenters.get datacenter_id
             modal = new NamespaceView.ModifyReplicasModal @model, datacenter
             modal.render()
 
@@ -42,16 +42,23 @@ module 'NamespaceView', ->
             # have to worry about this number going negative,
             # since we can't make primary a datacenter with no
             # replicas.
+
+            new_affinities = {}
             if @model.get('primary_uuid') is universe_datacenter.get('id')
                 old_dc = universe_datacenter
+                new_affinities[old_dc.get('id')] = 0
             else
                 old_dc = datacenters.get(@model.get('primary_uuid'))
-            new_affinities = {}
-            new_affinities[old_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), old_dc.get('id')) + 1
+                new_affinities[old_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), old_dc.get('id')) + 1
+
             new_affinities[new_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), new_dc.get('id')) - 1
+            primary_pinnings = {}
+            for shard of @model.get('primary_pinnings')
+                primary_pinnings[shard] = null
             data =
                 primary_uuid: new_dc.get('id')
                 replica_affinities: new_affinities
+                primary_pinnings: primary_pinnings
             modal.render("Are you sure you want to make datacenter " + new_dc.get('name') + " primary?",
                 "/ajax/semilattice/rdb_namespaces/" + @model.get('id'),
                 JSON.stringify(data),
@@ -125,6 +132,7 @@ module 'NamespaceView', ->
                 nothings.push
                     id: universe_datacenter.get('id')
                     name: universe_datacenter.get('name')
+                    is_universe: true
 
             data = _.extend data,
                 secondaries:
@@ -135,6 +143,7 @@ module 'NamespaceView', ->
                             datacenter = universe_datacenter
                         id: uuid
                         name: datacenter.get('name')
+                        is_universe: true if not datacenters.get(uuid)?
                         replicas: replica_count
                         total_machines: DataUtils.get_datacenter_machines(uuid).length
                         acks: DataUtils.get_ack_expectations(@model.get('id'), uuid)

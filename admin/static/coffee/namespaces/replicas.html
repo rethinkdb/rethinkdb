@@ -29,7 +29,7 @@
             </td>
             <td>
                 {{#unless is_universe}}
-                <a id="edit-primary" href="#" data-id="{{id}}">Edit replicas</a>
+                <a class="edit_replicas" href="#" data-id="{{id}}">Edit replicas</a>
                 {{/unless}}
             </td>
         </tr>
@@ -47,7 +47,13 @@
                 <span class="replication-status">{{> backfill_progress_summary}}</span>
                 {{/with}}
             </td>
-            <td><a class="edit-secondary" href="#" data-id="{{id}}">Edit replicas</a> | <a class="make-primary {{this.id}}" href="#">Make primary</a></td>
+            <td>
+                {{#unless is_universe}}
+                <a class="edit_replicas" href="#" data-id="{{id}}">Edit replicas</a> |
+                {{/unless}}
+                <a class="make_primary" href="#" data-id="{{id}}">Make primary</a>
+            </td>
+
         </tr>
         {{/each}}
 
@@ -56,7 +62,11 @@
             <td>{{name}}</td>
             <td>None</td>
             <td colspan="3">N/A</td>
-            <td><a class="edit-nothing" href="#" data-id="{{id}}">Edit replicas</a></td>
+            <td>
+                {{#unless is_universe}}
+                <a class="edit_replicas" href="#" data-id="{{id}}">Edit replicas</a>
+                {{/unless}}
+            </td>
         </tr>
         {{/each}}
     </table>
