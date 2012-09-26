@@ -103,7 +103,8 @@ class BackboneCluster extends Backbone.Router
         @current_view = new DataExplorerView.Container
         @$container.html @current_view.render().el
         @current_view.call_codemirror()
-        @sidebar.set_type_view('dataexplorer')
+        # TODO delete this later
+        #@sidebar.set_type_view('dataexplorer')
 
     database: (id, tab) ->
         log_router '/databases/' + id

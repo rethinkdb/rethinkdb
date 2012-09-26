@@ -8,7 +8,6 @@ generate_id = (n) ->
 
     return result
 
-
 generate_number = (n) ->
     return Math.floor(Math.random()*n)
 
