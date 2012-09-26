@@ -183,11 +183,12 @@ public:
             }
         }
 
-        /* Add in the acks that game from datacenters we had no expectations for. */
+        /* Add in the acks that came from datacenters we had no expectations
+         * for (or the nil datacenter). */
         for (std::multiset<datacenter_id_t>::iterator at  = acks_by_dc.begin();
                                                       at != acks_by_dc.end();
                                                       ++at) {
-            if (!std_contains(expected_acks, *at)) {
+            if (!std_contains(expected_acks, *at) || at->is_nil()) {
                 extra_acks++;
             }
         }

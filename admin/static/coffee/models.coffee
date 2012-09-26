@@ -161,10 +161,8 @@ class Namespace extends Backbone.Model
                 avg: 0
             global_net_sent_persec:
                 avg: 0
-        for namespace in namespaces.models
-            _s = namespace.get_stats()
-            if not _s?
-                continue
+        _s = this.get_stats()
+        if _s?
             __s.keys_read += _s.keys_read
             __s.keys_set += _s.keys_set
         # CPU, mem, disk
@@ -483,13 +481,13 @@ module 'DataUtils', ->
             @.set 'secondary_uuids',  @get_secondary_uuids()
 
             namespace.on 'change:blueprint', @set_uuids
-                
+
         set_uuids: =>
             new_primary_uuid = @get_primary_uuid()
             new_secondary_uuids = @get_secondary_uuids()
             @.set 'primary_uuid', new_primary_uuid if @.get('primary_uuid') isnt new_primary_uuid
             @.set 'secondary_uuids', new_secondary_uuids if not _.isEqual @.get('secondary_uuids'), new_secondary_uuids
-        
+
         destroy: =>
             namespace.on 'change:blueprint', @set_uuids
 
@@ -593,16 +591,18 @@ module 'DataUtils', ->
 
     @get_ack_expectations = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
-        datacenter = datacenters.get(datacenter_uuid)
-        acks = namespace?.get('ack_expectations')?[datacenter?.get('id')]?
+        acks = namespace?.get('ack_expectations')?[datacenter_uuid]
         if acks?
-            return namespace.get('ack_expectations')[datacenter.get('id')]
+            return acks
         else
             return 0
 
     @get_replica_affinities = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
-        datacenter = datacenters.get(datacenter_uuid)
+        if datacenter_uuid is universe_datacenter.get('id')
+            datacenter = universe_datacenter
+        else
+            datacenter = datacenters.get(datacenter_uuid)
         affs = namespace.get('replica_affinities')[datacenter.get('id')]
         if affs?
             return affs

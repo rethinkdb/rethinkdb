@@ -192,11 +192,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_t *) {
 }
 
 cJSON *render_as_json(const uuid_t *uuid) {
-    if (uuid->is_nil()) {
-        return cJSON_CreateNull();
-    } else {
-        return cJSON_CreateString(uuid_to_str(*uuid).c_str());
-    }
+    return cJSON_CreateString(uuid_to_str(*uuid).c_str());
 }
 
 void apply_json_to(cJSON *change, uuid_t *uuid) {
