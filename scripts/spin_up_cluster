@@ -104,7 +104,7 @@ else:
         # cleanup the directory
         if not keep_data:
             os.system("rm -rf " + directory)
-        binary = "../build/debug_clang/rethinkdb"
+        binary = "../build/debug/rethinkdb"
         if (i == 0):
             cl = [binary, "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
         else:
