@@ -161,10 +161,8 @@ class Namespace extends Backbone.Model
                 avg: 0
             global_net_sent_persec:
                 avg: 0
-        for namespace in namespaces.models
-            _s = namespace.get_stats()
-            if not _s?
-                continue
+        _s = this.get_stats()
+        if _s?
             __s.keys_read += _s.keys_read
             __s.keys_set += _s.keys_set
         # CPU, mem, disk
@@ -483,13 +481,13 @@ module 'DataUtils', ->
             @.set 'secondary_uuids',  @get_secondary_uuids()
 
             namespace.on 'change:blueprint', @set_uuids
-                
+
         set_uuids: =>
             new_primary_uuid = @get_primary_uuid()
             new_secondary_uuids = @get_secondary_uuids()
             @.set 'primary_uuid', new_primary_uuid if @.get('primary_uuid') isnt new_primary_uuid
             @.set 'secondary_uuids', new_secondary_uuids if not _.isEqual @.get('secondary_uuids'), new_secondary_uuids
-        
+
         destroy: =>
             namespace.on 'change:blueprint', @set_uuids
 
