@@ -1,4 +1,4 @@
-# Extend Backbone View 
+# Extend Backbone View
 Backbone.View.prototype.destroy = ->
     return
 
@@ -48,7 +48,9 @@ class BackboneCluster extends Backbone.Router
 
     render_sidebar: -> @$sidebar.html @sidebar.render().el
     render_navbar: -> $('#navbar-container').html @navbar.render().el
-    render_walkthrough_popup: -> $('.walkthrough-popup').html (new Walkthrough).render().el
+    render_walkthrough_popup: ->
+        # TODO: add this back when we're ready to do it
+        # $('.walkthrough-popup').html (new Walkthrough).render().el
 
     index_namespaces: (data) ->
         log_router '/index_namespaces'
@@ -109,7 +111,7 @@ class BackboneCluster extends Backbone.Router
         log_router '/databases/' + id
         clear_modals()
         database = databases.get(id)
-        
+
         @current_view.destroy()
         if database? then @current_view = new DatabaseView.Container model: database
         else @current_view = new DatabaseView.NotFound id
@@ -125,7 +127,7 @@ class BackboneCluster extends Backbone.Router
         log_router '/namespaces/' + id
         clear_modals()
         namespace = namespaces.get(id)
-        
+
         @current_view.destroy()
         if namespace?
             @current_view = new NamespaceView.Container model:namespace
@@ -136,7 +138,7 @@ class BackboneCluster extends Backbone.Router
             @$container.html @current_view.render(tab).el
         else
             @$container.html @current_view.render().el
-        
+
         if namespace?
             @current_view.shards.render_data_repartition()
 
@@ -146,7 +148,7 @@ class BackboneCluster extends Backbone.Router
         log_router '/datacenters/' + id
         clear_modals()
         datacenter = datacenters.get(id)
-        
+
         @current_view.destroy()
         if datacenter?
             @current_view = new DatacenterView.Container model: datacenter
@@ -174,7 +176,7 @@ class BackboneCluster extends Backbone.Router
             @current_view = new MachineView.Container model: machine
         else
             @current_view = new MachineView.NotFound id
-        
+
         if tab?
             @$container.html @current_view.render(tab).el
         else
