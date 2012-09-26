@@ -67,7 +67,8 @@ module RethinkDB
       @table_name = name;
       @opts = opts
       @context = caller
-      @body = [:table, @db_name, @table_name, !!@opts[:use_outdated]]
+      use_od = (@opts.include? :use_outdated) ? @opts[:use_outdated] : S.conn_outdated
+      @body = [:table, @db_name, @table_name, use_od]
     end
 
     # Insert one or more rows into the table.  If you try to insert a
