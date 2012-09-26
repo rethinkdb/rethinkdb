@@ -662,7 +662,7 @@ module 'DataExplorerView', ->
 
             @.$('.loading_query_img').css 'display', 'block'
 
-            full_query = @query+'\n'+'.iter(iter_callback, last_callback)' # The new line is added in case the last one has an inline comment (//)
+            full_query = @query+'\n'+'.iter({callback: iter_callback, doneCallback:last_callback})' # The new line is added in case the last one has an inline comment (//)
             try
                 callbacks = @create_tagged_callbacks()
                 iter_callback = callbacks.iter
