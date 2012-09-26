@@ -972,135 +972,48 @@ Database view
     ----------------------------
 */
 .namespace-view {
-
-    .pie_legend{
-        .legend{
-            margin: 40px 0px 0px 0px;
-            li{
-                list-style: none;
-            }
-            .title-legend{
-                margin: 0px 0px 10px 0px;
-            }
-            .data_in_memory-legend{
-                border-left: 40px solid #f00;
-                padding: 0px 0px 0px 10px;
-                margin: 5px 10px;
-            }
-            .data_not_in_memory-legend{
-                border-left: 40px solid #1f77b4;
-                padding: 0px 0px 0px 10px;
-                margin: 5px 10px;
-            }
-            .more_statistics{
-                padding: 0px 0px 0px 10px;
-                margin: 5px 10px;
-            }
-        }
-    }
     
-    .no-shard{
-        text-indent: 25px;
-    }
-
-    .data_repartition-graph{
-        margin: 0px auto;
-        text-align: center;
-        rect{
-            fill: #ed993e;
-        }
-    }
-
-    .data_repartition-legend{
+    /* Shards */
+    .shards_container{
         overflow: auto;
-        .legend{
-            margin: 40px 0px 0px 0px;
-            li{
-                list-style: none;
-            }
-            .title-legend{
+        h3{
+            margin: 0px 0px 20px 0px;
+        }
+        .data_repartition-container{
+            float: left;
+            .title{
                 margin: 0px 0px 10px 0px;
             }
-            .data_in_memory-legend{
-                border-left: 40px solid #f00;
-                padding: 0px 0px 0px 10px;
-                margin: 5px 10px;
-            }
-            .data_not_in_memory-legend{
-                border-left: 40px solid #1f77b4;
-                padding: 0px 0px 0px 10px;
-                margin: 5px 10px;
-            }
-            .more_statistics{
-                padding: 0px 0px 0px 10px;
-                margin: 5px 10px;
-            }
-        }
-        .legend_left{
-            float: left;
-            width: 350px;
-            margin: 20px 0px 30px 0px;
-        }
-        .legend_right{
-            float: left;
-            margin: 350px;
-            margin: 20px 0px 30px 0px;
-        }
-    }
-
-    .shards_container{
-        .alert_for_sharding{
-            display: none;
-        }
-    }
-    .namespace-shards-blackout{
-        position: relative;
-        .sharding, .modify-shards{
-            opacity: 0.7;
-            opacity: 0.7;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -khtml-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-   }
-    .blackout-active{
-        position: absolute;
-        top: 0px;
-        left: 0px;
-        background: #000;
-        opacity: 0.3;
-        height: 100%;
-        width: 100%;
-        z-index: 10;
-        padding: 0px 0px 20px 0px;
-        margin: 40px 0px 0px 0px;
-    }
-
-    table.datacenters {
-        margin-bottom: 15px;
-        td {
-            border-bottom: thin solid @grayLighter;
-            padding: 10px 0;
-            span.master-status, span.replica-status {
-                display: block;
-            }
-        } 
-    }
-
-   .shards-container {
-        .shard-element{
-            margin: 10px 0px;
-            padding: 10px 0px;
-            border-bottom: 1px solid #eaeaea;
-            overflow: auto;
-            .name{
+            .data_repartition-graph{
                 float: left;
+                margin: 0px;
+                text-align: center;
+                rect{
+                    fill: #ed993e;
+                }
             }
-            .actions{
-                float: right;
+        }
+
+        .data_repartition-legend{
+            margin: px;
+            li{
+                list-style: none;
+                padding: 0px;
+                margin: 5px 10px 5px 10px;
+                overflow: auto;
+            }
+            .title-legend{
+                margin: 20px 0px 10px 0px;
+            }
+            .change_shards-button{
+                display: inline-block;
+            }
+            
+            .num_shards{
+                display: inline-block;
+                width: 20px;
+                padding: 3px 4px;
+                margin: 0px;
             }
         }
     }
