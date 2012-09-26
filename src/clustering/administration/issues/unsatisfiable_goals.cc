@@ -96,13 +96,6 @@ std::list<clone_ptr_t<global_issue_t> > unsatisfiable_goals_issue_tracker_t::get
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
 
     std::map<datacenter_id_t, int> actual_machines_in_datacenters;
-    //for (datacenters_semilattice_metadata_t::datacenter_map_t::iterator it = metadata.datacenters.datacenters.begin();
-    //        it != metadata.datacenters.datacenters.end(); it++) {
-    //    if (!it->second.is_deleted()) {
-    //        actual_machines_in_datacenters.insert(std::make_pair(it->first, 0));
-    //    }
-    //}
-
     for (machines_semilattice_metadata_t::machine_map_t::iterator it = metadata.machines.machines.begin();
             it != metadata.machines.machines.end(); it++) {
         if (!it->second.is_deleted() && !it->second.get().datacenter.in_conflict()) {

@@ -3,7 +3,9 @@
 
 #include "concurrency/watchable.hpp"
 #include "concurrency/auto_drainer.hpp"
-#include "timestamps.hpp"
+#include "timestamps.hpp" //RSI
+#include "concurrency/queue/single_value_producer.hpp"
+#include "concurrency/coro_pool.hpp"
 
 /* `cross_thread_watchable_variable_t` is used to "proxy" a `watchable_t` from
 one thread to another. Create the `cross_thread_watchable_variable_t` on the
@@ -26,8 +28,8 @@ public:
 
 private:
     friend class cross_thread_watcher_subscription_t;
-    void on_value_changed(auto_drainer_t::lock_t keepalive);
-    void deliver(value_t new_value, transition_timestamp_t ts, auto_drainer_t::lock_t keepalive);
+    void on_value_changed();
+    void deliver(value_t new_value);
 
     static void call(const boost::function<void()> &f) {
         f();
@@ -61,7 +63,7 @@ private:
     value_t value;
     w_t watchable;
 
-    state_timestamp_t watchable_thread_timestamp, dest_thread_timestamp;
+    //state_timestamp_t watchable_thread_timestamp, dest_thread_timestamp;
 
     int watchable_thread, dest_thread;
 
@@ -87,14 +89,16 @@ private:
         cross_thread_watchable_variable_t *parent;
     } rethreader;
 
-    /* `drainer` makes sure we don't shut down with an update still in flight */
-    auto_drainer_t drainer;
-
     /* The destructor for `subs` must be run before the destructor for `drainer`
     because `drainer`'s destructor will block until all the
     `auto_drainer_t::lock_t` objects are gone, and `subs`'s callback holds an
     `auto_drainer_t::lock_t`. */
     typename watchable_t<value_t>::subscription_t subs;
+
+    single_value_producer_t<value_t> value_producer;
+    typename coro_pool_t<value_t>::boost_function_callback_t deliver_cb;
+    coro_pool_t<value_t> messanger_pool;
+
 };
 
 #include "concurrency/cross_thread_watchable.tcc"
