@@ -295,7 +295,11 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
             break;
         case Response.StatusCode.SUCCESS_EMPTY:
             delete this.outstandingQueries_[response.getToken()]
-            if (request.callback) request.callback();
+            if (request.iterate) {
+                if (request.done) request.done();
+            } else {
+                if (request.callback) request.callback();
+            }
             break;
         case Response.StatusCode.SUCCESS_STREAM:
             delete this.outstandingQueries_[response.getToken()]

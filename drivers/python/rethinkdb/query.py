@@ -90,10 +90,10 @@ class BaseQuery(object):
     multiple tables, but expressions never modify the database. Write queries
     are instances of :class:`WriteQuery`."""
 
-    def _finalize_query(self, root):
+    def _finalize_query(self, root, opts):
         raise NotImplementedError()
 
-    def run(self, conn=None):
+    def run(self, conn=None, allow_outdated=None):
         """Evaluate the expression on the server using the connection
         specified by `conn`. If `conn` is empty, uses the last created
         connection (located in :data:`rethinkdb.net.last_connection`).
@@ -115,7 +115,7 @@ class BaseQuery(object):
             if net.last_connection is None:
                 raise StandardError("Call rethinkdb.net.connect() to connect to a server before calling run()")
             conn = net.last_connection
-        return conn.run(self)
+        return conn.run(self, allow_outdated=allow_outdated)
 
 class ReadQuery(BaseQuery):
     """Base class for expressions"""
@@ -127,9 +127,9 @@ class ReadQuery(BaseQuery):
     def __str__(self):
         return internal.ReprPrettyPrinter().expr_wrapped(self, [])
 
-    def _finalize_query(self, root):
+    def _finalize_query(self, root, opts):
         root.type = p.Query.READ
-        self._inner._write_ast(root.read_query.term)
+        self._inner._write_ast(root.read_query.term, opts)
 
 class JSONExpression(ReadQuery):
     """An expression that evaluates to a JSON value.
@@ -1060,20 +1060,20 @@ class FunctionExpr(object):
     def __repr__(self):
         return "<FunctionExpr %s>" % str(self)
 
-    def write_mapping(self, mapping):
+    def write_mapping(self, mapping, opts):
         assert len(self.args) <= 1
         if self.args:
             mapping.arg = self.args[0]
         else:
             mapping.arg = 'row'     # TODO: GET RID OF THIS
-        self.body._inner._write_ast(mapping.body)
+        self.body._inner._write_ast(mapping.body, opts)
 
-    def write_reduction(self, reduction, base):
+    def write_reduction(self, reduction, base, opts):
         assert len(self.args) == 2
-        base._inner._write_ast(reduction.base)
+        base._inner._write_ast(reduction.base, opts)
         reduction.var1 = self.args[0]
         reduction.var2 = self.args[1]
-        self.body._inner._write_ast(reduction.body)
+        self.body._inner._write_ast(reduction.body, opts)
 
     def _pretty_print(self, printer, backtrace_steps):
         args = self.args
@@ -1147,9 +1147,9 @@ class WriteQuery(BaseQuery):
     def __repr__(self):
         return "<WriteQuery %s>" % str(self)
 
-    def _finalize_query(self, root):
+    def _finalize_query(self, root, opts):
         root.type = p.Query.WRITE
-        self._inner._write_write_query(root.write_query)
+        self._inner._write_write_query(root.write_query, opts)
 
 class MetaQuery(BaseQuery):
     """Queries that create, destroy, or examine databases or tables rather than
@@ -1163,7 +1163,7 @@ class MetaQuery(BaseQuery):
     def __repr__(self):
         return "<MetaQuery %s>" % str(self)
 
-    def _finalize_query(self, root):
+    def _finalize_query(self, root, opts):
         root.type = p.Query.META
         self._inner._write_meta_query(root.meta_query)
 
@@ -1340,7 +1340,7 @@ class Table(MultiRowSelection):
     manipulation operations (such as inserting, selecting, and
     updating data) can be chained off of this object."""
 
-    def __init__(self, table_name, db_expr=None):
+    def __init__(self, table_name, db_expr=None, allow_outdated=None):
         """Use :func:`rethinkdb.query.table` as a shortcut to create
         this object.
 
@@ -1354,6 +1354,7 @@ class Table(MultiRowSelection):
         ReadQuery.__init__(self, internal.Table(self))
         self.table_name = table_name
         self.db_expr = db_expr
+        self.allow_outdated = allow_outdated #either True, False, or None (default to run option)
 
     def __repr__(self):
         if self.db_expr is not None:
@@ -1389,14 +1390,23 @@ class Table(MultiRowSelection):
         """
         return RowSelection(internal.Get(self, key, attr_name))
 
-    def _write_ref_ast(self, parent):
+    def _write_ref_ast(self, parent, opts):
         if self.db_expr:
             parent.db_name = self.db_expr.db_name
         else:
             parent.db_name = net.last_connection.db_name
+
+        if self.allow_outdated is None:
+            if opts['allow_outdated'] is None:
+                parent.use_outdated = False
+            else:
+                parent.use_outdated = opts['allow_outdated']
+        else:
+            parent.use_outdated = self.allow_outdated
+
         parent.table_name = self.table_name
 
-def table(table_ref):
+def table(table_ref, allow_outdated=None):
     """Get a reference to a table within a RethinkDB cluster.
 
     :param table_ref: Either a name of the table, or a name of the
@@ -1408,7 +1418,7 @@ def table(table_ref):
 
     >>> q = table('table_name')         #
     """
-    return Table(table_ref)
+    return Table(table_ref, allow_outdated=allow_outdated)
 
 # this happens at the end since it's a circular import
 import internal
