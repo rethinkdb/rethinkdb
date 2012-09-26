@@ -199,34 +199,10 @@ module 'ServerView', ->
     # Machine list element
     class @MachineListElement extends UIComponents.CheckboxListElement
         template: Handlebars.compile $('#machine_list_element-template').html()
-        summary_template: Handlebars.compile $('#machine_list_element-summary-template').html()
-        className: 'element'
         tagName: 'div'
-
-        threshold_alert: 90
-        history:
-            cpu: []
-            traffic_sent: []
-            traffic_recv: []
-
-        events: ->
-            _.extend super,
-                'click a.rename-machine': 'rename_machine'
-                'mouseenter .contains_info': 'display_popover'
-                'mouseleave .contains_info': 'hide_popover'
-
-        hide_popover: ->
-            $('.tooltip').remove()
 
         initialize: =>
             log_initial '(initializing) list view: machine'
-
-            #initialize history
-            for i in [0..12]
-                @history.cpu.push 0
-                @history.traffic_sent.push 0
-                @history.traffic_recv.push 0
-
             @model.on 'change:name', @render_summary
             directory.on 'all', @render_summary
 
@@ -234,13 +210,7 @@ module 'ServerView', ->
             super @template
 
 
-        render: =>
-            super
-            @render_summary()
-            return @
-
-
-        render_summary: =>
+        json_for_template: =>
             json = _.extend @model.toJSON(),
                 status: DataUtils.get_machine_reachability(@model.get('id'))
                 primary_count: 0
@@ -266,18 +236,15 @@ module 'ServerView', ->
             if not @model.get('datacenter_uuid')?
                 json.unassigned_machine = true
 
-            # Displays bars and text in the popover
-            @.$('.machine.summary').html @summary_template json
+            return json
 
-            @.delegateEvents()
+        render: =>
+            super
 
-        rename_machine: (event) ->
-            event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'machine'
-            rename_modal.render()
+            # TODO remove if no bugs arise (e.g. if this is unnecessary)
+            #@.delegateEvents()
 
-        display_popover: (event) ->
-            $(event.currentTarget).tooltip('show')
+            return @
 
         destroy: =>
             @model.off 'change:name', @render_summary

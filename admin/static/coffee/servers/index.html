@@ -55,13 +55,7 @@
     <div class="checkbox-container">
         <input type="checkbox" id="checkbox_machine_list_{{id}}"></input><label for="checkbox_machine_list_{{id}}"></label>    
     </div>
-    <div class="element-detail-container">
-        <div class="machine summary"></div>
-    </div>
-</script>
-
-<script id="machine_list_element-summary-template" type="text/x-handlebars-template">
-    <div class="machine details">
+    <div class="element-details">
         <p class="name"><a href="#servers/{{id}}">{{name}}</a></p>
         {{#if unassigned_machine}}
             <p class="quick_info">Not assigned to any datacenter</p>
@@ -72,6 +66,9 @@
             {{humanize_machine_reachability status}}
         </div>
     </div>
+</script>
+
+<script id="machine_list_element-summary-template" type="text/x-handlebars-template">
 </script>
 <script id="add_datacenter-modal-template" type="text/x-handlebars-template"> 
   <div class="alert alert-error error_answer"></div>

@@ -19,6 +19,7 @@ module 'Sidebar', ->
             @servers_connected = new Sidebar.ServersConnected()
             @datacenters_connected = new Sidebar.DatacentersConnected()
             @issues = new Sidebar.Issues()
+            @issues_banner = new Sidebar.IssuesBanner()
 
             window.app.on 'all', @render
 
@@ -74,8 +75,9 @@ module 'Sidebar', ->
                 @.$('.servers-connected').html @servers_connected.render().el
                 @.$('.datacenters-connected').html @datacenters_connected.render().el
     
-                # Render issue summary
+                # Render issue summary and issue banner
                 @.$('.issues').html @issues.render().el
+                @.$('.issues-banner').html @issues_banner.render().el
 
                 return @
             else
@@ -182,10 +184,26 @@ module 'Sidebar', ->
     class @Issues extends Backbone.View
         className: 'issues'
         template: Handlebars.compile $('#sidebar-issues-template').html()
-        resolve_issues_route: '#resolve_issues'
 
         initialize: =>
             log_initial '(initializing) sidebar view: issues'
+            issues.on 'all', @render
+
+        render: =>
+            @.$el.html @template
+                num_issues: issues.length
+
+            return @
+
+        destroy: =>
+            issues.off 'all', @render
+
+    # Sidebar.IssuesBanner
+    class @IssuesBanner extends Backbone.View
+        template: Handlebars.compile $('#sidebar-issues_banner-template').html()
+        resolve_issues_route: '#resolve_issues'
+
+        initialize: =>
             issues.on 'all', @render
 
         render: =>
@@ -215,7 +233,9 @@ module 'Sidebar', ->
                         return json
                     )
                 no_issues: _.keys(critical_issues).length is 0 and _.keys(other_issues).length is 0
+
             return @
 
         destroy: =>
             issues.off 'all', @render
+

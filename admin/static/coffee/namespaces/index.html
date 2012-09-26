@@ -46,7 +46,7 @@
     <div class="checkbox-container">
         <input type="checkbox" id="checkbox_table_list_{{id}}"></input><label for="checkbox_table_list_{{id}}"></label>    
     </div>
-    <div class="element-detail-container">
+    <div class="element-details">
         <p class="name"><a href="#tables/{{id}}">{{name}}</a></p>
         <p class="quick_info">
             {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "server" nmachines}}, replication: {{> backfill_progress_summary}}

@@ -23,6 +23,10 @@
 @serif: 'Copse', serif;
 
 
+// Visualizations (graphs, etc.)
+@import "vis.less";
+
+
 /* 
     ----------------------------------------------------------------------
     Sticky footer and 100% height
@@ -214,9 +218,9 @@ body:before {
 */
 #sidebar {
     background-image: url('https://dl.dropbox.com/s/plzmuyfwibwyvry/status_panel-background.png');
-    padding: 20px 0;
     border-bottom: thin solid #d0d0d0;
-    .panel > div {
+    .cluster-status { padding: 20px 0; }
+    .panel {
         padding-left: 60px;
         height: 47px;
         h5 {
@@ -243,9 +247,55 @@ body:before {
     }
 
     .client-connection-status { background: url('https://dl.dropbox.com/s/fpiswm98f9wx8ff/status_panel-icon_1.png') no-repeat left center; }
-    .issues { background: url('https://dl.dropbox.com/s/ugca6ovxajdja65/status_panel-icon_2.png') no-repeat left center; }
+    .no-issues { background: url('https://dl.dropbox.com/s/ugca6ovxajdja65/status_panel-icon_2.png') no-repeat left center; }
+    .has-issues { background: url('https://dl.dropbox.com/s/0737jaigqxo8dgj/status_panel-icon_2-error.png') no-repeat left center; }
     .servers-connected { background: url('https://dl.dropbox.com/s/wdn0nvzq2c85zvm/status_panel-icon_3.png') no-repeat left center; }
     .datacenters-connected { background: url('https://dl.dropbox.com/s/k6nl8f6qzmjyabc/status_panel-icon_4.png') no-repeat left center; }
+
+    .issues-banner {
+        background-color: #db4947;
+        color: #FFF;
+        .show-issues-banner { margin-bottom: 9px; }
+        .message { line-height: 52px; }
+
+        // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
+        .btn.resolve-issues {
+            float: right;
+            margin-left: 20px;
+            margin-top: 11px;
+            padding: 6px 14px 4px;
+            margin-bottom: 0;
+            vertical-align: middle;
+
+            font-size: 13px;
+            font-family: @sans;
+            color: #FFF;
+            text-align: center;
+
+            background-color: #eb5d5b;
+            border: thin solid #b8302e; 
+            .border-radius(3px);
+
+            @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
+
+            -webkit-box-shadow: @shadow;
+               -moz-box-shadow: @shadow;
+                    box-shadow: @shadow;
+        }
+        .show-issues-banner:after {
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+
+            pointer-events: none;
+            border-top-color: #db4947;
+            border-width: 12px;
+            left: 50%;
+            margin-left: -220px;
+        }
+    }
 }
 
 /*
@@ -322,15 +372,22 @@ body:before {
             padding-left: 0;
 
             li.log-entry {
+                color: #4d535c;
                 border-top: thin solid #f0f0f0;
                 background: left center no-repeat url('https://dl.dropbox.com/s/aintt5c3jlkd495/pencil_icon.png');
                 padding: 20px 0 20px 55px;
                 p { margin: 0; }
-                .message { font-size: 14px; }
+                .message { font-size: 16px; }
                 .from-machine {
                     font-style: italic;
                     font-family: @sans;
-                    margin-top: 7px;
+                    margin-top: 5px;
+                    font-size: 13px;
+                }
+                .datetime {
+                    background: left center no-repeat url('https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png');
+                    text-align: right;
+                    color: #c4c4c4;
                 }
             }
         }
@@ -426,8 +483,6 @@ body:before {
             padding: 0px 13px 12px 13px;
             background: #fafafa;
             .border-radius(0px 0px 4px 4px);
-            .element-detail-container {
-            }
         }
 
         .element {
@@ -471,7 +526,7 @@ body:before {
                 }
             }
 
-            .element-detail-container { 
+            .element-details { 
                 position: relative;
                 margin-left: 45px;
 
@@ -512,161 +567,6 @@ body:before {
                 }
 
             }
-        }
-
-    }
-}
-
-/*
-    --------------------
-    Visualization styles
-    --------------------
-*/
-// Extra big plot for the dashboard
-// TODO: merge these and come up with a new bigplot class that shifts some things around, we're doing a lot of messy overrides
-#dashboard .ops-plot {
-    @plot_height: 300px;
-
-    .ops-plot-legend { 
-        float: right;
-        color: #a3a3a3;
-        font: 15px @serif;
-        text-align: right;
-
-        .element { 
-            display: inline-block;
-            vertical-align: top;
-            margin-left: 40px;
-        }
-
-        .reads .color { background-color: #729E51; }
-        .writes .color { background-color: #983434; }
-
-        .color {
-            @radius: 4px;
-            width: @radius*2;
-            height: @radius*2;
-            .border-radius(@radius);
-            margin: 2px;
-        }
-
-        .outer-circle {
-            @radius: 6px;
-            width: @radius*2;
-            height: @radius*2;
-            .border-radius(@radius);
-            border: thin solid #CCC;
-            float: left;
-        }
-
-        p {
-            margin: 0;
-            margin-left: 23px;
-            line-height: 15px;
-        }
-    }
-    .plot-container {
-        background-color: white;
-        border: thin solid #dcdcdc;
-        .border-radius(4px);
-        padding: 10px;
-    }
-    .plot {
-        .vaxis { 
-            margin-top: -1 * (@plot_height + 26px);
-            .tick { display: none; }
-        }
-        .hgrid {
-            height: @plot_height;
-            display: none;
-        }
-        .chart { 
-            border: none;
-            z-index: 999;
-            position: relative;
-        }
-        .vaxis text, .haxis text {
-            font: 13px @sans;
-            fill: #A3A3A3;
-        }
-        .haxis, .vaxis, .hgrid, .vgrid {
-            line {
-                stroke: #dcdcdc;
-                shape-rendering: crispEdges;
-            }
-            opacity: 1;
-            line {  opacity: 1; }
-        }
-    }    
-}
-.ops-plot {
-    .ops-plot-legend {
-    /*
-        .color {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-        }
-    */
-        .reads .color { background-color: #729E51; }
-        .writes .color { background-color: #983434; }
-        .legend-table {
-            width: 370px;
-            td.reads { width: 185px; }
-            td.reads .color { margin-left: 85px; }
-            td.writes { text-align: left; }
-        }
-    }
-    .plot {
-        position: relative;
-        .chart {
-            border-bottom: solid 1px black;
-            overflow: hidden;
-            display: inline-block;
-
-            border-top: solid 1px black;
-            border-left: solid 1px black;
-            border-right: solid 1px black;
-
-            .title, { display: none; }
-            .value { display: none; }
-            canvas { display: block; }
-        }
-
-        .chart, .haxis, .hgrid, .line { margin-left: 34px; }
-
-        .haxis, .vaxis, .hgrid, .vgrid {
-            font: 10px sans-serif;
-            line {
-                stroke: #000;
-                shape-rendering: crispEdges;
-            }
-        }
-        .haxis text { -webkit-transition: fill-opacity 250ms linear; }
-        
-        .haxis { margin-top: -9px; }
-
-        .hgrid {
-            height: 200px;
-            position: absolute;
-            top: -3px;
-            left: 0;
-            line { opacity: .2; }
-        }
-
-        .vaxis { margin-top: -228px; }
-
-        .vgrid {
-            position: absolute;
-            top: 0;
-            left: 0px;
-            line { opacity: .2; }
-        }
-
-        .line {
-           background: #000;
-           opacity: .2;
-           z-index: 2;
         }
     }
 }

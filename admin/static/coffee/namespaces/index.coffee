@@ -247,8 +247,6 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#namespace_list_element-template').html()
         tagName: 'div'
 
-        #history_opsec: []
-
         hide_popover: ->
             $('.tooltip').remove()
 
@@ -264,7 +262,6 @@ module 'NamespaceView', ->
 
         render: =>
             super
-
             return @
 
         destroy: =>

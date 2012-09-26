@@ -1,76 +1,92 @@
 <script id="sidebar-container-template" type="text/x-handlebars-template">
+    <div class="issues-banner"></div>
     <div class="container">
         <div class="cluster-status row">
-            <div class="span3 panel client-connection-status"></div>
-            <div class="span3 panel issues"></div>
-            <div class="span3 panel servers-connected"></div>
-            <div class="span3 panel datacenters-connected"></div>
+            <div class="span3 client-connection-status"></div>
+            <div class="span3 issues"></div>
+            <div class="span3 servers-connected"></div>
+            <div class="span3 datacenters-connected"></div>
         </div>
     </div>
 </script>
 
 <script id="sidebar-client_connection_status-template" type="text/x-handlebars-template">
-    {{#if disconnected}}
-    <h4>Disconnected</h4>
-    {{else}}
-    <h5>Connected to</h5>
-    <h4>{{machine_name}}</h4>
-    {{/if}}
+    <div class="panel">
+        {{#if disconnected}}
+        <h4>Disconnected</h4>
+        {{else}}
+        <h5>Connected to</h5>
+        <h4>{{machine_name}}</h4>
+        {{/if}}
+    </div>
 </script>
 
 <script id="sidebar-issues-template" type="text/x-handlebars-template">
-    {{#if critical_issues.exist}}
-    <h5 class="critical">Critical issues</h5>
-    <div class="critical-issues">
-        {{#each critical_issues.types}}
-        <div class="critical-issues">
-            <div class="priority"></div>
-            <div class="message">
-                {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "server" num}} {{pluralize_verb_to_be num}} down{{/if}}
-                {{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}
-                {{#if LOGFILE_WRITE_ERROR}}{{num}} {{pluralize_noun "log file" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
-                {{#if VCLOCK_CONFLICT}}{{num}} {{pluralize_noun "vector conflict" num}}{{/if}}
-                {{#if UNSATISFIABLE_GOALS}}{{num}} {{pluralize_noun "unsatisfiable goal" num}}{{/if}}
-                {{#if MACHINE_GHOST}}{{num}} {{pluralize_noun "zombie server" num}}{{/if}}
+    <div class="panel {{#if num_issues}}has-issues{{else}}no-issues{{/if}}">
+        <h5>Issues</h5>
+        {{#if num_issues}}
+            <div class="error"></div>
+            <h4>{{num_issues}} {{pluralize_noun "issue" num_issues}}</h4>
+        {{else}}
+            <h4>No issues</h4>
+        {{/if}}
+    </div>
+</script>
+
+<script id="sidebar-issues_banner-template" type="text/x-handlebars-template">
+    {{#unless no_issues}}
+        <div class="show-issues-banner">
+            <div class="container">
+                <a class="btn resolve-issues" href="#resolve_issues">Resolve issues</a>
+                {{#if critical_issues.exist}}
+                    <div class="critical-issues">
+                        {{#each critical_issues.types}}
+                            <div class="critical-issues">
+                                <div class="priority"></div>
+                                <div class="message">
+                                    {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "server" num}} {{pluralize_verb_to_be num}} down{{/if}}
+                                    {{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}
+                                    {{#if LOGFILE_WRITE_ERROR}}{{num}} {{pluralize_noun "log file" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
+                                    {{#if VCLOCK_CONFLICT}}{{num}} {{pluralize_noun "vector conflict" num}}{{/if}}
+                                    {{#if UNSATISFIABLE_GOALS}}{{num}} {{pluralize_noun "unsatisfiable goal" num}}{{/if}}
+                                    {{#if MACHINE_GHOST}}{{num}} {{pluralize_noun "zombie server" num}}{{/if}}
+                                </div>
+                            </div>
+                        {{/each}}
+                    </div>
+                {{/if}}
+                {{#if other_issues.exist}}
+                    {{#each other_issues.types}}
+                        <div class="other-issues">
+                            <div class="priority"></div>
+                            <div class="message">
+                                {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "server" num}} {{pluralize_verb_to_be num}} down{{/if}}
+                                {{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}
+                                {{#if LOGFILE_WRITE_ERROR}}{{num}} {{pluralize_noun "log file" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
+                                {{#if VCLOCK_CONFLICT}}{{num}} {{pluralize_noun "vector conflict" num}}{{/if}}
+                                {{#if UNSATISFIABLE_GOALS}}{{num}} {{pluralize_noun "unsatisfiable goal" num}}{{/if}}
+                                {{#if MAserverHOST}}{{num}} {{pluralize_noun "zombie server" num}}{{/if}}
+                            </div>
+                        </div>
+                    {{/each}}
+                {{/if}}
             </div>
         </div>
-        {{/each}}
-    </div>
-    {{/if}}
-    {{#if other_issues.exist}}
-    <h5 class="other">Non-critical issues</h5>
-    {{#each other_issues.types}}
-    <div class="other-issues">
-        <div class="priority"></div>
-        <div class="message">
-            {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "server" num}} {{pluralize_verb_to_be num}} down{{/if}}
-            {{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}
-            {{#if LOGFILE_WRITE_ERROR}}{{num}} {{pluralize_noun "log file" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
-            {{#if VCLOCK_CONFLICT}}{{num}} {{pluralize_noun "vector conflict" num}}{{/if}}
-            {{#if UNSATISFIABLE_GOALS}}{{num}} {{pluralize_noun "unsatisfiable goal" num}}{{/if}}
-            {{#if MAserverHOST}}{{num}} {{pluralize_noun "zombie server" num}}{{/if}}
-        </div>
-    </div>
-    {{/each}}
-    {{/if}}
-    {{#if no_issues}}
-    <h5>Issues</h5>
-    <h4>No issues</h4>
-    {{else}}
-    {{#unless no_issues}}
-    <p class="resolve-issues"><a href="#resolve_issues">Resolve issues</a></p>
     {{/unless}}
-    {{/if}}
 </script>
 
 <script id="sidebar-servers_connected-template" type="text/x-handlebars-template">
-    <h5>Servers</h5>
-    <h4>{{servers_active}}/{{servers_total}} reachable</h4>
+    <div class="panel">
+        <h5>Servers</h5>
+        <h4>{{servers_active}}/{{servers_total}} reachable</h4>
+    </div>
 </script>
 
 <script id="sidebar-datacenters_connected-template" type="text/x-handlebars-template">
-    <h5>Datacenters</h5>
-    <h4>{{datacenters_active}}/{{datacenters_total}} reachable</h4>
+    <div class="panel">
+        <h5>Datacenters</h5>
+        <h4>{{datacenters_active}}/{{datacenters_total}} reachable</h4>
+    </div>
 </script>
 
 <script id="sidebar-dataexplorer_container-template" type="text/x-handlebars-template">
