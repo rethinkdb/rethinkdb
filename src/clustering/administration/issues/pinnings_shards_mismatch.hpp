@@ -16,7 +16,7 @@ class pinnings_shards_mismatch_issue_t : public global_issue_t {
 public:
     pinnings_shards_mismatch_issue_t(
             const namespace_id_t &offending_namespace,
-            const std::set<typename protocol_t::region_t> &shards,
+            const nonoverlapping_regions_t<protocol_t> &shards,
             const region_map_t<protocol_t, uuid_t> &primary_pinnings,
             const region_map_t<protocol_t, std::set<uuid_t> > &secondary_pinnings);
 
@@ -27,7 +27,7 @@ public:
     pinnings_shards_mismatch_issue_t *clone() const;
 
     namespace_id_t offending_namespace;
-    std::set<typename protocol_t::region_t> shards;
+    nonoverlapping_regions_t<protocol_t> shards;
     region_map_t<protocol_t, machine_id_t> primary_pinnings;
     region_map_t<protocol_t, std::set<machine_id_t> > secondary_pinnings;
 

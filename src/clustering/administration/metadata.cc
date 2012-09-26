@@ -209,7 +209,7 @@ json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespace_semi
     res["replica_affinities"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int> >(&target->replica_affinities, ctx));
     res["ack_expectations"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int> >(&target->ack_expectations, ctx));
     res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::string>(&target->name, ctx));
-    res["shards"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::set<typename protocol_t::region_t> >(&target->shards, ctx));
+    res["shards"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<nonoverlapping_regions_t<protocol_t> >(&target->shards, ctx));
     res["port"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<int>(&target->port, ctx));
     res["primary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<protocol_t, machine_id_t> >(&target->primary_pinnings, ctx));
     res["secondary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<protocol_t, std::set<machine_id_t> > >(&target->secondary_pinnings, ctx));
@@ -237,8 +237,9 @@ template <class protocol_t>
 inline json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespaces_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx) {
     namespace_semilattice_metadata_t<protocol_t> default_namespace;
 
-    std::set<typename protocol_t::region_t> default_shards;
-    default_shards.insert(protocol_t::region_t::universe());
+    nonoverlapping_regions_t<protocol_t> default_shards;
+    bool success = default_shards.add_region(protocol_t::region_t::universe());
+    guarantee(success);
     default_namespace.shards = default_namespace.shards.make_new_version(default_shards, ctx.us);
 
     /* It's important to initialize this because otherwise it will be

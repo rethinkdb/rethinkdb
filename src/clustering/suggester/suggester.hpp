@@ -9,6 +9,8 @@
 #include "clustering/administration/persistable_blueprint.hpp"
 #include "clustering/reactor/metadata.hpp"
 
+template <class protocol_t> class nonoverlapping_regions_t;
+
 class cannot_satisfy_goals_exc_t : public std::exception {
 private:
     std::string desc;
@@ -30,7 +32,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
         const std::map<machine_id_t, reactor_business_card_t<protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
-        const std::set<typename protocol_t::region_t> &shards,
+        const nonoverlapping_regions_t<protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<protocol_t, std::set<machine_id_t> > &secondary_pinnings);
