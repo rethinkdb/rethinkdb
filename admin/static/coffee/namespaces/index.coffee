@@ -7,7 +7,6 @@ module 'NamespaceView', ->
         # Use a namespace-specific template for the namespace list
         template: Handlebars.compile $('#database_list-template').html()
         className: 'databases_list-container'
-        error_template: Handlebars.compile $('#error_adding_namespace-template').html()
         alert_message_template: Handlebars.compile $('#alert_message-template').html()
 
         events:
@@ -40,18 +39,9 @@ module 'NamespaceView', ->
                 @databases_length = databases.models.length
             
             if need_update
-                if @datacenters_length isnt 0 and @databases_length isnt 0
-                    @.$('.user_alert_space-cannot_create_namespace').html ''
-                    @.$('.user_alert_space-cannot_create_namespace').css 'display', 'none'
-                    @.$('.add-namespace').removeProp 'disabled'
-                else
-                    @.$('.user_alert_space-cannot_create_namespace').html @error_template
-                        need_datacenter: @datacenters_length is 0
-                        need_database: @databases_length is 0
-                        need_something: @datacenters_length is 0 or @databases_length is 0
-                    @.$('.user_alert_space-cannot_create_namespace').css 'display', 'block'
-                    @.$('.add-namespace').prop 'disabled', 'disabled'
-
+                @.$('.user_alert_space-cannot_create_namespace').html ''
+                @.$('.user_alert_space-cannot_create_namespace').css 'display', 'none'
+                @.$('.add-namespace').removeProp 'disabled'
 
         render: (message) =>
             super
@@ -184,7 +174,6 @@ module 'NamespaceView', ->
         # Use a namespace-specific template for the namespace list
         tagName: 'table'
         template: Handlebars.compile $('#namespace_list-template').html()
-        error_template: Handlebars.compile $('#error_adding_namespace-template').html()
 
 
 
@@ -212,13 +201,8 @@ module 'NamespaceView', ->
 
         add_namespace: (event) =>
             event.preventDefault()
-            if datacenters.length is 0
-                @.$('#user-alert-space').html @error_template
-                @.$('#user-alert-space').alert()
-            else
-                log_action 'add namespace button clicked'
-                @add_namespace_dialog.render()
-                $('#focus_namespace_name').focus()
+            @add_namespace_dialog.render()
+            $('#focus_namespace_name').focus()
 
         remove_namespace: (event) =>
             log_action 'remove namespace button clicked'
