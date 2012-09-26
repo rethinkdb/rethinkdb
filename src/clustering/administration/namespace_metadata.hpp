@@ -30,6 +30,33 @@
 
 typedef uuid_t namespace_id_t;
 
+template <class protocol_t>
+class nonoverlapping_regions_t {
+public:
+    nonoverlapping_regions_t() { }
+
+    // Returns true upon success, false if there's an overlap.  This is O(n)!
+    MUST_USE bool add_region(const typename protocol_t::region_t &region) {
+        for (typename std::set<typename protocol_t::region_t>::const_iterator it = regions_.begin();
+             it != regions_.end();
+             ++it) {
+            if (region_overlaps(region, *it)) {
+                return false;
+            }
+        }
+
+        regions_.insert(region);
+        return true;
+    }
+
+    typedef typename std::set<typename protocol_t::region_t>::const_iterator iterator;
+    void begin() const { return regions_.begin(); }
+    void end() const { return regions_.end(); }
+
+private:
+    std::set<typename protocol_t::region_t> regions_;
+};
+
 /* This is the metadata for a single namespace of a specific protocol. */
 
 /* If you change this data structure, you must also update
