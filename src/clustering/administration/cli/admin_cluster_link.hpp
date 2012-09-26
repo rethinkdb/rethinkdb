@@ -103,9 +103,6 @@ private:
     std::string merge_shards(vclock_t<std::set<hash_region_t<key_range_t> > > *shards_vclock,
                              const std::vector<std::string> &split_points);
 
-    std::string merge_shards(vclock_t<std::set<key_range_t> > *shards_vclock,
-                             const std::vector<std::string> &split_points);
-
     template <class protocol_t>
     std::string admin_split_shard_internal(namespaces_semilattice_metadata_t<protocol_t> *ns,
                                            const namespace_id_t &ns_id,
