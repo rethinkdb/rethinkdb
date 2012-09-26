@@ -324,7 +324,7 @@ class Connection():
             raise ValueError("Got unexpected status code from server: %d" % response.status_code)
 
 
-    def run(self, expr, debug=False):
+    def run(self, expr, debug=False, allow_outdated=False):
         """Evaluate the expression or list of expressions `expr` on
         the server using this connection. If `expr` is a list,
         evaluates them on the server in order - this can be used to

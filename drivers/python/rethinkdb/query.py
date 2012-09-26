@@ -1340,7 +1340,7 @@ class Table(MultiRowSelection):
     manipulation operations (such as inserting, selecting, and
     updating data) can be chained off of this object."""
 
-    def __init__(self, table_name, db_expr=None):
+    def __init__(self, table_name, db_expr=None, allow_outdated=None):
         """Use :func:`rethinkdb.query.table` as a shortcut to create
         this object.
 
@@ -1354,6 +1354,7 @@ class Table(MultiRowSelection):
         ReadQuery.__init__(self, internal.Table(self))
         self.table_name = table_name
         self.db_expr = db_expr
+        self.allow_outdated = allow_outdated #either True, False, or None (default to run option)
 
     def __repr__(self):
         if self.db_expr is not None:
@@ -1394,9 +1395,15 @@ class Table(MultiRowSelection):
             parent.db_name = self.db_expr.db_name
         else:
             parent.db_name = net.last_connection.db_name
+
+        if self.allow_outdated is None:
+            parent.use_outdated = False
+        else:
+            parent.use_outdated = self.allow_outdated
+
         parent.table_name = self.table_name
 
-def table(table_ref):
+def table(table_ref, allow_outdated=None):
     """Get a reference to a table within a RethinkDB cluster.
 
     :param table_ref: Either a name of the table, or a name of the
@@ -1408,7 +1415,7 @@ def table(table_ref):
 
     >>> q = table('table_name')         #
     """
-    return Table(table_ref)
+    return Table(table_ref, allow_outdated=allow_outdated)
 
 # this happens at the end since it's a circular import
 import internal
