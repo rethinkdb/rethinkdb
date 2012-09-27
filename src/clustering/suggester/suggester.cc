@@ -2,6 +2,7 @@
 
 #include "stl_utils.hpp"
 #include "containers/priority_queue.hpp"
+#include "clustering/generic/nonoverlapping_regions.hpp"
 
 namespace {
 
@@ -239,7 +240,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
         const std::map<machine_id_t, reactor_business_card_t<protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
-        const std::set<typename protocol_t::region_t> &shards,
+        const nonoverlapping_regions_t<protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<protocol_t, std::set<machine_id_t> > &secondary_pinnings) {
@@ -251,7 +252,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
 
     //Maps to keep track of how much we're using each machine
     std::map<machine_id_t, int> primary_usage, secondary_usage;
-    for (typename std::set<typename protocol_t::region_t>::const_iterator it = shards.begin();
+    for (typename nonoverlapping_regions_t<protocol_t>::iterator it = shards.begin();
             it != shards.end(); it++) {
         std::set<machine_id_t> machines_shard_primary_is_pinned_to;
         primary_pinnings_map_t primary_masked_map = primary_pinnings.mask(*it);
@@ -293,7 +294,7 @@ persistable_blueprint_t<mock::dummy_protocol_t> suggest_blueprint<mock::dummy_pr
         const std::map<machine_id_t, reactor_business_card_t<mock::dummy_protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
-        const std::set<mock::dummy_protocol_t::region_t> &shards,
+        const nonoverlapping_regions_t<mock::dummy_protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<mock::dummy_protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<mock::dummy_protocol_t, std::set<machine_id_t> > &secondary_pinnings);
@@ -306,7 +307,7 @@ persistable_blueprint_t<memcached_protocol_t> suggest_blueprint<memcached_protoc
         const std::map<machine_id_t, reactor_business_card_t<memcached_protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
-        const std::set<memcached_protocol_t::region_t> &shards,
+        const nonoverlapping_regions_t<memcached_protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<memcached_protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<memcached_protocol_t, std::set<machine_id_t> > &secondary_pinnings);
@@ -319,7 +320,7 @@ persistable_blueprint_t<rdb_protocol_t> suggest_blueprint<rdb_protocol_t>(
         const std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
-        const std::set<rdb_protocol_t::region_t> &shards,
+        const nonoverlapping_regions_t<rdb_protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<rdb_protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<rdb_protocol_t, std::set<machine_id_t> > &secondary_pinnings);

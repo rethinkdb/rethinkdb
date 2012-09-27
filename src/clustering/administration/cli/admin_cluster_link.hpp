@@ -100,7 +100,8 @@ private:
                                            const namespace_id_t &ns_id,
                                            const std::vector<std::string> &split_points);
 
-    std::string merge_shards(vclock_t<std::set<hash_region_t<key_range_t> > > *shards_vclock,
+    template <class protocol_t>
+    std::string merge_shards(vclock_t<nonoverlapping_regions_t<protocol_t> > *shards_vclock,
                              const std::vector<std::string> &split_points);
 
     template <class protocol_t>
@@ -108,7 +109,8 @@ private:
                                            const namespace_id_t &ns_id,
                                            const std::vector<std::string> &split_points);
 
-    std::string split_shards(vclock_t<std::set<hash_region_t<key_range_t> > > *shards_vclock,
+    template <class protocol_t>
+    std::string split_shards(vclock_t<nonoverlapping_regions_t<protocol_t> > *shards_vclock,
                              const std::vector<std::string> &split_points);
 
     template <class protocol_t>
@@ -277,7 +279,7 @@ private:
                                       std::vector<std::vector<std::string> > *table);
 
     template <class protocol_t>
-    void add_single_namespace_replicas(const std::set<typename protocol_t::region_t>& shards,
+    void add_single_namespace_replicas(const nonoverlapping_regions_t<protocol_t>& shards,
                                        const persistable_blueprint_t<protocol_t>& blueprint,
                                        const machines_semilattice_metadata_t::machine_map_t& machine_map,
                                        std::vector<std::vector<std::string> > *table);

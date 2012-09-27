@@ -127,22 +127,13 @@ std::string admin_value_to_string(const std::map<uuid_t, int>& value) {
     return result;
 }
 
-std::string admin_value_to_string(const std::set<mock::dummy_protocol_t::region_t>& value) {
+template <class protocol_t>
+std::string admin_value_to_string(const nonoverlapping_regions_t<protocol_t>& value) {
     std::string result;
-    size_t count = 0;
-    for (std::set<mock::dummy_protocol_t::region_t>::const_iterator i = value.begin(); i != value.end(); ++i) {
-        ++count;
-        result += strprintf("%s%s", admin_value_to_string(*i).c_str(), count == value.size() ? "" : ", ");
-    }
-    return result;
-}
-
-std::string admin_value_to_string(const std::set<hash_region_t<key_range_t> >& value) {
-    std::string result;
-    size_t count = 0;
-    for (std::set<memcached_protocol_t::region_t>::const_iterator i = value.begin(); i != value.end(); ++i) {
-        ++count;
-        result += strprintf("%s%s", admin_value_to_string(*i).c_str(), count == value.size() ? "" : ", ");
+    bool first = true;
+    for (typename nonoverlapping_regions_t<protocol_t>::iterator it = value.begin(); it != value.end(); ++it) {
+        result += strprintf("%s%s", first ? "" : ", ", admin_value_to_string(*it).c_str());
+        first = false;
     }
     return result;
 }
@@ -150,10 +141,10 @@ std::string admin_value_to_string(const std::set<hash_region_t<key_range_t> >& v
 template <class protocol_t>
 std::string admin_value_to_string(const region_map_t<protocol_t, uuid_t>& value) {
     std::string result;
-    size_t count = 0;
+    bool first = true;
     for (typename region_map_t<protocol_t, uuid_t>::const_iterator i = value.begin(); i != value.end(); ++i) {
-        ++count;
-        result += strprintf("%s: %s%s", admin_value_to_string(i->first).c_str(), uuid_to_str(i->second).c_str(), count == value.size() ? "" : ", ");
+        result += strprintf("%s%s: %s", first ? "" : ", ", admin_value_to_string(i->first).c_str(), uuid_to_str(i->second).c_str());
+        first = false;
     }
     return result;
 }
@@ -161,11 +152,11 @@ std::string admin_value_to_string(const region_map_t<protocol_t, uuid_t>& value)
 template <class protocol_t>
 std::string admin_value_to_string(const region_map_t<protocol_t, std::set<uuid_t> >& value) {
     std::string result;
-    size_t count = 0;
+    bool first = true;
     for (typename region_map_t<protocol_t, std::set<uuid_t> >::const_iterator i = value.begin(); i != value.end(); ++i) {
-        ++count;
         //TODO: print more detail
-        result += strprintf("%s: %ld machine%s%s", admin_value_to_string(i->first).c_str(), i->second.size(), i->second.size() == 1 ? "" : "s", count == value.size() ? "" : ", ");
+        result += strprintf("%s%s: %ld machine%s", first ? "" : ", ", admin_value_to_string(i->first).c_str(), i->second.size(), i->second.size() == 1 ? "" : "s");
+        first = false;
     }
     return result;
 }
@@ -555,7 +546,7 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
 template <class protocol_t>
 typename protocol_t::region_t admin_cluster_link_t::find_shard_in_namespace(const namespace_semilattice_metadata_t<protocol_t>& ns,
                                                                             const shard_input_t& shard_in) {
-    const std::set<typename protocol_t::region_t> shards_value = ns.shards.get();
+    const nonoverlapping_regions_t<protocol_t> shards_value = ns.shards.get();
     for (typename std::set<typename protocol_t::region_t>::const_iterator s = shards_value.begin(); s != shards_value.end(); ++s) {
         // TODO: This is a low level assertion.
         guarantee(s->beg == 0 && s->end == HASH_REGION_HASH_SIZE);
@@ -815,9 +806,11 @@ std::string admin_cluster_link_t::admin_split_shard_internal(namespaces_semilatt
     return error;
 }
 
-std::string admin_cluster_link_t::split_shards(vclock_t<std::set<hash_region_t<key_range_t> > > *shards_vclock,
+template <class protocol_t>
+std::string admin_cluster_link_t::split_shards(vclock_t<nonoverlapping_regions_t<protocol_t> > *shards_vclock,
                                                const std::vector<std::string> &split_points) {
-    std::set<hash_region_t<key_range_t> > &shards = shards_vclock->get_mutable();
+    // TODO: Non-const reference.
+    nonoverlapping_regions_t<protocol_t> &shards = shards_vclock->get_mutable();
     std::string error;
 
     for (size_t i = 0; i < split_points.size(); ++i) {
@@ -827,44 +820,41 @@ std::string admin_cluster_link_t::split_shards(vclock_t<std::set<hash_region_t<k
                 throw admin_cluster_exc_t("split point could not be parsed: " + split_points[i]);
             }
 
-            if (shards.empty()) {
-                // this should never happen, but try to handle it anyway
-                key_range_t left(key_range_t::none, store_key_t(), key_range_t::open, store_key_t(key));
-                key_range_t right(key_range_t::closed, store_key_t(key), key_range_t::none, store_key_t());
-                shards.insert(hash_region_t<key_range_t>(left));
-                shards.insert(hash_region_t<key_range_t>(right));
-            } else {
-                // TODO: use a better search than linear
-                std::set<hash_region_t<key_range_t> >::iterator shard = shards.begin();
-                while (true) {
-                    // TODO: This assertion is too low-level, there should be a function for hash_region_t that computes the expression.
-                    guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
+            guarantee(!shards.empty());
 
-                    if (shard == shards.end()) {
-                        throw admin_cluster_exc_t("split point could not be placed: " + split_points[i]);
-                    } else if (shard->inner.contains_key(key)) {
-                        break;
-                    }
-                    ++shard;
+            // TODO: use a better search than linear
+            std::set<hash_region_t<key_range_t> >::iterator shard = shards.begin();
+            while (true) {
+                // TODO: This assertion is too low-level, there should be a function for hash_region_t that computes the expression.
+                guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
+
+                if (shard == shards.end()) {
+                    throw admin_cluster_exc_t("split point could not be placed: " + split_points[i]);
+                } else if (shard->inner.contains_key(key)) {
+                    break;
                 }
-
-                // Don't split if this key is already the split point
-                if (shard->inner.left == key) {
-                    throw admin_cluster_exc_t("split point already exists: " + split_points[i]);
-                }
-
-                // Create the two new shards to be inserted
-                key_range_t left;
-                left.left = shard->inner.left;
-                left.right = key_range_t::right_bound_t(key);
-                key_range_t right;
-                right.left = key;
-                right.right = shard->inner.right;
-
-                shards.erase(shard);
-                shards.insert(hash_region_t<key_range_t>(left));
-                shards.insert(hash_region_t<key_range_t>(right));
+                ++shard;
             }
+
+            // Don't split if this key is already the split point
+            if (shard->inner.left == key) {
+                throw admin_cluster_exc_t("split point already exists: " + split_points[i]);
+            }
+
+            // Create the two new shards to be inserted
+            key_range_t left;
+            left.left = shard->inner.left;
+            left.right = key_range_t::right_bound_t(key);
+            key_range_t right;
+            right.left = key;
+            right.right = shard->inner.right;
+
+            shards.remove_region(shard);
+            bool add_success = shards.add_region(hash_region_t<key_range_t>(left));
+            guarantee(add_success);
+            add_success = shards.add_region(hash_region_t<key_range_t>(right));
+            guarantee(add_success);
+
             shards_vclock->upgrade_version(change_request_id);
         } catch (const std::exception& ex) {
             error += ex.what();
@@ -940,9 +930,10 @@ std::string admin_cluster_link_t::admin_merge_shard_internal(namespaces_semilatt
     return error;
 }
 
-std::string admin_cluster_link_t::merge_shards(vclock_t<std::set<hash_region_t<key_range_t> > > *shards_vclock,
+template <class protocol_t>
+std::string admin_cluster_link_t::merge_shards(vclock_t<nonoverlapping_regions_t<protocol_t> > *shards_vclock,
                                                const std::vector<std::string> &split_points) {
-    std::set<hash_region_t<key_range_t> > &shards = shards_vclock->get_mutable();
+    nonoverlapping_regions_t<protocol_t> &shards = shards_vclock->get_mutable();
     std::string error;
     for (size_t i = 0; i < split_points.size(); ++i) {
         try {
@@ -983,9 +974,11 @@ std::string admin_cluster_link_t::merge_shards(vclock_t<std::set<hash_region_t<k
             merged.left = prev->inner.left;
             merged.right = shard->inner.right;
 
-            shards.erase(shard);
-            shards.erase(prev);
-            shards.insert(hash_region_t<key_range_t>(merged));
+            shards.remove_region(shard);
+            shards.remove_region(prev);
+            bool add_success = shards.add_region(hash_region_t<key_range_t>(merged));
+            guarantee(add_success);
+
             shards_vclock->upgrade_version(change_request_id);
         } catch (const std::exception& ex) {
             error += ex.what();
@@ -1827,6 +1820,7 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
 
+// TODO: This is mostly redundant with the new_namespace function?  Or just outdated?
 template <class protocol_t>
 namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const std::string& name,
                                                                     int port,
@@ -1846,8 +1840,9 @@ namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const std::s
     obj.port.get_mutable() = port;
     obj.port.upgrade_version(change_request_id);
 
-    std::set<typename protocol_t::region_t> shards;
-    shards.insert(protocol_t::region_t::universe());
+    nonoverlapping_regions_t<protocol_t> shards;
+    bool add_success = shards.add_region(protocol_t::region_t::universe());
+    guarantee(add_success);
     obj.shards.get_mutable() = shards;
     obj.shards.upgrade_version(change_request_id);
 
@@ -2521,7 +2516,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
 }
 
 template <class protocol_t>
-void admin_cluster_link_t::add_single_namespace_replicas(const std::set<typename protocol_t::region_t>& shards,
+void admin_cluster_link_t::add_single_namespace_replicas(const nonoverlapping_regions_t<protocol_t>& shards,
                                                          const persistable_blueprint_t<protocol_t>& blueprint,
                                                          const machines_semilattice_metadata_t::machine_map_t& machine_map,
                                                          std::vector<std::vector<std::string> > *table) {
