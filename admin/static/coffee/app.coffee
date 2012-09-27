@@ -196,16 +196,22 @@ collect_server_data_once = (async, optional_callback) ->
 collect_server_data_async = ->
     collect_server_data_once true
 
+
+stats_param =
+    url: '/ajax/stat'
+    fail: false
 collect_stat_data = ->
     $.ajax
-        url: '/ajax/stat'
+        url: stats_param.url
         dataType: 'json'
         contentType: 'application/json'
         success: (data) ->
             set_stats(data)
+            stats_param.fail = false
+            stats_param.timeout = setTimeout collect_stat_data, 1000
         error: ->
-            #TODO
-            #console.log 'Could not retrieve stats'
+            stats_param.fail = true
+            stats_param.timeout = setTimeout collect_stat_data, 1000
 
 $ ->
     render_loading()
@@ -232,7 +238,7 @@ $ ->
     # reset_collections()
     reset_token()
 
-    # Override the default Backbone.sync behavior to allow reading diffs
+    # Override the default Backbone.sync behavior to allow reading diff
     legacy_sync = Backbone.sync
     Backbone.sync = (method, model, success, error) ->
         if method is 'read'
@@ -265,4 +271,3 @@ $ ->
 
     # Set interval to update the data
     setInterval collect_server_data_async, updateInterval
-    setInterval collect_stat_data, statUpdateInterval

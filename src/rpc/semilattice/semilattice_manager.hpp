@@ -101,6 +101,4 @@ private:
     connectivity_service_t::peers_list_subscription_t event_watcher;
 };
 
-#include "rpc/semilattice/semilattice_manager.tcc"
-
 #endif /* RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_ */

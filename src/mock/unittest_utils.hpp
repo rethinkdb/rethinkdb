@@ -5,6 +5,7 @@
 #include <boost/function.hpp>
 
 #include "containers/scoped.hpp"
+#include "rpc/serialize_macros.hpp"
 
 namespace mock {
 
@@ -27,5 +28,22 @@ int randport();
 void run_in_thread_pool(const boost::function<void()>& fun, int num_workers = 1);
 
 }  // namespace mock
+
+namespace unittest {
+
+class sl_int_t {
+public:
+    sl_int_t() { }
+    explicit sl_int_t(uint64_t initial) : i(initial) { }
+    uint64_t i;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(i);
+};
+
+inline void semilattice_join(sl_int_t *a, sl_int_t b) {
+    a->i |= b.i;
+}
+
+}  // namespace unittest
 
 #endif /* MOCK_UNITTEST_UTILS_HPP_ */

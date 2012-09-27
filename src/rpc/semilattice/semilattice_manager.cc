@@ -1,6 +1,7 @@
 #include "rpc/semilattice/semilattice_manager.hpp"
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 
 #include <algorithm>
@@ -425,3 +426,12 @@ void semilattice_manager_t<metadata_t>::wait_for_version_from_peer(peer_id_t pee
     }
     guarantee(caught_up.is_pulsed());
 }
+
+
+
+
+#include "clustering/administration/metadata.hpp"
+template class semilattice_manager_t<cluster_semilattice_metadata_t>;
+
+#include "mock/unittest_utils.hpp"
+template class semilattice_manager_t<unittest::sl_int_t>;
