@@ -12,6 +12,7 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/reactor.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "db_thread_info.hpp"
 #include "rpc/semilattice/view/field.hpp"

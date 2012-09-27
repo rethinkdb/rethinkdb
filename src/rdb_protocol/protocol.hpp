@@ -19,7 +19,6 @@
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
-#include "concurrency/cross_thread_watchable.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "extproc/pool.hpp"
@@ -32,13 +31,14 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/serializable_environment.hpp"
 
+template <class> class cross_thread_watchable_variable_t;
+class cluster_directory_metadata_t;
+template <class metadata> class directory_read_manager_t;
+
 using query_language::scopes_t;
 using query_language::backtrace_t;
 using query_language::shared_scoped_less_t;
 using query_language::runtime_exc_t;
-
-class cluster_directory_metadata_t;
-template <class metadata> class directory_read_manager_t;
 
 enum point_write_result_t {
     STORED,
