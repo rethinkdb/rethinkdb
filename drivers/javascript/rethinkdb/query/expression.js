@@ -1083,6 +1083,99 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'groupedMapReduce',
                     rethinkdb.Expression.prototype.groupedMapReduce);
 
 /**
+ * Group elements of the stream by the value of an attribute and then apply
+ * the giving reduction across groups. Can be used with a number of predefined
+ * reuctions. see {@link average} {@link count} {@link sum}
+ * @param {string} attr The attribute to group by
+ * @param {Object} groupbyObject An object defining the reduction to be applied to
+ *  each group. Must specify the following attributes:
+ *      base: the base of the reduction (see {@link reduce})
+ *      reduction: the reduction function (see {@link reduce})
+ *  May specify the following attributes:
+ *      mapping: A mapping function to applied to rows before reduction, defaults to identity.
+ *      finalizer: A mapping function to be applied to values after reduction, defaults to identity.
+ */
+rethinkdb.Expression.prototype.groupBy = function(attr, groupbyObject) {
+    argCheck_(arguments, 2);
+    typeCheck_(attr, 'string');
+    typeCheck_(groupbyObject, 'object');
+
+    var grouping = rethinkdb.fn(function(row) {
+        return row(attr);
+    });
+
+    var mapping = groupbyObject['mapping'] || rethinkdb.fn(function(row) {
+        return row;
+    });
+
+    var base = groupbyObject['base'];
+    var reduction = groupbyObject['reduction'];
+    if (!reduction) {
+        throw new rethinkdb.errors.ClientError("Must provide a reduction to groupby");
+    }
+    if (base === undefined) {
+        throw new rethinkdb.errors.ClientError("Must provide a base for the reduction in groupby");
+    }
+
+    var gmr = this.groupedMapReduce(grouping, mapping, base, reduction);
+
+    var finalizer = groupbyObject['finalizer'];
+    if (finalizer) {
+        gmr = gmr.map(function(group) {
+            return group.extend({'reduction': finalizer(group('reduction'))});
+        });
+    }
+
+    return gmr;
+};
+goog.exportProperty(rethinkdb.Expression.prototype, 'groupBy',
+                    rethinkdb.Expression.prototype.groupBy);
+
+/** Predefined groupby reductions */
+
+/**
+ * A predefined reduction for groupby the counts the number of members in the group.
+ * @export
+ */
+rethinkdb.count = {
+    'mapping': function(row) { return rethinkdb.expr(1); },
+    'base': 0,
+    'reduction': function(acc, val) { return acc['add'](val); }
+};
+
+/**
+ * Constructs a reduction for groupby that sums the values of the given field.
+ * @export
+ */
+rethinkdb.sum = function(attr) {
+    argCheck_(arguments, 1);
+    typeCheck_(attr, 'string');
+    return {
+        'mapping': function(row) { return row(attr); },
+        'base': 0,
+        'reduction': function(acc, val) { return acc['add'](val); }
+    };
+};
+
+/**
+ * Constructs a reduction for groupby that averages across the values of the given field.
+ * @export
+ */
+rethinkdb.average = function(attr) {
+    argCheck_(arguments, 1);
+    typeCheck_(attr, 'string');
+    return {
+        'mapping': function(row) { return rethinkdb.expr([row(attr), 1]); },
+        'base': [0, 0],
+        'reduction': function(acc, val) {
+            return rethinkdb.expr([acc['nth'](0)['add'](val['nth'](0)),
+                                   acc['nth'](1)['add'](val['nth'](1))]);
+        },
+        'finalizer': function(res) { return res['nth'](0)['div'](res['nth'](1)); }
+    };
+};
+
+/**
  * Returns true if this has the given attribute.
  * @param {string} attr Attribute to test.
  * @return {rethinkdb.Expression}
