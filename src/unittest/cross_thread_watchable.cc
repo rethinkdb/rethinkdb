@@ -23,7 +23,7 @@ void runCrossThreadWatchabletest() {
         ctw.reset(new cross_thread_watchable_variable_t<int>(watchable->get_watchable(), 1));
     }
 
-    int i, expected_value;
+    int i, expected_value = 0;
     try {
         for (i = 1; i < 100; ++i) {
             {
