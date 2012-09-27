@@ -18,10 +18,11 @@
 #include "clustering/administration/suggester.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/directory/read_manager.hpp"
-#include "rpc/directory/write_manager.hpp"
-#include "rpc/semilattice/semilattice_manager.hpp"
-#include "rpc/semilattice/view.hpp"
+
+template <class metadata_t> class directory_read_manager_t;
+template <class metadata_t> class directory_write_manager_t;
+template <class metadata_t> class semilattice_manager_t;
+template <class metadata_t> class semilattice_readwrite_view_t;
 
 const std::string& guarantee_param_0(const std::map<std::string, std::vector<std::string> >& params, const std::string& name);
 
@@ -364,14 +365,15 @@ private:
     log_server_t log_server;
     message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
     message_multiplexer_t::client_t semilattice_manager_client;
-    semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster;
+    const scoped_ptr_t<semilattice_manager_t<cluster_semilattice_metadata_t> > semilattice_manager_cluster;
     message_multiplexer_t::client_t::run_t semilattice_manager_client_run;
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
     metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler;
     message_multiplexer_t::client_t directory_manager_client;
     watchable_variable_t<cluster_directory_metadata_t> our_directory_metadata;
-    directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager;
-    directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager;
+    const scoped_ptr_t<directory_read_manager_t<cluster_directory_metadata_t> > directory_read_manager;
+    // TODO: Do we actually need directory_write_manager?
+    const scoped_ptr_t<directory_write_manager_t<cluster_directory_metadata_t> > directory_write_manager;
     message_multiplexer_t::client_t::run_t directory_manager_client_run;
     message_multiplexer_t::run_t message_multiplexer_run;
     connectivity_cluster_t::run_t connectivity_cluster_run;
