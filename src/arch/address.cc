@@ -90,7 +90,7 @@ ip_address_t::ip_address_t(const std::string &host) {
         }
         if_freenameindex(ifs); //FREE 2
         res = close(fd); //FREE 1
-        guarantee(res == 0);
+        guarantee(res == 0 || (res == -1 && errno == EINTR));
     }
     freeaddrinfo(addr_possibilities); //FREE 0
 }
