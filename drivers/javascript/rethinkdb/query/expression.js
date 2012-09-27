@@ -1086,8 +1086,8 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'groupedMapReduce',
  * Group elements of the stream by the value of an attribute and then apply
  * the giving reduction across groups. Can be used with a number of predefined
  * reuctions. see {@link average} {@link count} {@link sum}
- * @param {string} attr The attribute to group by
- * @param {Object} groupbyObject An object defining the reduction to be applied to
+ * @param {...*} var_args The first n-1 arguments are strings giving arguments to group by.
+ *  The last argument is an object defining the reduction to be applied to
  *  each group. Must specify the following attributes:
  *      base: the base of the reduction (see {@link reduce})
  *      reduction: the reduction function (see {@link reduce})
@@ -1095,13 +1095,21 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'groupedMapReduce',
  *      mapping: A mapping function to applied to rows before reduction, defaults to identity.
  *      finalizer: A mapping function to be applied to values after reduction, defaults to identity.
  */
-rethinkdb.Expression.prototype.groupBy = function(attr, groupbyObject) {
+rethinkdb.Expression.prototype.groupBy = function(var_args) {
     argCheck_(arguments, 2);
-    typeCheck_(attr, 'string');
+
+    var attrs = Array.prototype.slice.call(arguments, 0, -1);
+    attrs.forEach(function(attr) {typeCheck_(attr, 'string')});
+
+    var groupbyObject = arguments[arguments.length-1];
     typeCheck_(groupbyObject, 'object');
 
     var grouping = rethinkdb.fn(function(row) {
-        return row(attr);
+        if (attrs.length > 1) {
+            return rethinkdb.expr(attrs.map(row));
+        } else {
+            return row(attrs[0]);
+        }
     });
 
     var mapping = groupbyObject['mapping'] || rethinkdb.fn(function(row) {
