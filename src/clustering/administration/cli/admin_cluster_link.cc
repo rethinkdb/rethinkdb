@@ -2516,8 +2516,12 @@ void admin_cluster_link_t::remove_datacenter_references(const datacenter_id_t& d
             continue;
         }
 
-        if (!i->second.get_mutable().datacenter.in_conflict() && i->second.get_mutable().datacenter.get_mutable() == datacenter) {
-            i->second.get_mutable().datacenter.get_mutable() = nil_id;
+        machine_semilattice_metadata_t& machine = i->second.get_mutable();
+
+        if (!machine.datacenter.in_conflict() && machine.datacenter.get() == datacenter) {
+
+            machine.datacenter.get_mutable() = nil_id;
+            machine.datacenter.upgrade_version(change_request_id);
         }
     }
 
