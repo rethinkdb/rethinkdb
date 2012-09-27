@@ -10,6 +10,13 @@
 @import "bootstrap/grid.less";
 @import "bootstrap/layouts.less";
 
+// Components
+@import "bootstrap/modals.less";
+@import "bootstrap/tooltip.less";
+@import "bootstrap/popovers.less";
+@import "bootstrap/dropdowns.less";
+@import "bootstrap/forms.less";
+
 // Utility classes
 @import "bootstrap/utilities.less"; // Has to be last to override when necessary
 
@@ -17,6 +24,109 @@
 @sans: 'Istok Web', sans-serif;
 @serif: 'Copse', serif;
 
+// Visualizations (graphs, etc.)
+@import "vis.less";
+
+/* 
+    ----------------------------------------------------------------------
+    Sticky footer and 100% height
+        - Uses Adham Dannaway's sticky footer approach (adhamdannaway.com)
+    ----------------------------------------------------------------------
+*/
+html, body { height: 100%; }
+#sticky-wrap { min-height: 100%; }
+#main-container {
+    overflow: auto;
+    padding-bottom: 95px;
+}
+#footer {
+    position: relative;
+    margin-top: -95px;
+    height: 60px;
+    clear: both;
+}
+/* Opera fix */
+body:before {
+    content:"";
+    height: 100%;
+    float: left;
+    width: 0;
+    margin-top: -32767px;
+}
+
+/*
+    ----------------------------
+    Main content
+    ----------------------------
+*/
+#sticky-wrap {
+    background: url('https://dl.dropbox.com/s/xnjd8qzm0rkoz2q/background.png');
+}
+#main-container {
+    padding-top: 30px;
+    
+    .section {
+       padding: 20px 25px; 
+       background: #fcfcfc;
+       border: thin solid #cfcfcf;
+       margin-bottom: 25px;
+
+       @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08);
+
+        -webkit-box-shadow: @shadow;
+           -moz-box-shadow: @shadow;
+                box-shadow: @shadow;
+
+        .border-radius(4px);
+
+        h2.title {
+            margin-top: 0;
+            font-family: @serif;
+            color: #a3a3a3;
+            font-size: 19px;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-family: @serif;
+        }
+    }
+}
+
+/*
+    ----------------------------
+    Footer
+    ----------------------------
+*/
+#footer {
+    background-color: #e5e5e5;
+    color: #a3a3a3;
+    font-family: @serif;
+    font-size: 14px;
+    padding-top: 30px;
+    border-top: thin solid #d0d0d0;
+    ul {
+        float: left;
+        padding: 0;
+        margin: 0;
+        list-style-type: none;
+        li {
+            display: inline-block;
+            margin-right: 25px;
+        }
+    }
+
+    p.copyright { 
+        float: right;
+        margin: 0;
+    }
+}
+
+/*
+    ----------------------------
+    Navbar at the top
+    ----------------------------
+*/
 #navbar {
     font-family: @sans;
     border-top: 4px @accent solid;
@@ -103,10 +213,402 @@
 
 /*
     ----------------------------
-    Development tools
+    Status bar at the top
+    ----------------------------
+*/
+#sidebar {
+    background-image: url('https://dl.dropbox.com/s/plzmuyfwibwyvry/status_panel-background.png');
+    border-bottom: thin solid #d0d0d0;
+    .cluster-status { padding: 20px 0; }
+    .panel {
+        padding-left: 60px;
+        height: 47px;
+        h5 {
+            font-family: @sans;
+            font-size: 14px;
+            line-height: 15px;
+            margin: 0;
+            padding: 0;
+            margin-bottom: 4px;
+            color: #909090;
+        }
+
+        h4 {
+            font-family: @serif; 
+            font-size: 18px;
+            line-height: 24px;
+            margin: 0;
+            padding: 0;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+            color: #4d535c;
+        }
+    }
+
+    .client-connection-status { background: url('https://dl.dropbox.com/s/fpiswm98f9wx8ff/status_panel-icon_1.png') no-repeat left center; }
+    .no-issues { background: url('https://dl.dropbox.com/s/ugca6ovxajdja65/status_panel-icon_2.png') no-repeat left center; }
+    .has-issues { background: url('https://dl.dropbox.com/s/0737jaigqxo8dgj/status_panel-icon_2-error.png') no-repeat left center; }
+    .servers-connected { background: url('https://dl.dropbox.com/s/wdn0nvzq2c85zvm/status_panel-icon_3.png') no-repeat left center; }
+    .datacenters-connected { background: url('https://dl.dropbox.com/s/k6nl8f6qzmjyabc/status_panel-icon_4.png') no-repeat left center; }
+
+    .issues-banner {
+        background-color: #db4947;
+        color: #FFF;
+        .show-issues-banner { margin-bottom: 9px; }
+        .message { line-height: 52px; }
+
+        // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
+        .btn.resolve-issues {
+            float: right;
+            margin-left: 20px;
+            margin-top: 11px;
+            padding: 6px 14px 4px;
+            margin-bottom: 0;
+            vertical-align: middle;
+
+            font-size: 13px;
+            font-family: @sans;
+            color: #FFF;
+            text-align: center;
+
+            background-color: #eb5d5b;
+            border: thin solid #b8302e; 
+            .border-radius(3px);
+
+            @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
+
+            -webkit-box-shadow: @shadow;
+               -moz-box-shadow: @shadow;
+                    box-shadow: @shadow;
+        }
+        .show-issues-banner:after {
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+
+            pointer-events: none;
+            border-top-color: #db4947;
+            border-width: 12px;
+            left: 50%;
+            margin-left: -220px;
+        }
+    }
+}
+
+/*
+    ----------------------------
+    Dashboard
+    ----------------------------
+*/
+#dashboard {
+    #cluster_status_container { padding: 0; }
+    .cluster-status table { 
+        border-spacing: 0;
+        width: 100%;
+    }
+    .cluster-status td.panel {
+        @bad: #e85250;
+        @good: #3ba51a;
+
+        border-left: thin solid #dfdfdf;
+        padding: 20px;
+        width: 25%;
+        vertical-align: top;
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-family: @serif;
+            font-size: 17px;
+            color: #4c4c4c;
+            padding-left: 21px;
+        }
+        &.no-problems-detected h3 { background: 0 3px no-repeat url('https://dl.dropbox.com/s/vgdhxkfem0856ge/green-light.png'); }
+        &.problems-detected h3 { background: 0 3px no-repeat url('https://dl.dropbox.com/s/pdoclcb9e7u8k4b/red-light.png'); }
+
+        p {
+            font-family: @sans;
+            font-size: 14px;
+            line-height: 22px;
+            margin: 0;
+            color: #4c4c4c;
+            span.good { color: @good; }
+            span.bad { color: @bad; }
+            span.good, span.bad { font-weight: bold; }
+        }
+
+        &.first { border-left: none; }
+    }
+    #recent_logs_container {
+        // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
+        .btn.view-logs {
+            float: right;
+            padding: 6px 14px 4px;
+            margin-bottom: 0;
+            vertical-align: middle;
+
+            font-size: 13px;
+            font-family: @sans;
+            color: #FFF;
+            text-align: center;
+
+            background-color: #509ecb;
+            border: thin solid #509ecb; 
+            .border-radius(3px);
+
+            @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
+
+            -webkit-box-shadow: @shadow;
+               -moz-box-shadow: @shadow;
+                    box-shadow: @shadow;
+
+        }
+        .recent-log-entries-container { margin-bottom: 5px; }
+        ul.recent-log-entries {
+            list-style-type: none;
+            padding-left: 0;
+
+            li.log-entry {
+                color: #4d535c;
+                border-top: thin solid #f0f0f0;
+                background: left center no-repeat url('https://dl.dropbox.com/s/aintt5c3jlkd495/pencil_icon.png');
+                padding: 20px 0 20px 55px;
+                p { margin: 0; }
+                .message { font-size: 16px; }
+                .from-machine {
+                    font-style: italic;
+                    font-family: @sans;
+                    margin-top: 5px;
+                    font-size: 13px;
+                }
+                .datetime {
+                    background: left center no-repeat url('https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png');
+                    text-align: right;
+                    color: #c4c4c4;
+                }
+            }
+        }
+    }
+}
+
+
+/*
+    ----------------------------
+    Server list and table list
+    ----------------------------
+*/
+// Get ready to abstract this for use in the server list AND table list TODO
+#server-list, #table-list {
+    // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
+    .btn {
+        display: inline-block;
+        padding: 6px 14px 5px;
+        margin-bottom: 0;
+        margin-left: 7px;
+        vertical-align: middle;
+
+        font-size: 14px;
+        font-family: @sans;
+        font-weight: 700;
+        color: #464646;
+        line-height: 18px;
+        text-align: center;
+
+        background-color: #f9f9f9;
+        border: thin solid #cbcbcb; 
+        .border-radius(4px);
+
+        @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
+
+        -webkit-box-shadow: @shadow;
+           -moz-box-shadow: @shadow;
+                box-shadow: @shadow;
+
+        &.disabled {
+            opacity: 0.65;
+            .box-shadow(none);
+        }
+    }
+    h1.title {
+        font-family: @serif;
+        color: #4d535c;
+        font-size: 19px;
+        margin-bottom: 25px;
+    }
+
+    .actions-bar { float: right; }
+
+    .section {
+        padding: 0;
+        .header_container {
+            border-bottom: thin solid #CCC;
+            padding: 13px 15px;
+            background: #fff;
+            .border-radius(4px 4px 0px 0px);
+
+            .summary {
+                .element-type, h3.name { 
+                    display: inline-block;
+                    vertical-align: middle;
+                }
+                .element-type {
+                    background: #f7ae41;
+                    .border-radius(2px);
+                    padding: 4px 15px;
+                    text-transform: uppercase;
+                    margin-right: 20px;
+                    color: #fff;
+                    font-size: 10px;
+                    font-weight: 700
+                }
+                h3.name {
+                    font-family: @serif;
+                    font-size: 17px;
+                    color: #61666e;
+                    margin: 0;
+                    a { color: #61666e; }
+                }
+                .buttons {
+                    float: right;
+                    margin-top: -2px;
+                }
+            }
+        }
+
+        .element-list-container {
+            padding: 0px 13px 12px 13px;
+            background: #fafafa;
+            .border-radius(0px 0px 4px 4px);
+        }
+
+        .element {
+            @bar_height: 44px;
+            height: @bar_height;
+            background: #FFF;
+            border: thin solid #cfcfcf;
+            .border-radius(3px);
+            margin-top: 12px;
+        
+            @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08);
+
+            -webkit-box-shadow: @shadow;
+               -moz-box-shadow: @shadow;
+                    box-shadow: @shadow;
+
+            .checkbox-container {
+                float: left;
+
+                label {
+                    display: inline;
+                    margin: 14px;
+                }
+                input[type="checkbox"] { display: none; }
+
+                input[type="checkbox"] + label {
+                    border: thin solid #cfcfcf;
+                    .border-radius(3px);
+                    padding: 7px;
+                    display: inline-block;
+                    position: relative;
+                    &:active { box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0 1px 3px rgba(0,0,0,0.1); }
+                }
+                input[type="checkbox"]:checked + label:after {
+                    content: '\2714';
+                    font-size: 15px;
+                    position: absolute;
+                    top: -2px;
+                    left: 1px;
+                    color: #7c7c7c;
+                }
+            }
+
+            .element-details { 
+                position: relative;
+                margin-left: 45px;
+
+                @border_padding: 20px;
+
+                p {
+                    margin: 0;
+                    font-family: @sans;
+                }
+                .name, .quick_info, .status {
+                    @offset: 8px;
+                    position: absolute;
+                    line-height: @bar_height - @offset*2;
+                    margin-top: @offset;
+                    border-left: thin solid #e4e4e4;
+                }
+                .name {
+                    background: @border_padding center no-repeat url('https://dl.dropbox.com/s/q9ifud52cq0p00p/server-icon.png');
+                    padding-left: 38px + @border_padding;
+                    a { color: #0597d8; }
+                    font-size: 16px;
+                    font-weight: bold;
+                }
+                .quick_info {
+                    right: 150px;
+                    background: @border_padding center no-repeat url('https://dl.dropbox.com/s/mentx127cdmq08s/graph-icon.png');
+                    color: #626264;
+                    padding-left: 30px + @border_padding;
+                }
+                .status {
+                    right: 0;
+                    padding-right: 20px;
+                    color: #818181;
+                    .label-success {
+                        background: @border_padding center no-repeat url('https://dl.dropbox.com/s/rbv9luv0kmy1uz0/green-light_glow.png');
+                        padding-left: 23px + @border_padding;
+                    }
+                }
+
+            }
+        }
+    }
+}
+
+
+/*
+    ----------------------------
+    Log view
     ----------------------------
 */
 
+#log-view {
+    ul.log-entries {
+        list-style-type: none;
+        padding-left: 0;
+
+        li.log-entry {
+            color: #4d535c;
+            border-top: thin solid #f0f0f0;
+            background: left center no-repeat url('https://dl.dropbox.com/s/aintt5c3jlkd495/pencil_icon.png');
+            padding: 20px 0 20px 55px;
+            p { margin: 0; }
+            .message { font-size: 16px; }
+            .from-machine {
+                font-style: italic;
+                font-family: @sans;
+                margin-top: 5px;
+                font-size: 13px;
+            }
+            .datetime {
+                background: left center no-repeat url('https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png');
+                text-align: right;
+                color: #c4c4c4;
+            }
+        }
+    }
+}
+
+/*
+    ----------------------------
+    Development tools
+    ----------------------------
+*/
 #dev-tools {
     display: none;
     #translucent > .background(#000, 0.1);

@@ -27,12 +27,14 @@ module 'DatacenterView', ->
             log_initial '(initializing) datacenter view: container'
 
             # Panels for datacenter view
-            @title = new DatacenterView.Title(model: @model)
-            @profile = new DatacenterView.Profile(model: @model)
-            @data = new DatacenterView.Data(model: @model)
-            @operations = new DatacenterView.Operations(model: @model)
-            @overview = new DatacenterView.Overview(model: @model)
-            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
+            @title = new DatacenterView.Title model: @model
+            @profile = new DatacenterView.Profile model: @model
+            @data = new DatacenterView.Data model: @model
+            @operations = new DatacenterView.Operations model: @model
+            @overview = new DatacenterView.Overview model: @model
+            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
+                type: 'datacenter'
+            )
 
             filter = {}
             for machine in machines.models

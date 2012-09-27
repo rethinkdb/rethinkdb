@@ -26,11 +26,13 @@ module 'DatabaseView', ->
             log_initial '(initializing) database view: container'
 
             # Panels for database view
-            @title = new DatabaseView.Title(model: @model)
-            @profile = new DatabaseView.Profile(model: @model)
-            @overview = new DatabaseView.Overview(model: @model)
-            @operations = new DatabaseView.Operations(model: @model)
-            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
+            @title = new DatabaseView.Title model: @model
+            @profile = new DatabaseView.Profile model: @model
+            @overview = new DatabaseView.Overview model: @model
+            @operations = new DatabaseView.Operations model: @model
+            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
+                type: 'database'
+            )
 
             databases.on 'remove', @check_if_still_exists
         

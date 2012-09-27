@@ -3,28 +3,39 @@
 module 'DashboardView', ->
     # Cluster.Container
     class @Container extends Backbone.View
-        el: '#cluster'
-        className: 'dashboard_view'
-        template: Handlebars.compile $('#dashboard_view-template').html() # TODO use div instead of a table
+        template: Handlebars.compile $('#dashboard_view-template').html()
+        id: 'dashboard'
+
         initialize: =>
             log_initial '(initializing) dashboard container view'
 
             @cluster_status = new DashboardView.ClusterStatus()
+            @logs = new DashboardView.Logs()
 
         render: =>
             @.$el.html @template({})
-            @cluster_performance = new DashboardView.ClusterPerformance()
+            @cluster_performance = new Vis.OpsPlot(computed_cluster.get_stats,
+                width:  833             # width in pixels
+                height: 300             # height in pixels
+                seconds: 119            # num seconds to track
+                height_in_units:20500   # scale of the plot on the y-axis when the plot is empty
+                type: 'cluster'
+            )
 
             @.$('#cluster_status_container').html @cluster_status.render().el
-            @.$('#cluster_performance_panel_placeholder').html @cluster_performance.render()
-    
+            @.$('#cluster_performance_container').html @cluster_performance.render().el
+            @.$('.recent-log-entries-container').html @logs.render().el
+
+            return @
+
         destroy: =>
             @cluster_status.destroy()
             @cluster_performance.destroy()
 
+    # TODO: dropped RAM and disk distribution in the templates, need to remove support for them here as well
     class @ClusterStatus extends Backbone.View
-        className: 'dashboard-view'
         template: Handlebars.compile $('#cluster_status-template').html()
+        className: 'cluster-status'
 
         events:
             'click a[rel=dashboard_details]': 'show_popover'
@@ -52,6 +63,22 @@ module 'DashboardView', ->
 
             @render()
 
+        render: =>
+            log_render '(rendering) cluster status view'
+
+            @.$el.html @template(@compute_status())
+            @.$('a[rel=dashboard_details]').popover
+                trigger: 'manual'
+            @.delegateEvents()
+
+            return @
+
+        destroy: ->
+            issues.off 'all', @render
+            issues_redundancy.off 'all', @render # when issues_redundancy is reset
+            machines.off 'stats_updated', @render # when the stats of the machines are updated
+            directory.off 'all', @render
+            namespaces.off 'all', @render
 
         # We could create a model to create issues because of Disk/RAM
         threshold_disk: 0.9
@@ -189,41 +216,57 @@ module 'DashboardView', ->
                 status.num_machines_with_ram_problems = status.machines_with_ram_problems.length
             status.threshold_ram = Math.floor(@threshold_ram*100)
 
+            return status
 
-            status
-
-        render: =>
-            log_render '(rendering) cluster status view'
-
-            @.$el.html @template(@compute_status())
-            @.$('a[rel=dashboard_details]').popover
-                trigger: 'manual'
-            @.delegateEvents()
-            return @
-
-
-        destroy: ->
-            issues.off 'all', @render
-            issues_redundancy.off 'all', @render # when issues_redundancy is reset
-            machines.off 'stats_updated', @render # when the stats of the machines are updated
-            directory.off 'all', @render
-            namespaces.off 'all', @render
-
-
-    class @ClusterPerformance extends Backbone.View
-        className: 'dashboard-view'
-        template: Handlebars.compile $('#cluster_performance-template').html()
-
+    class @Logs extends Backbone.View
+        className: 'recent-log-entries'
+        tagName: 'ul'
+        min_timestamp: 0
+        max_entry_logs: 5
+        interval_update_log: 10000
 
         initialize: ->
-            log_initial '(initializing) cluster performance view'
-            $('#cluster_performance_container').html @template({})
-            @perf_panel = new Vis.PerformancePanel(computed_cluster.get_stats)
-            @render()
+            @fetch_log()
+            @set_interval = setInterval @fetch_log, @interval_update_log
+            @log_entries = []
+
+        fetch_log: =>
+            $.ajax({
+                contentType: 'application/json'
+                url: '/ajax/log/_?max_length='+@max_entry_logs+'&min_timestamp='+@min_timestamp
+                dataType: 'json'
+                success: @set_log_entries
+            })
+
+        set_log_entries: (response) =>
+            need_render = false
+            for machine_id, data of response
+                for new_log_entry in data
+                    for old_log_entry, i in @log_entries
+                        if parseFloat(new_log_entry.timestamp) > parseFloat(old_log_entry.get('timestamp'))
+                            entry = new LogEntry new_log_entry
+                            entry.set('machine_uuid', machine_id)
+                            @log_entries.splice i, 0, entry
+                            need_render = true
+                            break
+
+                    if @log_entries.length < @max_entry_logs
+                        entry = new LogEntry new_log_entry
+                        entry.set('machine_uuid', machine_id)
+                        @log_entries.push entry
+                        need_render = true
+                    else if @log_entries.length > @max_entry_logs
+                        @log_entries.pop()
+
+            if need_render
+                @render()
+
+            @min_timestamp = parseFloat(@log_entries[0].get('timestamp'))+1
 
         render: =>
-            log_render '(rendering) cluster_performance view'
-            return @perf_panel.render().$el
+            @.$el.html ''
+            for log in @log_entries
+                view = new LogView.LogEntry model: log
+                @.$el.append view.render_small().$el
+            return @
 
-        destroy: =>
-            @perf_panel.destroy()

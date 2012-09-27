@@ -146,7 +146,6 @@ class Namespace extends Backbone.Model
                             __s.keys_set += keys_set
         return __s
 
-
     get_stats_for_performance: =>
         # Ops/sec stats
         __s =

@@ -1,39 +1,24 @@
-<script id="performance_panel-template" type="text/x-handlebars-template">
-    <div class="two-panel-section-no-border">
-        <div class="panel-left">
-            <h2 class="title">Cluster performance</h2>
-            <div class="ops_plot_placeholder"></div>
-        </div>
-        <div class="panel-right stats_placeholder"></div>
-      </div>
-    </div>
-</script>
-
 <script id="ops_plot-template" type="text/x-handlebars-template">
-    <div id="ops_plot_container">
+    <div class="legend-container"></div>
+    <h2 class="title">
+        {{#if cluster}}Cluster performance{{/if}}
+        {{#if datacenter}}Datacenter performance{{/if}}
+        {{#if server}}Server performance{{/if}}
+        {{#if database}}Database performance{{/if}}
+        {{#if table}}Table performance{{/if}}
+    </h2>
+    <div class="plot-container">
+        <div class="plot"></div>
     </div>
 </script>
 
 <script id="ops_plot_legend-template" type="text/x-handlebars-template">
-    <div class="legend">
-        <table class="legend-table">
-            <tr>
-                <td class="reads"><div class="color"></div> Reads/sec: {{read_count}}</td>
-                <td class="writes"><div class="color"></div> Writes/sec: {{write_count}}</td>
-            </tr>
-        </table>
+    <div class="element reads">
+        <div class="outer-circle"><div class="color"></div></div>
+        <p>Reads/sec: {{read_count}}</p>
     </div>
-</script>
-
-
-<script id="more_stats-template" type="text/x-handlebars-template">
-    <h2 class="title">More Information</h2>
-    <p>RethinkDB version: 1.2</p>
-    <p>This cluster contains:</p>
-    <ul>
-    <li>{{num_datacenters}} {{pluralize_noun "datacenter" num_datacenters}}</li>
-    <li>{{num_servers}} {{pluralize_noun "server" num_servers}}</li>   
-    <li>{{num_databases}} {{pluralize_noun "database" num_databases}}</li>
-    <li>{{num_namespaces}} {{pluralize_noun "table" num_namespaces}}</li>
-</ul>
+    <div class="element writes">
+        <div class="outer-circle"><div class="color"></div></div>
+        <p>Writes/sec: {{write_count}} </p>
+    </div>
 </script>

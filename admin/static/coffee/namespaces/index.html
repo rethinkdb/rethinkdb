@@ -1,82 +1,79 @@
 <script id="database_list-template" type="text/x-handlebars-template">
-    <h1>Tables in the cluster</h1>
-    <div id="user-alert-space"></div>
-    <div class="actions-bar">
-        <input type="button" class="btn add-database" value="Add database" />
-        <input type="button" class="btn add-namespace" value="Add table" />
-        <input type="button" class="btn for-multiple-elements remove-namespace" value="Remove selected tables" disabled="disabled" />
+    <div id="table-list">
+        <div class="actions-bar">
+            <input type="button" class="btn add-database" value="+ Add Database" />
+            <input type="button" class="btn add-namespace" value="+ Add Table" />
+            <input type="button" class="btn for-multiple-elements remove-namespace" value="&ndash; Remove selected tables" disabled="disabled" />
+        </div>
+        <h1 class="title">Tables in the cluster</h1>
+        <div id="user-alert-space"></div>
         <div class="user_alert_space-cannot_create_namespace"></div>
+        <div class="collapsible-list"></div>
     </div>
-    <div class="collapsible-list"></div>
-</script>
-
-<script id="namespace_list-template" type="text/x-handlebars-template">
-    <tbody class="list">
-    </tbody>
 </script>
 
 <script id="database_list_element-template" type="text/x-handlebars-template">
-    <div class="header_container">
-        <div class="expanded arrow"></div>
-        <div class="database summary"></div>
+    <div class="section">
+        <div class="header_container">
+            <div class="database summary"></div>
+        </div>
+        <div class="element-list-container"></div>
     </div>
-
-    <div class="element-list-container"></div>
-</script>
-
-<script id="namespace_list_element-template" type="text/x-handlebars-template">
-    <td class="checkbox-container">
-        <input type="checkbox"></input>
-    </td>
-    <td class="element-detail-container">
-        <span class="status">{{humanize_namespace_reachability reachability}}</span>
-            <div class="label label-namespace">Table</div>
-            <span class="name">    
-                <a href="#tables/{{id}}">{{name}}</a>
-            </span>
-            <p class="quick_info">
-            {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "server" nmachines}}, replication: {{> backfill_progress_summary}}
-            </p>
-    </td>
 </script>
 
 <script id="database_list_element-summary-template" type="text/x-handlebars-template">
     <div class="element-type">Database</div>
-    <h3 class="name">
-        <a href="#databases/{{id}}">{{name}}</a>
-    </h3>
-    <a href="#" class="delete_database-link" data-id={{id}}>Delete</a>
+    <h3 class="name"><a href="#databases/{{id}}">{{name}}</a></h3>
+    <div class="buttons">
+        <a href="#" class="btn hide-tables expanded collapse-control" data-expanded="&ndash; Hide Tables" data-collapsed="+ Show Tables">&ndash; Hide Tables</a>
+        <a href="#" class="btn remove-database" data-id={{id}}>X</a>
+    </div>
 </script>
 
+<script id="namespace_list-template" type="text/x-handlebars-template">
+    <div class="list"></div>
+</script>
+
+<script id="namespace_list_element-template" type="text/x-handlebars-template">
+    <div class="checkbox-container">
+        <input type="checkbox" id="checkbox_table_list_{{id}}"></input><label for="checkbox_table_list_{{id}}"></label>    
+    </div>
+    <div class="element-details">
+        <p class="name"><a href="#tables/{{id}}">{{name}}</a></p>
+        <p class="quick_info">
+            {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "server" nmachines}}, replication: {{> backfill_progress_summary}}
+        </p>
+        <div class="status">
+            {{humanize_namespace_reachability reachability}}
+        </span>
+    </div>
+</script>
 
 <script id="fail_rename_namespace-template" type="text/x-handlebars-template">
     Sorry, something went wrong. The table might not be up to date, please refresh.
 </script>
 
-
-
 <script id="add_database-modal-template" type="text/x-handlebars-template"> 
-  <div class="alert alert-error error_answer"></div>
-  <form class="form">
-    <fieldset>
-      <legend>Database details</legend>
-      <div class="clearfix">
-        <label for="name">Name</label>
-        <div class="input">
-          <input class="xlarge focus_new_name" name="name" size="30" type="text" />
-        </div>
-      </div>
-    </fieldset>
-  </form>
+    <div class="alert alert-error error_answer"></div>
+    <form class="form">
+        <fieldset>
+            <legend>Database details</legend>
+            <div class="clearfix">
+                <label for="name">Name</label>
+                <div class="input">
+                    <input class="xlarge focus_new_name" name="name" size="30" type="text" />
+                </div>
+            </div>
+        </fieldset>
+    </form>
 </script>
 
 <script id="added_database-alert-template" type="text/x-handlebars-template">
-  <div class="alert" data-alert="alert">
-    <a class="close" href="#">&times;</a>
-    <p>You successfully added database <span class="name">{{name}}</span>.</p>
-  </div>
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>You successfully added database <span class="name">{{name}}</span>.</p>
+    </div>
 </script>
-
 
 <script id="add_namespace-modal-template" type="text/x-handlebars-template">
     <div class="alert alert-error error_answer"></div>
@@ -110,33 +107,32 @@
             <label for="name">Cache size in MB</label>
             <input class="xlarge" name="cache_size" size="30" type="text" placeholder="1024"/>
         </div>
-
     </form>
 </script>
 
 <script id="added_namespace-alert-template" type="text/x-handlebars-template">
-  <div class="alert" data-alert="alert">
-    <a class="close" href="#">&times;</a>
-    <p>You added table <span class="name">{{name}}</span>. You can now <a href="#tables/{{uuid}}">configure</a> it further.</p>
-  </div>
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>You added table <span class="name">{{name}}</span>. You can now <a href="#tables/{{uuid}}">configure</a> it further.</p>
+    </div>
 </script>
 
 <script id="remove_namespace-modal-template" type="text/x-handlebars-template">
-  <div class="alert alert-error">Removing the table will delete all the data. This action cannot be reversed.</div>
-  <div class="alert alert-error error_answer"></div>
-  <h4>Are you sure you want to remove {{#if namespaces_length_is_one}}this{{else}}these{{/if}} tables:</h4>
-  <ul class="namespace-list">
-    {{#each namespaces}}
-    <li><a href="#tables/{{id}}">{{name}}</a></li>
-    {{/each}}
-  </ul>
+    <div class="alert alert-error">Removing the table will delete all the data. This action cannot be reversed.</div>
+    <div class="alert alert-error error_answer"></div>
+    <h4>Are you sure you want to remove {{#if namespaces_length_is_one}}this{{else}}these{{/if}} tables:</h4>
+    <ul class="namespace-list">
+        {{#each namespaces}}
+        <li><a href="#tables/{{id}}">{{name}}</a></li>
+        {{/each}}
+    </ul>
 </script>
 
 <script id="removed_namespace-alert-template" type="text/x-handlebars-template">
-  <div class="alert" data-alert="alert">
-    <a class="close" href="#">&times;</a>
-    <p>You removed table <span class="name">{{comma_separated_simple deleted_namespaces}}</span>.</p>
-  </div>
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>You removed table <span class="name">{{comma_separated_simple deleted_namespaces}}</span>.</p>
+    </div>
 </script>
 
 <script id="error_adding_namespace-template" type="text/x-handlebars-template">
@@ -149,6 +145,6 @@
         You need to create a database before creating a new table. <a href="#" class="add-database">Create one</a>.
         {{/if}}   
         {{#if need_something}}</p>{{/if}}
-  </div>
+    </div>
 </script>
 
