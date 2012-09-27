@@ -36,39 +36,35 @@ static bool is_satisfiable(
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &replica_affinities,
         const std::map<datacenter_id_t, int> &actual_machines_in_datacenters) {
-    int extra_machines = 0;
-    for (std::map<datacenter_id_t, int>::const_iterator it = replica_affinities.begin(); it != replica_affinities.end(); ++it) {
-        int need = it->second;
-        if (it->first == primary_datacenter) {
-            need++;
+    std::map<datacenter_id_t, int> machines_needed_in_dc = replica_affinities;
+    get_with_default(machines_needed_in_dc, primary_datacenter, 0)++;
+
+    std::map<datacenter_id_t, int> unused_machines_in_dc = actual_machines_in_datacenters;
+
+    for (std::map<datacenter_id_t, int>::iterator it  = machines_needed_in_dc.begin();
+                                                  it != machines_needed_in_dc.end();
+                                                  ++it) {
+        if (it->first == nil_uuid()) {
+            continue;
         }
-        std::map<datacenter_id_t, int>::const_iterator jt = actual_machines_in_datacenters.find(it->first);
-        if (jt == actual_machines_in_datacenters.end() || jt->second < need) {
-            debugf("Not enough secondaries for %s\n", uuid_to_str(it->first).c_str());
+        if (!std_contains(unused_machines_in_dc, it->first) || unused_machines_in_dc[it->first] < it->second) {
             return false;
         } else {
-            extra_machines += need - jt->second;
+            unused_machines_in_dc[it->first] -= it->second;
         }
     }
 
-    for (std::map<datacenter_id_t, int>::const_iterator it = actual_machines_in_datacenters.begin(); it != actual_machines_in_datacenters.end(); ++it) {
-        if (!std_contains(replica_affinities, it->first)) {
-            extra_machines += it->second;
-        }
+    int extra_machines = 0;
+    for (std::map<datacenter_id_t, int>::iterator it  = unused_machines_in_dc.begin();
+                                                  it != unused_machines_in_dc.end();
+                                                  ++it) {
+        extra_machines += it->second;
     }
 
-    if (primary_datacenter.is_nil()) {
-        if (extra_machines == 0) {
-            debugf("No extra machines\n");
-            return false;
-        }
-    } else if (replica_affinities.find(primary_datacenter) == replica_affinities.end()) {
-        std::map<datacenter_id_t, int>::const_iterator jt = actual_machines_in_datacenters.find(primary_datacenter);
-        if (jt == actual_machines_in_datacenters.end() || jt->second < 1) {
-            debugf("No space in primary datacenter\n");
-            return false;
-        }
+    if (extra_machines < machines_needed_in_dc[nil_uuid()]) {
+        return false;
     }
+
     return true;
 }
 
