@@ -49,6 +49,7 @@ public:
     // A way for the parser to do completions and parsing verification
     std::vector<std::string> get_ids(const std::string& base);
     std::vector<std::string> get_machine_ids(const std::string& base);
+    std::vector<std::string> get_database_ids(const std::string& base);
     std::vector<std::string> get_namespace_ids(const std::string& base);
     std::vector<std::string> get_datacenter_ids(const std::string& base);
     std::vector<std::string> get_conflicted_ids(const std::string& base);
@@ -61,6 +62,7 @@ public:
     void do_admin_list_directory(const admin_command_parser_t::command_data& data);
     void do_admin_list_tables(const admin_command_parser_t::command_data& data);
     void do_admin_list_datacenters(const admin_command_parser_t::command_data& data);
+    void do_admin_list_databases(const admin_command_parser_t::command_data& data);
     void do_admin_resolve(const admin_command_parser_t::command_data& data);
     void do_admin_pin_shard(const admin_command_parser_t::command_data& data);
     void do_admin_split_shard(const admin_command_parser_t::command_data& data);
@@ -70,11 +72,14 @@ public:
     void do_admin_set_replicas(const admin_command_parser_t::command_data& data);
     void do_admin_set_primary(const admin_command_parser_t::command_data& data);
     void do_admin_set_datacenter(const admin_command_parser_t::command_data& data);
+    void do_admin_set_database(const admin_command_parser_t::command_data& data);
     void do_admin_create_datacenter(const admin_command_parser_t::command_data& data);
+    void do_admin_create_database(const admin_command_parser_t::command_data& data);
     void do_admin_create_table(const admin_command_parser_t::command_data& data);
     void do_admin_remove_machine(const admin_command_parser_t::command_data& data);
     void do_admin_remove_table(const admin_command_parser_t::command_data& data);
     void do_admin_remove_datacenter(const admin_command_parser_t::command_data& data);
+    void do_admin_remove_database(const admin_command_parser_t::command_data& data);
 
     void sync_from();
 
@@ -138,9 +143,15 @@ private:
 
     template <class protocol_t>
     namespace_id_t do_admin_create_table_internal(const std::string& name,
-                                                      int port,
-                                                      const datacenter_id_t& primary,
-                                                      namespaces_semilattice_metadata_t<protocol_t> *ns);
+                                                  int port,
+                                                  const datacenter_id_t& primary,
+                                                  const database_id_t& database,
+                                                  namespaces_semilattice_metadata_t<protocol_t> *ns);
+
+    template <class obj_map>
+    void do_admin_set_database_table(const namespace_id_t table_uuid,
+                                     const database_id_t db,
+                                     obj_map *metadata);
 
     template <class obj_map>
     void do_admin_set_datacenter_namespace(const uuid_t obj_uuid,
@@ -151,6 +162,12 @@ private:
                                          const datacenter_id_t dc,
                                          machines_semilattice_metadata_t::machine_map_t *metadata,
                                          cluster_semilattice_metadata_t *cluster_metadata);
+
+    void remove_database_tables(const database_id_t& database, cluster_semilattice_metadata_t *cluster_metadata);
+
+    template <class protocol_t>
+    void remove_database_tables_internal(const database_id_t& database,
+                                         std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > *ns_map);
 
     void remove_datacenter_references(const datacenter_id_t& datacenter, cluster_semilattice_metadata_t *cluster_metadata);
 
@@ -218,12 +235,13 @@ private:
     std::map<machine_id_t, machine_info_t> build_machine_info(const cluster_semilattice_metadata_t& cluster_metadata);
 
     struct namespace_info_t {
-        namespace_info_t() : shards(0), replicas(0), primary() { }
+        namespace_info_t() : shards(0), replicas(0), primary(), database() { }
 
         // These may be set to -1 in the case of a conflict
         int shards;
         int replicas;
         std::string primary;
+        std::string database;
     };
 
     template <class ns_type>
@@ -246,6 +264,20 @@ private:
     template <class map_type>
     void add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t> *results);
 
+    struct database_info_t {
+        database_info_t() : tables(0) { }
+        size_t tables;
+    };
+
+    std::map<database_id_t, database_info_t> build_database_info(const cluster_semilattice_metadata_t& cluster_metadata);
+
+    template <class map_type>
+    void add_database_tables(const map_type& ns_map, std::map<database_id_t, database_info_t> *results);
+
+    void list_single_database(const database_id_t& db_id,
+                              const database_semilattice_metadata_t& db,
+                              const cluster_semilattice_metadata_t& cluster_metadata);
+
     void list_single_datacenter(const datacenter_id_t& dc_id,
                                 const datacenter_semilattice_metadata_t& dc,
                                 const cluster_semilattice_metadata_t& cluster_metadata);
@@ -259,6 +291,12 @@ private:
                                const namespace_semilattice_metadata_t<protocol_t>& ns,
                                const cluster_semilattice_metadata_t& cluster_metadata,
                                const std::string& protocol);
+
+    template <class map_type>
+    void add_single_database_affinities(const datacenter_id_t& db_id,
+                                        const map_type& ns_map,
+                                        const std::string& protocol,
+                                        std::vector<std::vector<std::string> > *table);
 
     template <class map_type>
     void add_single_datacenter_affinities(const datacenter_id_t& dc_id,
@@ -292,6 +330,9 @@ private:
 
     void resolve_datacenter_value(datacenter_semilattice_metadata_t *dc,
                                   const std::string& field);
+
+    void resolve_database_value(database_semilattice_metadata_t *db,
+                                const std::string& field);
 
     template <class protocol_t>
     void resolve_namespace_value(namespace_semilattice_metadata_t<protocol_t> *ns,
