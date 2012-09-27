@@ -130,7 +130,8 @@ rethinkdb.Connection.prototype.run_ = function(options) {
         'callback':function(){},
         'iterate':false,
         'doneCallback':function(){},
-        'allowOutdated':false
+        'allowOutdated':false,
+        'onError':null
     };
     goog.object.extend(opts, options);
 
@@ -150,6 +151,7 @@ rethinkdb.Connection.prototype.run_ = function(options) {
         query: opts['expr'], // Save origional ast for backtrace reconstructions
         iterate : opts['iterate'],
         done: opts['doneCallback'],
+        onError: opts['onError'],
         partial : []
     };
 
@@ -285,13 +287,20 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
 
         switch(responseStatus) {
         case Response.StatusCode.BROKEN_CLIENT:
-            this.error_(new rethinkdb.errors.BrokenClient(response.getErrorMessage()));
+            var error = new rethinkdb.errors.BrokenClient(response.getErrorMessage())
+            if (request.onError) request.onError(error);
+            else this.error_(error);
             break;
         case Response.StatusCode.RUNTIME_ERROR:
-            this.error_(new rethinkdb.errors.RuntimeError(formatServerError_(response, request.query)));
+            var error =
+                new rethinkdb.errors.RuntimeError(formatServerError_(response, request.query));
+            if (request.onError) request.onError(error);
+            else this.error_(error);
             break;
         case Response.StatusCode.BAD_QUERY:
-            this.error_(new rethinkdb.errors.BadQuery(response.getErrorMessage()));
+            var error = new rethinkdb.errors.BadQuery(response.getErrorMessage());
+            if (request.onError) request.onError(error);
+            else this.error_(error);
             break;
         case Response.StatusCode.SUCCESS_EMPTY:
             delete this.outstandingQueries_[response.getToken()]
@@ -347,7 +356,9 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
             }
             break;
         default:
-            this.error_(new rethinkdb.errors.ClientError("unknown response status code"));
+            var error = new rethinkdb.errors.ClientError("unknown response status code");
+            if (request.onError) request.onError(error);
+            else this.error_(error);
             break;
         }
     } // else no matching request
