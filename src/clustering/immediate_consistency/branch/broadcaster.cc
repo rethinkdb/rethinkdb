@@ -4,6 +4,7 @@
 #include <boost/make_shared.hpp>
 
 #include "concurrency/coro_fifo.hpp"
+#include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
