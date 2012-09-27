@@ -1,12 +1,12 @@
 <script id="log-container-template" type="text/x-handlebars-template">
-    <div class="header">
-        <h1>Log entries <small>
-    </div>
-    <div class="expand_all"><a href="#" class="expand_all_link">Show all details</a></div>
-    <ul class="log-entries"></ul>
-    <div class="any-more-log-entries">
-        <div class="no-more-entries">No more log entries to show</div>
-        <p><a href="#" class='next-log-entries'>Older log entries &raquo;</a></p>
+    <div id="log-view" class="section">
+        <div class="header"><h2 class="title">Log entries</h2></div>
+        <div class="expand_all"><a href="#" class="expand_all_link">Show all details</a></div>
+        <ul class="log-entries"></ul>
+        <div class="any-more-log-entries">
+            <div class="no-more-entries">No more log entries to show</div>
+            <p><a href="#" class='next-log-entries'>Older log entries &raquo;</a></p>
+        </div>
     </div>
 </script>
 
@@ -14,7 +14,7 @@
     {{#if from_date}}
         <h1>Log entries <small>from {{from_date}} to {{to_date}}</small></h1>
     {{else}}
-        <h1>No log found</h1>
+        <h1>No logs found</h1>
     {{/if}}
 
     {{#if new_entries}}
@@ -138,16 +138,16 @@
 </script>
 
 <script id="log-new_namespace-template" type="text/x-handlebars-template">
-    Create a new table {{namespace_name}} with primary datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a> on port {{port}}}<br/>
+    Created a new table {{namespace_name}} with primary datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a> on port {{port}}}<br/>
 </script>
 <script id="log-new_datacenter-template" type="text/x-handlebars-template">
-    Create a new datacenter {{datacenter_name}}<br/>
+    Created a new datacenter {{datacenter_name}}<br/>
 </script>
 <script id="log-new_database-template" type="text/x-handlebars-template">
-    Create a new database {{database_name}}<br/>
+    Created a new database {{database_name}}<br/>
 </script>
 <script id="log-delete_something-template" type="text/x-handlebars-template">
-    Delete {{type}} {{id}}<br/>
+    Deleted {{type}} {{id}}<br/>
 </script>
 
 <script id="log-server-new_name-template" type="text/x-handlebars-template">
@@ -178,21 +178,21 @@
 </script>
 
 <script id="log-namespace_value-small_template" type="text/x-handlebars-template">
-    Change table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}}<br/>
+    Changed table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>'s {{attribute}}<br/>
 </script>
 
 <script id="log-new_something-small_template" type="text/x-handlebars-template">
-    Create a new {{type}} {{namespace_name}}<br/>
+    Created a new {{type}} {{namespace_name}}<br/>
 </script>
 
 
 <script id="log-machine_value-small_template" type="text/x-handlebars-template">
-    Change server <a href="#servers/{{machine_id}}">{{machine_name}}</a>'s {{attribute}}<br/>
+    Changed server <a href="#servers/{{machine_id}}">{{machine_name}}</a>'s {{attribute}}<br/>
 </script>
 
 <script id="log-datacenter_value-small_template" type="text/x-handlebars-template">
-    Change datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>'s {{attribute}}<br/>
+    Changed datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>'s {{attribute}}<br/>
 </script>
 <script id="log-database_value-small_template" type="text/x-handlebars-template">
-    Change database <a href="#databases/{{database_id}}">{{database_name}}</a>'s {{attribute}}<br/>
+    Changed database <a href="#databases/{{database_id}}">{{database_name}}</a>'s {{attribute}}<br/>
 </script>

@@ -179,7 +179,7 @@ module 'UIComponents', ->
     # Abstract list element that allows collapsing the item
     class @CollapsibleListElement extends Backbone.View
         events: ->
-            'click .arrow': 'toggle_showing'
+            'click .collapse-control': 'toggle_showing'
             'click a': 'link_clicked'
 
         initialize: ->
@@ -193,9 +193,10 @@ module 'UIComponents', ->
             # Prevents collapsing when we click a link.
             event.stopPropagation()
 
-        toggle_showing: =>
+        toggle_showing: (event) =>
             @showing = not @showing
             @show()
+            event.preventDefault()
 
         show: =>
             @.$('.element-list-container').toggle @showing
@@ -205,12 +206,19 @@ module 'UIComponents', ->
             @.$('.element-list-container').slideToggle @showing
             @swap_divs()
 
-        swap_divs: =>
-            $arrow = @.$('.arrow.collapsed, .arrow.expanded')
 
-            for div in [$arrow]
+        # - Swaps the div that controls the collapsed/expanded state with its
+        #   alternate class / appearance
+        # - Also swaps the text depending on state using the 'data-collapsed' and
+        #   'data-expanded' attributes of the control
+        swap_divs: =>
+            $control = @.$('.collapse-control.collapsed, .collapse-control.expanded')
+
+            for div in [$control]
                 if @showing
                     div.removeClass('collapsed').addClass('expanded')
+                    div.text(div.data 'expanded')
                 else
                     div.removeClass('expanded').addClass('collapsed')
+                    div.text(div.data 'collapsed')
 

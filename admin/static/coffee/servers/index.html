@@ -15,7 +15,6 @@
 <script id="datacenter_list_element-template" type="text/x-handlebars-template">
     <div class="section">
         <div class="header_container">
-            <div class="expanded arrow"></div>
             <div class="datacenter summary"></div>
         </div>
         <div class="element-list-container"></div>
@@ -28,7 +27,7 @@
         <a href="#datacenters/{{id}}">{{name}}</a>
     </h3>
     <div class="buttons">
-        <a href="#" class="btn hide-servers">&ndash; Hide Servers</a>
+        <a href="#" class="btn hide-servers expanded collapse-control" data-expanded="&ndash; Hide Servers" data-collapsed="+ Show Servers">&ndash; Hide Servers</a>
         <a href="#" class="btn remove-datacenter">X</a>
     </div>
 </script>
@@ -37,9 +36,12 @@
     {{# unless no_machines}}
     <div class="section">
         <div class="header_container">
-            <div class="expanded arrow"></div>
             <div class="datacenter summary">
-                <div class="element-type">Unasssigned servers</div>
+                <h3 class="name">Unassigned servers</h3>
+                </h3>
+                <div class="buttons">
+                    <a href="#" class="btn hide-servers expanded collapse-control" data-expanded="&ndash; Hide Servers" data-collapsed="+ Show Servers">&ndash; Hide Servers</a>
+                </div>
             </div>
         </div>
         <div class="element-list-container"></div>

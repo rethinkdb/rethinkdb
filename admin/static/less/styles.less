@@ -10,10 +10,12 @@
 @import "bootstrap/grid.less";
 @import "bootstrap/layouts.less";
 
-// Components: Popovers
+// Components
 @import "bootstrap/modals.less";
 @import "bootstrap/tooltip.less";
 @import "bootstrap/popovers.less";
+@import "bootstrap/dropdowns.less";
+@import "bootstrap/forms.less";
 
 // Utility classes
 @import "bootstrap/utilities.less"; // Has to be last to override when necessary
@@ -469,7 +471,6 @@ body:before {
                     margin: 0;
                     a { color: #61666e; }
                 }
-
                 .buttons {
                     float: right;
                     margin-top: -2px;
@@ -564,6 +565,40 @@ body:before {
                     }
                 }
 
+            }
+        }
+    }
+}
+
+
+/*
+    ----------------------------
+    Log view
+    ----------------------------
+*/
+
+#log-view {
+    ul.log-entries {
+        list-style-type: none;
+        padding-left: 0;
+
+        li.log-entry {
+            color: #4d535c;
+            border-top: thin solid #f0f0f0;
+            background: left center no-repeat url('https://dl.dropbox.com/s/aintt5c3jlkd495/pencil_icon.png');
+            padding: 20px 0 20px 55px;
+            p { margin: 0; }
+            .message { font-size: 16px; }
+            .from-machine {
+                font-style: italic;
+                font-family: @sans;
+                margin-top: 5px;
+                font-size: 13px;
+            }
+            .datetime {
+                background: left center no-repeat url('https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png');
+                text-align: right;
+                color: #c4c4c4;
             }
         }
     }

@@ -52,7 +52,6 @@ module 'Vis', ->
 
         # default options for the plot template
         type: 'cluster'
-        bigplot: false
 
 
         # default options for the plot itself
@@ -108,8 +107,6 @@ module 'Vis', ->
         #       * type: the type of plot (used to determine the title
         #           of the plot). valid values include 'cluster',
         #           'datacenter', 'server', 'database', and 'table'
-        #       * bigplot: boolean, whether this plot should fit the
-        #           full width of the page or half
         initialize: (_stats_fn, options) ->
             log_initial '(initializing) ops plot'
 
@@ -127,7 +124,6 @@ module 'Vis', ->
                     @VAXIS_TICK_SUBDIVISION_COUNT =  options.vaxis.num_ticks        if options.vaxis.num_ticks?
                     @VAXIS_MINOR_SUBDIVISION_COUNT = options.vaxis.ticks_per_label  if options.vaxis.ticks_per_label?
                 @type =     options.type    if options.type?
-                @bigplot =  options.bigplot if options.bigplot?
 
             super
             # Set up cubism context
