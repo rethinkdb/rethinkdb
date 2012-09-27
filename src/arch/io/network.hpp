@@ -246,8 +246,7 @@ private:
         auto_drainer_t::lock_t keepalive;
     };
 
-    class write_handler_t :
-        public coro_pool_t<write_queue_op_t*>::callback_t {
+    class write_handler_t : public coro_pool_callback_t<write_queue_op_t*> {
     public:
         explicit write_handler_t(linux_tcp_conn_t *parent_);
     private:

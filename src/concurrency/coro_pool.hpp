@@ -13,15 +13,17 @@ distributes them among the coroutines. It draws its tasks from a
 `passive_producer_t`. */
 
 template <class T>
+class coro_pool_callback_t {
+public:
+    virtual ~coro_pool_callback_t() { }
+    virtual void coro_pool_callback(T, signal_t *) = 0;
+};
+
+
+template <class T>
 class coro_pool_t : private availability_callback_t, public home_thread_mixin_t {
 public:
-    class callback_t {
-    public:
-        virtual ~callback_t() { }
-        virtual void coro_pool_callback(T, signal_t *) = 0;
-    };
-
-    class boost_function_callback_t : public callback_t {
+    class boost_function_callback_t : public coro_pool_callback_t<T> {
     public:
         explicit boost_function_callback_t(boost::function<void(T, signal_t *)> _f)
             : f(_f)
@@ -33,7 +35,7 @@ public:
         boost::function<void(T, signal_t *)> f;
     };
 
-    coro_pool_t(size_t _worker_count, passive_producer_t<T> *_source, callback_t *_callback)
+    coro_pool_t(size_t _worker_count, passive_producer_t<T> *_source, coro_pool_callback_t<T> *_callback)
         : max_worker_count(_worker_count),
           active_worker_count(0),
           source(_source),
@@ -87,11 +89,11 @@ private:
 
     int max_worker_count, active_worker_count;
     passive_producer_t<T> *source;
-    callback_t *callback;
+    coro_pool_callback_t<T> *callback;
     auto_drainer_t coro_drain_semaphore;
 };
 
-class calling_callback_t : public coro_pool_t<boost::function<void()> >::callback_t {
+class calling_callback_t : public coro_pool_callback_t<boost::function<void()> > {
 public:
     void coro_pool_callback(boost::function<void()> f, UNUSED signal_t *interruptor) {
         f();
