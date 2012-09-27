@@ -77,12 +77,12 @@ ip_address_t::ip_address_t(const std::string &host) {
         guarantee(fd != -1);
         struct if_nameindex *ifs = if_nameindex(); //ALLOC 2
         guarantee(ifs);
-        for (struct if_nameindex *it = ifs; it && it->if_name; ++it) {
+        for (struct if_nameindex *it = ifs; it->if_name; ++it) {
             struct ifreq req;
             strncpy(req.ifr_name, it->if_name, IFNAMSIZ);
             if (req.ifr_name[IFNAMSIZ-1] != 0) { // make sure the strncpy didn't truncate
                 req.ifr_name[IFNAMSIZ-1] = 0;
-                guarantee(strlen(req.ifr_name) < IFNAMSIZ);
+                guarantee(strlen(req.ifr_name) < (IFNAMSIZ-1));
             }
             res = ioctl(fd, SIOCGIFADDR, &req); //SIOCGIFADDR : Socket IO Control Get InterFace ADDRess (I think?)
             guarantee(res >= 0);
