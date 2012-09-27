@@ -226,7 +226,7 @@ function testJS() {
 
 function testBetween() {
     tab.between(2,3).count().run(aeq(2));
-    tab.between(2,2).nth(0).run(objeq({
+    tab.between(2,3).orderby('id').nth(0).run(objeq({
         id:2,
         num:18
     }));

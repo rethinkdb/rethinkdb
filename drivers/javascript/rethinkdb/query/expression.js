@@ -354,6 +354,9 @@ goog.inherits(rethinkdb.JSFunctionExpression, rethinkdb.FunctionExpression);
 
 rethinkdb.JSFunctionExpression.parseRegexp_ = /function [^(]*\(([^)]*)\) *{([^]*)}/m;
 
+// hack for uniquily generated symbols for function arguments
+var _unique_counter = 0;
+
 /**
  * Not exported in favor of js function syntax. Still used internally though.
  *
@@ -374,7 +377,7 @@ rethinkdb.fn = function(var_args) {
 
         args = [];
         for (var i = 0; i < var_args.length; i++) {
-            args.push('arg'+args.length);
+            args.push('arg'+args.length+'_'+(_unique_counter++));
         }
 
         body = var_args.apply(null, args.map(function(argName) {
@@ -1592,6 +1595,57 @@ rethinkdb.Expression.prototype.forEach = function(fun) {
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'forEach',
                     rethinkdb.Expression.prototype.forEach);
+
+/**
+ * Eqi join
+ */
+rethinkdb.Expression.prototype.equiJoin = function(leftAttr, other, opt_rightAttr) {
+    return this.concatMap(function(row) {
+        return rethinkdb.let({'right': other.get(row(leftAttr))},
+            rethinkdb.ifThenElse(rethinkdb.letVar('right')['ne'](rethinkdb.expr(null)),
+                rethinkdb.expr([{'left':row, 'right':rethinkdb.letVar('right')}]),
+                rethinkdb.expr([])
+            )
+        );
+    });
+};
+goog.exportProperty(rethinkdb.Expression.prototype, 'equiJoin',
+                    rethinkdb.Expression.prototype.equiJoin);
+
+/**
+ * Inner join
+ */
+rethinkdb.Expression.prototype.innerJoin = function(other, predicate) {
+    return this.concatMap(function(row) {
+        return other.concatMap(function(row2) {
+            return rethinkdb.ifThenElse(predicate(row, row2),
+                rethinkdb.expr([{left:row, right:row2}]),
+                rethinkdb.expr([])
+            );
+        });
+    });
+};
+goog.exportProperty(rethinkdb.Expression.prototype, 'innerJoin',
+                    rethinkdb.Expression.prototype.innerJoin);
+
+/**
+ * Outer join
+ */
+rethinkdb.Expression.prototype.outerJoin = function(other, predicate) {
+    return this.concatMap(function(row) {
+        return rethinkdb.let({matches: other.concatMap(function(row2) {
+            return rethinkdb.ifThenElse(predicate(row, row2),
+                rethinkdb.expr({left: row, right:row2}),
+                rethinkdb.expr([])
+            );
+        })}, rethinkdb.ifThenElse(rethinkdb.letVar('matches').count()['gt'](0),
+            rethinkdb.letVar('matches'),
+            rethinkdb.expr({left:row})
+        ));
+    });
+};
+goog.exportProperty(rethinkdb.Expression.prototype, 'outerJoin',
+                    rethinkdb.Expression.prototype.outerJoin);
 
 /**
  * Convert a stream to an array.
