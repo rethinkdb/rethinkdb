@@ -52,8 +52,14 @@ class BackboneCluster extends Backbone.Router
         # TODO: add this back when we're ready to do it
         # $('.walkthrough-popup').html (new Walkthrough).render().el
 
+    set_stats_call: (url) =>
+        clearTimeout stats_param.timeout
+        if url isnt ''
+            stats_param.url = url
+            collect_stat_data()
+
     index_namespaces: (data) ->
-        log_router '/index_namespaces'
+        @set_stats_call ''
         clear_modals()
         @current_view.destroy()
         @current_view = new NamespaceView.DatabaseList
@@ -64,7 +70,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     index_servers: (data) ->
-        log_router '/index_servers'
+        @set_stats_call ''
         clear_modals()
         @current_view.destroy()
         @current_view = new ServerView.DatacenterList
@@ -75,7 +81,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     dashboard: ->
-        log_router '/dashboard'
+        @set_stats_call '/ajax/stat?filter=.*/serializers,proc,sys'
         clear_modals()
         @current_view.destroy()
         @current_view = new DashboardView.Container
@@ -83,6 +89,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     resolve_issues: ->
+        @set_stats_call ''
         log_router '/resolve_issues'
         clear_modals()
         @current_view.destroy()
@@ -91,6 +98,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     logs: ->
+        @set_stats_call ''
         log_router '/logs'
         clear_modals()
         @current_view.destroy()
@@ -99,6 +107,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     dataexplorer: ->
+        @set_stats_call ''
         log_router '/dataexplorer'
         clear_modals()
         @current_view.destroy()
@@ -108,6 +117,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view('dataexplorer')
 
     database: (id, tab) ->
+        @set_stats_call '/ajax/stat?filter=.*/serializers'
         log_router '/databases/' + id
         clear_modals()
         database = databases.get(id)
@@ -124,6 +134,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     namespace: (id, tab) ->
+        @set_stats_call '/ajax/stat?filter='+id+'/serializers'
         log_router '/namespaces/' + id
         clear_modals()
         namespace = namespaces.get(id)
@@ -145,6 +156,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     datacenter: (id, tab) ->
+        @set_stats_call '/ajax/stat?filter=.*/serializers,proc,sys'
         log_router '/datacenters/' + id
         clear_modals()
         datacenter = datacenters.get(id)
@@ -167,6 +179,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     server: (id, tab) ->
+        @set_stats_call '/ajax/stat?machine_whitelist='+id+'&filter=.*/serializers,proc,sys'
         log_router '/servers/' + id
         clear_modals()
         machine = machines.get(id)
