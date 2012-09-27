@@ -5,7 +5,8 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
 #include "rpc/connectivity/connectivity.hpp"
-#include "rpc/connectivity/messages.hpp"
+
+class message_service_t;
 
 template<class metadata_t>
 class directory_write_manager_t : private peers_list_callback_t {

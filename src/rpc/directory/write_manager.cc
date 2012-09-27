@@ -2,6 +2,8 @@
 
 #include <set>
 
+#include "rpc/connectivity/messages.hpp"
+
 template<class metadata_t>
 directory_write_manager_t<metadata_t>::directory_write_manager_t(
         message_service_t *sub,
