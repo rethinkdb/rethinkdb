@@ -18,8 +18,10 @@
 #include "clustering/administration/metadata_change_handler.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/semilattice/view.hpp"
+#include "rpc/directory/read_manager.hpp"
+#include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
+#include "rpc/semilattice/view.hpp"
 #include "memcached/protocol_json_adapter.hpp"
 #include "perfmon/perfmon.hpp"
 #include "perfmon/archive.hpp"
@@ -45,7 +47,7 @@ std::string admin_cluster_link_t::peer_id_to_machine_name(const std::string& pee
         if (peer == connectivity_cluster.get_me()) {
             result.assign("admin_cli");
         } else {
-            std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
+            std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
             std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.find(peer);
 
             if (i != directory.end()) {
@@ -217,18 +219,18 @@ admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins
     log_server(&mailbox_manager, &log_writer),
     mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager),
     semilattice_manager_client(&message_multiplexer, 'S'),
-    semilattice_manager_cluster(&semilattice_manager_client, cluster_semilattice_metadata_t()),
-    semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster),
-    semilattice_metadata(semilattice_manager_cluster.get_root_view()),
+    semilattice_manager_cluster(new semilattice_manager_t<cluster_semilattice_metadata_t>(&semilattice_manager_client, cluster_semilattice_metadata_t())),
+    semilattice_manager_client_run(&semilattice_manager_client, semilattice_manager_cluster.get()),
+    semilattice_metadata(semilattice_manager_cluster->get_root_view()),
     metadata_change_handler(&mailbox_manager, semilattice_metadata),
     directory_manager_client(&message_multiplexer, 'D'),
     our_directory_metadata(cluster_directory_metadata_t(connectivity_cluster.get_me().get_uuid(), get_ips(), stat_manager.get_address(), metadata_change_handler.get_request_mailbox_address(), log_server.get_business_card(), ADMIN_PEER)),
-    directory_read_manager(connectivity_cluster.get_connectivity_service()),
-    directory_write_manager(&directory_manager_client, our_directory_metadata.get_watchable()),
-    directory_manager_client_run(&directory_manager_client, &directory_read_manager),
+    directory_read_manager(new directory_read_manager_t<cluster_directory_metadata_t>(connectivity_cluster.get_connectivity_service())),
+    directory_write_manager(new directory_write_manager_t<cluster_directory_metadata_t>(&directory_manager_client, our_directory_metadata.get_watchable())),
+    directory_manager_client_run(&directory_manager_client, directory_read_manager.get()),
     message_multiplexer_run(&message_multiplexer),
     connectivity_cluster_run(&connectivity_cluster, 0, &message_multiplexer_run, client_port),
-    admin_tracker(semilattice_metadata, directory_read_manager.get_root_view()),
+    admin_tracker(semilattice_metadata, directory_read_manager->get_root_view()),
     initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000)
 {
     wait_interruptible(initial_joiner.get_ready_signal(), interruptor);
@@ -242,9 +244,9 @@ admin_cluster_link_t::~admin_cluster_link_t() {
 }
 
 metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t admin_cluster_link_t::choose_sync_peer() {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
+    const std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
 
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.begin(); i != directory.end(); ++i) {
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = directory.begin(); i != directory.end(); ++i) {
         if (i->second.peer_type == SERVER_PEER) {
             change_request_id = i->second.machine_id;
             sync_peer_id = i->first;
@@ -259,6 +261,7 @@ void admin_cluster_link_t::update_metadata_maps() {
 
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     add_subset_to_maps("machines", cluster_metadata.machines.machines);
+    add_subset_to_maps("databases", cluster_metadata.databases.databases);
     add_subset_to_maps("datacenters", cluster_metadata.datacenters.datacenters);
     add_subset_to_maps("rdb_namespaces", cluster_metadata.rdb_namespaces->namespaces);
     add_subset_to_maps("dummy_namespaces", cluster_metadata.dummy_namespaces->namespaces);
@@ -299,7 +302,7 @@ void admin_cluster_link_t::add_subset_to_maps(const std::string& base, const T& 
 void admin_cluster_link_t::sync_from() {
     try {
         cond_t interruptor;
-        std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
+        std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
 
         if (sync_peer_id.is_nil() || directory.count(sync_peer_id) == 0) {
             choose_sync_peer();
@@ -312,7 +315,7 @@ void admin_cluster_link_t::sync_from() {
         // No sync peer, continue on with old data
     }
 
-    semilattice_metadata = semilattice_manager_cluster.get_root_view();
+    semilattice_metadata = semilattice_manager_cluster->get_root_view();
     update_metadata_maps();
 }
 
@@ -357,6 +360,10 @@ std::vector<std::string> admin_cluster_link_t::get_namespace_ids(const std::stri
 
 std::vector<std::string> admin_cluster_link_t::get_datacenter_ids(const std::string& base) {
     return get_ids_internal(base, "datacenters");
+}
+
+std::vector<std::string> admin_cluster_link_t::get_database_ids(const std::string& base) {
+    return get_ids_internal(base, "databases");
 }
 
 std::vector<std::string> admin_cluster_link_t::get_conflicted_ids(const std::string& base) {
@@ -537,7 +544,7 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
         throw admin_cluster_exc_t("unexpected error, unrecognized table protocol");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -761,7 +768,7 @@ void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::co
         throw admin_cluster_exc_t("invalid object type");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -884,7 +891,7 @@ void admin_cluster_link_t::do_admin_merge_shard(const admin_command_parser_t::co
         throw admin_cluster_exc_t("invalid object type");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -1005,6 +1012,12 @@ void admin_cluster_link_t::do_admin_list(const admin_command_parser_t::command_d
                 throw admin_cluster_exc_t("object not found: " + obj_str);
             }
             list_single_datacenter(obj_id, i->second.get_mutable(), cluster_metadata);
+        } else if (info->path[0] == "databases") {
+            databases_semilattice_metadata_t::database_map_t::iterator i = cluster_metadata.databases.databases.find(obj_id);
+            if (i == cluster_metadata.databases.databases.end() || i->second.is_deleted()) {
+                throw admin_cluster_exc_t("object not found: " + obj_str);
+            }
+            list_single_database(obj_id, i->second.get_mutable(), cluster_metadata);
         } else if (info->path[0] == "rdb_namespaces") {
             cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
             namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(obj_id);
@@ -1136,7 +1149,7 @@ struct admin_stats_request_t {
 };
 
 void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::command_data& data) {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     boost::ptr_map<machine_id_t, admin_stats_request_t> request_map;
     std::set<machine_id_t> machine_filters;
@@ -1247,7 +1260,7 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
 }
 
 void admin_cluster_link_t::do_admin_list_directory(const admin_command_parser_t::command_data& data) {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     bool long_format = data.params.count("long");
     std::vector<std::vector<std::string> > table;
@@ -1345,6 +1358,7 @@ void admin_cluster_link_t::list_all(bool long_format, const cluster_semilattice_
 
     list_all_internal("machine", long_format, cluster_metadata.machines.machines, &table);
     list_all_internal("datacenter", long_format, cluster_metadata.datacenters.datacenters, &table);
+    list_all_internal("database", long_format, cluster_metadata.databases.databases, &table);
     // TODO: better differentiation between table types
     list_all_internal("table", long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
     list_all_internal("table (d)", long_format, cluster_metadata.dummy_namespaces->namespaces, &table);
@@ -1382,6 +1396,24 @@ std::map<datacenter_id_t, admin_cluster_link_t::datacenter_info_t> admin_cluster
     return results;
 }
 
+std::map<database_id_t, admin_cluster_link_t::database_info_t> admin_cluster_link_t::build_database_info(const cluster_semilattice_metadata_t& cluster_metadata) {
+    std::map<database_id_t, database_info_t> results;
+    add_database_tables(cluster_metadata.rdb_namespaces->namespaces, &results);
+    add_database_tables(cluster_metadata.dummy_namespaces->namespaces, &results);
+    add_database_tables(cluster_metadata.memcached_namespaces->namespaces, &results);
+    return results;
+}
+
+template <class map_type>
+void admin_cluster_link_t::add_database_tables(const map_type& ns_map, std::map<database_id_t, database_info_t> *results) {
+    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+        if (!i->second.is_deleted() &&
+            !i->second.get().database.in_conflict()) {
+            ++(*results)[i->second.get().database.get()].tables;
+        }
+    }
+}
+
 template <class map_type>
 void admin_cluster_link_t::add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t> *results) {
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
@@ -1404,9 +1436,59 @@ void admin_cluster_link_t::add_datacenter_affinities(const map_type& ns_map, std
     }
 }
 
+void admin_cluster_link_t::do_admin_list_databases(const admin_command_parser_t::command_data& data) {
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    bool long_format = (data.params.find("long") != data.params.end());
+
+    std::vector<std::vector<std::string> > table;
+    std::vector<std::string> delta;
+    std::map<database_id_t, database_info_t> long_info;
+
+    delta.push_back("uuid");
+    delta.push_back("name");
+    if (long_format) {
+        delta.push_back("tables");
+    }
+
+    table.push_back(delta);
+
+    if (long_format) {
+        long_info = build_database_info(cluster_metadata);
+    }
+
+    for (databases_semilattice_metadata_t::database_map_t::const_iterator i = cluster_metadata.databases.databases.begin();
+         i != cluster_metadata.databases.databases.end(); ++i) {
+        if (!i->second.is_deleted()) {
+            delta.clear();
+
+            if (long_format) {
+                delta.push_back(uuid_to_str(i->first));
+            } else {
+                delta.push_back(truncate_uuid(i->first));
+            }
+
+            if (i->second.get().name.in_conflict()) {
+                delta.push_back("<conflict>");
+            } else {
+                delta.push_back(i->second.get().name.get());
+            }
+
+            if (long_format) {
+                database_info_t info = long_info[i->first];
+                delta.push_back(strprintf("%ld", info.tables));
+            }
+            table.push_back(delta);
+        }
+    }
+
+    if (table.size() > 1) {
+        admin_print_table(table);
+    }
+}
+
 void admin_cluster_link_t::do_admin_list_datacenters(const admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
-    bool long_format = (data.params.find("long") == data.params.end());
+    bool long_format = (data.params.find("long") != data.params.end());
 
     std::vector<std::vector<std::string> > table;
     std::vector<std::string> delta;
@@ -1487,6 +1569,12 @@ admin_cluster_link_t::namespace_info_t admin_cluster_link_t::get_namespace_info(
         result.primary.assign(uuid_to_str(ns.primary_datacenter.get()));
     }
 
+    if (ns.database.in_conflict()) {
+        result.database.assign("<conflict>");
+    } else {
+        result.database.assign(uuid_to_str(ns.database.get()));
+    }
+
     return result;
 }
 
@@ -1525,6 +1613,7 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
         header.push_back("shards");
         header.push_back("replicas");
         header.push_back("primary");
+        header.push_back("database");
     }
 
     table.push_back(header);
@@ -1593,6 +1682,7 @@ void admin_cluster_link_t::add_namespaces(UNUSED const std::string& protocol,
                 }
 
                 delta.push_back(info.primary);
+                delta.push_back(info.database);
             }
 
             table->push_back(delta);
@@ -1601,7 +1691,7 @@ void admin_cluster_link_t::add_namespaces(UNUSED const std::string& protocol,
 }
 
 std::map<machine_id_t, admin_cluster_link_t::machine_info_t> admin_cluster_link_t::build_machine_info(const cluster_semilattice_metadata_t& cluster_metadata) {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
     std::map<machine_id_t, machine_info_t> results;
 
     // Initialize each machine, reachable machines are in the directory
@@ -1739,6 +1829,24 @@ void admin_cluster_link_t::do_admin_list_machines(const admin_command_parser_t::
     }
 }
 
+void admin_cluster_link_t::do_admin_create_database(const admin_command_parser_t::command_data& data) {
+    metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
+        change_request(&mailbox_manager, choose_sync_peer());
+    cluster_semilattice_metadata_t cluster_metadata = change_request.get();
+    database_id_t new_id = generate_uuid();
+    database_semilattice_metadata_t& database = cluster_metadata.databases.databases[new_id].get_mutable();
+
+    database.name.get_mutable() = guarantee_param_0(data.params, "name");
+    database.name.upgrade_version(change_request_id);
+
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    if (!change_request.update(cluster_metadata)) {
+        throw admin_retry_exc_t();
+    }
+
+    printf("uuid: %s\n", uuid_to_str(new_id).c_str());
+}
+
 void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
@@ -1749,7 +1857,7 @@ void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser
     datacenter.name.get_mutable() = guarantee_param_0(data.params, "name");
     datacenter.name.upgrade_version(change_request_id);
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -1762,12 +1870,30 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     std::string name = guarantee_param_0(data.params, "name");
-    std::string datacenter_id = guarantee_param_0(data.params, "primary");
-    metadata_info_t *datacenter_info = get_info_from_id(datacenter_id);
-    datacenter_id_t primary = str_to_uuid(datacenter_info->path[1]);
+    std::string database_id = guarantee_param_0(data.params, "database");
+    metadata_info_t *database_info = get_info_from_id(database_id);
+    database_id_t database = str_to_uuid(database_info->path[1]);
+    datacenter_id_t primary = nil_uuid();
     namespace_id_t new_id;
     std::string protocol;
     uint64_t port;
+
+    // If primary is specified, use it and verify its validity
+    if (data.params.find("primary") != data.params.end()) {
+        std::string datacenter_id = guarantee_param_0(data.params, "primary");
+        metadata_info_t *datacenter_info = get_info_from_id(datacenter_id);
+
+        if (datacenter_info->path[0] != "datacenters") {
+            throw admin_parse_exc_t("specified primary is not a datacenter: " + datacenter_id);
+        }
+
+        // Verify that the datacenter has at least one machine in it
+        if (get_machine_count_in_datacenter(cluster_metadata, datacenter_info->uuid) < 1) {
+            throw admin_cluster_exc_t("primary datacenter must have at least one machine, run 'help set datacenter' for more information");
+        }
+
+        primary = str_to_uuid(datacenter_info->path[1]);
+    }
 
     // TODO: fix this once multiple protocols are supported again
     if (data.params.find("protocol") != data.params.end()) {
@@ -1789,31 +1915,26 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         port = 0;
     }
 
-    if (datacenter_info->path[0] != "datacenters") {
-        throw admin_parse_exc_t("table primary is not a datacenter: " + datacenter_id);
-    }
-
-    // Verify that the datacenter has at least one machine in it
-    if (get_machine_count_in_datacenter(cluster_metadata, datacenter_info->uuid) < 1) {
-        throw admin_cluster_exc_t("primary datacenter must have at least one machine, run 'help set datacenter' for more information");
+    if (database_info->path[0] != "databases") {
+        throw admin_parse_exc_t("specified database is not a database: " + database_id);
     }
 
     if (protocol == "rdb") {
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
-        new_id = do_admin_create_table_internal(name, port, primary, change.get());
+        new_id = do_admin_create_table_internal(name, port, primary, database, change.get());
     } else if (protocol == "memcached") {
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        new_id = do_admin_create_table_internal(name, port, primary, change.get());
+        new_id = do_admin_create_table_internal(name, port, primary, database, change.get());
 #ifndef NO_DUMMY
     } else if (protocol == "dummy") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
-        new_id = do_admin_create_table_internal(name, port, primary, change.get());
+        new_id = do_admin_create_table_internal(name, port, primary, database, change.get());
 #endif
     } else {
         throw admin_parse_exc_t("unrecognized protocol: " + protocol);
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -1825,6 +1946,7 @@ template <class protocol_t>
 namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const std::string& name,
                                                                     int port,
                                                                     const datacenter_id_t& primary,
+                                                                    const database_id_t& database,
                                                                     namespaces_semilattice_metadata_t<protocol_t> *ns) {
     namespace_id_t id = generate_uuid();
     namespace_semilattice_metadata_t<protocol_t>& obj = ns->namespaces[id].get_mutable();
@@ -1832,10 +1954,8 @@ namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const std::s
     obj.name.get_mutable() = name;
     obj.name.upgrade_version(change_request_id);
 
-    if (!primary.is_nil()) {
-        obj.primary_datacenter.get_mutable() = primary;
-        obj.primary_datacenter.upgrade_version(change_request_id);
-    }
+    obj.primary_datacenter.get_mutable() = primary;
+    obj.primary_datacenter.upgrade_version(change_request_id);
 
     obj.port.get_mutable() = port;
     obj.port.upgrade_version(change_request_id);
@@ -1852,7 +1972,7 @@ namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const std::s
     region_map_t<protocol_t, machine_id_t> default_primary_pinnings(protocol_t::region_t::universe(), nil_uuid());
     obj.primary_pinnings.get_mutable() = default_primary_pinnings;
     obj.primary_pinnings.upgrade_version(change_request_id);
-    obj.database.get_mutable() = nil_uuid();
+    obj.database.get_mutable() = database;
     obj.database.upgrade_version(change_request_id);
 
     return id;
@@ -1862,7 +1982,7 @@ void admin_cluster_link_t::do_admin_set_primary(const admin_command_parser_t::co
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    std::string obj_id = guarantee_param_0(data.params, "id");
+    std::string obj_id = guarantee_param_0(data.params, "table");
     metadata_info_t *obj_info = get_info_from_id(obj_id);
     std::string datacenter_id = guarantee_param_0(data.params, "datacenter");
     metadata_info_t *datacenter_info = get_info_from_id(datacenter_id);
@@ -1891,7 +2011,34 @@ void admin_cluster_link_t::do_admin_set_primary(const admin_command_parser_t::co
         throw admin_cluster_exc_t("target object is not a table");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    if (!change_request.update(cluster_metadata)) {
+        throw admin_retry_exc_t();
+    }
+}
+
+void admin_cluster_link_t::do_admin_unset_primary(const admin_command_parser_t::command_data& data) {
+    metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
+        change_request(&mailbox_manager, choose_sync_peer());
+    cluster_semilattice_metadata_t cluster_metadata = change_request.get();
+    std::string obj_id = guarantee_param_0(data.params, "table");
+    metadata_info_t *obj_info = get_info_from_id(obj_id);
+    datacenter_id_t datacenter_uuid = nil_uuid();
+
+    if (obj_info->path[0] == "rdb_namespaces") {
+        cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
+        do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &change.get()->namespaces);
+    } else if (obj_info->path[0] == "memcached_namespaces") {
+        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
+        do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &change.get()->namespaces);
+    } else if (obj_info->path[0] == "dummy_namespaces") {
+        cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
+        do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &change.get()->namespaces);
+    } else {
+        throw admin_cluster_exc_t("target object is not a table");
+    }
+
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -1901,7 +2048,7 @@ void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t:
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    std::string obj_id = guarantee_param_0(data.params, "id");
+    std::string obj_id = guarantee_param_0(data.params, "machine");
     metadata_info_t *obj_info = get_info_from_id(obj_id);
     std::string datacenter_id = guarantee_param_0(data.params, "datacenter");
     metadata_info_t *datacenter_info = get_info_from_id(datacenter_id);
@@ -1918,7 +2065,41 @@ void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t:
         throw admin_cluster_exc_t("target object is not a machine");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    if (!change_request.update(cluster_metadata)) {
+        throw admin_retry_exc_t();
+    }
+}
+
+void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::command_data& data) {
+    metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
+        change_request(&mailbox_manager, choose_sync_peer());
+    cluster_semilattice_metadata_t cluster_metadata = change_request.get();
+    std::string obj_id = guarantee_param_0(data.params, "table");
+    metadata_info_t *obj_info = get_info_from_id(obj_id);
+    std::string database_id = guarantee_param_0(data.params, "database");
+    metadata_info_t *database_info = get_info_from_id(database_id);
+    database_id_t database_uuid = database_info->uuid;
+
+    // Target must be a database in all existing use cases
+    if (database_info->path[0] != "databases") {
+        throw admin_parse_exc_t("destination is not a database: " + database_id);
+    }
+
+    if (obj_info->path[0] == "rdb_namespaces") {
+        cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t rdb_change(&cluster_metadata.rdb_namespaces);
+        do_admin_set_database_table(obj_info->uuid, database_uuid, &rdb_change.get()->namespaces);
+    } else if (obj_info->path[0] == "memcached_namespaces") {
+        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t memcached_change(&cluster_metadata.memcached_namespaces);
+        do_admin_set_database_table(obj_info->uuid, database_uuid, &memcached_change.get()->namespaces);
+    } else if (obj_info->path[0] == "dummy_namespaces") {
+        cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t dummy_change(&cluster_metadata.dummy_namespaces);
+        do_admin_set_database_table(obj_info->uuid, database_uuid, &dummy_change.get()->namespaces);
+    } else {
+        throw admin_cluster_exc_t("target object is not a machine");
+    }
+
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -1963,6 +2144,21 @@ void admin_cluster_link_t::do_admin_set_datacenter_machine(const uuid_t obj_uuid
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t dummy_change(&cluster_metadata->dummy_namespaces);
         remove_machine_pinnings(obj_uuid, &dummy_change.get()->namespaces);
     }
+}
+
+template <class obj_map>
+void admin_cluster_link_t::do_admin_set_database_table(const namespace_id_t table_uuid,
+                                                       const database_id_t db,
+                                                       obj_map *metadata) {
+    typename obj_map::iterator i = metadata->find(table_uuid);
+    if (i == metadata->end() || i->second.is_deleted()) {
+        throw admin_cluster_exc_t("unexpected error when looking up object: " + uuid_to_str(table_uuid));
+    } else if (i->second.get_mutable().database.in_conflict()) {
+        throw admin_cluster_exc_t("table's database is in conflict, run 'help resolve' for more information");
+    }
+
+    i->second.get_mutable().database.get_mutable() = db;
+    i->second.get_mutable().database.upgrade_version(change_request_id);
 }
 
 template <class protocol_t>
@@ -2024,6 +2220,8 @@ void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::comma
 
     if (info->path[0] == "machines") {
         do_admin_set_name_internal(info->uuid, name, &cluster_metadata.machines.machines);
+    } else if (info->path[0] == "databases") {
+        do_admin_set_name_internal(info->uuid, name, &cluster_metadata.databases.databases);
     } else if (info->path[0] == "datacenters") {
         do_admin_set_name_internal(info->uuid, name, &cluster_metadata.datacenters.datacenters);
     } else if (info->path[0] == "rdb_namespaces") {
@@ -2039,7 +2237,7 @@ void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::comma
         throw admin_cluster_exc_t("unrecognized object type");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -2109,7 +2307,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -2200,7 +2398,7 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");  // TODO(sam): Check if this function body is copy/paste'd.
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -2251,6 +2449,11 @@ void admin_cluster_link_t::do_admin_remove_datacenter(const admin_command_parser
     do_admin_remove_internal("datacenters", ids);
 }
 
+void admin_cluster_link_t::do_admin_remove_database(const admin_command_parser_t::command_data& data) {
+    std::vector<std::string> ids = guarantee_param_vec(data.params, "id");
+    do_admin_remove_internal("databases", ids);
+}
+
 void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type, const std::vector<std::string>& ids) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
@@ -2263,10 +2466,13 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
             metadata_info_t *obj_info = get_info_from_id(ids[i]);
 
             // TODO: in case of machine, check if it's up and ask for confirmation if it is
+            // TODO: in case of a database with tables assigned, ask for confirmation
 
             // Remove the object from the metadata
             if (obj_info->path[0] == "machines" && obj_type == "machines") {
                 do_admin_remove_internal_internal(obj_info->uuid, &cluster_metadata.machines.machines);
+            } else if (obj_info->path[0] == "databases" && obj_type == "databases") {
+                do_admin_remove_internal_internal(obj_info->uuid, &cluster_metadata.databases.databases);
             } else if (obj_info->path[0] == "datacenters" && obj_type == "datacenters") {
                 do_admin_remove_internal_internal(obj_info->uuid, &cluster_metadata.datacenters.datacenters);
             } else if (obj_info->path[0] == "rdb_namespaces" && obj_type == "namespaces") {
@@ -2296,6 +2502,9 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
             } else if (obj_info->path[0] == "datacenters") {
                 datacenter_id_t datacenter(obj_info->uuid);
                 remove_datacenter_references(datacenter, &cluster_metadata);
+            } else if (obj_info->path[0] == "databases") {
+                database_id_t database(obj_info->uuid);
+                remove_database_tables(database, &cluster_metadata);
             }
         } catch (const std::exception& ex) {
             error += ex.what();
@@ -2304,7 +2513,7 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
     }
 
     if (do_update) {
-        fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+        fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
         if (!change_request.update(cluster_metadata)) {
             throw admin_retry_exc_t();
         }
@@ -2340,8 +2549,11 @@ void admin_cluster_link_t::remove_datacenter_references(const datacenter_id_t& d
             continue;
         }
 
-        if (!i->second.get_mutable().datacenter.in_conflict() && i->second.get_mutable().datacenter.get_mutable() == datacenter) {
-            i->second.get_mutable().datacenter.get_mutable() = nil_id;
+        machine_semilattice_metadata_t& machine = i->second.get_mutable();
+        if (!machine.datacenter.in_conflict() && machine.datacenter.get() == datacenter) {
+
+            machine.datacenter.get_mutable() = nil_id;
+            machine.datacenter.upgrade_version(change_request_id);
         }
     }
 
@@ -2383,6 +2595,30 @@ void admin_cluster_link_t::remove_datacenter_references_from_namespaces(const da
     }
 }
 
+void admin_cluster_link_t::remove_database_tables(const database_id_t& database, cluster_semilattice_metadata_t *cluster_metadata) {
+    cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t memcached_change(&cluster_metadata->memcached_namespaces);
+    remove_database_tables_internal(database, &memcached_change.get()->namespaces);
+    cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t dummy_change(&cluster_metadata->dummy_namespaces);
+    remove_database_tables_internal(database, &dummy_change.get()->namespaces);
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t rdb_change(&cluster_metadata->rdb_namespaces);
+    remove_database_tables_internal(database, &rdb_change.get()->namespaces);
+}
+
+template <class protocol_t>
+void admin_cluster_link_t::remove_database_tables_internal(const database_id_t& database,
+                                                           std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > *ns_map) {
+    for (typename std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >::iterator i = ns_map->begin();
+         i != ns_map->end(); ++i) {
+        if (!i->second.is_deleted()) {
+            namespace_semilattice_metadata_t<protocol_t>& ns = i->second.get_mutable();
+            if (!ns.database.in_conflict() && ns.database.get() == database) {
+                // We delete all namespaces associated with the database
+                i->second.mark_deleted();
+            }
+        }
+    }
+}
+
 template <class protocol_t>
 void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                                                  const namespace_semilattice_metadata_t<protocol_t>& ns,
@@ -2407,6 +2643,21 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
         }
     } else {
         printf("primary datacenter <conflict>\n");
+    }
+
+    // Print database
+    if (!ns.database.in_conflict()) {
+        databases_semilattice_metadata_t::database_map_t::const_iterator db = cluster_metadata.databases.databases.find(ns.database.get());
+        if (db == cluster_metadata.databases.databases.end() ||
+            db->second.is_deleted() ||
+            db->second.get().name.in_conflict() ||
+            db->second.get().name.get().empty()) {
+            printf("in database %s\n", uuid_to_str(ns.database.get()).c_str());
+        } else {
+            printf("in database '%s' %s\n", db->second.get().name.get().c_str(), uuid_to_str(ns.database.get()).c_str());
+        }
+    } else {
+        printf ("in database <conflict>\n");
     }
 
     // TODO: fix this once multiple protocols are supported again
@@ -2618,7 +2869,8 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
         std::vector<std::string> delta;
         delta.push_back("uuid");
         delta.push_back("name");
-        delta.push_back("protocol");
+        // TODO: fix this once multiple protocols are supported again
+        // delta.push_back("protocol");
         delta.push_back("primary");
         delta.push_back("replicas");
         table.push_back(delta);
@@ -2635,7 +2887,10 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
 }
 
 template <class map_type>
-void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_t& dc_id, const map_type& ns_map, const std::string& protocol, std::vector<std::vector<std::string> > *table) {
+void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_t& dc_id,
+                                                            const map_type& ns_map,
+                                                            UNUSED const std::string& protocol,
+                                                            std::vector<std::vector<std::string> > *table) {
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
             const typename map_type::mapped_type::value_t ns = i->second.get();
@@ -2645,7 +2900,8 @@ void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_
 
             delta.push_back(uuid_to_str(i->first));
             delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get());
-            delta.push_back(protocol);
+            // TODO: fix this once multiple protocols are supported again
+            // delta.push_back(protocol);
 
             // TODO: this will only list the replicas required by the user, not the actual replicas (in case of impossible requirements)
             if (!ns.primary_datacenter.in_conflict() &&
@@ -2668,6 +2924,68 @@ void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_
             delta.push_back(strprintf("%ld", replicas));
 
             if (replicas > 0) {
+                table->push_back(delta);
+            }
+        }
+    }
+}
+
+void admin_cluster_link_t::list_single_database(const database_id_t& db_id,
+                                                const database_semilattice_metadata_t& db,
+                                                const cluster_semilattice_metadata_t& cluster_metadata) {
+    std::vector<std::vector<std::string> > table;
+    if (db.name.in_conflict() || db.name.get().empty()) {
+        printf("database %s\n", uuid_to_str(db_id).c_str());
+    } else {
+        printf("database '%s' %s\n", db.name.get().c_str(), uuid_to_str(db_id).c_str());
+    }
+    printf("\n");
+
+    // Get a list of namespaces in the database
+    table.clear();
+    {
+        std::vector<std::string> delta;
+        delta.push_back("uuid");
+        delta.push_back("name");
+        // TODO: fix this once multiple protocols are supported again
+        // delta.push_back("protocol");
+        delta.push_back("primary");
+        table.push_back(delta);
+    }
+
+    add_single_database_affinities(db_id, cluster_metadata.rdb_namespaces->namespaces, "rdb", &table);
+    add_single_database_affinities(db_id, cluster_metadata.dummy_namespaces->namespaces, "dummy", &table);
+    add_single_database_affinities(db_id, cluster_metadata.memcached_namespaces->namespaces, "memcached", &table);
+
+    printf("%ld table%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
+    if (table.size() > 1) {
+        admin_print_table(table);
+    }
+}
+
+template <class map_type>
+void admin_cluster_link_t::add_single_database_affinities(const datacenter_id_t& db_id,
+                                                            const map_type& ns_map,
+                                                            UNUSED const std::string& protocol,
+                                                            std::vector<std::vector<std::string> > *table) {
+    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+        if (!i->second.is_deleted()) {
+            const typename map_type::mapped_type::value_t ns = i->second.get();
+
+            if (!ns.database.in_conflict() && ns.database.get() == db_id) {
+                std::vector<std::string> delta;
+
+                delta.push_back(uuid_to_str(i->first));
+                delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get());
+                // TODO: fix this once multiple protocols are supported again
+                // delta.push_back(protocol);
+
+                if (!ns.primary_datacenter.in_conflict()) {
+                    delta.push_back(uuid_to_str(ns.primary_datacenter.get()));
+                } else {
+                    delta.push_back("<conflict>");
+                }
+
                 table->push_back(delta);
             }
         }
@@ -2794,6 +3112,12 @@ void admin_cluster_link_t::do_admin_resolve(const admin_command_parser_t::comman
             throw admin_cluster_exc_t("unexpected exception when looking up object: " + obj_id);
         }
         resolve_machine_value(&i->second.get_mutable(), field);
+    } else if (obj_info->path[0] == "databases") {
+        databases_semilattice_metadata_t::database_map_t::iterator i = cluster_metadata.databases.databases.find(obj_info->uuid);
+        if (i == cluster_metadata.databases.databases.end() || i->second.is_deleted()) {
+            throw admin_cluster_exc_t("unexpected exception when looking up object: " + obj_id);
+        }
+        resolve_database_value(&i->second.get_mutable(), field);
     } else if (obj_info->path[0] == "datacenters") {
         datacenters_semilattice_metadata_t::datacenter_map_t::iterator i = cluster_metadata.datacenters.datacenters.find(obj_info->uuid);
         if (i == cluster_metadata.datacenters.datacenters.end() || i->second.is_deleted()) {
@@ -2825,7 +3149,7 @@ void admin_cluster_link_t::do_admin_resolve(const admin_command_parser_t::comman
         throw admin_cluster_exc_t("unexpected object type encountered: " + obj_info->path[0]);
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -2913,11 +3237,22 @@ void admin_cluster_link_t::resolve_datacenter_value(datacenter_semilattice_metad
     }
 }
 
+void admin_cluster_link_t::resolve_database_value(database_semilattice_metadata_t *db,
+                                                  const std::string& field) {
+    if (field == "name") {
+        resolve_value(&db->name);
+    } else {
+        throw admin_cluster_exc_t("unknown database field: " + field);
+    }
+}
+
 template <class protocol_t>
 void admin_cluster_link_t::resolve_namespace_value(namespace_semilattice_metadata_t<protocol_t> *ns,
                                                    const std::string& field) {
     if (field == "name") {
         resolve_value(&ns->name);
+    } else if (field == "database") {
+        resolve_value(&ns->database);
     } else if (field == "datacenter") {
         resolve_value(&ns->primary_datacenter);
     } else if (field == "replicas") {
@@ -2967,7 +3302,7 @@ size_t admin_cluster_link_t::get_machine_count_in_datacenter(const cluster_semil
 }
 
 size_t admin_cluster_link_t::available_machine_count() {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     size_t count = 0;
 

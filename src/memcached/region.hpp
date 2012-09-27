@@ -31,8 +31,4 @@ MUST_USE region_join_result_t region_join(const std::vector<key_range_t> &vec, k
 
 std::vector<key_range_t> region_subtract_many(key_range_t a, const std::vector<key_range_t>& b);
 
-inline std::string region_to_debug_str(const key_range_t &r) {
-    return key_range_to_debug_str(r);
-}
-
 #endif  // MEMCACHED_REGION_HPP_

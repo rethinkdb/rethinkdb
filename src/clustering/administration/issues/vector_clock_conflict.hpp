@@ -7,7 +7,8 @@
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/json.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "rpc/semilattice/view.hpp"
+
+template <class metadata_t> class semilattice_read_view_t;
 
 class vector_clock_conflict_issue_t : public global_issue_t {
 public:
@@ -53,9 +54,8 @@ private:
 
 class vector_clock_conflict_issue_tracker_t : public global_issue_tracker_t {
 public:
-    explicit vector_clock_conflict_issue_tracker_t(
-            boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view) :
-        semilattice_view(_semilattice_view) { }
+    explicit vector_clock_conflict_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view);
+    ~vector_clock_conflict_issue_tracker_t();
 
     std::list<clone_ptr_t<global_issue_t> > get_issues();
     std::list<clone_ptr_t<vector_clock_conflict_issue_t> > get_vector_clock_issues();

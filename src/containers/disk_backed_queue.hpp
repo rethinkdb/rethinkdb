@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "buffer_cache/types.hpp"
+#include "concurrency/fifo_checker.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
@@ -29,8 +30,10 @@ public:
     internal_disk_backed_queue_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *stats_parent);
     ~internal_disk_backed_queue_t();
 
+    // TODO: order_token_t::ignore.  This should take an order token and store it.
     void push(const write_message_t& value);
 
+    // TODO: order_token_t::ignore.  This should output an order token (that was passed in to push).
     void pop(std::vector<char> *buf_out);
 
     bool empty();
@@ -47,6 +50,9 @@ private:
     block_id_t head_block_id, tail_block_id;
     scoped_ptr_t<standard_serializer_t> serializer;
     scoped_ptr_t<cache_t> cache;
+
+    // Serves more as sanity-checking for the cache than this type's ordering.
+    order_source_t cache_order_source;
 
     DISABLE_COPYING(internal_disk_backed_queue_t);
 };

@@ -1,127 +1,29 @@
-<script id="shard_name-partial" type="text/x-handlebars-template">
-    <h4 class="shard-boundaries-name">{{name}}</h4>
-    <span class="shard_num_keys">
-    {{#if shard_stats.rows_approx}}
-        about {{shard_stats.rows_approx}} {{pluralize_noun "key" shard_stats.rows_approx}}
-    {{else}}
-        Loading data...
-    {{/if}}
-    </span>
+<script id="namespace_view-assignments_container-template" type="text/x-handlebars-template">
+    <h3 class="title">Assignments</h3>
+    <ul class="datacenter_ul">
+    </ul>
 </script>
 
-<script id="namespace_view-sharding-template" type="text/x-handlebars-template">
-    <div class="alert_for_sharding alert alert-error"></div>
-    <div class="sharding">
-        <h3 class="title">Sharding settings</h3>
-        <table class="shards table shards-table">
-            <tbody>
-            </tbody>
-        </table>
-    </div>
-    <div class="change-shards"></div>
-    <div class="blackout"></div>
+<script id="namespace_view-datacenter_view-template" type="text/x-handlebars-template">
+    <h4>Datacenter <a href="/#datacenters/{{id}}">{{name}}</a>:</h4>
+    <ul class="machine_ul"></ul>
 </script>
 
-
-<script id="namespace_view-sharding_alert-template" type="text/x-handlebars-template">
-    Please solve the current issues before editing the shards/pins not to lose data.
-</script>
-
-<script id="namespace_view_invalid_splitpoint_alert-template" type="text/x-handlebars-template">
-    Error, invalid splitpoint. Shards must not overlap.
-</script>
-
-<script id="namespace_view_invalid_splitpoint_alert-template" type="text/x-handlebars-template">
-    Error, invalid merge.
-</script>
-
-<script id="namespace_view_invalid_shard_alert-template" type="text/x-handlebars-template">
-    Error, the shards that you tried to split doesn't exist.
-</script>
-
-<script id="namespace_view-shard-template" type="text/x-handlebars-template">
-    <tr class="summary-tr">
-        <td class="shard summary"></td>
-    </tr>
-    <tr>   
-        <td class="status">
-            <div class="datacenter-list"></div>
-        </td>
-    </tr>
-</script>
-
-<script id="namespace_view-shard-summary-template" type="text/x-handlebars-template">
-    {{> shard_name}}
-</script>
-
-<script id="namespace_view-shard_datacenter_list-template" type="text/x-handlebars-template">
-    <div class="datacenters"></div>
-</script>
-
-<script id="namespace_view-shard_datacenter-template" type="text/x-handlebars-template">
-        <div class="expanded arrow"></div>
-        <div class="datacenter summary"></div>
-    </div>
-    <div class="machine-list"></div>
-    <div class="divider"></div>
-</script>
-
-<script id="namespace_view-shard_datacenter-summary-template" type="text/x-handlebars-template">
-    <p class="status">{{humanize_datacenter_reachability status}}</p>
-    <h4 class="datacenter name"><span class="element-type label label-inverse">Datacenter</span><a href="#datacenters/{{id}}">{{name}}</a></h4>
-</script>
-
-<script id="namespace_view-shard_machine_list-template" type="text/x-handlebars-template">
-    <ul class="machines"></ul>
-</script>
-
-<script id="namespace_view-shard_machine-template" type="text/x-handlebars-template">
-    <div class="action">
-    {{#unless is_master}}
-        {{#unless no_available_machines}} 
-            <input type="button" class="btn change-machine" value="Assign another server" />
-        {{/unless}}
-        {{#unless cannot_be_master}}
-            <input type="button" class="btn make-master" value="make master" />
-        {{/unless}}
-    {{/unless}}
-    </div>
-    {{#if is_master}}
-        <span class="master label label-info">Master server</span>
-    {{else}}
-        <span class="secondary label label-info">Secondary server</span>
-    {{/if}}
-    <a class="machine name" href="#servers/{{id}}">{{name}}</a>
-    <p class="status">
-        {{humanize_machine_reachability status}}
-        {{#if status.reachable}}
-            {{> backfill_progress_summary}}
-        {{/if}}
-    </p>
-    {{> backfill_progress_details}}
-</script>
-
-<script id="shard-set_machine-template" type="text/x-handlebars-template">
-    <div class="alert alert-error error_answer"></div>
-    <div class="namespace-shard-assign-machine">
-        <p>Select a server you want to assign to this shard: {{shard_name}}.</p>
-
-        <form>
-            <input type="hidden" name="shard_name" value="{{shard_name}}" />
-            <input type="hidden" name="old_pin" value="{{old_pin}}" />
-            <select class="chosen-dropdown" name="server_to_pin">
-                {{#each available_machines}}
-                    <option value="{{id}}">{{name}}</option>
-                {{/each}}
-            </select>
-        </form>
-    </div>
-</script>
-
-<script id="shard-set_machine-alert-template" type="text/x-handlebars-template">
-    <div class="alert alert-error error_answer"></div>
-    <div class="alert" data-alert="alert">
-        <a class="close" href="#">&times;</a>
-        <p>Set datacenter for {{pluralize_noun "server" machine_count}} {{machines_first.name}}{{#each machines_rest}}, {{name}}{{/each}} to {{datacenter_name}}.</p>
-    </div>
+<script id="namespace_view-machine_view-template" type="text/x-handlebars-template">
+    <h4>Server <a href="/#servers/{{id}}">{{name}}</a>:</h4>
+    <ul>
+        {{#each shards}}
+        <li>
+            <strong>Shard {{name}}</strong>
+            <p>
+            Role: {{role}}, 
+            {{#if keys}}
+            About {{keys}} keys
+            {{else}}
+            Loading number of keys...
+            {{/if}}
+            </p>
+        </li>
+        {{/each}}
+    </ul>
 </script>

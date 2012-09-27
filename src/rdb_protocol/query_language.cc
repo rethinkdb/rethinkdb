@@ -11,6 +11,7 @@
 #include "http/json.hpp"
 #include "rdb_protocol/internal_extensions.pb.h"
 #include "rdb_protocol/js.hpp"
+#include "rpc/directory/read_manager.hpp"
 
 #ifndef NDEBUG
 #define guarantee_debug_throw_release(cond, backtrace) guarantee(cond)
@@ -1446,9 +1447,11 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
     case Term::IMPLICIT_VAR:
         guarantee_debug_throw_release(scopes.implicit_attribute_value.has_value(), backtrace);
         return scopes.implicit_attribute_value.get_value();
-    case Term::VAR:
-        return scopes.scope.get(t->var());
-        break;
+    case Term::VAR: {
+        boost::shared_ptr<scoped_cJSON_t> ptr = scopes.scope.get(t->var());
+        guarantee_debug_throw_release(ptr.get() && ptr->get(), backtrace);
+        return ptr;
+    } break;
     case Term::LET:
         {
             // Push the scope
@@ -1512,7 +1515,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
         {
             boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
             for (int i = 0; i < t->array_size(); ++i) {
-                res->AddItemToArray(eval_term_as_json(t->mutable_array(i), env, scopes, backtrace.with(strprintf("elem:%d", i)))->release());
+                res->AddItemToArray(eval_term_as_json(t->mutable_array(i), env, scopes, backtrace.with(strprintf("elem:%d", i)))->DeepCopy());
             }
             return res;
         }
@@ -1522,7 +1525,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
             boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateObject()));
             for (int i = 0; i < t->object_size(); ++i) {
                 std::string item_name(t->object(i).var());
-                res->AddItemToObject(item_name.c_str(), eval_term_as_json(t->mutable_object(i)->mutable_term(), env, scopes, backtrace.with(strprintf("key:%s", item_name.c_str())))->release());
+                res->AddItemToObject(item_name.c_str(), eval_term_as_json(t->mutable_object(i)->mutable_term(), env, scopes, backtrace.with(strprintf("key:%s", item_name.c_str())))->DeepCopy());
             }
             return res;
         }
@@ -1810,7 +1813,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 boost::shared_ptr<scoped_cJSON_t> array = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"),
                     cJSON_Array, "The first argument must be an array.");
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(array->DeepCopy()));
-                res->AddItemToArray(eval_term_as_json(c->mutable_args(1), env, scopes, backtrace.with("arg:1"))->release());
+                res->AddItemToArray(eval_term_as_json(c->mutable_args(1), env, scopes, backtrace.with("arg:1"))->DeepCopy());
                 return res;
             }
             break;

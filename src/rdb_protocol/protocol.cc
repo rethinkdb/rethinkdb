@@ -7,6 +7,7 @@
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "btree/superblock.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -15,8 +16,8 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.hpp"
 #include "rpc/semilattice/view/field.hpp"
+#include "rpc/semilattice/watchable.hpp"
 #include "serializer/config.hpp"
-#include "clustering/administration/metadata.hpp"
 
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 

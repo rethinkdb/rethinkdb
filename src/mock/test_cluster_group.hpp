@@ -11,6 +11,7 @@
 
 #include "containers/cow_ptr.hpp"
 #include "containers/scoped.hpp"
+#include "clustering/reactor/directory_echo.hpp"
 
 
 template <class> class blueprint_t;
@@ -26,7 +27,15 @@ class temp_file_t;
 
 template <class> class reactor_test_cluster_t;
 template <class> class test_reactor_t;
-template <class> class test_cluster_directory_t;
+
+template<class protocol_t>
+class test_cluster_directory_t {
+public:
+    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > reactor_directory;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(reactor_directory);
+};
+
 
 template<class protocol_t>
 class test_cluster_group_t {

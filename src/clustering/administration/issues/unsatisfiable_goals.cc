@@ -1,5 +1,7 @@
 #include "clustering/administration/issues/unsatisfiable_goals.hpp"
 
+#include "rpc/semilattice/view.hpp"
+
 unsatisfiable_goals_issue_t::unsatisfiable_goals_issue_t(
         const namespace_id_t &ni,
         const datacenter_id_t &pd,
@@ -87,6 +89,10 @@ static void make_issues(const cow_ptr_t<namespaces_semilattice_metadata_t<protoc
         }
     }
 }
+
+unsatisfiable_goals_issue_tracker_t::unsatisfiable_goals_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view)
+    : semilattice_view(_semilattice_view) { }
+unsatisfiable_goals_issue_tracker_t::~unsatisfiable_goals_issue_tracker_t() { }
 
 std::list<clone_ptr_t<global_issue_t> > unsatisfiable_goals_issue_tracker_t::get_issues() {
     cluster_semilattice_metadata_t metadata = semilattice_view->get();

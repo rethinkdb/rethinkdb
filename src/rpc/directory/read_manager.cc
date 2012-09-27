@@ -229,3 +229,15 @@ void directory_read_manager_t<metadata_t>::interrupt_updates_and_free_session(se
     `auto_drainer_t`, and the `auto_drainer_t` destructor can block. */
     delete session;
 }
+
+template class directory_read_manager_t<int>;
+
+#include "clustering/administration/metadata.hpp"
+template class directory_read_manager_t<cluster_directory_metadata_t>;
+
+#include "mock/test_cluster_group.hpp"
+#include "mock/dummy_protocol.hpp"
+template class directory_read_manager_t<mock::test_cluster_directory_t<mock::dummy_protocol_t> >;
+
+#include "clustering/reactor/directory_echo.hpp"
+template class directory_read_manager_t<directory_echo_wrapper_t<std::string> >;
