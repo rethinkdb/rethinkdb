@@ -2015,6 +2015,33 @@ void admin_cluster_link_t::do_admin_set_primary(const admin_command_parser_t::co
     }
 }
 
+void admin_cluster_link_t::do_admin_unset_primary(const admin_command_parser_t::command_data& data) {
+    metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
+        change_request(&mailbox_manager, choose_sync_peer());
+    cluster_semilattice_metadata_t cluster_metadata = change_request.get();
+    std::string obj_id = guarantee_param_0(data.params, "table");
+    metadata_info_t *obj_info = get_info_from_id(obj_id);
+    datacenter_id_t datacenter_uuid = nil_uuid();
+
+    if (obj_info->path[0] == "rdb_namespaces") {
+        cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
+        do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &change.get()->namespaces);
+    } else if (obj_info->path[0] == "memcached_namespaces") {
+        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
+        do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &change.get()->namespaces);
+    } else if (obj_info->path[0] == "dummy_namespaces") {
+        cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
+        do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &change.get()->namespaces);
+    } else {
+        throw admin_cluster_exc_t("target object is not a table");
+    }
+
+    fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+    if (!change_request.update(cluster_metadata)) {
+        throw admin_retry_exc_t();
+    }
+}
+
 void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());

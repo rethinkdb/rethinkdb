@@ -71,6 +71,7 @@ public:
     void do_admin_set_acks(const admin_command_parser_t::command_data& data);
     void do_admin_set_replicas(const admin_command_parser_t::command_data& data);
     void do_admin_set_primary(const admin_command_parser_t::command_data& data);
+    void do_admin_unset_primary(const admin_command_parser_t::command_data& data);
     void do_admin_set_datacenter(const admin_command_parser_t::command_data& data);
     void do_admin_set_database(const admin_command_parser_t::command_data& data);
     void do_admin_create_datacenter(const admin_command_parser_t::command_data& data);
