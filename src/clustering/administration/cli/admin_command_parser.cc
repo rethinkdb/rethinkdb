@@ -34,6 +34,7 @@ const char *merge_shard_command = "merge shard";
 const char *set_name_command = "set name";
 const char *set_acks_command = "set acks";
 const char *set_primary_command = "set primary";
+const char *unset_primary_command = "unset primary";
 const char *set_replicas_command = "set replicas";
 const char *set_datacenter_command = "set datacenter";
 const char *set_database_command = "set database";
@@ -68,6 +69,7 @@ const char *set_name_usage = "<ID> <NEW-NAME>";
 const char *set_acks_usage = "<TABLE> <DATACENTER> <NUM-ACKS>";
 const char *set_replicas_usage = "<TABLE> <DATACENTER> <NUM-REPLICAS>";
 const char *set_primary_usage = "<TABLE> <DATACENTER>";
+const char *unset_primary_usage = "<TABLE>";
 const char *set_datacenter_usage = "<MACHINE> <DATACENTER>";
 const char *set_database_usage = "<TABLE> <DATABASE>";
 // TODO: fix this once multiple protocols are supported again
@@ -103,6 +105,7 @@ const char *set_replicas_datacenter_option = "<DATACENTER>";
 const char *set_replicas_num_replicas_option = "<NUM-REPLICAS>";
 const char *set_primary_table_option = "<TABLE>";
 const char *set_primary_datacenter_option = "<DATACENTER>";
+const char *unset_primary_table_option = "<TABLE>";
 const char *set_datacenter_machine_option = "<MACHINE>";
 const char *set_datacenter_datacenter_option = "<DATACENTER>";
 const char *set_database_table_option = "<TABLE>";
@@ -145,6 +148,7 @@ const char *set_replicas_datacenter_option_desc = "the datacenter which will hos
 const char *set_replicas_num_replicas_option_desc = "the number of replicas of the specified table to host in the specified datacenter, this value should not exceed the number of machines in the datacenter";
 const char *set_primary_table_option_desc = "the table which will have its shards' master replicas moved to the specified datacenter";
 const char *set_primary_datacenter_option_desc = "the datacenter to move to";
+const char *unset_primary_table_option_desc = "the table which will have its shards' master replicas automatically redistributed across the cluster";
 const char *set_datacenter_machine_option_desc = "the machine to move to the specified datacenter";
 const char *set_datacenter_datacenter_option_desc = "the datacenter to move to";
 const char *set_database_table_option_desc = "the table to move to the specified database";
@@ -179,6 +183,7 @@ const char *set_name_description = "Set the name of an object.  This object may 
 const char *set_acks_description = "Set how many replicas must acknowledge a write operation for it to succeed, for the given table and datacenter.";
 const char *set_replicas_description = "Set the replica affinities of a table.  This represents the number of replicas that the table will have in each specified datacenter.";
 const char *set_primary_description = "Set the primary datacenter of a table, which will move the master replicas to this datacenter.";
+const char *unset_primary_description = "Clear the primary datacenter of a table, which will allow the cluster to automatically distribute replicas.";
 const char *set_datacenter_description = "Set the datacenter that a machine belongs to.";
 const char *set_database_description = "Set the database that a table belongs to.";
 // TODO: fix this once multiple protocols are supported again
@@ -414,6 +419,7 @@ void admin_command_parser_t::do_usage(bool console) {
     std::vector<admin_help_info_t> helps;
     std::vector<std::pair<std::string, std::string> > options;
     helps.push_back(admin_help_info_t("set", "", "change a value in the cluster"));
+    helps.push_back(admin_help_info_t("unset", "", "clear a value in the cluster"));
     helps.push_back(admin_help_info_t(list_command, "", "print cluster data"));
     helps.push_back(admin_help_info_t(resolve_command, "", "resolve a value conflict"));
     helps.push_back(admin_help_info_t(split_shard_command, "", "add shards to a table"));
@@ -535,6 +541,9 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(set_primary_command, set_primary_command, set_primary_usage, &admin_cluster_link_t::do_admin_set_primary, &commands);
     info->add_positional("table", 1, true)->add_option("!namespace");
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
+
+    info = add_command(unset_primary_command, unset_primary_command, unset_primary_usage, &admin_cluster_link_t::do_admin_unset_primary, &commands);
+    info->add_positional("table", 1, true)->add_option("!namespace");
 
     info = add_command(set_datacenter_command, set_datacenter_command, set_datacenter_usage, &admin_cluster_link_t::do_admin_set_datacenter, &commands);
     info->add_positional("machine", 1, true)->add_option("!machine");
@@ -1161,6 +1170,17 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 options.push_back(std::make_pair(set_database_table_option, set_database_table_option_desc));
                 options.push_back(std::make_pair(set_database_database_option, set_database_database_option_desc));
                 do_usage_internal(helps, options, "set database - change the database that a table belongs in", console_mode);
+            } else {
+                throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            }
+        } else if (command == "unset") {
+            if (subcommand.empty()) {
+                helps.push_back(admin_help_info_t(unset_primary_command, unset_primary_usage, unset_primary_description));
+                do_usage_internal(helps, options, "unset - clear the value of a field in cluster metadata, run 'help unset <SUBCOMMAND>' for more information", console_mode);
+            } else if (subcommand == "primary") {
+                helps.push_back(admin_help_info_t(unset_primary_command, unset_primary_usage, unset_primary_description));
+                options.push_back(std::make_pair(unset_primary_table_option, unset_primary_table_option_desc));
+                do_usage_internal(helps, options, "unset primary - clear the primary datacenter for a table", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }

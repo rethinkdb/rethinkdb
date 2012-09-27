@@ -247,6 +247,34 @@ function testGroupedMapReduce() {
     ]));
 }
 
+function testGroupBy() {
+    var s = r.expr([
+        {g1: 1, g2: 1, num: 0},
+        {g1: 1, g2: 2, num: 5},
+        {g1: 1, g2: 2, num: 10},
+        {g1: 2, g2: 3, num: 0},
+        {g1: 2, g2: 3, num: 100}
+    ]);
+
+    s.groupBy('g1', r.average('num')).run(objeq([
+        {group:1, reduction:5},
+        {group:2, reduction:50}
+    ]));
+    s.groupBy('g1', r.count).run(objeq([
+        {group:1, reduction:3},
+        {group:2, reduction:2}
+    ]));
+    s.groupBy('g1', r.sum('num')).run(objeq([
+        {group:1, reduction:15},
+        {group:2, reduction:100}
+    ]));
+    s.groupBy('g1', 'g2', r.average('num')).run(objeq([
+        {group:[1,1], reduction: 0},
+        {group:[1,2], reduction: 7.5},
+        {group:[2,3], reduction: 50}
+    ]));
+}
+
 function testConcatMap() {
     tab.concatMap(r.expr([1,2])).count().run(aeq(20));
 }
@@ -429,6 +457,7 @@ runTests([
     testJS,
     testBetween,
     testGroupedMapReduce,
+    testGroupBy,
     testConcatMap,
     testSetupOtherTable,
     testDropTable,
