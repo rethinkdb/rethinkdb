@@ -2,7 +2,8 @@
 # navigation bar view. Not sure where it should go, putting it here
 # because it's global.
 class NavBarView extends Backbone.View
-    className: 'navbar-view'
+    id: 'navbar'
+    className: 'container'
     template: Handlebars.compile $('#navbar_view-template').html()
     first_render: true
 
