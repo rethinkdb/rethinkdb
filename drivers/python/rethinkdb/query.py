@@ -578,6 +578,36 @@ class JSONExpression(ReadQuery):
             value_mapping = FunctionExpr(value_mapping)
         return JSONExpression(internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func))
 
+    def group_by(self, *args):
+        attrs = args[:-1]
+        groupByObject = args[-1]
+
+        if len(attrs) > 1:
+            grouping = FunctionExpr(lambda row: [row[attr] for attr in attrs])
+        else:
+            grouping = FunctionExpr(lambda row: row[attrs[0]])
+
+        mapping = groupByObject.get('mapping', lambda row: row)
+
+        try:
+            reduction = FunctionExpr(groupByObject['reduction'])
+        except KeyError:
+            raise ValueError("Groupby requires a reduction to be specified")
+        try:
+            base = groupByObject['base']
+        except KeyError:
+            raise ValueError("Groupby requires a base for the reduction")
+
+        gmr = self.grouped_map_reduce(grouping, mapping, base, reduction)
+
+        try:
+            finalizer = groupByObject['finalizer']
+            gmr = gmr.map(lambda group: group.extend({'reduction': finalizer(group['reduction'])}))
+        except KeyError:
+            pass
+
+        return gmr
+
     def distinct(self):
         """Discards duplicate elements from an array.
 
@@ -876,6 +906,36 @@ class StreamExpression(ReadQuery):
             value_mapping = FunctionExpr(value_mapping)
         return JSONExpression(internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func))
 
+    def group_by(self, *args):
+        attrs = args[:-1]
+        groupByObject = args[-1]
+
+        if len(attrs) > 1:
+            grouping = FunctionExpr(lambda row: [row[attr] for attr in attrs])
+        else:
+            grouping = FunctionExpr(lambda row: row[attrs[0]])
+
+        mapping = groupByObject.get('mapping', lambda row: row)
+
+        try:
+            reduction = FunctionExpr(groupByObject['reduction'])
+        except KeyError:
+            raise ValueError("Groupby requires a reduction to be specified")
+        try:
+            base = groupByObject['base']
+        except KeyError:
+            raise ValueError("Groupby requires a base for the reduction")
+
+        gmr = self.grouped_map_reduce(grouping, mapping, base, reduction)
+
+        try:
+            finalizer = groupByObject['finalizer']
+            gmr = gmr.map(lambda group: group.extend({'reduction': finalizer(group['reduction'])}))
+        except KeyError:
+            pass
+
+        return gmr
+
     def distinct(self):
         """Discards duplicate elements from a stream.
 
@@ -914,6 +974,27 @@ class StreamExpression(ReadQuery):
             "`expr.length()`. (We couldn't overload `len(expr)` because it's "
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
+
+count = {
+    'mapping': lambda row: 1,
+    'base': 0,
+    'reduction': lambda acc, val: acc + val
+}
+
+def sum(attr):
+    return {
+        'mapping': lambda row: row[attr],
+        'base': 0,
+        'reduction': lambda acc, val: acc + val
+    }
+
+def average(attr):
+    return {
+        'mapping': lambda row: [row[attr], 1],
+        'base': [0,0],
+        'reduction': lambda acc, val: [acc[0]+val[0], acc[1]+val[1]],
+        'finalizer': lambda res: res[0] / res[1]
+    }
 
 def expr(val):
     """Converts a python value to a ReQL :class:`JSONExpression`.
@@ -1043,9 +1124,14 @@ def let(*bindings):
 
 class FunctionExpr(object):
     """TODO document me"""
+    unique_counter = 0
+
     def __init__(self, body):
+        global unique_counter
         if isinstance(body, types.FunctionType):
-            self.args = body.func_code.co_varnames
+            self.args = ['arg'+str(i)+'_'+str(self.unique_counter)
+                for i in range(body.func_code.co_argcount)]
+            self.unique_counter += 1
             res = body(*[JSONExpression(internal.Var(arg)) for arg in self.args])
             if not isinstance(res, BaseQuery):
                 res = expr(res)
