@@ -1868,15 +1868,30 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     std::string name = guarantee_param_0(data.params, "name");
-    std::string datacenter_id = guarantee_param_0(data.params, "primary");
     std::string database_id = guarantee_param_0(data.params, "database");
-    metadata_info_t *datacenter_info = get_info_from_id(datacenter_id);
     metadata_info_t *database_info = get_info_from_id(database_id);
-    datacenter_id_t primary = str_to_uuid(datacenter_info->path[1]);
     database_id_t database = str_to_uuid(database_info->path[1]);
+    datacenter_id_t primary = nil_uuid();
     namespace_id_t new_id;
     std::string protocol;
     uint64_t port;
+
+    // If primary is specified, use it and verify its validity
+    if (data.params.find("primary") != data.params.end()) {
+        std::string datacenter_id = guarantee_param_0(data.params, "primary");
+        metadata_info_t *datacenter_info = get_info_from_id(datacenter_id);
+
+        if (datacenter_info->path[0] != "datacenters") {
+            throw admin_parse_exc_t("specified primary is not a datacenter: " + datacenter_id);
+        }
+
+        // Verify that the datacenter has at least one machine in it
+        if (get_machine_count_in_datacenter(cluster_metadata, datacenter_info->uuid) < 1) {
+            throw admin_cluster_exc_t("primary datacenter must have at least one machine, run 'help set datacenter' for more information");
+        }
+
+        primary = str_to_uuid(datacenter_info->path[1]);
+    }
 
     // TODO: fix this once multiple protocols are supported again
     if (data.params.find("protocol") != data.params.end()) {
@@ -1898,17 +1913,8 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         port = 0;
     }
 
-    if (datacenter_info->path[0] != "datacenters") {
-        throw admin_parse_exc_t("specified primary is not a datacenter: " + datacenter_id);
-    }
-
     if (database_info->path[0] != "databases") {
         throw admin_parse_exc_t("specified database is not a database: " + database_id);
-    }
-
-    // Verify that the datacenter has at least one machine in it
-    if (get_machine_count_in_datacenter(cluster_metadata, datacenter_info->uuid) < 1) {
-        throw admin_cluster_exc_t("primary datacenter must have at least one machine, run 'help set datacenter' for more information");
     }
 
     if (protocol == "rdb") {
@@ -1946,10 +1952,8 @@ namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const std::s
     obj.name.get_mutable() = name;
     obj.name.upgrade_version(change_request_id);
 
-    if (!primary.is_nil()) {
-        obj.primary_datacenter.get_mutable() = primary;
-        obj.primary_datacenter.upgrade_version(change_request_id);
-    }
+    obj.primary_datacenter.get_mutable() = primary;
+    obj.primary_datacenter.upgrade_version(change_request_id);
 
     obj.port.get_mutable() = port;
     obj.port.upgrade_version(change_request_id);
@@ -2516,8 +2520,11 @@ void admin_cluster_link_t::remove_datacenter_references(const datacenter_id_t& d
             continue;
         }
 
-        if (!i->second.get_mutable().datacenter.in_conflict() && i->second.get_mutable().datacenter.get_mutable() == datacenter) {
-            i->second.get_mutable().datacenter.get_mutable() = nil_id;
+        machine_semilattice_metadata_t& machine = i->second.get_mutable();
+        if (!machine.datacenter.in_conflict() && machine.datacenter.get() == datacenter) {
+
+            machine.datacenter.get_mutable() = nil_id;
+            machine.datacenter.upgrade_version(change_request_id);
         }
     }
 
