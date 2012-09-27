@@ -180,7 +180,6 @@ module 'UIComponents', ->
     class @CollapsibleListElement extends Backbone.View
         events: ->
             'click .collapse-control': 'toggle_showing'
-            'click a': 'link_clicked'
 
         initialize: ->
             @showing = true
@@ -189,14 +188,10 @@ module 'UIComponents', ->
             @show()
             @delegateEvents()
 
-        link_clicked: (event) =>
-            # Prevents collapsing when we click a link.
-            event.stopPropagation()
-
         toggle_showing: (event) =>
+            event.preventDefault()
             @showing = not @showing
             @show()
-            event.preventDefault()
 
         show: =>
             @.$('.element-list-container').toggle @showing

@@ -113,13 +113,12 @@ module 'NamespaceView', ->
         summary_template: Handlebars.compile $('#database_list_element-summary-template').html()
 
         className: 'element-container'
-        events:
-            'click .remove-database': 'remove_database'
-
+            
         initialize: ->
-            log_initial '(initializing) list view: datacenter'
-
             super
+
+            @events['click .remove-database'] = 'remove_database'
+            @delegateEvents()
 
             @namespace_list = new NamespaceView.NamespaceList @model.get('id')
             @callbacks = []
