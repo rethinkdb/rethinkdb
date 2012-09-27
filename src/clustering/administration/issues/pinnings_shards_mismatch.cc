@@ -66,9 +66,9 @@ std::list<clone_ptr_t<global_issue_t> > pinnings_shards_mismatch_issue_tracker_t
 
     cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = semilattice_view->get();
 
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it  = namespaces->namespaces.begin();
-                                                                                                 it != namespaces->namespaces.end();
-                                                                                                 ++it) {
+    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it = namespaces->namespaces.begin();
+         it != namespaces->namespaces.end();
+         ++it) {
         if (it->second.is_deleted()) {
             continue;
         }
