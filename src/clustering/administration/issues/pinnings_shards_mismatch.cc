@@ -54,14 +54,21 @@ pinnings_shards_mismatch_issue_t<protocol_t> *pinnings_shards_mismatch_issue_t<p
 }
 
 template <class protocol_t>
+pinnings_shards_mismatch_issue_tracker_t<protocol_t>::pinnings_shards_mismatch_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _semilattice_view)
+    : semilattice_view(_semilattice_view) { }
+
+template <class protocol_t>
+pinnings_shards_mismatch_issue_tracker_t<protocol_t>::~pinnings_shards_mismatch_issue_tracker_t() { }
+
+template <class protocol_t>
 std::list<clone_ptr_t<global_issue_t> > pinnings_shards_mismatch_issue_tracker_t<protocol_t>::get_issues() {
     std::list<clone_ptr_t<global_issue_t> > res;
 
     cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = semilattice_view->get();
 
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it  = namespaces->namespaces.begin();
-                                                                                                 it != namespaces->namespaces.end();
-                                                                                                 ++it) {
+    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it = namespaces->namespaces.begin();
+         it != namespaces->namespaces.end();
+         ++it) {
         if (it->second.is_deleted()) {
             continue;
         }

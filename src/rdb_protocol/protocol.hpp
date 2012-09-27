@@ -30,8 +30,6 @@
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/query_language.pb.h"
 #include "rdb_protocol/rdb_protocol_json.hpp"
-#include "rpc/semilattice/watchable.hpp"
-#include "rpc/directory/read_manager.hpp"
 #include "rdb_protocol/serializable_environment.hpp"
 
 using query_language::scopes_t;
@@ -40,6 +38,7 @@ using query_language::shared_scoped_less_t;
 using query_language::runtime_exc_t;
 
 class cluster_directory_metadata_t;
+template <class metadata> class directory_read_manager_t;
 
 enum point_write_result_t {
     STORED,

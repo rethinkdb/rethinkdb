@@ -42,7 +42,7 @@ void push_finish_on_queue(fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_
 /* Now that the metadata indicates that the backfill is happening, it's
    time to start actually performing backfill chunks */
 template <class protocol_t>
-class chunk_callback_t : public coro_pool_t<backfill_queue_entry_t<protocol_t> >::callback_t,
+class chunk_callback_t : public coro_pool_callback_t<backfill_queue_entry_t<protocol_t> >,
                          public home_thread_mixin_debug_only_t {
 public:
     chunk_callback_t(store_view_t<protocol_t> *_svs,

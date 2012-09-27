@@ -233,7 +233,7 @@ private:
 
     disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue_;
     fifo_enforcer_sink_t write_queue_entrance_sink_;
-    scoped_ptr_t<typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t> write_queue_coro_pool_callback_;
+    scoped_ptr_t<boost_function_callback_t<write_queue_entry_t> > write_queue_coro_pool_callback_;
     adjustable_semaphore_t write_queue_semaphore_;
     cond_t write_queue_has_drained_;
 

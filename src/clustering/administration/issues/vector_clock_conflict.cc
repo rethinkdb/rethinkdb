@@ -37,6 +37,10 @@ void check_namespaces_for_protocol(
 
 }   /* anonymous namespace */
 
+vector_clock_conflict_issue_tracker_t::vector_clock_conflict_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view)
+    : semilattice_view(_semilattice_view) { }
+vector_clock_conflict_issue_tracker_t::~vector_clock_conflict_issue_tracker_t() { }
+
 std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_issue_tracker_t::get_vector_clock_issues() {
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
 

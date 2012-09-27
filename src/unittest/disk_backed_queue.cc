@@ -69,7 +69,7 @@ void run_concurrent_test() {
     make_io_backender(aio_default, &io_backender);
 
     disk_backed_queue_wrapper_t<int> queue(io_backender.get(), "test", &get_global_perfmon_collection());
-    coro_pool_t<int>::boost_function_callback_t callback(&randomly_delay);
+    boost_function_callback_t<int> callback(&randomly_delay);
     coro_pool_t<int> coro_pool(10, &queue, &callback);
     for (int i = 0; i < 1000; i++) {
         queue.push(i);

@@ -4,7 +4,6 @@
 #include <map>
 
 #include "clustering/administration/metadata.hpp"
-#include "rpc/semilattice/view.hpp"
 #include "http/json.hpp"
 
 class semilattice_http_app_t : public http_json_app_t {
