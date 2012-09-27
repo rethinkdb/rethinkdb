@@ -633,10 +633,16 @@ module 'DataExplorerView', ->
                     @results_view.render_metadata @current_results.length, 0, @count_results, execution_time, @query
                     @last_completed_query = @query
                     @last_executed_count_results = @count_results
+            error_callback = (err) =>
+                if id is @last_id
+                    @.$('.loading_query_img').css 'display', 'none'
+                    @.results_view.render_error(@query, err)
+
 
 
             iter: iter_callback
             last: last_callback
+            error: error_callback
 
         execute_query: =>
             clearTimeout @timeout
@@ -662,11 +668,12 @@ module 'DataExplorerView', ->
 
             @.$('.loading_query_img').css 'display', 'block'
 
-            full_query = @query+'\n'+'.iter({callback: iter_callback, doneCallback:last_callback})' # The new line is added in case the last one has an inline comment (//)
+            full_query = @query+'\n'+'.iter({callback: iter_callback, doneCallback:last_callback, onError: error_callback})' # The new line is added in case the last one has an inline comment (//)
             try
                 callbacks = @create_tagged_callbacks()
                 iter_callback = callbacks.iter
                 last_callback = callbacks.last
+                error_callback = callbacks.error
                 @start_time = new Date()
                 eval(full_query)
             catch err
@@ -787,12 +794,7 @@ module 'DataExplorerView', ->
 
             try
                 that = @
-                r.connect server,
-                    -> return true,
-                    (err) ->
-                        that.$('.loading_query_img').css 'display', 'none'
-                        that.results_view.render_error(that.query, err)
-
+                r.connect server
                 if data? and data.reconnecting is true
                     @.$('#user-alert-space').html @alert_reconnection_success_template({})
             catch err
