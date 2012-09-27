@@ -19,6 +19,8 @@ public:
         }
     private:
         object_buffer_t<T> *parent;
+
+        DISABLE_COPYING(destruction_sentinel_t);
     };
 
     object_buffer_t() : instantiated(false) { }
@@ -95,6 +97,8 @@ public:
 private:
     bool instantiated;
     uint8_t object_data[sizeof(T)];
+
+    DISABLE_COPYING(object_buffer_t);
 };
 
 #endif  // CONTAINERS_OBJECT_BUFFER_HPP_
