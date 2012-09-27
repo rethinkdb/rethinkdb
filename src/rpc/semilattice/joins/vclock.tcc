@@ -14,7 +14,7 @@ vclock_t<T>::vclock_t(const stamped_value_t &_value) {
 
 template <class T>
 void vclock_t<T>::cull_old_values() {
-    rassert(!values.empty(), "As a precondition, values should never be empty\n");
+    guarantee(!values.empty(), "As a precondition, values should never be empty\n");
     value_map_t to_delete;
 
     for (typename value_map_t::iterator p = values.begin(); p != values.end(); ++p) {
@@ -25,17 +25,20 @@ void vclock_t<T>::cull_old_values() {
         }
     }
 
-    for (typename value_map_t::iterator d_it =  to_delete.begin();
-                                        d_it != to_delete.end();
-                                        d_it++) {
+    for (typename value_map_t::iterator d_it = to_delete.begin(); d_it != to_delete.end(); ++d_it) {
         values.erase(d_it->first);
     }
-    rassert(!values.empty(), "As a postcondition, values should never be empty\n");
+    guarantee(!values.empty(), "As a postcondition, values should never be empty\n");
 }
 
 template <class T>
 vclock_t<T>::vclock_t() {
     values.insert(std::make_pair(vclock_details::version_map_t(), T()));
+}
+
+template <class T>
+vclock_t<T>::vclock_t(const T &_t) {
+    values.insert(std::make_pair(vclock_details::version_map_t(), _t));
 }
 
 template <class T>
@@ -47,7 +50,7 @@ vclock_t<T>::vclock_t(const T &_t, const uuid_t &us) {
 
 template <class T>
 bool vclock_t<T>::in_conflict() const {
-    rassert(!values.empty());
+    guarantee(!values.empty());
     return values.size() != 1;
 }
 
@@ -104,6 +107,14 @@ T &vclock_t<T>::get_mutable() {
     return values.begin()->second;
 }
 
+template <class T>
+std::vector<T> vclock_t<T>::get_all_values() const {
+    std::vector<T> result;
+    for (typename value_map_t::const_iterator i = values.begin(); i != values.end(); ++i)
+        result.push_back(i->second);
+    return result;
+}
+
 //semilattice concept for vclock_t
 template <class T>
 bool operator==(const vclock_t<T> &a, const vclock_t<T> &b) {
@@ -118,11 +129,10 @@ void semilattice_join(vclock_t<T> *a, const vclock_t<T> &b) {
 }
 
 template <class T>
-std::vector<T> vclock_t<T>::get_all_values() const {
-    std::vector<T> result;
-    for (typename value_map_t::const_iterator i = values.begin(); i != values.end(); ++i)
-        result.push_back(i->second);
-    return result;
+void debug_print(append_only_printf_buffer_t *buf, const vclock_t<T> &x) {
+    buf->appendf("vclock{");
+    debug_print(buf, x.values);
+    buf->appendf("}");
 }
 
 #endif  // RPC_SEMILATTICE_JOINS_VCLOCK_TCC_

@@ -7,6 +7,17 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#namespace_view-replica-template').html()
         alert_tmpl: Handlebars.compile $('#changed_primary_dc-replica-template').html()
 
+        events:
+            'click .edit_replicas': 'modify_replicas'
+            'click .make_primary': 'make_primary'
+
+        modify_replicas: (event) =>
+            event.preventDefault()
+            datacenter_id = @.$(event.target).data 'id' #We do not let people change the number of replicas of Universe.
+            datacenter = datacenters.get datacenter_id
+            modal = new NamespaceView.ModifyReplicasModal @model, datacenter
+            modal.render()
+
         initialize: ->
             # @model is a namespace.  somebody is supposed to pass model: namespace to the constructor.
             @model.on 'all', @render
@@ -14,13 +25,14 @@ module 'NamespaceView', ->
             progress_list.on 'all', @render
             log_initial '(initializing) namespace view: replica'
 
-        modify_replicas: (e, datacenter) ->
-            log_action 'modify replica clicked'
-            modal = new NamespaceView.ModifyReplicasModal @model, datacenter
-            modal.render()
-            e.preventDefault()
+        make_primary: (event) ->
+            event.preventDefault()
+            id = @.$(event.target).data('id')
+            if datacenters.get(id)?
+                new_dc = datacenters.get(id)
+            else
+                new_dc = universe_datacenter
 
-        make_primary: (e, new_dc) ->
             log_action 'make primary clicked'
             modal = new UIComponents.ConfirmationDialogModal
             # Increase replica affinities in the old primary
@@ -30,21 +42,31 @@ module 'NamespaceView', ->
             # have to worry about this number going negative,
             # since we can't make primary a datacenter with no
             # replicas.
-            old_dc = datacenters.get(@model.get('primary_uuid'))
+
             new_affinities = {}
-            new_affinities[old_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), old_dc.get('id')) + 1
+            if @model.get('primary_uuid') is universe_datacenter.get('id')
+                old_dc = universe_datacenter
+                new_affinities[old_dc.get('id')] = 0
+            else
+                old_dc = datacenters.get(@model.get('primary_uuid'))
+                new_affinities[old_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), old_dc.get('id')) + 1
+
             new_affinities[new_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), new_dc.get('id')) - 1
+            primary_pinnings = {}
+            for shard of @model.get('primary_pinnings')
+                primary_pinnings[shard] = null
             data =
                 primary_uuid: new_dc.get('id')
                 replica_affinities: new_affinities
+                primary_pinnings: primary_pinnings
             modal.render("Are you sure you want to make datacenter " + new_dc.get('name') + " primary?",
-                "/ajax/semilattice/memcached_namespaces/" + @model.get('id'),
+                "/ajax/semilattice/rdb_namespaces/" + @model.get('id'),
                 JSON.stringify(data),
                 (response) =>
                     clear_modals()
                     diff = {}
                     diff[@model.get('id')] = response
-                    apply_to_collection(namespaces, add_protocol_tag(diff, "memcached"))
+                    apply_to_collection(namespaces, add_protocol_tag(diff, "rdb"))
                     # Grab the latest view of things
                     $('#user-alert-space').html(@alert_tmpl
                         namespace_uuid: @model.get('id')
@@ -55,66 +77,80 @@ module 'NamespaceView', ->
                         old_datacenter_name: old_dc.get('name')
                         )
                 )
-            e.preventDefault()
 
         render: =>
-            log_render '(rendering) namespace view: replica'
-            # Walk over json and add datacenter names to the model (in
-            # addition to datacenter ids)
+            found_universe = false
+            data = @model.toJSON()
+            if @model.get('primary_uuid') is universe_datacenter.get('id')
+                found_universe = true
+                data = _.extend data,
+                    primary:
+                        id: @model.get('primary_uuid')
+                        name: universe_datacenter.get('name')
+                        replicas: 1 # we're adding one because primary is also a replica
+                        total_machines: machines.length
+                        acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
+                        is_universe: true
+                        #status: DataUtils.get_namespace_status(@model.get('id'), @model.get('primary_uuid'))
+
+            else
+                if not @model.get('primary_uuid')?
+                    primary_replica_count = 0
+                else
+                    primary_replica_count = @model.get('replica_affinities')[@model.get('primary_uuid')]
+                    if not primary_replica_count?
+                        primary_replica_count = 0
+
+                data = _.extend data,
+                    primary:
+                        id: @model.get('primary_uuid')
+                        name: datacenters.get(@model.get('primary_uuid')).get('name')
+                        replicas: primary_replica_count + 1 # we're adding one because primary is also a replica
+                        total_machines: DataUtils.get_datacenter_machines(@model.get('primary_uuid')).length
+                        acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
+                        status: DataUtils.get_namespace_status(@model.get('id'), @model.get('primary_uuid'))
+
+            # Walk over json and add datacenter names to the model (in addition to datacenter ids)
             secondary_affinities = {}
             _.each @model.get('replica_affinities'), (replica_count, id) =>
                 if id != @model.get('primary_uuid') and replica_count > 0
                     secondary_affinities[id] = replica_count
+                    if id is universe_datacenter.get('id')
+                        found_universe = true
+
             # List of datacenters we're not replicating to
             nothings = []
             for dc in datacenters.models
                 is_primary = dc.get('id') is @model.get('primary_uuid')
                 is_secondary = dc.get('id') in _.map(secondary_affinities, (obj, id)->id)
                 if not is_primary and not is_secondary
-                    nothings[nothings.length] =
+                    nothings.push
                         id: dc.get('id')
                         name: dc.get('name')
-            # create json
-            primary_replica_count = @model.get('replica_affinities')[@model.get('primary_uuid')]
-            if not primary_replica_count?
-                # replica affinities may be missing for new namespaces
-                primary_replica_count = 0
-            json = _.extend @model.toJSON(),
-                primary:
-                    id: @model.get('primary_uuid')
-                    name: datacenters.get(@model.get('primary_uuid')).get('name')
-                    replicas: primary_replica_count + 1 # we're adding one because primary is also a replica
-                    total_machines: DataUtils.get_datacenter_machines(@model.get('primary_uuid')).length
-                    acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
-                    status: DataUtils.get_namespace_status(@model.get('id'), @model.get('primary_uuid'))
+
+            if found_universe is false
+                nothings.push
+                    id: universe_datacenter.get('id')
+                    name: universe_datacenter.get('name')
+                    is_universe: true
+
+            data = _.extend data,
                 secondaries:
                     _.map secondary_affinities, (replica_count, uuid) =>
+                        if datacenters.get(uuid)?
+                            datacenter = datacenters.get(uuid)
+                        else
+                            datacenter = universe_datacenter
                         id: uuid
-                        name: datacenters.get(uuid).get('name')
+                        name: datacenter.get('name')
+                        is_universe: true if not datacenters.get(uuid)?
                         replicas: replica_count
                         total_machines: DataUtils.get_datacenter_machines(uuid).length
                         acks: DataUtils.get_ack_expectations(@model.get('id'), uuid)
                         status: DataUtils.get_namespace_status(@model.get('id'), uuid)
                 nothings: nothings
 
-            @.$el.html @template(json)
-
-
-            # Bind action for primary datacenter
-            @.$('#edit-primary').on 'click', (e) =>
-                @modify_replicas(e, datacenters.get(@model.get('primary_uuid')))
-
-            # Bind the link actions for each datacenter with replicas
-            _.each _.keys(@model.get('replica_affinities')), (dc_uuid) =>
-                @.$(".edit-secondary.#{dc_uuid}").on 'click', (e) =>
-                    @modify_replicas(e, datacenters.get(dc_uuid))
-                @.$(".make-primary.#{dc_uuid}").on 'click', (e) =>
-                    @make_primary(e, datacenters.get(dc_uuid))
-
-            # Bind the link actions for each datacenter with no replicas
-            _.each nothings, (nothing_dc) =>
-                @.$(".edit-nothing.#{nothing_dc.id}").on 'click', (e) =>
-                    @modify_replicas(e, datacenters.get(nothing_dc.id))
+            @.$el.html @template data
 
             return @
 

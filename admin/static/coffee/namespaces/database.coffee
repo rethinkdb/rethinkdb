@@ -130,8 +130,6 @@ module 'DatabaseView', ->
         render: =>
             data =
                 num_namespaces: 0
-                num_rdb: 0
-                num_memcached: 0
                 num_shards: 0
                 reachability: true
                 stats_up_to_date: true
@@ -139,11 +137,6 @@ module 'DatabaseView', ->
             for namespace in namespaces.models
                 if namespace.get('database') is @model.get('id')
                     data.num_namespaces++
-
-                    if namespace.get('protocol') is 'rdb'
-                        data.num_rdb++
-                    else if namespace.get('protocol') is 'memcached'
-                        data.num_memcached++
 
                     namespace_status = DataUtils.get_namespace_status(namespace.get('id'))
                     if namespace_status.reachability isnt 'Live'
@@ -280,9 +273,6 @@ module 'DatabaseView', ->
             event.preventDefault()
             remove_database_dialog = new DatabaseView.RemoveDatabaseModal
             remove_database_dialog.render @model
-
-            model = @model
-
 
         render: =>
             @.$el.html @template {}

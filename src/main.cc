@@ -39,16 +39,14 @@ int main(int argc, char *argv[]) {
 
         if (subcommand == "create") {
             return main_rethinkdb_create(argc, argv);
-
         } else if (subcommand == "serve") {
             return main_rethinkdb_serve(argc, argv);
-
         } else if (subcommand == "proxy") {
             return main_rethinkdb_proxy(argc, argv);
-
         } else if (subcommand == "admin") {
             return main_rethinkdb_admin(argc, argv);
-
+        } else if (subcommand == "import") {
+            return main_rethinkdb_import(argc, argv);
         } else if (subcommand == "--version") {
             if (argc != 2) {
                 puts("WARNING: Ignoring extra parameters after '--version'.");
@@ -65,6 +63,7 @@ int main(int argc, char *argv[]) {
                 puts("    'rethinkdb serve': serve queries and host data");
                 puts("    'rethinkdb proxy': serve queries but don't host data");
                 puts("    'rethinkdb admin': access and modify cluster metadata");
+                puts("    'rethinkdb import': import data from from a file");
                 puts("");
                 puts("For more information, run 'rethinkdb help [subcommand]'.");
                 return 0;
@@ -82,6 +81,8 @@ int main(int argc, char *argv[]) {
                     return 0;
                 } else if (subcommand2 == "proxy") {
                     help_rethinkdb_proxy();
+                } else if (subcommand2 == "import") {
+                    help_rethinkdb_import();
                 } else {
                     printf("ERROR: No help for '%s'\n", subcommand2.c_str());
                     return 1;

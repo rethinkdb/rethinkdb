@@ -19,7 +19,7 @@ available. */
 template<class value_t>
 class accounting_queue_t :
     public passive_producer_t<value_t>,
-    public home_thread_mixin_t
+    public home_thread_mixin_debug_only_t
 {
 public:
     explicit accounting_queue_t(int _batch_factor) :

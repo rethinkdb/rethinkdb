@@ -1,60 +1,47 @@
-goog.provide('rethinkdb.query');
-
-goog.require('rethinkdb.errors');
-
 /**
  * @fileoverview This file is somewhat of a hack, designed to be included
- * first by the dependency generator so that we can provide the query
+ * first by the dependency generator so that we can provide the top level
  * shortcut function.
  */
 
 /**
- * A shortcut function for wrapping values with ReQL expressions.
- * @namespace namespace for all ReQL query generating functions
- * @export
+ * A shortcut function for referencing ReQL variables and attributes.
+ * @name rethinkdb
+ * @namespace namespace for all rethinkdb functions and classes
  */
-rethinkdb.query = function(jsobj) {
-    if (typeof jsobj === 'string' && (jsobj[0] === '$' || jsobj[0] === '@')) {
-        return rethinkdb.query.R(jsobj);
-    } else {
-        return rethinkdb.query.expr(jsobj);
-    }
+goog.global.rethinkdb = function(jsobj) {
+    return rethinkdb.R(jsobj);
 };
+
+goog.provide('rethinkdb');
 
 /**
  * Internal utility for wrapping API function arguments
  * @param {*} val The value to wrap
- * @returns rethinkdb.query.Expression
+ * @returns rethinkdb.Expression
  * @ignore
  */
 function wrapIf_(val) {
-    if (val instanceof rethinkdb.query.Expression) {
+    if (val instanceof rethinkdb.Query) {
         return val;
     } else {
-        return rethinkdb.query(val);
+        return rethinkdb.expr(val);
     }
 }
 
 /**
- * Internal utility for wrapping API function arguments that
+ * Internal utility to wrap API function arguments that
  * are expected to be function expressions.
  * @param {*} fun
-        The function to wrap
- * @returns rethinkdb.query.FunctionExpression
+ * @returns {rethinkdb.FunctionExpression}
  * @ignore
  */
 function functionWrap_(fun) {
-    if (fun instanceof rethinkdb.query.FunctionExpression) {
-        // No wrap needed
-    } else if (fun instanceof rethinkdb.query.Expression) {
-        fun = rethinkdb.query.fn('', fun);
-    } else if(typeof fun === 'function') {
-        fun = rethinkdb.query.fn(fun);
+    if (fun instanceof rethinkdb.FunctionExpression) {
+        return fun;
     } else {
-       throw TypeError("Argument expected to be a function expression");
+        return rethinkdb.fn(fun);
     }
-
-    return fun;
 }
 
 /**
@@ -88,4 +75,23 @@ function argCheck_(args, expected) {
         throw new TypeError("Function requires at least "+expected+" argument"+
                             (expected > 1 ? 's.' : '.'));
     }
+}
+
+/**
+ * Internal utility that creates new ReQL expression objects that are
+ * themselves shortcut functions.
+ * @param {...*} var_args
+ * @ignore
+ */
+function newExpr_(var_args) {
+    var constructor = arguments[0];
+    var args = Array.prototype.slice.call(arguments, 1);
+
+    var self = function(prop) {
+        return rethinkdb.Expression.prototype.getAttr.call(self, prop);
+    };
+
+    self.__proto__ = constructor.prototype;
+    constructor.apply(self, args);
+    return self;
 }

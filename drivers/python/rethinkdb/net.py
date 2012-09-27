@@ -160,14 +160,26 @@ class BatchedIterator(object):
         self.more_query.token = token
         self.more_query.type = p.Query.CONTINUE
 
+        # Add ourselves to the list of cursors on the connection (so
+        # that the connection can invalidate us if it breaks)
+        self.conn.cursors.append(self)
+
+    def invalidate(self):
+        self.conn.cursors.remove(self)
+        self.conn = None
+
     def read_more(self):
         if self.complete:
             return
+
+        if not self.conn:
+            raise RuntimeError("The connection has been invalidated")
 
         more_data, status = self.conn._run(self.more_query, self.query)
 
         if status == p.Response.SUCCESS_STREAM:
             self.complete = True
+            self.conn.cursors.remove(self)
 
         self.data += more_data
 
@@ -181,8 +193,10 @@ class BatchedIterator(object):
 
     def __iter__(self):
         index = 0
-        while not self.complete and index < len(self.data):
+        while True:
             self.read_until(index)
+            if self.complete and index == len(self.data):
+                break
             yield self.data[index]
             index += 1
 
@@ -214,39 +228,24 @@ class Connection():
     The connection may be used with Python's `with` statement for
     exception safety.
     """
-    def __init__(self, host_or_list=None, port=None, db_name=None):
+    def __init__(self, host, port, db_name):
         """Connect to a RethinkDB cluster. The connection may be
         created by specifying the host (in which case the default port
-        will be used), host and port, no arguments (in which case the
-        default port on localhost will be used), or a list of values
-        where each value contains the host string or a tuple of (host,
-        port) pairs.
-
-        Once the connection object reaches a single node, it retreives
-        the addresses of other nodes and connects to them
-        automatically. Queries are then routed to the most appropriate
-        node to minimize network hops on the server.
-
-        If all of the nodes are inaccessible, or if all of the nodes
-        terminate their network connections, the connection object
-        raises an error. If some of the nodes are inaccessible, or if
-        some of the nodes terminate their network connections, the
-        connection object does not attempt to connect to them again.
+        will be used), host and port, or no arguments (in which case the
+        default port on localhost will be used).
 
         Use :func:`rethinkdb.connect` - as shorthand for
-        this method.
+        this constructor.
 
         Creating a connection sets :data:`last_connection` to
-        itself. This is used by :func:`rethinkdb.query.Expression.run`
-        as a default connection if no connection object is passed.
+        the this new connection. This is used by
+        :func:`rethinkdb.query.Expression.run` as a default
+        connection if no connection object is passed.
 
-        :param host_or_list: A hostname, or a list of hostnames or
-          (host, port) tuples.
-        :type host_or_list: str or a list of values where each value
-          may be an str, or an (str, int) tuple.
+        :param host: A hostname or None to use the default port
+        :type host: str or None
         :param port: The port to connect to. If not specified, the
-          default port is used. If `host_or_port` argument is a list,
-          `port` is ignored.
+          default port is used.
         :type port: int
 
         :param db_name: An optional name of a database to be used by
@@ -254,10 +253,20 @@ class Connection():
           explicitly. Equivalent to calling :func:`use`.
         :type db_name: str
         """
+        self.socket = None
+        self.db_name = db_name
         self.token = 1
-        self.socket = socket.create_connection((host_or_list, port))
-        self.socket.sendall(struct.pack("<L", 0xaf61ba35))
+        self.host = host
+        self.port = port
+        self.cursors = []
+        self.reconnect()
 
+    def reconnect(self):
+        self.close()
+        for c in self.cursors:
+            c.invalidate()
+        self.socket = socket.create_connection((self.host, self.port))
+        self.socket.sendall(struct.pack("<L", 0xaf61ba35))
         global last_connection
         last_connection = self
 
@@ -269,7 +278,10 @@ class Connection():
     def _recvall(self, length):
         buf = ""
         while len(buf) != length:
-            buf += self.socket.recv(length - len(buf))
+            chunk = self.socket.recv(length - len(buf))
+            if chunk == '':
+                raise RuntimeError("Socket connection broken")
+            buf += chunk
         return buf
 
     def _run(self, protobuf, query, debug=False):
@@ -278,13 +290,17 @@ class Connection():
 
         serialized = protobuf.SerializeToString()
 
-        header = struct.pack("<L", len(serialized))
-        self.socket.sendall(header + serialized)
-        resp_header = self._recvall(4)
-        msglen = struct.unpack("<L", resp_header)[0]
-        response_serialized = self._recvall(msglen)
-        response = p.Response()
-        response.ParseFromString(response_serialized)
+        try:
+            header = struct.pack("<L", len(serialized))
+            self.socket.sendall(header + serialized)
+            resp_header = self._recvall(4)
+            msglen = struct.unpack("<L", resp_header)[0]
+            response_serialized = self._recvall(msglen)
+            response = p.Response()
+            response.ParseFromString(response_serialized)
+        except KeyboardInterrupt as ki:
+            self.reconnect()
+            raise ki
 
         if debug:
             print "response:", response
@@ -308,7 +324,7 @@ class Connection():
             raise ValueError("Got unexpected status code from server: %d" % response.status_code)
 
 
-    def run(self, expr, debug=False):
+    def run(self, expr, debug=False, allow_outdated=None):
         """Evaluate the expression or list of expressions `expr` on
         the server using this connection. If `expr` is a list,
         evaluates them on the server in order - this can be used to
@@ -343,7 +359,11 @@ class Connection():
         """
         protobuf = p.Query()
         protobuf.token = self._get_token()
-        expr._finalize_query(protobuf)
+
+        # Compilation options
+        opts = {'allow_outdated': allow_outdated}
+
+        expr._finalize_query(protobuf, opts)
         ret, code = self._run(protobuf, expr, debug)
 
         if code in (p.Response.SUCCESS_STREAM, p.Response.SUCCESS_PARTIAL):
@@ -367,14 +387,16 @@ class Connection():
         >>> conn.use('bar')
         >>> conn.run(q)      # select all users from database 'bar'
         """
-        pass
+        self.db_name = db_name
 
     def close(self):
         """Closes all network sockets on this connection object to the
         cluster."""
-        pass
+        if self.socket:
+            self.socket.close()
+            self.socket = None
 
-def connect(host_or_list=None, port=None, db_name=None):
+def connect(host='localhost', port=12346, db_name='test'):
     """
     Creates a :class:`Connection` object. This method is a shorthand
     for constructing the :class:`Connection` object directly.
@@ -391,5 +413,5 @@ def connect(host_or_list=None, port=None, db_name=None):
     >>>                 'magneto',
     >>>                 ('puzzler', 8181)])
     """
-    return Connection(host_or_list, port, db_name)
+    return Connection(host, port, db_name)
 

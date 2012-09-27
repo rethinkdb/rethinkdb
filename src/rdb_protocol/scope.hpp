@@ -2,33 +2,34 @@
 #define RDB_PROTOCOL_SCOPE_HPP_
 
 #include <deque>
+#include <list>
 #include <map>
 #include <set>
 #include <string>
 #include <vector>
 
 template <class T>
-inline void assert_T(const T &) { }
+inline void guarantee_T(const T &) { }
 
 template <>
-inline void assert_T<boost::shared_ptr<scoped_cJSON_t> >(DEBUG_VAR const boost::shared_ptr<scoped_cJSON_t> &j) {
-    rassert(j);
+inline void guarantee_T<boost::shared_ptr<scoped_cJSON_t> >(const boost::shared_ptr<scoped_cJSON_t> &j) {
+    guarantee(j);
 }
 
 template <class T>
 class variable_scope_t {
 public:
     void put_in_scope(const std::string &name, const T &t) {
-        assert_T(t);
-        rassert(!scopes.empty());
+        guarantee_T(t);
+        guarantee(!scopes.empty());
         scopes.front()[name] = t;
     }
 
-    T get(const std::string &name) {
-        for (typename scopes_t::iterator it  = scopes.begin();
-                                         it != scopes.end();
-                                         ++it) {
-            typename std::map<std::string, T>::iterator jt = it->find(name);
+    T get(const std::string &name) const {
+        for (typename std::list<std::map<std::string, T> >::const_iterator it = scopes.begin();
+             it != scopes.end();
+             ++it) {
+            typename std::map<std::string, T>::const_iterator jt = it->find(name);
             if (jt != it->end()) {
                 return jt->second;
             }
@@ -39,11 +40,9 @@ public:
 
     // Calling this only makes sense in the typechecker. All variables
     // are guranteed by the typechecker to be present at runtime.
-    bool is_in_scope(const std::string &name) {
-        for (typename scopes_t::iterator it  = scopes.begin();
-                                         it != scopes.end();
-                                         ++it) {
-            typename std::map<std::string, T>::iterator jt = it->find(name);
+    bool is_in_scope(const std::string &name) const {
+        for (typename std::list<std::map<std::string, T> >::const_iterator it = scopes.begin(); it != scopes.end(); ++it) {
+            typename std::map<std::string, T>::const_iterator jt = it->find(name);
             if (jt != it->end()) {
                 return true;
             }
@@ -60,15 +59,15 @@ public:
     }
 
     // TODO(rntz): find a better way to do this.
-    void dump(std::vector<std::string> *argnames, std::vector<T> *argvals) {
+    void dump(std::vector<std::string> *argnames, std::vector<T> *argvals) const {
         std::set<std::string> seen;
 
         if (argnames) argnames->clear();
         argvals->clear();
 
         // Most recent scope is at front of deque, so we iterate in-order.
-        for (typename std::list<std::map<std::string, T> >::iterator sit = scopes.begin(); sit != scopes.end(); ++sit) {
-            for (typename std::map<std::string, T>::iterator it = sit->begin(); it != sit->end(); ++it) {
+        for (typename std::list<std::map<std::string, T> >::const_iterator sit = scopes.begin(); sit != scopes.end(); ++sit) {
+            for (typename std::map<std::string, T>::const_iterator it = sit->begin(); it != sit->end(); ++it) {
                 // Earlier bindings take precedence over later ones.
                 if (seen.count(it->first)) continue;
 
@@ -100,8 +99,7 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(scopes);
 private:
-    typedef std::list<std::map<std::string, T> > scopes_t;
-    scopes_t scopes;
+    std::list<std::map<std::string, T> > scopes;
 };
 
 /* an implicit_value_t allows for a specific implicit value to exist at certain
@@ -112,20 +110,23 @@ private:
 template <class T>
 class implicit_value_t {
 public:
-    implicit_value_t() {
+    implicit_value_t() : depth(0) {
         push();
     }
 
     void push() {
         scopes.push_front(boost::optional<T>());
+        depth += 1;
     }
 
     void push(const T &t) {
         scopes.push_front(t);
+        depth += 1;
     }
 
     void pop() {
         scopes.pop_front();
+        depth -= 1;
     }
 
     class impliciter_t {
@@ -149,18 +150,22 @@ public:
         implicit_value_t *parent;
     };
 
-    bool has_value() {
+    bool has_value() const {
         return scopes.front();
     }
 
-    T get_value() {
+    T get_value() const {
         return *scopes.front();
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_1(scopes);
+    bool depth_is_legal() const {
+        return depth == 2; //We push once at the beginning, so we want 2 here.
+    }
+
+    RDB_MAKE_ME_SERIALIZABLE_2(scopes, depth);
 private:
-    typedef std::list<boost::optional<T> > scopes_t;
-    scopes_t scopes;
+    std::list<boost::optional<T> > scopes;
+    int depth;
 };
 
 #endif  // RDB_PROTOCOL_SCOPE_HPP_

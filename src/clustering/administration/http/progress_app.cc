@@ -32,7 +32,7 @@ public:
 
 
 /* Some typedefs to ostensibly make life suck less. */
-typedef std::multimap<memcached_protocol_t::region_t, request_record_t *> region_to_request_record_t;
+typedef std::multimap<rdb_protocol_t::region_t, request_record_t *> region_to_request_record_t;
 typedef std::map<reactor_activity_id_t, region_to_request_record_t> activity_id_map_t;
 typedef std::map<namespace_id_t, activity_id_map_t> namespace_id_map_t;
 typedef std::map<machine_id_t, namespace_id_map_t> machine_id_map_t;
@@ -87,7 +87,7 @@ public:
                              namespace_id_t _n_id,
                              machine_id_t _m_id,
                              reactor_activity_id_t _a_id,
-                             memcached_protocol_t::region_t _region,
+                             rdb_protocol_t::region_t _region,
                              mailbox_manager_t *_mbox_manager,
                              machine_id_map_t *_promise_map,
                              boost::ptr_vector<request_record_t> *_things_to_destroy)
@@ -109,20 +109,20 @@ private:
     namespace_id_t n_id;
     machine_id_t m_id;
     reactor_activity_id_t a_id;
-    memcached_protocol_t::region_t region;
+    rdb_protocol_t::region_t region;
     mailbox_manager_t *mbox_manager;
     machine_id_map_t *promise_map;
     boost::ptr_vector<request_record_t> *things_to_destroy;
 };
 
 template <>
-void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_protocol_t>::primary_when_safe_t>(const reactor_business_card_t<memcached_protocol_t>::primary_when_safe_t &primary_when_safe) const {
+void send_backfill_requests_t::operator()<reactor_business_card_t<rdb_protocol_t>::primary_when_safe_t>(const reactor_business_card_t<rdb_protocol_t>::primary_when_safe_t &primary_when_safe) const {
     for (std::vector<reactor_business_card_details::backfill_location_t>::const_iterator b_it  = primary_when_safe.backfills_waited_on.begin();
                                                                                          b_it != primary_when_safe.backfills_waited_on.end();
                                                                                          ++b_it) {
 
-        namespaces_directory_metadata_t<memcached_protocol_t> namespaces_directory_metadata =
-            directory.find(b_it->peer_id)->second.memcached_namespaces;
+        namespaces_directory_metadata_t<rdb_protocol_t> namespaces_directory_metadata =
+            directory.find(b_it->peer_id)->second.rdb_namespaces;
 
         if (!std_contains(namespaces_directory_metadata.reactor_bcards, n_id)) {
             continue;
@@ -132,10 +132,10 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_prot
             continue;
         }
 
-        std::pair<memcached_protocol_t::region_t, reactor_business_card_t<memcached_protocol_t>::activity_t> region_activity_pair =
+        reactor_business_card_t<rdb_protocol_t>::activity_entry_t region_activity_entry =
             namespaces_directory_metadata.reactor_bcards[n_id].internal->activities.find(b_it->activity_id)->second;
 
-        boost::optional<backfiller_business_card_t<memcached_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<memcached_protocol_t>(), region_activity_pair.second);
+        boost::optional<backfiller_business_card_t<rdb_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<rdb_protocol_t>(), region_activity_entry.activity);
         if (backfiller) {
             promise_t<std::pair<int, int> > *value = new promise_t<std::pair<int, int> >;
             mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(
@@ -157,11 +157,11 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_prot
 }
 
 template <>
-void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_protocol_t>::secondary_backfilling_t>(const reactor_business_card_t<memcached_protocol_t>::secondary_backfilling_t &secondary_backfilling) const {
+void send_backfill_requests_t::operator()<reactor_business_card_t<rdb_protocol_t>::secondary_backfilling_t>(const reactor_business_card_t<rdb_protocol_t>::secondary_backfilling_t &secondary_backfilling) const {
     reactor_business_card_details::backfill_location_t b_loc = secondary_backfilling.backfill;
 
-    namespaces_directory_metadata_t<memcached_protocol_t> namespaces_directory_metadata =
-        directory.find(b_loc.peer_id)->second.memcached_namespaces;
+    namespaces_directory_metadata_t<rdb_protocol_t> namespaces_directory_metadata =
+        directory.find(b_loc.peer_id)->second.rdb_namespaces;
 
     if (!std_contains(namespaces_directory_metadata.reactor_bcards, n_id)) {
         return;
@@ -171,10 +171,10 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_prot
         return;
     }
 
-    std::pair<memcached_protocol_t::region_t, reactor_business_card_t<memcached_protocol_t>::activity_t> region_activity_pair =
+    typename reactor_business_card_t<rdb_protocol_t>::activity_entry_t region_activity_entry =
         namespaces_directory_metadata.reactor_bcards[n_id].internal->activities.find(b_loc.activity_id)->second;
 
-    boost::optional<backfiller_business_card_t<memcached_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<memcached_protocol_t>(), region_activity_pair.second);
+    boost::optional<backfiller_business_card_t<rdb_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<rdb_protocol_t>(), region_activity_entry.activity);
     if (backfiller) {
         promise_t<std::pair<int, int> > *value = new promise_t<std::pair<int, int> >;
         mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(
@@ -218,7 +218,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
      * machine_id_t ->
      *   namespace_id_t ->
      *     reactor_activity_id_t ->
-     *       memcached_protocol_t::region_t ->
+     *       rdb_protocol_t::region_t ->
      *         request_record_t
      *
      * A request record holds on to the mailbox needed to receive a value
@@ -269,29 +269,29 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
 
     std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_metadata->get();
     /* Iterate through the peers. */
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator p_it  = directory.begin();
-            p_it != directory.end();
-            ++p_it) {
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator p_it = directory.begin();
+         p_it != directory.end();
+         ++p_it) {
         /* Check to see if this matches the requested machine_id (or if we
          * didn't specify a specific machine but want all the machines). */
         if (!requested_machine_id || requested_machine_id == p_it->second.machine_id) {
 
-            typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<memcached_protocol_t> > > > reactor_bcard_map_t;
-            reactor_bcard_map_t bcard_map = p_it->second.memcached_namespaces.reactor_bcards;
+            typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > reactor_bcard_map_t;
+            reactor_bcard_map_t bcard_map = p_it->second.rdb_namespaces.reactor_bcards;
 
             /* Iterate through the machine's reactor's business_cards to see which ones are doing backfills. */
-            for (std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<memcached_protocol_t> > > >::iterator n_it  = bcard_map.begin();
-                                                                                                                                           n_it != bcard_map.end();
-                                                                                                                                           ++n_it) {
+            for (std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >::iterator n_it = bcard_map.begin();
+                 n_it != bcard_map.end();
+                 ++n_it) {
                 /* Check to see if this matches the requested namespace (or
                  * if we're just getting all the namespaces). */
                 if (!requested_namespace_id || requested_namespace_id == n_it->first) {
 
                     /* Iterate through the reactors activities to see if
                      * any of them are currently backfilling. */
-                    for (reactor_business_card_t<memcached_protocol_t>::activity_map_t::const_iterator a_it  = n_it->second.internal->activities.begin();
-                                                                                                       a_it != n_it->second.internal->activities.end();
-                                                                                                       ++a_it) {
+                    for (reactor_business_card_t<rdb_protocol_t>::activity_map_t::const_iterator a_it = n_it->second.internal->activities.begin();
+                         a_it != n_it->second.internal->activities.end();
+                         ++a_it) {
                         /* XXX we don't have a way to filter by activity
                          * id, there's no reason we couldn't but it doesn't
                          * seem like the ui has a use for it soe we're
@@ -299,8 +299,8 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
 
                         /* This visitor dispatches requests to the correct backfillers progress mailboxs. */
                         boost::apply_visitor(send_backfill_requests_t(directory, n_it->first, p_it->second.machine_id, a_it->first,
-                                                                    a_it->second.first, mbox_manager, &promise_map, &things_to_destroy),
-                                             a_it->second.second);
+                                                                      a_it->second.region, mbox_manager, &promise_map, &things_to_destroy),
+                                             a_it->second.activity);
                     }
                 }
             }
@@ -347,12 +347,12 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                 cJSON *activity_info = cJSON_CreateObject();
                 cJSON_AddItemToObject(namespace_info, uuid_to_str(a_it->first).c_str(), activity_info);
 
-                std::map<memcached_protocol_t::region_t, cJSON*> backfills_for_region; //Since it's a multimap we need to keep track of the different cJSON objects for the different regions.
+                std::map<rdb_protocol_t::region_t, cJSON*> backfills_for_region; //Since it's a multimap we need to keep track of the different cJSON objects for the different regions.
                 for (region_to_request_record_t::iterator r_it  = a_it->second.begin();
                                                           r_it != a_it->second.end();
                                                           ++r_it) {
                     //Sigh get around json adapters const aversion
-                    memcached_protocol_t::region_t r = r_it->first;
+                    rdb_protocol_t::region_t r = r_it->first;
 
                     cJSON *region_info;
                     if (!std_contains(backfills_for_region, r)) {

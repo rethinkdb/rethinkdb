@@ -260,7 +260,8 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
                             on_begin_transfer = lambda: result_log.write("builds", name, status = "uploading", start_time = time.time()),
                             on_begin_script = lambda: result_log.write("builds", name, status = "running", start_time = time.time()),
                             on_end_script = lambda: result_log.write("builds", name, status = "ok", end_time = time.time()),
-                            constraint = "build-ready"
+                            constraint = "build-ready",
+                            timeout = 30   # minutes
                             )
                     except remotely.ScriptFailedError:
                         result_log.write("builds", name, status = "fail", end_time = time.time())

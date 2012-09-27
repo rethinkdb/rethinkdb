@@ -18,8 +18,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     /* Pick shards */
     std::vector< hash_region_t<key_range_t> > shards;
-    shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::none,   store_key_t(""),  key_range_t::open, store_key_t("n"))));
-    shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") )));
+    shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::none,   store_key_t(),  key_range_t::open, store_key_t("n"))));
+    shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t() )));
 
     boost::ptr_vector<mock::temp_file_t> temp_files;
     for (size_t i = 0; i < shards.size(); ++i) {
@@ -31,7 +31,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
     for (size_t i = 0; i < shards.size(); ++i) {
-        underlying_stores.push_back(new memcached_protocol_t::store_t(io_backender.get(), temp_files[i].name(), true, &get_global_perfmon_collection(), NULL));
+        underlying_stores.push_back(new memcached_protocol_t::store_t(io_backender.get(), temp_files[i].name(), GIGABYTE, true, &get_global_perfmon_collection(), NULL));
     }
 
     boost::ptr_vector<store_view_t<memcached_protocol_t> > stores;
@@ -106,7 +106,7 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi, order_so
     }
 
     {
-        rget_query_t rget(key_range_t::universe(), 1000);
+        rget_query_t rget(hash_region_t<key_range_t>::universe(), 1000);
         memcached_protocol_t::read_t read(rget, time(NULL));
 
         cond_t interruptor;

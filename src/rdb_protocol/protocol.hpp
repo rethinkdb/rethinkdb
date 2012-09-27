@@ -83,7 +83,19 @@ struct backfill_atom_t {
     RDB_MAKE_ME_SERIALIZABLE_3(key, value, recency);
 };
 
-typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range>  transform_atom_t;
+typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range>  transform_variant_t;
+
+struct transform_atom_t {
+    transform_atom_t() { }
+    transform_atom_t(const transform_variant_t &tv, const scopes_t &s, const backtrace_t &b) :
+        variant(tv), scopes(s), backtrace(b) { }
+
+    transform_variant_t variant;
+    scopes_t scopes;
+    backtrace_t backtrace;
+
+    RDB_MAKE_ME_SERIALIZABLE_3(variant, scopes, backtrace);
+};
 
 typedef std::list<transform_atom_t> transform_t;
 
@@ -95,8 +107,19 @@ struct Length {
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
-typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_t;
+typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_variant_t;
 
+struct terminal_t {
+    terminal_t() { }
+    terminal_t(const terminal_variant_t &tv, const scopes_t &s, const backtrace_t &b) :
+        variant(tv), scopes(s), backtrace(b) { }
+
+    terminal_variant_t variant;
+    scopes_t scopes;
+    backtrace_t backtrace;
+
+    RDB_MAKE_ME_SERIALIZABLE_3(variant, scopes, backtrace);
+};
 
 } // namespace rdb_protocol_details
 
@@ -123,7 +146,7 @@ struct rdb_protocol_t {
 
         /* These arrays contain a watchable for each thread.
          * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
-        scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > cross_thread_namespace_watchables;
+        scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > > cross_thread_namespace_watchables;
         scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<databases_semilattice_metadata_t> > > cross_thread_database_watchables;
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
@@ -183,9 +206,10 @@ struct rdb_protocol_t {
         //and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
         //key_counts[kn] = the number of keys in [kn, right_key)
         // TODO: Just make this use an int64_t.
+        region_t region;
         std::map<store_key_t, int> key_counts;
 
-        RDB_MAKE_ME_SERIALIZABLE_1(key_counts);
+        RDB_MAKE_ME_SERIALIZABLE_2(region, key_counts);
     };
 
     struct read_response_t {
@@ -214,58 +238,47 @@ struct rdb_protocol_t {
     class rget_read_t {
     public:
         rget_read_t() { }
-        rget_read_t(const key_range_t &_key_range)
-            : key_range(_key_range) { }
+        explicit rget_read_t(const region_t &_region)
+            : region(_region) { }
 
-        rget_read_t(const key_range_t &_key_range,
+        rget_read_t(const region_t &_region,
+                    const rdb_protocol_details::transform_t &_transform)
+            : region(_region), transform(_transform)
+        { }
+
+        rget_read_t(const region_t &_region,
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
+            : region(_region), terminal(_terminal)
+        { }
+
+        rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
-                    const scopes_t &_scopes,
-                    const backtrace_t &_backtrace)
-            : key_range(_key_range), transform(_transform),
-              scopes(_scopes), backtrace(_backtrace)
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
+            : region(_region), transform(_transform),
+              terminal(_terminal)
         { }
 
-        rget_read_t(const key_range_t &_key_range,
-                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
-                    const scopes_t &_scopes,
-                    const backtrace_t &_backtrace)
-            : key_range(_key_range), terminal(_terminal),
-              scopes(_scopes), backtrace(_backtrace)
-        { }
-
-        rget_read_t(const key_range_t &_key_range,
-                    const rdb_protocol_details::transform_t &_transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
-                    const scopes_t &_scopes,
-                    const backtrace_t &_backtrace)
-            : key_range(_key_range), transform(_transform),
-              terminal(_terminal), scopes(_scopes),
-              backtrace(_backtrace)
-        { }
-
-        key_range_t key_range;
+        region_t region;
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
-        scopes_t scopes;
-        backtrace_t backtrace;
 
-        RDB_MAKE_ME_SERIALIZABLE_5(key_range, transform, terminal, scopes, backtrace);
+        RDB_MAKE_ME_SERIALIZABLE_3(region, transform, terminal);
     };
 
     class distribution_read_t {
     public:
         distribution_read_t()
-            : max_depth(0), range(key_range_t::universe())
+            : max_depth(0), region(region_t::universe())
         { }
         explicit distribution_read_t(int _max_depth)
-            : max_depth(_max_depth), range(key_range_t::universe())
+            : max_depth(_max_depth), region(region_t::universe())
         { }
 
         int max_depth;
-        key_range_t range;
+        region_t region;
 
-        RDB_MAKE_ME_SERIALIZABLE_2(max_depth, range);
+        RDB_MAKE_ME_SERIALIZABLE_2(max_depth, region);
     };
 
 
@@ -277,8 +290,7 @@ struct rdb_protocol_t {
 
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
-        void multistore_unshard(std::vector<read_response_t> responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : read(r.read) { }
@@ -313,8 +325,9 @@ struct rdb_protocol_t {
         point_modify::result_t result;
         query_language::runtime_exc_t exc;
         point_modify_response_t() { }
-        explicit point_modify_response_t(point_modify::result_t _result)
-            : result(_result) { rassert(result != point_modify::ERROR); }
+        explicit point_modify_response_t(point_modify::result_t _result) : result(_result) {
+            guarantee(result != point_modify::ERROR);
+        }
         explicit point_modify_response_t(const query_language::runtime_exc_t &_exc)
             : result(point_modify::ERROR), exc(_exc) { }
         RDB_MAKE_ME_SERIALIZABLE_2(result, exc);
@@ -336,28 +349,29 @@ struct rdb_protocol_t {
     public:
         point_modify_t() { }
         point_modify_t(const std::string &_primary_key, const store_key_t &_key, const point_modify::op_t &_op,
-                       const query_language::scopes_t &_scopes, const Mapping &_mapping)
-            : primary_key(_primary_key), key(_key), op(_op), scopes(_scopes), mapping(_mapping) { }
+                       const query_language::scopes_t &_scopes, const backtrace_t &_backtrace, const Mapping &_mapping)
+            : primary_key(_primary_key), key(_key), op(_op), scopes(_scopes), backtrace(_backtrace), mapping(_mapping) { }
 
         std::string primary_key;
         store_key_t key;
         point_modify::op_t op;
         query_language::scopes_t scopes;
+        backtrace_t backtrace;
         Mapping mapping;
-        RDB_MAKE_ME_SERIALIZABLE_5(primary_key, key, op, scopes, mapping);
+        RDB_MAKE_ME_SERIALIZABLE_6(primary_key, key, op, scopes, backtrace, mapping);
     };
 
     class point_write_t {
     public:
         point_write_t() { }
-        point_write_t(const store_key_t& key_, boost::shared_ptr<scoped_cJSON_t> data_)
-            : key(key_), data(data_) { }
+        point_write_t(const store_key_t& _key, boost::shared_ptr<scoped_cJSON_t> _data, bool _overwrite = true)
+            : key(_key), data(_data), overwrite(_overwrite) { }
 
         store_key_t key;
-
         boost::shared_ptr<scoped_cJSON_t> data;
+        bool overwrite;
 
-        RDB_MAKE_ME_SERIALIZABLE_2(key, data);
+        RDB_MAKE_ME_SERIALIZABLE_3(key, data, overwrite);
     };
 
     class point_delete_t {
@@ -376,8 +390,7 @@ struct rdb_protocol_t {
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(std::vector<write_response_t> responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
-        void multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : write(w.write) { }
@@ -445,6 +458,7 @@ struct rdb_protocol_t {
     public:
         store_t(io_backender_t *io_backend,
                 const std::string& filename,
+                int64_t cache_target,
                 bool create,
                 perfmon_collection_t *parent_perfmon_collection,
                 context_t *ctx);

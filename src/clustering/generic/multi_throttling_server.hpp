@@ -76,7 +76,7 @@ private:
             request_mailbox.reset();
             relinquish_tickets_mailbox.reset();
             drainer.reset();
-            rassert(in_use_tickets == 0);
+            guarantee(in_use_tickets == 0);
             parent->return_tickets(held_tickets);
         }
 
@@ -115,7 +115,7 @@ private:
 
     private:
         void on_request(const request_type &request) {
-            rassert(held_tickets > 0);
+            guarantee(held_tickets > 0);
             held_tickets--;
             in_use_tickets++;
             coro_t::spawn_sometime(boost::bind(
@@ -209,18 +209,21 @@ private:
 
     void return_tickets(int tickets) {
         free_tickets += tickets;
-        rassert(free_tickets <= total_tickets);
+        guarantee(free_tickets <= total_tickets);
         redistribute_tickets();
     }
 
     void redistribute_tickets() {
         static const int chunk_size = 100;
         static const int min_reasonable_tickets = 10;
+        client_t *neediest;
+        int gift_size;
+
+        /* First, look for a client with a critically low number of tickets.
+           They get priority in tickets. This prevents starvation. */
         while (free_tickets > 0) {
-            client_t *neediest = NULL;
-            int gift_size = -1;
-            /* First, look for a client with a critically low number of tickets.
-            They get priority in tickets. This prevents starvation. */
+            gift_size = -1;
+            neediest = NULL;
             for (client_t *c = clients.head(); c; c = clients.next(c)) {
                 if (c->get_current_tickets() < min_reasonable_tickets && c->get_current_tickets() < c->get_target_tickets()) {
                     if (!neediest || c->get_current_tickets() < neediest->get_current_tickets()) {
@@ -229,24 +232,34 @@ private:
                     }
                 }
             }
-            if (!neediest && free_tickets > chunk_size) {
-                /* No clients are starving, so look for clients with a large
-                difference between their target number of tickets and their
-                current number of tickets. But if the difference is less than
-                `chunk_size`, don't send any tickets at all to avoid flooding
-                the network with many small ticket updates. */
-                for (client_t *c = clients.head(); c; c = clients.next(c)) {
-                    int need_size = c->get_target_tickets() - c->get_current_tickets();
-                    if (need_size > chunk_size && (!neediest || need_size > neediest->get_target_tickets() - neediest->get_current_tickets())) {
-                        neediest = c;
-                        gift_size = chunk_size;
-                    }
-                }
-            }
+
             if (!neediest) {
                 break;
             }
-            rassert(gift_size >= 0);
+            guarantee(gift_size >= 0);
+            free_tickets -= gift_size;
+            neediest->give_tickets(gift_size);
+        }
+
+        /* Next, look for clients with a large difference between their target
+           number of tickets and their current number of tickets. But if the 
+           difference is less than `chunk_size`, don't send any tickets at all
+           to avoid flooding the network with many small ticket updates. */
+        while (free_tickets > chunk_size) {
+            gift_size = -1;
+            neediest = NULL;
+            for (client_t *c = clients.head(); c; c = clients.next(c)) {
+                int need_size = c->get_target_tickets() - c->get_current_tickets();
+                if (need_size > chunk_size && (!neediest || need_size > neediest->get_target_tickets() - neediest->get_current_tickets())) {
+                    neediest = c;
+                    gift_size = chunk_size;
+                }
+            }
+
+            if (!neediest) {
+                break;
+            }
+            guarantee(gift_size >= 0);
             free_tickets -= gift_size;
             neediest->give_tickets(gift_size);
         }
@@ -261,6 +274,9 @@ private:
     repeating_timer_t reallocate_timer;
 
     registrar_t<client_business_card_t, multi_throttling_server_t *, client_t> registrar;
+
+private:
+    DISABLE_COPYING(multi_throttling_server_t);
 };
 
 #endif /* CLUSTERING_GENERIC_MULTI_THROTTLING_SERVER_HPP_ */

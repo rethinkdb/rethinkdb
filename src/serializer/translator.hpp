@@ -128,6 +128,8 @@ public:
 
     block_size_t get_block_size();
 
+    bool coop_lock_and_check();
+
     // Returns the first never-used block id.  Every block with id
     // less than this has been created, and possibly deleted.  Every
     // block with id greater than or equal to this has never been

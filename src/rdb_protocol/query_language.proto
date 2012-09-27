@@ -1,6 +1,7 @@
 message TableRef {
     required string db_name    = 1;
     required string table_name = 2;
+    optional bool use_outdated  = 3 [default = false]; //Use and outdated version of this table
 };
 
 message VarTermTuple {
@@ -25,6 +26,7 @@ message Term {
         GETBYKEY = 12;
         TABLE = 13;
         JAVASCRIPT = 14;
+        IMPLICIT_VAR = 15;
     };
 
     required TermType type = 1;
@@ -216,7 +218,6 @@ message WriteQuery {
         DELETE = 2;
         MUTATE = 3;
         INSERT = 4;
-        INSERTSTREAM = 5;
         FOREACH = 6;
         POINTUPDATE = 7;
         POINTDELETE = 8;
@@ -248,16 +249,10 @@ message WriteQuery {
     message Insert {
         required TableRef table_ref = 1;
         repeated Term terms = 2;
+        optional bool overwrite = 3 [default = false];
     };
 
     optional Insert insert = 5;
-
-    message InsertStream {
-        required TableRef table_ref = 1;
-        required Term stream = 2;
-    };
-
-    optional InsertStream insert_stream = 6;
 
     message ForEach {
         required Term stream = 1;
@@ -308,9 +303,10 @@ message MetaQuery {
     optional string db_name = 2;
 
     message CreateTable {
-        required string datacenter  = 1;
+        optional string datacenter  = 1;
         required TableRef table_ref = 3;
         optional string primary_key = 4 [default = "id"];
+        optional int64 cache_size = 5 [default = 1073741824]; //notice that's a gigabyte right there.
     }
     optional CreateTable create_table = 3;
 

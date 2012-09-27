@@ -2,6 +2,8 @@
 
 #include <set>
 
+#include "rpc/connectivity/messages.hpp"
+
 template<class metadata_t>
 directory_write_manager_t<metadata_t>::directory_write_manager_t(
         message_service_t *sub,
@@ -12,10 +14,13 @@ directory_write_manager_t<metadata_t>::directory_write_manager_t(
     connectivity_subscription(this) {
     typename watchable_t<metadata_t>::freeze_t value_freeze(value_watchable);
     connectivity_service_t::peers_list_freeze_t connectivity_freeze(message_service->get_connectivity_service());
-    rassert(message_service->get_connectivity_service()->get_peers_list().empty());
+    guarantee(message_service->get_connectivity_service()->get_peers_list().empty());
     value_subscription.reset(value_watchable, &value_freeze);
     connectivity_subscription.reset(message_service->get_connectivity_service(), &connectivity_freeze);
 }
+
+template<class metadata_t>
+directory_write_manager_t<metadata_t>::~directory_write_manager_t() { }
 
 template<class metadata_t>
 void directory_write_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOTHING {
@@ -45,41 +50,73 @@ void directory_write_manager_t<metadata_t>::on_change() THROWS_NOTHING {
     }
 }
 
+template <class metadata_t>
+class directory_write_manager_t<metadata_t>::initialization_writer_t : public send_message_write_callback_t {
+public:
+    initialization_writer_t(const metadata_t &_initial_value, fifo_enforcer_state_t _metadata_fifo_state) :
+        initial_value(_initial_value), metadata_fifo_state(_metadata_fifo_state) { }
+    ~initialization_writer_t() { }
+
+    void write(write_stream_t *stream) {
+        write_message_t msg;
+        uint8_t code = 'I';
+        msg << code;
+        msg << initial_value;
+        msg << metadata_fifo_state;
+        int res = send_write_message(stream, &msg);
+        if (res) {
+            throw fake_archive_exc_t();
+        }
+    }
+private:
+    const metadata_t &initial_value;
+    fifo_enforcer_state_t metadata_fifo_state;
+};
+
+template <class metadata_t>
+class directory_write_manager_t<metadata_t>::update_writer_t : public send_message_write_callback_t {
+public:
+    update_writer_t(const metadata_t &_new_value, fifo_enforcer_write_token_t _metadata_fifo_token) :
+        new_value(_new_value), metadata_fifo_token(_metadata_fifo_token) { }
+    ~update_writer_t() { }
+
+    void write(write_stream_t *stream) {
+        write_message_t msg;
+        uint8_t code = 'U';
+        msg << code;
+        msg << new_value;
+        msg << metadata_fifo_token;
+        int res = send_write_message(stream, &msg);
+        if (res) {
+            throw fake_archive_exc_t();
+        }
+    }
+private:
+    const metadata_t &new_value;
+    fifo_enforcer_write_token_t metadata_fifo_token;
+};
+
 template<class metadata_t>
 void directory_write_manager_t<metadata_t>::send_initialization(peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t) THROWS_NOTHING {
-    message_service->send_message(peer,
-        boost::bind(&directory_write_manager_t::write_initialization, _1, initial_value, metadata_fifo_state));
+    initialization_writer_t writer(initial_value, metadata_fifo_state);
+    message_service->send_message(peer, &writer);
 }
 
 template<class metadata_t>
 void directory_write_manager_t<metadata_t>::send_update(peer_id_t peer, const metadata_t &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t) THROWS_NOTHING {
-    message_service->send_message(peer,
-        boost::bind(&directory_write_manager_t::write_update, _1, new_value, metadata_fifo_token));
+    update_writer_t writer(new_value, metadata_fifo_token);
+    message_service->send_message(peer, &writer);
 }
 
-template<class metadata_t>
-void directory_write_manager_t<metadata_t>::write_initialization(write_stream_t *os, const metadata_t &initial_value, fifo_enforcer_state_t metadata_fifo_state) THROWS_NOTHING {
-    write_message_t msg;
-    uint8_t code = 'I';
-    msg << code;
-    msg << initial_value;
-    msg << metadata_fifo_state;
-    int res = send_write_message(os, &msg);
-    if (res) {
-        throw fake_archive_exc_t();
-    }
-}
 
-template<class metadata_t>
-void directory_write_manager_t<metadata_t>::write_update(write_stream_t *os, const metadata_t &new_value, fifo_enforcer_write_token_t metadata_fifo_token) THROWS_NOTHING {
-    write_message_t msg;
-    uint8_t code = 'U';
-    msg << code;
-    msg << new_value;
-    msg << metadata_fifo_token;
-    int res = send_write_message(os, &msg);
-    if (res) {
-        throw fake_archive_exc_t();
-    }
-}
+template class directory_write_manager_t<int>;
 
+#include "clustering/administration/metadata.hpp"
+template class directory_write_manager_t<cluster_directory_metadata_t>;
+
+#include "mock/test_cluster_group.hpp"
+#include "mock/dummy_protocol.hpp"
+template class directory_write_manager_t<mock::test_cluster_directory_t<mock::dummy_protocol_t> >;
+
+#include "clustering/reactor/directory_echo.hpp"
+template class directory_write_manager_t<directory_echo_wrapper_t<std::string> >;

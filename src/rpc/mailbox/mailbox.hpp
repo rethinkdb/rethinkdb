@@ -21,11 +21,27 @@ enum mailbox_thread_mode_t {
     mailbox_any_thread
 };
 
-struct raw_mailbox_t :
-    public home_thread_mixin_t
-{
+class mailbox_write_callback_t {
+public:
+    virtual ~mailbox_write_callback_t() { }
+    virtual void write(write_stream_t *stream) = 0;
+};
+
+class mailbox_read_callback_t {
+public:
+    virtual ~mailbox_read_callback_t() { }
+    virtual void read(read_stream_t *stream) = 0;
+    virtual void read(mailbox_write_callback_t *writer) = 0;
+};
+
+struct raw_mailbox_t : public home_thread_mixin_t {
+public:
+    struct address_t;
+
 private:
     friend struct mailbox_manager_t;
+    friend class raw_mailbox_writer_t;
+    friend void send(mailbox_manager_t *, address_t, mailbox_write_callback_t *);
 
     mailbox_manager_t *manager;
     const mailbox_thread_mode_t thread_mode;
@@ -33,7 +49,7 @@ private:
     typedef uint64_t id_t;
     const id_t mailbox_id;
 
-    boost::function<void(read_stream_t *)> callback;
+    mailbox_read_callback_t *callback;
 
     auto_drainer_t drainer;
 
@@ -58,7 +74,7 @@ public:
         std::string human_readable() const;
 
     private:
-        friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, boost::function<void(write_stream_t *)>);
+        friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
         friend struct raw_mailbox_t;
         friend struct mailbox_manager_t;
 
@@ -75,7 +91,7 @@ public:
         id_t mailbox_id;
     };
 
-    raw_mailbox_t(mailbox_manager_t *, mailbox_thread_mode_t tm, const boost::function<void(read_stream_t *)> &);
+    raw_mailbox_t(mailbox_manager_t *, mailbox_thread_mode_t tm, mailbox_read_callback_t *callback);
     ~raw_mailbox_t();
 
     address_t get_address() const;
@@ -87,7 +103,7 @@ inaccessible, `send()` will silently fail. */
 
 void send(mailbox_manager_t *src,
           raw_mailbox_t::address_t dest,
-          boost::function<void(write_stream_t *)> message);
+          mailbox_write_callback_t *callback);
 
 /* `mailbox_manager_t` uses a `message_service_t` to provide mailbox capability.
 Usually you will split a `message_service_t` into several sub-services using
@@ -107,7 +123,7 @@ public:
 
 private:
     friend struct raw_mailbox_t;
-    friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, boost::function<void(write_stream_t *)>);
+    friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
 
     message_service_t *message_service;
 
@@ -116,6 +132,8 @@ private:
         ~mailbox_table_t();
         raw_mailbox_t::id_t next_local_mailbox_id;
         raw_mailbox_t::id_t next_global_mailbox_id;
+        // RSI: use a buffered structure to reduce dynamic allocation
+        // TODO: ^R.S.I.
         std::map<raw_mailbox_t::id_t, raw_mailbox_t *> mailboxes;
         raw_mailbox_t *find_mailbox(raw_mailbox_t::id_t);
     };
@@ -133,7 +151,7 @@ private:
     void unregister_mailbox_wrapper(raw_mailbox_t::id_t id, int thread);
     void unregister_mailbox_internal(raw_mailbox_t::id_t id);
 
-    static void write_mailbox_message(write_stream_t *stream, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, boost::function<void(write_stream_t *)> writer);
+    static void write_mailbox_message(write_stream_t *stream, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, mailbox_write_callback_t *callback);
     void on_message(peer_id_t, read_stream_t *stream);
 };
 

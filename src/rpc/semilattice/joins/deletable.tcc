@@ -20,4 +20,12 @@ void semilattice_join(deletable_t<T> *a, const deletable_t<T> &b) {
     }
 }
 
+template <class T>
+void debug_print(append_only_printf_buffer_t *buf, const deletable_t<T> &x) {
+    buf->appendf("deletable{deleted=%s, t=", x.deleted ? "true" : "false");
+    debug_print(buf, x.t);
+    buf->appendf("}");
+}
+
+
 #endif  // RPC_SEMILATTICE_JOINS_DELETABLE_TCC_

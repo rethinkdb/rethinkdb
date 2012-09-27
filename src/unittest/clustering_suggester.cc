@@ -1,6 +1,7 @@
 #include "unittest/gtest.hpp"
 
 #include "clustering/suggester/suggester.hpp"
+#include "clustering/generic/nonoverlapping_regions.hpp"
 #include "mock/dummy_protocol.hpp"
 
 namespace unittest {
@@ -21,7 +22,7 @@ TEST(ClusteringSuggester, NewNamespace) {
     std::map<machine_id_t, reactor_business_card_t<dummy_protocol_t> > directory;
     for (int i = 0; i < 10; i++) {
         reactor_business_card_t<dummy_protocol_t> rb;
-        rb.activities[generate_uuid()] = std::make_pair(a_thru_z_region(), reactor_business_card_t<dummy_protocol_t>::nothing_t());
+        rb.activities[generate_uuid()] = reactor_business_card_t<dummy_protocol_t>::activity_entry_t(a_thru_z_region(), reactor_business_card_t<dummy_protocol_t>::nothing_t());
         directory[machines[i]] = rb;
     }
 
@@ -34,9 +35,11 @@ TEST(ClusteringSuggester, NewNamespace) {
     affinities[primary_datacenter] = 2;
     affinities[secondary_datacenter] = 3;
 
-    std::set<dummy_protocol_t::region_t> shards;
-    shards.insert(dummy_protocol_t::region_t('a', 'm'));
-    shards.insert(dummy_protocol_t::region_t('n', 'z'));
+    nonoverlapping_regions_t<dummy_protocol_t> shards;
+    bool success = shards.add_region(dummy_protocol_t::region_t('a', 'm'));
+    ASSERT_TRUE(success);
+    success = shards.add_region(dummy_protocol_t::region_t('n', 'z'));
+    ASSERT_TRUE(success);
 
     persistable_blueprint_t<dummy_protocol_t> blueprint = suggest_blueprint<dummy_protocol_t>(
         directory,

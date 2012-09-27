@@ -80,7 +80,11 @@ public:
                 intro_mailbox.get_address(),
                 give_tickets_mailbox.get_address(),
                 reclaim_tickets_mailbox.get_address())));
-        wait_interruptible(intro_promise.get_ready_signal(), interruptor);
+        wait_any_t waiter(intro_promise.get_ready_signal(), registrant->get_failed_signal(), interruptor);
+        waiter.wait();
+        if (registrant->get_failed_signal()->is_pulsed()) {
+            throw resource_lost_exc_t();
+        }
         request_addr = intro_promise.get_value().request_addr;
         relinquish_tickets_addr = intro_promise.get_value().relinquish_tickets_addr;
     }
@@ -91,7 +95,7 @@ public:
 
     void spawn_request(const request_type &request, ticket_acq_t *ticket_acq, signal_t *interruptor) {
         wait_interruptible(ticket_acq, interruptor);
-        rassert(ticket_acq->state == ticket_acq_t::state_acquired_ticket);
+        guarantee(ticket_acq->state == ticket_acq_t::state_acquired_ticket);
         ticket_acq->state = ticket_acq_t::state_used_ticket;
         send(mailbox_manager, request_addr, request);
     }

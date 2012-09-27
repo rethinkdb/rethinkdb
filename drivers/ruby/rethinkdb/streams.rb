@@ -15,7 +15,7 @@ module RethinkDB
     #   r[[1,1,1]]
     #   table.limit(3).map{1}.streamtoarray
     #   table.limit(3).map{1}.to_array
-    def streamtoarray(); JSON_Expression.new [:call, [:streamtoarray], [@body]]; end
+    def streamtoarray(); JSON_Expression.new [:call, [:streamtoarray], [self]]; end
   end
 
   # A special case of Stream_Expression that you can write to.  You
@@ -33,12 +33,29 @@ module RethinkDB
   #   q2.delete
   # will raise an error.
   class Multi_Row_Selection < Stream_Expression
+    attr_accessor :opts
+    def initialize(body, context=nil, opts=nil) # :nodoc:
+      super(body, context)
+      if opts
+        @opts = opts
+      elsif @body[0] == :call and @body[2] and @body[2][0].kind_of? Multi_Row_Selection
+        @opts = @body[2][0].opts
+      end
+    end
+
+    def raise_if_outdated # :nodoc:
+      if @opts and @opts[:use_outdated]
+        raise RuntimeError, "Cannot write to outdated table."
+      end
+    end
+
     # Delete all of the selected rows.  For example, if we have
     # a table <b>+table+</b>:
     #   table.filter{|row| row[:id] < 5}.delete
     # will delete everything with <b>+id+</b> less than 5 in <b>+table+</b>
     def delete
-      Write_Query.new [:delete, @body]
+      raise_if_outdated
+      Write_Query.new [:delete, self]
     end
 
     # Update all of the selected rows.  For example, if we have a table <b>+table+</b>:
@@ -47,8 +64,10 @@ module RethinkDB
     # If the object returned in <b>+update+</b> has attributes
     # which are not present in the original row, those attributes will
     # still be added to the new row.
-    def update
-      S.with_var{|vname,v| Write_Query.new [:update, @body, [vname, S.r(yield(v))]]}
+    def update(*args, &b)
+      raise_if_outdated
+      b = S.arg_or_block(*args, &b)
+      S.with_var{|vname,v| Write_Query.new [:update, self, [vname, S.r(b.call(v))]]}
     end
 
     # Replace all of the selected rows.  Unlike <b>+update+</b>, must return the
@@ -58,8 +77,10 @@ module RethinkDB
     # table <b>+table+</b>, then:
     #   table.mutate{|row| r.if(row[:id] < 5, nil, row)}
     # will delete everything with id less than 5, but leave the other rows untouched.
-    def mutate
-      S.with_var{|vname,v| Write_Query.new [:mutate, @body, [vname, S.r(yield(v))]]}
+    def mutate(*args, &b)
+      raise_if_outdated
+      b = S.arg_or_block(*args, &b)
+      S.with_var{|vname,v| Write_Query.new [:mutate, self, [vname, S.r(b.call(v))]]}
     end
   end
 end

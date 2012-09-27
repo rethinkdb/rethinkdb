@@ -26,11 +26,71 @@ def generate_async_message_template(nargs):
     print
     print "template<" + csep("class arg#_t") + ">"
     print "class mailbox_t< void(" + csep("arg#_t") + ") > {"
+    print "    class read_impl_t;"
+    print "    class write_impl_t : public mailbox_write_callback_t {"
+    if nargs == 0:
+        print "    public:"
+        print "        write_impl_t() { }"
+    else:
+        print "    private:"
+        print "        friend class read_impl_t;"
+        for i in xrange(nargs):
+            print "        const arg%d_t &arg%d;" % (i, i)
+        print "    public:"
+        print "        explicit write_impl_t(" + csep("const arg#_t& _arg#") + ") :"
+        print "            " + csep("arg#(_arg#)")
+        print "        { }"
+    print "        void write(write_stream_t *stream) {"
+    print "            write_message_t msg;"
+    for i in xrange(nargs):
+        print "            msg << arg%d;" % i
+    print "            int res = send_write_message(stream, &msg);"
+    print "            if (res) { throw fake_archive_exc_t(); }"
+    print "        }"
+    print "    };"
+    print
+    print "    class read_impl_t : public mailbox_read_callback_t {"
+    print "    public:"
+    print "        explicit read_impl_t(mailbox_t< void(" + csep("arg#_t") + ") > *_parent) : parent(_parent) { }"
+    if nargs == 0:
+        print "        void read(UNUSED read_stream_t *stream) {"
+    else:
+        print "        void read(read_stream_t *stream) {"
+    for i in xrange(nargs):
+        print "            arg%d_t arg%d;" % (i, i)
+
+    for i in xrange(nargs):
+        print "            %sres = deserialize(stream, &arg%d);" % ("int " if i == 0 else "", i)
+        print "            if (res) { throw fake_archive_exc_t(); }"
+    print "            if (parent->callback_mode == mailbox_callback_mode_coroutine) {"
+    print "                coro_t::spawn_sometime(boost::bind(parent->fun" + cpre("arg#") + "));"
+    print "            } else {"
+    print "                parent->fun(" + csep("arg#") + ");"
+    print "            }"
+    print "        }"
+    print
+    if nargs == 0:
+        print "        void read(UNUSED mailbox_write_callback_t *_writer) {"
+    else:
+        print "        void read(mailbox_write_callback_t *_writer) {"
+        print "            write_impl_t *writer = static_cast<write_impl_t*>(_writer);"
+    print "            if (parent->callback_mode == mailbox_callback_mode_coroutine) {"
+    print "                coro_t::spawn_sometime(boost::bind(parent->fun" + cpre("writer->arg#") + "));"
+    print "            } else {"
+    print "                parent->fun(" + csep("writer->arg#") + ");"
+    print "            }"
+    print "        }"
+    print "    private:"
+    print "        mailbox_t< void(" + csep("arg#_t") + ") > *parent;"
+    print "    };"
+    print
+    print "    read_impl_t reader;"
+    print
     print "public:"
     print "    typedef mailbox_addr_t< void(" + csep("arg#_t") + ") > address_t;"
     print
     print "    mailbox_t(mailbox_manager_t *manager, const boost::function< void(" + csep("arg#_t") + ") > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :"
-    print "        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))"
+    print "        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)"
     print "        { }"
     print
     print "    address_t get_address() const {"
@@ -45,26 +105,6 @@ def generate_async_message_template(nargs):
     else:
         print "    template<" + csep("class a#_t") + ">"
         print "    friend void send(mailbox_manager_t*, typename mailbox_t< void(" + csep("a#_t") + ") >::address_t" + cpre("const a#_t&") + ");"
-    print "    static void write(write_stream_t *stream" + cpre("const arg#_t &arg#") + ") {"
-    print "        write_message_t msg;"
-    for i in xrange(nargs):
-        print "        msg << arg%d;" % i
-    print "        int res = send_write_message(stream, &msg);"
-    print "        if (res) { throw fake_archive_exc_t(); }"
-    print "    }"
-    print "    void on_message(%sread_stream_t *stream) {" % ("" if nargs > 0 else "UNUSED ")
-    for i in xrange(nargs):
-        print "        arg%d_t arg%d;" % (i, i)
-
-    for i in xrange(nargs):
-        print "        %sres = deserialize(stream, &arg%d);" % ("int " if i == 0 else "", i)
-        print "        if (res) { throw fake_archive_exc_t(); }"
-    print "        if (callback_mode == mailbox_callback_mode_coroutine) {"
-    print "            coro_t::spawn_sometime(boost::bind(fun" + cpre("arg#") + "));"
-    print "        } else {"
-    print "            fun(" + csep("arg#") + ");"
-    print "        }"
-    print "    }"
     print
     print "    boost::function< void(" + csep("arg#_t") + ") > fun;"
     print "    mailbox_callback_mode_t callback_mode;"
@@ -76,8 +116,11 @@ def generate_async_message_template(nargs):
     else:
         print "template<" + csep("class arg#_t") + ">"
     print "void send(mailbox_manager_t *src, " + ("typename " if nargs > 0 else "") + "mailbox_t< void(" + csep("arg#_t") + ") >::address_t dest" + cpre("const arg#_t &arg#") + ") {"
-    print "    send(src, dest.addr,"
-    print "        boost::bind(&mailbox_t< void(" + csep("arg#_t") + ") >::write, _1" + cpre("arg#") + "));"
+    if nargs == 0:
+        print "    mailbox_t< void(" + csep("arg#_t") + ") >::write_impl_t writer;"
+    else:
+        print "    typename mailbox_t< void(" + csep("arg#_t") + ") >::write_impl_t writer(" + csep("arg#") + ");"
+    print "    send(src, dest.addr, &writer);"
     print "}"
     print
 

@@ -179,6 +179,10 @@ void apply_json_to(cJSON *change, std::string *target) {
 
 void on_subfield_change(std::string *) { }
 
+std::string to_string_for_json_key(const std::string *s) {
+    return *s;
+}
+
 }  // namespace std
 
 
@@ -188,11 +192,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_t *) {
 }
 
 cJSON *render_as_json(const uuid_t *uuid) {
-    if (uuid->is_nil()) {
-        return cJSON_CreateNull();
-    } else {
-        return cJSON_CreateString(uuid_to_str(*uuid).c_str());
-    }
+    return cJSON_CreateString(uuid_to_str(*uuid).c_str());
 }
 
 void apply_json_to(cJSON *change, uuid_t *uuid) {
@@ -209,7 +209,9 @@ void apply_json_to(cJSON *change, uuid_t *uuid) {
 
 void on_subfield_change(uuid_t *) { }
 
-
+std::string to_string_for_json_key(const uuid_t *uuid) {
+    return uuid_to_str(*uuid);
+}
 
 // ctx-less JSON adapter for uint64_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(uint64_t *) {

@@ -7,10 +7,9 @@ module 'NamespaceView', ->
         # Use a namespace-specific template for the namespace list
         template: Handlebars.compile $('#database_list-template').html()
         className: 'databases_list-container'
-        error_template: Handlebars.compile $('#error_adding_namespace-template').html()
         alert_message_template: Handlebars.compile $('#alert_message-template').html()
 
-        events: ->
+        events:
             'click .add-database': 'add_database'
             'click .add-namespace': 'add_namespace'
             'click .remove-namespace': 'remove_namespace'
@@ -40,18 +39,9 @@ module 'NamespaceView', ->
                 @databases_length = databases.models.length
             
             if need_update
-                if @datacenters_length isnt 0 and @databases_length isnt 0
-                    @.$('.user_alert_space-cannot_create_namespace').html ''
-                    @.$('.user_alert_space-cannot_create_namespace').css 'display', 'none'
-                    @.$('.add-namespace').removeProp 'disabled'
-                else
-                    @.$('.user_alert_space-cannot_create_namespace').html @error_template
-                        need_datacenter: @datacenters_length is 0
-                        need_database: @databases_length is 0
-                        need_something: @datacenters_length is 0 or @databases_length is 0
-                    @.$('.user_alert_space-cannot_create_namespace').css 'display', 'block'
-                    @.$('.add-namespace').prop 'disabled', 'disabled'
-
+                @.$('.user_alert_space-cannot_create_namespace').html ''
+                @.$('.user_alert_space-cannot_create_namespace').css 'display', 'none'
+                @.$('.add-namespace').removeProp 'disabled'
 
         render: (message) =>
             super
@@ -123,6 +113,8 @@ module 'NamespaceView', ->
         summary_template: Handlebars.compile $('#database_list_element-summary-template').html()
 
         className: 'element-container'
+        events:
+            'click .remove-database': 'remove_database'
 
         initialize: ->
             log_initial '(initializing) list view: datacenter'
@@ -134,25 +126,10 @@ module 'NamespaceView', ->
             @no_namespace = true
 
             @model.on 'change', @render_summary
-            @namespace_list.on 'size_changed', @nl_size_changed
-
-        nl_size_changed: =>
-            num_namespaces = @namespace_list.element_views.length
-
-            we_should_rerender = false
-
-            if @no_namespace and num_namespaces > 0
-                @no_namespace = false
-                we_should_rerender = true
-            else if not @no_namespace and num_namespaces is 0
-                @no_namespace = true
-                we_should_rerender = true
-
-            @render() if we_should_rerender
+            @namespace_list.on 'size_changed', @render
 
         render: =>
-            @.$el.html @template
-                no_namespaces: @no_namespaces
+            @.$el.html @template({})
 
             @render_summary()
 
@@ -167,6 +144,15 @@ module 'NamespaceView', ->
             json = @model.toJSON()
 
             @.$('.summary').html @summary_template json
+
+        remove_database: (event) =>
+            event.preventDefault()
+
+            db = databases.get @.$(event.target).data('id')
+            if db?
+                remove_database_dialog = new DatabaseView.RemoveDatabaseModal
+                remove_database_dialog.render db
+           
 
 
         register_namespace_callback: (callbacks) =>
@@ -188,7 +174,6 @@ module 'NamespaceView', ->
         # Use a namespace-specific template for the namespace list
         tagName: 'div'
         template: Handlebars.compile $('#namespace_list-template').html()
-        error_template: Handlebars.compile $('#error_adding_namespace-template').html()
 
         initialize:  (database_id) =>
             log_initial '(initializing) namespace list view'
@@ -214,13 +199,8 @@ module 'NamespaceView', ->
 
         add_namespace: (event) =>
             event.preventDefault()
-            if datacenters.length is 0
-                @.$('#user-alert-space').html @error_template
-                @.$('#user-alert-space').alert()
-            else
-                log_action 'add namespace button clicked'
-                @add_namespace_dialog.render()
-                $('#focus_namespace_name').focus()
+            @add_namespace_dialog.render()
+            $('#focus_namespace_name').focus()
 
         remove_namespace: (event) =>
             log_action 'remove namespace button clicked'
@@ -332,19 +312,64 @@ module 'NamespaceView', ->
         alert_tmpl: Handlebars.compile $('#added_namespace-alert-template').html()
         error_template: Handlebars.compile $('#error_input-template').html()
         class: 'add-namespace'
-
-        initialize: ->
+            
+        initialize: =>
             log_initial '(initializing) modal dialog: add namespace'
             super
+            # Extend events
+            @delegateEvents()
+
+        show_advanced_settings: (event) =>
+            event.preventDefault()
+            that = @
+            @.$('.show_advanced_settings-link_container').fadeOut 'fast', ->
+                that.$('.hide_advanced_settings-link_container').fadeIn 'fast'
+            @.$('.advanced_settings').slideDown 'fast'
+        hide_advanced_settings: (event) =>
+            event.preventDefault()
+            that = @
+            @.$('.hide_advanced_settings-link_container').fadeOut 'fast', ->
+                that.$('.show_advanced_settings-link_container').fadeIn 'fast'
+            @.$('.advanced_settings').slideUp 'fast'
 
         render: ->
             log_render '(rendering) add namespace dialog'
 
+            for datacenter in datacenters.models
+                datacenter.set 'num_machines', 0
+
+            for machine in machines.models
+                if machine.get('datacenter_uuid') isnt universe_datacenter.get('id')
+                    datacenters.get(machine.get('datacenter_uuid')).set 'num_machines',datacenter.get('num_machines')+1
+
+            ordered_datacenters = _.map(datacenters.models, (datacenter) ->
+                id: datacenter.get('id')
+                name: datacenter.get('name')
+                num_machines: datacenter.get('num_machines')
+            )
+            ordered_datacenters = ordered_datacenters.sort (a, b) ->
+                return b.num_machines-a.num_machines
+
+            slice_index = 0
+            for datacenter in ordered_datacenters
+                if datacenter.num_machines is 0
+                    break
+                slice_index++
+
+            ordered_datacenters = ordered_datacenters.slice 0, slice_index
+            ordered_datacenters.unshift
+                id: universe_datacenter.get('id')
+                name: universe_datacenter.get('name')
+
             super
-                modal_title: 'Add namespace'
+                modal_title: 'Add a table'
                 btn_primary_text: 'Add'
-                datacenters: _.map(datacenters.models, (datacenter) -> datacenter.toJSON())
+                datacenters: ordered_datacenters
+                all_datacenters: datacenters.length is ordered_datacenters.length
                 databases: _.map(databases.models, (database) -> database.toJSON())
+
+            @.$('.show_advanced_settings-link').click @show_advanced_settings
+            @.$('.hide_advanced_settings-link').click @hide_advanced_settings
 
         on_submit: =>
             super
@@ -364,6 +389,18 @@ module 'NamespaceView', ->
                         template_error.namespace_exists = true
                         break
 
+            if formdata.cache_size isnt '' and DataUtils.is_integer(formdata.cache_size) is false
+                input_error = true
+                template_error.cache_size_format = true
+            else if formdata.cache_size isnt ''
+                cache_size_int = parseInt formdata.cache_size
+                if cache_size_int < 16
+                    input_error = true
+                    template_error.cache_size_too_small = true
+                else if cache_size_int > 1024*64
+                    input_error = true
+                    template_error.cache_size_too_big = true
+
             if input_error is true
                 $('.alert_modal').html @error_template template_error
                 $('.alert_modal').alert()
@@ -371,6 +408,7 @@ module 'NamespaceView', ->
             else
                 ack = {}
                 ack[formdata.primary_datacenter] = 1
+
                 $.ajax
                     processData: false
                     url: '/ajax/semilattice/rdb_namespaces/new'
@@ -381,6 +419,8 @@ module 'NamespaceView', ->
                         primary_uuid: formdata.primary_datacenter
                         database: formdata.database
                         ack_expectations: ack
+                        cache_size: parseInt(formdata.cache_size)*1024*1024 if formdata.cache_size isnt ''
+                        primary_key: formdata.primary_key if formdata.primary_key isnt ''
                         )
                     success: @on_success
                     error: @on_error

@@ -44,10 +44,12 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_2(ip, port);
 };
 
+void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address);
+
 class connectivity_cluster_t :
     public connectivity_service_t,
     public message_service_t,
-    public home_thread_mixin_t
+    public home_thread_mixin_debug_only_t
 {
 public:
     class run_t {
@@ -68,7 +70,7 @@ public:
     private:
         friend class connectivity_cluster_t;
 
-        class connection_entry_t : public home_thread_mixin_t {
+        class connection_entry_t : public home_thread_mixin_debug_only_t {
         public:
             /* The constructor registers us in every thread's `connection_map`;
             the destructor deregisters us. Both also notify all subscribers. */
@@ -118,20 +120,22 @@ public:
         the `run_t` are constructed. */
         class variable_setter_t {
         public:
-            variable_setter_t(run_t **var, run_t *val) THROWS_NOTHING : variable(var), value(val) {
-                rassert(*variable == NULL);
+            variable_setter_t(run_t **var, run_t *val) : variable(var) , value(val) {
+                guarantee(*variable == NULL);
                 *variable = value;
             }
+
             ~variable_setter_t() THROWS_NOTHING {
-                rassert(*variable == value);
+                guarantee(*variable == value);
                 *variable = NULL;
             }
         private:
             run_t **variable;
             run_t *value;
+            DISABLE_COPYING(variable_setter_t);
         };
 
-        void on_new_connection(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING;
+        void on_new_connection(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
         /* `connectivity_cluster_t::join_blocking()` is spawned in a new
         coroutine by `connectivity_cluster_t::join()`. It's also run by
@@ -204,7 +208,7 @@ public:
 
     /* `message_service_t` public methods: */
     connectivity_service_t *get_connectivity_service() THROWS_NOTHING;
-    void send_message(peer_id_t, const boost::function<void(write_stream_t *)> &) THROWS_NOTHING;
+    void send_message(peer_id_t, send_message_write_callback_t *callback) THROWS_NOTHING;
 
     /* Other public methods: */
 

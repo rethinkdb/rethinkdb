@@ -121,7 +121,7 @@ point_read_response_t rdb_get(const store_key_t &store_key, btree_slice_t *slice
 
 void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
                         btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
-    rassert(kv_location->value.has());
+    guarantee(kv_location->value.has());
     blob_t blob(kv_location->value->value_ref(), blob::btree_maxreflen);
     blob.clear(txn);
     kv_location->value.reset();
@@ -158,13 +158,13 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
 }
 
 point_modify_response_t rdb_modify(const std::string &primary_key, const store_key_t &key, point_modify::op_t op,
-                                   query_language::runtime_environment_t *env, const Mapping &mapping,
+                                   query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
+                                   const Mapping &mapping,
                                    btree_slice_t *slice, repli_timestamp_t timestamp,
                                    transaction_t *txn, superblock_t *superblock) {
-    query_language::backtrace_t bt; //TODO get this from somewhere
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
-        find_keyvalue_location_for_write(txn,superblock,key.btree_key(),&kv_location,&slice->root_eviction_priority,&slice->stats);
+        find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
 
         boost::shared_ptr<scoped_cJSON_t> lhs;
         if (!kv_location.value.has()) {
@@ -175,12 +175,12 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
             }
         } else {
             lhs = get_data(kv_location.value.get(), txn);
-            rassert(lhs->GetObjectItem(primary_key.c_str()));
+            rassert(NULL != lhs->GetObjectItem(primary_key.c_str()));
         }
-        rassert(lhs && ((lhs->type() == cJSON_NULL && op == point_modify::MUTATE) || lhs->type() == cJSON_Object));
+        guarantee(lhs != NULL && ((lhs->type() == cJSON_NULL && op == point_modify::MUTATE) || lhs->type() == cJSON_Object));
 
-        boost::shared_ptr<scoped_cJSON_t> rhs(query_language::eval_mapping(mapping, *env, lhs, bt));
-        rassert(rhs);
+        boost::shared_ptr<scoped_cJSON_t> rhs(query_language::eval_mapping(mapping, env, scopes, backtrace, lhs));
+        guarantee(rhs);
         if (rhs->type() == cJSON_NULL) {
             switch (op) {
             case point_modify::MUTATE: {
@@ -192,9 +192,9 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
             default:                   unreachable("Bad point_modify::op_t.");
             }
         } else if (rhs->type() != cJSON_Object) {
-            throw query_language::runtime_exc_t(strprintf("Got %s, but expected Object.", rhs->Print().c_str()), bt);
+            throw query_language::runtime_exc_t(strprintf("Got %s, but expected Object.", rhs->Print().c_str()), backtrace);
         }
-        rassert(rhs->type() == cJSON_Object);
+        guarantee(rhs->type() == cJSON_Object);
 
         boost::shared_ptr<scoped_cJSON_t> val;
         switch(op) {
@@ -202,35 +202,35 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
         case point_modify::UPDATE: val.reset(new scoped_cJSON_t(cJSON_merge(lhs->get(), rhs->get()))); break;
         default:                   unreachable("Bad point_modify::op_t.");
         }
-        rassert(val && val->type() == cJSON_Object);
+        guarantee(val && val->type() == cJSON_Object);
 
         cJSON *val_pk = val->GetObjectItem(primary_key.c_str());
         if (!val_pk) {
-            rassert(op == point_modify::MUTATE);
+            guarantee(op == point_modify::MUTATE);
             throw query_language::runtime_exc_t(strprintf("Object provided by mutate (%s) must contain primary key %s.",
-                                                          val->Print().c_str(), primary_key.c_str()), bt);
+                                                          val->Print().c_str(), primary_key.c_str()), backtrace);
         }
 
         if (lhs->type() == cJSON_NULL) {
-            rassert(op == point_modify::MUTATE);
+            guarantee(op == point_modify::MUTATE);
             if (val_pk->type != cJSON_Number && val_pk->type != cJSON_String) {
                 throw query_language::runtime_exc_t(strprintf("Cannot create new row with non-number, non-string primary key (%s).",
-                                                              val->Print().c_str()), bt);
+                                                              val->Print().c_str()), backtrace);
             }
-            store_key_t new_key(cJSON_print_std_string(val_pk));
+            store_key_t new_key(cJSON_print_lexicographic(val_pk));
             if (key != new_key) {
-                throw query_language::runtime_exc_t(strprintf("Mutate cannot insert a row with a different primary key."), bt);
+                throw query_language::runtime_exc_t(strprintf("Mutate cannot insert a row with a different primary key."), backtrace);
             }
             kv_location_set(&kv_location, key, val, slice, timestamp, txn);
             return point_modify_response_t(point_modify::INSERTED);
         }
 
-        rassert(lhs->type() == cJSON_Object);
+        guarantee(lhs->type() == cJSON_Object);
         cJSON *lhs_pk = lhs->GetObjectItem(primary_key.c_str());
-        rassert(lhs_pk && val_pk);
+        guarantee(lhs_pk && val_pk);
         if (!cJSON_Equal(lhs_pk, val_pk)) {
             throw query_language::runtime_exc_t(strprintf("Cannot modify primary key (%s -> %s).",
-                                                          cJSON_Print(lhs_pk), cJSON_Print(val_pk)), bt);
+                                                          cJSON_Print(lhs_pk), cJSON_Print(val_pk)), backtrace);
         }
 
         kv_location_set(&kv_location, key, val, slice, timestamp, txn);
@@ -240,14 +240,17 @@ point_modify_response_t rdb_modify(const std::string &primary_key, const store_k
     }
 }
 
-point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data,
+point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
                                btree_slice_t *slice, repli_timestamp_t timestamp,
                                transaction_t *txn, superblock_t *superblock) {
     //block_size_t block_size = slice->cache()->get_block_size();
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
-    kv_location_set(&kv_location, key, data, slice, timestamp, txn);
-    return point_write_response_t(kv_location.value.has() ? DUPLICATE : STORED);
+    bool had_value = kv_location.value.has();
+    if (overwrite || !had_value) {
+        kv_location_set(&kv_location, key, data, slice, timestamp, txn);
+    }
+    return point_write_response_t(had_value ? DUPLICATE : STORED);
 }
 
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
@@ -346,17 +349,24 @@ public:
                                               const rdb_protocol_details::transform_t &_transform,
                                               boost::optional<rdb_protocol_details::terminal_t> _terminal,
                                               const key_range_t &range)
-        : transaction(txn), cumulative_size(0),
+        : bad_init(false), transaction(txn), cumulative_size(0),
           env(_env), transform(_transform), terminal(_terminal)
     {
-        response.last_considered_key = range.left;
+        try {
+            response.last_considered_key = range.left;
 
-        if (terminal) {
-            boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result, env), *terminal);
+            if (terminal) {
+                boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response.result, env, terminal->scopes, terminal->backtrace), terminal->variant);
+            }
+        } catch (const query_language::runtime_exc_t &e) {
+            /* Evaluation threw so we're not going to be accepting any more requests. */
+            response.result = e;
+            bad_init = true;
         }
     }
 
     bool handle_pair(const btree_key_t* key, const void *value) {
+        if (bad_init) return false;
         try {
             store_key_t store_key(key);
             if (response.last_considered_key < store_key) {
@@ -378,7 +388,7 @@ public:
                 for (json_list_t::iterator jt  = data.begin();
                                            jt != data.end();
                                            ++jt) {
-                    boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env), *it);
+                    boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env, it->scopes, it->backtrace), it->variant);
                 }
                 data.clear();
                 data.splice(data.begin(), tmp);
@@ -400,7 +410,7 @@ public:
                 for (json_list_t::iterator jt  = data.begin();
                                            jt != data.end();
                                            ++jt) {
-                    boost::apply_visitor(query_language::terminal_visitor_t(*jt, env, &response.result), *terminal);
+                    boost::apply_visitor(query_language::terminal_visitor_t(*jt, env, terminal->scopes, terminal->backtrace, &response.result), terminal->variant);
                 }
                 return true;
             }
@@ -410,6 +420,7 @@ public:
             return false;
         }
     }
+    bool bad_init;
     transaction_t *transaction;
     rget_read_response_t response;
     size_t cumulative_size;

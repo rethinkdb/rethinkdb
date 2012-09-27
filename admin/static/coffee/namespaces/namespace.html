@@ -11,9 +11,8 @@
       </div>
 
     <ul class="nav nav-tabs">
-        <li class="active"><a href="#tables/{{namespace_id}}/overview" data-target="#namespace-overview" id="namespace-overview-link" class="tab-link" data-toggle="tab">Overview</a></li>
+        <li class="active"><a href="#tables/{{namespace_id}}/shards" data-target="#namespace-sharding" id="namespace-overview-sharding" class="tab-link" data-toggle="tab">Shards</a></li>
         <li><a href="#tables/{{namespace_id}}/replication" data-target="#namespace-replication" id="namespace-replication-link" class="tab-link" data-toggle="tab">Replication</a></li>
-        <li><a href="#tables/{{namespace_id}}/shards" data-target="#namespace-sharding" id="namespace-sharding-link" class="tab-link" data-toggle="tab">Shards</a></li>
         <li><a href="#tables/{{namespace_id}}/assignments" data-target="#namespace-pinning" id="namespace-pinning-link" class="tab-link" data-toggle="tab">Server assignments</a></li>
         <li><a href="#tables/{{namespace_id}}/other" data-target="#namespace-other" id="namespace-other-link" class="tab-link" data-toggle="tab">Other operations</a></li>
     </ul>
@@ -21,14 +20,11 @@
     <div id="user-alert-space"></div>
 
     <div class="tab-content">  
-        <div class="tab-pane active" id="namespace-overview">
-            <div class="section namespace-overview-container"></div>
+        <div class="tab-pane active" id="namespace-sharding">
+            <div class="section sharding"></div>
         </div>
         <div class="tab-pane" id="namespace-replication">
             <div class="section replication"></div>
-        </div>
-        <div class="tab-pane" id="namespace-sharding">
-            <div class="section sharding"></div>
         </div>
         <div class="tab-pane" id="namespace-pinning">
             <div class="section pinning"></div>
@@ -47,7 +43,6 @@
     <h3 class="title">Table profile</h3>
     <div class="section summary">
         <p class="protocol">Protocol: {{protocol}}</p>
-        <p class="port">Port: {{port}}</p>
     </div>
 
     <div class="section summary">
@@ -55,7 +50,11 @@
         <p>Shards: {{nshards}}</p>
         <p>Masters: {{nashards}} of {{nshards}} reachable</p>
         <p>Replicas: {{nareplicas}} of {{nreplicas}} reachable</p>
+        {{#if total_keys}}
         <p>Data: {{total_keys}} documents</p>
+        {{else}}
+        <p>Data: Loading...</p>
+        {{/if}}
         <p>Replication: {{> backfill_progress_summary}}</p>
         {{#unless stats_up_to_date}}
         <p>The stats displayed might not be up to date<br />
@@ -63,144 +62,6 @@
         {{/unless}}
     </div>
 </script>
-
-
-<script id="namespace_overview-container-template" type="text/x-handlebars-template">
-    <div class="data_in_memory-container"></div>
-    <div class="data_repartition-container"></div>
-</script>
-
-<script id="namespace_overview-data_in_memory-template" type="text/x-handlebars-template">
-    <h3 class="title">Data in memory</h3>
-    <div class="two-panel-section">
-        <div class="pie_container panel-left">
-            <svg class="pie_chart-data_in_memory" width="270" height="270">
-                <text x="100" y="135" class="loading_text-pie_chart">Loading data...</text>
-            </svg>
-        </div>
-        <div class="pie_legend panel-right">
-            <ul class="legend">
-                <li class="title-legend"><h4>Legend</h4></li>
-                <li class="data_in_memory-legend">Data in memory: {{data_in_memory}}</li>
-                <li class="data_not_in_memory-legend">Data on disk and not in memory: {{data_not_in_memory}}</li>
-            </ul>
-            <ul class="legend">
-                <li class="title-legend"><h4>More statistics</h4></li>
-                <li class="more_statistics">Data on disk: {{data_total}}</li>
-                <li class="more_statistics">Data in memory / data in disk: {{data_in_memory_percent}}</li>
-            </ul>
-        </div>
-    </div>
-</script>
-
-<script id="namespace_overview-data_repartition-template" type="text/x-handlebars-template">
-    <h3 class="title">Data repartition</h3>
-
-    {{#if has_shards}}
-        {{#if numerous_shards}}
-            <div class="data_repartition-graph">
-                <svg class="data_repartition-diagram" width="700" height="350">
-                    <text x="300" y="150" class="loading_text-diagram">Loading data...</text>
-                </svg>
-            </div>
-
-            <div class="data_repartition-legend">
-                <ul class="legend legend_left">
-                    <li class="title-legend"><h4>More statistics</h4></li>
-
-                    <li class="more_statistics">
-                        This table has {{shards_length}} {{pluralize_noun "shard" shards_length}} and contains {{total_keys}} keys.
-                    </li>
-                    <li class="more_statistics">
-                        {{#if max_keys}}
-                        Biggest shard has {{max_keys}} keys
-                        {{else}}
-                        Loading stats for biggest shards
-                        {{/if}}
-                    </li>
-                    <li class="more_statistics">
-                        {{#if min_keys}}
-                        Smallest shard has {{min_keys}} keys
-                        {{else}}
-                        Loading stats for smallest shards
-                        {{/if}}
-     
-                    </li>
-                </ul>
-                <ul class="legend legend_right">
-                    <li class="title-legend"><h4>Operations on shards</h4></li>
-                    <li class="more_statistics"><a href="#" class="rebalance_shards-link">Rebalance shards</a></li>
-                    <li class="more_statistics"><a href="#" class="change_shards-link" >Add/Modify/Remove shards</a></li>
-                </ul>
-            </div>
-     
-        {{else}}
-        <div class="two-panel-section">
-            <div class="data_repartition-graph panel-left">
-                <svg class="data_repartition-diagram" width="270" height="270">
-                    <text x="100" y="135" class="loading_text-diagram">Loading data...</text>
-                </svg>
-            </div>
-            <div class="data_repartition-legend panel-right">
-                <ul class="legend">
-                    <li class="title-legend"><h4>More statistics</h4></li>
-
-
-                    <li class="more_statistics">
-                        This table has {{shards_length}} {{pluralize_noun "shard" shards_length}} and contains {{total_keys}} keys.
-                    </li>
-                    <li class="more_statistics">
-                        {{#if max_keys}}
-                        Biggest shard has {{max_keys}} keys
-                        {{else}}
-                        Loading stats for biggest shards
-                        {{/if}}
-                    </li>
-                    <li class="more_statistics">
-                        {{#if min_keys}}
-                        Smallest shard has {{min_keys}} keys
-                        {{else}}
-                        Loading stats for smallest shards
-                        {{/if}}
-     
-                    </li>
-                </ul>
-                <ul class="legend">
-                    <li class="title-legend"><h4>Operations on shards</h4></li>
-                    <li class="more_statistics"><a href="#" class="change_shards-link" >Add/Modify/Remove shards</a></li>
-                    <li class="more_statistics"><a href="#" class="rebalance_shards-link">Rebalance shards</a></li>
-                </ul>
-            </div>
-        </div>
-        {{/if}}
-    {{else}}
-        <div class="two-panel-section">
-            <div class="data_repartition-graph panel-left">
-                <svg class="data_repartition-diagram" width="270" height="270">
-                    <text x="100" y="135" class="loading_text-diagram">Loading data...</text>
-                </svg>
-            </div>
-            <div class="data_repartition-legend panel-right">
-                <ul class="legend">
-                    <li class="title-legend"><h4>More statistics</h4></li>
-
-                    <li class="more_statistics">
-                    This table has one shard and contains {{total_keys}} keys.
-                    </li>                   <li class="more_statistics">
-                        Biggest shard has {{max_keys}} keys
-                    </li>
-                </ul>
-                <ul class="legend">
-                    <li class="title-legend"><h4>Operations on shards</h4></li>
-                    <li class="more_statistics"><a href="#" class="change_shards-link" >Add/Modify/Remove shards</a></li>
-                    <li class="more_statistics">Rebalance shards (needs at least 2 shards)</li>
-                </ul>
-            </div>
-        </div>
-        <p class="no-shard"></p>    
-    {{/if}}
-</script>
-
 
 
 <script id="namespace_other-template" type="text/x-handlebars-template">
@@ -223,8 +84,4 @@
         <input type="button" class="btn other_button delete_namespace-button" value="Delete"/>
         <p>Delete the table</p>
     </div>
-
-
-
 </script>
-

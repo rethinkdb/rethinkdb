@@ -29,14 +29,6 @@
 
 namespace mock {
 
-template<class protocol_t>
-class test_cluster_directory_t {
-public:
-    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > reactor_directory;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(reactor_directory);
-};
-
 
 void generate_sample_region(int i, int n, dummy_protocol_t::region_t *out) {
     *out = dummy_protocol_t::region_t('a' + ((i * 26)/n), 'a' + (((i + 1) * 26)/n) - 1);
@@ -55,25 +47,25 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
         }
         reactor_business_card_t<protocol_t> bcard = *reactor_directory.find(it->first)->second.get();
 
-        for (typename blueprint_t<protocol_t>::region_to_role_map_t::const_iterator jt  = it->second.begin();
-                                                                                    jt != it->second.end();
-                                                                                    jt++) {
+        for (typename blueprint_t<protocol_t>::region_to_role_map_t::const_iterator jt = it->second.begin();
+             jt != it->second.end();
+             ++jt) {
             bool found = false;
-            for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator kt  = bcard.activities.begin();
-                                                                                              kt != bcard.activities.end();
-                                                                                              kt++) {
-                if (jt->first == kt->second.first) {
-                    if (jt->second == blueprint_details::role_primary &&
-                            boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(&kt->second.second) &&
-                            boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(kt->second.second).replier.is_initialized()) {
+            for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator kt = bcard.activities.begin();
+                 kt != bcard.activities.end();
+                 ++kt) {
+                if (jt->first == kt->second.region) {
+                    if (jt->second == blueprint_role_primary &&
+                        boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(&kt->second.activity) &&
+                        boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(kt->second.activity).replier.is_initialized()) {
                         found = true;
                         break;
-                    } else if (jt->second == blueprint_details::role_secondary &&
-                            boost::get<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t>(&kt->second.second)) {
+                    } else if (jt->second == blueprint_role_secondary &&
+                               boost::get<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t>(&kt->second.activity)) {
                         found = true;
                         break;
-                    } else if (jt->second == blueprint_details::role_nothing &&
-                            boost::get<typename reactor_business_card_t<protocol_t>::nothing_t>(&kt->second.second)) {
+                    } else if (jt->second == blueprint_role_nothing &&
+                               boost::get<typename reactor_business_card_t<protocol_t>::nothing_t>(&kt->second.activity)) {
                         found = true;
                         break;
                     } else {
@@ -210,9 +202,9 @@ test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines) {
 
     for (int i = 0; i < n_machines; i++) {
         files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
-        stores.push_back(new typename protocol_t::store_t(io_backender.get(), files[i].name(), true, NULL, &ctx));
+        stores.push_back(new typename protocol_t::store_t(io_backender.get(), files[i].name(), GIGABYTE, true, NULL, &ctx));
         store_view_t<protocol_t> *store_ptr = &stores[i];
-        svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1, &ctx));
+        svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
         stores.back().metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
 
         test_clusters.push_back(new reactor_test_cluster_t<protocol_t>(port + i));
@@ -260,13 +252,13 @@ blueprint_t<protocol_t> test_cluster_group_t<protocol_t>::compile_blueprint(cons
 
             switch (it->at(i)) {
             case 'p':
-                blueprint.add_role(get_peer_id(peer), region, blueprint_details::role_primary);
+                blueprint.add_role(get_peer_id(peer), region, blueprint_role_primary);
                 break;
             case 's':
-                blueprint.add_role(get_peer_id(peer), region, blueprint_details::role_secondary);
+                blueprint.add_role(get_peer_id(peer), region, blueprint_role_secondary);
                 break;
             case 'n':
-                blueprint.add_role(get_peer_id(peer), region, blueprint_details::role_nothing);
+                blueprint.add_role(get_peer_id(peer), region, blueprint_role_nothing);
                 break;
             default:
                 crash("Bad blueprint string\n");

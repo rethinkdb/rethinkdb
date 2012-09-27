@@ -36,7 +36,7 @@ static const char *crlf = "\r\n";
 /* txt_memcached_handler_t only exists as a convenient thing to pass around to do_get(),
 do_storage(), and the like. */
 
-struct txt_memcached_handler_t : public home_thread_mixin_t {
+struct txt_memcached_handler_t : public home_thread_mixin_debug_only_t {
     txt_memcached_handler_t(memcached_interface_t *_interface,
                             namespace_interface_t<memcached_protocol_t> *_nsi,
                             int _max_concurrent_queries_per_connection,
@@ -216,28 +216,23 @@ private:
 
 class pipeliner_acq_t {
 public:
-    explicit pipeliner_acq_t(pipeliner_t *pipeliner)
-        : pipeliner_(pipeliner)
-#ifndef NDEBUG
-        , state_(untouched)
-#endif
-    {
+    explicit pipeliner_acq_t(pipeliner_t *pipeliner) : pipeliner_(pipeliner), state_(untouched) {
         begin_operation();
     }
     ~pipeliner_acq_t() {
-        rassert(state_ == has_ended_write);
+        guarantee(state_ == has_ended_write);
     }
 
 private:
     void begin_operation() {
-        rassert(state_ == untouched);
+        guarantee(state_ == untouched);
         DEBUG_ONLY_CODE(state_ = has_begun_operation);
         fifo_acq_.enter(&pipeliner_->fifo);
     }
 
 public:
     void done_argparsing() {
-        rassert(state_ == has_begun_operation);
+        guarantee(state_ == has_begun_operation);
         DEBUG_ONLY_CODE(state_ = has_done_argparsing);
 
         unlock_mutex(&pipeliner_->argparsing_mutex);
@@ -245,14 +240,14 @@ public:
     }
 
     void begin_write() {
-        rassert(state_ == has_done_argparsing);
+        guarantee(state_ == has_done_argparsing);
         DEBUG_ONLY_CODE(state_ = has_begun_write);
         fifo_acq_.leave();
         mutex_acq_.reset(&pipeliner_->mutex);
     }
 
     void end_write() {
-        rassert(state_ == has_begun_write);
+        guarantee(state_ == has_begun_write);
         DEBUG_ONLY_CODE(state_ = has_ended_write);
 
         {
@@ -268,9 +263,9 @@ private:
     pipeliner_t *pipeliner_;
     mutex_t::acq_t mutex_acq_;
     coro_fifo_acq_t fifo_acq_;
-#ifndef NDEBUG
+
     enum { untouched, has_begun_operation, has_done_argparsing, has_begun_write, has_ended_write } state_;
-#endif
+
     DISABLE_COPYING(pipeliner_acq_t);
 };
 /* do_get() is used for "get" and "gets" commands. */
@@ -310,7 +305,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
     // We should already be spawned within a coroutine.
     pipeliner_acq_t pipeliner_acq(pipeliner);
 
-    rassert(argc >= 1);
+    guarantee(argc >= 1);
     rassert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
     /* Vector to store the keys and the task-objects */
@@ -377,7 +372,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
                 if (with_cas) {
                     rh->write_value_header(reinterpret_cast<const char *>(key.contents()), key.size(), res.flags, res.value->size(), res.cas);
                 } else {
-                    rassert(res.cas == 0);
+                    guarantee(res.cas == 0);
                     rh->write_value_header(reinterpret_cast<const char *>(key.contents()), key.size(), res.flags, res.value->size());
                 }
 
@@ -496,7 +491,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
                 guarantee(bound.key == it->inner.left);
                 bound = it->inner.right;
             }
-            rassert(bound.unbounded);
+            guarantee(bound.unbounded);
         }
 
         /* Find the shard that we're going to start in. */
@@ -506,7 +501,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
         }
 
         while (max_items > 0) {
-            rget_query_t rget_query(region_intersection(range, shard_it->inner), max_items);
+            rget_query_t rget_query(region_intersection(memcached_protocol_t::region_t(range), *shard_it), max_items);
             memcached_protocol_t::read_t read(rget_query, time(NULL));
             memcached_protocol_t::read_response_t response;
             rh->nsi->read(read, &response, order_source->check_in("do_rget").with_read_mode(), rh->interruptor);
@@ -522,7 +517,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
                 /* This round of the range scan stopped because the chunk was
                 getting too big. We need to submit another range scan with the left
                 key equal to the rightmost key of the results we got */
-                rassert(!results.pairs.empty());
+                guarantee(!results.pairs.empty());
                 range.left = results.pairs.back().key;
                 range.left.increment();
             } else {
@@ -549,7 +544,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
                 }
             }
 
-            rassert(results.pairs.size() <= max_items);
+            guarantee(results.pairs.size() <= max_items);
             max_items -= results.pairs.size();
         }
         rh->write_end();

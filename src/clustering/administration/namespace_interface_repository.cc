@@ -2,11 +2,20 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/ptr_container/ptr_map.hpp>
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 
 #define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
+
+template <class protocol_t>
+struct namespace_repo_t<protocol_t>::namespace_cache_t {
+public:
+    boost::ptr_map<namespace_id_t, namespace_cache_entry_t> entries;
+    auto_drainer_t drainer;
+};
+
 
 template <class protocol_t>
 namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
@@ -16,6 +25,9 @@ namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manag
       namespaces_directory_metadata(_namespaces_directory_metadata),
       ctx(_ctx)
 { }
+
+template <class protocol_t>
+namespace_repo_t<protocol_t>::~namespace_repo_t() { }
 
 template <class protocol_t>
 std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > get_reactor_business_cards(
@@ -110,7 +122,7 @@ namespace_repo_t<protocol_t>::access_t::ref_handler_t::~ref_handler_t() {
 template <class protocol_t>
 void namespace_repo_t<protocol_t>::access_t::ref_handler_t::init(namespace_cache_entry_t *_ref_target) {
     ASSERT_NO_CORO_WAITING;
-    rassert(ref_target == NULL);
+    guarantee(ref_target == NULL);
     ref_target = _ref_target;
     ref_target->ref_count++;
     if (ref_target->ref_count == 1) {
@@ -143,7 +155,7 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
     int thread = get_thread_id();
 
     namespace_cache_entry_t *cache_entry = cache->entries.find(namespace_id)->second;
-    rassert(!cache_entry->namespace_if.get_ready_signal()->is_pulsed());
+    guarantee(!cache_entry->namespace_if.get_ready_signal()->is_pulsed());
 
     /* We need to switch to `home_thread()` to construct
     `cross_thread_watchable`, then switch back. In destruction we need to do the
@@ -183,7 +195,7 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
             wait_any_t waiter(&expiration_timer, &ref_count_is_nonzero);
             wait_interruptible(&waiter, keepalive.get_drain_signal());
             if (!ref_count_is_nonzero.is_pulsed()) {
-                rassert(cache_entry->ref_count == 0);
+                guarantee(cache_entry->ref_count == 0);
                 /* We waited a whole `NAMESPACE_INTERFACE_EXPIRATION_MS` and
                 nothing used us. So let's destroy ourselves. */
                 break;
@@ -194,7 +206,7 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
         /* We got here because we were interrupted in the startup process. That
         means the `namespace_repo_t` destructor was called, which means there
         mustn't exist any `access_t` objects. So ref_count must be 0. */
-        rassert(cache_entry->ref_count == 0);
+        guarantee(cache_entry->ref_count == 0);
     }
 
     ASSERT_NO_CORO_WAITING;

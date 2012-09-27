@@ -10,7 +10,7 @@
 #include "memcached/parser.hpp"
 #include "perfmon/perfmon.hpp"
 
-struct tcp_conn_memcached_interface_t : public memcached_interface_t, public home_thread_mixin_t {
+struct tcp_conn_memcached_interface_t : public memcached_interface_t, public home_thread_mixin_debug_only_t {
     explicit tcp_conn_memcached_interface_t(tcp_conn_t *c) : conn(c) { }
 
     tcp_conn_t *conn;
@@ -117,7 +117,7 @@ signal_t *memcache_listener_t::get_bound_signal() {
 
 memcache_listener_t::~memcache_listener_t() { }
 
-void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const scoped_ptr_t<nascent_tcp_conn_t> &nconn) {
+void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const scoped_ptr_t<tcp_conn_descriptor_t> &nconn) {
     assert_thread();
 
     block_pm_duration conn_timer(&stats.pm_conns);
@@ -132,7 +132,7 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const scoped_
 
     on_thread_t thread_switcher(chosen_thread);
     scoped_ptr_t<tcp_conn_t> conn;
-    nconn->ennervate(&conn);
+    nconn->make_overcomplicated(&conn);
 
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */

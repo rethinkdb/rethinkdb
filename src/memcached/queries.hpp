@@ -7,6 +7,8 @@
 #include <map>
 #include <vector>
 
+#include "protocol_api.hpp"
+#include "hash_region.hpp"
 #include "btree/keys.hpp"
 #include "config/args.hpp"
 #include "containers/data_buffer.hpp"
@@ -51,12 +53,12 @@ struct get_result_t {
 /* `rget` */
 
 struct rget_query_t {
-    key_range_t range;
+    hash_region_t<key_range_t> region;
     int maximum;
 
     rget_query_t() { }
-    rget_query_t(key_range_t range_, int maximum_)
-        : range(range_), maximum(maximum_) { }
+    rget_query_t(const hash_region_t<key_range_t> &region_, int maximum_)
+        : region(region_), maximum(maximum_) { }
 };
 
 struct key_with_data_buffer_t {
@@ -77,14 +79,14 @@ struct rget_result_t {
 /* `distribution_get` */
 struct distribution_get_query_t {
     distribution_get_query_t()
-        : max_depth(0), range(key_range_t::universe())
+        : max_depth(0), region(hash_region_t<key_range_t>::universe())
     { }
     explicit distribution_get_query_t(int _max_depth)
-        : max_depth(_max_depth), range(key_range_t::universe())
+        : max_depth(_max_depth), region(hash_region_t<key_range_t>::universe())
     { }
 
     int max_depth;
-    key_range_t range;
+    hash_region_t<key_range_t> region;
 };
 
 struct distribution_result_t  {
@@ -95,6 +97,7 @@ struct distribution_result_t  {
     //and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
     //key_counts[kn] = the number of keys in [kn, right_key)
     // TODO: Just make this use an int64_t.
+    hash_region_t<key_range_t> region;
     std::map<store_key_t, int> key_counts;
 };
 

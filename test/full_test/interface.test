@@ -1,6 +1,6 @@
 for interface_test_name in ['detect_dead', 'distribution', 'log', 'progress',
         'dead_machine_issues', 'unsatisfiable_goals_issue', 'name_conflict_issue',
-        'net_corruption', 'resources']:
+        'net_corruption', 'resources', 'large_branch_history']:
     do_test(
         "$RETHINKDB/test/interface/%s.py" % interface_test_name,
         repeat = 3,

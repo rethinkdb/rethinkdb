@@ -1,14 +1,14 @@
-#ifndef __RPC_SEMILATTICE_WATCHABLE_HPP__
-#define __RPC_SEMILATTICE_WATCHABLE_HPP__
+#ifndef RPC_SEMILATTICE_WATCHABLE_HPP_
+#define RPC_SEMILATTICE_WATCHABLE_HPP_
 
 template <class T>
 class semilattice_watchable_t : public watchable_t<T> {
 public:
     semilattice_watchable_t() { }
-    semilattice_watchable_t(boost::shared_ptr<semilattice_read_view_t<T> > _view) :
-        view(_view) { }
+    explicit semilattice_watchable_t(const boost::shared_ptr<semilattice_read_view_t<T> > &_view)
+        : view(_view) { }
 
-    semilattice_watchable_t *clone() {
+    semilattice_watchable_t *clone() const {
         return new semilattice_watchable_t(view);
     }
 
@@ -27,6 +27,8 @@ public:
 private:
     boost::shared_ptr<semilattice_read_view_t<T> > view;
     rwi_lock_assertion_t rwi_lock_assertion;
+
+    DISABLE_COPYING(semilattice_watchable_t);
 };
 
 template<class T>
@@ -34,4 +36,4 @@ cross_thread_watchable_variable_t<T> cross_thread_watchable_from_semilattice(boo
     return cross_thread_watchable_variable_t<T>(new semilattice_watchable_t<T>(view), dest_thread);
 }
 
-#endif
+#endif  // RPC_SEMILATTICE_WATCHABLE_HPP_

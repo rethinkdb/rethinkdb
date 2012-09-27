@@ -40,7 +40,7 @@ need_update_objects = (new_data, old_data) ->
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
         if data isnt null
-            if data.protocol? and (data.protocol is 'memcached' or data.protocol is 'rdb')  # We check that the machines in the blueprint do exist
+            if data.protocol? and data.protocol is 'rdb'  # We check that the machines in the blueprint do exist
                 if collection_data[id].blueprint? and collection_data[id].blueprint.peers_roles?
                     for machine_uuid of collection_data[id].blueprint.peers_roles
                         if !machines.get(machine_uuid)?
@@ -93,8 +93,6 @@ apply_diffs = (updates) ->
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "dummy"))
             when 'databases'
                 apply_to_collection(databases, collection_data)
-            when 'memcached_namespaces'
-                apply_to_collection(namespaces, add_protocol_tag(collection_data, "memcached"))
             when 'rdb_namespaces'
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "rdb"))
             when 'datacenters'
@@ -103,7 +101,7 @@ apply_diffs = (updates) ->
                 apply_to_collection(machines, collection_data)
             when 'me' then continue
             else
-                console.log "Unhandled element update: " + collection_id + "."
+                #console.log "Unhandled element update: " + collection_id + "."
     return
 
 set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
@@ -199,16 +197,22 @@ collect_server_data_once = (async, optional_callback) ->
 collect_server_data_async = ->
     collect_server_data_once true
 
+
+stats_param =
+    url: '/ajax/stat'
+    fail: false
 collect_stat_data = ->
     $.ajax
-        url: '/ajax/stat'
+        url: stats_param.url
         dataType: 'json'
         contentType: 'application/json'
         success: (data) ->
             set_stats(data)
+            stats_param.fail = false
+            stats_param.timeout = setTimeout collect_stat_data, 1000
         error: ->
-            #TODO
-            #console.log 'Could not retrieve stats'
+            stats_param.fail = true
+            stats_param.timeout = setTimeout collect_stat_data, 1000
 
 $ ->
     render_loading()
@@ -227,12 +231,15 @@ $ ->
     window.computed_cluster = new ComputedCluster
 
     window.last_update_tstamp = 0
+    window.universe_datacenter = new Datacenter
+        id: '00000000-0000-0000-0000-000000000000'
+        name: 'Universe'
 
     # Load the data bootstrapped from the HTML template
     # reset_collections()
     reset_token()
 
-    # Override the default Backbone.sync behavior to allow reading diffs
+    # Override the default Backbone.sync behavior to allow reading diff
     legacy_sync = Backbone.sync
     Backbone.sync = (method, model, success, error) ->
         if method is 'read'
@@ -265,4 +272,3 @@ $ ->
 
     # Set interval to update the data
     setInterval collect_server_data_async, updateInterval
-    setInterval collect_stat_data, statUpdateInterval

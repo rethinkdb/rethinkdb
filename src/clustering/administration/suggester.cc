@@ -31,7 +31,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
     std::map<datacenter_id_t, int> datacenter_affinities =
         ns_goals.replica_affinities.get();
 
-    std::set<typename protocol_t::region_t> shards =
+    nonoverlapping_regions_t<protocol_t> shards =
         ns_goals.shards.get();
 
     region_map_t<protocol_t, machine_id_t> primary_pinnings =
@@ -135,17 +135,23 @@ void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
         machine_id_translation_table.insert(std::make_pair(it->first, it->second.machine_id));
     }
 
-    fill_in_blueprints_for_protocol<memcached_protocol_t>(&cluster_metadata->memcached_namespaces,
-            reactor_directory_memcached,
-            machine_id_translation_table,
-            machine_assignments,
-            us);
+    {
+        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata->memcached_namespaces);
+        fill_in_blueprints_for_protocol<memcached_protocol_t>(change.get(),
+                reactor_directory_memcached,
+                machine_id_translation_table,
+                machine_assignments,
+                us);
+    }
 
-    fill_in_blueprints_for_protocol<rdb_protocol_t>(&cluster_metadata->rdb_namespaces,
-            reactor_directory_rdb,
-            machine_id_translation_table,
-            machine_assignments,
-            us);
+    {
+        cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata->rdb_namespaces);
+        fill_in_blueprints_for_protocol<rdb_protocol_t>(change.get(),
+                reactor_directory_rdb,
+                machine_id_translation_table,
+                machine_assignments,
+                us);
+    }
 }
 
 

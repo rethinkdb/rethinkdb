@@ -102,7 +102,7 @@ try {
     if (0 == ports.port) {
         ports.port = connectivity_cluster_run.get_port();
     } else {
-        rassert(ports.port == connectivity_cluster_run.get_port());
+        guarantee(ports.port == connectivity_cluster_run.get_port());
     }
     logINF("Listening for intracluster traffic on port %d.\n", ports.port);
 
@@ -315,8 +315,7 @@ try {
     return true;
 
 } catch (address_in_use_exc_t e) {
-    logINF("%s. Cannot bind to cluster port. Exiting.\n", e.what());
-    exit(1);
+    nice_crash("%s. Cannot bind to cluster port. Exiting.\n", e.what());
 }
 
 bool serve(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
@@ -324,6 +323,7 @@ bool serve(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backende
 }
 
 bool serve_proxy(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+    // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
     return do_serve(spawner_info, io_backender, false, "", NULL, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }

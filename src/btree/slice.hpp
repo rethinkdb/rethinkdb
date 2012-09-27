@@ -23,7 +23,7 @@ public:
               &pm_keys_read, "keys_read",
               &pm_keys_set, "keys_set",
               &pm_keys_expired, "keys_expired",
-              NULL)
+              NULLPTR)
     { }
 
     perfmon_collection_t btree_collection;
@@ -40,7 +40,7 @@ cache for the purpose of storing a btree. There are many btree_slice_ts per
 btree_key_value_store_t. */
 
 class btree_slice_t :
-    public home_thread_mixin_t
+    public home_thread_mixin_debug_only_t
 {
 public:
     // Blocks

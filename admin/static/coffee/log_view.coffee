@@ -288,7 +288,7 @@ module 'LogView', ->
                 msg = ''
                 json_data = $.parseJSON data
                 for group of json_data
-                    if group is 'memcached_namespaces' or group is 'rdb_namespaces'
+                    if group is 'rdb_namespaces'
                         for namespace_id of json_data[group]
                             if namespace_id is 'new'
                                 msg += @log_new_namespace_template
@@ -307,9 +307,14 @@ module 'LogView', ->
                                         if attribute is 'ack_expectations' or attribute is 'replica_affinities'
                                             _datacenters = []
                                             for datacenter_id of json_data[group][namespace_id][attribute]
+                                                if datacenter_id is universe_datacenter.get('id')
+                                                    datacenter_name = universe_datacenter.get 'name'
+                                                else
+                                                    datacenter_name = datacenters.get(datacenter_id).get 'name'
                                                 _datacenters.push
+                                                    is_universe: true if datacenter_id is universe_datacenter.get('id')
                                                     datacenter_id: datacenter_id
-                                                    datacenter_name: datacenters.get(datacenter_id).get 'name'
+                                                    datacenter_name: datacenter_name
                                                     value: json_data[group][namespace_id][attribute][datacenter_id]
                                             msg += @log_datacenters_values_template
                                                 namespace_id: namespace_id
@@ -447,7 +452,7 @@ module 'LogView', ->
                 msg = ''
                 json_data = $.parseJSON data
                 for group of json_data
-                    if group is 'memcached_namespaces' or group is 'rdb_namespaces'
+                    if group is 'rdb_namespaces'
                         for namespace_id of json_data[group]
                             if json_data[group][namespace_id] is null
                                 msg += @log_delete_something_template
@@ -456,7 +461,6 @@ module 'LogView', ->
                             else if namespace_id is 'new'
                                 msg += @log_new_something_small_template
                                     type: 'namespace'
-                                    namespace_name: json_data[group]['new']['name']
                             else
                                 attributes = []
                                 for attribute of json_data[group][namespace_id]
@@ -499,7 +503,6 @@ module 'LogView', ->
                             else if datacenter_id is 'new'
                                 msg += @log_new_something_small_template
                                     type: 'datacenter'
-                                    datacenter_name: json_data[group][datacenter_id]['name']
                             else
                                 for attribute of json_data[group][datacenter_id]
                                     attributes = []
@@ -524,8 +527,7 @@ module 'LogView', ->
                                     id: database_id
                             else if database_id is 'new'
                                 msg += @log_new_something_small_template
-                                    type: 'datacenter'
-                                    datacenter_name: json_data[group][database_id]['name']
+                                    type: 'database'
                             else
                                 for attribute of json_data[group][database_id]
                                     attributes = []

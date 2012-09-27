@@ -175,10 +175,11 @@ module 'MachineView', ->
                 stats_up_to_date: @model.get('stats_up_to_date')
             
             # If the machine is assigned to a datacenter, add relevant json
-            if datacenter_uuid?
+            if datacenters.get(datacenter_uuid)?
                 json = _.extend json,
                     assigned_to_datacenter: datacenter_uuid
                     datacenter_name: datacenters.get(datacenter_uuid).get('name')
+
 
             # Reachability
             _.extend json,
@@ -398,7 +399,6 @@ module 'MachineView', ->
         initialize: =>
             @directory_entry = directory.get @model.get 'id'
             if @directory_entry?
-                @directory_entry.on 'change:memcached_namespaces', @render
                 @directory_entry.on 'change:rdb_namespaces', @render
             namespaces.on 'add', @render
             namespaces.on 'remove', @render
@@ -758,7 +758,6 @@ module 'MachineView', ->
 
         destroy: =>
             if @directory_entry?
-                @directory_entry.off 'change:memcached_namespaces', @render
                 @directory_entry.off 'change:rdb_namespaces', @render
             namespaces.off 'add', @render
             namespaces.off 'remove', @render

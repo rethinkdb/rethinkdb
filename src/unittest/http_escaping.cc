@@ -9,13 +9,17 @@ TEST(HTTPEscaping, HTTPEscaping) {
 
     EXPECT_EQ("Hello%2C%20world%21", percent_escaped_string("Hello, world!"));
 
-    EXPECT_EQ("Hello, world!", percent_unescaped_string("Hello%2C%20world%21"));
+    std::string out;
+    EXPECT_TRUE(percent_unescape_string("Hello%2C%20world%21", &out));
+    EXPECT_EQ("Hello, world!", out);
+    out.clear();
 
-    EXPECT_THROW(percent_unescaped_string("%"), std::runtime_error);
-
-    EXPECT_THROW(percent_unescaped_string("%6y"), std::runtime_error);
-
-    EXPECT_THROW(percent_unescaped_string("!"), std::runtime_error);
+    EXPECT_FALSE(percent_unescape_string("%", &out));
+    EXPECT_EQ("", out);
+    EXPECT_FALSE(percent_unescape_string("%6y", &out));
+    EXPECT_EQ("", out);
+    EXPECT_FALSE(percent_unescape_string("!", &out));
+    EXPECT_EQ("", out);
 }
 
 }//namespace unittest

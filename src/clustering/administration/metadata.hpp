@@ -16,12 +16,15 @@
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/stat_manager.hpp"
 #include "clustering/administration/metadata_change_handler.hpp"
+#include "containers/archive/cow_ptr_type.hpp"
+#include "containers/cow_ptr.hpp"
 #include "http/json/json_adapter.hpp"
 #include "memcached/protocol.hpp"
 #include "memcached/protocol_json_adapter.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_json_adapter.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rpc/semilattice/joins/cow_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -29,9 +32,9 @@ class cluster_semilattice_metadata_t {
 public:
     cluster_semilattice_metadata_t() { }
 
-    namespaces_semilattice_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
-    namespaces_semilattice_metadata_t<memcached_protocol_t> memcached_namespaces;
-    namespaces_semilattice_metadata_t<rdb_protocol_t> rdb_namespaces;
+    cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> > dummy_namespaces;
+    cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > memcached_namespaces;
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > rdb_namespaces;
 
     machines_semilattice_metadata_t machines;
     datacenters_semilattice_metadata_t datacenters;
@@ -124,11 +127,9 @@ cJSON *render_as_json(cluster_directory_peer_type_t *peer_type);
 void apply_json_to(cJSON *, cluster_directory_peer_type_t *);
 void on_subfield_change(cluster_directory_peer_type_t *);
 
-
-const char *const METADATA_SUCCESS = 0;
-const char *const METADATA_ERR_NONE = "No entry with that name.";
-const char *const METADATA_ERR_MULTIPLE = "Multiple entries with that name.";
-const char *const METADATA_ERR_CONFLICT = "Entry with that name is in conflict.";
+enum metadata_search_status_t {
+    METADATA_SUCCESS, METADATA_ERR_NONE, METADATA_ERR_MULTIPLE, METADATA_CONFLICT
+};
 
 /* A helper class to search through metadata in various ways.  Can be
    constructed from a pointer to the internal map of the metadata,
@@ -164,7 +165,7 @@ public:
     /* Find the unique entry matching [predicate].  If there is no unique entry,
        return [end()] and set the optional status parameter appropriately. */
     template<class callable_t>
-    iterator find_uniq(callable_t predicate, const char **out=0) {
+    iterator find_uniq(callable_t predicate, metadata_search_status_t *out = 0) {
         iterator it, retval;
         if (out) *out = METADATA_SUCCESS;
         retval = it = find_next(begin(), predicate);
@@ -177,19 +178,41 @@ public:
         return retval;
     }
     /* As above, but matches by name instead of a predicate. */
-    iterator find_uniq(const std::string &name, const char **out=0) {
-        return find_uniq(name_predicate_t(name), out);
+    iterator find_uniq(const std::string &name, metadata_search_status_t *out = 0) {
+        return find_uniq(name_predicate_t(&name), out);
     }
 
     struct name_predicate_t {
         bool operator()(T metadata) {
-            return !metadata.name.in_conflict() && metadata.name.get() == name;
+            return !metadata.name.in_conflict() && metadata.name.get() == *name;
         }
-        name_predicate_t(const std::string &_name): name(_name) { }
+        explicit name_predicate_t(const std::string *_name): name(_name) { }
     private:
-        const std::string &name;
+        const std::string *name;
     };
 private:
     metamap_t *map;
 };
+
+class namespace_predicate_t {
+public:
+    // TODO: Can this not be a const reference?
+    bool operator()(namespace_semilattice_metadata_t<rdb_protocol_t> ns) {
+        if (name && (ns.name.in_conflict() || ns.name.get() != *name)) {
+            return false;
+        } else if (db_id && (ns.database.in_conflict() || ns.database.get() != *db_id)) {
+            return false;
+        }
+        return true;
+    }
+    explicit namespace_predicate_t(std::string &_name): name(&_name), db_id(0) { }
+    explicit namespace_predicate_t(uuid_t &_db_id): name(0), db_id(&_db_id) { }
+    namespace_predicate_t(std::string &_name, uuid_t &_db_id):
+        name(&_name), db_id(&_db_id) { }
+private:
+    const std::string *name;
+    const uuid_t *db_id;
+};
+
+
 #endif  // CLUSTERING_ADMINISTRATION_METADATA_HPP_

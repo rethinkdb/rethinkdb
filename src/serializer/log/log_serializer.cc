@@ -47,7 +47,7 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_old_garbage_blocks, "serializer_old_garbage_blocks",
           &pm_serializer_old_total_blocks, "serializer_old_total_blocks",
           &pm_serializer_lba_gcs, "serializer_lba_gcs",
-          NULL)
+          NULLPTR)
 { }
 
 void log_serializer_t::create(io_backender_t *backender, private_dynamic_config_t private_dynamic_config, static_config_t static_config) {
@@ -612,6 +612,11 @@ block_sequence_id_t log_serializer_t::get_block_sequence_id(DEBUG_VAR block_id_t
 
 block_size_t log_serializer_t::get_block_size() {
     return static_config.block_size();
+}
+
+bool log_serializer_t::coop_lock_and_check() {
+    rassert(dbfile != NULL);
+    return dbfile->coop_lock_and_check();
 }
 
 // TODO: Should be called end_block_id I guess (or should subtract 1 frim end_block_id?

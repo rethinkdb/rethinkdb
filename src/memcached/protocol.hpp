@@ -71,8 +71,7 @@ public:
 
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(const std::vector<read_response_t>& responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
-        void multistore_unshard(const std::vector<read_response_t>& responses, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void unshard(const read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : query(r.query), effective_time(r.effective_time) { }
@@ -96,8 +95,7 @@ public:
         typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> query_t;
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(const std::vector<write_response_t>& responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
-        void multistore_unshard(const std::vector<write_response_t>& responses, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : mutation(w.mutation), proposed_cas(w.proposed_cas), effective_time(w.effective_time) { }
@@ -160,6 +158,7 @@ public:
     public:
         store_t(io_backender_t *io_backender,
                 const std::string& filename,
+                int64_t cache_quota,
                 bool create,
                 perfmon_collection_t *collection,
                 context_t *);

@@ -22,6 +22,8 @@ bench/stress-client/stress
 bench/stress-client/libstress.so
 bench/stress-client/*.o
 bench/stress-client/protocols/*.o
+bench/stress-client/protocols/query_language.pb.h
+bench/stress-client/protocols/query_language.pb.cc
 bench/serializer-bench/serializer-bench
 bench/serializer-bench/gmon.out
 bench/serializer-bench/main.o
@@ -32,3 +34,4 @@ src/.clang_complete
 src/find_replace.sh
 src/make_filter.sh
 scripts/netrecord/netrecord
+src/cluster_directory_*

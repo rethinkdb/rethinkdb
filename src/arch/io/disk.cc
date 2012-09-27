@@ -6,6 +6,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 
 #include <algorithm>
 
@@ -116,7 +117,12 @@ public:
         assert_thread();
         outstanding_txn--;
         action_t *a2 = static_cast<action_t *>(a);
-        do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_complete, a2->cb));
+        bool succeeded = a2->get_succeeded();
+        if (succeeded) {
+            do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_complete, a2->cb));
+        } else {
+            do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_failure, a2->cb));
+        }
         delete a2;
     }
 
@@ -344,8 +350,8 @@ void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
     if (res == -1 && errno == EINTR) {
         goto tryagain;
     }
-    rassert(size_t(res) == length, "Blocking read failed");
-    (void)res;
+
+    nice_guarantee(size_t(res) == length, "Blocking read from file failed. Exiting.");
 }
 
 void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf) {
@@ -355,8 +361,16 @@ void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf)
     if (res == -1 && errno == EINTR) {
         goto tryagain;
     }
-    rassert(size_t(res) == length, "Blocking write failed");
-    (void)res;
+
+    nice_guarantee(size_t(res) == length, "Blocking write from file failed. Exiting.");
+}
+
+bool linux_file_t::coop_lock_and_check() {
+    if (flock(fd.get(), LOCK_EX | LOCK_NB) != 0) {
+        rassert(errno == EWOULDBLOCK);
+        return false;
+    }
+    return true;
 }
 
 linux_file_t::~linux_file_t() {

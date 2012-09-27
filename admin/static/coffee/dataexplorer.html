@@ -1,7 +1,23 @@
 <script id="dataexplorer_view-template" type="text/x-handlebars-template">
     <h1 class="title status">Data Explorer</h1>
+    <div id="user-alert-space"></div>
+    <div class="input_query_full_container"></div>
+    <div class="results_container"></div>
 </script>
 
+<script id="alert-connection_fail-template" type="text/x-handlebars-template">
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>The connection to the server failed. Please try to <a href="#" id="reconnect">reconnect</a></p>
+    </div>
+</script>
+
+<script id="alert-reconnection_success-template" type="text/x-handlebars-template">
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>Successfully reconnected.</p>
+    </div>
+</script>
 
 <script id="dataexplorer_input_query-template" type="text/x-handlebars-template">
     <div class="input_query_container" >
@@ -11,10 +27,12 @@
             <input type="button" value="clear" class="btn button_query clear_query" />
         </div>
 
+        <div class="suggestion_full_container">
         <div class="suggestion_list_container">
             <ul class="suggestion_name_list"></ul>
         </div>
         <div class="suggestion_description"></div>
+        </div>
 
     </div>
     <div class="loading_query">
@@ -22,7 +40,7 @@
     </div>
 </script>
 
-
+ 
 <script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
     <li class="suggestion_name_li" data-has_argument="{{has_argument}}" data-id={{id}}>{{suggestion}}</li>
 </script>
@@ -77,7 +95,6 @@
     <p>The following query could not be executed.</p>
     <p class="query">{{query}}</p>
     <p>Error: {{error}}</p>
-    <p><a href="#dataexplorer" class="home_view">Read quick start</a></p>
 </script>
 
 <script id="dataexplorer_query_list-template" type="text/x-handlebars-template">
@@ -93,23 +110,48 @@
 <script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
     <div class="results_header">
         <div class="options_container">
-            <input type="button" value="Home" class="btn button_query home_view" />
             <input type="button" value="Full view" class="btn button_query change_size" />
         </div>
 
         <h2>Results</h2>
         <p class="query_executed">For query: {{query}}</p>
+        <p class="metadata"></p>
+        
 
         <ul class="nav nav-tabs change_view_container"">
-            <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view">Raw view</a></li>
-            <li><a href="#table_view" data-toggle="tab" class="link_to_table_view">Table view</a></li>
-            <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view">Tree view</a></li>
+            <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view" data-view="raw">Raw view</a></li>
+            <li><a href="#table_view" data-toggle="tab" class="link_to_table_view" data-view="table">Table view</a></li>
+            <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view active" data-view="tree">Tree view</a></li>
         </ul>
- 
    </div>
+    <div class="pagination_container">
+        <div class="classic_navigation_container">
+            <div class="goto_previous_container">
+                <button class="btn goto_first">&lt;&lt;</button>
+                <button class="btn goto_previous">&lt;</button>
+            </div>
+            <div class="jump_container">
+                <select name="jumg_page" class="jump_page">
+                </select>
+            </div>
+            <div class="goto_next_container">
+                <button class="btn goto_next">&gt;</button>
+                <button class="btn goto_last">&gt;&gt;</button>
+            </div>
 
-   <div class="tab-content">  
-        <div class="tab-pane results" id="tree_view">
+            <p class="manual_jump">
+            <button class="btn display_button" data-id="0">Display</button>
+                <input type="text" class="limit_value" name="skip_value" value="20" data-id="0"/>
+                rows starting from 
+                <input class="skip_value" name="skip_value" type="text" value="0" data-id="0">
+            </p>
+
+        </div>
+
+
+    </div>
+    <div class="tab-content">  
+        <div class="tab-pane results active" id="tree_view">
         </div>
         <div class="tab-pane results" id="table_view">
         </div>
@@ -117,8 +159,44 @@
             <textarea class="raw_view_textarea"></textarea>
         </div>
     </div>
+    <div class="pagination_container">
+        <div class="classic_navigation_container">
+            <div class="goto_previous_container">
+                <button class="btn goto_first">&lt;&lt;</button>
+                <button class="btn goto_previous">&lt;</button>
+            </div>
+            <div class="jump_container">
+                <select name="jumg_page" class="jump_page">
+                </select>
+            </div>
+            <div class="goto_next_container">
+                <button class="btn goto_next">&gt;</button>
+                <button class="btn goto_last">&gt;&gt;</button>
+            </div>
+
+            <p class="manual_jump">
+                <button class="btn display_button" data-id="1">Display</button>
+                <input type="text" class="limit_value" name="skip_value" value="20" data-id="1" />
+                rows starting from 
+                <input class="skip_value" name="skip_value" type="text" value="0"  data-id="1" />
+            </p>
+        </div>
+
+
+    </div>
 </script>
 
+<script id="dataexplorer-option_page-template" type="text/x-handlebars-template">
+    <option class="page" value="{{page}}" {{#if selected}}selected="selected"{{/if}}>{{page}}</option>
+</script>
+
+<script id="dataexplorer-metadata-template" type="text/x-handlebars-template">
+    {{#if execution_time}}
+        Executed in {{execution_time}}{{#if num_rows}}, {{limit_value}} of {{num_rows}} {{pluralize_noun "row" limit_value}} displayed.{{/if}}
+    {{else}}
+    {{#if limit_value}}limit_value {{pluralize_noun "row" limit_value}} displayed. {{/if}}Computing the total number of rows.
+    {{/if}}
+</script>
 
 <script id="dataexplorer_result_empty-template" type="text/x-handlebars-template">
     <p>No result were returned for this query</p>

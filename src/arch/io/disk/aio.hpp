@@ -41,6 +41,9 @@ public:
 
     // TODO: We're _subclassing_ iocb?  This is insanity.
     struct action_t : private iocb {
+        action_t()
+            : successful_due_to_conflict(false)
+        { }
         void make_write(fd_t fd, const void *buf, size_t count, off_t offset) {
             io_prep_pwrite(this, fd, const_cast<void*>(buf), count, offset);
         }
@@ -53,8 +56,17 @@ public:
         bool get_is_write() const { return !get_is_read(); }
         off_t get_offset() const { return this->u.c.offset; }
         size_t get_count() const { return this->u.c.nbytes; }
+        void set_successful_due_to_conflict() { successful_due_to_conflict = true; }
+        bool get_succeeded() const { return successful_due_to_conflict || io_result == static_cast<int64_t>(this->u.c.nbytes); }
+        int get_errno() const { return -io_result; }
+
+
     private:
         friend class linux_diskmgr_aio_t;
+
+        // Only valid on return. Can be used to determine success or failure.
+        int64_t io_result;
+        bool successful_due_to_conflict;
     };
 
     linux_diskmgr_aio_t(
@@ -112,7 +124,7 @@ public:
     iocb *produce_next_value();
 
     /* `getter` calls `aio_notify()` when an operation is complete. */
-    void aio_notify(iocb *event, int result) NON_NULL_ATTR(2);
+    void aio_notify(iocb *event, int64_t result) NON_NULL_ATTR(2);
 };
 
 #endif // ARCH_IO_DISK_AIO_HPP_

@@ -69,7 +69,7 @@ persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::st
 persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &initial_metadata) {
     construct_serializer_and_cache(io_backender, true, filename, perfmon_parent);
 
-    transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
+    transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, cache_order_source.check_in("persistent_file_t"));
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
     metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_major_write());
 
@@ -92,14 +92,14 @@ persistent_file_t::~persistent_file_t() {
 }
 
 machine_id_t persistent_file_t::read_machine_id() {
-    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, cache_order_source.check_in("read_machine_id"));
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_read);
     const metadata_superblock_t *sb = static_cast<const metadata_superblock_t *>(superblock.get_data_read());
     return sb->machine_id;
 }
 
 cluster_semilattice_metadata_t persistent_file_t::read_metadata() {
-    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, cache_order_source.check_in("read_metadata"));
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_read);
     const metadata_superblock_t *sb = static_cast<const metadata_superblock_t *>(superblock.get_data_read());
     cluster_semilattice_metadata_t metadata;
@@ -108,7 +108,7 @@ cluster_semilattice_metadata_t persistent_file_t::read_metadata() {
 }
 
 void persistent_file_t::update_metadata(const cluster_semilattice_metadata_t &metadata) {
-    transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
+    transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, cache_order_source.check_in("update_metadata"));
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
     metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_major_write());
     write_blob(&txn, sb->metadata_blob, metadata_superblock_t::METADATA_BLOB_MAXREFLEN, metadata);
@@ -123,7 +123,7 @@ public:
         /* If we're not creating, we have to load the existing branch history
         database from disk */
         if (!create) {
-            transaction_t txn(parent->cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+            transaction_t txn(parent->cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, parent->cache_order_source.check_in("persistent_branch_history_manager_t"));
             buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_read);
             const metadata_superblock_t *sb = static_cast<const metadata_superblock_t *>(superblock.get_data_read());
             read_blob(&txn, sb->*field_name, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, &bh);
@@ -131,18 +131,22 @@ public:
     }
 
     branch_birth_certificate_t<protocol_t> get_branch(branch_id_t branch) THROWS_NOTHING {
+        home_thread_mixin_t::assert_thread();
         typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator it = bh.branches.find(branch);
         guarantee(it != bh.branches.end(), "no such branch");
         return it->second;
     }
 
     void create_branch(branch_id_t branch_id, const branch_birth_certificate_t<protocol_t> &bc, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        guarantee(bh.branches.find(branch_id) == bh.branches.end());
-        bh.branches[branch_id] = bc;
+        home_thread_mixin_t::assert_thread();
+        std::pair<typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::iterator, bool>
+            insert_res = bh.branches.insert(std::make_pair(branch_id, bc));
+        guarantee(insert_res.second);
         flush(interruptor);
     }
 
     void export_branch_history(branch_id_t branch, branch_history_t<protocol_t> *out) THROWS_NOTHING {
+        home_thread_mixin_t::assert_thread();
         std::set<branch_id_t> to_process;
         if (out->branches.count(branch) == 0) {
             to_process.insert(branch);
@@ -151,8 +155,9 @@ public:
             branch_id_t next = *to_process.begin();
             to_process.erase(next);
             branch_birth_certificate_t<protocol_t> bc = get_branch(next);
-            guarantee(out->branches.count(next) == 0);
-            out->branches[next] = bc;
+            std::pair<typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::iterator, bool>
+                insert_res = out->branches.insert(std::make_pair(next, bc));
+            guarantee(insert_res.second);
             for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = bc.origin.begin(); it != bc.origin.end(); it++) {
                 if (!it->second.latest.branch.is_nil() && out->branches.count(it->second.latest.branch) == 0) {
                     to_process.insert(it->second.latest.branch);
@@ -162,6 +167,7 @@ public:
     }
 
     void import_branch_history(const branch_history_t<protocol_t> &new_records, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        home_thread_mixin_t::assert_thread();
         for (typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator it = new_records.branches.begin(); it != new_records.branches.end(); it++) {
             bh.branches.insert(std::make_pair(it->first, it->second));
         }
@@ -170,7 +176,7 @@ public:
 
 private:
     void flush(UNUSED signal_t *interruptor) {
-        transaction_t txn(parent->cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
+        transaction_t txn(parent->cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, parent->cache_order_source.check_in("flush"));
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
         metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_major_write());
         write_blob(&txn, sb->*field_name, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, bh);
@@ -211,6 +217,10 @@ void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backen
                                               io_backender,
                                               standard_serializer_t::private_dynamic_config_t(filename),
                                               perfmon_parent));
+
+    if (!serializer->coop_lock_and_check()) {
+        throw file_in_use_exc_t();
+    }
 
     if (create) {
         mirrored_cache_static_config_t cache_static_config;
@@ -259,7 +269,7 @@ void semilattice_watching_persister_t::dump_loop(auto_drainer_t::lock_t keepaliv
             }
         }
     } catch (interrupted_exc_t) {
-        /* ignore */
+        // do nothing
     }
     stopped.pulse();
 }

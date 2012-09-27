@@ -15,26 +15,18 @@
 <script id="database_list_element-template" type="text/x-handlebars-template">
     <div class="section">
         <div class="header_container">
-            {{#unless no_namespace}}
-            <div class="expanded arrow"></div>
-            {{/unless}}
             <div class="database summary"></div>
         </div>
-
-        {{#unless no_namespaces}}
         <div class="element-list-container"></div>
-        {{/unless}}
     </div>
 </script>
 
 <script id="database_list_element-summary-template" type="text/x-handlebars-template">
     <div class="element-type">Database</div>
-    <h3 class="name">
-        <a href="#databases/{{id}}">{{name}}</a>
-    </h3>
+    <h3 class="name"><a href="#databases/{{id}}">{{name}}</a></h3>
     <div class="buttons">
         <a href="#" class="btn hide-tables expanded collapse-control" data-expanded="&ndash; Hide Tables" data-collapsed="+ Show Tables">&ndash; Hide Tables</a>
-        <a href="#" class="btn remove-database">X</a>
+        <a href="#" class="btn remove-database" data-id={{id}}>X</a>
     </div>
 </script>
 
@@ -86,40 +78,36 @@
 <script id="add_namespace-modal-template" type="text/x-handlebars-template">
     <div class="alert alert-error error_answer"></div>
     <form class="form">
-        <fielTablelegend>Table details</legend>
-    <div class="clearfix">
         <label for="name">Name</label>
-        <div class="input">
-            <input class="xlarge" id="focus_namespace_name" name="name" size="30" type="text" />
-        </div>
-    </div>
-    <div class="clearfix">
+        <input class="xlarge" id="focus_namespace_name" name="name" size="30" type="text" />
+
         <label for="primary_datacenter">Select a database:</label>
-        <div class="input">
-            <select class="database" name="database">
-                {{#each databases}}
-                <option value="{{this.id}}">{{this.name}}</option>
-                {{/each}}
-            </select>
-        </div>
-    </div>
-    <div class="clearfix">
-        <label for="primary_datacenter">Select a primary datacenter:</label>
-        <div class="input">
+        <select class="database" name="database">
+            {{#each databases}}
+            <option value="{{this.id}}">{{this.name}}</option>
+            {{/each}}
+        </select>
+
+        <p class="show_advanced_settings-link_container"><a href="#" class="show_advanced_settings-link">Show optional settings</a></p>
+        <p class="hide_advanced_settings-link_container"><a href="#" class="hide_advanced_settings-link">Hide optional settings</a></p>
+
+        <div class="advanced_settings">
+            <label for="primary_datacenter">Select a primary datacenter:</label>
             <select class="primary_datacenter" name="primary_datacenter">
                 {{#each datacenters}}
                 <option value="{{this.id}}">{{this.name}}</option>
                 {{/each}}
             </select>
+            {{#unless all_datacenters}}
+            <p>Note: The empty datacenters cannot be selected as primary.</p>
+            {{/unless}}
+
+            <label for="name">Primary key</label>
+            <input class="xlarge" name="primary_key" size="30" type="text" placeholder="id"/>
+            <label for="name">Cache size in MB</label>
+            <input class="xlarge" name="cache_size" size="30" type="text" placeholder="1024"/>
         </div>
-    </div>
-    <hr />
-    <div class="user-tip">
-        <p>* You can tweak configuration options for
-        the table once it's created.</p>
-    </div>
-</fieldset>
-  </form>
+    </form>
 </script>
 
 <script id="added_namespace-alert-template" type="text/x-handlebars-template">

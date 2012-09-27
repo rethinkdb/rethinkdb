@@ -29,35 +29,25 @@ class Namespace extends Backbone.Model
     compute_shards: =>
         @.set 'computed_shards', new DataUtils.Shards [],@
 
-    interval: 0
-    set_interval_key_distr: =>
-        @set_interval = setInterval @load_key_distr, @interval
-
-    clear_interval_key_distr: ->
-        if @set_interval?
-            clearInterval @set_interval
-            @interval = 0
-
-
-    compare_keys: (a, b) ->
-        pattern = /^(%22).*(%22)$/
-        if pattern.test(a) is true
-            a_new = a.slice(3, a.length-3)
-        else if _.isNaN(parseFloat(a)) is false
-            a_new = parseFloat(a)
+    transform_key: (a) ->
+        if a is null
+            a_new = a
         else if a is ""
             a_new = -Infinity
-        else
-            a_new = a
+        else if typeof a is "string" and a[0]? and a[0] is 'N'
+            s = a.slice(a.indexOf("%23")+3)
+            if _.isNaN(parseFloat(s)) is false
+                a_new = parseFloat(s)
+        else if typeof a is "string" and a[0]? and a[0] is 'S'
+            a_new = a.slice(1)
 
-        if pattern.test(b) is true
-            b_new = b.slice(3, b.length-3)
-        else if _.isNaN(parseFloat(b)) is false
-            b_new = parseFloat(b)
-        else if b is ""
-            b_new = -Infinity
-        else
-            b_new = b
+        return a_new
+
+    compare_keys: (a, b) =>
+        #return 1 if a > b
+        a_new = @transform_key(a)
+        b_new = @transform_key(b)
+
         if typeof a_new is 'number' and typeof b_new is 'number'
             return a_new-b_new
         else if typeof a_new is 'string' and typeof b_new is 'string'
@@ -72,37 +62,11 @@ class Namespace extends Backbone.Model
                 return -1
             else if typeof a_new is 'string' and typeof b_new is 'number'
                 return 1
-            else if a_new is null
+            else if a_new is null and b_new isnt null
                 return 1
+            else if b_new is null and a_new isnt null
+                return -1
         return 0
-
-    # Cache key distribution info.
-    load_key_distr: =>
-        $.ajax
-            processData: false
-            url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
-            type: 'GET'
-            contentType: 'application/json'
-            success: (distr_data) =>
-                # Cache the data
-                # Sort the keys and cache that too
-                distr_keys = []
-                for key, count of distr_data
-                    distr_keys.push(key)
-                distr_keys.sort(@compare_keys)
-
-                @set('key_distr_sorted', distr_keys)
-                @set('key_distr', distr_data)
-                if @interval isnt 5000
-                    @clear_interval_key_distr()
-                    @interval = 5000
-                    @set_interval_key_distr()
-
-            error: =>
-                if @interval isnt 1000
-                    @clear_interval_key_distr()
-                    @interval = 1000
-                    @set_interval_key_distr()
 
     load_key_distr_once: =>
         $.ajax
@@ -196,10 +160,8 @@ class Namespace extends Backbone.Model
                 avg: 0
             global_net_sent_persec:
                 avg: 0
-        for namespace in namespaces.models
-            _s = namespace.get_stats()
-            if not _s?
-                continue
+        _s = this.get_stats()
+        if _s?
             __s.keys_read += _s.keys_read
             __s.keys_set += _s.keys_set
         # CPU, mem, disk
@@ -260,11 +222,27 @@ class Datacenter extends Backbone.Model
             global_net_sent_persec:
                 avg: 0
         for namespace in namespaces.models
-            _s = namespace.get_stats()
-            if not _s?
+            if not namespace.get('blueprint')? or not namespace.get('blueprint').peers_roles?
                 continue
-            __s.keys_read += _s.keys_read
-            __s.keys_set += _s.keys_set
+            for machine_id of namespace.get('blueprint').peers_roles
+                machine = machines.get(machine_id)
+                if not machine?
+                    continue
+                has_data = false
+                if machine.get('datacenter_uuid') is @get('id') and namespace.get('blueprint').peers_roles[machine_id]?
+                    for shard_key of namespace.get('blueprint').peers_roles[machine_id]
+                        if namespace.get('blueprint').peers_roles[machine_id][shard_key] isnt 'role_nothing'
+                            has_data = true
+                            break
+                    if has_data is true
+                        break
+            if has_data is true
+                _s = namespace.get_stats()
+                if not _s?
+                    continue
+                __s.keys_read += _s.keys_read
+                __s.keys_set += _s.keys_set
+
         # CPU, mem, disk
         num_machines_in_datacenter = 0
         for machine in machines.models
@@ -518,13 +496,13 @@ module 'DataUtils', ->
             @.set 'secondary_uuids',  @get_secondary_uuids()
 
             namespace.on 'change:blueprint', @set_uuids
-                
+
         set_uuids: =>
             new_primary_uuid = @get_primary_uuid()
             new_secondary_uuids = @get_secondary_uuids()
             @.set 'primary_uuid', new_primary_uuid if @.get('primary_uuid') isnt new_primary_uuid
             @.set 'secondary_uuids', new_secondary_uuids if not _.isEqual @.get('secondary_uuids'), new_secondary_uuids
-        
+
         destroy: =>
             namespace.on 'change:blueprint', @set_uuids
 
@@ -628,16 +606,18 @@ module 'DataUtils', ->
 
     @get_ack_expectations = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
-        datacenter = datacenters.get(datacenter_uuid)
-        acks = namespace?.get('ack_expectations')?[datacenter?.get('id')]?
+        acks = namespace?.get('ack_expectations')?[datacenter_uuid]
         if acks?
-            return namespace.get('ack_expectations')[datacenter.get('id')]
+            return acks
         else
             return 0
 
     @get_replica_affinities = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
-        datacenter = datacenters.get(datacenter_uuid)
+        if datacenter_uuid is universe_datacenter.get('id')
+            datacenter = universe_datacenter
+        else
+            datacenter = datacenters.get(datacenter_uuid)
         affs = namespace.get('replica_affinities')[datacenter.get('id')]
         if affs?
             return affs
@@ -662,14 +642,6 @@ module 'DataUtils', ->
     @get_directory_activities = ->
         activities = {}
         for machine in directory.models
-            bcards = machine.get('memcached_namespaces')['reactor_bcards']
-            for namespace_id, activity_map of bcards
-                activity_map = activity_map['activity_map']
-                for activity_id, activity of activity_map
-                    activities[activity_id] =
-                        value: activity
-                        machine_id: machine.get('id')
-                        namespace_id: namespace_id
             bcards = machine.get('rdb_namespaces')['reactor_bcards']
             for namespace_id, activity_map of bcards
                 activity_map = activity_map['activity_map']
@@ -683,16 +655,6 @@ module 'DataUtils', ->
     @get_directory_activities_by_namespaces = ->
         activities = {}
         for machine in directory.models
-            bcards = machine.get('memcached_namespaces')['reactor_bcards']
-            for namespace_id, activity_map of bcards
-                activity_map = activity_map['activity_map']
-                for activity_id, activity of activity_map
-                    if !(namespace_id of activities)
-                        activities[namespace_id] = {}
-
-                    if !activities[namespace_id][machine.get('id')]?
-                        activities[namespace_id][machine.get('id')] = {}
-                    activities[namespace_id][machine.get('id')][activity[0]] = activity[1]['type']
             bcards = machine.get('rdb_namespaces')['reactor_bcards']
             for namespace_id, activity_map of bcards
                 activity_map = activity_map['activity_map']

@@ -21,15 +21,13 @@ bool version_is_ancestor(
         branch_birth_certificate_t<protocol_t> descendent_branch_metadata = bhm->get_branch(descendent.branch);
 
         rassert(region_is_superset(descendent_branch_metadata.region, relevant_region));
-        rassert(descendent.timestamp >= descendent_branch_metadata.initial_timestamp);
+        guarantee(descendent.timestamp >= descendent_branch_metadata.initial_timestamp);
 
         typedef region_map_t<protocol_t, version_range_t> version_map_t;
         version_map_t relevant_origin = descendent_branch_metadata.origin.mask(relevant_region);
 
-        rassert(relevant_origin.begin() != relevant_origin.end());
-        for (typename version_map_t::const_iterator it  = relevant_origin.begin();
-                                                    it != relevant_origin.end();
-                                                    it++) {
+        guarantee(relevant_origin.begin() != relevant_origin.end());
+        for (typename version_map_t::const_iterator it = relevant_origin.begin(); it != relevant_origin.end(); ++it) {
             rassert(!region_is_empty(it->first));
             rassert(version_is_ancestor(bhm, it->second.earliest, it->second.latest, it->first));
             if (!version_is_ancestor(bhm, ancestor, it->second.earliest, it->first)) {
@@ -49,6 +47,15 @@ bool version_is_divergent(
     return !version_is_ancestor(bhm, v1, v2, relevant_region) &&
            !version_is_ancestor(bhm, v2, v1, relevant_region);
 }
+
+
+template <class protocol_t>
+region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_t<protocol_t, binary_blob_t> &blob_map) {
+    return region_map_transform<protocol_t, binary_blob_t, version_range_t>(blob_map,
+                                                                            &binary_blob_t::get<version_range_t>);
+}
+
+
 
 
 
@@ -98,3 +105,9 @@ bool version_is_divergent<rdb_protocol_t>(
         version_t v1,
         version_t v2,
         rdb_protocol_t::region_t relevant_region);
+
+template region_map_t<mock::dummy_protocol_t, version_range_t> to_version_range_map<mock::dummy_protocol_t>(const region_map_t<mock::dummy_protocol_t, binary_blob_t> &blob_map);
+
+template region_map_t<memcached_protocol_t, version_range_t> to_version_range_map<memcached_protocol_t>(const region_map_t<memcached_protocol_t, binary_blob_t> &blob_map);
+
+template region_map_t<rdb_protocol_t, version_range_t> to_version_range_map<rdb_protocol_t>(const region_map_t<rdb_protocol_t, binary_blob_t> &blob_map);

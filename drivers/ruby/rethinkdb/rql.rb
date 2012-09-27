@@ -40,39 +40,27 @@ module RethinkDB
     #   db('db1').tbl
     def self.db(db_name); Database.new db_name; end
 
-    # A shortcut for RQL::expr.  The following are equivalent:
-    #   r.expr(5)
-    #   r[5]
-    def self.[](ind); expr ind; end
+    # Refer to either an attribute of the implicit variable or the
+    # implicit variable itself. You can refer to the implicit variable
+    # by providing the symbol <b>+$_+</b>. The following examples are
+    # all equivalent:
+    #   table.map{|row| r[:id]}
+    #   table.map{r[$_][:id]}
+    #   table.map{r[:id]}
+    #   table.map{r.let({:a => r[$_]}, r.letvar('a')[:id]}
+    def self.[](ind)
+      return JSON_Expression.new [:implicit_var] if ind == :$_
+      return self[:$_][ind]
+    end
 
-    # Convert from a Ruby datatype to an RQL query.  More commonly accessed
-    # with its shortcut, <b><tt>[]</tt></b>.  Numbers, strings, booleans,
+    # Convert from a Ruby datatype to an RQL query.  Numbers, strings, booleans,
     # arrays, objects, and nil are all converted to their respective JSON types.
-    # Symbols that begin with '$' are converted to variables, and symbols
-    # without a '$' are converted to attributes of the implicit variable.  The
-    # implicit variable is defined for most operations as the current row.  For
-    # example, the following are equivalent:
-    #   r.db('').Welcome.filter{|row| row[:id].eq(5)}
-    #   r.db('').Welcome.filter{r.expr(:id).eq(5)}
-    #   r.db('').Welcome.filter{r[:id].eq(5)}
-    # Variables are used in e.g. <b>+let+</b> bindings.  For example:
-    #   r.let([['a', 1],
-    #          ['b', r[:$a]+1]],
-    #         r[:$b]*2).run
-    # will return 4.  (This notation will usually result in editors highlighting
-    # your variables the same as global ruby variables, which makes them stand
-    # out nicely in queries.)
-    #
     # <b>Note:</b> this function is idempotent, so the following are equivalent:
     #   r[5]
     #   r[r[5]]
-    # <b>Note 2:</b> the implicit variable can be dangerous.  Never pass it to a
-    # Ruby function, as it might enter a different scope without your
-    # knowledge.  In general, if you're doing something complicated, consider
-    # naming your variables.
     def self.expr x
       return x if x.kind_of? RQL_Query
-      case x.class().hash
+      B.alt_inspect(case x.class().hash
       when Table.hash      then x.to_mrs
       when String.hash     then JSON_Expression.new [:string, x]
       when Fixnum.hash     then JSON_Expression.new [:number, x]
@@ -82,19 +70,16 @@ module RethinkDB
       when NilClass.hash   then JSON_Expression.new [:json_null]
       when Array.hash      then JSON_Expression.new [:array, *x.map{|y| expr(y)}]
       when Hash.hash       then
-        JSON_Expression.new [:object, *x.map{|var,term| [var, expr(term)]}]
-      when Symbol.hash     then x.to_s[0]=='$'[0] ? var(x.to_s[1..-1]) : getattr(x)
+        JSON_Expression.new [:object, *x.map{|var,term| [S.checkdict(var), expr(term)]}]
       else raise TypeError, "RQL.expr can't handle '#{x.class()}'"
-      end
+      end) { x.inspect }
     end
 
-    # Explicitly construct an RQL variable from a string.  The following are
-    # equivalent:
-    #   r[:$varname]
-    #   r.var('varname')
-    # You want to use the second version if the variable name contains
-    # funny characters that aren't easily expressed in a symbol.
-    def self.var(varname); Var_Expression.new [:var, varname]; end
+    # Explicitly construct an RQL variable from a string:
+    #   r.letvar('varname')
+    def self.letvar(varname)
+      B.alt_inspect(Var_Expression.new [:var, varname]) { "letvar(#{varname.inspect})" }
+    end
 
     # Provide a literal JSON string that will be parsed by the server.  For
     # example, the following are equivalent:
@@ -130,20 +115,13 @@ module RethinkDB
 
     # Construct a query that binds some values to variable (as specified by
     # <b>+varbinds+</b>) and then executes <b>+body+</b> with those variables in
-    # scope.  For example:
-    #   r.let([['a', 2],
-    #          ['b', r[:$a]+1]],
-    #         r[:$b]*2)
-    # will bind <b>+a+</b> to 2, <b>+b+</b> to 3, and then return 6.  (It is
-    # thus analagous to <b><tt>let*</tt></b> in the Lisp family of languages.)
-    # It may also be used with hashes instead of lists, but in that case you
-    # give up some power: in particular, you cannot have variables that depend
-    # on previous variables, because the order is not guaranteed.  For example:
-    #   r.let({:a => 2, :b => 3}, r[:$b]*2) # legal
-    #   r.let({:a => 2, :b => r[:$a]+1}, r[:$b]*2) #legality not guaranteed
-    def self.let(varbinds, body);
+    # scope.  For example, the following are equivalent:
+    #   r.let({:a => 2, :b => 3}, r[:$a] + r[:$b])
+    #   r.expr(5)
+    def self.let(varbinds, body)
+      varbinds = varbinds.to_a
       varbinds.map! { |pair|
-        raise SyntaxError,"Malformed LET expression #{body}" if pair.length != 2
+        raise SyntaxError,"Malformed LET expression #{body.inspect}" if pair.length != 2
         [pair[0].to_s, expr(pair[1])]}
       res = S.r(body)
       res.class.new [:let, varbinds, res]
@@ -154,49 +132,6 @@ module RethinkDB
     #   r.not(true)
     #   r[true].not
     def self.not(pred); JSON_Expression.new [:call, [:not], [S.r pred]]; end
-
-    # Get an attribute of the implicit variable (usually done with
-    # RQL::expr).  Getting an attribute explicitly is useful if it has an
-    # odd name that can't be expressed as a symbol (or a name that starts with a
-    # $).  Synonyms are <b>+get+</b> and <b>+attr+</b>.  The following are all
-    # equivalent:
-    #   r[:id]
-    #   r.expr(:id)
-    #   r.getattr('id')
-    #   r.get('id')
-    #   r.attr('id')
-    def self.getattr(attrname)
-      JSON_Expression.new [:call, [:implicit_getattr, attrname], []]
-    end
-
-    # Test whether the implicit variable has a particular attribute.  Synonyms
-    # are <b>+has+</b> and <b>+attr?+</b>.  The following are all equivalent:
-    #   r.hasattr('name')
-    #   r.has('name')
-    #   r.attr?('name')
-    def self.hasattr(attrname)
-      JSON_Expression.new [:call, [:implicit_hasattr, attrname], []]
-    end
-
-    # Construct an object that is a subset of the object stored in the implicit
-    # variable by extracting certain attributes.  Synonyms are <b>+pick+</b> and
-    # <b>+attrs+</b>.  The following are all equivalent:
-    #   r[{:id => r[:id], :name => r[:name]}]
-    #   r.pickattrs(:id, :name)
-    #   r.pick(:id, :name)
-    #   r.attrs(:id, :name)
-    def self.pickattrs(*attrnames)
-      JSON_Expression.new [:call, [:implicit_pickattrs, *attrnames], []]
-    end
-
-    # Construct an object that is a subset of the object stored in the
-    # implicit variable by removing certain attributes.  The following
-    # are equivalent:
-    #   r[[{:a => 1, :b => 2}]].map{r.without(:b)}
-    #   r[[{:a => 1}]]
-    def self.without(*attrnames)
-      JSON_Expression.new [:call, [:implicit_without, *attrnames], []]
-    end
 
     # Add two or more numbers together.  May also be called as if it
     # were a instance method of JSON_Expression for convenience, and
@@ -212,7 +147,7 @@ module RethinkDB
     #   r[[1,2,3]]
     #   r.add([1, 2], [3])
     def self.add(a, b, *rest)
-      JSON_Expression.new [:call, [:add], [S.r(a), S.r(b), *(rest.map{|x| expr x})]];
+      JSON_Expression.new [:call, [:add], [S.r(a), S.r(b), *(rest.map{|x| S.r x})]];
     end
 
     # Subtract one number from another.
@@ -464,6 +399,17 @@ module RethinkDB
     # Dereference aliases (seet utils.rb)
     def self.method_missing(m, *args, &block) # :nodoc:
       (m2 = C.method_aliases[m]) ? self.send(m2, *args, &block) : super(m, *args, &block)
+    end
+
+    # Refer to a table by name.  When run over a connection, this query uses the
+    # default database of that connection.  If we have a connection <b>+$c+</b>
+    # like so:
+    #   $c = Connection.new('localhost', 12346, 'db_name')
+    # then the following are equivalent:
+    #   c.run(r.table('tbl_name'))
+    #   c.run(r.db('db_name').table('tbl_name')
+    def self.table(name, opts={})
+      Table.new(:default_db, name, opts)
     end
   end
 end

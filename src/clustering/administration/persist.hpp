@@ -13,6 +13,13 @@ template <class> class branch_history_manager_t;
 
 namespace metadata_persistence {
 
+class file_in_use_exc_t : public std::exception {
+public:
+    const char *what() const throw () {
+        return "metadata file is being used by another rethinkdb process";
+    }
+};
+
 class persistent_file_t {
 public:
     persistent_file_t(io_backender_t *io_backender, const std::string &filename, perfmon_collection_t *perfmon_parent);
@@ -35,6 +42,7 @@ private:
     void construct_serializer_and_cache(io_backender_t *io_backender, bool create, const std::string &filename, perfmon_collection_t *perfmon_parent);
     void construct_branch_history_managers(bool create);
 
+    order_source_t cache_order_source;  // order_token_t::ignore?
     scoped_ptr_t<standard_serializer_t> serializer;
     scoped_ptr_t<cache_t> cache;
     mirrored_cache_config_t cache_dynamic_config;

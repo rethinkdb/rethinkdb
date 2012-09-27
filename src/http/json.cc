@@ -20,8 +20,8 @@ http_res_t http_json_res(cJSON *json) {
 }
 
 cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
-    rassert(lhs->type == cJSON_Object);
-    rassert(rhs->type == cJSON_Object);
+    guarantee(lhs->type == cJSON_Object);
+    guarantee(rhs->type == cJSON_Object);
     cJSON *obj = cJSON_DeepCopy(lhs);
 
     for (int i = 0; i < cJSON_GetArraySize(rhs); ++i) {
@@ -30,6 +30,44 @@ cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
         cJSON_AddItemToObject(obj, item->string, cJSON_DeepCopy(item));
     }
     return obj;
+}
+
+std::string cJSON_print_lexicographic(const cJSON *json) {
+    std::string acc;
+    guarantee(json->type == cJSON_Number || json->type == cJSON_String);
+    if (json->type == cJSON_Number) {
+        acc += "N";
+
+        union {
+            double d;
+            int64_t u;
+        } packed;
+        rassert(sizeof(packed.d) == sizeof(packed.u));
+        packed.d = json->valuedouble;
+
+        // Mangle the value so that lexicographic ordering matches double ordering
+        if (packed.u & (1UL << 63)) {
+            // If we have a negative double, flip all the bits.  Flipping the
+            // highest bit causes the negative doubles to sort below the
+            // positive doubles (which will also have their highest bit
+            // flipped), and flipping all the other bits causes more negative
+            // doubles to sort below less negative doubles.
+            packed.u = ~packed.u;
+        } else {
+            // If we have a non-negative double, flip the highest bit so that it
+            // sorts higher than all the negative doubles (which had their
+            // highest bit flipped as well).
+            packed.u ^= (1UL << 63);
+        }
+
+        acc += strprintf("%.*lx", static_cast<int>(sizeof(double)*2), packed.u);
+        acc += strprintf("#%.20g", json->valuedouble);
+    } else {
+        guarantee(json->type == cJSON_String);
+        acc += "S";
+        acc += json->valuestring;
+    }
+    return acc;
 }
 
 scoped_cJSON_t::scoped_cJSON_t(cJSON *_val)
@@ -42,22 +80,14 @@ scoped_cJSON_t::~scoped_cJSON_t() {
     }
 }
 
-std::string cJSON_Print_std(cJSON *json) {
-    char *s = cJSON_Print(json);
-    rassert(s);
-    std::string res(s);
-    free(s);
-    return res;
-}
-
 /* Render a cJSON entity to text for transfer/storage. */
 std::string scoped_cJSON_t::Print() const THROWS_NOTHING {
-    return cJSON_Print_std(val);
+    return cJSON_print_std_string(val);
 }
 /* Render a cJSON entity to text for transfer/storage without any formatting. */
 std::string scoped_cJSON_t::PrintUnformatted() const THROWS_NOTHING {
     char *s = cJSON_PrintUnformatted(val);
-    rassert(s);
+    guarantee(s);
     std::string res(s);
     free(s);
 
@@ -65,23 +95,7 @@ std::string scoped_cJSON_t::PrintUnformatted() const THROWS_NOTHING {
 }
 
 std::string scoped_cJSON_t::PrintLexicographic() const THROWS_NOTHING {
-    std::string acc;
-    rassert(type() == cJSON_Number || type() == cJSON_String);
-    if (type() == cJSON_Number) {
-        acc += "N";
-
-        union {double d; int64_t u;} packed;
-        rassert(sizeof(packed.d) == sizeof(packed.u));
-        rassert((void *)&packed.d == (void *)&packed.u);
-        packed.d = val->valuedouble;
-        acc += strprintf("%.*lx", (int)(sizeof(double)*2), packed.u);
-        return acc;
-    } else {
-        rassert(type() == cJSON_String);
-        acc += "S";
-        acc += val->valuestring;
-    }
-    return acc;
+    return cJSON_print_lexicographic(val);
 }
 
 cJSON *scoped_cJSON_t::get() const {
@@ -101,22 +115,6 @@ void scoped_cJSON_t::reset(cJSON *v) {
     val = v;
 }
 
-copyable_cJSON_t::copyable_cJSON_t(cJSON *_val)
-    : val(_val)
-{ }
-
-copyable_cJSON_t::copyable_cJSON_t(const copyable_cJSON_t &other)
-    : val(cJSON_DeepCopy(other.val))
-{ }
-
-copyable_cJSON_t::~copyable_cJSON_t() {
-    cJSON_Delete(val);
-}
-
-cJSON *copyable_cJSON_t::get() const {
-    return val;
-}
-
 json_iterator_t::json_iterator_t(cJSON *target) {
     node = target->child;
 }
@@ -132,21 +130,21 @@ cJSON *json_iterator_t::next() {
 json_object_iterator_t::json_object_iterator_t(cJSON *target)
     : json_iterator_t(target)
 {
-    rassert(target);
-    rassert(target->type == cJSON_Object);
+    guarantee(target);
+    guarantee(target->type == cJSON_Object);
 }
 
 json_array_iterator_t::json_array_iterator_t(cJSON *target)
     : json_iterator_t(target)
 {
-    rassert(target);
-    rassert(target->type == cJSON_Array);
+    guarantee(target);
+    guarantee(target->type == cJSON_Array);
 }
 
 std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING {
-    rassert(json);
+    guarantee(json);
     char *s = cJSON_Print(json);
-    rassert(s);
+    guarantee(s);
     std::string res(s);
     free(s);
 
@@ -154,9 +152,9 @@ std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING {
 }
 
 std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING {
-    rassert(json);
+    guarantee(json);
     char *s = cJSON_PrintUnformatted(json);
-    rassert(s);
+    guarantee(s);
     std::string res(s);
     free(s);
 
@@ -164,15 +162,15 @@ std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING {
 }
 
 void project(cJSON *json, std::set<std::string> keys) {
-    rassert(json);
-    rassert(json->type == cJSON_Object);
+    guarantee(json);
+    guarantee(json->type == cJSON_Object);
 
     json_object_iterator_t it(json);
 
     std::vector<std::string> keys_to_delete;
 
     while (cJSON *node = it.next()) {
-        rassert(node->string);
+        guarantee(node->string);
         std::string str(node->string);
         if (!std_contains(keys, str)) {
             keys_to_delete.push_back(str);
@@ -192,7 +190,7 @@ cJSON *merge(cJSON *x, cJSON *y) {
     cJSON *hd;
 
     while ((hd = xit.next())) {
-        rassert(hd->string);
+        guarantee(hd->string);
         keys.insert(hd->string);
     }
 
@@ -205,13 +203,14 @@ cJSON *merge(cJSON *x, cJSON *y) {
     keys.clear();
 
     while ((hd = yit.next())) {
-        rassert(hd->string);
+        guarantee(hd->string);
         keys.insert(hd->string);
     }
 
     for (std::set<std::string>::iterator it = keys.begin();
                                          it != keys.end();
                                          ++it) {
+        // TODO: Make this a guarantee, or have a new cJSON_AddItemToObject implementation that checks this.
         rassert(!cJSON_GetObjectItem(res, it->c_str()), "Overlapping names in merge, name was: %s\n", it->c_str());
         cJSON_AddItemToObject(res, it->c_str(), cJSON_DetachItemFromObject(y, it->c_str()));
     }
@@ -245,29 +244,25 @@ write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
     case cJSON_Number:
         msg << cjson.valuedouble;
         break;
-    case cJSON_String:
-        {
-            rassert(cjson.valuestring);
-            std::string s(cjson.valuestring);
-            msg << s;
-        }
-        break;
+    case cJSON_String: {
+        guarantee(cjson.valuestring);
+        std::string s(cjson.valuestring);
+        msg << s;
+    } break;
     case cJSON_Array:
-    case cJSON_Object:
-        {
-            msg << cJSON_GetArraySize(&cjson);
+    case cJSON_Object: {
+        msg << cJSON_GetArraySize(&cjson);
 
-            cJSON *hd = cjson.child;
-            while (hd) {
-                if (cjson.type == cJSON_Object) {
-                    rassert(hd->string);
-                    msg << std::string(hd->string);
-                }
-                msg << *hd;
-                hd = hd->next;
+        cJSON *hd = cjson.child;
+        while (hd) {
+            if (cjson.type == cJSON_Object) {
+                guarantee(hd->string);
+                msg << std::string(hd->string);
             }
+            msg << *hd;
+            hd = hd->next;
         }
-        break;
+    } break;
     default:
         crash("Unreachable");
         break;

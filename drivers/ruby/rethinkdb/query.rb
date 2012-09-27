@@ -6,12 +6,17 @@ module RethinkDB
   class RQL_Query
     # Run the invoking query using the most recently opened connection.  See
     # Connection#run for more details.
-    def run
-      Connection.last.send(:run, self)
+    def run(*args)
+      Connection.last.send(:run, self, *args)
     end
 
-    def initialize(init_body) # :nodoc:
-      @body = init_body
+    def set_body(val, context=nil) # :nodoc:
+      @context = context || caller
+      @body = val
+    end
+
+    def initialize(init_body, context=nil) # :nodoc:
+      set_body(init_body, context)
     end
 
     def ==(rhs) # :nodoc:
@@ -27,24 +32,59 @@ module RethinkDB
     # Return the S-expression representation of a query.  Used for
     # equality comparison and advanced debugging.
     def sexp
-      clean_lst @body
+      S.clean_lst @body
     end
-    def body # :nodoc:
-      @body
-    end
-    def clean_lst lst # :nodoc:
-      if    lst.kind_of? RQL_Query     then lst.sexp
-      elsif lst.class == Array         then lst.map{|z| clean_lst(z)}
-      else                                  lst
-      end
-    end
+    attr_accessor :body, :marked, :context
 
     # Compile into either a protobuf class or a query.
     def as _class # :nodoc:
       RQL_Protob.comp(_class, sexp)
     end
-    def query # :nodoc:
-      RQL_Protob.query sexp
+    def query(map={S.conn_outdated => false}) # :nodoc:
+      RQL_Protob.query(S.replace(sexp, map))
+    end
+
+    def print_backtrace(bt) # :nodoc:
+      #PP.pp [bt, bt.map{|x| B.expand x}.flatten, sexp]
+      begin
+        B.with_marked_error(self, bt) {
+          query = "Query: #{inspect}\n       #{B.with_highlight {inspect}}"
+          line = "Line: #{B.line || "Unknown"}"
+          line + "\n" + query
+        }
+      rescue Exception => e
+        PP.pp [bt, e] if $DEBUG
+        "<Internal error in query pretty printer.>"
+      end
+    end
+
+    def pprint # :nodoc:
+      return @body.inspect if @body.class != Array
+      return "" if @body == []
+      case @body[0]
+      when :call then
+        if @body[2].length == 1
+          @body[2][0].inspect + "." + RQL_Query.new(@body[1],@context).inspect
+        else
+          func = @body[1][0].to_s
+          func_args = @body[1][1..-1].map{|x| x.inspect}
+          call_args = @body[2].map{|x| x.inspect}
+          func + "(" + (func_args + call_args).join(", ") + ")"
+        end
+      else
+        func = @body[0].to_s
+        func_args = @body[1..-1].map{|x| x.inspect}
+        func + "(" + func_args.join(", ") + ")"
+      end
+    end
+
+    def real_inspect(args) # :nodoc:
+      str = args[:str] || pprint
+      (B.highlight and @marked) ? "\000"*str.length : str
+    end
+
+    def inspect # :nodoc:
+      real_inspect({})
     end
 
     # Dereference aliases (see utils.rb) and possibly dispatch to RQL

@@ -1,4 +1,4 @@
-# Extend Backbone View 
+# Extend Backbone View
 Backbone.View.prototype.destroy = ->
     return
 
@@ -48,10 +48,18 @@ class BackboneCluster extends Backbone.Router
 
     render_sidebar: -> @$sidebar.html @sidebar.render().el
     render_navbar: -> $('#navbar-container').html @navbar.render().el
-    render_walkthrough_popup: -> $('.walkthrough-popup').html (new Walkthrough).render().el
+    render_walkthrough_popup: ->
+        # TODO: add this back when we're ready to do it
+        # $('.walkthrough-popup').html (new Walkthrough).render().el
+
+    set_stats_call: (url) =>
+        clearTimeout stats_param.timeout
+        if url isnt ''
+            stats_param.url = url
+            collect_stat_data()
 
     index_namespaces: (data) ->
-        log_router '/index_namespaces'
+        @set_stats_call ''
         clear_modals()
         @current_view.destroy()
         @current_view = new NamespaceView.DatabaseList
@@ -62,7 +70,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     index_servers: (data) ->
-        log_router '/index_servers'
+        @set_stats_call ''
         clear_modals()
         @current_view.destroy()
         @current_view = new ServerView.DatacenterList
@@ -73,7 +81,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     dashboard: ->
-        log_router '/dashboard'
+        @set_stats_call '/ajax/stat?filter=.*/serializers,proc,sys'
         clear_modals()
         @current_view.destroy()
         @current_view = new DashboardView.Container
@@ -81,6 +89,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     resolve_issues: ->
+        @set_stats_call ''
         log_router '/resolve_issues'
         clear_modals()
         @current_view.destroy()
@@ -89,6 +98,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     logs: ->
+        @set_stats_call ''
         log_router '/logs'
         clear_modals()
         @current_view.destroy()
@@ -97,6 +107,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     dataexplorer: ->
+        @set_stats_call ''
         log_router '/dataexplorer'
         clear_modals()
         @current_view.destroy()
@@ -107,10 +118,12 @@ class BackboneCluster extends Backbone.Router
         #@sidebar.set_type_view('dataexplorer')
 
     database: (id, tab) ->
+        #TODO We can make it better
+        @set_stats_call '/ajax/stat?filter=.*/serializers'
         log_router '/databases/' + id
         clear_modals()
         database = databases.get(id)
-        
+
         @current_view.destroy()
         if database? then @current_view = new DatabaseView.Container model: database
         else @current_view = new DatabaseView.NotFound id
@@ -123,10 +136,11 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     namespace: (id, tab) ->
+        @set_stats_call '/ajax/stat?filter='+id+'/serializers'
         log_router '/namespaces/' + id
         clear_modals()
         namespace = namespaces.get(id)
-        
+
         @current_view.destroy()
         if namespace?
             @current_view = new NamespaceView.Container model:namespace
@@ -137,18 +151,18 @@ class BackboneCluster extends Backbone.Router
             @$container.html @current_view.render(tab).el
         else
             @$container.html @current_view.render().el
-        
+
         if namespace?
-            @current_view.overview.render_data_repartition()
-            @current_view.overview.render_data_in_memory()
+            @current_view.shards.render_data_repartition()
 
         @sidebar.set_type_view()
 
     datacenter: (id, tab) ->
+        @set_stats_call '/ajax/stat?filter=.*/serializers,proc,sys'
         log_router '/datacenters/' + id
         clear_modals()
         datacenter = datacenters.get(id)
-        
+
         @current_view.destroy()
         if datacenter?
             @current_view = new DatacenterView.Container model: datacenter
@@ -167,6 +181,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view()
 
     server: (id, tab) ->
+        @set_stats_call '/ajax/stat?machine_whitelist='+id+'&filter=.*/serializers,proc,sys'
         log_router '/servers/' + id
         clear_modals()
         machine = machines.get(id)
@@ -176,7 +191,7 @@ class BackboneCluster extends Backbone.Router
             @current_view = new MachineView.Container model: machine
         else
             @current_view = new MachineView.NotFound id
-        
+
         if tab?
             @$container.html @current_view.render(tab).el
         else

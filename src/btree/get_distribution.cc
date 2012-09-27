@@ -6,7 +6,7 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "btree/internal_node.hpp"
 
-class get_distribution_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
+class get_distribution_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_debug_only_t {
 public:
     get_distribution_traversal_helper_t(int _depth_limit, std::vector<store_key_t> *_keys)
         : depth_limit(_depth_limit), key_count(0), keys(_keys)
@@ -83,7 +83,7 @@ public:
 
 void get_btree_key_distribution(btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, int depth_limit, int *key_count_out, std::vector<store_key_t> *keys_out) {
     get_distribution_traversal_helper_t helper(depth_limit, keys_out);
-    rassert(keys_out->empty(), "Why is this output paremeter not an empty vector\n");
+    rassert(keys_out->empty(), "Why is this output parameter not an empty vector\n");
 
     cond_t non_interruptor;
     btree_parallel_traversal(txn, superblock, slice, &helper, &non_interruptor);

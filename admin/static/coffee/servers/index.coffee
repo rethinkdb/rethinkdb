@@ -25,7 +25,7 @@ module 'ServerView', ->
             @add_datacenter_dialog = new ServerView.AddDatacenterModal
             @set_datacenter_dialog = new ServerView.SetDatacenterModal
 
-            @unassigned_machines = new ServerView.UnassignedMachinesListElement()
+            @unassigned_machines = new ServerView.UnassignedMachinesListElement
             @unassigned_machines.register_machine_callbacks @get_callbacks()
 
             super datacenters, ServerView.DatacenterListElement, 'div.datacenters'
@@ -234,7 +234,7 @@ module 'ServerView', ->
             json.namespace_count = _.uniq(_namespaces).length
 
             if not @model.get('datacenter_uuid')?
-                json.unassigned_machine = true
+                json.nassigned_machine = true
 
             return json
 
@@ -359,10 +359,10 @@ module 'ServerView', ->
         initialize: ->
             super
 
-            @machine_list = new ServerView.MachineList null
+            @machine_list = new ServerView.MachineList universe_datacenter.get('id')
             @no_machines = true
 
-            machines.on 'add', (machine) => @render() if machine.get('datacenter_uuid') is null
+            machines.on 'add', (machine) => @render() if machine.get('datacenter_uuid') is universe_datacenter.get('id')
             @machine_list.on 'size_changed', @ml_size_changed
             @ml_size_changed()
 
@@ -398,7 +398,7 @@ module 'ServerView', ->
             @machine_list.register_machine_callbacks callbacks
 
         destroy: =>
-            machines.off 'add', (machine) => @render() if machine.get('datacenter_uuid') is null
+            machines.off 'add', (machine) => @render() if machine.get('datacenter_uuid') is universe_datacenter.get('id')
             @machine_list.off 'size_changed', @ml_size_changed
 
     class @AddDatacenterModal extends UIComponents.AbstractModal

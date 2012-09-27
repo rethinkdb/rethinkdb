@@ -32,7 +32,8 @@ void http_req_t::resource_t::assign(const std::string &_val) {
 }
 
 void http_req_t::resource_t::assign(const char * _val, size_t size) {
-    rassert(size > 0 && _val[0] == resource_parts_sep_char[0], "resource path must start with a '/'");
+    // TODO: Do we actually prevent clients from getting a bad resource path up to here?
+    guarantee(size > 0 && _val[0] == resource_parts_sep_char[0], "resource path must start with a '/'");
     val.reset(new char[size]);
     memcpy(val.get(), _val, size);
     val_size = size;
@@ -57,7 +58,7 @@ std::string http_req_t::resource_t::as_string(const http_req_t::resource_t::iter
     } else {
         // -1 for the '/' before the token start
         const char* sub_resource = token_start_position(it) - 1;
-        rassert(sub_resource >= val.get() && sub_resource < val.get() + val_size);
+        guarantee(sub_resource >= val.get() && sub_resource < val.get() + val_size);
 
         size_t sub_resource_len = val_size - (sub_resource - val.get());
         return std::string(sub_resource, sub_resource_len);
@@ -158,10 +159,10 @@ void http_res_t::add_header_line(const std::string& key, const std::string& val)
 
 void http_res_t::set_body(const std::string& content_type, const std::string& content) {
     for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); it++) {
-        rassert(it->key != "Content-Type");
-        rassert(it->key != "Content-Length");
+        guarantee(it->key != "Content-Type");
+        guarantee(it->key != "Content-Length");
     }
-    rassert(body.size() == 0);
+    guarantee(body.size() == 0);
 
     add_header_line("Content-Type", content_type);
 
@@ -284,7 +285,7 @@ std::string human_readable_status(int code) {
     case 505:
         return "HTTP Version Not Supported";
     default:
-        rassert(false, "Unknown code %d.", code);
+        guarantee(false, "Unknown code %d.", code);
         return "(Unknown status code)";
     }
 }
@@ -298,9 +299,9 @@ void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) T
     conn->write(res.body.c_str(), res.body.size(), closer);
 }
 
-void http_server_t::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t keepalive) {
+void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t keepalive) {
     scoped_ptr_t<tcp_conn_t> conn;
-    nconn->ennervate(&conn);
+    nconn->make_overcomplicated(&conn);
 
     http_req_t req;
     tcp_http_msg_parser_t http_msg_parser;
@@ -504,7 +505,9 @@ std::string percent_escaped_string(const std::string &s) {
     return res;
 }
 
-std::string percent_unescaped_string(const std::string &s) THROWS_ONLY(std::runtime_error) {
+bool percent_unescape_string(const std::string &s, std::string *out) {
+    rassert(out->empty());
+
     std::string res;
     for (std::string::const_iterator it  = s.begin();
                                      it != s.end();
@@ -513,31 +516,32 @@ std::string percent_unescaped_string(const std::string &s) THROWS_ONLY(std::runt
             //read an escaped character
             it++;
             if (it == s.end()) {
-                throw std::runtime_error("Bad escape sequence % with nothing after it.");
+                return false;
             }
             int digit1;
             if (!hex_to_int(*it, &digit1)) {
-                throw std::runtime_error("Bad hex char.");
+                return false;
             }
 
             it++;
             if (it == s.end()) {
-                throw std::runtime_error("Bad escaped sequence % with only one digit after it.");
+                return false;
             }
             int digit2;
             if (!hex_to_int(*it, &digit2)) {
-                throw std::runtime_error("Bad hex char.");
+                return false;
             }
 
             res.push_back((digit1 << 4) + digit2);
         } else {
             if (!is_safe(*it)) {
-                throw std::runtime_error("Unsafe character in string.");
+                return false;
             }
 
             res.push_back(*it);
         }
     }
 
-    return res;
+    *out = res;
+    return true;
 }

@@ -1,62 +1,75 @@
 <script id="namespace_view-replica-template" type="text/x-handlebars-template">
-  <h3 class="title">Replication settings</h3>
-  <table class="datacenters table">
-    <!-- Header row -->
-    <tr>
-      <th>Datacenter</th>
-      <th>Role</th>
-      <th>Replicas</th>
-      <th>Write acks</th>
-      <th>Status</th>
-      <th>&nbsp;</th>
-    </tr>
-    <!-- Primary datacenter -->
-    {{#with primary}}
-    <tr>
-      <td>{{name}}</td>
-      <td>Primary</td>
-      <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "server" total_machines}})</td>
-      <td>{{acks}}</td>
-      <td>
-        {{#if status}}
-        {{#with status}}
-        <span class="master-status">{{nashards}} of {{nshards}} masters live</span>
-        {{#if nreplicas}}
-        <span class="replica-status">{{nareplicas}} of {{nreplicas}} replicas live</span>
-        {{/if}}
-        <span class="replication-status">{{> backfill_progress_summary}}</span>
+    <h3 class="title">Replication settings</h3>
+    <table class="datacenters table">
+        <tr>
+            <th>Datacenter</th>
+            <th>Role</th>
+            <th>Replicas</th>
+            <th>Write acks</th>
+            <th>Status</th>
+            <th>&nbsp;</th>
+        </tr>
+
+        {{#with primary}}
+        <tr>
+            <td>{{name}}</td>
+            <td>Primary</td>
+            <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "server" total_machines}})</td>
+            <td>{{acks}}</td>
+            <td>
+                {{#if status}}
+                {{#with status}}
+                <span class="master-status">{{nashards}} of {{nshards}} masters live</span>
+                {{#if nreplicas}}
+                <span class="replica-status">{{nareplicas}} of {{nreplicas}} replicas live</span>
+                {{/if}}
+                <span class="replication-status">{{> backfill_progress_summary}}</span>
+                {{/with}}
+                {{/if}}
+            </td>
+            <td>
+                {{#unless is_universe}}
+                <a class="edit_replicas" href="#" data-id="{{id}}">Edit replicas</a>
+                {{/unless}}
+            </td>
+        </tr>
         {{/with}}
-        {{/if}}
-      </td>
-      <td><a id="edit-primary" href="#">Edit replicas</a></td>
-    </tr>
-    {{/with}}
-    <!-- Secondary datacenters -->
-    {{#each secondaries}}
-    <tr>
-      <td>{{name}}</td>
-      <td>Secondary</td>
-      <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "server" total_machines}})</td>
-      <td>{{acks}}</td>
-      <td>
-        {{#with status}}
-        <span class="replica-status">{{nareplicas}} of {{nreplicas}} replicas live</span>
-        <span class="replication-status">{{> backfill_progress_summary}}</span>
-        {{/with}}
-      </td>
-      <td><a class="edit-secondary {{this.id}}" href="#">Edit replicas</a> | <a class="make-primary {{this.id}}" href="#">Make primary</a></td>
-    </tr>
-    {{/each}}
-    <!-- Rest of the datacenters (ones we're not replicating to) -->
-    {{#each nothings}}
-    <tr>
-      <td>{{name}}</td>
-      <td>None</td>
-      <td colspan="3">N/A</td>
-      <td><a class="edit-nothing {{this.id}}" href="#">Edit replicas</a></td>
-    </tr>
-    {{/each}}
-  </table>
+
+        {{#each secondaries}}
+        <tr>
+            <td>{{name}}</td>
+            <td>Secondary</td>
+            <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "server" total_machines}})</td>
+            <td>{{acks}}</td>
+            <td>    
+                {{#with status}}
+                <span class="replica-status">{{nareplicas}} of {{nreplicas}} replicas live</span>
+                <span class="replication-status">{{> backfill_progress_summary}}</span>
+                {{/with}}
+            </td>
+            <td>
+                {{#unless is_universe}}
+                <a class="edit_replicas" href="#" data-id="{{id}}">Edit replicas</a> |
+                {{/unless}}
+                <a class="make_primary" href="#" data-id="{{id}}">Make primary</a>
+            </td>
+
+        </tr>
+        {{/each}}
+
+        {{#each nothings}}
+        <tr>
+            <td>{{name}}</td>
+            <td>None</td>
+            <td colspan="3">N/A</td>
+            <td>
+                {{#unless is_universe}}
+                <a class="edit_replicas" href="#" data-id="{{id}}">Edit replicas</a>
+                {{/unless}}
+            </td>
+        </tr>
+        {{/each}}
+    </table>
 </script>
 
 <script id="changed_primary_dc-replica-template" type="text/x-handlebars-template">

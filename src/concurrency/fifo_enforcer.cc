@@ -161,27 +161,31 @@ fifo_enforcer_sink_t::~fifo_enforcer_sink_t() THROWS_NOTHING {
 }
 
 void fifo_enforcer_sink_t::internal_pump() THROWS_NOTHING {
-    bool cont;
-    do {
-        while (!internal_read_queue.empty() &&
-                internal_read_queue.peek()->get_token().timestamp == finished_state.timestamp) {
-            internal_exit_read_t *read = internal_read_queue.peek();
-            popped_state.advance_by_read(read->get_token());
-            read->on_reached_head_of_queue();
-        }
+    ASSERT_FINITE_CORO_WAITING;
+    if (in_pump) {
+        pump_should_keep_going = true;
+    } else {
+        in_pump = true;
+        do {
+            pump_should_keep_going = false;
 
-        if (!internal_write_queue.empty() &&
-                internal_write_queue.peek()->get_token().timestamp.timestamp_before() == finished_state.timestamp &&
-                internal_write_queue.peek()->get_token().num_preceding_reads == finished_state.num_reads) {
-            cont = true;
-            internal_exit_write_t *write = internal_write_queue.peek();
-            popped_state.advance_by_write(write->get_token());
-            write->on_reached_head_of_queue();
-        } else {
-            cont = false;
-        }
+            while (!internal_read_queue.empty() &&
+                    internal_read_queue.peek()->get_token().timestamp == finished_state.timestamp) {
+                internal_exit_read_t *read = internal_read_queue.peek();
+                popped_state.advance_by_read(read->get_token());
+                read->on_reached_head_of_queue();
+            }
 
-    } while (cont);
+            if (!internal_write_queue.empty() &&
+                    internal_write_queue.peek()->get_token().timestamp.timestamp_before() == finished_state.timestamp &&
+                    internal_write_queue.peek()->get_token().num_preceding_reads == finished_state.num_reads) {
+                internal_exit_write_t *write = internal_write_queue.peek();
+                popped_state.advance_by_write(write->get_token());
+                write->on_reached_head_of_queue();
+            }
+        } while (pump_should_keep_going);
+        in_pump = false;
+    }
 }
 
 void fifo_enforcer_sink_t::internal_finish_a_reader(fifo_enforcer_read_token_t token) THROWS_NOTHING {

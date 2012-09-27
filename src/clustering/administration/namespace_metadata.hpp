@@ -13,6 +13,7 @@
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/administration/persistable_blueprint.hpp"
+#include "clustering/generic/nonoverlapping_regions.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/reactor_json_adapters.hpp"
@@ -30,6 +31,7 @@
 
 typedef uuid_t namespace_id_t;
 
+
 /* This is the metadata for a single namespace of a specific protocol. */
 
 /* If you change this data structure, you must also update
@@ -38,19 +40,24 @@ typedef uuid_t namespace_id_t;
 template<class protocol_t>
 class namespace_semilattice_metadata_t {
 public:
+    namespace_semilattice_metadata_t()
+        : cache_size(GIGABYTE)
+    { }
+
     vclock_t<persistable_blueprint_t<protocol_t> > blueprint;
     vclock_t<datacenter_id_t> primary_datacenter;
     vclock_t<std::map<datacenter_id_t, int> > replica_affinities;
     vclock_t<std::map<datacenter_id_t, int> > ack_expectations;
-    vclock_t<std::set<typename protocol_t::region_t> > shards;
+    vclock_t<nonoverlapping_regions_t<protocol_t> > shards;
     vclock_t<std::string> name;
     vclock_t<int> port;
     vclock_t<region_map_t<protocol_t, machine_id_t> > primary_pinnings;
     vclock_t<region_map_t<protocol_t, std::set<machine_id_t> > > secondary_pinnings;
     vclock_t<std::string> primary_key; //TODO this should actually never be changed...
     vclock_t<database_id_t> database;
+    vclock_t<int64_t> cache_size;
 
-    RDB_MAKE_ME_SERIALIZABLE_11(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
+    RDB_MAKE_ME_SERIALIZABLE_12(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
 };
 
 
@@ -63,10 +70,38 @@ private:
     machine_id_t machine;
 };
 
+template <class protocol_t>
+void debug_print(append_only_printf_buffer_t *buf, const namespace_semilattice_metadata_t<protocol_t> &m) {
+    buf->appendf("ns_sl_metadata{blueprint=");
+    debug_print(buf, m.blueprint);
+    buf->appendf(", primary_datacenter=");
+    debug_print(buf, m.primary_datacenter);
+    buf->appendf(", replica_affinities=");
+    debug_print(buf, m.replica_affinities);
+    buf->appendf(", ack_expectations=");
+    debug_print(buf, m.ack_expectations);
+    buf->appendf(", shards=");
+    debug_print(buf, m.shards);
+    buf->appendf(", name=");
+    debug_print(buf, m.name);
+    buf->appendf(", port=");
+    debug_print(buf, m.port);
+    buf->appendf(", primary_pinnings=");
+    debug_print(buf, m.primary_pinnings);
+    buf->appendf(", secondary_pinnings=");
+    debug_print(buf, m.secondary_pinnings);
+    buf->appendf(", primary_key=");
+    debug_print(buf, m.primary_key);
+    buf->appendf(", database=");
+    debug_print(buf, m.database);
+    buf->appendf("}");
+}
+
 template<class protocol_t>
 namespace_semilattice_metadata_t<protocol_t> new_namespace(
     uuid_t machine, uuid_t database, uuid_t datacenter,
-    const std::string &name, const std::string &key, int port) {
+    const std::string &name, const std::string &key, int port,
+    int64_t cache_size) {
 
     vclock_builder_t vc(machine);
     namespace_semilattice_metadata_t<protocol_t> ns;
@@ -76,16 +111,13 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
     ns.primary_key        = vc.build(key);
     ns.port               = vc.build(port);
 
-    std::map<uuid_t, int> affinities;
-    affinities.insert(std::make_pair(datacenter, 0));
-    ns.replica_affinities = vc.build(affinities);
-
     std::map<uuid_t, int> ack_expectations;
     ack_expectations.insert(std::make_pair(datacenter, 1));
     ns.ack_expectations = vc.build(ack_expectations);
 
-    std::set<typename protocol_t::region_t> shards;
-    shards.insert(protocol_t::region_t::universe());
+    nonoverlapping_regions_t<protocol_t> shards;
+    bool add_region_success = shards.add_region(protocol_t::region_t::universe());
+    guarantee(add_region_success);
     ns.shards = vc.build(shards);
 
     region_map_t<protocol_t, uuid_t> primary_pinnings(
@@ -96,14 +128,15 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
         protocol_t::region_t::universe(), std::set<machine_id_t>());
     ns.secondary_pinnings = vc.build(secondary_pinnings);
 
+    ns.cache_size = vc.build(cache_size);
     return ns;
 }
 
 template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_11(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
+RDB_MAKE_SEMILATTICE_JOINABLE_12(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
 
 template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_11(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
+RDB_MAKE_EQUALITY_COMPARABLE_12(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
 
 //json adapter concept for namespace_semilattice_metadata_t
 template <class protocol_t>

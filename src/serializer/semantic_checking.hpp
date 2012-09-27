@@ -84,6 +84,8 @@ public:
 
     block_size_t get_block_size();
 
+    bool coop_lock_and_check();
+
     block_id_t max_block_id();
 
     repli_timestamp_t get_recency(block_id_t id);

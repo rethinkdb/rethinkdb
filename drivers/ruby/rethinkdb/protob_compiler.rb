@@ -40,14 +40,14 @@ module RethinkDB
       #   * Empty arguments
       return args.map {|arg| comp(message_class, arg)} if repeating
       args = args[0] if args.class == Array and args[0].class == Hash
-      raise TypeError,"Cannot construct #{message_class} from #{args}." if args == []
+      raise TypeError,"Can't build #{message_class} from #{args.inspect}." if args == []
 
       # Handle terminal parts of the protobuf, where we have to actually pack values.
       if message_class.kind_of? Symbol
         # It's easier for the user if we allow both atoms and 1-element lists
         args = [args] if args.class != Array
         if args.length != 1
-        then raise TypeError,"Cannot construct #{message_class} from #{args}." end
+        then raise TypeError,"Can't build #{message_class} from #{args.inspect}." end
         # Coercing symbols into strings makes our attribute notation more consistent
         args[0] = args[0].to_s if args[0].class == Symbol
         return args[0]
@@ -76,24 +76,20 @@ module RethinkDB
           message_set(message, query_type,
                       comp(field.type, query_args,field.rule==:repeated))
         end
-      # Both of the following cases handle cases where we aren't constructing a
-      # toplevel variant type.
-      elsif args.class == Hash
-        # Handle the case where we're constructing the fields by specifying
-        # names in a hash, e.g. if some are optional.
-        args_tmp = {}
-        args = args.each{|k,v| args_tmp[k] = (v == nil ? RQL.expr(v) : v)}
-        args = args_tmp
-        message.fields.each {|_field|; field = _field[1]; arg = args[field.name]
-          message_set(message, field.name,
-                      comp(field.type, arg, field.rule==:repeated)) if arg != nil
-        }
+      # Handle cases where we aren't constructing a toplevel variant type.
       elsif args.class == Array
         # Handle the case where we're constructinga the fields in order.
         args = args.map{|x| x == nil ? RQL.expr(x) : x}
-        message.fields.zip(args).each {|_params|;field = _params[0][1];arg = _params[1]
-          message_set(message, field.name,
-                      comp(field.type, arg, field.rule==:repeated)) if arg != nil
+        fields = message.fields.sort_by {|kv| kv[0]}
+        fields.zip(args).each {|_params|;field = _params[0][1];arg = _params[1]
+          if arg == S.skip
+            if field.rule != :optional
+              raise RuntimeError, "Cannot skip non-optional rule."
+            end
+          else
+            message_set(message, field.name,
+                        comp(field.type, arg, field.rule==:repeated)) if arg != nil
+          end
         }
       else
         # Handle the case where the user provided neither an Array nor a Hash,

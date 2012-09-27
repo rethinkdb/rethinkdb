@@ -7,17 +7,19 @@
 #include "rpc/connectivity/connectivity.hpp"
 
 message_multiplexer_t::run_t::run_t(message_multiplexer_t *p) : parent(p) {
-    rassert(parent->run == NULL);
+    guarantee(parent->run == NULL);
     parent->run = this;
+#ifndef NDEBUG
     for (int i = 0; i < max_tag; i++) {
         if (parent->clients[i]) {
             rassert(parent->clients[i]->run);
         }
     }
+#endif  // NDEBUG
 }
 
 message_multiplexer_t::run_t::~run_t() {
-    rassert(parent->run == this);
+    guarantee(parent->run == this);
     parent->run = NULL;
 }
 
@@ -34,28 +36,28 @@ void message_multiplexer_t::run_t::on_message(peer_id_t source, read_stream_t *s
 message_multiplexer_t::client_t::run_t::run_t(client_t *c, message_handler_t *m) :
     parent(c), message_handler(m)
 {
-    rassert(parent->parent->run == NULL);
-    rassert(parent->run == NULL);
+    guarantee(parent->parent->run == NULL);
+    guarantee(parent->run == NULL);
     parent->run = this;
 }
 
 message_multiplexer_t::client_t::run_t::~run_t() {
-    rassert(parent->parent->run == NULL);
-    rassert(parent->run == this);
+    guarantee(parent->parent->run == NULL);
+    guarantee(parent->run == this);
     parent->run = NULL;
 }
 
 message_multiplexer_t::client_t::client_t(message_multiplexer_t *p, tag_t t) :
     parent(p), tag(t), run(NULL)
 {
-    rassert(parent->run == NULL);
-    rassert(parent->clients[tag] == NULL);
+    guarantee(parent->run == NULL);
+    guarantee(parent->clients[tag] == NULL);
     parent->clients[tag] = this;
 }
 
 message_multiplexer_t::client_t::~client_t() {
-    rassert(parent->run == NULL);
-    rassert(parent->clients[tag] == this);
+    guarantee(parent->run == NULL);
+    guarantee(parent->clients[tag] == this);
     parent->clients[tag] = NULL;
 }
 
@@ -63,17 +65,28 @@ connectivity_service_t *message_multiplexer_t::client_t::get_connectivity_servic
     return parent->message_service->get_connectivity_service();
 }
 
-void write_tagged_message(write_stream_t *os, message_multiplexer_t::tag_t tag, const boost::function<void(write_stream_t *)> &subwriter) {
-    write_message_t msg;
-    msg << tag;
-    int res = send_write_message(os, &msg);
-    if (res) { throw fake_archive_exc_t(); }
-    subwriter(os);
-}
+class tagged_message_writer_t : public send_message_write_callback_t {
+public:
+    tagged_message_writer_t(message_multiplexer_t::tag_t _tag, send_message_write_callback_t *_subwriter) :
+        tag(_tag), subwriter(_subwriter) { }
+    virtual ~tagged_message_writer_t() { }
 
-void message_multiplexer_t::client_t::send_message(peer_id_t dest, const boost::function<void(write_stream_t *)> &subwriter) {
-    parent->message_service->send_message(dest,
-                                          boost::bind(&write_tagged_message, _1, tag, boost::cref(subwriter)));
+    void write(write_stream_t *os) {
+        write_message_t msg;
+        msg << tag;
+        int res = send_write_message(os, &msg);
+        if (res) { throw fake_archive_exc_t(); }
+        subwriter->write(os);
+    }
+
+private:
+    message_multiplexer_t::tag_t tag;
+    send_message_write_callback_t *subwriter;
+};
+
+void message_multiplexer_t::client_t::send_message(peer_id_t dest, send_message_write_callback_t *callback) {
+    tagged_message_writer_t writer(tag, callback);
+    parent->message_service->send_message(dest, &writer);
 }
 
 message_multiplexer_t::message_multiplexer_t(message_service_t *super_ms) :
@@ -85,9 +98,9 @@ message_multiplexer_t::message_multiplexer_t(message_service_t *super_ms) :
 }
 
 message_multiplexer_t::~message_multiplexer_t() {
-    rassert(run == NULL);
+    guarantee(run == NULL);
     for (int i = 0; i < max_tag; i++) {
-        rassert(clients[i] == NULL);
+        guarantee(clients[i] == NULL);
     }
 }
 

@@ -123,6 +123,18 @@ void on_subfield_change(nothing_when_done_erasing_t<protocol_t> *);
 
 } //namespace reactor_business_card_details
 
+// json adapter for reactor_business_card_t::activity_entry_t
+template <class protocol_t>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(reactor_activity_entry_t<protocol_t> *target);
+
+template <class protocol_t>
+cJSON *render_as_json(reactor_activity_entry_t<protocol_t> *target);
+
+template <class protocol_t>
+void apply_json_to(cJSON *change, reactor_activity_entry_t<protocol_t> *target);
+
+template <class protocol_t>
+void on_subfield_change(reactor_activity_entry_t<protocol_t> *);
 
 //json adapter for reactor_business_card_t
 template <class protocol_t>
@@ -136,5 +148,8 @@ void apply_json_to(cJSON *, reactor_business_card_t<protocol_t> *);
 
 template <class protocol_t>
 void on_subfield_change(reactor_business_card_t<protocol_t> *);
+
+
+
 
 #endif /* CLUSTERING_REACTOR_REACTOR_JSON_ADAPTERS_HPP_ */
