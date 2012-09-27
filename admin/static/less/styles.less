@@ -147,8 +147,9 @@ body:before {
             padding-left: 10px;
             vertical-align: middle;
             text-shadow: @text_shadow;
+            margin-left: -2px;
 
-            @fancy_dividers: -1px 0 0 rgba(0, 0, 0, .30) inset, 1px 0 0 rgba(255, 255, 255, .05);
+            @fancy_dividers: -1px 0 0 rgba(0, 0, 0, .30), 1px 0 0 rgba(255, 255, 255, .05);
             -webkit-box-shadow: @fancy_dividers;
                -moz-box-shadow: @fancy_dividers;
                     box-shadow: @fancy_dividers;
@@ -173,7 +174,7 @@ body:before {
                 }
             }
             &.active {
-                background-image: url('https://dl.dropbox.com/s/x6om3yds5w83182/navbar-active.png');
+                background: #222;
                 a { color: white; }
             }
         }
