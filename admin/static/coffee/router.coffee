@@ -117,6 +117,7 @@ class BackboneCluster extends Backbone.Router
         @sidebar.set_type_view('dataexplorer')
 
     database: (id, tab) ->
+        #TODO We can make it better
         @set_stats_call '/ajax/stat?filter=.*/serializers'
         log_router '/databases/' + id
         clear_modals()
