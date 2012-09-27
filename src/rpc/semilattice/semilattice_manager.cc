@@ -11,6 +11,7 @@
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
+#include "concurrency/promise.hpp"
 #include "concurrency/wait_any.hpp"
 #include "logger.hpp"
 
