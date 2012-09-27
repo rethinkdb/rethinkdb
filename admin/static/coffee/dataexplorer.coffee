@@ -104,7 +104,7 @@ module 'DataExplorerView', ->
                 }
                 {
                     suggestion: 'distinct()'
-                    description: 'distinct( expression )'
+                    descriptior: 'distinct( expression )'
                     has_argument: true
                 }
                 {
@@ -781,12 +781,18 @@ module 'DataExplorerView', ->
                 line: Infinity
                 ch: Infinity
         connect: (data) =>
-            host = window.location.hostname
-            port = parseInt window.location.port
+            server =
+                host: window.location.hostname
+                port: parseInt window.location.port
+
             try
-                r.connect
-                    host: host
-                    port: port
+                that = @
+                r.connect server,
+                    -> return true,
+                    (err) ->
+                        that.$('.loading_query_img').css 'display', 'none'
+                        that.results_view.render_error(that.query, err)
+
                 if data? and data.reconnecting is true
                     @.$('#user-alert-space').html @alert_reconnection_success_template({})
             catch err
