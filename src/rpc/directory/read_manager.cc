@@ -230,7 +230,6 @@ void directory_read_manager_t<metadata_t>::interrupt_updates_and_free_session(se
     delete session;
 }
 
-// The <int> instantiation is used in some unit tests.
 template class directory_read_manager_t<int>;
 
 #include "clustering/administration/metadata.hpp"
