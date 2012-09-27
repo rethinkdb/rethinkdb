@@ -8,7 +8,8 @@
 #include "clustering/administration/issues/json.hpp"
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "rpc/semilattice/view.hpp"
+
+template <class metadata_t> class semilattice_read_view_t;
 
 class machine_down_issue_t : public global_issue_t {
 public:
@@ -77,6 +78,7 @@ public:
     machine_down_issue_tracker_t(
             boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view,
             const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table);
+    ~machine_down_issue_tracker_t();
 
     std::list<clone_ptr_t<global_issue_t> > get_issues();
 

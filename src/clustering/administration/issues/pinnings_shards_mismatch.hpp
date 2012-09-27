@@ -9,7 +9,8 @@
 #include "clustering/administration/issues/json.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "http/json.hpp"
-#include "rpc/semilattice/view.hpp"
+
+template <class> class semilattice_read_view_t;
 
 template <class protocol_t>
 class pinnings_shards_mismatch_issue_t : public global_issue_t {
@@ -38,9 +39,8 @@ private:
 template <class protocol_t>
 class pinnings_shards_mismatch_issue_tracker_t : public global_issue_tracker_t {
 public:
-    explicit pinnings_shards_mismatch_issue_tracker_t(
-            boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _semilattice_view) :
-        semilattice_view(_semilattice_view) { }
+    explicit pinnings_shards_mismatch_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _semilattice_view);
+    ~pinnings_shards_mismatch_issue_tracker_t();
 
     std::list<clone_ptr_t<global_issue_t> > get_issues();
 
