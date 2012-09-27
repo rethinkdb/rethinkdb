@@ -199,11 +199,14 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
             std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
 
             typename std::map<peer_id_t, metadata_t>::iterator var_it = map.find(peer);
-            guarantee(var_it != map.end());
+            if (var_it == map.end()) {
+                guarantee(!std_contains(sessions, peer));
+                //The session was deleted we can ignore this update.
+                return;
+            }
             var_it->second = new_value;
             variable.set_value(map);
         }
-
     } catch (interrupted_exc_t) {
         /* Here's what happened: `on_disconnect()` was called for the peer. It
         spawned `interrupt_updates_and_free_session()`, which deleted the
