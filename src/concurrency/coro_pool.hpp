@@ -19,28 +19,29 @@ public:
     virtual void coro_pool_callback(T, signal_t *) = 0;
 };
 
+template <class T>
+class boost_function_callback_t : public coro_pool_callback_t<T> {
+public:
+    explicit boost_function_callback_t(boost::function<void(T, signal_t *)> _f)
+        : f(_f)
+    { }
+    void coro_pool_callback(T t, signal_t *interruptor) {
+        f(t, interruptor);
+    }
+private:
+    boost::function<void(T, signal_t *)> f;
+
+    DISABLE_COPYING(boost_function_callback_t);
+};
 
 template <class T>
 class coro_pool_t : private availability_callback_t, public home_thread_mixin_t {
 public:
-    class boost_function_callback_t : public coro_pool_callback_t<T> {
-    public:
-        explicit boost_function_callback_t(boost::function<void(T, signal_t *)> _f)
-            : f(_f)
-        { }
-        void coro_pool_callback(T t, signal_t *interruptor) {
-            f(t, interruptor);
-        }
-    private:
-        boost::function<void(T, signal_t *)> f;
-    };
-
     coro_pool_t(size_t _worker_count, passive_producer_t<T> *_source, coro_pool_callback_t<T> *_callback)
         : max_worker_count(_worker_count),
           active_worker_count(0),
           source(_source),
-          callback(_callback)
-    {
+          callback(_callback) {
         rassert(max_worker_count > 0);
         on_source_availability_changed();   // Start process if necessary
         source->available->set_callback(this);
