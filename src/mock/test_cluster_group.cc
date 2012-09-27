@@ -29,14 +29,6 @@
 
 namespace mock {
 
-template<class protocol_t>
-class test_cluster_directory_t {
-public:
-    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > reactor_directory;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(reactor_directory);
-};
-
 
 void generate_sample_region(int i, int n, dummy_protocol_t::region_t *out) {
     *out = dummy_protocol_t::region_t('a' + ((i * 26)/n), 'a' + (((i + 1) * 26)/n) - 1);

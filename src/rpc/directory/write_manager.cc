@@ -2,6 +2,8 @@
 
 #include <set>
 
+#include "rpc/connectivity/messages.hpp"
+
 template<class metadata_t>
 directory_write_manager_t<metadata_t>::directory_write_manager_t(
         message_service_t *sub,
@@ -16,6 +18,9 @@ directory_write_manager_t<metadata_t>::directory_write_manager_t(
     value_subscription.reset(value_watchable, &value_freeze);
     connectivity_subscription.reset(message_service->get_connectivity_service(), &connectivity_freeze);
 }
+
+template<class metadata_t>
+directory_write_manager_t<metadata_t>::~directory_write_manager_t() { }
 
 template<class metadata_t>
 void directory_write_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOTHING {
@@ -102,3 +107,16 @@ void directory_write_manager_t<metadata_t>::send_update(peer_id_t peer, const me
     update_writer_t writer(new_value, metadata_fifo_token);
     message_service->send_message(peer, &writer);
 }
+
+
+template class directory_write_manager_t<int>;
+
+#include "clustering/administration/metadata.hpp"
+template class directory_write_manager_t<cluster_directory_metadata_t>;
+
+#include "mock/test_cluster_group.hpp"
+#include "mock/dummy_protocol.hpp"
+template class directory_write_manager_t<mock::test_cluster_directory_t<mock::dummy_protocol_t> >;
+
+#include "clustering/reactor/directory_echo.hpp"
+template class directory_write_manager_t<directory_echo_wrapper_t<std::string> >;

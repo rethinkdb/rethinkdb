@@ -1,9 +1,12 @@
 #ifndef RPC_DIRECTORY_WRITE_MANAGER_HPP_
 #define RPC_DIRECTORY_WRITE_MANAGER_HPP_
 
+#include "concurrency/auto_drainer.hpp"
+#include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
 #include "rpc/connectivity/connectivity.hpp"
-#include "rpc/connectivity/messages.hpp"
+
+class message_service_t;
 
 template<class metadata_t>
 class directory_write_manager_t : private peers_list_callback_t {
@@ -11,6 +14,7 @@ public:
     directory_write_manager_t(
         message_service_t *message_service,
         const clone_ptr_t<watchable_t<metadata_t> > &value) THROWS_NOTHING;
+    ~directory_write_manager_t();
 
 private:
     void on_connect(peer_id_t peer) THROWS_NOTHING;
@@ -30,7 +34,5 @@ private:
     typename watchable_t<metadata_t>::subscription_t value_subscription;
     connectivity_service_t::peers_list_subscription_t connectivity_subscription;
 };
-
-#include "rpc/directory/write_manager.tcc"
 
 #endif /* RPC_DIRECTORY_WRITE_MANAGER_HPP_ */
