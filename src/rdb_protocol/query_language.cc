@@ -11,6 +11,7 @@
 #include "http/json.hpp"
 #include "rdb_protocol/internal_extensions.pb.h"
 #include "rdb_protocol/js.hpp"
+#include "rpc/directory/read_manager.hpp"
 
 #ifndef NDEBUG
 #define guarantee_debug_throw_release(cond, backtrace) guarantee(cond)
