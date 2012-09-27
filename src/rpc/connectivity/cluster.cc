@@ -21,9 +21,14 @@
 const char *const cluster_proto_header = CLUSTER_PROTO_HEADER;
 
 void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address) {
-    buf->appendf("peer_address{ip=");
-    debug_print(buf, address.ip);
-    buf->appendf(", port=%d}", address.port);
+    buf->appendf("peer_address{ips=[");
+    const std::vector<ip_address_t> *ips = address.all_ips();
+    for (std::vector<ip_address_t>::const_iterator
+             it = ips->begin(); it != ips->end(); ++it) {
+        if (it != ips->begin()) buf->appendf(", ");
+        debug_print(buf, *it);
+    }
+    buf->appendf("], port=%d}", address.port);
 }
 
 
@@ -168,7 +173,7 @@ void connectivity_cluster_t::run_t::join_blocking(
         attempt_table.insert(address);
     }
     try {
-        tcp_conn_stream_t conn(address.ip, address.port, drainer_lock.get_drain_signal(), cluster_client_port);
+        tcp_conn_stream_t conn(address.primary_ip(), address.port, drainer_lock.get_drain_signal(), cluster_client_port);
         handle(&conn, expected_id, boost::optional<peer_address_t>(address), drainer_lock);
     } catch (tcp_conn_t::connect_failed_exc_t) {
         /* Ignore */
@@ -239,7 +244,7 @@ void connectivity_cluster_t::run_t::handle(
     ip_address_t peer_addr;
     std::string peerstr = "(unknown)";
     if (!conn->get_underlying_conn()->getpeername(&peer_addr))
-        peerstr = peer_addr.primary_as_dotted_decimal();
+        peerstr = peer_addr.as_dotted_decimal();
     const char *peername = peerstr.c_str();
 
     // Make sure that if we're ordered to shut down, any pending read

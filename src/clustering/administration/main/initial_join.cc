@@ -57,9 +57,9 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
         } while (!peers_not_heard_from.empty() && (!grace_period_timer.has() || !grace_period_timer->is_pulsed()));
         if (!peers_not_heard_from.empty()) {
             peer_address_set_t::const_iterator it = peers_not_heard_from.begin();
-            std::string s = strprintf("%s:%d", it->ip.primary_as_dotted_decimal().c_str(), it->port);
+            std::string s = strprintf("%s:%d", it->primary_ip().as_dotted_decimal().c_str(), it->port);
             for (it++; it != peers_not_heard_from.end(); it++) {
-                s += strprintf(", %s:%d", it->ip.primary_as_dotted_decimal().c_str(), it->port);
+                s += strprintf(", %s:%d", it->primary_ip().as_dotted_decimal().c_str(), it->port);
             }
             logWRN("We were unable to connect to the following peer(s): %s", s.c_str());
         }

@@ -83,8 +83,8 @@ TEST(UtilsTest, SizedStrcmp)
 new file just for it. */
 
 void run_ip_address_test() {
-    ip_address_t test("111.112.113.114");
-    EXPECT_EQ("111.112.113.114", test.primary_as_dotted_decimal());
+    std::vector<ip_address_t> ips = ip_address_t::from_hostname("111.112.113.114");
+    EXPECT_EQ("111.112.113.114", ips[0].as_dotted_decimal());
 }
 
 TEST(UtilsTest, IPAddress)

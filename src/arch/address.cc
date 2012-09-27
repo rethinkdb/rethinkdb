@@ -1,14 +1,10 @@
 #include "arch/address.hpp"
 
-#include <arpa/inet.h>   /* for `inet_ntop()` */
 #include <errno.h>
 #include <limits.h>
-#include <net/if.h>
-#include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
 #include <string.h>
-#include <sys/ioctl.h>
 #include <unistd.h>
 
 #include "errors.hpp"
@@ -37,35 +33,26 @@ std::string addr_as_dotted_decimal(struct in_addr addr) {
     return std::string(buffer);
 }
 
-ip_address_t::ip_address_t(const std::string &host) {
-    /* Use hint to make sure we get a IPv4 address that we can use with TCP */
+std::vector<ip_address_t> ip_address_t::from_hostname(const std::string &host) {
+    std::vector<ip_address_t> ips;
     struct addrinfo hint;
-    hint.ai_flags = 0;
+    memset(&hint, 0, sizeof(hint));
     hint.ai_family = AF_INET;
     hint.ai_socktype = SOCK_STREAM;
-    hint.ai_protocol = 0;
-    hint.ai_addrlen = 0;   // These last four must be 0/NULL
-    hint.ai_addr = NULL;
-    hint.ai_canonname = NULL;
-    hint.ai_next = NULL;
 
-    struct addrinfo *addr_possibilities; //ALLOC 0
-
-    // Because getaddrinfo may block, send it to a blocker thread and give up execution in the meantime
     int res;
+    struct addrinfo *addrs;
     boost::function<void ()> fn =
-        boost::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(NULL), &hint, &addr_possibilities, &res);
-    thread_pool_t::run_in_blocker_pool(fn);
+        boost::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(NULL),
+                    &hint, &addrs, &res);
+    thread_pool_t::run_in_blocker_pool(fn); //ALLOC 0
     guarantee_err(res == 0, "getaddrinfo() failed");
-
-    std::string our_hostname = str_gethostname();
-    for (struct addrinfo *ai = addr_possibilities; ai; ai = ai->ai_next) {
-        struct sockaddr_in *addr_in = reinterpret_cast<struct sockaddr_in *>(ai->ai_addr);
-        addrs.push_back(addr_in->sin_addr);
-        if (host != our_hostname) break; //We only want one IP for our peers
+    guarantee(addrs);
+    for (struct addrinfo *ai = addrs; ai; ai = ai->ai_next) {
+        ips.push_back(ip_address_t(ai));
     }
 
-    if (host == our_hostname) {
+    if (host == str_gethostname()) {
         /* If we're creating the `ip_address_t` for the machine we're currently
            on, we also want to add all of the IP addresses of the interfaces.
            We want to do this IN ADDITION TO the per-hostname lookup above
@@ -84,45 +71,27 @@ ip_address_t::ip_address_t(const std::string &host) {
                 req.ifr_name[IFNAMSIZ-1] = 0;
                 guarantee(strlen(req.ifr_name) < (IFNAMSIZ-1));
             }
-            res = ioctl(fd, SIOCGIFADDR, &req); //SIOCGIFADDR : Socket IO Control Get InterFace ADDRess (I think?)
+            //SIOCGIFADDR : Socket IO Control Get InterFace ADDRess (I think?)
+            res = ioctl(fd, SIOCGIFADDR, &req);
             guarantee(res >= 0);
-            addrs.push_back(reinterpret_cast<struct sockaddr_in *>(&req.ifr_addr)->sin_addr);
+            ips.push_back(ip_address_t(&req));
         }
         if_freenameindex(ifs); //FREE 2
         res = close(fd); //FREE 1
         guarantee(res == 0 || (res == -1 && errno == EINTR));
     }
-    freeaddrinfo(addr_possibilities); //FREE 0
+    freeaddrinfo(addrs); //FREE 0
+    return ips;
 }
 
-bool ip_address_t::operator==(const ip_address_t &x) const {
-    std::vector<struct in_addr>::const_iterator it, itx;
-    for (it = addrs.begin(); it != addrs.end(); ++it) {
-        for (itx = x.addrs.begin(); itx != x.addrs.end(); ++itx) {
-            if (it->s_addr == itx->s_addr) return true;
-        }
-    }
-    return false;
+std::vector<ip_address_t> ip_address_t::us() {
+    return from_hostname(str_gethostname());
 }
 
-bool ip_address_t::operator!=(const ip_address_t &x) const {
-    return !(*this == x);
-}
-
-ip_address_t ip_address_t::us() {
-    return ip_address_t(str_gethostname());
-}
-
-std::string ip_address_t::primary_as_dotted_decimal() const {
-    return addr_as_dotted_decimal(primary_addr());
+std::string ip_address_t::as_dotted_decimal() const {
+    return addr_as_dotted_decimal(get_addr());
 }
 
 void debug_print(append_only_printf_buffer_t *buf, const ip_address_t &addr) {
-    buf->appendf("[");
-    for (std::vector<struct in_addr>::const_iterator
-             it = addr.addrs.begin(); it != addr.addrs.end(); ++it) {
-        if (it != addr.addrs.begin()) buf->appendf(", ");
-        buf->appendf("%s", addr_as_dotted_decimal(*it).c_str());
-    }
-    buf->appendf("]");
+    buf->appendf("%s", addr.as_dotted_decimal().c_str());
 }
