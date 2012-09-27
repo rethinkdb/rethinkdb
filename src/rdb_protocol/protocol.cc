@@ -8,6 +8,7 @@
 #include "btree/slice.hpp"
 #include "btree/superblock.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
