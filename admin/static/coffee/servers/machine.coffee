@@ -173,10 +173,11 @@ module 'MachineView', ->
                 stats_up_to_date: @model.get('stats_up_to_date')
             
             # If the machine is assigned to a datacenter, add relevant json
-            if datacenter_uuid?
+            if datacenters.get(datacenter_uuid)?
                 json = _.extend json,
                     assigned_to_datacenter: datacenter_uuid
                     datacenter_name: datacenters.get(datacenter_uuid).get('name')
+
 
             # Reachability
             _.extend json,

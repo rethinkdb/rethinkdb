@@ -591,16 +591,18 @@ module 'DataUtils', ->
 
     @get_ack_expectations = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
-        datacenter = datacenters.get(datacenter_uuid)
-        acks = namespace?.get('ack_expectations')?[datacenter?.get('id')]?
+        acks = namespace?.get('ack_expectations')?[datacenter_uuid]
         if acks?
-            return namespace.get('ack_expectations')[datacenter.get('id')]
+            return acks
         else
             return 0
 
     @get_replica_affinities = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
-        datacenter = datacenters.get(datacenter_uuid)
+        if datacenter_uuid is universe_datacenter.get('id')
+            datacenter = universe_datacenter
+        else
+            datacenter = datacenters.get(datacenter_uuid)
         affs = namespace.get('replica_affinities')[datacenter.get('id')]
         if affs?
             return affs
