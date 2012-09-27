@@ -45,7 +45,9 @@ module 'MachineView', ->
             @assignments = new MachineView.Assignments model: @model
             @operations = new MachineView.Operations model: @model
             @overview = new MachineView.Overview model: @model
-            @performance_graph = new Vis.OpsPlot @model.get_stats_for_performance
+            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
+                type: 'server'
+            )
             @logs = new LogView.Container
                 route: "/ajax/log/"+@model.get('id')+"_?"
                 template_header: Handlebars.compile $('#log-header-machine-template').html()

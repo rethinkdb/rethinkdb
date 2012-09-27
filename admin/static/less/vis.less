@@ -3,9 +3,7 @@
     Visualization styles
     --------------------
 */
-// Extra big plot for the dashboard
-// TODO: merge these and come up with a new bigplot class that shifts some things around, we're doing a lot of messy overrides
-#dashboard .ops-plot {
+.ops-plot {
     @plot_height: 300px;
 
     .ops-plot-legend { 
@@ -18,11 +16,17 @@
             display: inline-block;
             vertical-align: top;
             margin-left: 40px;
+            p {
+                margin: 0;
+                margin-left: 23px;
+                line-height: 15px;
+            }
         }
 
         .reads .color { background-color: #729E51; }
         .writes .color { background-color: #983434; }
 
+        /* concentric circles for legend element */
         .color {
             @radius: 4px;
             width: @radius*2;
@@ -40,11 +44,6 @@
             float: left;
         }
 
-        p {
-            margin: 0;
-            margin-left: 23px;
-            line-height: 15px;
-        }
     }
     .plot-container {
         background-color: white;
@@ -53,24 +52,30 @@
         padding: 10px;
     }
     .plot {
-        .vaxis { 
-            margin-top: -1 * (@plot_height + 26px);
-            .tick { display: none; }
-        }
-        .hgrid {
-            height: @plot_height;
-            display: none;
-        }
+        position: relative;
         .chart { 
             border: none;
             z-index: 999;
             position: relative;
+            overflow: hidden;
+            display: inline-block;
+
+            .title { display: none; }
+            .value { display: none; }
+            canvas { display: block; }
         }
-        .vaxis text, .haxis text {
-            font: 13px @sans;
-            fill: #A3A3A3;
-        }
+
+        // make room for the vaxis on the left
+        .chart, .haxis, .hgrid, .line { margin-left: 34px; }
+
+        // common styles
         .haxis, .vaxis, .hgrid, .vgrid {
+            // NOTE: because the plot is laid out poorly,
+            // this font size matter a lot. It will define
+            // how aligned the vaxis labels are with the
+            // vaxis grid. Adjust according to the font
+            // being used. Ugly hack!
+            font: 7px @sans;
             line {
                 stroke: #dcdcdc;
                 shape-rendering: crispEdges;
@@ -78,70 +83,34 @@
             opacity: 1;
             line {  opacity: 1; }
         }
-    }    
-}
-.ops-plot {
-    .ops-plot-legend {
-    /*
-        .color {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-        }
-    */
-        .reads .color { background-color: #729E51; }
-        .writes .color { background-color: #983434; }
-        .legend-table {
-            width: 370px;
-            td.reads { width: 185px; }
-            td.reads .color { margin-left: 85px; }
-            td.writes { text-align: left; }
-        }
-    }
-    .plot {
-        position: relative;
-        .chart {
-            border-bottom: solid 1px black;
-            overflow: hidden;
-            display: inline-block;
 
-            border-top: solid 1px black;
-            border-left: solid 1px black;
-            border-right: solid 1px black;
-
-            .title, { display: none; }
-            .value { display: none; }
-            canvas { display: block; }
+        // labels on the axes
+        .vaxis text, .haxis text {
+            font: 13px @sans;
+            fill: #A3A3A3;
+            -webkit-transition: fill-opacity 250ms linear;
         }
 
-        .chart, .haxis, .hgrid, .line { margin-left: 34px; }
-
-        .haxis, .vaxis, .hgrid, .vgrid {
-            font: 10px sans-serif;
-            line {
-                stroke: #000;
-                shape-rendering: crispEdges;
-            }
+        // vaxis and vgrid
+        .vaxis { 
+            margin-top: -1 * (@plot_height + 26px);
+            .tick { display: none; }
         }
-        .haxis text { -webkit-transition: fill-opacity 250ms linear; }
-        
-        .haxis { margin-top: -9px; }
-
-        .hgrid {
-            height: 200px;
-            position: absolute;
-            top: -3px;
-            left: 0;
-            line { opacity: .2; }
-        }
-
-        .vaxis { margin-top: -228px; }
-
         .vgrid {
             position: absolute;
             top: 0;
             left: 0px;
-            line { opacity: .2; }
+        }
+
+        // haxis and hgrid
+        .haxis { margin-top: -9px; }
+        .hgrid {
+            display: none;
+
+            height: @plot_height;
+            position: absolute;
+            top: -3px;
+            left: 0;
         }
 
         .line {
@@ -149,5 +118,5 @@
            opacity: .2;
            z-index: 2;
         }
-    }
+    }    
 }

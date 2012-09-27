@@ -31,15 +31,16 @@ module 'NamespaceView', ->
             @model.load_key_distr()
 
             # Panels for namespace view
-            @title = new NamespaceView.Title(model: @model)
-            @profile = new NamespaceView.Profile(model: @model)
-            @replicas = new NamespaceView.Replicas(model: @model)
-            @shards = new NamespaceView.Sharding(model: @model)
-            @pins = new NamespaceView.Pinning(model: @model)
-            @overview = new NamespaceView.Overview(model: @model)
-            @other = new NamespaceView.Other(model: @model)
-
-            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
+            @title = new NamespaceView.Title model: @model
+            @profile = new NamespaceView.Profile model: @model
+            @replicas = new NamespaceView.Replicas model: @model
+            @shards = new NamespaceView.Sharding model: @model
+            @pins = new NamespaceView.Pinning model: @model
+            @overview = new NamespaceView.Overview model: @model
+            @other = new NamespaceView.Other model: @model
+            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
+                type: 'table'
+            )
 
             namespaces.on 'remove', @check_if_still_exists
         

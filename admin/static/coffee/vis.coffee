@@ -50,6 +50,12 @@ module 'Vis', ->
         className: 'ops-plot'
         template: Handlebars.compile $('#ops_plot-template').html()
 
+        # default options for the plot template
+        type: 'cluster'
+        bigplot: false
+
+
+        # default options for the plot itself
         # Please make sure the first is divisible by the second,
         # 'cause who knows wtf is gonna happen if it ain't.
         HEIGHT_IN_PIXELS: 200
@@ -60,6 +66,7 @@ module 'Vis', ->
         HAXIS_MINOR_SUBDIVISION_COUNT: 3
         VAXIS_TICK_SUBDIVISION_COUNT: 5
         VAXIS_MINOR_SUBDIVISION_COUNT: 2
+
 
         make_metric: (name) =>
             # Cache stats using the interpolating cache
@@ -98,6 +105,11 @@ module 'Vis', ->
         #           before placing a tick
         #       * vaxis.ticks_per_label: how many ticks before 
         #           placing a label on the y-axis 
+        #       * type: the type of plot (used to determine the title
+        #           of the plot). valid values include 'cluster',
+        #           'datacenter', 'server', 'database', and 'table'
+        #       * bigplot: boolean, whether this plot should fit the
+        #           full width of the page or half
         initialize: (_stats_fn, options) ->
             log_initial '(initializing) ops plot'
 
@@ -114,6 +126,8 @@ module 'Vis', ->
                 if options.vaxis?
                     @VAXIS_TICK_SUBDIVISION_COUNT =  options.vaxis.num_ticks        if options.vaxis.num_ticks?
                     @VAXIS_MINOR_SUBDIVISION_COUNT = options.vaxis.ticks_per_label  if options.vaxis.ticks_per_label?
+                @type =     options.type    if options.type?
+                @bigplot =  options.bigplot if options.bigplot?
 
             super
             # Set up cubism context
@@ -127,10 +141,15 @@ module 'Vis', ->
             @write_stats = @make_metric('keys_set')
             @legend = new Vis.OpsPlotLegend(@read_stats, @write_stats, @context)
 
-        render: ->
+        render: =>
             log_render '(rendering) ops plot'
             # Render the plot container
-            @.$el.html @template({})
+            @.$el.html @template
+                cluster:    true if @type is 'cluster'
+                datacenter: true if @type is 'datacenter'
+                server:     true if @type is 'server'
+                database:   true if @type is 'database'
+                table:      true if @type is 'table'
 
             # Set up the plot
             sensible_plot = @context.sensible()
