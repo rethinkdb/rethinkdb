@@ -606,6 +606,362 @@ body:before {
 
 /*
     ----------------------------
+    Data explorer 
+    ----------------------------
+*/
+#dataexplorer{
+    margin: 0px;
+    overflow: auto;
+    .query_control{
+        .input_query_container{
+            padding: 0px;
+            margin: 10px 0px;
+            overflow: auto;
+            .input_query{
+                width: 908px;
+                min-height: 36px;
+                padding: 4px 10px;
+                overflow: hidden;
+            }
+            .button_container{
+                overflow: auto;
+                margin: 0px 0px 5px 0px;
+                .button_query{
+                    float: right;
+                    width: 80px;
+                    margin-left: 10px;
+                }
+            }
+            .suggestion_full_container{
+                /*
+                position: absolute;
+                width: 700px;
+                background: #ffffff;
+                */
+                .suggestion_name_list{
+                    display: none;
+                    padding: 0px;
+                    margin: 0px 0px 9px 0px;
+                    border: 1px solid #ddd;
+                    .suggestion_name_li{
+                        display: inline-block;
+                        margin: 0px;
+                        padding: 5px 5px;
+                        min-width: 103px;
+                        min-height: 18px;
+                        cursor: pointer;
+                    }
+                    .suggestion_name_li_hl{
+                        color: red;
+                    }
+                }
+                .suggestion_description{
+                    display: none;
+                    padding: 5px;
+                    margin: 0px 0px 9px 0px;
+                    border: 1px solid #ddd;
+                }
+            }
+        }
+        .loading_query{
+            text-align: center;
+            height: 16px;
+            width: 16px;
+            padding: 0px;
+            margin: 0px auto 10px auto;
+            .loading_query_img{
+                display: none;
+            }
+        }
+    }
+    .data_container{
+        .results_header{
+            overflow: hidden;
+        }
+        .namespaces_available_container{
+            float: left;
+            width: 330px;
+            padding: 20px 10px 10px 10px;
+            h4 {
+                margin: 7px 0px 5px 0px;
+            }
+        }
+        .history_queries{
+            float: left;
+            width: 330px;
+            padding: 20px 10px 10px 10px;
+        }
+        .queries_list{
+            margin: 0px;
+            list-style: none;
+            font-family: monospace;
+            li{
+                padding: 0px 0px 0px 7px;
+                margin: 0px;
+                border-left: 1px solid #ccc;
+            }
+            .query_element{
+                width: 300px;
+                overflow: hidden;
+            }
+            .namespace_element{
+                padding: 0px 0px 0px 7px;
+                margin: 0px;
+                border-left: 1px solid #ccc;
+
+                width: 300px;
+                overflow: hidden;
+            }
+        }
+    }
+    .options_container{
+        float: right;
+    }
+    .change_view_container{
+        margin: 0px;
+        padding: 0px 10px 0px 0px;
+        width: 100%;
+    }
+    .helper_view{
+        overflow: auto;
+    }
+    .nav-tabs > li {
+        float: right;
+    }
+    .query{
+        font-family: monospace;
+        padding: 7px 10px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        background: #eee;
+    }
+
+    .pagination_container{
+        display: none;
+        overflow: auto;
+        width: 700px;
+        .classic_navigation_container{
+            float: left;
+            width: 700px;
+            overflow: auto;
+            margin: 10px 0px 0px 0px;
+            .goto_previous_container{
+                float: left;
+                overflow: auto;
+                width: 70px;
+            }
+            .manual_jump{
+                width: 460px;
+                margin: 0px auto 0px auto;
+                padding: 3px 0px 0px 0px;
+                text-align: center;
+                .limit_value, .skip_value{
+                    width: 20px;
+                    padding: 3px 4px;
+                    margin: 0px;
+                }
+            }
+            .goto_next_container{
+                float: right;
+                overflow: auto;
+                width: 70px;
+            }
+            .goto_first, .goto_previous, .goto_next, .goto_last{
+                float: left;
+                padding: 3px 4px;
+                margin: 3px 3px;
+                .border-radius(3px 3px 3px 3px);
+            }
+            .display_button{
+                display: inline-block;
+            }
+        }
+        .jump_container{
+            float: right;
+            text-align: right;
+            width: 100px;
+            margin: 0px;
+            .jump_page{
+                width: 40px;
+                padding: 3px 4px;
+                margin: 3px 0px 0px 0px;
+            }
+        }
+    }
+    .results{
+        width: 700px;
+        margin: 15px 0px 0px 0px;
+        overflow: auto;
+        .json_tree{
+            float: left; // Clear the horizontal arrow
+            font: 13px/18px monospace,mono,consolas;
+            .jt_null{
+                font-weight: bold;
+                color: red
+            }
+            .jt_bool{
+                font-weight: bold;
+                color: blue;
+            }
+            .jt_num{
+                font-weight: bold;
+                color: blue;
+            }
+            .jt_link{
+                font-weight: bold;
+                text-decoration: none;
+                color: #000;
+            }
+            .jt_url{
+                color: #08c;
+            }
+            .jt_email{
+                color: #08c;
+            }
+            .jt_string{
+                padding: 2px 0px;
+                color: green;
+            }
+            .jt_b{
+                font-weight: bold;
+            }
+            .jt_close{
+                margin-left: 24px;
+            }
+            .jt_array{
+                list-style: none;
+                padding-left: 19px;
+                border-left: 1px dotted #bbb;
+            }
+            .jt_object{
+                list-style: none;
+                padding-left: 19px;
+                border-left: 1px dotted #bbb;
+            }
+            .jt_arrow{
+                width: 15px;
+                height: 15px;
+                margin: 3px 2px 0px 2px;
+                float: left;
+                display: block;
+                background: url('/images/arrow_down.gif') no-repeat;
+            }
+            .jt_arrow_hidden{
+                background: url('/images/arrow_right.gif') no-repeat;
+            }
+            .jt_points{
+                display: none;
+            }
+            .jt_points_collapsed{
+                display: inline;
+            }
+            .jt_collapsed{
+                display: none;
+            }
+            .jt_b_collapsed{
+                display: inline;
+                margin-left: 0px;
+            }   
+        }
+        .json_table_container{
+            .json_table{
+                font: 13px/18px monospace,mono,consolas;
+                padding: 0px;
+                margin: 0px 0px 15px 0px;
+                table-layout: fixed;
+                white-space: nowrap;
+                .td_attr{
+                    background: #d3dce3;
+                }
+                .jta_undefined{
+                    color: #ccc;
+                }
+                .jta_null{
+                    font-weight: bold;
+                    color: red
+                }
+                .jta_bool{
+                    font-weight: bold;
+                    color: blue;
+                }
+                .jta_num{
+                    font-weight: bold;
+                    color: blue;
+                }
+                .jta_link{
+                    font-weight: bold;
+                    text-decoration: none;
+                    color: #000;
+                }
+                .jta_url{
+                    color: #08c;
+                }
+                .jta_email{
+                    color: #08c;
+                }
+                .jta_string{
+                    color: green;
+                }
+                .jta_object{
+                    vertical-align: top;
+                    display: inline-block;
+                }
+                td{
+                    max-width: 145px;
+                    padding: 0px 5px 0px 0px;
+                    vertical-align: top;
+                    border: 1px solid #333;
+                    overflow: hidden;
+                    cursor: e-resize
+                }
+                .jta_attr{
+                    padding: 7px 10px 5px 15px;
+                    font-weight: bold;
+                    cursor: auto;
+                }
+                .jta_value{
+                    cursor: auto;
+                    padding: 7px 0px 5px 15px;
+                    max-width: 125px; // smaller margin on the right in case of overflow
+                    overflow: hidden;
+                }
+                .jta_array{
+                    padding: 7px 0px 5px 0px;
+                }
+                .jta_arrow{
+                    width: 15px;
+                    height: 15px;
+                    margin: 3px 2px 0px 2px;
+                    display: block;
+                }
+                .jta_arrow_v{
+                    background: url('/images/arrow_down.gif') no-repeat;
+                    float: left;
+                }
+                .jta_arrow_h{
+                    background: url('/images/arrow_right.gif') no-repeat;
+                    float: right;
+                }
+            }
+            .resizing{
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                -khtml-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
+        }
+        .raw_view_textarea{
+            width: 690px;
+            height: auto;
+        }
+    }
+}
+
+
+/*
+    ----------------------------
     Development tools
     ----------------------------
 */
