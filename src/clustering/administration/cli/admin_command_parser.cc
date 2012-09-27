@@ -578,7 +578,7 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_flag("port", 1, false, true); // hidden option
     // info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULLPTR);
     // info->add_flag("port", 1, true);
-    info->add_flag("primary", 1, true)->add_option("!datacenter");
+    info->add_flag("primary", 1, false)->add_option("!datacenter");
     info->add_flag("database", 1, true)->add_option("!database");
 
     info = add_command(create_datacenter_command, create_datacenter_command, create_datacenter_usage, &admin_cluster_link_t::do_admin_create_datacenter, &commands);
