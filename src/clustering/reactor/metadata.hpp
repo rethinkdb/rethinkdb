@@ -110,8 +110,8 @@ template <class protocol_t>
 class secondary_without_primary_t {
 public:
     secondary_without_primary_t(region_map_t<protocol_t, version_range_t> _current_state, backfiller_business_card_t<protocol_t> _backfiller,
-                                direct_reader_business_card_t<protocol_t> _direct_reader)
-        : current_state(_current_state), backfiller(_backfiller), direct_reader(_direct_reader)
+                                direct_reader_business_card_t<protocol_t> _direct_reader, branch_history_t<protocol_t> _branch_history)
+        : current_state(_current_state), backfiller(_backfiller), direct_reader(_direct_reader), branch_history(_branch_history)
     { }
 
     secondary_without_primary_t() { }
@@ -119,8 +119,9 @@ public:
     region_map_t<protocol_t, version_range_t> current_state;
     backfiller_business_card_t<protocol_t> backfiller;
     direct_reader_business_card_t<protocol_t> direct_reader;
+    branch_history_t<protocol_t> branch_history;
 
-    RDB_MAKE_ME_SERIALIZABLE_3(current_state, backfiller, direct_reader);
+    RDB_MAKE_ME_SERIALIZABLE_4(current_state, backfiller, direct_reader, branch_history);
 };
 
 /* This peer is in the process of becoming a secondary, barring failures it
@@ -144,16 +145,20 @@ public:
 template <class protocol_t>
 class nothing_when_safe_t{
 public:
-    nothing_when_safe_t(region_map_t<protocol_t, version_range_t> _current_state, backfiller_business_card_t<protocol_t> _backfiller)
-        : current_state(_current_state), backfiller(_backfiller)
+    nothing_when_safe_t(region_map_t<protocol_t, version_range_t> _current_state,
+                        backfiller_business_card_t<protocol_t> _backfiller,
+                        branch_history_t<protocol_t> _branch_history)
+        : current_state(_current_state), backfiller(_backfiller),
+          branch_history(_branch_history)
     { }
 
     nothing_when_safe_t() { }
 
     region_map_t<protocol_t, version_range_t> current_state;
     backfiller_business_card_t<protocol_t> backfiller;
+    branch_history_t<protocol_t> branch_history;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(current_state, backfiller);
+    RDB_MAKE_ME_SERIALIZABLE_3(current_state, backfiller, branch_history);
 };
 
 /* This peer is in the process of erasing data that it previously held,
