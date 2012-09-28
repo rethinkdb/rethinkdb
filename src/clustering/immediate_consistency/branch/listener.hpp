@@ -4,7 +4,6 @@
 #include <map>
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "concurrency/coro_pool.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
 #include "concurrency/semaphore.hpp"
@@ -12,8 +11,10 @@
 #include "timestamps.hpp"
 #include "utils.hpp"
 
+template <class> class boost_function_callback_t;
 template <class T> class branch_history_manager_t;
 template <class T> class broadcaster_t;
+template <class> class coro_pool_t;
 template <class T> class intro_receiver_t;
 template <class T> class registrant_t;
 template <class T> class replier_t;

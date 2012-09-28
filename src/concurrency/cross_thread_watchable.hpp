@@ -99,6 +99,7 @@ private:
     boost_function_callback_t<value_t> deliver_cb;
     coro_pool_t<value_t> messanger_pool;
 
+    DISABLE_COPYING(cross_thread_watchable_variable_t);
 };
 
 #include "concurrency/cross_thread_watchable.tcc"
