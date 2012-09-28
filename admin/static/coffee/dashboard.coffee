@@ -190,7 +190,7 @@ module 'DashboardView', ->
             status.machines_with_ram_problems = []
 
             for machine in machines.models
-                if machine.get('stats')?
+                if machine.get('stats')?.sys? and machine.get('stats').proc?
                     disk_used = machine.get('stats').sys.global_disk_space_used / machine.get('stats').sys.global_disk_space_total
                     if disk_used > @threshold_disk
                         new_machine =
