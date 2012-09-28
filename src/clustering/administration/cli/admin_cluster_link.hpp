@@ -44,7 +44,7 @@ public:
 
 class admin_cluster_link_t {
 public:
-    admin_cluster_link_t(const std::set<peer_address_t> &joins, int client_port, signal_t *interruptor);
+    admin_cluster_link_t(const peer_address_set_t &joins, int client_port, signal_t *interruptor);
     ~admin_cluster_link_t();
 
     // A way for the parser to do completions and parsing verification

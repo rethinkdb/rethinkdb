@@ -53,7 +53,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    addr.sin_addr = host.addr;
+    addr.sin_addr = host.get_addr();
     bzero(addr.sin_zero, sizeof(addr.sin_zero));
 
     guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
@@ -538,8 +538,7 @@ int linux_tcp_conn_t::getsockname(ip_address_t *ip) {
     struct sockaddr_in addr;
     socklen_t len = sizeof addr;
     int res = ::getsockname(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), &len);
-    if (!res)
-        ip->addr = addr.sin_addr;
+    if (!res) ip->set_addr(addr.sin_addr);
     return res;
 }
 
@@ -547,8 +546,7 @@ int linux_tcp_conn_t::getpeername(ip_address_t *ip) {
     struct sockaddr_in addr;
     socklen_t len = sizeof addr;
     int res = ::getpeername(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), &len);
-    if (!res)
-        ip->addr = addr.sin_addr;
+    if (!res) ip->set_addr(addr.sin_addr);
     return res;
 }
 

@@ -75,17 +75,17 @@ private:
     DISABLE_COPYING(value_sizer_t<rdb_value_t>);
 };
 
-point_read_response_t rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock);
+void rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, point_read_response_t *response);
 
-point_modify_response_t rdb_modify(const std::string &primary_key, const store_key_t &key, const point_modify::op_t op,
-                                   query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
-                                   const Mapping &mapping,
-                                   btree_slice_t *slice, repli_timestamp_t timestamp,
-                                   transaction_t *txn, superblock_t *superblock);
+void rdb_modify(const std::string &primary_key, const store_key_t &key, const point_modify::op_t op,
+                query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
+                const Mapping &mapping,
+                btree_slice_t *slice, repli_timestamp_t timestamp,
+                transaction_t *txn, superblock_t *superblock, point_modify_response_t *response);
 
-point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
-                       btree_slice_t *slice, repli_timestamp_t timestamp,
-                       transaction_t *txn, superblock_t *superblock);
+void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
+             btree_slice_t *slice, repli_timestamp_t timestamp,
+             transaction_t *txn, superblock_t *superblock, point_write_response_t *response);
 
 
 class rdb_backfill_callback_t {
@@ -105,7 +105,7 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
         THROWS_ONLY(interrupted_exc_t);
 
 
-point_delete_response_t rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock);
+void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock, point_delete_response_t *response);
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                                  const key_range_t &keys,
@@ -119,12 +119,12 @@ struct rget_response_t {
     bool truncated;
 };
 
-rget_read_response_t rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-                                    transaction_t *txn, superblock_t *superblock,
-                                    query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
-                                    boost::optional<rdb_protocol_details::terminal_t> terminal);
+void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
+                    transaction_t *txn, superblock_t *superblock,
+                    query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
+                    boost::optional<rdb_protocol_details::terminal_t> terminal, rget_read_response_t *response);
 
-distribution_read_response_t rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key, 
-                                                 transaction_t *txn, superblock_t *superblock);
+void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,
+                          transaction_t *txn, superblock_t *superblock, distribution_read_response_t *response);
 
 #endif /* RDB_PROTOCOL_BTREE_HPP_ */

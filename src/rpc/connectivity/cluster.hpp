@@ -25,23 +25,62 @@ extern const char *const cluster_proto_header;
 
 class peer_address_t {
 public:
-    peer_address_t(ip_address_t i, int p) : ip(i), port(p) { }
-    peer_address_t() : ip(), port(0) { } // For deserialization
-    ip_address_t ip;
+    peer_address_t(const std::vector<ip_address_t> &_ips, int p) : port(p), ips(_ips) { }
+    peer_address_t() : port(0) { } // For deserialization
+    ip_address_t primary_ip() const {
+        guarantee(ips.begin() != ips.end());
+        return *ips.begin();
+    }
+    const std::vector<ip_address_t> *all_ips() const { return &ips; }
     int port;
 
+    /* Two addresses are considered equal if *any* of their IPs match. */
     bool operator==(const peer_address_t &a) const {
-        return ip == a.ip && port == a.port;
+        if (port != a.port) return false;
+        std::vector<ip_address_t>::const_iterator it, ita;
+        for (it = ips.begin(); it != ips.end(); ++it) {
+            for (ita = a.all_ips()->begin(); ita != a.all_ips()->end(); ++ita) {
+                if (*it == *ita) return true;
+            }
+        }
+        return false;
     }
     bool operator!=(const peer_address_t &a) const {
-        return ip != a.ip || port != a.port;
-    }
-    bool operator<(const peer_address_t &a) const {
-        return ip < a.ip || (ip == a.ip && port < a.port);
+        return !(*this == a);
     }
 
 private:
-    RDB_MAKE_ME_SERIALIZABLE_2(ip, port);
+    std::vector<ip_address_t> ips;
+    RDB_MAKE_ME_SERIALIZABLE_2(ips, port);
+};
+class peer_address_set_t {
+public:
+    size_t erase(const peer_address_t &addr) {
+        size_t erased = 0;
+        for (iterator it = vec.begin(); it != vec.end(); ++it) {
+            if (*it == addr) {
+                vec.erase(it);
+                ++erased;
+                guarantee(find(addr) == vec.end());
+                break;
+            }
+        }
+        return erased;
+    }
+    typedef std::vector<peer_address_t>::iterator iterator;
+    typedef std::vector<peer_address_t>::const_iterator const_iterator;
+    iterator begin() { return vec.begin(); }
+    iterator end() { return vec.end(); }
+    iterator find(const peer_address_t &addr) {
+        return std::find(vec.begin(), vec.end(), addr);
+    }
+    iterator insert(const peer_address_t &addr) {
+        guarantee(find(addr) == vec.end());
+        return vec.insert(vec.end(), addr);
+    }
+    bool empty() const { return vec.empty(); }
+private:
+    std::vector<peer_address_t> vec;
 };
 
 void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address);
@@ -165,7 +204,7 @@ public:
         because when `client_port` is specified we will make all of our
         connections from the same source, and TCP might not be able to
         disambiguate between them. */
-        std::set<peer_address_t> attempt_table;
+        peer_address_set_t attempt_table;
         mutex_assertion_t attempt_table_mutex;
 
         /* `routing_table` is all the peers we can currently access and their
