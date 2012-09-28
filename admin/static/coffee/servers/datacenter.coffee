@@ -33,6 +33,9 @@ module 'DatacenterView', ->
             @operations = new DatacenterView.Operations model: @model
             @overview = new DatacenterView.Overview model: @model
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
+                width:  390             # width in pixels
+                height: 300             # height in pixels
+                seconds: 65             # num seconds to track
                 type: 'datacenter'
             )
 

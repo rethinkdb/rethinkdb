@@ -1,51 +1,52 @@
 <script id="namespace_view-container-template" type="text/x-handlebars-template">
-    <div class="full_profile">
+    <div id="table-view">
         <div class="main_title"></div>
-        <div class="two-panel-section section">
-            <div class="panel-left-unbalanced profile">
+        <div class="section">
+            <div class="row-fluid">
+                <div class="span6 profile"></div>
+                <div class="span6 performance-graph"></div>
+            </div>
         </div>
-        <div class="panel-right-unbalanced">
-            <h3 class="title">Performance</h3>
-            <div class="performance-graph"></div>
-        </div>
-      </div>
 
-    <ul class="nav nav-tabs">
-        <li class="active"><a href="#tables/{{namespace_id}}/shards" data-target="#namespace-sharding" id="namespace-overview-sharding" class="tab-link" data-toggle="tab">Shards</a></li>
-        <li><a href="#tables/{{namespace_id}}/replication" data-target="#namespace-replication" id="namespace-replication-link" class="tab-link" data-toggle="tab">Replication</a></li>
-        <li><a href="#tables/{{namespace_id}}/assignments" data-target="#namespace-pinning" id="namespace-pinning-link" class="tab-link" data-toggle="tab">Server assignments</a></li>
-        <li><a href="#tables/{{namespace_id}}/other" data-target="#namespace-other" id="namespace-other-link" class="tab-link" data-toggle="tab">Other operations</a></li>
-    </ul>
+        <div class="section">
+            <ul class="nav nav-pills">
+                <li class="active"><a href="#tables/{{namespace_id}}/shards" data-target="#namespace-sharding" id="namespace-overview-sharding" class="tab-link" data-toggle="tab">Shards</a></li>
+                <li><a href="#tables/{{namespace_id}}/replication" data-target="#namespace-replication" id="namespace-replication-link" class="tab-link" data-toggle="tab">Replication</a></li>
+                <li><a href="#tables/{{namespace_id}}/assignments" data-target="#namespace-pinning" id="namespace-pinning-link" class="tab-link" data-toggle="tab">Server assignments</a></li>
+                <li><a href="#tables/{{namespace_id}}/other" data-target="#namespace-other" id="namespace-other-link" class="tab-link" data-toggle="tab">Other operations</a></li>
+            </ul>
 
-    <div id="user-alert-space"></div>
+            <div id="user-alert-space"></div>
 
-    <div class="tab-content">  
-        <div class="tab-pane active" id="namespace-sharding">
-            <div class="section sharding"></div>
-        </div>
-        <div class="tab-pane" id="namespace-replication">
-            <div class="section replication"></div>
-        </div>
-        <div class="tab-pane" id="namespace-pinning">
-            <div class="section pinning"></div>
-        </div>
-        <div class="tab-pane" id="namespace-other">
-            <div class="section other"></div>
+            <div class="tab-content">  
+                <div class="tab-pane active" id="namespace-sharding">
+                    <div class="sharding"></div>
+                </div>
+                <div class="tab-pane" id="namespace-replication">
+                    <div class="replication"></div>
+                </div>
+                <div class="tab-pane" id="namespace-pinning">
+                    <div class="pinning"></div>
+                </div>
+                <div class="tab-pane" id="namespace-other">
+                    <div class="other"></div>
+                </div>
+            </div>
         </div>
     </div>
 </script>
 
 <script id="namespace_view_title-template" type="text/x-handlebars-template">
-    <h1>Table overview for {{name}}</h1>
+    <h1 class="title">Table overview for {{name}}</h1>
 </script>
 
 <script id="namespace_view-profile-template" type="text/x-handlebars-template">
-    <h3 class="title">Table profile</h3>
-    <div class="section summary">
+    <h2 class="title">Table profile</h3>
+    <div class="summary">
         <p class="protocol">Protocol: {{protocol}}</p>
     </div>
 
-    <div class="section summary">
+    <div class="summary">
         <p>Status: {{humanize_namespace_reachability reachability}}</p>
         <p>Shards: {{nshards}}</p>
         <p>Masters: {{nashards}} of {{nshards}} reachable</p>

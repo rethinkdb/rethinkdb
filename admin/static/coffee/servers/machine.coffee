@@ -46,6 +46,9 @@ module 'MachineView', ->
             @operations = new MachineView.Operations model: @model
             @overview = new MachineView.Overview model: @model
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
+                width:  390             # width in pixels
+                height: 300             # height in pixels
+                seconds: 65             # num seconds to track
                 type: 'server'
             )
             @logs = new LogView.Container

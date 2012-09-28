@@ -16,6 +16,7 @@
 @import "bootstrap/popovers.less";
 @import "bootstrap/dropdowns.less";
 @import "bootstrap/forms.less";
+@import "bootstrap/navs.less";
 
 // Utility classes
 @import "bootstrap/utilities.less"; // Has to be last to override when necessary
@@ -61,7 +62,7 @@ body:before {
     ----------------------------
 */
 #sticky-wrap {
-    background: #ebebeb;
+    background: url('https://dl.dropbox.com/s/xnjd8qzm0rkoz2q/background.png');
 }
 #main-container {
     padding-top: 30px;
@@ -137,7 +138,7 @@ body:before {
     @text_shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
     
     /* left nav (logo, links, etc.) */
-    ul.nav {
+    ul.nav-left {
         margin: 0;
         padding: 0;
         float: left;
@@ -175,7 +176,7 @@ body:before {
                 }
             }
             &.active {
-                background: #222;
+                background: url('https://dl.dropbox.com/s/x6om3yds5w83182/navbar-active.png');
                 a { color: white; }
             }
         }
@@ -189,6 +190,7 @@ body:before {
 
     #nav-search {
         input[type="text"] {
+            font-family: @sans;
             font-size: 15px;
             color: white;
             border: 0 none;
@@ -220,7 +222,7 @@ body:before {
     ----------------------------
 */
 #sidebar {
-    background: #e1e1e1;
+    background: url('https://dl.dropbox.com/s/plzmuyfwibwyvry/status_panel-background.png');
     border-bottom: thin solid #d0d0d0;
     .cluster-status { padding: 20px 0; }
     .panel {
@@ -434,6 +436,9 @@ body:before {
             opacity: 0.65;
             .box-shadow(none);
         }
+
+        // fix for buttons that are a tags (remove underline)
+        &:hover { text-decoration: none; }
     }
     h1.title {
         font-family: @serif;
@@ -1001,6 +1006,20 @@ body:before {
             width: 690px;
             height: auto;
         }
+    }
+}
+
+/*
+    ----------------------------
+    Element views
+    ----------------------------
+*/
+#database-view, #table-view, #datacenter-view, #server-view {
+    h1.title {
+        font-family: @serif;
+        color: #4d535c;
+        font-size: 19px;
+        margin-bottom: 25px;
     }
 }
 

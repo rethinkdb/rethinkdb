@@ -1,39 +1,45 @@
 <script id="datacenter_view-container-template" type="text/x-handlebars-template">
-    <div class="main_title"></div>
+    <div id="datacenter-view">
+        <div class="main_title"></div>
+        <div class="section">
+            <div class="row-fluid">
+                <div class="span6 profile"></div>
+                <div class="span6 performance-graph"></div>
+            </div>
+        </div>
 
-    <div class="two-panel-section profile-expandable">
-        <div class="panel-left-unbalanced profile"></div>   
-        <div class="panel-right-unbalanced performance">
-            <h3 class="title">Performance</h3>
-            <div class="performance-graph"></div>
-        </div>
-    </div>
+        <div class="section">
+            <ul class="nav nav-pills">
+                <li class="active"><a href="#datacenters/{{datacenter_id}}/overview" data-target="#datacenter-overview" id="datacenter-overview-link" class="tab-link" data-toggle="tab">Statistics</a></li>
+                <li><a href="#datacenters/{{datacenter_id}}/data" data-target="#datacenter-data" id="datacenter-data-link" class="tab-link" data-toggle="tab">Data</a></li>
+                <li><a href="#datacenters/{{datacenter_id}}/operations" data-target="#datacenter-operations" id="datacenter-operations-link" class="tab-link" data-toggle="tab">Operations</a></li>
+                <li><a href="#datacenters/{{datacenter_id}}/logs" data-target="#datacenter-logs" id="datacenter-logs-link" class="tab-link" data-toggle="tab">Recent log entries</a></li>
+            </ul>
 
-    <ul class="nav nav-tabs">
-        <li class="active"><a href="#datacenters/{{datacenter_id}}/overview" data-target="#datacenter-overview" id="datacenter-overview-link" class="tab-link" data-toggle="tab">Statistics</a></li>
-        <li><a href="#datacenters/{{datacenter_id}}/data" data-target="#datacenter-data" id="datacenter-data-link" class="tab-link" data-toggle="tab">Data</a></li>
-        <li><a href="#datacenters/{{datacenter_id}}/operations" data-target="#datacenter-operations" id="datacenter-operations-link" class="tab-link" data-toggle="tab">Operations</a></li>
-        <li><a href="#datacenters/{{datacenter_id}}/logs" data-target="#datacenter-logs" id="datacenter-logs-link" class="tab-link" data-toggle="tab">Recent log entries</a></li>
-    </ul>
-
-    <div id="user-alert-space"></div>
-    
-    <div class="tab-content">  
-        <div class="tab-pane active" id="datacenter-overview">
-            <div class="section overview"></div>
-        </div>
-        <div class="tab-pane" id="datacenter-data">
-            <div class="section data"></div>
-        </div>
-        <div class="tab-pane" id="datacenter-operations">
-            <div class="section operations"></div>
-        </div>
-        <div class="tab-pane" id="datacenter-logs">
-            <div class="section recent-log-entries">
-                <h3 class="title">Recent log entries for this datacenter</h3>
+            <div id="user-alert-space"></div>
+            
+            <div class="tab-content">  
+                <div class="tab-pane active" id="datacenter-overview">
+                    <div class="overview"></div>
+                </div>
+                <div class="tab-pane" id="datacenter-data">
+                    <div class="data"></div>
+                </div>
+                <div class="tab-pane" id="datacenter-operations">
+                    <div class="operations"></div>
+                </div>
+                <div class="tab-pane" id="datacenter-logs">
+                    <div class="recent-log-entries">
+                        <h3 class="title">Recent log entries for this datacenter</h3>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+</script>
+
+<script id="datacenter_view_title-template" type="text/x-handlebars-template">
+    <h1 class="title">Datacenter overview for {{name}}</h1>
 </script>
 
 <script id="element_view-not_found-template" type="text/x-handlebars-template">
@@ -42,13 +48,9 @@
     <p>You can try to <a href="/#{{type_url}}/{{id}}">refresh</a> or see the list of all <a href="/#{{type_all_url}}">{{pluralize_noun type 2}}</a>.</p>
 </script>
 
-<script id="datacenter_view_title-template" type="text/x-handlebars-template">
-    <h1>Datacenter overview for {{name}}</h1>
-</script>
-
 <script id="datacenter_view_profile-template" type="text/x-handlebars-template">
     <h3 class="title">Datacenter profile</h3>
-    <div class="section summary">
+    <div class="summary">
         <p class="status">Status: {{humanize_datacenter_reachability status}}</p>
         <p class="status">Servers: {{status.reachable}} of {{status.total}} reachable</p>
         {{#unless stats_up_to_date}}
@@ -57,7 +59,7 @@
         {{/unless}}
     </div>
     <h3 class="title">Servers</h3>
-    <div class="section dc-machine-list">
+    <div class="dc-machine-list">
         <ul>
         {{display_truncated_machines list_machines}}
         </ul>
