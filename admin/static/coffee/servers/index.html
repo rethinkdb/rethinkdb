@@ -59,15 +59,18 @@
     </div>
     <div class="element-details">
         <p class="name"><a href="#servers/{{id}}">{{name}}</a></p>
-        {{#if unassigned_machine}}
-            <p class="quick_info">Not assigned to any datacenter</p>
-        {{else}}
-            <p class="quick_info">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Tables: {{namespace_count}}</p>
-        {{/if}}
-        <div class="status">
-            {{humanize_machine_reachability status}}
-        </div>
+        <p class="quick_info"></p>
+        <div class="status"></div>
     </div>
+</script>
+
+
+<script id="machine_list_element-quick_info-template" type="text/x-handlebars-template">
+    Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Tables: {{namespace_count}}
+</script>
+
+<script id="machine_list_element-status-template" type="text/x-handlebars-template">
+    {{humanize_machine_reachability status}}
 </script>
 
 <script id="machine_list_element-summary-template" type="text/x-handlebars-template">

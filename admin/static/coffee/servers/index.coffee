@@ -1,12 +1,3 @@
-# Index view of datacenters and machines
-# The server index view consists of several lists. Here's the hierarchy:
-#   @DatacenterList
-#   |-- @DatacenterListElement: a datacenter
-#   |   `-- @MachineList: machines for that datacenter
-#   |      `-- @MachinesListElement: individual machine in the datacenter
-#   |-- @UnassignedMachineListElement: grouping for unassigned machines
-#   |   `-- @MachineList: machines that are unassigned
-#   |      `-- @MachinesListElement: individual unassigned machine
 module 'ServerView', ->
     class @DatacenterList extends UIComponents.AbstractList
         # Use a datacenter-specific template for the datacenter list
@@ -28,7 +19,15 @@ module 'ServerView', ->
             @unassigned_machines = new ServerView.UnassignedMachinesListElement
             @unassigned_machines.register_machine_callbacks @get_callbacks()
 
-            super datacenters, ServerView.DatacenterListElement, 'div.datacenters'
+            super datacenters, ServerView.DatacenterListElement, 'div.datacenters',
+                filter: -> return true
+                sort: (a, b) ->
+                    if a.model.get('name') > b.model.get('name')
+                        return 1
+                    else if a.model.get('name') < b.model.get('name')
+                        return -1
+                    else
+                        return 0
 
 
         render: (message) =>
@@ -83,9 +82,7 @@ module 'ServerView', ->
         # Callback that will be registered: updates the toolbar buttons based on how many machines have been selected
         update_toolbar_buttons: =>
             # We need to check which machines have been checked off to decide which buttons to enable/disable
-            $set_datacenter_button = @.$('.actions-bar a.btn.set-datacenter')
-            $set_datacenter_button.toggleClass 'disabled', @check_can_change_datacenter()
-            #$set_datacenter_button.toggleClass 'disabled', @get_selected_machines().length < 1
+            @.$('.actions-bar a.btn.set-datacenter').toggleClass 'disabled', @check_can_change_datacenter()
 
         check_can_change_datacenter: =>
             selected_machines = @get_selected_machines()
@@ -146,109 +143,8 @@ module 'ServerView', ->
             return num_not_movable_machines>0 or selected_machines.length is 0
 
         destroy: =>
-            super()
-            @unassigned_machines.destroy()
-
-
-    class @MachineList extends UIComponents.AbstractList
-        # Use a machine-specific template for the machine list
-        tagName: 'div'
-        template: Handlebars.compile $('#machine_list-template').html()
-
-        initialize: (datacenter_uuid) ->
-            @datacenter_uuid = datacenter_uuid
-            @callbacks = []
-            super machines, ServerView.MachineListElement, '.list',
-                {
-                filter: (model) -> model.get('datacenter_uuid') is @datacenter_uuid
-                }
-                , 'machine', 'datacenter'
-
-            machines.on 'change:datacenter_uuid', @changed_datacenter
-            return @
-
-        changed_datacenter: (machine, new_datacenter_uuid) =>
-            num_elements_removed = @remove_elements machine
-            @render() if num_elements_removed > 0
-
-            if new_datacenter_uuid is @datacenter_uuid
-                @add_element machine
-                @render()
-
-
-        add_element: (element) =>
-            machine_list_element = super element
-            @bind_callbacks_to_machine machine_list_element
-
-        # Add to the list of known callbacks, and register the callback with each MachineListElement
-        register_machine_callbacks: (callbacks) =>
-            @callbacks = callbacks
-            @bind_callbacks_to_machine machine_list_element for machine_list_element in @element_views
-
-        bind_callbacks_to_machine: (machine_list_element) =>
-            machine_list_element.off 'selected', @call_all_callback
-            machine_list_element.on 'selected', @call_all_callback
-
-        call_all_callback: =>
-            callback() for callback in @callbacks
-
-        destroy: ->
-            machines.off 'change:datacenter_uuid', @changed_datacenter
-
-
-    # Machine list element
-    class @MachineListElement extends UIComponents.CheckboxListElement
-        template: Handlebars.compile $('#machine_list_element-template').html()
-        tagName: 'div'
-
-        initialize: =>
-            log_initial '(initializing) list view: machine'
-            @model.on 'change:name', @render_summary
-            directory.on 'all', @render_summary
-
-            # Load abstract list element view with the machine template
-            super @template
-
-
-        json_for_template: =>
-            json = _.extend @model.toJSON(),
-                status: DataUtils.get_machine_reachability(@model.get('id'))
-                primary_count: 0
-                secondary_count: 0
-
-            # primary, secondary, and namespace counts
-            _namespaces = []
-            for namespace in namespaces.models
-                for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
-                    if machine_uuid is @model.get('id')
-                        machine_active_for_namespace = false
-                        for shard, role of peer_role
-                            if role is 'role_primary'
-                                machine_active_for_namespace = true
-                                json.primary_count += 1
-                            if role is 'role_secondary'
-                                machine_active_for_namespace = true
-                                json.secondary_count += 1
-                        if machine_active_for_namespace
-                            _namespaces[_namespaces.length] = namespace
-            json.namespace_count = _.uniq(_namespaces).length
-
-            if not @model.get('datacenter_uuid')?
-                json.nassigned_machine = true
-
-            return json
-
-        render: =>
             super
-
-            # TODO remove if no bugs arise (e.g. if this is unnecessary)
-            #@.delegateEvents()
-
-            return @
-
-        destroy: =>
-            @model.off 'change:name', @render_summary
-            directory.off 'all', @render_summary
+            @unassigned_machines.destroy()
 
     # Datacenter list element
     class @DatacenterListElement extends UIComponents.CollapsibleListElement
@@ -270,35 +166,21 @@ module 'ServerView', ->
             @machine_list = new ServerView.MachineList @model.get('id')
             @remove_datacenter_dialog = new ServerView.RemoveDatacenterModal
             @callbacks = []
-            @no_machines = true
 
             @model.on 'change', @render_summary
             directory.on 'all', @render_summary
-            @machine_list.on 'size_changed', @ml_size_changed
-            @ml_size_changed()
-
-        ml_size_changed: =>
-            num_machines = @machine_list.element_views.length
-
-            we_should_rerender = false
-
-            if @no_machines and num_machines > 0
-                @no_machines = false
-                we_should_rerender = true
-            else if not @no_machines and num_machines is 0
-                @no_machines = true
-                we_should_rerender = true
-
-            @render() if we_should_rerender
+            @machine_list.on 'need_render', @render
 
         render: =>
             @.$el.html @template
-                no_machines: @no_machines
+                no_machines: @machine_list.get_length() is 0
 
             @render_summary()
 
             # Attach a list of available machines to the given datacenter
             @.$('.element-list-container').html @machine_list.render().el
+            for callback in @callbacks
+                callback()
 
             super
 
@@ -348,7 +230,145 @@ module 'ServerView', ->
         destroy: ->
             @model.off 'change', @render_summary
             directory.off 'all', @render_summary
-            @machine_list.off 'size_changed', @ml_size_changed
+            @machine_list.off 'need_render', @render
+
+
+    class @MachineList extends Backbone.View
+        # Use a machine-specific template for the machine list
+        tagName: 'div'
+        template: Handlebars.compile $('#machine_list-template').html()
+
+        initialize: (datacenter_uuid) ->
+            @datacenter_uuid = datacenter_uuid
+            @machines_in_datacenter = {}
+            @machine_views = []
+            @callbacks = []
+
+            machines.on 'all', @check_machines
+            @check_machines()
+            
+        get_length: =>
+            return @machine_views.length
+
+        get_selected_elements: =>
+            selected_elements = []
+            selected_elements.push view.model for view in @machine_views when view.selected
+            return selected_elements
+
+        check_machines: =>
+            need_render = false
+            for machine in machines.models
+                if machine.get('datacenter_uuid') is @datacenter_uuid and not @machines_in_datacenter[machine.get('id')]?
+                    @machines_in_datacenter[machine.get('id')] = true
+                    @machine_views.push new ServerView.MachineListElement model: machine
+                    need_render = true
+
+            for machine_id, machine of @machines_in_datacenter
+                if not machines.get(machine_id)? or machines.get(machine_id).get('datacenter_uuid') isnt @datacenter_uuid
+                    @machines_in_datacenter[machine_id] = undefined
+                    for machine_view, i in @machine_views
+                        if machine_view.model.get('id') is machine_id
+                            @machine_views.splice i, 1
+                            break
+                    need_render = true
+
+            if need_render is true
+                @.trigger 'need_render'
+
+        render: =>
+            @.$el.html ''
+            for machine_view in @machine_views
+                @.$el.append machine_view.render().$el
+
+            @register_machine_callbacks @callbacks
+            @delegateEvents()
+
+            return @
+
+            
+
+        add_element: (element) =>
+            machine_list_element = super element
+            @bind_callbacks_to_machine machine_list_element
+
+        # Add to the list of known callbacks, and register the callback with each MachineListElement
+        register_machine_callbacks: (callbacks) =>
+            @callbacks = callbacks
+            @bind_callbacks_to_machine machine_list_element for machine_list_element in @machine_views
+
+        bind_callbacks_to_machine: (machine_list_element) =>
+            machine_list_element.off 'selected', @call_all_callback
+            machine_list_element.on 'selected', @call_all_callback
+
+        call_all_callback: =>
+            callback() for callback in @callbacks
+
+        destroy: ->
+            machines.on 'all', @check_machines
+
+
+    # Machine list element
+    class @MachineListElement extends UIComponents.CheckboxListElement
+        template: Handlebars.compile $('#machine_list_element-template').html()
+        status_template: Handlebars.compile $('#machine_list_element-status-template').html()
+        quick_info_template: Handlebars.compile $('#machine_list_element-quick_info-template').html()
+        tagName: 'div'
+
+        initialize: =>
+            @model.on 'change:name', @render
+            directory.on 'all', @render_status
+            namespaces.on 'all', @render_info
+
+            # Load abstract list element view with the machine template
+            super @template
+
+
+        json_for_template: =>
+            data =
+                id: @model.get 'id'
+                name: @model.get 'name'
+            return data
+
+        render_name: =>
+            @.$('name-link').html(@model.get('name'))
+
+        render_info: =>
+            data =
+                primary_count: 0
+                secondary_count: 0
+                namespace_count: 0
+
+            for namespace in namespaces.models
+                for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
+                    if machine_uuid is @model.get('id')
+                        machine_active_for_namespace = false
+                        for shard, role of peer_role
+                            if role is 'role_primary'
+                                machine_active_for_namespace = true
+                                data.primary_count += 1
+                            if role is 'role_secondary'
+                                machine_active_for_namespace = true
+                                data.secondary_count += 1
+                        if machine_active_for_namespace is true
+                            data.namespace_count++
+
+            @.$('.quick_info').html @quick_info_template data
+
+        render_status: =>
+            @.$('.status').html @status_template
+                status: DataUtils.get_machine_reachability(@model.get('id'))
+
+        render: =>
+            super
+            @render_info()
+            @render_status()
+
+            return @
+
+        destroy: =>
+            @model.on 'change:name', @render
+            directory.on 'all', @render_status
+            namespaces.on 'all', @render_info
 
     # Equivalent of a DatacenterListElement, but for machines that haven't been assigned to a datacenter yet.
     class @UnassignedMachinesListElement extends UIComponents.CollapsibleListElement
@@ -360,31 +380,13 @@ module 'ServerView', ->
             super
 
             @machine_list = new ServerView.MachineList universe_datacenter.get('id')
-            @no_machines = true
-
-            machines.on 'add', (machine) => @render() if machine.get('datacenter_uuid') is universe_datacenter.get('id')
-            @machine_list.on 'size_changed', @ml_size_changed
-            @ml_size_changed()
-
             @callbacks = []
 
-        ml_size_changed: =>
-            num_machines = @machine_list.element_views.length
-
-            we_should_rerender = false
-
-            if @no_machines and num_machines > 0
-                @no_machines = false
-                we_should_rerender = true
-            else if not @no_machines and num_machines is 0
-                @no_machines = true
-                we_should_rerender = true
-
-            @render() if we_should_rerender
+            @machine_list.on 'need_render', @render
 
         render: =>
             @.$el.html @template
-                no_machines: @no_machines
+                no_machines: @machine_list.get_length() is 0
 
             # Attach a list of available machines to the given datacenter
             @.$('.element-list-container').html @machine_list.render().el
@@ -398,8 +400,7 @@ module 'ServerView', ->
             @machine_list.register_machine_callbacks callbacks
 
         destroy: =>
-            machines.off 'add', (machine) => @render() if machine.get('datacenter_uuid') is universe_datacenter.get('id')
-            @machine_list.off 'size_changed', @ml_size_changed
+            @machine_list.off 'need_render', @render
 
     class @AddDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#add_datacenter-modal-template').html()

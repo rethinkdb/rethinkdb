@@ -33,7 +33,6 @@ module 'UIComponents', ->
 
             if @options? and @options.sort?
                 @sort = @options.sort
-            else @sort = (a,b) -> 0
 
             # Initially we need to populate the element views list
             @reset_element_views()
@@ -63,7 +62,9 @@ module 'UIComponents', ->
                 @remove_elements model
 
         render: =>
-            @element_views.sort @sort
+            if @sort?
+                @element_views.sort @sort
+
             #log_render '(rendering) list view: ' + class_name @collection
             # Render and append the list template to the DOM
             @.$el.html(@template({}))
