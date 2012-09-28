@@ -19,7 +19,7 @@ public:
     initial_joiner_t(
             connectivity_cluster_t *cluster,
             connectivity_cluster_t::run_t *cluster_run,
-            const std::set<peer_address_t> &peers,
+            const peer_address_set_t &peers,
             int timeout = -1);
 
     signal_t *get_ready_signal() {
@@ -36,7 +36,7 @@ private:
     void on_disconnect(UNUSED peer_id_t peer) { }
 
     connectivity_cluster_t *cluster;
-    std::set<peer_address_t> peers_not_heard_from;
+    peer_address_set_t peers_not_heard_from;
     cond_t done_signal;
     scoped_ptr_t<signal_timer_t> grace_period_timer;
     auto_drainer_t drainer;

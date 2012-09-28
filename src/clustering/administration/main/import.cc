@@ -44,7 +44,7 @@ bool get_other_peer(const std::set<peer_id_t> &peers_list, const peer_id_t &me, 
 }
 
 
-bool run_json_import(extproc::spawner_t::info_t *spawner_info, std::set<peer_address_t> joins, int ports_port, int ports_client_port, json_import_target_t target, json_importer_t *importer, signal_t *stop_cond) {
+bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_t joins, int ports_port, int ports_client_port, json_import_target_t target, json_importer_t *importer, signal_t *stop_cond) {
 
     guarantee(spawner_info);
     extproc::pool_group_t extproc_pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);

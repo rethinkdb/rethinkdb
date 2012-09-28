@@ -208,7 +208,7 @@ std::string admin_cluster_link_t::truncate_uuid(const uuid_t& uuid) {
     }
 }
 
-admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins, int client_port, signal_t *interruptor) :
+admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins, int client_port, signal_t *interruptor) :
     local_issue_tracker(),
     log_writer(&local_issue_tracker), // TODO: come up with something else for this file
     connectivity_cluster(),
