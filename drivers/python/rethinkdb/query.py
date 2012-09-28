@@ -661,7 +661,7 @@ class JSONExpression(ReadQuery):
                 )
             )), if_then_else(letvar('matches').length() > 0,
                 letvar('matches'),
-                expr({'left':row})
+                expr([{'left':row}])
             ))
         )
 
