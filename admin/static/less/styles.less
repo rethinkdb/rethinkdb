@@ -434,6 +434,9 @@ body:before {
             opacity: 0.65;
             .box-shadow(none);
         }
+
+        // fix for buttons that are a tags (remove underline)
+        &:hover { text-decoration: none; }
     }
     h1.title {
         font-family: @serif;

@@ -36,7 +36,7 @@ module 'NamespaceView', ->
             @shards = new NamespaceView.Sharding(model: @model)
             @pins = new NamespaceView.Pinning(model: @model)
             @other = new NamespaceView.Other(model: @model)
-            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance
+            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
                 type: 'table'
             )
 
