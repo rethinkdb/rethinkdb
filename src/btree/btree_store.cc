@@ -11,13 +11,11 @@ btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
                                          int64_t cache_target,
                                          bool create,
                                          perfmon_collection_t *parent_perfmon_collection,
-                                         typename protocol_t::context_t *) :
-    store_view_t<protocol_t>(protocol_t::region_t::universe()),
-    perfmon_collection(),
-    perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, filename)
-{
+                                         typename protocol_t::context_t *)
+    : store_view_t<protocol_t>(protocol_t::region_t::universe()),
+      perfmon_collection(),
+      perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, filename) {
     if (create) {
-
         standard_serializer_t::create(
             io_backender,
             standard_serializer_t::private_dynamic_config_t(filename),
