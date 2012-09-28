@@ -482,34 +482,38 @@ store_t::~store_t() {
 namespace {
 
 // TODO: get rid of this extra response_t copy on the stack
-struct read_visitor_t : public boost::static_visitor<read_response_t> {
-    read_response_t operator()(const point_read_t &get) {
-        return read_response_t(rdb_get(get.key, btree, txn, superblock));
+struct read_visitor_t : public boost::static_visitor<void> {
+    void operator()(const point_read_t &get) {
+        response->response = point_read_response_t();
+        point_read_response_t &res = boost::get<point_read_response_t>(response->response);
+        rdb_get(get.key, btree, txn, superblock, &res);
     }
 
-    read_response_t operator()(const rget_read_t &rget) {
-        return read_response_t(rdb_rget_slice(btree, rget.region.inner, txn, superblock, &env, rget.transform, rget.terminal));
+    void operator()(const rget_read_t &rget) {
+        response->response = rget_read_response_t();
+        rget_read_response_t &res = boost::get<rget_read_response_t>(response->response);
+        rdb_rget_slice(btree, rget.region.inner, txn, superblock, &env, rget.transform, rget.terminal, &res);
     }
 
-    read_response_t operator()(const distribution_read_t &dg) {
-        distribution_read_response_t dstr = rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left, txn, superblock);
-        for (std::map<store_key_t, int>::iterator it  = dstr.key_counts.begin();
-                                                  it != dstr.key_counts.end();
+    void operator()(const distribution_read_t &dg) {
+        response->response = distribution_read_response_t();
+        distribution_read_response_t &res = boost::get<distribution_read_response_t>(response->response);
+        rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left, txn, superblock, &res);
+        for (std::map<store_key_t, int>::iterator it = res.key_counts.begin();
+                                                  it != res.key_counts.end();
                                                   /* increments done in loop */) {
             if (!dg.region.inner.contains_key(store_key_t(it->first))) {
-                dstr.key_counts.erase(it++);
+                res.key_counts.erase(it++);
             } else {
                 ++it;
             }
         }
 
-        dstr.region = dg.region;
-
-        return read_response_t(dstr);
+        res.region = dg.region;
     }
 
-    read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, rdb_protocol_t::context_t *ctx) :
-        btree(btree_), txn(txn_), superblock(superblock_),
+    read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, rdb_protocol_t::context_t *ctx, read_response_t *response_) :
+        response(response_), btree(btree_), txn(txn_), superblock(superblock_),
         env(ctx->pool_group,
             ctx->ns_repo,
             ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
@@ -521,6 +525,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
     { }
 
 private:
+    read_response_t *response;
     btree_slice_t *btree;
     transaction_t *txn;
     superblock_t *superblock;
@@ -534,32 +539,35 @@ void store_t::protocol_read(const read_t &read,
                             btree_slice_t *btree,
                             transaction_t *txn,
                             superblock_t *superblock) {
-    read_visitor_t v(btree, txn, superblock, ctx);
-    *response = boost::apply_visitor(v, read.read);
+    read_visitor_t v(btree, txn, superblock, ctx, response);
+    boost::apply_visitor(v, read.read);
 }
 
 namespace {
 
 // TODO: get rid of this extra response_t copy on the stack
-struct write_visitor_t : public boost::static_visitor<write_response_t> {
-    write_response_t operator()(const point_write_t &w) {
-        return write_response_t(
-            rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock));
+struct write_visitor_t : public boost::static_visitor<void> {
+    void operator()(const point_write_t &w) {
+        response->response = point_write_response_t();
+        point_write_response_t &res = boost::get<point_write_response_t>(response->response);
+        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock, &res);
     }
 
-    write_response_t operator()(const point_modify_t &m) {
-        write_response_t res(rdb_modify(m.primary_key, m.key, m.op, &env, m.scopes, m.backtrace, m.mapping, btree, timestamp, txn, superblock));
-        return res;
+    void operator()(const point_modify_t &m) {
+        response->response = point_modify_response_t();
+        point_modify_response_t &res = boost::get<point_modify_response_t>(response->response);
+        rdb_modify(m.primary_key, m.key, m.op, &env, m.scopes, m.backtrace, m.mapping, btree, timestamp, txn, superblock, &res);
     }
 
-    write_response_t operator()(const point_delete_t &d) {
-        return write_response_t(
-            rdb_delete(d.key, btree, timestamp, txn, superblock));
+    void operator()(const point_delete_t &d) {
+        response->response = point_delete_response_t();
+        point_delete_response_t &res = boost::get<point_delete_response_t>(response->response);
+        rdb_delete(d.key, btree, timestamp, txn, superblock, &res);
     }
 
     write_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_,
-                    repli_timestamp_t timestamp_, rdb_protocol_t::context_t *ctx) :
-        btree(btree_), txn(txn_), superblock(superblock_), timestamp(timestamp_),
+                    repli_timestamp_t timestamp_, rdb_protocol_t::context_t *ctx, write_response_t *_response) :
+        btree(btree_), txn(txn_), response(_response), superblock(superblock_), timestamp(timestamp_),
         env(ctx->pool_group,
             ctx->ns_repo,
             ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
@@ -573,6 +581,7 @@ struct write_visitor_t : public boost::static_visitor<write_response_t> {
 private:
     btree_slice_t *btree;
     transaction_t *txn;
+    write_response_t *response;
     superblock_t *superblock;
     repli_timestamp_t timestamp;
     query_language::runtime_environment_t env;
@@ -586,8 +595,8 @@ void store_t::protocol_write(const write_t &write,
                              btree_slice_t *btree,
                              transaction_t *txn,
                              superblock_t *superblock) {
-    write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx);
-    *response = boost::apply_visitor(v, write.write);
+    write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response);
+    boost::apply_visitor(v, write.write);
 }
 
 namespace {
@@ -705,12 +714,13 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
 
 namespace {
 
-struct receive_backfill_visitor_t : public boost::static_visitor<> {
+struct receive_backfill_visitor_t : public boost::static_visitor<void> {
     receive_backfill_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, signal_t *interruptor_) :
       btree(btree_), txn(txn_), superblock(superblock_), interruptor(interruptor_) { }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
-        rdb_delete(delete_key.key, btree, delete_key.recency, txn, superblock);
+        point_delete_response_t response;
+        rdb_delete(delete_key.key, btree, delete_key.recency, txn, superblock, &response);
     }
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
@@ -720,9 +730,10 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
         const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
+        point_write_response_t response;
         rdb_set(bf_atom.key, bf_atom.value, true,
                 btree, bf_atom.recency,
-                txn, superblock);
+                txn, superblock, &response);
     }
 
 private:

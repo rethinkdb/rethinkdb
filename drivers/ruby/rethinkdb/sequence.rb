@@ -245,5 +245,53 @@ module RethinkDB
     def nth(n)
       JSON_Expression.new [:call, [:nth], [self, S.r(n)]]
     end
+
+    def innerjoin(other)
+        self.concatmap { |row|
+            other.concatmap { |row2|
+                RethinkDB::RQL.if(yield(row, row2),
+                    RethinkDB::RQL.expr([{:left => row, :right => row2}]),
+                    RethinkDB::RQL.expr([])
+                )
+            }
+        }
+    end
+
+    def outerjoin(other)
+        self.concatmap { |row|
+            RethinkDB::RQL.let({:matches => other.concatmap { |row2|
+                    RethinkDB::RQL.if(yield(row, row2),
+                        RethinkDB::RQL.expr([{:left => row, :right => row2}]),
+                        RethinkDB::RQL.expr([])
+                    )
+                }
+            }, RethinkDB::RQL.if(RethinkDB::RQL.letvar(:matches).length() > 0,
+                    RethinkDB::RQL.letvar(:matches),
+                    RethinkDB::RQL.expr([:left => row])
+                )
+            )
+        }
+    end
+
+    def equijoin(leftattr, other, opt_rightattr=nil)
+        self.concatmap { |row|
+            RethinkDB::RQL.let({:right => other.get(row[leftattr])},
+                RethinkDB::RQL.if(RethinkDB::RQL.letvar(:right).ne(nil),
+                    RethinkDB::RQL.expr([{:left => row, :right => RethinkDB::RQL.letvar(:right)}]),
+                    RethinkDB::RQL.expr([])
+                )
+            )
+        }
+    end
+
+    def zip
+        self.map {|row|
+            RethinkDB::RQL.if(row.hasattr('right'),
+                row['left'].mapmerge(row['right']),
+                row['left']
+            )
+        }
+    end
+
   end
 end
