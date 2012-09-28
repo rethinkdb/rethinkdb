@@ -997,6 +997,44 @@ class StreamExpression(ReadQuery):
         # TODO: reimplement in terms of pickattr when that's done
         return self.map(lambda r: {a: r[a] for a in attrs})
 
+    def inner_join(self, other, predicate):
+        return self.concat_map(
+            lambda row: other.concat_map(
+                lambda row2: if_then_else(predicate(row, row2),
+                    expr([{'left':row, 'right':row2}]),
+                    expr([]))
+                )
+            )
+
+    def outer_join(self, other, predicate):
+        return self.concat_map(
+            lambda row: let(('matches', other.concat_map(
+                lambda row2: if_then_else(predicate(row, row2),
+                    expr([{'left':row, 'right':row2}]),
+                    expr([])
+                )
+            )), if_then_else(letvar('matches').length() > 0,
+                letvar('matches'),
+                expr({'left':row})
+            ))
+        )
+
+    def equi_join(self, left_attr, other, opt_right_attr=None):
+        return self.concat_map(
+            lambda row: let(('right', other.get(row[left_attr])),
+                if_then_else(letvar('right') != None,
+                    expr([{'left':row, 'right':letvar('right')}]),
+                    expr([])
+                )
+            )
+        )
+
+    def zip(self):
+        return self.map(lambda row: if_then_else(row.has_attr('right'),
+            row['left'].extend(row['right']),
+            row['left']
+        ))
+
     def length(self):
         """Returns the length of the stream.
 
