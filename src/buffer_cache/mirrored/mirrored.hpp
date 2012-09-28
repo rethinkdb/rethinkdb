@@ -323,6 +323,7 @@ public:
     typedef mc_transaction_t transaction_type;
     typedef mc_cache_account_t cache_account_type;
 
+    // TODO: Make these pointers-to-const.
     static void create(serializer_t *serializer, mirrored_cache_static_config_t *config);
     mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *);
     ~mc_cache_t();

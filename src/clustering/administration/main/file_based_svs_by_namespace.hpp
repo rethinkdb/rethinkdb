@@ -18,7 +18,8 @@ public:
 
     void destroy_svs(namespace_id_t namespace_id);
 
-    std::string file_name_for(namespace_id_t namespace_id, int i);
+    std::string file_name_for(namespace_id_t namespace_id);
+    std::string hash_shard_name_for(namespace_id_t namespace_id, int shardnum);
 
 private:
 

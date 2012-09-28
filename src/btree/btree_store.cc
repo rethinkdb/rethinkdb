@@ -6,37 +6,24 @@
 #include "concurrency/wait_any.hpp"
 
 template <class protocol_t>
-btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
-                                         const std::string& filename,
+btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
+                                         const std::string &hash_shard_name,
                                          int64_t cache_target,
                                          bool create,
                                          perfmon_collection_t *parent_perfmon_collection,
                                          typename protocol_t::context_t *)
     : store_view_t<protocol_t>(protocol_t::region_t::universe()),
       perfmon_collection(),
-      perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, filename) {
-    if (create) {
-        standard_serializer_t::create(
-            io_backender,
-            standard_serializer_t::private_dynamic_config_t(filename),
-            standard_serializer_t::static_config_t());
-    }
-
-    serializer.init(new standard_serializer_t(
-        standard_serializer_t::dynamic_config_t(),
-        io_backender,
-        standard_serializer_t::private_dynamic_config_t(filename),
-        &perfmon_collection));
-
+      perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, hash_shard_name) {
     if (create) {
         mirrored_cache_static_config_t cache_static_config;
-        cache_t::create(serializer.get(), &cache_static_config);
+        cache_t::create(serializer, &cache_static_config);
     }
 
     // TODO: Don't specify cache dynamic config here.
     cache_dynamic_config.max_size = cache_target;
     cache_dynamic_config.max_dirty_size = cache_target / 2;
-    cache.init(new cache_t(serializer.get(), &cache_dynamic_config, &perfmon_collection));
+    cache.init(new cache_t(serializer, &cache_dynamic_config, &perfmon_collection));
 
     if (create) {
         btree_slice_t::create(cache.get());

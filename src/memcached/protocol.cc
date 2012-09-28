@@ -413,13 +413,13 @@ region_t memcached_protocol_t::cpu_sharding_subspace(int subregion_number, int n
     return region_t(beg, end, key_range_t::universe());
 }
 
-store_t::store_t(io_backender_t *io_backend,
-                 const std::string& filename,
+store_t::store_t(serializer_t *serializer,
+                 const std::string &hash_shard_name,
                  int64_t cache_size,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
                  context_t *ctx) :
-    btree_store_t<memcached_protocol_t>(io_backend, filename, cache_size, create, parent_perfmon_collection, ctx) { }
+    btree_store_t<memcached_protocol_t>(serializer, hash_shard_name, cache_size, create, parent_perfmon_collection, ctx) { }
 
 store_t::~store_t() {
     assert_thread();

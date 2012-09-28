@@ -199,7 +199,11 @@ dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_prot
     initialize_empty();
 }
 
-dummy_protocol_t::store_t::store_t(UNUSED io_backender_t *io_backend, const std::string& fn, UNUSED int64_t cache_size, bool create, perfmon_collection_t *, UNUSED context_t *) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
+dummy_protocol_t::store_t::store_t(UNUSED serializer_t *io_backend, const std::string& hash_shard_name,
+                                   UNUSED int64_t cache_size, bool create,
+                                   UNUSED perfmon_collection_t *perfmon_collection, UNUSED context_t *ctx) :
+    store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')),
+    filename(fn) {
     if (create) {
         initialize_empty();
     } else {
