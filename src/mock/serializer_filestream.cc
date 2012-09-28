@@ -48,6 +48,16 @@ MUST_USE int64_t serializer_file_read_stream_t::read(void *p, int64_t n) {
 
 serializer_file_write_stream_t(serializer_t *serializer) : serializer_(serializer), known_size_(-1), position_(0) {
     mirrored_cache_config_t config;
+    cache_.init(new cache_t(serializer, &config, &get_global_perfmon_collection()));
+    {
+        transaction_t txn(cache_.get(), rwi_write, 1);
+        for (block_id_t i = 0; i < MAX_BLOCK_ID && cache_->contains_block(i); ++i) {
+            buf_lock_t b(&txn, i, rwi_write);
+            b.mark_deleted();
+        }
+    }
+
+
 
 
 }
