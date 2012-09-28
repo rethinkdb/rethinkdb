@@ -24,6 +24,7 @@ const char *list_machines_command = "ls machines";
 const char *list_directory_command = "ls directory";
 const char *list_tables_command = "ls tables";
 const char *list_datacenters_command = "ls datacenters";
+const char *list_databases_command = "ls databases";
 const char *exit_command = "exit";
 const char *help_command = "help";
 const char *resolve_command = "resolve";
@@ -33,13 +34,17 @@ const char *merge_shard_command = "merge shard";
 const char *set_name_command = "set name";
 const char *set_acks_command = "set acks";
 const char *set_primary_command = "set primary";
+const char *unset_primary_command = "unset primary";
 const char *set_replicas_command = "set replicas";
 const char *set_datacenter_command = "set datacenter";
+const char *set_database_command = "set database";
 const char *create_table_command = "create table";
 const char *create_datacenter_command = "create datacenter";
+const char *create_database_command = "create database";
 const char *remove_machine_command = "rm machine";
 const char *remove_table_command = "rm table";
 const char *remove_datacenter_command = "rm datacenter";
+const char *remove_database_command = "rm database";
 
 // Special commands - used only in certain cases
 const char *admin_command_parser_t::complete_command = "complete";
@@ -54,6 +59,7 @@ const char *list_directory_usage = "[--long]";
 const char *list_tables_usage = "[--long]";
 // const char *list_tables_usage = "[--protocol <PROTOCOL>] [--long]";
 const char *list_datacenters_usage = "[--long]";
+const char *list_databases_usage = "[--long]";
 const char *help_usage = "[ ls | create | rm | set | split | merge | pin | resolve | help ]";
 const char *resolve_usage = "<ID> <FIELD>";
 const char *pin_shard_usage = "<TABLE> <SHARD> [--master <MACHINE>] [--replicas <MACHINE>...]";
@@ -63,11 +69,14 @@ const char *set_name_usage = "<ID> <NEW-NAME>";
 const char *set_acks_usage = "<TABLE> <DATACENTER> <NUM-ACKS>";
 const char *set_replicas_usage = "<TABLE> <DATACENTER> <NUM-REPLICAS>";
 const char *set_primary_usage = "<TABLE> <DATACENTER>";
+const char *unset_primary_usage = "<TABLE>";
 const char *set_datacenter_usage = "<MACHINE> <DATACENTER>";
+const char *set_database_usage = "<TABLE> <DATABASE>";
 // TODO: fix this once multiple protocols are supported again
 const char *create_table_usage = "<NAME> --primary <DATACENTER>";
 // const char *create_table_usage = "<NAME> --port <PORT> --protocol <PROTOCOL> --primary <DATACENTER>";
 const char *create_datacenter_usage = "<NAME>";
+const char *create_database_usage = "<NAME>";
 const char *remove_usage = "<ID>...";
 
 const char *list_id_option = "[<ID>]";
@@ -96,26 +105,31 @@ const char *set_replicas_datacenter_option = "<DATACENTER>";
 const char *set_replicas_num_replicas_option = "<NUM-REPLICAS>";
 const char *set_primary_table_option = "<TABLE>";
 const char *set_primary_datacenter_option = "<DATACENTER>";
+const char *unset_primary_table_option = "<TABLE>";
 const char *set_datacenter_machine_option = "<MACHINE>";
 const char *set_datacenter_datacenter_option = "<DATACENTER>";
+const char *set_database_table_option = "<TABLE>";
+const char *set_database_database_option = "<DATABASE>";
 const char *create_table_name_option = "<NAME>";
 // TODO: fix this once multiple protocols are supported again
 // const char *create_table_port_option = "--port <PORT>";
 // const char *create_table_protocol_option = "--protocol <PROTOCOL>";
 const char *create_table_primary_option = "--primary <DATACENTER>";
+const char *create_table_database_option = "--database <DATABASE>";
 const char *create_datacenter_name_option = "<NAME>";
+const char *create_database_name_option = "<NAME>";
 const char *remove_id_option = "<ID>";
 
 const char *list_id_option_desc = "print out a detailed description of a single object in the cluster, this can be a machine, table, or datacenter";
-const char *list_long_option_desc = "print out full uuids (and extra information when listing machines, tables, or datacenters)";
+const char *list_long_option_desc = "print out full uuids (and extra information when listing machines, tables, datacenters, or databases)";
 const char *list_stats_machine_option_desc = "limit stat collection to the set of machines specified";
 const char *list_stats_table_option_desc = "limit stat collection to the set of tables specified";
 // TODO: fix this once multiple protocols are supported again
 // const char *list_tables_protocol_option_desc = "limit the list of tables to tables matching the specified protocol";
 const char *resolve_id_option_desc = "the name or uuid of an object with a conflicted field";
 // TODO: fix this once multiple protocols are supported again
-const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters this can be 'name' only, and for tables, this can be 'name', 'datacenter', 'replicas', 'acks', 'shards', master_pinnings', or 'replica_pinnings'";
-// const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters this can be 'name' only, and for tables, this can be 'name', 'datacenter', 'replicas', 'acks', 'shards', 'port', master_pinnings', or 'replica_pinnings'";
+const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'database', 'datacenter', 'replicas', 'acks', 'shards', master_pinnings', or 'replica_pinnings'";
+// const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'datacenter', 'database', 'replicas', 'acks', 'shards', 'port', master_pinnings', or 'replica_pinnings'";
 const char *pin_shard_table_option_desc = "the table to change the shard pinnings of";
 const char *pin_shard_shard_option_desc = "the shard to be affected, this is of the format [<LOWER-BOUND>]-[<UPPER-BOUND>] where one or more of the bounds must be specified.  Any non-alphanumeric character should be specified using escaped hexadecimal ASCII, e.g. '\\7E' for '~', the minimum and maximum bounds can be referred to as '-inf' and '+inf', respectively.  Only one shard may be modified at a time.";
 const char *pin_shard_master_option_desc = "the machine to host the master replica of the shard, this machine must belong to the primary datacenter of the table";
@@ -134,14 +148,19 @@ const char *set_replicas_datacenter_option_desc = "the datacenter which will hos
 const char *set_replicas_num_replicas_option_desc = "the number of replicas of the specified table to host in the specified datacenter, this value should not exceed the number of machines in the datacenter";
 const char *set_primary_table_option_desc = "the table which will have its shards' master replicas moved to the specified datacenter";
 const char *set_primary_datacenter_option_desc = "the datacenter to move to";
+const char *unset_primary_table_option_desc = "the table which will have its shards' master replicas automatically redistributed across the cluster";
 const char *set_datacenter_machine_option_desc = "the machine to move to the specified datacenter";
 const char *set_datacenter_datacenter_option_desc = "the datacenter to move to";
+const char *set_database_table_option_desc = "the table to move to the specified database";
+const char *set_database_database_option_desc = "the database to move to";
 const char *create_table_name_option_desc = "the name of the new table";
 // TODO: fix this once multiple protocols are supported again
 // const char *create_table_port_option_desc = "the port for the table to serve data from for every machine in the cluster";
 // const char *create_table_protocol_option_desc = "the protocol for the table to use, either 'rdb' or 'memcached'";
 const char *create_table_primary_option_desc = "the primary datacenter of the new table, this datacenter will host the master replicas of each shard";
+const char *create_table_database_option_desc = "the database that the table will exist in, client requests must be directed to this database";
 const char *create_datacenter_name_option_desc = "the name of the new datacenter";
+const char *create_database_name_option_desc = "the name of the new database";
 const char *remove_id_option_desc = "the name or uuid of the object to remove";
 
 const char *list_description = "Print a list of objects in the cluster.  An individual object can be selected by name or uuid for a detailed description of the object.";
@@ -149,10 +168,11 @@ const char *list_stats_description = "Print a list of statistics gathered by the
 const char *list_issues_description = "Print a list of issues currently detected by the cluster.";
 const char *list_machines_description = "Print a list of machines in the cluster along with some relevant data about each machine.";
 const char *list_directory_description = "Print a list of nodes currently connected to the running admin client, this may include data servers, proxy nodes, or other admin clients.";
-// TODO :fix this once multiple protocols are supported again
+// TODO: fix this once multiple protocols are supported again
 const char *list_tables_description = "Print a list of tables in the cluster along with some relevant data about each table.";
 // const char *list_tables_description = "Print a list of tables in the cluster along with some relevant data about each table. The list may be filtered by a table protocol type.";
 const char *list_datacenters_description = "Print a list of datacenters in the cluster along with some relevant data about each datacenter.";
+const char *list_databases_description = "Print a list of databases in the cluster along with some relevant data about each database.";
 const char *exit_description = "Quit the cluster administration console.";
 const char *help_description = "Print help on a cluster administration command.";
 const char *resolve_description = "If there are any conflicted values in the cluster, list the possible values for a conflicted field, then resolve the conflict by selecting one of the values.";
@@ -163,15 +183,19 @@ const char *set_name_description = "Set the name of an object.  This object may 
 const char *set_acks_description = "Set how many replicas must acknowledge a write operation for it to succeed, for the given table and datacenter.";
 const char *set_replicas_description = "Set the replica affinities of a table.  This represents the number of replicas that the table will have in each specified datacenter.";
 const char *set_primary_description = "Set the primary datacenter of a table, which will move the master replicas to this datacenter.";
+const char *unset_primary_description = "Clear the primary datacenter of a table, which will allow the cluster to automatically distribute replicas.";
 const char *set_datacenter_description = "Set the datacenter that a machine belongs to.";
+const char *set_database_description = "Set the database that a table belongs to.";
 // TODO: fix this once multiple protocols are supported again
 const char *create_table_description = "Create a new table in the given primary datacenter.";
 // const char *create_table_description = "Create a new table with the given protocol.  The table's primary datacenter and listening port must be specified.";
 const char *create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
+const char *create_database_description = "Create a new database with the given name.  Tables may be assigned to the database.";
 const char *remove_description = "Remove one or more objects from the cluster.";
 const char *remove_machine_description = "Remove one or more machines from the cluster.";
 const char *remove_table_description = "Remove one or more tables from the cluster.";
 const char *remove_datacenter_description = "Remove one or more datacenters from the cluster.";
+const char *remove_database_description = "Remove one or more database from the cluster.";
 
 std::vector<std::string> parse_line(const std::string& line) {
     std::vector<std::string> result;
@@ -395,6 +419,7 @@ void admin_command_parser_t::do_usage(bool console) {
     std::vector<admin_help_info_t> helps;
     std::vector<std::pair<std::string, std::string> > options;
     helps.push_back(admin_help_info_t("set", "", "change a value in the cluster"));
+    helps.push_back(admin_help_info_t("unset", "", "clear a value in the cluster"));
     helps.push_back(admin_help_info_t(list_command, "", "print cluster data"));
     helps.push_back(admin_help_info_t(resolve_command, "", "resolve a value conflict"));
     helps.push_back(admin_help_info_t(split_shard_command, "", "add shards to a table"));
@@ -514,12 +539,19 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("num-replicas", 1, true);
 
     info = add_command(set_primary_command, set_primary_command, set_primary_usage, &admin_cluster_link_t::do_admin_set_primary, &commands);
-    info->add_positional("id", 1, true)->add_option("!namespace");
+    info->add_positional("table", 1, true)->add_option("!namespace");
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
 
+    info = add_command(unset_primary_command, unset_primary_command, unset_primary_usage, &admin_cluster_link_t::do_admin_unset_primary, &commands);
+    info->add_positional("table", 1, true)->add_option("!namespace");
+
     info = add_command(set_datacenter_command, set_datacenter_command, set_datacenter_usage, &admin_cluster_link_t::do_admin_set_datacenter, &commands);
-    info->add_positional("id", 1, true)->add_option("!machine");
+    info->add_positional("machine", 1, true)->add_option("!machine");
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
+
+    info = add_command(set_database_command, set_database_command, set_database_usage, &admin_cluster_link_t::do_admin_set_database, &commands);
+    info->add_positional("table", 1, true)->add_option("!namespace");
+    info->add_positional("database", 1, true)->add_option("!database");
 
     info = add_command(list_command, list_command, list_usage, &admin_cluster_link_t::do_admin_list, &commands);
     info->add_positional("object", 1, false)->add_options("!id", NULLPTR);
@@ -545,16 +577,23 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(list_datacenters_command, list_datacenters_command, list_datacenters_usage, &admin_cluster_link_t::do_admin_list_datacenters, &commands);
     info->add_flag("long", 0, false);
 
+    info = add_command(list_databases_command, list_databases_command, list_databases_usage, &admin_cluster_link_t::do_admin_list_databases, &commands);
+    info->add_flag("long", 0, false);
+
     info = add_command(create_table_command, create_table_command, create_table_usage, &admin_cluster_link_t::do_admin_create_table, &commands);
     info->add_positional("name", 1, true);
     // TODO: fix this once multiple protocols are supported again
     info->add_flag("protocol", 1, false, true); // hidden option
-    info->add_flag("port", 1, false);
+    info->add_flag("port", 1, false, true); // hidden option
     // info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULLPTR);
     // info->add_flag("port", 1, true);
-    info->add_flag("primary", 1, true)->add_option("!datacenter");
+    info->add_flag("primary", 1, false)->add_option("!datacenter");
+    info->add_flag("database", 1, true)->add_option("!database");
 
     info = add_command(create_datacenter_command, create_datacenter_command, create_datacenter_usage, &admin_cluster_link_t::do_admin_create_datacenter, &commands);
+    info->add_positional("name", 1, true);
+
+    info = add_command(create_database_command, create_database_command, create_database_usage, &admin_cluster_link_t::do_admin_create_database, &commands);
     info->add_positional("name", 1, true);
 
     info = add_command(remove_machine_command, remove_machine_command, remove_usage, &admin_cluster_link_t::do_admin_remove_machine, &commands);
@@ -564,6 +603,9 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("id", -1, true)->add_option("!id");
 
     info = add_command(remove_datacenter_command, remove_datacenter_command, remove_usage, &admin_cluster_link_t::do_admin_remove_datacenter, &commands);
+    info->add_positional("id", -1, true)->add_option("!id");
+
+    info = add_command(remove_database_command, remove_database_command, remove_usage, &admin_cluster_link_t::do_admin_remove_database, &commands);
     info->add_positional("id", -1, true)->add_option("!id");
 
     info = add_command(help_command, help_command, help_usage, NULL, &commands); // Special case, 'help' is not done through the cluster
@@ -737,8 +779,7 @@ std::map<std::string, admin_command_parser_t::command_info_t *>::const_iterator 
 }
 
 void admin_command_parser_t::add_option_matches(const param_options_t *option, const std::string& partial, linenoiseCompletions *completions) {
-
-    if (option->hidden || partial.find("!") == 0) {
+    if (option->hidden || (partial.find("!") == 0) ) {
         // Skip any hidden options, no completions there
         // Don't allow completions beginning with '!', as we use it as a special case
         return;
@@ -759,6 +800,10 @@ void admin_command_parser_t::add_option_matches(const param_options_t *option, c
     } else if (option->valid_options.count("!conflict") > 0) {
         ids = get_cluster()->get_conflicted_ids(partial);
     } else { // TODO: any way to make uuids show before names?
+        if (option->valid_options.count("!database") > 0) {
+            std::vector<std::string> delta = get_cluster()->get_database_ids(partial);
+            std::copy(delta.begin(), delta.end(), std::back_inserter(ids));
+        }
         if (option->valid_options.count("!datacenter") > 0) {
             std::vector<std::string> delta = get_cluster()->get_datacenter_ids(partial);
             std::copy(delta.begin(), delta.end(), std::back_inserter(ids));
@@ -868,7 +913,9 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
                     if (partial) {
                         for (opt_iter = cmd->flags.lower_bound(line[index].substr(2));
                              opt_iter != cmd->flags.end() && opt_iter->first.find(line[index].substr(2)) == 0; ++opt_iter) {
-                            linenoiseAddCompletion(completions, ("--" + opt_iter->first).c_str());
+                            if (!opt_iter->second->hidden) {
+                                linenoiseAddCompletion(completions, ("--" + opt_iter->first).c_str());
+                            }
                         }
                     } else {
                         add_positional_matches(cmd, positional_index, std::string(), completions);
@@ -1041,6 +1088,7 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 helps.push_back(admin_help_info_t(list_directory_command, list_directory_usage, list_directory_description));
                 helps.push_back(admin_help_info_t(list_tables_command, list_tables_usage, list_tables_description));
                 helps.push_back(admin_help_info_t(list_datacenters_command, list_datacenters_usage, list_datacenters_description));
+                helps.push_back(admin_help_info_t(list_databases_command, list_databases_usage, list_databases_description));
                 options.push_back(std::make_pair(list_id_option, list_id_option_desc));
                 options.push_back(std::make_pair(list_long_option, list_long_option_desc));
                 options.push_back(std::make_pair(list_stats_machine_option, list_stats_machine_option_desc));
@@ -1074,6 +1122,10 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 helps.push_back(admin_help_info_t(list_datacenters_command, list_datacenters_usage, list_datacenters_description));
                 options.push_back(std::make_pair(list_long_option, list_long_option_desc));
                 do_usage_internal(helps, options, "ls datacenters - display a list of datacenters in the cluster", console_mode);
+            } else if (subcommand == "databases") {
+                helps.push_back(admin_help_info_t(list_databases_command, list_databases_usage, list_databases_description));
+                options.push_back(std::make_pair(list_long_option, list_long_option_desc));
+                do_usage_internal(helps, options, "ls databases - display a list of databases in the cluster", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }
@@ -1084,6 +1136,7 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 helps.push_back(admin_help_info_t(set_replicas_command, set_replicas_usage, set_replicas_description));
                 helps.push_back(admin_help_info_t(set_primary_command, set_primary_usage, set_primary_description));
                 helps.push_back(admin_help_info_t(set_datacenter_command, set_datacenter_usage, set_datacenter_description));
+                helps.push_back(admin_help_info_t(set_database_command, set_database_usage, set_database_description));
                 do_usage_internal(helps, options, "set - change the value of a field in cluster metadata, run 'help set <SUBCOMMAND>' for more information", console_mode);
             } else if (subcommand == "name") {
                 helps.push_back(admin_help_info_t(set_name_command, set_name_usage, set_name_description));
@@ -1112,6 +1165,22 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 options.push_back(std::make_pair(set_datacenter_machine_option, set_datacenter_machine_option_desc));
                 options.push_back(std::make_pair(set_datacenter_datacenter_option, set_datacenter_datacenter_option_desc));
                 do_usage_internal(helps, options, "set datacenter - change the datacenter that a machine belongs in", console_mode);
+            } else if (subcommand == "database") {
+                helps.push_back(admin_help_info_t(set_database_command, set_database_usage, set_database_description));
+                options.push_back(std::make_pair(set_database_table_option, set_database_table_option_desc));
+                options.push_back(std::make_pair(set_database_database_option, set_database_database_option_desc));
+                do_usage_internal(helps, options, "set database - change the database that a table belongs in", console_mode);
+            } else {
+                throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            }
+        } else if (command == "unset") {
+            if (subcommand.empty()) {
+                helps.push_back(admin_help_info_t(unset_primary_command, unset_primary_usage, unset_primary_description));
+                do_usage_internal(helps, options, "unset - clear the value of a field in cluster metadata, run 'help unset <SUBCOMMAND>' for more information", console_mode);
+            } else if (subcommand == "primary") {
+                helps.push_back(admin_help_info_t(unset_primary_command, unset_primary_usage, unset_primary_description));
+                options.push_back(std::make_pair(unset_primary_table_option, unset_primary_table_option_desc));
+                do_usage_internal(helps, options, "unset primary - clear the primary datacenter for a table", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }
@@ -1127,11 +1196,16 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 // options.push_back(std::make_pair(create_table_port_option, create_table_port_option_desc));
                 // options.push_back(std::make_pair(create_table_protocol_option, create_table_protocol_option_desc));
                 options.push_back(std::make_pair(create_table_primary_option, create_table_primary_option_desc));
+                options.push_back(std::make_pair(create_table_database_option, create_table_database_option_desc));
                 do_usage_internal(helps, options, "create table - add a new table to the cluster", console_mode);
             } else if (subcommand == "datacenter") {
                 helps.push_back(admin_help_info_t(create_datacenter_command, create_datacenter_usage, create_datacenter_description));
                 options.push_back(std::make_pair(create_datacenter_name_option, create_datacenter_name_option_desc));
                 do_usage_internal(helps, options, "create datacenter - add a new datacenter to the cluster", console_mode);
+            } else if (subcommand == "database") {
+                helps.push_back(admin_help_info_t(create_database_command, create_database_usage, create_database_description));
+                options.push_back(std::make_pair(create_database_name_option, create_database_name_option_desc));
+                do_usage_internal(helps, options, "create database - add a new database to the cluster", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }
@@ -1140,6 +1214,7 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 helps.push_back(admin_help_info_t(remove_machine_command, remove_usage, remove_machine_description));
                 helps.push_back(admin_help_info_t(remove_table_command, remove_usage, remove_table_description));
                 helps.push_back(admin_help_info_t(remove_datacenter_command, remove_usage, remove_datacenter_description));
+                helps.push_back(admin_help_info_t(remove_database_command, remove_usage, remove_database_description));
                 options.push_back(std::make_pair(remove_id_option, remove_id_option_desc));
                 do_usage_internal(helps, options, "remove - delete an object from the cluster metadata", console_mode);
             } else if (subcommand == "machine") {
@@ -1154,6 +1229,10 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 helps.push_back(admin_help_info_t(remove_datacenter_command, remove_usage, remove_datacenter_description));
                 options.push_back(std::make_pair(remove_id_option, remove_id_option_desc));
                 do_usage_internal(helps, options, "remove datacenter - delete a datacenter from the cluster metadata", console_mode);
+            } else if (subcommand == "database") {
+                helps.push_back(admin_help_info_t(remove_database_command, remove_usage, remove_database_description));
+                options.push_back(std::make_pair(remove_id_option, remove_id_option_desc));
+                do_usage_internal(helps, options, "remove database - delete a database from the cluster metadata", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }

@@ -9,7 +9,8 @@
 #include "clustering/administration/issues/json.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "http/json.hpp"
-#include "rpc/semilattice/view.hpp"
+
+template <class metadata_t> class semilattice_read_view_t;
 
 class unsatisfiable_goals_issue_t : public global_issue_t {
 public:
@@ -34,9 +35,8 @@ private:
 
 class unsatisfiable_goals_issue_tracker_t : public global_issue_tracker_t {
 public:
-    explicit unsatisfiable_goals_issue_tracker_t(
-            boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view) :
-        semilattice_view(_semilattice_view) { }
+    explicit unsatisfiable_goals_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view);
+    ~unsatisfiable_goals_issue_tracker_t();
 
     std::list<clone_ptr_t<global_issue_t> > get_issues();
 

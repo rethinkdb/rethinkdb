@@ -2,6 +2,7 @@
 
 #include "stl_utils.hpp"
 #include "containers/priority_queue.hpp"
+#include "clustering/generic/nonoverlapping_regions.hpp"
 
 namespace {
 
@@ -139,6 +140,24 @@ std::vector<machine_id_t> pick_n_best(priority_queue_t<priority_t> *candidates, 
     return result;
 }
 
+template <class protocol_t>
+priority_t priority_for_machine(machine_id_t id, const std::set<machine_id_t> &positive_pinnings,
+                                const std::set<machine_id_t> &negative_pinnings, const std::map<machine_id_t, int> &usage,
+                                const std::map<machine_id_t, reactor_business_card_t<protocol_t> > &directory,
+                                const typename protocol_t::region_t &shard) {
+    bool pinned = std_contains(positive_pinnings, id);
+    bool would_rob_someone = std_contains(negative_pinnings, id);
+    int redundancy_cost = const_get_with_default(usage, id, 0);
+    float backfill_cost;
+    if (std_contains(directory, id)) {
+        backfill_cost = estimate_cost_to_get_up_to_date(directory.find(id)->second, shard);
+    } else {
+        backfill_cost = 3.0;
+    }
+
+    return priority_t(id, pinned, would_rob_someone, redundancy_cost, backfill_cost);
+}
+
 template<class protocol_t>
 std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         const std::map<machine_id_t, reactor_business_card_t<protocol_t> > &directory,
@@ -153,74 +172,96 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
 
     std::map<machine_id_t, blueprint_role_t> sub_blueprint;
 
-    std::map<datacenter_id_t, int> extra_machines;
-    /* We only need this if the datacenter is nil. */
-    if (primary_datacenter.is_nil()) {
-        for (std::map<machine_id_t, datacenter_id_t>::const_iterator it = machine_data_centers.begin();
-                it != machine_data_centers.end(); ++it) {
-            get_with_default(extra_machines, it->second, 0)++;
-        }
+    /* A set containing the machines currently not doing anything for this
+     * shard. */
+    std::set<machine_id_t> unused_machines;
 
-        for (std::map<datacenter_id_t, int>::const_iterator it = datacenter_affinities.begin(); it != datacenter_affinities.end(); it++) {
-            if (std_contains(extra_machines, it->first)) {
-                extra_machines[it->first] -= it->second;
-            }
-        }
+    for (std::map<machine_id_t, datacenter_id_t>::const_iterator it  = machine_data_centers.begin();
+                                                                 it != machine_data_centers.end();
+                                                                 ++it) {
+        unused_machines.insert(it->first);
     }
 
-    priority_queue_t<priority_t> primary_candidates;
-    for (std::map<machine_id_t, datacenter_id_t>::const_iterator it = machine_data_centers.begin();
-            it != machine_data_centers.end(); it++) {
-        if (it->second == primary_datacenter ||
-            (primary_datacenter.is_nil() && std_contains(extra_machines, it->second) && extra_machines[it->second] > 0)) {
-            bool pinned = std_contains(primary_pinnings, it->first);
+    /* Pick primary if we have a concretely assigned datacenter. */
+    if (!primary_datacenter.is_nil()) {
+        priority_queue_t<priority_t> primary_candidates;
 
-            bool would_rob_secondary = std_contains(secondary_pinnings, it->first);
-
-            int redundancy_cost = get_with_default(*primary_usage, it->first, 0);
-
-            float backfill_cost;
-            if (std_contains(directory, it->first)) {
-                backfill_cost = estimate_cost_to_get_up_to_date(directory.find(it->first)->second, shard);
-            } else {
-                backfill_cost = 3.0;
+        for (std::set<machine_id_t>::const_iterator mt  = unused_machines.begin();
+                                                    mt != unused_machines.end();
+                                                    ++mt) {
+            if (machine_data_centers.find(*mt)->second == primary_datacenter) {
+                primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *primary_usage, directory, shard));
             }
-
-            primary_candidates.push(priority_t(it->first, pinned, would_rob_secondary, redundancy_cost, backfill_cost));
         }
+
+        machine_id_t primary = pick_n_best(&primary_candidates, 1, primary_datacenter).front();
+        unused_machines.erase(primary);
+
+        sub_blueprint[primary] = blueprint_role_primary;
+
+        //Update primary_usage
+        get_with_default(*primary_usage, primary, 0)++;
     }
-    machine_id_t primary = pick_n_best(&primary_candidates, 1, primary_datacenter).front();
-    sub_blueprint[primary] = blueprint_role_primary;
 
-    //Update primary_usage
-    get_with_default(*primary_usage, primary, 0)++;
 
+    /* Pick secondaries for concretely assigned secondaries. */
     for (std::map<datacenter_id_t, int>::const_iterator it = datacenter_affinities.begin(); it != datacenter_affinities.end(); it++) {
+        if (it->first.is_nil()) {
+            continue; //We do the nil datacenter last
+        }
         priority_queue_t<priority_t> secondary_candidates;
-        for (std::map<machine_id_t, datacenter_id_t>::const_iterator jt = machine_data_centers.begin();
-                jt != machine_data_centers.end(); jt++) {
-            if (jt->second == it->first && jt->first != primary) {
-                bool pinned = std_contains(secondary_pinnings, jt->first);
-
-                int redundancy_cost = get_with_default(*secondary_usage, jt->first, 0);
-
-                bool would_rob_secondary = false; //we're the secondary, we shan't be robbing ourselves
-
-                float backfill_cost;
-                if (std_contains(directory, jt->first)) {
-                    backfill_cost = estimate_cost_to_get_up_to_date(directory.find(jt->first)->second, shard);
-                } else {
-                    backfill_cost = 3.0;
-                }
-
-                secondary_candidates.push(priority_t(jt->first, pinned, would_rob_secondary, redundancy_cost, backfill_cost));
+        for (std::set<machine_id_t>::const_iterator mt  = unused_machines.begin();
+                                                    mt != unused_machines.end();
+                                                    ++mt) {
+            if (machine_data_centers.find(*mt)->second == it->first) {
+                secondary_candidates.push(priority_for_machine(*mt, secondary_pinnings, primary_pinnings, *secondary_usage, directory, shard));
             }
         }
         std::vector<machine_id_t> secondaries = pick_n_best(&secondary_candidates, it->second, it->first);
+
         for (std::vector<machine_id_t>::iterator jt = secondaries.begin(); jt != secondaries.end(); jt++) {
             //Update secondary usage
             get_with_default(*secondary_usage, *jt, 0)++;
             sub_blueprint[*jt] = blueprint_role_secondary;
+            unused_machines.erase(*jt);
+        }
+    }
+
+    /* Pick a primary if the primary datacenter is nil. */
+    if (primary_datacenter.is_nil()) {
+        priority_queue_t<priority_t> primary_candidates;
+
+        for (std::set<machine_id_t>::const_iterator mt  = unused_machines.begin();
+                                                    mt != unused_machines.end();
+                                                    ++mt) {
+            if (machine_data_centers.find(*mt)->second == primary_datacenter) {
+                primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *primary_usage, directory, shard));
+            }
+        }
+
+        machine_id_t primary = pick_n_best(&primary_candidates, 1, primary_datacenter).front();
+        unused_machines.erase(primary);
+
+        sub_blueprint[primary] = blueprint_role_primary;
+    }
+
+    /* Finally pick the secondaries for the nil datacenter */
+    if (std_contains(datacenter_affinities, nil_uuid())) {
+        priority_queue_t<priority_t> secondary_candidates;
+        for (std::set<machine_id_t>::const_iterator mt  = unused_machines.begin();
+                                                    mt != unused_machines.end();
+                                                    ++mt) {
+            if (machine_data_centers.find(*mt)->second == nil_uuid()) {
+                secondary_candidates.push(priority_for_machine(*mt, secondary_pinnings, primary_pinnings, *secondary_usage, directory, shard));
+            }
+        }
+        std::vector<machine_id_t> secondaries = pick_n_best(&secondary_candidates, datacenter_affinities.find(nil_uuid())->second, nil_uuid());
+
+        for (std::vector<machine_id_t>::iterator jt = secondaries.begin(); jt != secondaries.end(); jt++) {
+            //Update secondary usage
+            get_with_default(*secondary_usage, *jt, 0)++;
+            sub_blueprint[*jt] = blueprint_role_secondary;
+            unused_machines.erase(*jt);
         }
     }
 
@@ -239,7 +280,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
         const std::map<machine_id_t, reactor_business_card_t<protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
-        const std::set<typename protocol_t::region_t> &shards,
+        const nonoverlapping_regions_t<protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<protocol_t, std::set<machine_id_t> > &secondary_pinnings) {
@@ -251,7 +292,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
 
     //Maps to keep track of how much we're using each machine
     std::map<machine_id_t, int> primary_usage, secondary_usage;
-    for (typename std::set<typename protocol_t::region_t>::const_iterator it = shards.begin();
+    for (typename nonoverlapping_regions_t<protocol_t>::iterator it = shards.begin();
             it != shards.end(); it++) {
         std::set<machine_id_t> machines_shard_primary_is_pinned_to;
         primary_pinnings_map_t primary_masked_map = primary_pinnings.mask(*it);
@@ -293,7 +334,7 @@ persistable_blueprint_t<mock::dummy_protocol_t> suggest_blueprint<mock::dummy_pr
         const std::map<machine_id_t, reactor_business_card_t<mock::dummy_protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
-        const std::set<mock::dummy_protocol_t::region_t> &shards,
+        const nonoverlapping_regions_t<mock::dummy_protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<mock::dummy_protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<mock::dummy_protocol_t, std::set<machine_id_t> > &secondary_pinnings);
@@ -306,7 +347,7 @@ persistable_blueprint_t<memcached_protocol_t> suggest_blueprint<memcached_protoc
         const std::map<machine_id_t, reactor_business_card_t<memcached_protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
-        const std::set<memcached_protocol_t::region_t> &shards,
+        const nonoverlapping_regions_t<memcached_protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<memcached_protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<memcached_protocol_t, std::set<machine_id_t> > &secondary_pinnings);
@@ -319,7 +360,7 @@ persistable_blueprint_t<rdb_protocol_t> suggest_blueprint<rdb_protocol_t>(
         const std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
-        const std::set<rdb_protocol_t::region_t> &shards,
+        const nonoverlapping_regions_t<rdb_protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<rdb_protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<rdb_protocol_t, std::set<machine_id_t> > &secondary_pinnings);

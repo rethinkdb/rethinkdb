@@ -109,20 +109,6 @@ key_range_t key_range_t::intersection(const key_range_t &other) const {
     return ixn;
 }
 
-std::string key_range_to_debug_str(const key_range_t &kr) {
-    std::string ret;
-    ret += "[";
-    ret += key_to_debug_str(kr.left);
-    ret += ", ";
-    if (kr.right.unbounded) {
-        ret += "+inf)";
-    } else {
-        ret += key_to_debug_str(kr.right.key);
-        ret += ")";
-    }
-    return ret;
-}
-
 void debug_print(append_only_printf_buffer_t *buf, const store_key_t &k) {
     debug_print_quoted_string(buf, k.contents(), k.size());
 }

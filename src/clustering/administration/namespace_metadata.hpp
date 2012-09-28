@@ -13,6 +13,7 @@
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/administration/persistable_blueprint.hpp"
+#include "clustering/generic/nonoverlapping_regions.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/reactor_json_adapters.hpp"
@@ -30,6 +31,7 @@
 
 typedef uuid_t namespace_id_t;
 
+
 /* This is the metadata for a single namespace of a specific protocol. */
 
 /* If you change this data structure, you must also update
@@ -46,7 +48,7 @@ public:
     vclock_t<datacenter_id_t> primary_datacenter;
     vclock_t<std::map<datacenter_id_t, int> > replica_affinities;
     vclock_t<std::map<datacenter_id_t, int> > ack_expectations;
-    vclock_t<std::set<typename protocol_t::region_t> > shards;
+    vclock_t<nonoverlapping_regions_t<protocol_t> > shards;
     vclock_t<std::string> name;
     vclock_t<int> port;
     vclock_t<region_map_t<protocol_t, machine_id_t> > primary_pinnings;
@@ -113,8 +115,9 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
     ack_expectations.insert(std::make_pair(datacenter, 1));
     ns.ack_expectations = vc.build(ack_expectations);
 
-    std::set<typename protocol_t::region_t> shards;
-    shards.insert(protocol_t::region_t::universe());
+    nonoverlapping_regions_t<protocol_t> shards;
+    bool add_region_success = shards.add_region(protocol_t::region_t::universe());
+    guarantee(add_region_success);
     ns.shards = vc.build(shards);
 
     region_map_t<protocol_t, uuid_t> primary_pinnings(

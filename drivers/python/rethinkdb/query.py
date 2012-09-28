@@ -90,10 +90,10 @@ class BaseQuery(object):
     multiple tables, but expressions never modify the database. Write queries
     are instances of :class:`WriteQuery`."""
 
-    def _finalize_query(self, root):
+    def _finalize_query(self, root, opts):
         raise NotImplementedError()
 
-    def run(self, conn=None):
+    def run(self, conn=None, allow_outdated=None):
         """Evaluate the expression on the server using the connection
         specified by `conn`. If `conn` is empty, uses the last created
         connection (located in :data:`rethinkdb.net.last_connection`).
@@ -115,7 +115,7 @@ class BaseQuery(object):
             if net.last_connection is None:
                 raise StandardError("Call rethinkdb.net.connect() to connect to a server before calling run()")
             conn = net.last_connection
-        return conn.run(self)
+        return conn.run(self, allow_outdated=allow_outdated)
 
 class ReadQuery(BaseQuery):
     """Base class for expressions"""
@@ -127,9 +127,9 @@ class ReadQuery(BaseQuery):
     def __str__(self):
         return internal.ReprPrettyPrinter().expr_wrapped(self, [])
 
-    def _finalize_query(self, root):
+    def _finalize_query(self, root, opts):
         root.type = p.Query.READ
-        self._inner._write_ast(root.read_query.term)
+        self._inner._write_ast(root.read_query.term, opts)
 
 class JSONExpression(ReadQuery):
     """An expression that evaluates to a JSON value.
@@ -578,6 +578,36 @@ class JSONExpression(ReadQuery):
             value_mapping = FunctionExpr(value_mapping)
         return JSONExpression(internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func))
 
+    def group_by(self, *args):
+        attrs = args[:-1]
+        groupByObject = args[-1]
+
+        if len(attrs) > 1:
+            grouping = FunctionExpr(lambda row: [row[attr] for attr in attrs])
+        else:
+            grouping = FunctionExpr(lambda row: row[attrs[0]])
+
+        mapping = groupByObject.get('mapping', lambda row: row)
+
+        try:
+            reduction = FunctionExpr(groupByObject['reduction'])
+        except KeyError:
+            raise ValueError("Groupby requires a reduction to be specified")
+        try:
+            base = groupByObject['base']
+        except KeyError:
+            raise ValueError("Groupby requires a base for the reduction")
+
+        gmr = self.grouped_map_reduce(grouping, mapping, base, reduction)
+
+        try:
+            finalizer = groupByObject['finalizer']
+            gmr = gmr.map(lambda group: group.extend({'reduction': finalizer(group['reduction'])}))
+        except KeyError:
+            pass
+
+        return gmr
+
     def distinct(self):
         """Discards duplicate elements from an array.
 
@@ -605,13 +635,51 @@ class JSONExpression(ReadQuery):
         :param attrs: The attributes to pluck out
         :type attrs: strings
         :returns: :class:`JSONExpression`
-        
+
         >>> expr([{ 'a': 1, 'b': 1, 'c': 1},
                   { 'a': 2, 'b': 2, 'c': 2}]).pluck('a', 'b').run()
         [{ 'a': 1, 'b': 1 }, { 'a': 2, 'b': 2 }]
         """
         # TODO: reimplement in terms of pickattr when that's done
         return self.map(lambda x: {a: x[a] for a in attrs})
+
+    def inner_join(self, other, predicate):
+        return self.concat_map(
+            lambda row: other.concat_map(
+                lambda row2: if_then_else(predicate(row, row2),
+                    expr([{'left':row, 'right':row2}]),
+                    expr([]))
+                )
+            )
+
+    def outer_join(self, other, predicate):
+        return self.concat_map(
+            lambda row: let(('matches', other.concat_map(
+                lambda row2: if_then_else(predicate(row, row2),
+                    expr([{'left':row, 'right':row2}]),
+                    expr([])
+                )
+            )), if_then_else(letvar('matches').length() > 0,
+                letvar('matches'),
+                expr({'left':row})
+            ))
+        )
+
+    def equi_join(self, left_attr, other, opt_right_attr=None):
+        return self.concat_map(
+            lambda row: let(('right', other.get(row[left_attr])),
+                if_then_else(letvar('right') != None,
+                    expr([{'left':row, 'right':letvar('right')}]),
+                    expr([])
+                )
+            )
+        )
+
+    def zip(self):
+        return self.map(lambda row: if_then_else(row.has_attr('right'),
+            row['left'].extend(row['right']),
+            row['left']
+        ))
 
     def length(self):
         """Returns the length of an array.
@@ -876,6 +944,36 @@ class StreamExpression(ReadQuery):
             value_mapping = FunctionExpr(value_mapping)
         return JSONExpression(internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func))
 
+    def group_by(self, *args):
+        attrs = args[:-1]
+        groupByObject = args[-1]
+
+        if len(attrs) > 1:
+            grouping = FunctionExpr(lambda row: [row[attr] for attr in attrs])
+        else:
+            grouping = FunctionExpr(lambda row: row[attrs[0]])
+
+        mapping = groupByObject.get('mapping', lambda row: row)
+
+        try:
+            reduction = FunctionExpr(groupByObject['reduction'])
+        except KeyError:
+            raise ValueError("Groupby requires a reduction to be specified")
+        try:
+            base = groupByObject['base']
+        except KeyError:
+            raise ValueError("Groupby requires a base for the reduction")
+
+        gmr = self.grouped_map_reduce(grouping, mapping, base, reduction)
+
+        try:
+            finalizer = groupByObject['finalizer']
+            gmr = gmr.map(lambda group: group.extend({'reduction': finalizer(group['reduction'])}))
+        except KeyError:
+            pass
+
+        return gmr
+
     def distinct(self):
         """Discards duplicate elements from a stream.
 
@@ -914,6 +1012,27 @@ class StreamExpression(ReadQuery):
             "`expr.length()`. (We couldn't overload `len(expr)` because it's "
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
+
+count = {
+    'mapping': lambda row: 1,
+    'base': 0,
+    'reduction': lambda acc, val: acc + val
+}
+
+def sum(attr):
+    return {
+        'mapping': lambda row: row[attr],
+        'base': 0,
+        'reduction': lambda acc, val: acc + val
+    }
+
+def average(attr):
+    return {
+        'mapping': lambda row: [row[attr], 1],
+        'base': [0,0],
+        'reduction': lambda acc, val: [acc[0]+val[0], acc[1]+val[1]],
+        'finalizer': lambda res: res[0] / res[1]
+    }
 
 def expr(val):
     """Converts a python value to a ReQL :class:`JSONExpression`.
@@ -1043,9 +1162,13 @@ def let(*bindings):
 
 class FunctionExpr(object):
     """TODO document me"""
+    unique_counter = 0
+
     def __init__(self, body):
         if isinstance(body, types.FunctionType):
-            self.args = body.func_code.co_varnames
+            self.args = ['arg'+str(i)+'_'+str(FunctionExpr.unique_counter)
+                for i in range(body.func_code.co_argcount)]
+            FunctionExpr.unique_counter += 1
             res = body(*[JSONExpression(internal.Var(arg)) for arg in self.args])
             if not isinstance(res, BaseQuery):
                 res = expr(res)
@@ -1060,20 +1183,20 @@ class FunctionExpr(object):
     def __repr__(self):
         return "<FunctionExpr %s>" % str(self)
 
-    def write_mapping(self, mapping):
+    def write_mapping(self, mapping, opts):
         assert len(self.args) <= 1
         if self.args:
             mapping.arg = self.args[0]
         else:
             mapping.arg = 'row'     # TODO: GET RID OF THIS
-        self.body._inner._write_ast(mapping.body)
+        self.body._inner._write_ast(mapping.body, opts)
 
-    def write_reduction(self, reduction, base):
+    def write_reduction(self, reduction, base, opts):
         assert len(self.args) == 2
-        base._inner._write_ast(reduction.base)
+        base._inner._write_ast(reduction.base, opts)
         reduction.var1 = self.args[0]
         reduction.var2 = self.args[1]
-        self.body._inner._write_ast(reduction.body)
+        self.body._inner._write_ast(reduction.body, opts)
 
     def _pretty_print(self, printer, backtrace_steps):
         args = self.args
@@ -1147,9 +1270,9 @@ class WriteQuery(BaseQuery):
     def __repr__(self):
         return "<WriteQuery %s>" % str(self)
 
-    def _finalize_query(self, root):
+    def _finalize_query(self, root, opts):
         root.type = p.Query.WRITE
-        self._inner._write_write_query(root.write_query)
+        self._inner._write_write_query(root.write_query, opts)
 
 class MetaQuery(BaseQuery):
     """Queries that create, destroy, or examine databases or tables rather than
@@ -1163,7 +1286,7 @@ class MetaQuery(BaseQuery):
     def __repr__(self):
         return "<MetaQuery %s>" % str(self)
 
-    def _finalize_query(self, root):
+    def _finalize_query(self, root, opts):
         root.type = p.Query.META
         self._inner._write_meta_query(root.meta_query)
 
@@ -1340,7 +1463,7 @@ class Table(MultiRowSelection):
     manipulation operations (such as inserting, selecting, and
     updating data) can be chained off of this object."""
 
-    def __init__(self, table_name, db_expr=None):
+    def __init__(self, table_name, db_expr=None, allow_outdated=None):
         """Use :func:`rethinkdb.query.table` as a shortcut to create
         this object.
 
@@ -1354,6 +1477,7 @@ class Table(MultiRowSelection):
         ReadQuery.__init__(self, internal.Table(self))
         self.table_name = table_name
         self.db_expr = db_expr
+        self.allow_outdated = allow_outdated #either True, False, or None (default to run option)
 
     def __repr__(self):
         if self.db_expr is not None:
@@ -1389,14 +1513,23 @@ class Table(MultiRowSelection):
         """
         return RowSelection(internal.Get(self, key, attr_name))
 
-    def _write_ref_ast(self, parent):
+    def _write_ref_ast(self, parent, opts):
         if self.db_expr:
             parent.db_name = self.db_expr.db_name
         else:
             parent.db_name = net.last_connection.db_name
+
+        if self.allow_outdated is None:
+            if opts['allow_outdated'] is None:
+                parent.use_outdated = False
+            else:
+                parent.use_outdated = opts['allow_outdated']
+        else:
+            parent.use_outdated = self.allow_outdated
+
         parent.table_name = self.table_name
 
-def table(table_ref):
+def table(table_ref, allow_outdated=None):
     """Get a reference to a table within a RethinkDB cluster.
 
     :param table_ref: Either a name of the table, or a name of the
@@ -1408,7 +1541,7 @@ def table(table_ref):
 
     >>> q = table('table_name')         #
     """
-    return Table(table_ref)
+    return Table(table_ref, allow_outdated=allow_outdated)
 
 # this happens at the end since it's a circular import
 import internal

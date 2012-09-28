@@ -82,9 +82,13 @@ public:
                 reclaim_tickets_mailbox.get_address())));
         wait_any_t waiter(intro_promise.get_ready_signal(), registrant->get_failed_signal(), interruptor);
         waiter.wait();
+        if (interruptor->is_pulsed()) {
+            throw interrupted_exc_t();
+        }
         if (registrant->get_failed_signal()->is_pulsed()) {
             throw resource_lost_exc_t();
         }
+        rassert(intro_promise.get_ready_signal()->is_pulsed());
         request_addr = intro_promise.get_value().request_addr;
         relinquish_tickets_addr = intro_promise.get_value().relinquish_tickets_addr;
     }

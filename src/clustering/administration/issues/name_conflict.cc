@@ -119,6 +119,11 @@ private:
     std::map<uuid_t, deletable_t<database_semilattice_metadata_t> > databases;
 };
 
+name_conflict_issue_tracker_t::name_conflict_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view)
+    : semilattice_view(_semilattice_view) { }
+
+name_conflict_issue_tracker_t::~name_conflict_issue_tracker_t() { }
+
 std::list<clone_ptr_t<global_issue_t> > name_conflict_issue_tracker_t::get_issues() {
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
 

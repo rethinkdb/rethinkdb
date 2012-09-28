@@ -7,7 +7,7 @@
 template <class protocol_t>
 pinnings_shards_mismatch_issue_t<protocol_t>::pinnings_shards_mismatch_issue_t(
         const namespace_id_t &_offending_namespace,
-        const std::set<typename protocol_t::region_t> &_shards,
+        const nonoverlapping_regions_t<protocol_t> &_shards,
         const region_map_t<protocol_t, uuid_t> &_primary_pinnings,
         const region_map_t<protocol_t, std::set<uuid_t> > &_secondary_pinnings)
     : offending_namespace(_offending_namespace), shards(_shards),
@@ -18,7 +18,7 @@ template <class protocol_t>
 std::string pinnings_shards_mismatch_issue_t<protocol_t>::get_description() const {
     //XXX XXX god fuck this. We have to make copies because we don't have
     //constness worked out in json_adapters and just fuck everything.
-    std::set<typename protocol_t::region_t> _shards = shards;
+    nonoverlapping_regions_t<protocol_t> _shards = shards;
     region_map_t<protocol_t, machine_id_t> _primary_pinnings = primary_pinnings;
     region_map_t<protocol_t, std::set<machine_id_t> > _secondary_pinnings = secondary_pinnings;
     return strprintf("The namespace: %s has a pinning map which is segmented differently than its sharding scheme.\n"
@@ -54,30 +54,35 @@ pinnings_shards_mismatch_issue_t<protocol_t> *pinnings_shards_mismatch_issue_t<p
 }
 
 template <class protocol_t>
+pinnings_shards_mismatch_issue_tracker_t<protocol_t>::pinnings_shards_mismatch_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _semilattice_view)
+    : semilattice_view(_semilattice_view) { }
+
+template <class protocol_t>
+pinnings_shards_mismatch_issue_tracker_t<protocol_t>::~pinnings_shards_mismatch_issue_tracker_t() { }
+
+template <class protocol_t>
 std::list<clone_ptr_t<global_issue_t> > pinnings_shards_mismatch_issue_tracker_t<protocol_t>::get_issues() {
     std::list<clone_ptr_t<global_issue_t> > res;
 
     cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = semilattice_view->get();
 
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it  = namespaces->namespaces.begin();
-                                                                                                 it != namespaces->namespaces.end();
-                                                                                                 ++it) {
+    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it = namespaces->namespaces.begin();
+         it != namespaces->namespaces.end();
+         ++it) {
         if (it->second.is_deleted()) {
             continue;
         }
-        std::set<typename protocol_t::region_t> shards = it->second.get().shards.get();
+        nonoverlapping_regions_t<protocol_t> shards = it->second.get().shards.get();
         region_map_t<protocol_t, machine_id_t> primary_pinnings = it->second.get().primary_pinnings.get();
         region_map_t<protocol_t, std::set<machine_id_t> > secondary_pinnings = it->second.get().secondary_pinnings.get();
-        for (typename std::set<typename protocol_t::region_t>::iterator shit  = shards.begin();
-                                                                        shit != shards.end();
-                                                                        ++shit) {
+        for (typename std::set<typename protocol_t::region_t>::iterator shit = shards.begin();
+             shit != shards.end(); ++shit) {
             /* Check primary pinnings for problem. */
             region_map_t<protocol_t, machine_id_t> primary_masked_pinnings = primary_pinnings.mask(*shit);
 
             machine_id_t primary_expected_val = primary_masked_pinnings.begin()->second;
-            for (typename region_map_t<protocol_t, machine_id_t>::iterator pit  = primary_masked_pinnings.begin();
-                                                                           pit != primary_masked_pinnings.end();
-                                                                           ++pit) {
+            for (typename region_map_t<protocol_t, machine_id_t>::iterator pit = primary_masked_pinnings.begin();
+                 pit != primary_masked_pinnings.end(); ++pit) {
                 if (pit->second != primary_expected_val) {
                     res.push_back(clone_ptr_t<global_issue_t>(new pinnings_shards_mismatch_issue_t<protocol_t>(it->first, shards, primary_pinnings, secondary_pinnings)));
                     goto NAMESPACE_HAS_ISSUE;

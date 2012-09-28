@@ -207,28 +207,16 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
 
         cluster_semilattice_metadata_t semilattice_metadata;
 
-        if (joins.empty()) {
-            logINF("Creating a default namespace and default data center "
-                   "for your convenience. (This is because you ran 'rethinkdb' "
+        machine_semilattice_metadata_t our_machine_metadata;
+        our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
+        our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
+        semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
+            
+        if (joins.empty())
+        {
+            logINF("Creating a default database for your convenience. (This is because you ran 'rethinkdb' "
                    "without 'create', 'serve', or '--join', and the directory '%s' did not already exist.)\n",
                    filepath.c_str());
-
-            datacenter_id_t datacenter_id = generate_uuid();
-            datacenter_semilattice_metadata_t datacenter_metadata;
-            datacenter_metadata.name = vclock_t<std::string>("universe", our_machine_id);
-            semilattice_metadata.datacenters.datacenters.insert(std::make_pair(
-                datacenter_id,
-                deletable_t<datacenter_semilattice_metadata_t>(datacenter_metadata)));
-
-            /* Add ourselves as a member of the "universe" datacenter. */
-            machine_semilattice_metadata_t our_machine_metadata;
-            our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);
-            our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
-
-            semilattice_metadata.machines.machines.insert(std::make_pair(
-                our_machine_id,
-                deletable_t<machine_semilattice_metadata_t>(our_machine_metadata)));
-
 
             /* Create a test database. */
             database_id_t database_id = generate_uuid();
@@ -241,11 +229,6 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
             // We could use add_rdb_namespace() here if we wanted a
             // default namespace
 
-        } else {
-            machine_semilattice_metadata_t our_machine_metadata;
-            our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
-            our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
-            semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
         }
 
         scoped_ptr_t<io_backender_t> io_backender;

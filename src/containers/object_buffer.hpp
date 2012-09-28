@@ -6,8 +6,6 @@
 template <class T>
 class object_buffer_t {
 public:
-    // TODO: this object makes no guarantees that its parent still exists when it is destroyed
-    //  is that ok?
     class destruction_sentinel_t {
     public:
         explicit destruction_sentinel_t(object_buffer_t<T> *_parent) : parent(_parent) { }
@@ -19,6 +17,8 @@ public:
         }
     private:
         object_buffer_t<T> *parent;
+
+        DISABLE_COPYING(destruction_sentinel_t);
     };
 
     object_buffer_t() : instantiated(false) { }
@@ -93,8 +93,12 @@ public:
     }
 
 private:
-    bool instantiated;
+    // We're going more for a high probability of good alignment than
+    // proof of good alignment.
     uint8_t object_data[sizeof(T)];
+    bool instantiated;
+
+    DISABLE_COPYING(object_buffer_t);
 };
 
 #endif  // CONTAINERS_OBJECT_BUFFER_HPP_

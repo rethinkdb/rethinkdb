@@ -121,6 +121,10 @@ class ClientTest < Test::Unit::TestCase
     assert_raise(RuntimeError){r.not(3).run}
   end
 
+  def test_scopes # TODO: more here
+    assert_equal(r.let({:a => 1}, [r.letvar('a'), r.letvar('a')]).run, [1,1])
+  end
+
   def test_let # from python tests
     assert_equal(r.let([["x", 3]], r.letvar("x")).run, 3)
     assert_equal(r.let([["x", 3], ["x", 4]], r.letvar("x")).run, 4)

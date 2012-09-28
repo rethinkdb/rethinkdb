@@ -1,8 +1,9 @@
 #!/usr/bin/ruby
+$LOAD_PATH.unshift('./rethinkdb')
 require 'pp'
-require 'rethinkdb/rethinkdb_shortcuts.rb'
+require 'rethinkdb.rb'
 require 'optparse'
-include RethinkDB::Shortcuts_Mixin
+include RethinkDB::Shortcuts
 
 options = {}
 OptionParser.new {|opts|
@@ -58,7 +59,7 @@ while true
     while s == t && $f < 20
       s = crossover(t, $templates[rand($templates.length)])
       begin
-        q = (RethinkDB::S._ s).query
+        q = (RethinkDB::RQL_Query.new s).query
       rescue Exception
         s = t
       end
@@ -69,9 +70,9 @@ while true
         print "##{$i}: sexp: #{t.inspect}\n"
         print "##{$i}: sexp: #{s.inspect}\n"
         begin
-          PP.pp((RethinkDB::S._ s).run)
+          PP.pp((RethinkDB::RQL_Query.new s).run.to_a)
         rescue Exception => e
-          print "Failed with: #{e.class}\n"
+          print "Failed with: #{e}\n"
         end
         sleep 1
       end

@@ -1,6 +1,7 @@
 #include "unittest/gtest.hpp"
 
 #include "clustering/suggester/suggester.hpp"
+#include "clustering/generic/nonoverlapping_regions.hpp"
 #include "mock/dummy_protocol.hpp"
 
 namespace unittest {
@@ -34,9 +35,11 @@ TEST(ClusteringSuggester, NewNamespace) {
     affinities[primary_datacenter] = 2;
     affinities[secondary_datacenter] = 3;
 
-    std::set<dummy_protocol_t::region_t> shards;
-    shards.insert(dummy_protocol_t::region_t('a', 'm'));
-    shards.insert(dummy_protocol_t::region_t('n', 'z'));
+    nonoverlapping_regions_t<dummy_protocol_t> shards;
+    bool success = shards.add_region(dummy_protocol_t::region_t('a', 'm'));
+    ASSERT_TRUE(success);
+    success = shards.add_region(dummy_protocol_t::region_t('n', 'z'));
+    ASSERT_TRUE(success);
 
     persistable_blueprint_t<dummy_protocol_t> blueprint = suggest_blueprint<dummy_protocol_t>(
         directory,

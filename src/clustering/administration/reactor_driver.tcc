@@ -12,9 +12,11 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/reactor.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "db_thread_info.hpp"
 #include "rpc/semilattice/view/field.hpp"
+#include "rpc/semilattice/watchable.hpp"
 
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */
@@ -183,11 +185,12 @@ public:
             }
         }
 
-        /* Add in the acks that game from datacenters we had no expectations for. */
+        /* Add in the acks that came from datacenters we had no expectations
+         * for (or the nil datacenter). */
         for (std::multiset<datacenter_id_t>::iterator at  = acks_by_dc.begin();
                                                       at != acks_by_dc.end();
                                                       ++at) {
-            if (!std_contains(expected_acks, *at)) {
+            if (!std_contains(expected_acks, *at) || at->is_nil()) {
                 extra_acks++;
             }
         }

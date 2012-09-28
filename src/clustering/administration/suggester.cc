@@ -31,7 +31,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
     std::map<datacenter_id_t, int> datacenter_affinities =
         ns_goals.replica_affinities.get();
 
-    std::set<typename protocol_t::region_t> shards =
+    nonoverlapping_regions_t<protocol_t> shards =
         ns_goals.shards.get();
 
     region_map_t<protocol_t, machine_id_t> primary_pinnings =

@@ -223,11 +223,27 @@ class Datacenter extends Backbone.Model
             global_net_sent_persec:
                 avg: 0
         for namespace in namespaces.models
-            _s = namespace.get_stats()
-            if not _s?
+            if not namespace.get('blueprint')? or not namespace.get('blueprint').peers_roles?
                 continue
-            __s.keys_read += _s.keys_read
-            __s.keys_set += _s.keys_set
+            for machine_id of namespace.get('blueprint').peers_roles
+                machine = machines.get(machine_id)
+                if not machine?
+                    continue
+                has_data = false
+                if machine.get('datacenter_uuid') is @get('id') and namespace.get('blueprint').peers_roles[machine_id]?
+                    for shard_key of namespace.get('blueprint').peers_roles[machine_id]
+                        if namespace.get('blueprint').peers_roles[machine_id][shard_key] isnt 'role_nothing'
+                            has_data = true
+                            break
+                    if has_data is true
+                        break
+            if has_data is true
+                _s = namespace.get_stats()
+                if not _s?
+                    continue
+                __s.keys_read += _s.keys_read
+                __s.keys_set += _s.keys_set
+
         # CPU, mem, disk
         num_machines_in_datacenter = 0
         for machine in machines.models
@@ -591,16 +607,18 @@ module 'DataUtils', ->
 
     @get_ack_expectations = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
-        datacenter = datacenters.get(datacenter_uuid)
-        acks = namespace?.get('ack_expectations')?[datacenter?.get('id')]?
+        acks = namespace?.get('ack_expectations')?[datacenter_uuid]
         if acks?
-            return namespace.get('ack_expectations')[datacenter.get('id')]
+            return acks
         else
             return 0
 
     @get_replica_affinities = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
-        datacenter = datacenters.get(datacenter_uuid)
+        if datacenter_uuid is universe_datacenter.get('id')
+            datacenter = universe_datacenter
+        else
+            datacenter = datacenters.get(datacenter_uuid)
         affs = namespace.get('replica_affinities')[datacenter.get('id')]
         if affs?
             return affs

@@ -11,7 +11,7 @@ goog.require('rethinkdb');
 rethinkdb.expr = function(value) {
     if (value instanceof rethinkdb.Expression) {
         return value;
-    } else if (goog.isNumber(value)) {
+    } else if (value === null || goog.isNumber(value)) {
         return newExpr_(rethinkdb.NumberExpression, value);
     } else if (goog.isBoolean(value)) {
         return newExpr_(rethinkdb.BooleanExpression, value);

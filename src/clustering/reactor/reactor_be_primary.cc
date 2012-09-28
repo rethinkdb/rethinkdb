@@ -259,12 +259,12 @@ bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<bro
 }
 
 template <class protocol_t>
-bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *directory_entry, order_source_t *order_source, const typename protocol_t::region_t &region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    directory_echo_version_t version_to_wait_on = directory_entry->set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t());
-
-    /* block until all peers have acked `directory_entry` */
-    wait_for_directory_acks(version_to_wait_on, interruptor);
-
+bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *directory_entry, 
+                                                        order_source_t *order_source, 
+                                                        const typename protocol_t::region_t &region, 
+                                                        store_view_t<protocol_t> *svs, 
+                                                        const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, 
+                                                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
     on_thread_t th(svs->home_thread());
 
@@ -356,6 +356,13 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
         directory_entry_t directory_entry(this, region);
 
         order_source_t order_source(svs->home_thread());  // TODO: order_token_t::ignore
+
+        /* Tell everyone watching our directory entry what we're up to. */
+        directory_echo_version_t version_to_wait_on = directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t());
+
+        /* block until all peers have acked `directory_entry` */
+        wait_for_directory_acks(version_to_wait_on, interruptor);
+
 
         /* In this loop we repeatedly attempt to find peers to backfill from
          * and then perform the backfill. We exit the loop either when we get

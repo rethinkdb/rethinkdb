@@ -27,6 +27,9 @@ bool std_does_not_contain(const container_t &, const typename container_t::key_t
 template <class container_t>
 typename container_t::mapped_type &get_with_default(container_t &, const typename container_t::key_type &, const typename container_t::mapped_type &);
 
+template <class container_t>
+const typename container_t::mapped_type &const_get_with_default(container_t &, const typename container_t::key_type &, const typename container_t::mapped_type &);
+
 template <class K, class V>
 void debug_print(append_only_printf_buffer_t *buf, const std::map<K, V> &map);
 

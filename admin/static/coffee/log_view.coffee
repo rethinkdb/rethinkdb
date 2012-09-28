@@ -307,9 +307,14 @@ module 'LogView', ->
                                         if attribute is 'ack_expectations' or attribute is 'replica_affinities'
                                             _datacenters = []
                                             for datacenter_id of json_data[group][namespace_id][attribute]
+                                                if datacenter_id is universe_datacenter.get('id')
+                                                    datacenter_name = universe_datacenter.get 'name'
+                                                else
+                                                    datacenter_name = datacenters.get(datacenter_id).get 'name'
                                                 _datacenters.push
+                                                    is_universe: true if datacenter_id is universe_datacenter.get('id')
                                                     datacenter_id: datacenter_id
-                                                    datacenter_name: datacenters.get(datacenter_id).get 'name'
+                                                    datacenter_name: datacenter_name
                                                     value: json_data[group][namespace_id][attribute][datacenter_id]
                                             msg += @log_datacenters_values_template
                                                 namespace_id: namespace_id

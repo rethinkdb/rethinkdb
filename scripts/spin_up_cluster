@@ -7,6 +7,7 @@ import signal
 import time
 import random
 import sys
+import socket
 
 names = """Aphrodite
 Apollo
@@ -105,10 +106,11 @@ else:
         if not keep_data:
             os.system("rm -rf " + directory)
         binary = "../build/debug/rethinkdb"
+        hostname = socket.gethostname()
         if (i == 0):
             cl = [binary, "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
         else:
-            cl = [binary, "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "localhost:%d" % port, "--port-offset", str(i+port)]
+            cl = [binary, "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "%s:%d" % (hostname, port), "--port-offset", str(i+port)]
         print ' '.join(cl)
         kids += [subprocess.Popen(cl, stdout=sys.stdout, stderr=sys.stderr)]
         time.sleep(1)

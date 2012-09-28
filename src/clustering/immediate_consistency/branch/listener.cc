@@ -5,6 +5,7 @@
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
+#include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
 
@@ -209,11 +210,9 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     guarantee(backfill_end_timestamp >= streaming_begin_point);
 
     current_timestamp_ = backfill_end_timestamp;
-    write_queue_coro_pool_callback_.init(
-        new typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t(
+    write_queue_coro_pool_callback_.init(new boost_function_callback_t<write_queue_entry_t>(
             boost::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, backfill_end_timestamp, _2)));
-    write_queue_coro_pool_.init(
-        new coro_pool_t<write_queue_entry_t>(
+    write_queue_coro_pool_.init(new coro_pool_t<write_queue_entry_t>(
             WRITE_QUEUE_CORO_POOL_SIZE, &write_queue_, write_queue_coro_pool_callback_.get()));
     write_queue_semaphore_.set_capacity(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY);
 
@@ -298,8 +297,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
     /* Start streaming, just like we do after we finish a backfill */
     current_timestamp_ = registration_done_cond_.get_value().broadcaster_begin_timestamp;
-    write_queue_coro_pool_callback_.init(
-        new typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t(
+    write_queue_coro_pool_callback_.init(new boost_function_callback_t<write_queue_entry_t>(
             boost::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, current_timestamp_, _2)));
     write_queue_coro_pool_.init(
         new coro_pool_t<write_queue_entry_t>(

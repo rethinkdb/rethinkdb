@@ -14,19 +14,6 @@ namespace unittest {
 
 namespace {
 
-class sl_int_t {
-public:
-    sl_int_t() { }
-    explicit sl_int_t(uint64_t initial) : i(initial) { }
-    uint64_t i;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(i);
-};
-
-void semilattice_join(sl_int_t *a, sl_int_t b) {
-    a->i |= b.i;
-}
-
 
 
 class sl_pair_t {

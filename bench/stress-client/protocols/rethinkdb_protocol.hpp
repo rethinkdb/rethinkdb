@@ -15,8 +15,8 @@
 #include "query_language.pb.h"
 
 #define MAX_PROTOBUF_SIZE (1024*1024)
-#define RDB_TABLE_NAME "Welcome-rdb"
-#define DB_NAME "Welcome-db"
+#define RDB_TABLE_NAME "stress"
+#define DB_NAME "test"
 #define PRIMARY_KEY_NAME "id"
 #define SECONDARY_KEY_NAME "val"
 
@@ -102,6 +102,12 @@ struct rethinkdb_protocol_t : protocol_t {
         prepare_range_read_query(base_range_read_query);
         base_stop_query = new Query;
         prepare_stop_query(base_stop_query);
+
+        // Try to create the table used by the stress client - ignore failures (it may already exist)
+        Query *create_query = new Query;
+        generate_create_query(create_query);
+        send_query(create_query);
+        get_response(response);
 
         // wait until started up (by inserting until one is successful)
         bool success = false;
@@ -538,6 +544,18 @@ private:
         if (option == PREPARE || option == GENERATE) {
             query->set_type(Query::STOP);
         }
+    }
+
+    void generate_create_query(Query *query) {
+        query->set_type(Query::META);
+
+        MetaQuery *metaquery = query->mutable_meta_query();
+        metaquery->set_type(MetaQuery::CREATE_TABLE);
+
+        MetaQuery::CreateTable *create_table = metaquery->mutable_create_table();
+        TableRef *table_ref = create_table->mutable_table_ref();
+        table_ref->set_table_name(RDB_TABLE_NAME);
+        table_ref->set_db_name(DB_NAME);
     }
 
     // Returns true if there is something to be read

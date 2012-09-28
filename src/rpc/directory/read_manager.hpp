@@ -6,7 +6,9 @@
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/one_per_thread.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/scoped.hpp"
 #include "rpc/connectivity/connectivity.hpp"
@@ -73,7 +75,5 @@ private:
 
     connectivity_service_t::peers_list_subscription_t connectivity_subscription;
 };
-
-#include "rpc/directory/read_manager.tcc"
 
 #endif /* RPC_DIRECTORY_READ_MANAGER_HPP_ */
