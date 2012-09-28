@@ -50,14 +50,14 @@ class NavBarView extends Backbone.View
 
     set_active_tab: (route) =>
         if route?
-            @.$('ul.nav li').removeClass('active')
+            @.$('ul.nav-left li').removeClass('active')
             switch route 
-                when 'route:dashboard' then $('ul.nav li#nav-dashboard').addClass('active')
-                when 'route:index_namespaces' then $('ul.nav li#nav-namespaces').addClass('active')
-                when 'route:namespace' then $('ul.nav li#nav-namespaces').addClass('active')
-                when 'route:database' then $('ul.nav li#nav-namespaces').addClass('active')
-                when 'route:index_servers' then $('ul.nav li#nav-servers').addClass('active')
-                when 'route:server' then $('ul.nav li#nav-servers').addClass('active')
-                when 'route:datacenter' then $('ul.nav li#nav-servers').addClass('active')
-                when 'route:dataexplorer' then $('ul.nav li#nav-dataexplorer').addClass('active')
-                when 'route:logs' then $('ul.nav li#nav-logs').addClass('active')
+                when 'route:dashboard'          then @.$('li#nav-dashboard').addClass('active')
+                when 'route:index_namespaces'   then @.$('li#nav-namespaces').addClass('active')
+                when 'route:namespace'          then @.$('li#nav-namespaces').addClass('active')
+                when 'route:database'           then @.$('li#nav-namespaces').addClass('active')
+                when 'route:index_servers'      then @.$('li#nav-servers').addClass('active')
+                when 'route:server'             then @.$('li#nav-servers').addClass('active')
+                when 'route:datacenter'         then @.$('li#nav-servers').addClass('active')
+                when 'route:dataexplorer'       then @.$('li#nav-dataexplorer').addClass('active')
+                when 'route:logs'               then @.$('li#nav-logs').addClass('active')

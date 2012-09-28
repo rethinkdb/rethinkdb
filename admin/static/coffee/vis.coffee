@@ -58,7 +58,7 @@ module 'Vis', ->
         # Please make sure the first is divisible by the second,
         # 'cause who knows wtf is gonna happen if it ain't.
         HEIGHT_IN_PIXELS: 200
-        HEIGHT_IN_UNITS: 20000
+        HEIGHT_IN_UNITS: 20500
         WIDTH_IN_PIXELS: 300
         WIDTH_IN_SECONDS: 60
         HAXIS_TICK_INTERVAL_IN_SECS: 15

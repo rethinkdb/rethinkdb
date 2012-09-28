@@ -1,42 +1,41 @@
 <script id="database_view-container-template" type="text/x-handlebars-template">
-    <div class="full_profile">
+    <div id="database-view">
         <div class="main_title"></div>
-        <div class="two-panel-section section">
-            <div class="panel-left-unbalanced profile">
+        <div class="section">
+            <div class="row-fluid">
+                <div class="span6 profile"></div>
+                <div class="span6 performance-graph"></div>
+            </div>
         </div>
-        <div class="panel-right-unbalanced">
-            <h3 class="title">Performance</h3>
-            <div class="performance-graph"></div>
-        </div>
-      </div>
 
-    <ul class="nav nav-tabs">
-        <li class="active"><a href="#databases/{{database_id}}/overview" data-target="#database-overview" id="database-overview-link" class="tab-link" data-toggle="tab">Overview</a></li>
-        <li><a href="#databases/{{database_id}}/operations" data-target="#database-operations" id="database-operations-link" class="tab-link" data-toggle="tab">Operations</a></li>
-    </ul>
+        <div class="section">
+            <ul class="nav nav-pills">
+                <li class="active"><a href="#databases/{{database_id}}/overview" data-target="#database-overview" id="database-overview-link" class="tab-link" data-toggle="tab">Overview</a></li>
+                <li><a href="#databases/{{database_id}}/operations" data-target="#database-operations" id="database-operations-link" class="tab-link" data-toggle="tab">Operations</a></li>
+            </ul>
 
-    <div id="user-alert-space"></div>
+            <div id="user-alert-space"></div>
 
-    <div class="tab-content">  
-        <div class="tab-pane active" id="database-overview">
-            <div class="section database-overview-container"></div>
-        </div>
-       <div class="tab-pane" id="database-operations">
-            <div class="section operations"></div>
+            <div class="tab-content">  
+                <div class="tab-pane active" id="database-overview">
+                    <div class="database-overview-container"></div>
+                </div>
+               <div class="tab-pane" id="database-operations">
+                    <div class="operations"></div>
+                </div>
+            </div>
         </div>
     </div>
 </script>
 
 <script id="database_view_title-template" type="text/x-handlebars-template">
-    <h1>Database overview for {{name}}</h1>
+    <h1 class="title">Database overview for {{name}}</h1>
 </script>
 
 <script id="database_view-profile-template" type="text/x-handlebars-template">
     <h3 class="title">Database profile</h3>
-    <div class="section summary">
-        <p>
-            {{num_namespaces}} {{pluralize_noun "table" num_amespaces}} with
-        </p>
+    <div class="summary">
+        <p>{{num_namespaces}} {{pluralize_noun "table" num_amespaces}} with</p>
         <p>Status: {{humanize_namespace_reachability reachability}}</p>
         {{#unless stats_up_to_date}}
         <p>The stats displayed might not be up to date<br />

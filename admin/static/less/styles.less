@@ -16,6 +16,7 @@
 @import "bootstrap/popovers.less";
 @import "bootstrap/dropdowns.less";
 @import "bootstrap/forms.less";
+@import "bootstrap/navs.less";
 
 // Utility classes
 @import "bootstrap/utilities.less"; // Has to be last to override when necessary
@@ -136,7 +137,7 @@ body:before {
     @text_shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
     
     /* left nav (logo, links, etc.) */
-    ul.nav {
+    ul.nav-left {
         margin: 0;
         padding: 0;
         float: left;
@@ -962,6 +963,20 @@ body:before {
             width: 690px;
             height: auto;
         }
+    }
+}
+
+/*
+    ----------------------------
+    Element views
+    ----------------------------
+*/
+#database-view, #table-view, #datacenter-view, #server-view {
+    h1.title {
+        font-family: @serif;
+        color: #4d535c;
+        font-size: 19px;
+        margin-bottom: 25px;
     }
 }
 

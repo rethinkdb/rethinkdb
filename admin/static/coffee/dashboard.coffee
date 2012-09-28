@@ -18,7 +18,6 @@ module 'DashboardView', ->
                 width:  833             # width in pixels
                 height: 300             # height in pixels
                 seconds: 119            # num seconds to track
-                height_in_units:20500   # scale of the plot on the y-axis when the plot is empty
                 type: 'cluster'
             )
 

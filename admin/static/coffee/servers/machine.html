@@ -1,41 +1,47 @@
 <script id="machine_view-container-template" type="text/x-handlebars-template">
-    <div class="main_title"></div>
-    <div class="two-panel-section">
-        <div class="panel-left-unbalanced profile"></div>
+    <div id="machine-view">
+        <div class="main_title"></div>
+        <div class="section">
+            <div class="row-fluid">
+                <div class="span6 profile"></div>
+                <div class="span6 performance-graph"></div>
+            </div>
+        </div>
 
-        <div class="panel-right-unbalanced performance">
-          <h3 class="title">Performance</h3>
-          <div class="performance-graph"></div>
-        </div>
-    </div>
-
-    <ul class="nav nav-tabs">
-        <li class="active"><a href="#servers/{{server_id}}/overview" data-target="#machine-overview" id="machine-overview-link" data-toggle="tab" class="tab-link">Statistics</a></li>
-        <li><a href="#servers/{{server_id}}/data" data-target="#machine-data" id="machine-data-link" data-toggle="tab" class="tab-link">Data on this server</a></li>
-        <li><a href="#servers/{{server_id}}/assignments" data-target="#machine-assignments" id="machine-assignments-link" data-toggle="tab" class="tab-link">Assignments</a></li>
-        <li><a href="#servers/{{server_id}}/operations" data-target="#machine-operations" id="machine-operations-link" data-toggle="tab" class="tab-link">Operations</a></li>
-        <li><a href="#servers/{{server_id}}/logs" data-target="#machine-log_entries" id="machine-log_entries-link" data-toggle="tab" class="tab-link">Recent log entries</a></li>
-    </ul>
-    <div class="tab-content">  
-        <div id="user-alert-space"></div>
-        <div class="tab-pane active" id="machine-overview">
-            <div class="section overview"></div>
-        </div>
-        <div class="tab-pane" id="machine-data">
-            <div class="section data"></div>
-        </div>
-        <div class="tab-pane" id="machine-assignments">
-            <div class="section assignments"></div>
-        </div>
-        <div class="tab-pane" id="machine-operations">
-            <div class="section operations"></div>
-        </div>
-        <div class="tab-pane" id="machine-log_entries">
-            <div class="section machine-log-entries">
-                <div class="recent-log-entries"></div>
+        <div class="section">
+            <ul class="nav nav-pills">
+                <li class="active"><a href="#servers/{{server_id}}/overview" data-target="#machine-overview" id="machine-overview-link" data-toggle="tab" class="tab-link">Statistics</a></li>
+                <li><a href="#servers/{{server_id}}/data" data-target="#machine-data" id="machine-data-link" data-toggle="tab" class="tab-link">Data on this server</a></li>
+                <li><a href="#servers/{{server_id}}/assignments" data-target="#machine-assignments" id="machine-assignments-link" data-toggle="tab" class="tab-link">Assignments</a></li>
+                <li><a href="#servers/{{server_id}}/operations" data-target="#machine-operations" id="machine-operations-link" data-toggle="tab" class="tab-link">Operations</a></li>
+                <li><a href="#servers/{{server_id}}/logs" data-target="#machine-log_entries" id="machine-log_entries-link" data-toggle="tab" class="tab-link">Recent log entries</a></li>
+            </ul>
+            <div class="tab-content">  
+                <div id="user-alert-space"></div>
+                <div class="tab-pane active" id="machine-overview">
+                    <div class="overview"></div>
+                </div>
+                <div class="tab-pane" id="machine-data">
+                    <div class="data"></div>
+                </div>
+                <div class="tab-pane" id="machine-assignments">
+                    <div class="assignments"></div>
+                </div>
+                <div class="tab-pane" id="machine-operations">
+                    <div class="operations"></div>
+                </div>
+                <div class="tab-pane" id="machine-log_entries">
+                    <div class="machine-log-entries">
+                        <div class="recent-log-entries"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+</script>
+
+<script id="machine_view_title-template" type="text/x-handlebars-template">
+    <h1 class="title">Server overview for {{name}}</h1>
 </script>
 
 <script id="machine_view-ghost-template" type="text/x-handlebars-template">
@@ -48,7 +54,7 @@
 
 <script id="machine_view_profile-template" type="text/x-handlebars-template">
   <h3 class="title">Server profile</h3>
-  <div class="section summary">
+  <div class="summary">
     <p class="datacenter-name">Datacenter:
       {{#if assigned_to_datacenter}}
       <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
@@ -65,10 +71,6 @@
         (the server might be overload with queries).</p>
     {{/unless}}
   </div>
-</script>
-
-<script id="machine_view_title-template" type="text/x-handlebars-template">
-    <h1>Server overview for {{name}}</h1>
 </script>
 
 <script id="machine_overview-container-template" type="text/x-handlebars-template">
