@@ -1,6 +1,5 @@
 module 'DataExplorerView', ->
     class @Container extends Backbone.View
-        className: 'dataexplorer_container'
         id: 'dataexplorer'
         template: Handlebars.compile $('#dataexplorer_view-template').html()
         template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
@@ -752,11 +751,12 @@ module 'DataExplorerView', ->
             @count_results = count_results
 
             @.$('.loading_query_img').css 'display', 'block'
-            full_query = @query+'\n'+'.skip('+skip_value+').limit('+limit_value+')'+'.iter(iter_callback, last_callback)' # The new line is added in case the last one has an inline comment (//)
+            full_query = @query+'\n'+'.skip('+skip_value+').limit('+limit_value+')'+'.iter({callback: iter_callback, doneCallback:last_callback, onError: error_callback})' # The new line is added in case the last one has an inline comment (//)
             try
-                callbacks = @create_tagged_paginating_callbacks skip_value, limit_value
+                callbacks = @create_tagged_paginating_callbacks(skip_value, limit_value)
                 iter_callback = callbacks.iter
                 last_callback = callbacks.last
+                error_callback = callbacks.error
                 @start_time = new Date()
                 eval(full_query)
             catch err
@@ -868,8 +868,9 @@ module 'DataExplorerView', ->
 
         render: =>
             @.$el.html @template
-            @.$('.input_query_full_container').html @input_query.render().el
-            @.$('.results_container').html @results_view.render().el
+            @.$('.input_query_full_container').html @input_query.render().$el
+            @.$('.results_container').html @results_view.render().$el
+            @.$('.results_container').html @results_view.render_default().$el
             return @
 
         call_codemirror: =>
@@ -883,7 +884,7 @@ module 'DataExplorerView', ->
                 lineWrapping: true
                 matchBrackets: true
 
-            @codemirror.setSize 938, 100
+            @codemirror.setSize '100%', 100
 
         toggle_size: =>
             if @displaying_full_view
@@ -896,10 +897,11 @@ module 'DataExplorerView', ->
                 @displaying_full_view = true
 
         display_normal: =>
-            #TODO
+            $('#cluster').addClass 'container'
+            @.event
 
         display_full: =>
-            #TODO
+            $('#cluster').removeClass 'container'
 
         destroy: =>
             @display_normal()
@@ -924,6 +926,7 @@ module 'DataExplorerView', ->
     class @ResultView extends Backbone.View
         className: 'result_view'
         template: Handlebars.compile $('#dataexplorer_result_container-template').html()
+        default_template: Handlebars.compile $('#dataexplorer_default_result_container-template').html()
         metadata_template: Handlebars.compile $('#dataexplorer-metadata-template').html()
         option_template: Handlebars.compile $('#dataexplorer-option_page-template').html()
         error_template: Handlebars.compile $('#dataexplorer-error-template').html()
@@ -1371,6 +1374,9 @@ module 'DataExplorerView', ->
         render: =>
             @delegateEvents()
             return @
+
+        render_default: =>
+            @.$el.html @default_template()
 
         toggle_collapse: (event) =>
             @.$(event.target).nextAll('.jt_collapsible').toggleClass('jt_collapsed')

@@ -1,8 +1,11 @@
 <script id="dataexplorer_view-template" type="text/x-handlebars-template">
-    <h1 class="title status">Data Explorer</h1>
-    <div id="user-alert-space"></div>
-    <div class="input_query_full_container"></div>
-    <div class="results_container"></div>
+    <div class="section">
+        <h1 class="title">Data Explorer</h1>
+        <div id="user-alert-space"></div>
+        <div class="input_query_full_container"></div>
+    </div>
+    <div class="results_container section">
+    </div>
 </script>
 
 <script id="alert-connection_fail-template" type="text/x-handlebars-template">
@@ -106,14 +109,19 @@
     <li class="query_element"><a href="#" class="old_query" data-query="{{query}}">{{query_summary}}</a></li>
 </script>
 
-
+<script id="dataexplorer_default_result_container-template" type="text/x-handlebars-template">
+    <div class="results_header">
+        <h1 class="title">Results</h1>
+        <p>No query executed.</p>
+    </div>
+</script>
 <script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
     <div class="results_header">
         <div class="options_container">
             <input type="button" value="Full view" class="btn button_query change_size" />
         </div>
 
-        <h2>Results</h2>
+        <h1 class="title">Results</h1>
         <p class="query_executed">For query: {{query}}</p>
         <p class="metadata"></p>
         
