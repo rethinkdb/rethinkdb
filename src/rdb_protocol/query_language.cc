@@ -1643,7 +1643,7 @@ boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environmen
 
             eval_let_binds(t->mutable_let(), env, &scopes_copy, backtrace);
 
-            return eval_term_as_stream(t->mutable_let()->mutable_expr(), env, scopes, backtrace.with("expr"));
+            return eval_term_as_stream(t->mutable_let()->mutable_expr(), env, scopes_copy, backtrace.with("expr"));
         }
         break;
     case Term::CALL:
