@@ -60,7 +60,7 @@ body:before {
     ----------------------------
 */
 #sticky-wrap {
-    background: #ebebeb;
+    background: url('https://dl.dropbox.com/s/xnjd8qzm0rkoz2q/background.png');
 }
 #main-container {
     padding-top: 30px;
@@ -149,7 +149,7 @@ body:before {
             text-shadow: @text_shadow;
             margin-left: -2px;
 
-            @fancy_dividers: -1px 0 0 rgba(0, 0, 0, .30), 1px 0 0 rgba(255, 255, 255, .05);
+            @fancy_dividers: -1px 0 0 rgba(0, 0, 0, .30) inset, 1px 0 0 rgba(255, 255, 255, .05);
             -webkit-box-shadow: @fancy_dividers;
                -moz-box-shadow: @fancy_dividers;
                     box-shadow: @fancy_dividers;
@@ -174,7 +174,7 @@ body:before {
                 }
             }
             &.active {
-                background: #222;
+                background: url('https://dl.dropbox.com/s/x6om3yds5w83182/navbar-active.png');
                 a { color: white; }
             }
         }
@@ -188,6 +188,7 @@ body:before {
 
     #nav-search {
         input[type="text"] {
+            font-family: @sans;
             font-size: 15px;
             color: white;
             border: 0 none;
@@ -219,7 +220,7 @@ body:before {
     ----------------------------
 */
 #sidebar {
-    background: #e1e1e1;
+    background: url('https://dl.dropbox.com/s/plzmuyfwibwyvry/status_panel-background.png');
     border-bottom: thin solid #d0d0d0;
     .cluster-status { padding: 20px 0; }
     .panel {
