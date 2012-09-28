@@ -1,8 +1,9 @@
 #!/usr/bin/ruby
+$LOAD_PATH.unshift('./rethinkdb')
 require 'pp'
-require 'rethinkdb/rethinkdb_shortcuts.rb'
+require 'rethinkdb.rb'
 require 'optparse'
-include RethinkDB::Shortcuts_Mixin
+include RethinkDB::Shortcuts
 
 options = {}
 OptionParser.new {|opts|

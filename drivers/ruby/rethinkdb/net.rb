@@ -239,6 +239,7 @@ module RethinkDB
     # <b>NOTE:</b> unlike most enumerably objects, you can only iterate over the
     # result once.  See RethinkDB::Query_Results for more details.
     def run (query, opts={})
+      #File.open('sexp.txt', 'a') {|f| f.write(query.sexp.inspect+"\n")}
       is_atomic = (query.kind_of?(JSON_Expression) ||
                    query.kind_of?(Meta_Query) ||
                    query.kind_of?(Write_Query))
