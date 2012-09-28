@@ -635,13 +635,51 @@ class JSONExpression(ReadQuery):
         :param attrs: The attributes to pluck out
         :type attrs: strings
         :returns: :class:`JSONExpression`
-        
+
         >>> expr([{ 'a': 1, 'b': 1, 'c': 1},
                   { 'a': 2, 'b': 2, 'c': 2}]).pluck('a', 'b').run()
         [{ 'a': 1, 'b': 1 }, { 'a': 2, 'b': 2 }]
         """
         # TODO: reimplement in terms of pickattr when that's done
         return self.map(lambda x: {a: x[a] for a in attrs})
+
+    def inner_join(self, other, predicate):
+        return self.concat_map(
+            lambda row: other.concat_map(
+                lambda row2: if_then_else(predicate(row, row2),
+                    expr([{'left':row, 'right':row2}]),
+                    expr([]))
+                )
+            )
+
+    def outer_join(self, other, predicate):
+        return self.concat_map(
+            lambda row: let(('matches', other.concat_map(
+                lambda row2: if_then_else(predicate(row, row2),
+                    expr([{'left':row, 'right':row2}]),
+                    expr([])
+                )
+            )), if_then_else(letvar('matches').length() > 0,
+                letvar('matches'),
+                expr({'left':row})
+            ))
+        )
+
+    def equi_join(self, left_attr, other, opt_right_attr=None):
+        return self.concat_map(
+            lambda row: let(('right', other.get(row[left_attr])),
+                if_then_else(letvar('right') != None,
+                    expr([{'left':row, 'right':letvar('right')}]),
+                    expr([])
+                )
+            )
+        )
+
+    def zip(self):
+        return self.map(lambda row: if_then_else(row.has_attr('right'),
+            row['left'].extend(row['right']),
+            row['left']
+        ))
 
     def length(self):
         """Returns the length of an array.
@@ -1127,11 +1165,10 @@ class FunctionExpr(object):
     unique_counter = 0
 
     def __init__(self, body):
-        global unique_counter
         if isinstance(body, types.FunctionType):
-            self.args = ['arg'+str(i)+'_'+str(self.unique_counter)
+            self.args = ['arg'+str(i)+'_'+str(FunctionExpr.unique_counter)
                 for i in range(body.func_code.co_argcount)]
-            self.unique_counter += 1
+            FunctionExpr.unique_counter += 1
             res = body(*[JSONExpression(internal.Var(arg)) for arg in self.args])
             if not isinstance(res, BaseQuery):
                 res = expr(res)

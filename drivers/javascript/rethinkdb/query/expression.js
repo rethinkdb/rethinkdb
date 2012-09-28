@@ -1698,22 +1698,6 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'forEach',
                     rethinkdb.Expression.prototype.forEach);
 
 /**
- * Eqi join
- */
-rethinkdb.Expression.prototype.equiJoin = function(leftAttr, other, opt_rightAttr) {
-    return this.concatMap(function(row) {
-        return rethinkdb.let({'right': other.get(row(leftAttr))},
-            rethinkdb.ifThenElse(rethinkdb.letVar('right')['ne'](rethinkdb.expr(null)),
-                rethinkdb.expr([{'left':row, 'right':rethinkdb.letVar('right')}]),
-                rethinkdb.expr([])
-            )
-        );
-    });
-};
-goog.exportProperty(rethinkdb.Expression.prototype, 'equiJoin',
-                    rethinkdb.Expression.prototype.equiJoin);
-
-/**
  * Inner join
  */
 rethinkdb.Expression.prototype.innerJoin = function(other, predicate) {
@@ -1749,6 +1733,22 @@ rethinkdb.Expression.prototype.outerJoin = function(other, predicate) {
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'outerJoin',
                     rethinkdb.Expression.prototype.outerJoin);
+
+/**
+ * Eqi join
+ */
+rethinkdb.Expression.prototype.equiJoin = function(leftAttr, other, opt_rightAttr) {
+    return this.concatMap(function(row) {
+        return rethinkdb.let({'right': other.get(row(leftAttr))},
+            rethinkdb.ifThenElse(rethinkdb.letVar('right')['ne'](rethinkdb.expr(null)),
+                rethinkdb.expr([{'left':row, 'right':rethinkdb.letVar('right')}]),
+                rethinkdb.expr([])
+            )
+        );
+    });
+};
+goog.exportProperty(rethinkdb.Expression.prototype, 'equiJoin',
+                    rethinkdb.Expression.prototype.equiJoin);
 
 /**
  * Zip the result of a join
