@@ -24,10 +24,8 @@ module RethinkDB
 
     # Filter the sequence based on a predicate.  The provided block should take a
     # single variable, an element of the sequence, and return either <b>+true+</b> if
-    # it should be in the resulting sequence or <b>+false+</b> otherwise.  If you
-    # have a table <b>+table+</b>, the following are all equivalent:
+    # it should be in the resulting sequence or <b>+false+</b> otherwise.  For example:
     #   table.filter {|row| row[:id] < 5}
-    #   table.filter {r[:id] < 5} # uses implicit variable
     # Alternatively, you may provide an object as an argument, in which case the
     # <b>+filter+</b> will match JSON objects which match the provided object's
     # attributes.  For example, if we have a table <b>+people+</b>, the
@@ -56,7 +54,6 @@ module RethinkDB
     # return a list of elements to include in the resulting sequence.  If you have a
     # table <b>+table+</b>, the following are all equivalent:
     #   table.concatmap {|row| [row[:id], row[:id]*2]}
-    #   table.concatmap {[r[:id], r[:id]*2]} # uses implicit variable
     #   table.map{|row| [row[:id], row[:id]*2]}.reduce([]){|a,b| r.union(a,b)}
     def concatmap
       S.with_var { |vname,v|
@@ -84,10 +81,8 @@ module RethinkDB
 
     # Map a function over a sequence.  The provided block should take
     # a single variable, an element of the sequence, and return an
-    # element of the resulting sequence.  If you have a table
-    # <b>+table+</b>, the following are all equivalent:
+    # element of the resulting sequence.  For example:
     #   table.map {|row| row[:id]}
-    #   table.map {r[:id]} # uses implicit variable
     def map
       S.with_var{|vname,v|
         self.class.new [:call, [:map, vname, S.r(yield(v))], [self]]}
