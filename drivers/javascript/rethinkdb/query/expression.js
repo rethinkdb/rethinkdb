@@ -1734,19 +1734,34 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'innerJoin',
  */
 rethinkdb.Expression.prototype.outerJoin = function(other, predicate) {
     return this.concatMap(function(row) {
-        return rethinkdb.let({matches: other.concatMap(function(row2) {
+        return rethinkdb.let({'matches': other.concatMap(function(row2) {
             return rethinkdb.ifThenElse(predicate(row, row2),
-                rethinkdb.expr({left: row, right:row2}),
+                rethinkdb.expr([{left: row, right:row2}]),
                 rethinkdb.expr([])
             );
-        })}, rethinkdb.ifThenElse(rethinkdb.letVar('matches').count()['gt'](0),
-            rethinkdb.letVar('matches'),
-            rethinkdb.expr({left:row})
-        ));
+        })},
+            rethinkdb.ifThenElse(rethinkdb.letVar('matches').count()['gt'](0),
+                rethinkdb.letVar('matches'),
+                rethinkdb.expr([{left:row}])
+            )
+        );
     });
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'outerJoin',
                     rethinkdb.Expression.prototype.outerJoin);
+
+/**
+ * Zip the result of a join
+ */
+rethinkdb.Expression.prototype.zip = function() {
+    return this.map(function(row) {
+        return rethinkdb.ifThenElse(row.contains('right'),
+            row('left').extend(row('right')),
+            row('left'));
+    });
+};
+goog.exportProperty(rethinkdb.Expression.prototype, 'zip',
+                    rethinkdb.Expression.prototype.zip);
 
 /**
  * Convert a stream to an array.
