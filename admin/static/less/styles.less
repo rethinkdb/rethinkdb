@@ -621,8 +621,6 @@ body:before {
     position: relative;
     margin: 0px;
     overflow: auto;
-    font-family: monospace;
-    font-size: 14px;
 
     h1.title{
         font-family: @serif;
@@ -632,6 +630,8 @@ body:before {
     }
     .query_control{
         .input_query_container{
+            font: @monospace;
+
             padding: 0px;
             margin: 10px 0px;
             overflow: auto;
@@ -700,6 +700,9 @@ body:before {
     .data_container{
         .results_header{
             overflow: hidden;
+            p{
+                font-family: @sans;
+            }
         }
         .namespaces_available_container{
             float: left;
@@ -737,19 +740,32 @@ body:before {
             }
         }
     }
-    .options_container{
-        float: right;
-        .change_size{
-            font-size: @baseFontSize;
-            line-height: @baseLineHeight;
-            color: @grayDark;
-            text-align: center;
-            text-shadow: 0 1px 1px rgba(255,255,255,.75);
-            vertical-align: middle;
-            .buttonBackground(@btnBackground, @btnBackgroundHighlight);
-            border: 1px solid @btnBorder;
-            border-bottom-color: darken(@btnBorder, 10%);
-            .border-radius(4px);
+    .result_view{
+        .error{
+            font-family: @sans;
+        }
+        .results_header{
+            .options_container{
+                float: right;
+                .change_size{
+                    font-size: @baseFontSize;
+                    line-height: @baseLineHeight;
+                    color: @grayDark;
+                    text-align: center;
+                    text-shadow: 0 1px 1px rgba(255,255,255,.75);
+                    vertical-align: middle;
+                    .buttonBackground(@btnBackground, @btnBackgroundHighlight);
+                    border: 1px solid @btnBorder;
+                    border-bottom-color: darken(@btnBorder, 10%);
+                    .border-radius(4px);
+                }
+            }
+            .query_executed{
+                font-family: @sans;
+            }
+            .metadata{
+                font-family: @sans;
+            }
         }
     }
     .change_view_container{
@@ -834,6 +850,7 @@ body:before {
     }
     .tab-pane{
         display: none;
+        font: @monospace;
     }
     .active{
         display: block;

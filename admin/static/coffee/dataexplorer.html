@@ -94,10 +94,10 @@
 </script>
 
 <script id="dataexplorer-error-template" type="text/x-handlebars-template">
-    <h2>Error</h2>
-    <p>The following query could not be executed.</p>
-    <p class="query">{{query}}</p>
-    <p>Error: {{error}}</p>
+    <h1 class="title">Error</h1>
+    <p class="error">The following query could not be executed.</p>
+    <p class="error query">{{query}}</p>
+    <p class="error">Error: {{error}}</p>
 </script>
 
 <script id="dataexplorer_query_list-template" type="text/x-handlebars-template">
@@ -112,7 +112,7 @@
 <script id="dataexplorer_default_result_container-template" type="text/x-handlebars-template">
     <div class="results_header">
         <h1 class="title">Results</h1>
-        <p>No query executed.</p>
+        <p class="error">No query executed.</p>
     </div>
 </script>
 <script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
