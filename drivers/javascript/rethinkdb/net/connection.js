@@ -315,7 +315,9 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
             var results = response.responseArray().map(JSON.parse);
             if (request.callback) {
                 if (request.iterate) {
-                    results.forEach(request.callback);
+                    if(results) {
+                        results.forEach(request.callback);
+                    }
                 } else {
                     request.callback(request.partial.concat(results));
                 }
@@ -327,7 +329,7 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
             delete this.outstandingQueries_[response.getToken()]
             var result = JSON.parse(response.getResponse(0));
             if (request.iterate) {
-                if (result.forEach && request.callback) {
+                if (result && result.forEach && request.callback) {
                     result.forEach(request.callback);
                 } else if (request.callback) {
                     request.callback(result);
