@@ -28,6 +28,12 @@ home thread. */
 template <class value_t> class watchable_t;
 template <class value_t> class watchable_freeze_t;
 
+enum run_until_satisfied_result_t {
+    SATISFIED,
+    RUN_AGAIN,
+    ABORT
+};
+
 template <class value_t>
 class watchable_subscription_t {
 public:
@@ -135,6 +141,13 @@ private:
 retries `fun` when the value of `a` or `b` changes. */
 template<class a_type, class b_type, class callable_type>
 void run_until_satisfied_2(
+        const clone_ptr_t<watchable_t<a_type> > &a,
+        const clone_ptr_t<watchable_t<b_type> > &b,
+        const callable_type &fun,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+
+template<class a_type, class b_type, class callable_type>
+MUST_USE run_until_satisfied_result_t abortable_run_until_satisfied_2(
         const clone_ptr_t<watchable_t<a_type> > &a,
         const clone_ptr_t<watchable_t<b_type> > &b,
         const callable_type &fun,

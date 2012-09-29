@@ -18,6 +18,19 @@ branch_birth_certificate_t<protocol_t> in_memory_branch_history_manager_t<protoc
 }
 
 template <class protocol_t>
+std::set<branch_id_t> in_memory_branch_history_manager_t<protocol_t>::known_branches() THROWS_NOTHING {
+    std::set<branch_id_t> res;
+
+    for (typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::iterator it  = bh.branches.begin();
+                                                                                           it != bh.branches.end();
+                                                                                           ++it) {
+        res.insert(it->first);
+    }
+
+    return res;
+}
+
+template <class protocol_t>
 void in_memory_branch_history_manager_t<protocol_t>::create_branch(branch_id_t branch_id, const branch_birth_certificate_t<protocol_t> &bc, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(bh.branches.find(branch_id) == bh.branches.end());
     nap(10, interruptor);
