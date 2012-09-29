@@ -10,6 +10,7 @@
 
 #define DEFAULT_DEPTH 1
 #define MAX_DEPTH 2
+#define DEFAULT_LIMIT 128
 
 distribution_app_t::distribution_app_t(boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > > > _namespaces_sl_metadata,
                                        namespace_repo_t<memcached_protocol_t> *_ns_repo,
@@ -45,7 +46,7 @@ http_res_t distribution_app_t::handle(const http_req_t &req) {
         }
     }
 
-    uint64_t limit = 0;
+    uint64_t limit = DEFAULT_LIMIT;
     boost::optional<std::string> maybe_limit = req.find_query_param("limit");
 
     if (maybe_limit) {
