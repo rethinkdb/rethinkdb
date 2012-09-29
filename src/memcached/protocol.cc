@@ -191,6 +191,21 @@ public:
     }
 };
 
+// Scale the distribution down by combining ranges to fit it within the limit of the query
+void scale_down_distribution(size_t result_limit, std::map<store_key_t, int> *key_counts) {
+    const size_t combine = (key_counts->size() / result_limit); // Combine this many other ranges into the previous range
+    for (std::map<store_key_t, int>::iterator it = key_counts->begin();
+                                              it != key_counts->end();) {
+        std::map<store_key_t, int>::iterator next = it;
+        ++next;
+        for (size_t i = 0; i < combine && next != key_counts->end(); ++i) {
+            it->second += next->second;
+            key_counts->erase(next++);
+        }
+        it = next;
+    }
+}
+
 // TODO: get rid of this extra response_t copy on the stack
 struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     const read_response_t *bits;
@@ -281,6 +296,11 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 
                 res.key_counts.insert(results[largest_index].key_counts.begin(), results[largest_index].key_counts.end());
             }
+        }
+
+        // If the result is larger than the requested limit, scale it down
+        if (dget.result_limit > 0 && res.key_counts.size() > dget.result_limit) {
+            scale_down_distribution(dget.result_limit, &res.key_counts);
         }
 
         return read_response_t(res);
@@ -454,19 +474,9 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
             }
         }
 
-        // Scale the distribution get down by combining ranges to fit it within the limit of the query
+        // If the result is larger than the requested limit, scale it down
         if (dget.result_limit > 0 && dstr.key_counts.size() > dget.result_limit) {
-            const size_t combine = (dstr.key_counts.size() / dget.result_limit); // Combine this many other ranges into the previous range
-            for (std::map<store_key_t, int>::iterator it = dstr.key_counts.begin();
-                                                      it != dstr.key_counts.end();) {
-                std::map<store_key_t, int>::iterator next = it;
-                ++next;
-                for (size_t i = 0; i < combine && next != dstr.key_counts.end(); ++i) {
-                    it->second += next->second;
-                    dstr.key_counts.erase(next++);
-                }
-                it = next;
-            }
+            scale_down_distribution(dget.result_limit, &dstr.key_counts);
         }
 
         dstr.region = dget.region;

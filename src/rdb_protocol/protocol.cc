@@ -198,6 +198,21 @@ public:
     }
 };
 
+// Scale the distribution down by combining ranges to fit it within the limit of the query
+void scale_down_distribution(size_t result_limit, std::map<store_key_t, int> *key_counts) {
+    const size_t combine = (key_counts->size() / result_limit); // Combine this many other ranges into the previous range
+    for (std::map<store_key_t, int>::iterator it = key_counts->begin();
+                                              it != key_counts->end();) {
+        std::map<store_key_t, int>::iterator next = it;
+        ++next;
+        for (size_t i = 0; i < combine && next != key_counts->end(); ++i) {
+            it->second += next->second;
+            key_counts->erase(next++);
+        }
+        it = next;
+    }
+}
+
 class unshard_visitor_t : public boost::static_visitor<void> {
 public:
     unshard_visitor_t(const read_response_t *_responses,
@@ -334,7 +349,7 @@ public:
         }
     }
 
-    void operator()(const distribution_read_t &) {
+    void operator()(const distribution_read_t &dg) {
         // TODO: do this without copying so much and/or without dynamic memory
         // Sort results by region
         std::vector<distribution_read_response_t> results(count);
@@ -388,6 +403,11 @@ public:
 
                 res.key_counts.insert(results[largest_index].key_counts.begin(), results[largest_index].key_counts.end());
             }
+        }
+
+        // If the result is larger than the requested limit, scale it down
+        if (dg.result_limit > 0 && res.key_counts.size() > dg.result_limit) {
+            scale_down_distribution(dg.result_limit, &res.key_counts);
         }
 
         response_out->response = res;
@@ -513,19 +533,9 @@ struct read_visitor_t : public boost::static_visitor<void> {
             }
         }
 
-        // Scale the distribution get down by combining ranges to fit it within the limit of the query
+        // If the result is larger than the requested limit, scale it down
         if (dg.result_limit > 0 && res.key_counts.size() > dg.result_limit) {
-            const size_t combine = (res.key_counts.size() / dg.result_limit); // Combine this many other ranges into the previous range
-            for (std::map<store_key_t, int>::iterator it = res.key_counts.begin();
-                                                      it != res.key_counts.end();) {
-                std::map<store_key_t, int>::iterator next = it;
-                ++next;
-                for (size_t i = 0; i < combine && next != res.key_counts.end(); ++i) {
-                    it->second += next->second;
-                    res.key_counts.erase(next++);
-                }
-                it = next;
-            }
+            scale_down_distribution(dg.result_limit, &res.key_counts);
         }
 
         res.region = dg.region;
