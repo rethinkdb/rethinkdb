@@ -387,7 +387,6 @@ public:
                 }
 
                 res.key_counts.insert(results[largest_index].key_counts.begin(), results[largest_index].key_counts.end());
-                debugf("inserted %ld ranges in distribution result, on %ld of %ld responses\n", results[largest_index].key_counts.size(), i, results.size());
             }
         }
 
