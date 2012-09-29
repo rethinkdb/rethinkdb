@@ -77,7 +77,7 @@ archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *b
 
 RDB_IMPL_SERIALIZABLE_1(get_query_t, key);
 RDB_IMPL_SERIALIZABLE_2(rget_query_t, region, maximum);
-RDB_IMPL_SERIALIZABLE_2(distribution_get_query_t, max_depth, region);
+RDB_IMPL_SERIALIZABLE_3(distribution_get_query_t, max_depth, result_limit, region);
 RDB_IMPL_SERIALIZABLE_3(get_result_t, value, flags, cas);
 RDB_IMPL_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
 RDB_IMPL_SERIALIZABLE_2(rget_result_t, pairs, truncated);
@@ -183,7 +183,11 @@ public:
 class distribution_result_less_t {
 public:
     bool operator()(const distribution_result_t& x, const distribution_result_t& y) {
-        return x.region < y.region;
+        if (x.region.inner == y.region.inner) {
+            return x.region < y.region;
+        } else {
+            return x.region.inner < y.region.inner;
+        }
     }
 };
 
@@ -447,6 +451,21 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
                 dstr.key_counts.erase(it++);
             } else {
                 ++it;
+            }
+        }
+
+        // Scale the distribution get down by combining ranges to fit it within the limit of the query
+        if (dget.result_limit > 0 && dstr.key_counts.size() > dget.result_limit) {
+            const size_t combine = (dstr.key_counts.size() / dget.result_limit); // Combine this many other ranges into the previous range
+            for (std::map<store_key_t, int>::iterator it = dstr.key_counts.begin();
+                                                      it != dstr.key_counts.end();) {
+                std::map<store_key_t, int>::iterator next = it;
+                ++next;
+                for (size_t i = 0; i < combine && next != dstr.key_counts.end(); ++i) {
+                    it->second += next->second;
+                    dstr.key_counts.erase(next++);
+                }
+                it = next;
             }
         }
 

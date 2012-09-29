@@ -190,7 +190,11 @@ bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
 class distribution_read_response_less_t {
 public:
     bool operator()(const distribution_read_response_t& x, const distribution_read_response_t& y) {
-        return x.region < y.region;
+        if (x.region.inner == y.region.inner) {
+            return x.region < y.region;
+        } else {
+            return x.region.inner < y.region.inner;
+        }
     }
 };
 
@@ -383,6 +387,7 @@ public:
                 }
 
                 res.key_counts.insert(results[largest_index].key_counts.begin(), results[largest_index].key_counts.end());
+                debugf("inserted %ld ranges in distribution result, on %ld of %ld responses\n", results[largest_index].key_counts.size(), i, results.size());
             }
         }
 
@@ -506,6 +511,21 @@ struct read_visitor_t : public boost::static_visitor<void> {
                 res.key_counts.erase(it++);
             } else {
                 ++it;
+            }
+        }
+
+        // Scale the distribution get down by combining ranges to fit it within the limit of the query
+        if (dg.result_limit > 0 && res.key_counts.size() > dg.result_limit) {
+            const size_t combine = (res.key_counts.size() / dg.result_limit); // Combine this many other ranges into the previous range
+            for (std::map<store_key_t, int>::iterator it = res.key_counts.begin();
+                                                      it != res.key_counts.end();) {
+                std::map<store_key_t, int>::iterator next = it;
+                ++next;
+                for (size_t i = 0; i < combine && next != res.key_counts.end(); ++i) {
+                    it->second += next->second;
+                    res.key_counts.erase(next++);
+                }
+                it = next;
             }
         }
 
