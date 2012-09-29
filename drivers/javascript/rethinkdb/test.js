@@ -279,6 +279,46 @@ function testConcatMap() {
     tab.concatMap(r.expr([1,2])).count().run(aeq(20));
 }
 
+function testJoin1() {
+    var s1 = r.expr([{id:0, name:'bob'}, {id:1, name:'tom'}, {id:2, name:'joe'}]);
+    var s2 = r.expr([{id:0, title:'goof'}, {id:2, title:'lmoe'}]);
+
+    wait();
+    r.db('test').create('joins1').run(function() {
+        r.table('joins1').insert(s1).run(done);
+    });
+
+    wait();
+    r.db('test').create('joins2').run(function() {
+        r.table('joins2').insert(s2).run(done);
+    });
+}
+
+function testJoin2() {
+    var s1 = r.table('joins1');
+    var s2 = r.table('joins2');
+
+    s1.innerJoin(s2, function(one, two) {
+        return one('id').eq(two('id'));
+    }).zip().orderby('id').run(objeq([
+        {id:0, name: 'bob', title: 'goof'},
+        {id:2, name: 'joe', title: 'lmoe'},
+    ]));
+
+    s1.outerJoin(s2, function(one, two) {
+        return one('id').eq(two('id'));
+    }).zip().orderby('id').run(objeq([
+        {id:0, name: 'bob', title: 'goof'},
+        {id:1, name: 'tom'},
+        {id:2, name: 'joe', title: 'lmoe'},
+    ]));
+
+    s1.equiJoin('id', r.table('joins2')).zip().orderby('id').run(objeq([
+        {id:0, name: 'bob', title: 'goof'},
+        {id:2, name: 'joe', title: 'lmoe'},
+    ]));
+}
+
 var tab2 = r.table('table-2');
 function testSetupOtherTable() {
     wait();
@@ -459,6 +499,8 @@ runTests([
     testGroupedMapReduce,
     testGroupBy,
     testConcatMap,
+    testJoin1,
+    testJoin2,
     testSetupOtherTable,
     testDropTable,
     testUpdate1,

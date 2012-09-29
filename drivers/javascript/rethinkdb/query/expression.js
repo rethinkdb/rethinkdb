@@ -1629,6 +1629,35 @@ rethinkdb.LetExpression.prototype.compile = function(opt_buildOpts) {
     return term;
 };
 
+/** @override */
+rethinkdb.LetExpression.prototype.formatQuery = function(bt) {
+    var bds = [];
+    for (var varName in this.bindings_) {
+        if (this.bindings_.hasOwnProperty(varName)) {
+            var expr = this.bindings_[varName];
+            bds.push([varName, expr]);
+        }
+    }
+
+    if (!bt) {
+        bds = bds.map(function(a) {return "'"+a[0]+"':"+a[1].formatQuery()});
+        return "r.let({"+bds.join(', ')+"}, "+this.body_.formatQuery()+")";
+    } else {
+        var a = bt.shift();
+        goog.asserts.assert(a.indexOf('bind:') != -1);
+        var key = a.split(':')[1];
+        bds = bds.map(function(a) {
+            if (a[0] === key) {
+                return spaceify_("'"+a[0]+"':")+a[1].formatQuery(bt);
+            } else {
+                return spaceify_("'"+a[0]+"':"+a[1].formatQuery());
+            }
+        });
+
+        return spaceify_("r.let({")+bds.join('  ')+spaceify_("}, "+this.body_.formatQuery()+")");
+    }
+};
+
 /**
  * Bind the result of an ReQL expression to a variable within an expression.
  * @param {Object} bindings An object giving name:expression pairs.
@@ -1720,10 +1749,10 @@ rethinkdb.Expression.prototype.outerJoin = function(other, predicate) {
     return this.concatMap(function(row) {
         return rethinkdb.let({'matches': other.concatMap(function(row2) {
             return rethinkdb.ifThenElse(predicate(row, row2),
-                rethinkdb.expr([{left: row, right:row2}]),
+                rethinkdb.expr([{left: row, right: row2}]),
                 rethinkdb.expr([])
             );
-        })},
+        }).streamToArray()},
             rethinkdb.ifThenElse(rethinkdb.letVar('matches').count()['gt'](0),
                 rethinkdb.letVar('matches'),
                 rethinkdb.expr([{left:row}])
