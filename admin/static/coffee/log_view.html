@@ -1,7 +1,6 @@
 <script id="log-container-template" type="text/x-handlebars-template">
     <div id="log-view" class="section">
         <div class="header"><h2 class="title">Log entries</h2></div>
-        <div class="expand_all"><a href="#" class="expand_all_link">Show all details</a></div>
         <ul class="log-entries"></ul>
         <div class="any-more-log-entries">
             <div class="no-more-entries">No more log entries to show</div>
@@ -68,16 +67,15 @@
 </script>
 
 <script id="log-entry-template" type="text/x-handlebars-template">
-    <div class="entry-metadata">
-        {{#if raw_data}}
-            <span class="more-details"><a href="#" class="more-details-link">More details</a></span>
-        {{/if}}
-        <p><strong>Log</strong> reported from <a href="#servers/{{machine_uuid}}">{{machine_name}}</a> on {{datetime}}</p>
+    <div class="row-fluid">
+        <div class="span9">
+            <p class="message">{{print_safe msg}}</p>
+            <p class="from-machine">Posted by <a href="#servers/{{machine_uuid}}">{{machine_name}}</a></p>
+        </div>
+        <div class="span3">
+            <p class="datetime">{{datetime}}</p>
+        </div>
     </div>
-    <div class="message">
-        {{print_safe msg}}
-    </div>
-
     {{#if raw_data}}    
         <pre class="details">{{raw_data}}</pre>
     {{/if}}
@@ -178,7 +176,7 @@
             <p class="from-machine">Posted by <a href="#servers/{{machine_uuid}}">{{machine_name}}</a></p>
         </div>
         <div class="span3">
-            <p class="datetime">{{timeago_timestamp}}</p>
+            <p class="datetime">{{datetime}}</p>
         </div>
     </div>
 </script>

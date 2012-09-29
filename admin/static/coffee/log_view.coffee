@@ -18,7 +18,6 @@ module 'LogView', ->
         events: ->
             'click .next-log-entries': 'next_entries'
             'click .update-log-entries': 'update_log_entries'
-            'click .expand_all': 'expand_all'
 
         initialize: (data) ->
             log_initial '(initializing) events view: container'
@@ -178,19 +177,6 @@ module 'LogView', ->
             @render_header()
             @.$('.header .alert').remove()
 
-        expand_all: (event) =>
-            event.preventDefault()
-            if @.$(event.target).html() is 'Show all details'
-                @.$(event.target).html 'Hide all details'
-                @.$('.more-details-link').each ->
-                    $(this).html 'Hide details'
-                    $(this).parent().parent().next().next().slideDown 'fast'
-            else
-                @.$(event.target).html 'Show all details'
-                @.$('.more-details-link').each ->
-                    $(this).html 'More details'
-                    $(this).parent().parent().next().next().slideUp 'fast'
-
         destroy: =>
             clearInterval @set_interval
 
@@ -257,8 +243,7 @@ module 'LogView', ->
             json = _.extend @model.toJSON(), @format_msg(@model)
             json = _.extend json,
                 machine_name: if machines.get(@model.get('machine_uuid'))? then machines.get(@model.get('machine_uuid')).get('name') else 'Unknown machine'
-                datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
-        
+                datetime: new XDate(@model.get('timestamp')*1000).toString("HH:mm - MMMM dd, yyyy")
             @.$el.html @template json
             
             @delegateEvents()
@@ -269,7 +254,7 @@ module 'LogView', ->
             json = _.extend @model.toJSON(), @format_msg_small(@model)
             json = _.extend json,
                 machine_name: if machines.get(@model.get('machine_uuid'))? then machines.get(@model.get('machine_uuid')).get('name') else 'Unknown machine'
-                datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
+                datetime: new XDate(@model.get('timestamp')*1000).toString("HH:mm - MMMM dd, yyyy")
         
             @.$el.html @template_small json
             @.$el.attr('class', @classNameSmall)
@@ -291,10 +276,17 @@ module 'LogView', ->
                     if group is 'rdb_namespaces'
                         for namespace_id of json_data[group]
                             if namespace_id is 'new'
+                                #TODO datacenter name
+                                if datacenters.get(json_data[group]['new']['primary_uuid'])?
+                                    datacenter_name = datacenters.get(json_data[group]['new']['primary_uuid'])
+                                else if json_data[group]['new']['primary_uuid'] is universe_datacenter.get('id')
+                                    datacenter_name = universe_datacenter.get('name')
+                                else
+                                    datacenter_name = 'removed datacenter'
                                 msg += @log_new_namespace_template
                                     namespace_name: json_data[group]['new']['name']
                                     datacenter_id: json_data[group]['new']['primary_uuid']
-                                    datacenter_name: if datacenters.get(json_data[group]['new']['primary_uuid'])? then datacenters.get(json_data[group]['new']['primary_uuid']).get 'name' else 'removed datacenter'
+                                    datacenter_name: datacenter_name
                                     port: json_data[group]['new']['port']
                             else
                                 if json_data[group][namespace_id] is null
@@ -307,6 +299,7 @@ module 'LogView', ->
                                         if attribute is 'ack_expectations' or attribute is 'replica_affinities'
                                             _datacenters = []
                                             for datacenter_id of json_data[group][namespace_id][attribute]
+                                                #TODO Universe and removed datacenter
                                                 if datacenter_id is universe_datacenter.get('id')
                                                     datacenter_name = universe_datacenter.get 'name'
                                                 else
@@ -433,9 +426,10 @@ module 'LogView', ->
 
                     else
                         msg += "We were unable to parse this log. Click on 'More details' to see the raw log"
+                        raw_data = JSON.stringify $.parseJSON(data), undefined, 2
                 return {
                     msg: msg
-                    raw_data: JSON.stringify $.parseJSON(data), undefined, 2
+                    raw_data: raw_data if raw_data?
                 }
             else
                 return {

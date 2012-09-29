@@ -310,7 +310,7 @@ class Machine extends Backbone.Model
         return reachable
 
 class LogEntry extends Backbone.Model
-    get_iso_8601_timestamp: => ISODateString new Date(@.get('timestamp') * 1000)
+    get_iso_8601_timestamp: => new Date(@.get('timestamp') * 1000)
     get_formatted_message: =>
         msg = @.get('message')
 
