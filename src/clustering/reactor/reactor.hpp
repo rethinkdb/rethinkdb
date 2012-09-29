@@ -126,8 +126,8 @@ private:
                                 const typename backfill_candidate_t::backfill_location_t &backfiller,
                                 best_backfiller_map_t *best_backfiller_out);
 
-    bool is_safe_for_us_to_be_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
-                                      const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out);
+    run_until_satisfied_result_t is_safe_for_us_to_be_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
+                                      const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out, branch_history_t<protocol_t> *branch_history_to_merge_out);
 
     static backfill_candidate_t make_backfill_candidate_from_version_range(const version_range_t &b);
 

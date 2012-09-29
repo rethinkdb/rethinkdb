@@ -63,7 +63,7 @@ std::vector<ip_address_t> ip_address_t::from_hostname(const std::string &host) {
         guarantee(fd != -1);
         struct if_nameindex *ifs = if_nameindex(); //ALLOC 2
         guarantee(ifs);
-        for (struct if_nameindex *it = ifs; it->if_name; ++it) {
+        for (struct if_nameindex *it = ifs; it->if_name != NULL; ++it) {
             struct ifreq req;
             strncpy(req.ifr_name, it->if_name, IFNAMSIZ);
             if (req.ifr_name[IFNAMSIZ-1] != 0) { // make sure the strncpy didn't truncate
@@ -72,8 +72,12 @@ std::vector<ip_address_t> ip_address_t::from_hostname(const std::string &host) {
             }
             //SIOCGIFADDR : Socket IO Control Get InterFace ADDRess (I think?)
             res = ioctl(fd, SIOCGIFADDR, &req);
-            guarantee(res >= 0);
-            ips.push_back(ip_address_t(&req));
+            if (res >= 0) {
+                ips.push_back(ip_address_t(&req));
+            } else {
+                // TODO: perhaps handle individual errnos
+                // It is possible to get here with errno EADDRNOTAVAIL if the interface is not configured
+            }
         }
         if_freenameindex(ifs); //FREE 2
         res = close(fd); //FREE 1

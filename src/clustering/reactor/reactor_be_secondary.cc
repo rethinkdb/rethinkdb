@@ -180,8 +180,11 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
 
                 on_thread_t th2(this->home_thread());
 
+                branch_history_t<protocol_t> branch_history;
+                branch_history_manager->export_branch_history(to_version_range_map(metainfo_blob), &branch_history);
+
                 typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
-                    activity(to_version_range_map(metainfo_blob), backfiller.get_business_card(), direct_reader.get_business_card());
+                    activity(to_version_range_map(metainfo_blob), backfiller.get_business_card(), direct_reader.get_business_card(), branch_history);
 
                 directory_entry.set(activity);
 

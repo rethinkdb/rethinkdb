@@ -137,6 +137,18 @@ public:
         return it->second;
     }
 
+    std::set<branch_id_t> known_branches() THROWS_NOTHING {
+        std::set<branch_id_t> res;
+
+        for (typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::iterator it  = bh.branches.begin();
+                                                                                               it != bh.branches.end();
+                                                                                               ++it) {
+            res.insert(it->first);
+        }
+
+        return res;
+    }
+
     void create_branch(branch_id_t branch_id, const branch_birth_certificate_t<protocol_t> &bc, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         std::pair<typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::iterator, bool>
