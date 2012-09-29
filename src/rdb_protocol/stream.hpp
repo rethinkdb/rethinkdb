@@ -18,6 +18,7 @@
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/stream_cache.hpp"
+#include "rdb_protocol/proto_utils.hpp"
 
 
 namespace query_language {
@@ -206,6 +207,7 @@ public:
     { }
 
     boost::shared_ptr<scoped_cJSON_t> next() {
+        // TODO: ***use an index***
         // TODO: more error handling
         // TODO reevaluate this when we better understand what we're doing for ordering
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
@@ -219,7 +221,7 @@ public:
                 throw runtime_exc_t(strprintf("Object %s has no attribute %s.", json->Print().c_str(), attrname.c_str()), backtrace);
             } else if (val.type() != cJSON_Number && val.type() != cJSON_String) {
                 throw runtime_exc_t(strprintf("Primary key must be a number or string, not %s.", val.Print().c_str()), backtrace);
-            } else if (range.contains_key(store_key_t(val.PrintLexicographic()))) {
+            } else if (range.contains_key(store_key_t(cJSON_print_primary(val.get(), backtrace)))) {
                 return json;
             }
         }
