@@ -38,7 +38,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, rea
     switch (code) {
         case 'I': {
             /* Initial message from another peer */
-            metadata_t initial_value;
+            metadata_t initial_value = metadata_t();
             fifo_enforcer_state_t metadata_fifo_state;
             {
                 int res = deserialize(s, &initial_value);
@@ -60,7 +60,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, rea
 
         case 'U': {
             /* Update from another peer */
-            metadata_t new_value;
+            metadata_t new_value = metadata_t();
             fifo_enforcer_write_token_t metadata_fifo_token;
             {
                 int res = deserialize(s, &new_value);
