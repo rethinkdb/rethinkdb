@@ -575,7 +575,7 @@ void run_check_headers_test() {
     // Manually connect to the cluster.
     peer_address_t addr = c1.get_peer_address(c1.get_me());
     cond_t cond;                // dummy signal
-    tcp_conn_stream_t conn(addr.ip, addr.port, &cond, 0);
+    tcp_conn_stream_t conn(addr.primary_ip(), addr.port, &cond, 0);
 
     // Read & check its header.
     const int64_t len = strlen(cluster_proto_header);

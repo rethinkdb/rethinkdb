@@ -12,16 +12,7 @@
 #include "rdb_protocol/internal_extensions.pb.h"
 #include "rdb_protocol/js.hpp"
 #include "rpc/directory/read_manager.hpp"
-
-#ifndef NDEBUG
-#define guarantee_debug_throw_release(cond, backtrace) guarantee(cond)
-#else
-#define guarantee_debug_throw_release(cond, backtrace) do {                                     \
-    if (!(cond)) {                                                                              \
-        throw runtime_exc_t(format_assert_message("BROKEN SERVER GUARANTEE", cond), backtrace); \
-    }                                                                                           \
-} while (0)
-#endif // NDEBUG
+#include "rdb_protocol/proto_utils.hpp"
 
 void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, namespace_id_t namespace_id, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     /* The following is an ugly hack, but it's probably what we want.  It
@@ -56,20 +47,6 @@ cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
     return cJSON_CreateNumber(d);
 }
 
-
-std::string cJSON_print_primary(cJSON *json, const backtrace_t &backtrace) {
-    guarantee_debug_throw_release(json, backtrace);
-    if (json->type != cJSON_Number && json->type != cJSON_String) {
-        throw runtime_exc_t(strprintf("Primary key must be a number or a string, not %s",
-                                      cJSON_print_std_string(json).c_str()), backtrace);
-    }
-    std::string s = cJSON_print_lexicographic(json);
-    if (s.size() > MAX_KEY_SIZE) {
-        throw runtime_exc_t(strprintf("Primary key too long (max %d characters): %s",
-                                      MAX_KEY_SIZE-1, cJSON_print_std_string(json).c_str()), backtrace);
-    }
-    return s;
-}
 
 /* Convenience function for making the horrible easy. */
 boost::shared_ptr<scoped_cJSON_t> shared_scoped_json(cJSON *json) {
@@ -1643,7 +1620,7 @@ boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environmen
 
             eval_let_binds(t->mutable_let(), env, &scopes_copy, backtrace);
 
-            return eval_term_as_stream(t->mutable_let()->mutable_expr(), env, scopes, backtrace.with("expr"));
+            return eval_term_as_stream(t->mutable_let()->mutable_expr(), env, scopes_copy, backtrace.with("expr"));
         }
         break;
     case Term::CALL:
@@ -2426,6 +2403,7 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
             break;
         case Builtin::RANGE:
             {
+                // TODO: ***use an index***
                 boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
 
                 boost::shared_ptr<scoped_cJSON_t> lowerbound, upperbound;

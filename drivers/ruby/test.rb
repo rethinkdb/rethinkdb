@@ -89,8 +89,6 @@ class ClientTest < Test::Unit::TestCase
 
   def test_without
     assert_equal(r.expr({:a => 1, :b => 2, :c => 3}).without(:a, :c).run, {'b' => 2})
-    assert_equal(rdb.orderby(:id).map{r[:$_].without(:name, :num)}.run.to_a,
-                 rdb.orderby(:id).map{|row| row.without(:name).without(:num)}.run.to_a)
     assert_equal(r.expr({:a => 1}).without(:b).run, {'a' => 1})
     assert_equal(r.expr({}).without(:b).run, {})
   end
@@ -370,7 +368,6 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.expr([{:id => 1}, {:id => 2}]).map{|row| row[:id]}.run.to_a, [1,2])
     assert_raise(RuntimeError){r.expr(1).map{}.run.to_a}
     assert_equal(rdb.filter({'num' => 1}).run.to_a, [$data[1]])
-    assert_equal(id_sort(rdb.filter({'num' => r[:num]}).run.to_a), $data)
     query = rdb.orderby(:id).map { |outer_row|
       rdb.filter{|row| row[:id] < outer_row[:id]}.to_array
     }
@@ -379,28 +376,24 @@ class ClientTest < Test::Unit::TestCase
 
   def test_reduce # REDUCE, HASATTR, IMPLICIT_HASATTR
     # TODO: Error checking for reduce
-    # TODO_SERV: Reduce still broken.
-    query = rdb.map{r[:$_].hasattr(:id)}.reduce(true){|a,b| r.all a,b}
-    #assert_equal(query.run, true)
-
     assert_equal(r.expr([1,2,3]).reduce(0){|a,b| a+b}.run, 6)
     assert_raise(RuntimeError){r.expr(1).reduce(0){0}.run}
 
     # assert_equal(  rdb.map{|row| row['id']}.reduce(0){|a,b| a+b}.run,
     #              $data.map{|row| row['id']}.reduce(0){|a,b| a+b})
 
-    assert_equal(rdb.map{r[:$_].hasattr(:id)}.run.to_a, $data.map{true})
+    assert_equal(rdb.map{|r| r.hasattr(:id)}.run.to_a, $data.map{true})
     assert_equal(rdb.map{|row| r.not row.hasattr('id')}.run.to_a, $data.map{false})
     assert_equal(rdb.map{|row| r.not row.has('id')}.run.to_a, $data.map{false})
     assert_equal(rdb.map{|row| r.not row.attr?('id')}.run.to_a, $data.map{false})
-    assert_equal(rdb.map{r[:$_].has(:id)}.run.to_a, $data.map{true})
-    assert_equal(rdb.map{r[:$_].attr?('id').not}.run.to_a, $data.map{false})
+    assert_equal(rdb.map{|r| r.has(:id)}.run.to_a, $data.map{true})
+    assert_equal(rdb.map{|r| r.attr?('id').not}.run.to_a, $data.map{false})
   end
 
   def test_filter # FILTER
     assert_equal(r.expr([1,2,3]).filter{|x| x<3}.run.to_a, [1,2])
     assert_raise(RuntimeError){r.expr(1).filter{true}.run.to_a}
-    query_5 = rdb.filter{r[:name].eq('5')}
+    query_5 = rdb.filter{|r| r[:name].eq('5')}
     assert_equal(query_5.run.to_a, [$data[5]])
     query_2345 = rdb.filter{|row| r.and row[:id] >= 2,row[:id] <= 5}
     query_234 = query_2345.filter{|row| row[:num].neq(5)}
@@ -408,15 +401,11 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(query_2345.run.to_a), $data[2..5])
     assert_equal(id_sort(query_234.run.to_a), $data[2..4])
     assert_equal(id_sort(query_23.run.to_a), $data[2..3])
-    assert_equal(id_sort(rdb.filter(r[:id] < 5).run.to_a), $data[0...5])
+    assert_equal(id_sort(rdb.filter{|r| r[:id] < 5}.run.to_a), $data[0...5])
   end
 
   def test_too_big_key
     assert_raise(RuntimeError){rdb.upsert({:id => 'a'*1000}).run}
-  end
-
-  def test_implicit_nesting
-    assert_raise(SyntaxError){rdb.filter{rdb.filter{r[:id]}.to_array.eq([])}.run.to_a}
   end
 
   def test_slice_streams # SLICE
@@ -444,7 +433,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.orderby('id').run.to_a, $data)
     assert_equal(rdb.orderby(:id).run.to_a, $data)
     assert_equal(rdb.orderby([:id, false]).run.to_a, $data.reverse)
-    query = rdb.map{r.expr({:id => r[:id],:num => r[:id].mod(2)})}.orderby(:num,[:id, false])
+    query = rdb.map{|x| r.expr({:id => x[:id],:num => x[:id].mod(2)})}.orderby(:num,[:id, false])
     want = $data.map{|o| o['id']}.sort_by{|n| (n%2)*$data.length - n}
     assert_equal(query.run.to_a.map{|o| o['id']}, want)
   end
@@ -497,7 +486,7 @@ class ClientTest < Test::Unit::TestCase
 
     gmr = rdb.groupedmapreduce(lambda {|row| row[:id] % 4}, lambda {|row| row[:id]},
                                0, lambda {|a,b| a+b});
-    gmr2 = rdb.groupedmapreduce(lambda {r[:id] % 4}, lambda {r[:id]},
+    gmr2 = rdb.groupedmapreduce(lambda {|r| r[:id] % 4}, lambda {|r| r[:id]},
                                 0, lambda {|a,b| a+b});
     gmr3 = rdb.to_array.groupedmapreduce(lambda {|row| row[:id] % 4},
                                          lambda {|row| row[:id]},
@@ -549,12 +538,12 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.let([['x', 2], ['y', 3]], r.js('x+y')).run, 5)
     assert_equal(id_sort(rdb.map{|x| r.js("#{x}")}.run.to_a), id_sort(rdb.run.to_a))
     assert_equal(id_sort(rdb.map{ r.js("this")}.run.to_a), id_sort(rdb.run.to_a))
-    assert_equal(rdb.map{|x| r.js("#{x}.num")}.run.to_a.sort, rdb.map{r[:num]}.run.to_a.sort)
-    assert_equal(rdb.map{ r.js("this.num")}.run.to_a.sort, rdb.map{r[:num]}.run.to_a.sort)
+    assert_equal(rdb.map{|x| r.js("#{x}.num")}.run.to_a.sort, rdb.map{|r| r[:num]}.run.to_a.sort)
+    assert_equal(rdb.map{ r.js("this.num")}.run.to_a.sort, rdb.map{|r| r[:num]}.run.to_a.sort)
     assert_equal(id_sort(rdb.filter{|x| r.js("#{x}.id < 5")}.run.to_a),
-                 id_sort(rdb.filter{r[:id] < 5}.run.to_a))
-    assert_equal(id_sort(rdb.filter{ r.js("this.id < 5")}.run.to_a),
-                 id_sort(rdb.filter{r[:id] < 5}.run.to_a))
+                 id_sort(rdb.filter{|r| r[:id] < 5}.run.to_a))
+    assert_equal(id_sort(rdb.filter{r.js("this.id < 5")}.run.to_a),
+                 id_sort(rdb.filter{|r| r[:id] < 5}.run.to_a))
   end
 
   def test_pluck
@@ -566,8 +555,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_pickattrs # PICKATTRS, # UNION, # LENGTH
-    q1=r.union(rdb.map{r[:$_].pickattrs(:id,:name)}, rdb.map{|row| row.attrs(:id,:num)})
-    q2=r.union(rdb.map{r[:$_].attrs(:id,:name)}, rdb.map{|row| row.pick(:id,:num)})
+    q1=r.union(rdb.map{|r| r.pickattrs(:id,:name)}, rdb.map{|row| row.attrs(:id,:num)})
+    q2=r.union(rdb.map{|r| r.attrs(:id,:name)}, rdb.map{|row| row.pick(:id,:num)})
     q1v = q1.run.to_a.sort_by{|x| x['name'].to_s + ',' + x['id'].to_s}
     assert_equal(q1v, q2.run.to_a.sort_by{|x| x['name'].to_s + ',' + x['id'].to_s})
     len = $data.length
@@ -645,15 +634,11 @@ class ClientTest < Test::Unit::TestCase
     # TODO: still an error?
     # assert_raise(SyntaxError){r[:a] == 5}
     # assert_raise(SyntaxError){r[:a] != 5}
-    assert_equal(id_sort(rdb.filter{r[:a] < 5}.run.to_a), docs.select{|x| x['a'] < 5})
-    assert_equal(id_sort(rdb.filter{r[:a] <= 5}.run.to_a), docs.select{|x| x['a'] <= 5})
-    assert_equal(id_sort(rdb.filter{r[:a] > 5}.run.to_a), docs.select{|x| x['a'] > 5})
-    assert_equal(id_sort(rdb.filter{r[:a] >= 5}.run.to_a), docs.select{|x| x['a'] >= 5})
-    assert_raise(ArgumentError){5 < r[:a]}
-    assert_raise(ArgumentError){5 <= r[:a]}
-    assert_raise(ArgumentError){5 > r[:a]}
-    assert_raise(ArgumentError){5 >= r[:a]}
-    assert_equal(id_sort(rdb.filter{r[:a].eq(r[:b])}.run.to_a),
+    assert_equal(id_sort(rdb.filter{|r| r[:a] < 5}.run.to_a), docs.select{|x| x['a'] < 5})
+    assert_equal(id_sort(rdb.filter{|r| r[:a] <= 5}.run.to_a), docs.select{|x| x['a'] <= 5})
+    assert_equal(id_sort(rdb.filter{|r| r[:a] > 5}.run.to_a), docs.select{|x| x['a'] > 5})
+    assert_equal(id_sort(rdb.filter{|r| r[:a] >= 5}.run.to_a), docs.select{|x| x['a'] >= 5})
+    assert_equal(id_sort(rdb.filter{|r| r[:a].eq(r[:b])}.run.to_a),
                  docs.select{|x| x['a'] == x['b']})
 
     assert_equal(-r.expr(5).run, r.expr(-5).run)
@@ -686,10 +671,10 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(res['errors'], 10)
     res = rdb.update{|row| row[:id]}.run
     assert_equal(res['errors'], 10)
-    res = rdb.update{r[:id]}.run
+    res = rdb.update{|r| r[:id]}.run
     assert_equal(res['errors'], 10)
 
-    res = rdb.update{|row| r.if((r[:id]%2).eq(0), {:id => -1}, row)}.run;
+    res = rdb.update{|row| r.if((row[:id]%2).eq(0), {:id => -1}, row)}.run;
     assert_not_nil(res['first_error'])
     filtered_res = res.reject {|k,v| k == 'first_error'}
     assert_not_equal(filtered_res, res)
@@ -724,7 +709,7 @@ class ClientTest < Test::Unit::TestCase
                     rdb.get(x*2).update({:num => 0})]}.run,
                  {"skipped"=>0, "updated"=>6, "errors"=>0})
     assert_equal(rdb.to_array.foreach{|row|
-                   rdb.filter{r[:id].eq(row[:id])}.update{|row|
+                   rdb.filter{|r| r[:id].eq(row[:id])}.update{|row|
                      r.if(row[:num].eq(0), {:num => row[:id]}, nil)}}.run,
                  {"skipped"=>4, "updated"=>6, "errors"=>0})
     assert_equal(id_sort(rdb.run.to_a), $data)
@@ -761,20 +746,20 @@ class ClientTest < Test::Unit::TestCase
                  {'inserted' => 100, 'errors' => 0, 'generated_keys' => []})
 
     query = rdb.foreach {|row|
-      rdb2.filter{r[:id].eq(row[:id] * row[:id])}.delete
+      rdb2.filter{|r| r[:id].eq(row[:id] * row[:id])}.delete
     }
     assert_equal(query.run, {'deleted' => 4})
 
     query = rdb.foreach {|row|
       rdb2.foreach {|row2|
-        rdb3.filter{r[:id].eq(row[:id]*1000 + row2[:id])}.delete
+        rdb3.filter{|r| r[:id].eq(row[:id]*1000 + row2[:id])}.delete
       }
     }
     assert_equal(query.run, {'deleted' => 60})
 
     assert_equal(rdb.foreach{|row| rdb4.upsert(row)}.run,
                  {'inserted' => 10, 'errors' => 0, 'generated_keys' => []})
-    assert_equal(rdb2.foreach{|row| rdb4.filter{r[:id].eq(row[:id])}.delete}.run,
+    assert_equal(rdb2.foreach{|row| rdb4.filter{|r| r[:id].eq(row[:id])}.delete}.run,
                  {'deleted' => 6})
 
     # TODO: Pending resolution of issue #930
@@ -806,8 +791,8 @@ class ClientTest < Test::Unit::TestCase
               {:num => row2[:num]*2},
               nil)
        },
-       rdb.filter{r[:id].eq(row[:id])}.mutate{ |row|
-         r.if((r[:id]%2).eq(1), nil, row)
+       rdb.filter{|r| r[:id].eq(row[:id])}.mutate{ |row|
+         r.if((row[:id]%2).eq(1), nil, row)
        },
        rdb.get(0).delete,
        rdb.get(12).delete]
@@ -955,7 +940,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb2.run.to_a)[0]['broken'], true)
     assert_equal(id_sort(rdb2.run.to_a)[1]['broken'], true)
 
-    mutate = rdb2.filter{r[:id].eq(0)}.mutate{$data[0]}.run
+    mutate = rdb2.filter{|r| r[:id].eq(0)}.mutate{$data[0]}.run
     assert_equal(mutate, {"modified"=>1, 'inserted' => 0, "deleted"=>0, 'errors' => 0, 'errors' => 0})
     update = rdb2.update{|x| r.if(x.attr?(:broken), $data[1], x)}.run
     assert_equal(update, {'errors' => 0, 'updated' => len, 'skipped' => 0})
@@ -994,7 +979,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb2.run.to_a), $data)
 
     # DELETE
-    assert_equal(rdb2.filter{r[:id] < 5}.delete.run['deleted'], 5)
+    assert_equal(rdb2.filter{|r| r[:id] < 5}.delete.run['deleted'], 5)
     assert_equal(id_sort(rdb2.run.to_a), $data[5..-1])
     assert_equal(rdb2.delete.run['deleted'], len-5)
     assert_equal(rdb2.run.to_a, [])
