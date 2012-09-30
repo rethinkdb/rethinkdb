@@ -55,6 +55,8 @@ MUST_USE int64_t serializer_file_read_stream_t::read(void *p, int64_t n) {
 }
 
 serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *serializer) : serializer_(serializer), size_(0) {
+    mirrored_cache_static_config_t static_config;
+    cache_t::create(serializer, &static_config);
     mirrored_cache_config_t config;
     cache_.init(new cache_t(serializer, &config, &get_global_perfmon_collection()));
     {
@@ -90,6 +92,10 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
         guarantee(block_id <= MAX_BLOCK_ID);
         if (block_id >= MAX_BLOCK_ID) {
             return -1;
+        }
+
+        if (block_id > 0) {
+            debugf("serializer_file_write_stream_t: writing block id %ld\n", block_id);
         }
 
         buf_lock_t block;

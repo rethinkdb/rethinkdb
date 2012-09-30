@@ -10,7 +10,6 @@
 #include "unittest/dummy_namespace_interface.hpp"
 
 namespace unittest {
-namespace {
 
 void run_with_namespace_interface(boost::function<void(namespace_interface_t<memcached_protocol_t> *, order_source_t *)> fun) {
 
@@ -42,6 +41,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     std::vector<standard_serializer_t *> ptrs;
     ptrs.push_back(serializer.get());
+    serializer_multiplexer_t::create(ptrs, shards.size());
     multiplexer.init(new serializer_multiplexer_t(ptrs));
 
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
@@ -63,8 +63,6 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<memcached_protocol_t> *, order_source_t *)> fun) {
     mock::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
 }
-
-}   /* anonymous namespace */
 
 /* `SetupTeardown` makes sure that it can start and stop without anything going
 horribly wrong */
