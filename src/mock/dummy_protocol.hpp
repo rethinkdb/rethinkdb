@@ -18,6 +18,7 @@
 
 class signal_t;
 class io_backender_t;
+class serializer_t;
 
 namespace mock {
 
@@ -162,7 +163,7 @@ public:
     private:
         void initialize_empty();
 
-        std::string filename;
+        serializer_t *serializer;
 
         fifo_enforcer_source_t token_source;
         fifo_enforcer_sink_t token_sink;

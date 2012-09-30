@@ -2,6 +2,8 @@
 #define MOCK_SERIALIZER_FILESTREAM_HPP_
 
 #include "buffer_cache/types.hpp"
+#include "containers/archive/archive.hpp"
+#include "containers/scoped.hpp"
 #include "errors.hpp"
 
 class serializer_t;
@@ -25,21 +27,25 @@ private:
     int64_t known_size_;
     int64_t position_;
 
-    DISABLE_COPYING(serializer_file_stream_t);
+    DISABLE_COPYING(serializer_file_read_stream_t);
 };
 
 class serializer_file_write_stream_t : public write_stream_t {
 public:
+    // Truncates the file upon opening.
     serializer_file_write_stream_t(serializer_t *serializer);
     ~serializer_file_write_stream_t();
 
     MUST_USE int64_t write(const void *p, int64_t n);
 
 private:
+    void write_size(int64_t size, transaction_t *txn);
+
     serializer_t *serializer_;
     scoped_ptr_t<cache_t> cache_;
+    int64_t size_;
 
-    DISABLE_COPYING(serializer_file_stream_t);
+    DISABLE_COPYING(serializer_file_write_stream_t);
 };
 
 

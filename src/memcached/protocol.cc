@@ -242,7 +242,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
         return read_response_t(result);
     }
 
-    read_response_t operator()(UNUSED distribution_get_query_t dget) {
+    read_response_t operator()(distribution_get_query_t dget) {
         // TODO: do this without copying so much and/or without dynamic memory
         // Sort results by region
         std::vector<distribution_result_t> results(count);

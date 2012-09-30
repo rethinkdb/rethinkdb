@@ -134,12 +134,12 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     } else {
         stores_out->stores()->init(num_stores);
 
-        standard_serializer_t::create(io_backender,
+        standard_serializer_t::create(io_backender_,
                                       standard_serializer_t::private_dynamic_config_t(serializer_filepath),
                                       standard_serializer_t::static_config_t());
 
         serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                                  io_backender,
+                                                  io_backender_,
                                                   standard_serializer_t::private_dynamic_config_t(serializer_filepath),
                                                   serializers_perfmon_collection));
 
@@ -182,9 +182,8 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
 
 template <class protocol_t>
 void file_based_svs_by_namespace_t<protocol_t>::destroy_svs(namespace_id_t namespace_id) {
-    for(int i = 0; access(file_name_for(namespace_id, i).c_str(), R_OK | W_OK) == 0; ++i) {
-        unlink(file_name_for(namespace_id, i).c_str());
-    }
+    // TODO: Handle errors?  It seems like we can't really handle the error so let's just ignore it?
+    unlink(file_name_for(namespace_id).c_str());
 }
 
 template <class protocol_t>
