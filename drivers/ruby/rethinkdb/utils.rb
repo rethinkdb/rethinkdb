@@ -167,6 +167,7 @@ module RethinkDB
       when 'view'           then [1]
       when /arg:([0-9]+)/   then [2, $1.to_i]
       when /attrs:([0-9]+)/ then []
+      when /elem:([0-9]+)/  then [$1.to_i+1]
       when /bind:(.+)$/     then [1, $1]
       when /key:(.+)$/      then [1..-1, $1]
       when /query:([0-9]+)/ then [3, $1.to_i]
