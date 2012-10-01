@@ -397,5 +397,32 @@ module RethinkDB
     def self.table(name, opts={})
       Table.new(:default_db, name, opts)
     end
+
+    def self.count
+        {
+            :mapping => lambda{|row| self.expr(1)},
+            :base => 0,
+            :reduction => lambda{|acc, val| acc + val}
+        }
+    end
+
+    def self.sum(field)
+        {
+            :mapping => lambda{|row| row[field]},
+            :base => 0,
+            :reduction => lambda{|acc, val| acc + val}
+        }
+    end
+
+    def self.average(field)
+        {
+            :mapping => lambda{|row| self.expr([row[field], 1])},
+            :base => [0, 0],
+            :reduction => lambda{|acc, val|
+                self.expr([acc[0] + val[0], acc[1] + val[1]])
+            },
+            :finalizer => lambda{|res| res[0] / res[1]}
+        }
+    end
   end
 end

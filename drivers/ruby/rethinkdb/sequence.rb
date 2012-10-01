@@ -161,6 +161,37 @@ module RethinkDB
                            [self]]
     end
 
+    def groupby(*args)
+        attrs = args[0..-2]
+        groupbyoptions = args[-1]
+
+        if not groupbyoptions.has_key?(:mapping)
+            mapping = lambda{|row| row}
+        else
+            mapping = groupbyoptions[:mapping]
+        end
+
+        if not groupbyoptions.has_key?(:base) or not groupbyoptions.has_key?(:reduction)
+            raise TypeError, "Group by requires a reduction and base to be specified"
+        end
+
+        base = groupbyoptions[:base]
+        reduction = groupbyoptions[:reduction]
+
+        gmr = self.groupedmapreduce(lambda{|row|
+            RethinkDB::RQL.expr(attrs.map {|a| row[a]})
+        }, mapping, base, reduction)
+
+        if groupbyoptions.has_key?(:finalizer)
+            finalizer = groupbyoptions[:finalizer]
+            gmr = gmr.map {|group|
+                group.mapmerge({:reduction => finalizer.call(group[:reduction])})
+            }
+        end
+
+        return gmr
+    end
+
     # Gets one or more elements from the sequence, much like [] in Ruby.
     # The following are all equivalent:
     #   r[[1,2,3]]
