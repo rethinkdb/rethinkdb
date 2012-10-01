@@ -249,7 +249,7 @@ module 'LogView', ->
             @delegateEvents()
             return @
 
-
+        #TODO remove all the small stuff when we are sure that we are not going to use it again.
         render_small: =>
             json = _.extend @model.toJSON(), @format_msg_small(@model)
             json = _.extend json,
@@ -278,16 +278,16 @@ module 'LogView', ->
                             if namespace_id is 'new'
                                 #TODO datacenter name
                                 if datacenters.get(json_data[group]['new']['primary_uuid'])?
-                                    datacenter_name = datacenters.get(json_data[group]['new']['primary_uuid'])
+                                    datacenter_name = datacenters.get(json_data[group]['new']['primary_uuid']).get 'name'
                                 else if json_data[group]['new']['primary_uuid'] is universe_datacenter.get('id')
                                     datacenter_name = universe_datacenter.get('name')
                                 else
-                                    datacenter_name = 'removed datacenter'
+                                    datacenter_name = 'a removed datacenter'
                                 msg += @log_new_namespace_template
                                     namespace_name: json_data[group]['new']['name']
                                     datacenter_id: json_data[group]['new']['primary_uuid']
                                     datacenter_name: datacenter_name
-                                    port: json_data[group]['new']['port']
+                                    is_universe: json_data[group]['new']['primary_uuid'] is universe_datacenter.get('id')
                             else
                                 if json_data[group][namespace_id] is null
                                     msg += @log_delete_something_template
@@ -299,11 +299,12 @@ module 'LogView', ->
                                         if attribute is 'ack_expectations' or attribute is 'replica_affinities'
                                             _datacenters = []
                                             for datacenter_id of json_data[group][namespace_id][attribute]
-                                                #TODO Universe and removed datacenter
                                                 if datacenter_id is universe_datacenter.get('id')
                                                     datacenter_name = universe_datacenter.get 'name'
-                                                else
+                                                else if datacenters.get(datacenter_id)?
                                                     datacenter_name = datacenters.get(datacenter_id).get 'name'
+                                                else
+                                                    datacenter_name = 'a removed datacenter'
                                                 _datacenters.push
                                                     is_universe: true if datacenter_id is universe_datacenter.get('id')
                                                     datacenter_id: datacenter_id
@@ -314,19 +315,27 @@ module 'LogView', ->
                                                 namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
                                                 attribute: attribute
                                                 datacenters: _datacenters
-                                        else if attribute is 'name' or attribute is 'port'
+                                        else if attribute is 'name'
                                             msg += @log_single_value_template
                                                 namespace_id: namespace_id
                                                 namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
                                                 attribute: attribute
                                                 value: json_data[group][namespace_id][attribute]
                                         else if attribute is 'primary_uuid'
+                                            datacenter_id = json_data[group][namespace_id][attribute]
+                                            if datacenter_id is universe_datacenter.get('id')
+                                                datacenter_name = universe_datacenter.get 'name'
+                                            else if datacenters.get(datacenter_id)?
+                                                datacenter_name = datacenters.get(datacenter_id).get 'name'
+                                            else
+                                                datacenter_name = 'a removed datacenter'
+
                                             msg += @log_single_value_template
                                                 namespace_id: namespace_id
                                                 namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
                                                 attribute: 'primary datacenter'
-                                                datacenter_id: json_data[group][namespace_id][attribute]
-                                                datacenter_name: datacenters.get(json_data[group][namespace_id][attribute]).get 'name'
+                                                datacenter_id: datacenter_id
+                                                datacenter_name: datacenter_name
                                         else if attribute is 'primary_pinnings'
                                             shards = []
                                             for shard of json_data[group][namespace_id][attribute]
@@ -385,11 +394,18 @@ module 'LogView', ->
                                             machine_id: machine_id
                                             machine_id_trunked: machine_id.slice 24
                                     else if attribute is 'datacenter_uuid'
+                                        datacenter_id = json_data[group][machine_id][attribute]
+                                        if datacenter_id is universe_datacenter.get('id')
+                                            datacenter_name = universe_datacenter.get 'name'
+                                        else if datacenters.get(datacenter_id)?
+                                            datacenter_name = datacenters.get(datacenter_id).get 'name'
+                                        else
+                                            datacenter_name = 'a removed datacenter'
                                         msg += @log_server_set_datacenter_template
                                             machine_id: machine_id
                                             machine_name: if machines.get(machine_id)? then machines.get(machine_id).get('name') else 'removed machine'
-                                            datacenter_id: json_data[group][machine_id][attribute]
-                                            datacenter_name: if datacenters.get(json_data[group][machine_id][attribute])? then datacenters.get(json_data[group][machine_id][attribute]).get('name') else 'removed datacenter'
+                                            datacenter_id: datacenter_id
+                                            datacenter_name: datacenter_name
                     else if group is 'datacenters'
                         for datacenter_id of json_data[group]
                             if json_data[group][datacenter_id] is null
@@ -509,9 +525,15 @@ module 'LogView', ->
                                         if i isnt attributes.length-1
                                             value += ', '
 
+                                    if datacenter_id is universe_datacenter.get('id')
+                                        datacenter_name = universe_datacenter.get 'name'
+                                    else if datacenters.get(datacenter_id)?
+                                        datacenter_name = datacenters.get(datacenter_id).get 'name'
+                                    else
+                                        datacenter_name = 'a removed datacenter'
                                     msg += @log_datacenter_value_small_template
                                         datacenter_id: datacenter_id
-                                        datacenter_name: if datacenters.get(datacenter_id)? then datacenters.get(datacenter_id).get 'name' else 'removed datacenter'
+                                        datacenter_name: datacenter_name
                                         attribute: value
                     else if group is 'databases'
                         for database_id of json_data[group]

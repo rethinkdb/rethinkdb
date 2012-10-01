@@ -266,6 +266,6 @@ module 'DashboardView', ->
             @.$el.html ''
             for log in @log_entries
                 view = new LogView.LogEntry model: log
-                @.$el.append view.render_small().$el
+                @.$el.append view.render().$el
             return @
 

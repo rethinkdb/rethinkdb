@@ -86,9 +86,9 @@
     {{#if value}}
     {{value}}
     {{/if}}
-
+    
     {{#if datacenter_id}}
-    <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>
+    for <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>
     {{/if}}
 
     <br/>
@@ -108,11 +108,7 @@
     <ul class="pretty_logs_ul">
         {{#each datacenters}}
         <li class="pretty_logs_li">Datacenter
-            {{#if is_universe}}
-            {{datacenter_name}}
-            {{else}}
             <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>
-            {{/if}}
         : {{value}}</li>
         {{/each}}
     </ul>
@@ -142,7 +138,13 @@
 </script>
 
 <script id="log-new_namespace-template" type="text/x-handlebars-template">
-    Created a new table {{namespace_name}} with primary datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a> on port {{port}}}<br/>
+    Created a new table {{namespace_name}}
+    {{#if is_universe}}
+    without specifying a primary datacenter.
+    {{else}}
+    with primary datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>.
+    {{/if}}
+    <br/>
 </script>
 <script id="log-new_datacenter-template" type="text/x-handlebars-template">
     Created a new datacenter {{datacenter_name}}<br/>
