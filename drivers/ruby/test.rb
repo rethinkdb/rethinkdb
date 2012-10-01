@@ -404,6 +404,44 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb.filter{|r| r[:id] < 5}.run.to_a), $data[0...5])
   end
 
+  def test_joins
+    db_name = rand().to_s
+    tbl_name = rand().to_s
+    r.create_db(db_name).run
+    r.db(db_name).create_table(tbl_name+"1").run
+    r.db(db_name).create_table(tbl_name+"2").run
+    tbl1 = r.db(db_name).table(tbl_name+"1")
+    tbl2 = r.db(db_name).table(tbl_name+"2")
+
+    assert_equal(tbl1.insert((0...10).map{|x| {:id => x, :a => x*2}}).run,
+                 {"inserted"=>10, "errors"=>0})
+    assert_equal(tbl2.insert((0...10).map{|x| {:id => x, :b => x*100}}).run,
+                 {"inserted"=>10, "errors"=>0})
+    tbl1.eq_join(:a, tbl2).run.each { |pair|
+      assert_equal(pair['left']['a'], pair['right']['id'])
+    }
+    assert_equal(tbl1.eq_join(:a, tbl2).run.to_a.sort_by {|x| x['left']['id']},
+                 tbl1.innerjoin(tbl2) {|l,r|
+                   l[:a].eq(r[:id])}.run.to_a.sort_by {|x| x['left']['id']})
+    assert_equal((tbl1.eq_join(:a, tbl2).run.to_a +
+                  tbl1.filter{|row| tbl2.get(row[:a]).eq(nil)}.map {|row|
+                    {:left => row}}.run.to_a).sort_by {|x| x['left']['id']},
+                 tbl1.outerjoin(tbl2) {|l,r|
+                   l[:a].eq(r[:id])}.run.to_a.sort_by {|x| x['left']['id']})
+    assert_equal(tbl1.outerjoin(tbl2) {
+                   |l,r| l[:a].eq(r[:id])}.zip.run.to_a.sort_by {|x| x['a']},
+                 [{"b"=>0, "a"=>0, "id"=>0},
+                  {"b"=>200, "a"=>2, "id"=>2},
+                  {"b"=>400, "a"=>4, "id"=>4},
+                  {"b"=>600, "a"=>6, "id"=>6},
+                  {"b"=>800, "a"=>8, "id"=>8},
+                  {"a"=>10, "id"=>5},
+                  {"a"=>12, "id"=>6},
+                  {"a"=>14, "id"=>7},
+                  {"a"=>16, "id"=>8},
+                  {"a"=>18, "id"=>9}])
+  end
+
   def test_groupby
     assert_equal(rdb.orderby(:id).run.to_a, $data)
     assert_equal(rdb.update{|row| {:gb => row[:id] % 3}}.run,

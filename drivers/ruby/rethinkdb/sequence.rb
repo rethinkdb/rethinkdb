@@ -267,51 +267,38 @@ module RethinkDB
     end
 
     def innerjoin(other)
-        self.concatmap { |row|
-            other.concatmap { |row2|
-                RethinkDB::RQL.if(yield(row, row2),
-                    RethinkDB::RQL.expr([{:left => row, :right => row2}]),
-                    RethinkDB::RQL.expr([])
-                )
+        self.concatmap {|row|
+            other.concatmap {|row2|
+                RQL.if(yield(row, row2), [{:left => row, :right => row2}], [])
             }
         }
     end
 
     def outerjoin(other)
-        self.concatmap { |row|
-            RethinkDB::RQL.let({:matches => other.concatmap { |row2|
-                    RethinkDB::RQL.if(yield(row, row2),
-                        RethinkDB::RQL.expr([{:left => row, :right => row2}]),
-                        RethinkDB::RQL.expr([])
-                    )
-                }
-            }, RethinkDB::RQL.if(RethinkDB::RQL.letvar(:matches).length() > 0,
-                    RethinkDB::RQL.letvar(:matches),
-                    RethinkDB::RQL.expr([:left => row])
-                )
-            )
+      S.with_var {|vname, v|
+        self.concatmap {|row|
+          RQL.let({vname => other.concatmap {|row2|
+                      RQL.if(yield(row, row2),
+                             [{:left => row, :right => row2}],
+                             [])}.to_array},
+                  RQL.if(v.length() > 0, v, [{:left => row}]))
         }
+      }
     end
 
-    def equijoin(leftattr, other, opt_rightattr=nil)
-        self.concatmap { |row|
-            RethinkDB::RQL.let({:right => other.get(row[leftattr])},
-                RethinkDB::RQL.if(RethinkDB::RQL.letvar(:right).ne(nil),
-                    RethinkDB::RQL.expr([{:left => row, :right => RethinkDB::RQL.letvar(:right)}]),
-                    RethinkDB::RQL.expr([])
-                )
-            )
+    def eq_join(leftattr, other, opt_rightattr=nil)
+      S.with_var {|vname, v|
+        self.concatmap {|row|
+            RQL.let({vname => other.get(row[leftattr])},
+                    RQL.if(v.ne(nil), [{:left => row, :right => v}], []))
         }
+      }
     end
 
     def zip
-        self.map {|row|
-            RethinkDB::RQL.if(row.hasattr('right'),
-                row['left'].mapmerge(row['right']),
-                row['left']
-            )
-        }
+      self.map {|row|
+        RQL.if(row.hasattr('right'), row['left'].mapmerge(row['right']), row['left'])
+      }
     end
-
   end
 end
