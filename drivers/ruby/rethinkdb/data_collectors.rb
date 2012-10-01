@@ -5,6 +5,9 @@ module RethinkDB
   # <b>+base+</b>/<b>+reduction+</b> to reduce over the mappings, and an
   # optional <b>+finalizer+</b> to call on the output of the reduction.  You can
   # expand the builtin data collectors below for examples.
+  #
+  # All of the builtin collectors can also be accessed using the <b>+r+</b>
+  # shortcut (like <b>+r.sum+</b>).
   module Data_Collectors
     # Count the number of rows in each group.
     def self.count

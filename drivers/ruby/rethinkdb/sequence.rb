@@ -167,7 +167,7 @@ module RethinkDB
     # Will find all cases where two people in the same town share a name, and
     # return a list of those name/town pairs along with the number of people who
     # share that name in that town.  You can find a list of builtin data
-    # collectors at RethinkDB::Data_Collectors (which will also show you how to
+    # collectors at Data_Collectors (which will also show you how to
     # define your own).
     def groupby(*args)
       raise SyntaxError,"groupby requires at least one argument" if args.length < 1
