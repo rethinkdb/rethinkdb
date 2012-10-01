@@ -153,7 +153,7 @@ module RethinkDB
       grouping_term = S.with_var{|vname,v| [vname, S.r(grouping.call(v))]}
       mapping_term = S.with_var{|vname,v| [vname, S.r(mapping.call(v))]}
       reduction_term = S.with_var {|aname, a| S.with_var {|bname, b|
-          [S.r(base), aname, bname, reduction.call(a, b)]}}
+          [S.r(base), aname, bname, S.r(reduction.call(a, b))]}}
       JSON_Expression.new [:call, [:groupedmapreduce,
                                    grouping_term,
                                    mapping_term,
@@ -161,35 +161,29 @@ module RethinkDB
                            [self]]
     end
 
+    # Group a sequence by one or more attributes and return some data about each
+    # group.  For example, if you have a table <b>+people+</b>:
+    #   people.groupby(:name, :town, r.count).filter{|row| row[:reduction] > 1}
+    # Will find all cases where two people in the same town share a name, and
+    # return a list of those name/town pairs along with the number of people who
+    # share that name in that town.  You can find a list of builtin data
+    # collectors at RethinkDB::Data_Collectors (which will also show you how to
+    # define your own).
     def groupby(*args)
-        attrs = args[0..-2]
-        groupbyoptions = args[-1]
+      raise SyntaxError,"groupby requires at least one argument" if args.length < 1
+      attrs, opts = args[0..-2], args[-1]
+      map = opts.has_key?(:mapping) ? opts[:mapping] : lambda {|row| row}
+      if !opts.has_key?(:base) || !opts.has_key?(:reduction)
+        raise TypeError, "Group by requires a reduction and base to be specified"
+      end
+      base = opts[:base]
+      reduction = opts[:reduction]
 
-        if not groupbyoptions.has_key?(:mapping)
-            mapping = lambda{|row| row}
-        else
-            mapping = groupbyoptions[:mapping]
-        end
-
-        if not groupbyoptions.has_key?(:base) or not groupbyoptions.has_key?(:reduction)
-            raise TypeError, "Group by requires a reduction and base to be specified"
-        end
-
-        base = groupbyoptions[:base]
-        reduction = groupbyoptions[:reduction]
-
-        gmr = self.groupedmapreduce(lambda{|row|
-            RethinkDB::RQL.expr(attrs.map {|a| row[a]})
-        }, mapping, base, reduction)
-
-        if groupbyoptions.has_key?(:finalizer)
-            finalizer = groupbyoptions[:finalizer]
-            gmr = gmr.map {|group|
-                group.mapmerge({:reduction => finalizer.call(group[:reduction])})
-            }
-        end
-
-        return gmr
+      gmr = self.groupedmapreduce(lambda{|r| attrs.map{|a| r[a]}}, map, base, reduction)
+      if (f = opts[:finalizer])
+        gmr = gmr.map{|group| group.mapmerge({:reduction => f.call(group[:reduction])})}
+      end
+      return gmr
     end
 
     # Gets one or more elements from the sequence, much like [] in Ruby.

@@ -404,6 +404,22 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb.filter{|r| r[:id] < 5}.run.to_a), $data[0...5])
   end
 
+  def test_groupby
+    assert_equal(rdb.orderby(:id).run.to_a, $data)
+    assert_equal(rdb.update{|row| {:gb => row[:id] % 3}}.run,
+                 {'skipped' => 0, 'errors' => 0, 'updated' => 10})
+    counts = rdb.groupby(:gb, r.count).run.sort_by {|x| x['group']}
+    sums = rdb.groupby(:gb, r.sum(:id)).run.sort_by {|x| x['group']}
+    avgs = rdb.groupby(:gb, r.avg(:id)).run.sort_by {|x| x['group']}
+    avgs.each_index{|i|
+      assert_equal(sums[i]['reduction'].to_f / counts[i]['reduction'],
+                   avgs[i]['reduction'])
+    }
+    assert_equal(rdb.mutate{|row| row.without(:gb)}.run,
+                 {'errors'=>0, 'deleted'=>0, 'inserted'=>0, 'modified'=>10})
+    assert_equal(rdb.orderby(:id).run.to_a, $data)
+  end
+
   def test_too_big_key
     assert_not_nil(rdb.upsert({:id => 'a'*1000}).run['first_error'])
   end
