@@ -405,7 +405,24 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_too_big_key
-    assert_raise(RuntimeError){rdb.upsert({:id => 'a'*1000}).run}
+    assert_not_nil(rdb.upsert({:id => 'a'*1000}).run['first_error'])
+  end
+
+  def test_random_insert_regressions
+    assert_not_nil(rdb.insert(true).run['first_error'])
+    assert_not_nil(rdb.insert([true, true]).run['first_error'])
+    assert_not_nil(rdb.insert(r.expr([true]).to_stream).run['first_error'])
+  end
+
+  def test_key_generation
+    assert_equal(rdb.orderby(:id).run.to_a, $data)
+    res = rdb.insert([[], {}, {:a => 1}, {:id => -1, :a => 2}]).run
+    assert_equal(res['errors'], 1)
+    assert_equal(res['inserted'], 3)
+    assert_equal(res['generated_keys'].length, 2)
+    assert_equal(rdb.get(res['generated_keys'][0]).delete.run['deleted'], 1)
+    assert_equal(rdb.filter{|row| (row[:id] < 0) | (row[:id] > 1000)}.delete.run['deleted'], 2)
+    assert_equal(rdb.orderby(:id).run.to_a, $data)
   end
 
   def test_slice_streams # SLICE
@@ -571,7 +588,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.get(0).delete.run, {'deleted' => 0})
     assert_equal(rdb.orderby(:id).run.to_a, $data[1..-1])
     assert_equal(rdb.upsert($data[0]).run,
-                 {'inserted' => 1, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => 1, 'errors' => 0})
     assert_equal(rdb.orderby(:id).run.to_a, $data)
   end
 
@@ -595,38 +612,38 @@ class ClientTest < Test::Unit::TestCase
             {"a" => 9, "b" => -5, "id" => 2},
             {"a" => 9, "b" => 3, "id" => 3}]
     assert_equal(rdb.upsert(docs).run,
-                 {'inserted' => docs.length, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => docs.length, 'errors' => 0})
     docs.each {|doc| assert_equal(rdb.get(doc['id']).run, doc)}
     assert_equal(rdb.distinct(:a).run.to_a.sort, [3,9].sort)
     assert_equal(rdb.filter({'a' => 3}).run.to_a, [docs[0]])
     assert_raise(RuntimeError){rdb.filter({'a' => rdb.length + ""}).run.to_a}
-    assert_raise(RuntimeError){rdb.upsert({'a' => 3}).run.to_a}
+    assert_not_nil(rdb.upsert({'a' => 3}).run['first_error'])
 
     assert_equal(rdb.get(0).run, nil)
 
     assert_equal(rdb.upsert({:id => 100, :text => "グルメ"}).run,
-                 {'inserted' => 1, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => 1, 'errors' => 0})
     assert_equal(rdb.get(100)[:text].run, "グルメ")
 
     rdb.delete.run
     docs = [{"id" => 1}, {"id" => 2}]
     assert_equal(rdb.upsert(docs).run,
-                 {'inserted' => docs.length, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => docs.length, 'errors' => 0})
     assert_equal(rdb.limit(1).delete.run, {'deleted' => 1})
     assert_equal(rdb.run.to_a.length, 1)
 
     rdb.delete.run
     docs = (0...4).map{|n| {"id" => 100 + n, "a" => n, "b" => n % 3}}
     assert_equal(rdb.upsert(docs).run,
-                 {'inserted' => docs.length, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => docs.length, 'errors' => 0})
     assert_equal(rdb.upsert(r.expr(docs).to_stream).run,
-                 {'inserted' => docs.length, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => docs.length, 'errors' => 0})
     docs.each{|doc| assert_equal(rdb.get(doc['id']).run, doc)}
 
     rdb.delete.run
     docs = (0...10).map{|n| {"id" => 100 + n, "a" => n, "b" => n % 3}}
     assert_equal(rdb.upsert(docs).run,
-                 {'inserted' => docs.length, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => docs.length, 'errors' => 0})
     def filt(expr, fn)
       assert_equal(rdb.filter(exp).orderby(:id).run.to_a, docs.select{|x| fn x})
     end
@@ -660,7 +677,7 @@ class ClientTest < Test::Unit::TestCase
     rdb.delete.run
     docs = (0...10).map{|n| {"id" => 100 + n, "a" => n, "b" => n % 3}}
     assert_equal(rdb.upsert(docs).run,
-                 {'inserted' => docs.length, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => docs.length, 'errors' => 0})
     assert_equal(rdb.mutate{|x| x}.run,
                  {'modified' => docs.length, 'inserted' => 0,
                    'deleted' => 0, 'errors' => 0, 'errors' => 0})
@@ -733,9 +750,9 @@ class ClientTest < Test::Unit::TestCase
     rdb4 = r.db(db_name).table(table_name_4)
 
     assert_equal(rdb.upsert($data).run,
-                 {'inserted' => 10, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => 10, 'errors' => 0})
     assert_equal(rdb2.upsert($data).run,
-                 {'inserted' => 10, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => 10, 'errors' => 0})
 
     query = rdb.foreach {|row|
       rdb2.foreach {|row2|
@@ -743,7 +760,7 @@ class ClientTest < Test::Unit::TestCase
       }
     }
     assert_equal(query.run,
-                 {'inserted' => 100, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => 100, 'errors' => 0})
 
     query = rdb.foreach {|row|
       rdb2.filter{|r| r[:id].eq(row[:id] * row[:id])}.delete
@@ -758,7 +775,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(query.run, {'deleted' => 60})
 
     assert_equal(rdb.foreach{|row| rdb4.upsert(row)}.run,
-                 {'inserted' => 10, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => 10, 'errors' => 0})
     assert_equal(rdb2.foreach{|row| rdb4.filter{|r| r[:id].eq(row[:id])}.delete}.run,
                  {'deleted' => 6})
 
@@ -781,7 +798,7 @@ class ClientTest < Test::Unit::TestCase
     rdb = r.db(db_name).table(table_name)
 
     assert_equal(rdb.upsert($data).run,
-                 {'inserted' => 10, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => 10, 'errors' => 0})
     rdb.upsert({:id => 11, :broken => true}).run
     rdb.upsert({:id => 12, :broken => true}).run
     rdb.upsert({:id => 13, :broken => true}).run
@@ -811,18 +828,18 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_bad_primary_key_type
-    assert_raise(RuntimeError){rdb.upsert({:id => []}).run}
+    assert_not_nil(rdb.upsert({:id => []}).run['first_error'])
     assert_raise(RuntimeError){rdb.get(100).mutate{{:id => []}}.run}
   end
 
   def test_big_between
     data = (0...100).map{|x| {:id => x}}
     assert_equal(rdb.upsert(data).run,
-                 {'inserted' => 100, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => 100, 'errors' => 0})
     assert_equal(id_sort(rdb.between(1, 2).run.to_a), [{'id' => 1}, {'id' => 2}])
     assert_equal(rdb.delete.run, {'deleted' => 100})
     assert_equal(rdb.upsert($data).run,
-                 {'inserted' => 10, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => 10, 'errors' => 0})
     assert_equal(id_sort(rdb.run.to_a), $data)
   end
 
@@ -905,7 +922,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.db(db_name).list_tables.run, [table_name])
 
     assert_equal(r.db(db_name).table(table_name).upsert({:id => 0}).run,
-                 {'inserted' => 1, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => 1, 'errors' => 0})
     assert_equal(r.db(db_name).table(table_name).run.to_a, [{'id' => 0}])
     assert_equal(r.db(db_name).create_table(table_name+table_name).run, nil)
     assert_equal(r.db(db_name).list_tables.run.length, 2)
@@ -997,14 +1014,14 @@ class ClientTest < Test::Unit::TestCase
                  {'modified' => 5, 'inserted' => 0, 'deleted' => len-5, 'errors' => 0, 'errors' => 0})
     assert_equal(id_sort(rdb2.run.to_a), $data[5..-1])
     assert_equal(rdb2.upsert($data[0...5]).run,
-                 {'inserted' => 5, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => 5, 'errors' => 0})
 
     # FOREACH, POINTDELETE
     # TODO_SERV: Return value of foreach should change (Issue #874)
     query = rdb2.foreach{|row| [rdb2.get(row[:id]).delete, rdb2.upsert(row)]}
     assert_equal(query.run,
                  {'deleted' => 10, 'inserted' => 10,
-                   'errors' => 0, 'generated_keys' => []})
+                   'errors' => 0})
     assert_equal(id_sort(rdb2.run.to_a), $data)
     rdb2.foreach{|row| rdb2.get(row[:id]).delete}.run
     assert_equal(id_sort(rdb2.run.to_a), [])
@@ -1014,7 +1031,7 @@ class ClientTest < Test::Unit::TestCase
     query = rdb2.get(0).update{{:id => 0, :broken => 5}}
     assert_equal(query.run, {'updated'=>1,'errors'=>0,'skipped'=>0})
     query = rdb2.upsert($data[0])
-    assert_equal(query.run, {'inserted'=>1, 'errors' => 0, 'generated_keys' => []})
+    assert_equal(query.run, {'inserted'=>1, 'errors' => 0})
     assert_equal(id_sort(rdb2.run.to_a), $data)
 
     assert_equal(rdb2.get(0).mutate(nil).run,
@@ -1026,7 +1043,7 @@ class ClientTest < Test::Unit::TestCase
                  {'modified' => 1, 'inserted' => 0, 'deleted' => 0, 'errors' => 0, 'errors' => 0})
     assert_equal(rdb2.get(1).run['num'], 2);
     assert_equal(rdb2.upsert($data[0...2]).run,
-                 {'inserted' => 2, 'errors' => 0, 'generated_keys' => []})
+                 {'inserted' => 2, 'errors' => 0})
 
     assert_equal(id_sort(rdb2.run.to_a), $data)
   end

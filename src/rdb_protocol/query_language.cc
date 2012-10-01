@@ -1047,11 +1047,14 @@ void execute_read_query(ReadQuery *r, runtime_environment_t *env, Response *res,
     }
 }
 
-MUST_USE bool insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::string &pk, 
-                     boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env, 
+void throwing_insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::string &pk,
+                     boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env,
                      const backtrace_t &backtrace, bool overwrite,
                      boost::optional<std::string> *generated_pk_out) {
     bool generated_key = false;
+    if (data->type() != cJSON_Object) {
+        throw runtime_exc_t(strprintf("Cannot insert non-object %s", data->Print().c_str()), backtrace);
+    }
     if (!data->GetObjectItem(pk.c_str())) {
         if (overwrite) {
             throw runtime_exc_t(strprintf("Must have a field named \"%s\" (The primary key) if you are attempting to overwrite.", pk.c_str()), backtrace);
@@ -1080,10 +1083,28 @@ MUST_USE bool insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const
                     "done.", backtrace);
         }
 
-        return overwrite || boost::get<rdb_protocol_t::point_write_response_t>(response.response).result != DUPLICATE;
+        if (!overwrite && boost::get<rdb_protocol_t::point_write_response_t>(response.response).result == DUPLICATE) {
+            throw runtime_exc_t(strprintf("Duplicate primary key %s in %s", pk.c_str(), data->Print().c_str()), backtrace);
+        }
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
+}
+
+void nonthrowing_insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::string &pk,
+                        boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env,
+                        const backtrace_t &backtrace, bool overwrite,
+                        std::vector<std::string> *generated_keys,
+                        int *inserted, int *errors, std::string *first_error) {
+    boost::optional<std::string> generated_key;
+    try {
+        throwing_insert(ns_access, pk, data, env, backtrace, overwrite, &generated_key);
+        *inserted += 1;
+    } catch (const runtime_exc_t &e) {
+        *errors += 1;
+        if (*first_error == "") *first_error = e.as_str();
+    }
+    if (generated_key) generated_keys->push_back(*generated_key);
 }
 
 point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t ns_access,
@@ -1212,79 +1233,44 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
             boost::shared_ptr<json_stream_t> stream;
             if (t_type == TERM_TYPE_JSON) {
                 boost::shared_ptr<scoped_cJSON_t> data = eval_term_as_json(t, env, scopes, backtrace.with("term:0"));
-                if (data->type() == cJSON_Object) {
-                    boost::optional<std::string> generated_key;
-                    bool did_insert = insert(ns_access, pk, data, env, backtrace.with("term:0"), overwrite, &generated_key);
-                    if (!did_insert && first_error == "") {
-                        first_error = strprintf("Duplicate primary key %s in %s", pk.c_str(), data->Print().c_str());
-                    }
-
-                    (did_insert ? inserted : errors) += 1;
-                    if (generated_key) {
-                        generated_keys.push_back(*generated_key);
-                    }
-                } else if (data->type() == cJSON_Array) {
+                if (data->type() == cJSON_Array) {
                     stream.reset(new in_memory_stream_t(json_array_iterator_t(data->get())));
                 } else {
-                    errors = 1;
-                    first_error = strprintf("Cannot insert non-object %s.\n", data->Print().c_str());
+                    nonthrowing_insert(ns_access, pk, data, env, backtrace.with("term:0"), overwrite, &generated_keys,
+                                       &inserted, &errors, &first_error);
                 }
             } else if (t_type == TERM_TYPE_STREAM || t_type == TERM_TYPE_VIEW) {
                 stream = eval_term_as_stream(w->mutable_insert()->mutable_terms(0), env, scopes, backtrace.with("term:0"));
-            } else {
-                unreachable("bad term type");
-            }
-
+            } else { unreachable("bad term type"); }
             if (stream) {
                 while (boost::shared_ptr<scoped_cJSON_t> data = stream->next()) {
-                    boost::optional<std::string> generated_key;
-                    bool did_insert = insert(ns_access, pk, data, env, backtrace.with("term:0"), overwrite, &generated_key);
-                    if (!did_insert && first_error == "") {
-                        first_error = strprintf("Duplicate primary key %s in %s", pk.c_str(), data->Print().c_str());
-                    }
-                    (did_insert ? inserted : errors) += 1;
-                    if (generated_key) {
-                        generated_keys.push_back(*generated_key);
-                    }
+                    nonthrowing_insert(ns_access, pk, data, env, backtrace.with("term:0"), overwrite, &generated_keys,
+                                       &inserted, &errors, &first_error);
                 }
             }
         } else {
             for (int i = 0; i < w->insert().terms_size(); ++i) {
                 boost::shared_ptr<scoped_cJSON_t> data =
                     eval_term_as_json(w->mutable_insert()->mutable_terms(i), env, scopes, backtrace.with(strprintf("term:%d", i)));
-                boost::optional<std::string> generated_key;
-                bool did_insert = insert(ns_access, pk, data, env, backtrace.with(strprintf("term:%d", i)),
-                                         overwrite, &generated_key);
-                if (!did_insert && first_error == "") {
-                    first_error = strprintf("Duplicate primary key %s in %s", pk.c_str(), data->Print().c_str())
-                        + "\nBacktrace:\n" + backtrace.with(strprintf("term:%d", i)).print();
-                }
-                (did_insert ? inserted : errors) += 1;
-                if (generated_key) {
-                    generated_keys.push_back(*generated_key);
-                }
+                nonthrowing_insert(ns_access, pk, data, env, backtrace.with(strprintf("term:%d", i)), overwrite, &generated_keys,
+                                   &inserted, &errors, &first_error);
             }
         }
 
         /* Construct a response. */
         boost::shared_ptr<scoped_cJSON_t> res_json(new scoped_cJSON_t(cJSON_CreateObject()));
-
         res_json->AddItemToObject("inserted", cJSON_CreateNumber(inserted));
         res_json->AddItemToObject("errors", cJSON_CreateNumber(errors));
 
-        if (first_error != "") {
-            res_json->AddItemToObject("first_error", cJSON_CreateString(first_error.c_str()));
+        if (first_error != "") res_json->AddItemToObject("first_error", cJSON_CreateString(first_error.c_str()));
+        if (!generated_keys.empty()) {
+            res_json->AddItemToObject("generated_keys", cJSON_CreateArray());
+            cJSON *array = res_json->GetObjectItem("generated_keys");
+            guarantee(array);
+            for (std::vector<std::string>::iterator it = generated_keys.begin(); it != generated_keys.end(); ++it) {
+                cJSON_AddItemToArray(array, cJSON_CreateString(it->c_str()));
+            }
         }
-
-        res_json->AddItemToObject("generated_keys", cJSON_CreateArray());
-        cJSON *array = res_json->GetObjectItem("generated_keys");
-
-        for (std::vector<std::string>::iterator it  = generated_keys.begin();
-                                                it != generated_keys.end();
-                                                ++it) {
-            cJSON_AddItemToArray(array, cJSON_CreateString(it->c_str()));
-        }
-
         res->add_response(res_json->Print());
     } break;
     case WriteQuery::FOREACH: {
