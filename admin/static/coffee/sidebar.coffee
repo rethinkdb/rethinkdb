@@ -158,16 +158,24 @@ module 'Sidebar', ->
             datacenters.on 'all', @render
 
         compute_connectivity: =>
-            # data centers visible
-            dc_visible = []
-            directory.each (m) =>
-                _m = machines.get(m.get('id'))
-                if _m and _m.get('datacenter_uuid')
-                    dc_visible[dc_visible.length] = _m.get('datacenter_uuid')
-            dc_visible = _.uniq(dc_visible)
-            conn =
-                datacenters_active: dc_visible.length
-                datacenters_total: datacenters.models.length
+            if datacenters.length > 0
+                # data centers visible
+                dc_visible = []
+                directory.each (m) =>
+                    _m = machines.get(m.get('id'))
+                    if _m and _m.get('datacenter_uuid') and _m.get('datacenter_uuid') isnt universe_datacenter.get('id')
+                        dc_visible.push _m.get('datacenter_uuid')
+                dc_visible = _.uniq(dc_visible)
+                conn =
+                    datacenters_exist: true
+                    datacenters_active: dc_visible.length
+                    datacenters_total: datacenters.models.length
+            else
+                conn =
+                    datacenters_exist: false
+                    servers_active: directory.length
+                    servers_total: machines.length
+
             return conn
 
         render: =>

@@ -84,8 +84,13 @@
 
 <script id="sidebar-datacenters_connected-template" type="text/x-handlebars-template">
     <div class="panel">
+        {{#if datacenters_exist}}
         <h5>Datacenters</h5>
         <h4>{{datacenters_active}}/{{datacenters_total}} reachable</h4>
+        {{else}}
+        <h5>Machines of Universe</h5>
+        <h4>{{servers_active}}/{{servers_total}} reachable</h4>
+        {{/if}}
     </div>
 </script>
 
