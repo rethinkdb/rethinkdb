@@ -397,5 +397,12 @@ module RethinkDB
     def self.table(name, opts={})
       Table.new(:default_db, name, opts)
     end
+
+    # A shortcut for Data_Collectors::count
+    def self.count(*args); Data_Collectors.count(*args); end
+    # A shortcut for Data_Collectors::sum
+    def self.sum(*args); Data_Collectors.sum(*args); end
+    # A shortcut for Data_Collectors::avg
+    def self.avg(*args); Data_Collectors.avg(*args); end
   end
 end
