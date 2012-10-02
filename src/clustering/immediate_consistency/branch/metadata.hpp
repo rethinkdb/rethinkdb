@@ -5,7 +5,6 @@
 #include <utility>
 
 #include "clustering/generic/registration_metadata.hpp"
-#include "clustering/generic/resource.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
