@@ -12,15 +12,11 @@
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>
 
-#include "arch/timing.hpp"
 #include "clustering/reactor/metadata.hpp"
 #include "containers/clone_ptr.hpp"
-#include "containers/cow_ptr.hpp"
-#include "concurrency/fifo_enforcer.hpp"
-#include "concurrency/pmap.hpp"
-#include "concurrency/promise.hpp"
 #include "protocol_api.hpp"
 
+template <class> class cow_ptr_t;
 template <class protocol_t> class master_access_t;
 template <class protocol_t> class resource_access_t;
 class resource_lost_exc_t;
