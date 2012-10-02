@@ -266,6 +266,15 @@ module RethinkDB
       JSON_Expression.new [:call, [:nth], [self, S.r(n)]]
     end
 
+    # A normal inner join.  Takes as an argument the table to join with and a
+    # block.  The block you provide should accept two tows and return
+    # <b>+true+</b> if they should be joined or <b>+false+</b> otherwise.  For
+    # example:
+    #   table1.innerjoin(table2) {|row1, row2| row1[:attr1] > row2[:attr2]}
+    # Note that we don't merge the two tables when you do this.  The output will
+    # be a list of objects like:
+    #   {'left' => ..., 'right' => ...}
+    # You can use Sequence#zip to get back a list of merged rows.
     def innerjoin(other)
         self.concatmap {|row|
             other.concatmap {|row2|
@@ -274,6 +283,15 @@ module RethinkDB
         }
     end
 
+
+    # A normal outer join.  Takes as an argument the table to join with and a
+    # block.  The block you provide should accept two tows and return
+    # <b>+true+</b> if they should be joined or <b>+false+</b> otherwise.  For
+    # example:
+    #   table1.outerjoin(table2) {|row1, row2| row1[:attr1] > row2[:attr2]}
+    # Note that we don't merge the two tables when you do this.  The output will
+    # be a list of objects like:
+    #   {'left' => ..., 'right' => ...}
     def outerjoin(other)
       S.with_var {|vname, v|
         self.concatmap {|row|
@@ -286,7 +304,14 @@ module RethinkDB
       }
     end
 
-    def eq_join(leftattr, other, opt_rightattr=nil)
+    # A special case of Sequence#innerjoin that is guaranteed to run in
+    # O(nlog(n)) time.  It does equality comparison between <b>+leftattr+</b> of
+    # the invoking stream and the primary key of the <b>+other+</b> stream.  For
+    # example, the following are equivalent (if <b>+id+</b> is the primary key
+    # of <b>+table2+</b>):
+    #   table1.eq_join(:a, table2)
+    #   table2.innerjoin(table2) {|row1, row2| r.eq row1[:a],row2[:id]}
+    def eq_join(leftattr, other)
       S.with_var {|vname, v|
         self.concatmap {|row|
             RQL.let({vname => other.get(row[leftattr])},
@@ -295,6 +320,11 @@ module RethinkDB
       }
     end
 
+    # Take the output of Sequence#innerjoin, Sequence#outerjoin, or
+    # Sequence#eq_join and merge the results together.  The following are
+    # equivalent:
+    #   table1.eq_join(:id, table2).zip
+    #   table1.eq_join(:id, table2).map{|obj| obj['left'].mapmerge(obj['right'])}
     def zip
       self.map {|row|
         RQL.if(row.hasattr('right'), row['left'].mapmerge(row['right']), row['left'])
