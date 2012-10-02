@@ -11,11 +11,13 @@
 
 namespace unittest {
 
+const char *const DBQ_TEST_DIRECTORY = "test_disk_backed_queue";
+
 void run_many_ints_test() {
     static const int NUM_ELTS_IN_QUEUE = 1000;
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
-    disk_backed_queue_t<int> queue(io_backender.get(), "test", &get_global_perfmon_collection());
+    disk_backed_queue_t<int> queue(io_backender.get(), DBQ_TEST_DIRECTORY, &get_global_perfmon_collection());
     std::queue<int> ref_queue;
 
     for (int i = 0; i < NUM_ELTS_IN_QUEUE; ++i) {
@@ -39,7 +41,7 @@ void run_big_values_test() {
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
-    disk_backed_queue_t<std::string> queue(io_backender.get(), "test", &get_global_perfmon_collection());
+    disk_backed_queue_t<std::string> queue(io_backender.get(), DBQ_TEST_DIRECTORY, &get_global_perfmon_collection());
     std::queue<std::string> ref_queue;
 
     std::string val;
@@ -68,7 +70,7 @@ void run_concurrent_test() {
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
-    disk_backed_queue_wrapper_t<int> queue(io_backender.get(), "test", &get_global_perfmon_collection());
+    disk_backed_queue_wrapper_t<int> queue(io_backender.get(), DBQ_TEST_DIRECTORY, &get_global_perfmon_collection());
     boost_function_callback_t<int> callback(&randomly_delay);
     coro_pool_t<int> coro_pool(10, &queue, &callback);
     for (int i = 0; i < 1000; i++) {
