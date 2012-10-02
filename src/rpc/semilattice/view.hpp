@@ -1,6 +1,10 @@
 #ifndef RPC_SEMILATTICE_VIEW_HPP_
 #define RPC_SEMILATTICE_VIEW_HPP_
 
+#include "errors.hpp"
+#include <boost/function.hpp>
+#include <boost/shared_ptr.hpp>
+
 #include "concurrency/pubsub.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "utils.hpp"
