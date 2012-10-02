@@ -25,70 +25,88 @@ you need to access it from another thread, consider using
 `cross_thread_watchable_variable_t` to create a proxy-watchable with a different
 home thread. */
 
+template <class value_t> class watchable_t;
+template <class value_t> class watchable_freeze_t;
+
+enum run_until_satisfied_result_t {
+    SATISFIED,
+    RUN_AGAIN,
+    ABORT
+};
+
+template <class value_t>
+class watchable_subscription_t {
+public:
+    /* The `boost::function<void()>` passed to the constructor is a callback
+       that will be called whenever the value changes. The callback must not
+       block, and it must not create or destroy `subscription_t` objects. */
+
+    explicit watchable_subscription_t(const boost::function<void()> &f)
+        : subscription(f)
+    { }
+
+    watchable_subscription_t(const boost::function<void()> &f, const clone_ptr_t<watchable_t<value_t> > &watchable,
+                             watchable_freeze_t<value_t> *freeze)
+        : subscription(f, watchable->get_publisher()) {
+        watchable->assert_thread();
+        freeze->rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
+    }
+
+    void reset() {
+        subscription.reset();
+    }
+
+    void reset(const clone_ptr_t<watchable_t<value_t> > &watchable, watchable_freeze_t<value_t> *freeze) {
+        watchable->assert_thread();
+        freeze->rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
+        subscription.reset(watchable->get_publisher());
+    }
+
+private:
+    typename publisher_t<boost::function<void()> >::subscription_t subscription;
+
+    DISABLE_COPYING(watchable_subscription_t);
+};
+
+
+/* The purpose of the `freeze_t` is to assert that the value of the
+   `watchable_t` doesn't change for as long as it exists. You should not block
+   while the `freeze_t` exists. It's kind of like `mutex_assertion_t`.
+
+   A common pattern is to construct a `freeze_t`, then call `get()` to
+   initialize some object or objects that mirrors the `watchable_t`'s value,
+   then construct a `subscription_t` to continually keep in sync with the
+   `watchable_t`, then destroy the `freeze_t`. If it weren't for the
+   `freeze_t`, a change might "slip through the cracks" if it happened after
+   `get()` but before constructing the `subscription_t`. If you constructed the
+   `subscription_t` before calling `get()`, then the callback might get run
+   before the objects were first initialized. */
+
+template <class value_t>
+class watchable_freeze_t {
+public:
+    explicit watchable_freeze_t(const clone_ptr_t<watchable_t<value_t> > &watchable)
+        : rwi_lock_acquisition(watchable->get_rwi_lock_assertion())
+    {
+        watchable->assert_thread();
+    }
+
+    void assert_is_holding(const clone_ptr_t<watchable_t<value_t> > &watchable) {
+        rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
+    }
+
+private:
+    friend class watchable_subscription_t<value_t>;
+    rwi_lock_assertion_t::read_acq_t rwi_lock_acquisition;
+
+    DISABLE_COPYING(watchable_freeze_t);
+};
+
 template <class value_t>
 class watchable_t : public home_thread_mixin_t {
 public:
-    class subscription_t;
-
-    /* The purpose of the `freeze_t` is to assert that the value of the
-    `watchable_t` doesn't change for as long as it exists. You should not block
-    while the `freeze_t` exists. It's kind of like `mutex_assertion_t`.
-
-    A common pattern is to construct a `freeze_t`, then call `get()` to
-    initialize some object or objects that mirrors the `watchable_t`'s value,
-    then construct a `subscription_t` to continually keep in sync with the
-    `watchable_t`, then destroy the `freeze_t`. If it weren't for the
-    `freeze_t`, a change might "slip through the cracks" if it happened after
-    `get()` but before constructing the `subscription_t`. If you constructed the
-    `subscription_t` before calling `get()`, then the callback might get run
-    before the objects were first initialized. */
-    class freeze_t {
-    public:
-        explicit freeze_t(const clone_ptr_t<watchable_t> &watchable)
-            : rwi_lock_acquisition(watchable->get_rwi_lock_assertion())
-        {
-            watchable->assert_thread();
-        }
-
-        void assert_is_holding(const clone_ptr_t<watchable_t> &watchable) {
-            rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
-        }
-
-    private:
-        friend class watchable_t<value_t>::subscription_t;
-        rwi_lock_assertion_t::read_acq_t rwi_lock_acquisition;
-    };
-
-    class subscription_t {
-    public:
-        /* The `boost::function<void()>` passed to the constructor is a callback
-        that will be called whenever the value changes. The callback must not
-        block, and it must not create or destroy `subscription_t` objects. */
-
-        explicit subscription_t(boost::function<void()> f)
-            : subscription(f)
-        { }
-
-        subscription_t(boost::function<void()> f, const clone_ptr_t<watchable_t> &watchable, freeze_t *freeze)
-            : subscription(f, watchable->get_publisher())
-        {
-            watchable->assert_thread();
-            freeze->rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
-        }
-
-        void reset() {
-            subscription.reset();
-        }
-
-        void reset(const clone_ptr_t<watchable_t> &watchable, freeze_t *freeze) {
-            watchable->assert_thread();
-            freeze->rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
-            subscription.reset(watchable->get_publisher());
-        }
-
-    private:
-        typename publisher_t<boost::function<void()> >::subscription_t subscription;
-    };
+    typedef watchable_freeze_t<value_t> freeze_t;
+    typedef watchable_subscription_t<value_t> subscription_t;
 
     virtual ~watchable_t() { }
     virtual watchable_t *clone() const = 0;
@@ -123,6 +141,13 @@ private:
 retries `fun` when the value of `a` or `b` changes. */
 template<class a_type, class b_type, class callable_type>
 void run_until_satisfied_2(
+        const clone_ptr_t<watchable_t<a_type> > &a,
+        const clone_ptr_t<watchable_t<b_type> > &b,
+        const callable_type &fun,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+
+template<class a_type, class b_type, class callable_type>
+MUST_USE run_until_satisfied_result_t abortable_run_until_satisfied_2(
         const clone_ptr_t<watchable_t<a_type> > &a,
         const clone_ptr_t<watchable_t<b_type> > &b,
         const callable_type &fun,

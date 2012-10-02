@@ -10,6 +10,7 @@
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/unittest_utils.hpp"
+#include "serializer/log/log_serializer.hpp"
 
 class memcached_protocol_t;
 
@@ -25,7 +26,14 @@ class test_store_t {
 public:
     test_store_t(io_backender_t *io_backender, order_source_t *order_source) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
-            store(io_backender, temp_file.name(), GIGABYTE, true, &get_global_perfmon_collection(), &ctx) {
+            serializer((standard_serializer_t::create(io_backender,
+                                                      standard_serializer_t::private_dynamic_config_t(temp_file.name()),
+                                                      standard_serializer_t::static_config_t()),
+                        new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                                  io_backender,
+                                                  standard_serializer_t::private_dynamic_config_t(temp_file.name()),
+                                                  &get_global_perfmon_collection()))),
+            store(serializer.get(), temp_file.name(), GIGABYTE, true, &get_global_perfmon_collection(), &ctx) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
@@ -37,6 +45,7 @@ public:
     }
 
     temp_file_t temp_file;
+    scoped_ptr_t<standard_serializer_t> serializer;
     typename protocol_t::context_t ctx;
     typename protocol_t::store_t store;
 };

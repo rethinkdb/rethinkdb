@@ -43,7 +43,7 @@ public:
         metadata_view(v),
         change_subscription(boost::bind(&resource_access_t::on_change, this))
     {
-        typename watchable_t<boost::optional<boost::optional<business_card_t> > >::freeze_t freeze(metadata_view);
+        watchable_freeze_t<boost::optional<boost::optional<business_card_t> > > freeze(metadata_view);
         if (!metadata_view->get() || !metadata_view->get().get()) {
             throw resource_lost_exc_t();
         }
@@ -99,7 +99,7 @@ private:
     }
 
     clone_ptr_t<watchable_t<boost::optional<boost::optional<business_card_t> > > > metadata_view;
-    typename watchable_t<boost::optional<boost::optional<business_card_t> > >::subscription_t change_subscription;
+    watchable_subscription_t<boost::optional<boost::optional<business_card_t> > > change_subscription;
     cond_t failed_signal;
     std::string failed_reason;
 

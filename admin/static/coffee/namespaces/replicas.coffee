@@ -184,7 +184,7 @@ module 'NamespaceView', ->
                 if @namespace.get('primary_uuid') isnt @datacenter.get('id')
                     @max_machines -= 1
                 
-                @need_explanation = @max_machines > DataUtils.get_datacenter_machines(@datacenter.get('id')).length
+                @need_explanation = @max_machines < DataUtils.get_datacenter_machines(@datacenter.get('id')).length
                 @max_machines = Math.min @max_machines, DataUtils.get_datacenter_machines(@datacenter.get('id')).length
 
             @nreplicas = @adjustReplicaCount(DataUtils.get_replica_affinities(@namespace.get('id'), @datacenter.id), true)

@@ -4,10 +4,11 @@
 #include <map>
 #include <utility>
 
-#include "concurrency/cond_var.hpp"
-#include "concurrency/promise.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
+
+class cond_t;
+template <class> class promise_t;
 
 /* `semilattice_manager_t` runs on top of a `message_service_t` and synchronizes
 a value, called the "global semilattice metadata", between all of the nodes in

@@ -63,6 +63,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
 
         {
             cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+
             on_thread_t th(svs->home_thread());
 
             order_source_t order_source;  // TODO: order_token_t::ignore
@@ -77,10 +78,14 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
             svs->new_read_token(&read_token);
             region_map_t<protocol_t, binary_blob_t> metainfo_blob;
             svs->do_get_metainfo(order_source.check_in("be_nothing").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
-            typename reactor_business_card_t<protocol_t>::nothing_when_safe_t
-                activity(to_version_range_map(metainfo_blob), backfiller.get_business_card());
 
             on_thread_t th2(this->home_thread());
+            branch_history_t<protocol_t> branch_history;
+            branch_history_manager->export_branch_history(to_version_range_map(metainfo_blob), &branch_history);
+
+            typename reactor_business_card_t<protocol_t>::nothing_when_safe_t
+                activity(to_version_range_map(metainfo_blob), backfiller.get_business_card(), branch_history);
+
             directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
 
             /* Make sure everyone sees that we're trying to erase our data,

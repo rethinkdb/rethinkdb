@@ -3,9 +3,10 @@
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
+#include "concurrency/cross_thread_watchable.hpp"
+#include "concurrency/watchable.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include "concurrency/watchable.hpp"
 
 query_server_t::query_server_t(int port, rdb_protocol_t::context_t *_ctx) :
     server(port, boost::bind(&query_server_t::handle, this, _1, _2),

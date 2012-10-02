@@ -86,7 +86,7 @@ public:
         std::map<std::string, std::vector<std::string> > params;
     };
 
-    admin_command_parser_t(const std::string& peer_string, const std::set<peer_address_t>& joins, int client_port, signal_t *_interruptor);
+    admin_command_parser_t(const std::string& peer_string, const peer_address_set_t& joins, int client_port, signal_t *_interruptor);
     ~admin_command_parser_t();
 
     void parse_and_run_command(const std::vector<std::string>& line);
@@ -142,7 +142,7 @@ private:
 
     // Variables to instantiate a link to the cluster
     std::string join_peer;
-    std::set<peer_address_t> joins_param;
+    peer_address_set_t joins_param;
     int client_port_param;
     scoped_ptr_t<admin_cluster_link_t> cluster;
     bool console_mode;

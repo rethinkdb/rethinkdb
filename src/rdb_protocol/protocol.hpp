@@ -19,7 +19,6 @@
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
-#include "concurrency/cross_thread_watchable.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "extproc/pool.hpp"
@@ -30,16 +29,16 @@
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/query_language.pb.h"
 #include "rdb_protocol/rdb_protocol_json.hpp"
-#include "rpc/semilattice/watchable.hpp"
-#include "rpc/directory/read_manager.hpp"
 #include "rdb_protocol/serializable_environment.hpp"
+
+template <class> class cross_thread_watchable_variable_t;
+class cluster_directory_metadata_t;
+template <class metadata> class directory_read_manager_t;
 
 using query_language::scopes_t;
 using query_language::backtrace_t;
 using query_language::shared_scoped_less_t;
 using query_language::runtime_exc_t;
-
-class cluster_directory_metadata_t;
 
 enum point_write_result_t {
     STORED,
@@ -269,16 +268,17 @@ struct rdb_protocol_t {
     class distribution_read_t {
     public:
         distribution_read_t()
-            : max_depth(0), region(region_t::universe())
+            : max_depth(0), result_limit(0), region(region_t::universe())
         { }
-        explicit distribution_read_t(int _max_depth)
-            : max_depth(_max_depth), region(region_t::universe())
+        explicit distribution_read_t(int _max_depth, size_t _result_limit)
+            : max_depth(_max_depth), result_limit(_result_limit), region(region_t::universe())
         { }
 
         int max_depth;
+        size_t result_limit;
         region_t region;
 
-        RDB_MAKE_ME_SERIALIZABLE_2(max_depth, region);
+        RDB_MAKE_ME_SERIALIZABLE_3(max_depth, result_limit, region);
     };
 
 
@@ -456,8 +456,8 @@ struct rdb_protocol_t {
 
     class store_t : public btree_store_t<rdb_protocol_t> {
     public:
-        store_t(io_backender_t *io_backend,
-                const std::string& filename,
+        store_t(serializer_t *serializer,
+                const std::string &hash_shard_name,
                 int64_t cache_target,
                 bool create,
                 perfmon_collection_t *parent_perfmon_collection,

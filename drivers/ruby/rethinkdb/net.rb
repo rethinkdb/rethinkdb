@@ -131,7 +131,7 @@ module RethinkDB
     def dispatch msg # :nodoc:
       PP.pp msg if $DEBUG
       payload = msg.serialize_to_string
-      #File.open('payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
+      #File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
       packet = [payload.length].pack('L<') + payload
       @socket.send(packet, 0)
       return msg.token
@@ -239,6 +239,7 @@ module RethinkDB
     # <b>NOTE:</b> unlike most enumerably objects, you can only iterate over the
     # result once.  See RethinkDB::Query_Results for more details.
     def run (query, opts={})
+      #File.open('sexp.txt', 'a') {|f| f.write(query.sexp.inspect+"\n")}
       is_atomic = (query.kind_of?(JSON_Expression) ||
                    query.kind_of?(Meta_Query) ||
                    query.kind_of?(Write_Query))

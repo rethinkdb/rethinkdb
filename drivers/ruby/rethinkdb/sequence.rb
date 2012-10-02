@@ -24,10 +24,8 @@ module RethinkDB
 
     # Filter the sequence based on a predicate.  The provided block should take a
     # single variable, an element of the sequence, and return either <b>+true+</b> if
-    # it should be in the resulting sequence or <b>+false+</b> otherwise.  If you
-    # have a table <b>+table+</b>, the following are all equivalent:
+    # it should be in the resulting sequence or <b>+false+</b> otherwise.  For example:
     #   table.filter {|row| row[:id] < 5}
-    #   table.filter {r[:id] < 5} # uses implicit variable
     # Alternatively, you may provide an object as an argument, in which case the
     # <b>+filter+</b> will match JSON objects which match the provided object's
     # attributes.  For example, if we have a table <b>+people+</b>, the
@@ -56,7 +54,6 @@ module RethinkDB
     # return a list of elements to include in the resulting sequence.  If you have a
     # table <b>+table+</b>, the following are all equivalent:
     #   table.concatmap {|row| [row[:id], row[:id]*2]}
-    #   table.concatmap {[r[:id], r[:id]*2]} # uses implicit variable
     #   table.map{|row| [row[:id], row[:id]*2]}.reduce([]){|a,b| r.union(a,b)}
     def concatmap
       S.with_var { |vname,v|
@@ -84,10 +81,8 @@ module RethinkDB
 
     # Map a function over a sequence.  The provided block should take
     # a single variable, an element of the sequence, and return an
-    # element of the resulting sequence.  If you have a table
-    # <b>+table+</b>, the following are all equivalent:
+    # element of the resulting sequence.  For example:
     #   table.map {|row| row[:id]}
-    #   table.map {r[:id]} # uses implicit variable
     def map
       S.with_var{|vname,v|
         self.class.new [:call, [:map, vname, S.r(yield(v))], [self]]}
@@ -158,12 +153,37 @@ module RethinkDB
       grouping_term = S.with_var{|vname,v| [vname, S.r(grouping.call(v))]}
       mapping_term = S.with_var{|vname,v| [vname, S.r(mapping.call(v))]}
       reduction_term = S.with_var {|aname, a| S.with_var {|bname, b|
-          [S.r(base), aname, bname, reduction.call(a, b)]}}
+          [S.r(base), aname, bname, S.r(reduction.call(a, b))]}}
       JSON_Expression.new [:call, [:groupedmapreduce,
                                    grouping_term,
                                    mapping_term,
                                    reduction_term],
                            [self]]
+    end
+
+    # Group a sequence by one or more attributes and return some data about each
+    # group.  For example, if you have a table <b>+people+</b>:
+    #   people.groupby(:name, :town, r.count).filter{|row| row[:reduction] > 1}
+    # Will find all cases where two people in the same town share a name, and
+    # return a list of those name/town pairs along with the number of people who
+    # share that name in that town.  You can find a list of builtin data
+    # collectors at Data_Collectors (which will also show you how to
+    # define your own).
+    def groupby(*args)
+      raise SyntaxError,"groupby requires at least one argument" if args.length < 1
+      attrs, opts = args[0..-2], args[-1]
+      map = opts.has_key?(:mapping) ? opts[:mapping] : lambda {|row| row}
+      if !opts.has_key?(:base) || !opts.has_key?(:reduction)
+        raise TypeError, "Group by requires a reduction and base to be specified"
+      end
+      base = opts[:base]
+      reduction = opts[:reduction]
+
+      gmr = self.groupedmapreduce(lambda{|r| attrs.map{|a| r[a]}}, map, base, reduction)
+      if (f = opts[:finalizer])
+        gmr = gmr.map{|group| group.mapmerge({:reduction => f.call(group[:reduction])})}
+      end
+      return gmr
     end
 
     # Gets one or more elements from the sequence, much like [] in Ruby.
@@ -244,6 +264,71 @@ module RethinkDB
     # (Note the 0-indexing.)
     def nth(n)
       JSON_Expression.new [:call, [:nth], [self, S.r(n)]]
+    end
+
+    # A normal inner join.  Takes as an argument the table to join with and a
+    # block.  The block you provide should accept two tows and return
+    # <b>+true+</b> if they should be joined or <b>+false+</b> otherwise.  For
+    # example:
+    #   table1.innerjoin(table2) {|row1, row2| row1[:attr1] > row2[:attr2]}
+    # Note that we don't merge the two tables when you do this.  The output will
+    # be a list of objects like:
+    #   {'left' => ..., 'right' => ...}
+    # You can use Sequence#zip to get back a list of merged rows.
+    def innerjoin(other)
+        self.concatmap {|row|
+            other.concatmap {|row2|
+                RQL.if(yield(row, row2), [{:left => row, :right => row2}], [])
+            }
+        }
+    end
+
+
+    # A normal outer join.  Takes as an argument the table to join with and a
+    # block.  The block you provide should accept two tows and return
+    # <b>+true+</b> if they should be joined or <b>+false+</b> otherwise.  For
+    # example:
+    #   table1.outerjoin(table2) {|row1, row2| row1[:attr1] > row2[:attr2]}
+    # Note that we don't merge the two tables when you do this.  The output will
+    # be a list of objects like:
+    #   {'left' => ..., 'right' => ...}
+    def outerjoin(other)
+      S.with_var {|vname, v|
+        self.concatmap {|row|
+          RQL.let({vname => other.concatmap {|row2|
+                      RQL.if(yield(row, row2),
+                             [{:left => row, :right => row2}],
+                             [])}.to_array},
+                  RQL.if(v.length() > 0, v, [{:left => row}]))
+        }
+      }
+    end
+
+    # A special case of Sequence#innerjoin that is guaranteed to run in
+    # O(nlog(n)) time.  It does equality comparison between <b>+leftattr+</b> of
+    # the invoking stream and the primary key of the <b>+other+</b> stream.  For
+    # example, the following are equivalent (if <b>+id+</b> is the primary key
+    # of <b>+table2+</b>):
+    #   table1.eq_join(:a, table2)
+    #   table2.innerjoin(table2) {|row1, row2| r.eq row1[:a],row2[:id]}
+    def eq_join(leftattr, other)
+      S.with_var {|vname, v|
+        self.concatmap {|row|
+            RQL.let({vname => other.get(row[leftattr])},
+                    RQL.if(v.ne(nil), [{:left => row, :right => v}], []))
+        }
+      }
+    end
+
+    # Take the output of Sequence#innerjoin, Sequence#outerjoin, or
+    # Sequence#eq_join and merge the results together.  The following are
+    # equivalent:
+    #   table1.eq_join(:id, table2).zip
+    #   table1.eq_join(:id, table2).map{|obj| obj['left'].mapmerge(obj['right'])}
+    def zip
+      self.map {|row|
+        RQL.if(row.hasattr('right'), row['left'].mapmerge(row['right']), row['left'])
+      }
     end
   end
 end

@@ -77,7 +77,7 @@ archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *b
 
 RDB_IMPL_SERIALIZABLE_1(get_query_t, key);
 RDB_IMPL_SERIALIZABLE_2(rget_query_t, region, maximum);
-RDB_IMPL_SERIALIZABLE_2(distribution_get_query_t, max_depth, region);
+RDB_IMPL_SERIALIZABLE_3(distribution_get_query_t, max_depth, result_limit, region);
 RDB_IMPL_SERIALIZABLE_3(get_result_t, value, flags, cas);
 RDB_IMPL_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
 RDB_IMPL_SERIALIZABLE_2(rget_result_t, pairs, truncated);
@@ -183,9 +183,28 @@ public:
 class distribution_result_less_t {
 public:
     bool operator()(const distribution_result_t& x, const distribution_result_t& y) {
-        return x.region < y.region;
+        if (x.region.inner == y.region.inner) {
+            return x.region < y.region;
+        } else {
+            return x.region.inner < y.region.inner;
+        }
     }
 };
+
+// Scale the distribution down by combining ranges to fit it within the limit of the query
+void scale_down_distribution(size_t result_limit, std::map<store_key_t, int> *key_counts) {
+    const size_t combine = (key_counts->size() / result_limit); // Combine this many other ranges into the previous range
+    for (std::map<store_key_t, int>::iterator it = key_counts->begin();
+                                              it != key_counts->end();) {
+        std::map<store_key_t, int>::iterator next = it;
+        ++next;
+        for (size_t i = 0; i < combine && next != key_counts->end(); ++i) {
+            it->second += next->second;
+            key_counts->erase(next++);
+        }
+        it = next;
+    }
+}
 
 // TODO: get rid of this extra response_t copy on the stack
 struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
@@ -223,7 +242,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
         return read_response_t(result);
     }
 
-    read_response_t operator()(UNUSED distribution_get_query_t dget) {
+    read_response_t operator()(distribution_get_query_t dget) {
         // TODO: do this without copying so much and/or without dynamic memory
         // Sort results by region
         std::vector<distribution_result_t> results(count);
@@ -277,6 +296,11 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 
                 res.key_counts.insert(results[largest_index].key_counts.begin(), results[largest_index].key_counts.end());
             }
+        }
+
+        // If the result is larger than the requested limit, scale it down
+        if (dget.result_limit > 0 && res.key_counts.size() > dget.result_limit) {
+            scale_down_distribution(dget.result_limit, &res.key_counts);
         }
 
         return read_response_t(res);
@@ -413,13 +437,13 @@ region_t memcached_protocol_t::cpu_sharding_subspace(int subregion_number, int n
     return region_t(beg, end, key_range_t::universe());
 }
 
-store_t::store_t(io_backender_t *io_backend,
-                 const std::string& filename,
+store_t::store_t(serializer_t *serializer,
+                 const std::string &hash_shard_name,
                  int64_t cache_size,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
                  context_t *ctx) :
-    btree_store_t<memcached_protocol_t>(io_backend, filename, cache_size, create, parent_perfmon_collection, ctx) { }
+    btree_store_t<memcached_protocol_t>(serializer, hash_shard_name, cache_size, create, parent_perfmon_collection, ctx) { }
 
 store_t::~store_t() {
     assert_thread();
@@ -448,6 +472,11 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
             } else {
                 ++it;
             }
+        }
+
+        // If the result is larger than the requested limit, scale it down
+        if (dget.result_limit > 0 && dstr.key_counts.size() > dget.result_limit) {
+            scale_down_distribution(dget.result_limit, &dstr.key_counts);
         }
 
         dstr.region = dget.region;

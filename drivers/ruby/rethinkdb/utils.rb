@@ -21,10 +21,10 @@ module RethinkDB
     # The protobuf spec often has a field with a slightly different name from
     # the enum constant, which we list here.
     def query_rewrites
-      { :getattr => :attr, :implicit_getattr => :attr,
-        :hasattr => :attr, :implicit_hasattr => :attr,
-        :without => :attrs, :implicit_without => :attrs,
-        :pickattrs => :attrs, :implicit_pickattrs => :attrs,
+      { :getattr => :attr,
+        :hasattr => :attr,
+        :without => :attrs,
+        :pickattrs => :attrs,
         :string => :valuestring, :json => :jsonstring, :bool => :valuebool,
         :if => :if_, :getbykey => :get_by_key, :groupedmapreduce => :grouped_map_reduce,
         :insertstream => :insert_stream, :foreach => :for_each, :orderby => :order_by,
@@ -167,6 +167,7 @@ module RethinkDB
       when 'view'           then [1]
       when /arg:([0-9]+)/   then [2, $1.to_i]
       when /attrs:([0-9]+)/ then []
+      when /elem:([0-9]+)/  then [$1.to_i+1]
       when /bind:(.+)$/     then [1, $1]
       when /key:(.+)$/      then [1..-1, $1]
       when /query:([0-9]+)/ then [3, $1.to_i]

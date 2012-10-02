@@ -15,7 +15,6 @@ module RethinkDB
     #   table.map{|row| row[:id]}
     #   table.map{|row| r.javascript("#{row}.id")}
     #   table.map{|row| r.js("#{row}.id")}
-    #   table.map{r[:id]} #implicit variable
     #   table.map{r.js("this.id")} #implicit variable
     #   table.map{r.js("return this.id;", :func)} #implicit variable
     # As are:
@@ -39,19 +38,6 @@ module RethinkDB
     #   db('db1').table('tbl')
     #   db('db1').tbl
     def self.db(db_name); Database.new db_name; end
-
-    # Refer to either an attribute of the implicit variable or the
-    # implicit variable itself. You can refer to the implicit variable
-    # by providing the symbol <b>+$_+</b>. The following examples are
-    # all equivalent:
-    #   table.map{|row| r[:id]}
-    #   table.map{r[$_][:id]}
-    #   table.map{r[:id]}
-    #   table.map{r.let({:a => r[$_]}, r.letvar('a')[:id]}
-    def self.[](ind)
-      return JSON_Expression.new [:implicit_var] if ind == :$_
-      return self[:$_][ind]
-    end
 
     # Convert from a Ruby datatype to an RQL query.  Numbers, strings, booleans,
     # arrays, objects, and nil are all converted to their respective JSON types.
@@ -411,5 +397,12 @@ module RethinkDB
     def self.table(name, opts={})
       Table.new(:default_db, name, opts)
     end
+
+    # A shortcut for Data_Collectors::count
+    def self.count(*args); Data_Collectors.count(*args); end
+    # A shortcut for Data_Collectors::sum
+    def self.sum(*args); Data_Collectors.sum(*args); end
+    # A shortcut for Data_Collectors::avg
+    def self.avg(*args); Data_Collectors.avg(*args); end
   end
 end
