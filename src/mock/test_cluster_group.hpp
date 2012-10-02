@@ -20,6 +20,7 @@ class io_backender_t;
 template <class> class multistore_ptr_t;
 template <class> class reactor_business_card_t;
 class peer_id_t;
+class serializer_t;
 
 namespace mock {
 
@@ -42,6 +43,7 @@ class test_cluster_group_t {
 public:
     boost::ptr_vector<temp_file_t> files;
     scoped_ptr_t<io_backender_t> io_backender;
+    boost::ptr_vector<serializer_t> serializers;
     boost::ptr_vector<typename protocol_t::store_t> stores;
     boost::ptr_vector<multistore_ptr_t<protocol_t> > svses;
     boost::ptr_vector<reactor_test_cluster_t<protocol_t> > test_clusters;

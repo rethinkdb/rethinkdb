@@ -30,11 +30,22 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
+    scoped_array_t<scoped_ptr_t<serializer_t> > serializers(shards.size());
+    for (size_t i = 0; i < shards.size(); ++i) {
+        standard_serializer_t::create(io_backender.get(),
+                                      standard_serializer_t::private_dynamic_config_t(temp_files[i].name()),
+                                      standard_serializer_t::static_config_t());
+        serializers[i].init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                                      io_backender.get(),
+                                                      standard_serializer_t::private_dynamic_config_t(temp_files[i].name()),
+                                                      &get_global_perfmon_collection()));
+    }
+
     boost::ptr_vector<rdb_protocol_t::store_t> underlying_stores;
     rdb_protocol_t::context_t ctx;
 
     for (size_t i = 0; i < shards.size(); ++i) {
-        underlying_stores.push_back(new rdb_protocol_t::store_t(io_backender.get(), temp_files[i].name(), GIGABYTE, true, &get_global_perfmon_collection(), &ctx));
+        underlying_stores.push_back(new rdb_protocol_t::store_t(serializers[i].get(), temp_files[i].name(), GIGABYTE, true, &get_global_perfmon_collection(), &ctx));
     }
 
     boost::ptr_vector<store_view_t<rdb_protocol_t> > stores;

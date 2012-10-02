@@ -18,6 +18,7 @@
 
 class signal_t;
 class io_backender_t;
+class serializer_t;
 
 namespace mock {
 
@@ -107,7 +108,7 @@ public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
         store_t();
-        store_t(io_backender_t *io_backender, const std::string& filename, UNUSED int64_t cache_size, bool create, perfmon_collection_t *collection, context_t *ctx);
+        store_t(serializer_t *serializer, const std::string& hash_shard_name, UNUSED int64_t cache_size, bool create, perfmon_collection_t *collection, context_t *ctx);
         ~store_t();
 
         void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;
@@ -162,7 +163,7 @@ public:
     private:
         void initialize_empty();
 
-        std::string filename;
+        serializer_t *serializer;
 
         fifo_enforcer_source_t token_source;
         fifo_enforcer_sink_t token_sink;

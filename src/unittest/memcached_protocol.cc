@@ -10,7 +10,6 @@
 #include "unittest/dummy_namespace_interface.hpp"
 
 namespace unittest {
-namespace {
 
 void run_with_namespace_interface(boost::function<void(namespace_interface_t<memcached_protocol_t> *, order_source_t *)> fun) {
 
@@ -21,17 +20,33 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::none,   store_key_t(),  key_range_t::open, store_key_t("n"))));
     shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t() )));
 
-    boost::ptr_vector<mock::temp_file_t> temp_files;
-    for (size_t i = 0; i < shards.size(); ++i) {
-        temp_files.push_back(new mock::temp_file_t("/tmp/rdb_unittest.XXXXXX"));
-    }
+    mock::temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
+    scoped_ptr_t<standard_serializer_t> serializer;
+
+    standard_serializer_t::create(io_backender.get(),
+                                  standard_serializer_t::private_dynamic_config_t(temp_file.name()),
+                                  standard_serializer_t::static_config_t());
+
+    serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                              io_backender.get(),
+                                              standard_serializer_t::private_dynamic_config_t(temp_file.name()),
+                                              &get_global_perfmon_collection()));
+
+
+    scoped_ptr_t<serializer_multiplexer_t> multiplexer;
+
+    std::vector<standard_serializer_t *> ptrs;
+    ptrs.push_back(serializer.get());
+    serializer_multiplexer_t::create(ptrs, shards.size());
+    multiplexer.init(new serializer_multiplexer_t(ptrs));
+
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
     for (size_t i = 0; i < shards.size(); ++i) {
-        underlying_stores.push_back(new memcached_protocol_t::store_t(io_backender.get(), temp_files[i].name(), GIGABYTE, true, &get_global_perfmon_collection(), NULL));
+        underlying_stores.push_back(new memcached_protocol_t::store_t(multiplexer->proxies[i], temp_file.name() + strprintf("_%zd", i), GIGABYTE, true, &get_global_perfmon_collection(), NULL));
     }
 
     boost::ptr_vector<store_view_t<memcached_protocol_t> > stores;
@@ -48,8 +63,6 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<memcached_protocol_t> *, order_source_t *)> fun) {
     mock::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
 }
-
-}   /* anonymous namespace */
 
 /* `SetupTeardown` makes sure that it can start and stop without anything going
 horribly wrong */

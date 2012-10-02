@@ -18,8 +18,8 @@ class btree_store_t : public store_view_t<protocol_t> {
 public:
     using home_thread_mixin_t::assert_thread;
 
-    btree_store_t(io_backender_t *io_backender,
-                  const std::string& filename,
+    btree_store_t(serializer_t *serializer,
+                  const std::string &hash_shard_name,
                   int64_t cache_target,
                   bool create,
                   perfmon_collection_t *parent_perfmon_collection,
@@ -165,7 +165,6 @@ private:
 
     void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
 
-    scoped_ptr_t<standard_serializer_t> serializer;
     mirrored_cache_config_t cache_dynamic_config;
     scoped_ptr_t<cache_t> cache;
     scoped_ptr_t<btree_slice_t> btree;
@@ -176,6 +175,8 @@ private:
 
     perfmon_collection_t perfmon_collection;
     perfmon_membership_t perfmon_collection_membership;
+
+    DISABLE_COPYING(btree_store_t);
 };
 
 #endif  // BTREE_BTREE_STORE_HPP_
