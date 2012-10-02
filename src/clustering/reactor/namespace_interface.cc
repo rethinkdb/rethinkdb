@@ -1,5 +1,7 @@
 #include "clustering/reactor/namespace_interface.hpp"
 
+#include "clustering/immediate_consistency/query/master_access.hpp"
+
 template <class protocol_t>
 cluster_namespace_interface_t<protocol_t>::cluster_namespace_interface_t(
         mailbox_manager_t *mm,

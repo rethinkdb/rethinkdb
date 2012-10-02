@@ -117,5 +117,3 @@ private:
 };
 
 #endif /* CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP_ */
-
-#include "clustering/reactor/directory_echo.tcc"

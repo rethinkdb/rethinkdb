@@ -1,7 +1,6 @@
-#ifndef CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC_
-#define CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC_
-
 #include "clustering/reactor/directory_echo.hpp"
+
+#include "containers/cow_ptr.hpp"
 
 #include <map>
 
@@ -132,4 +131,17 @@ void directory_echo_mirror_t<internal_t>::ack_version(mailbox_t<void(peer_id_t, 
     send(mailbox_manager, peer, mailbox_manager->get_connectivity_service()->get_me(), version);
 }
 
-#endif   /* CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC_ */
+template class directory_echo_writer_t<std::string>;
+template class directory_echo_mirror_t<std::string>;
+
+#include "clustering/reactor/metadata.hpp"
+
+#include "memcached/protocol.hpp"
+template class directory_echo_writer_t<cow_ptr_t<reactor_business_card_t<memcached_protocol_t> > >;
+template class directory_echo_mirror_t<cow_ptr_t<reactor_business_card_t<memcached_protocol_t> > >;
+#include "mock/dummy_protocol.hpp"
+template class directory_echo_writer_t<cow_ptr_t<reactor_business_card_t<mock::dummy_protocol_t> > >;
+template class directory_echo_mirror_t<cow_ptr_t<reactor_business_card_t<mock::dummy_protocol_t> > >;
+#include "rdb_protocol/protocol.hpp"
+template class directory_echo_writer_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > >;
+template class directory_echo_mirror_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > >;

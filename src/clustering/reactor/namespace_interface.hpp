@@ -13,14 +13,18 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "arch/timing.hpp"
-#include "clustering/generic/registrant.hpp"
-#include "clustering/immediate_consistency/query/master_access.hpp"
 #include "clustering/reactor/metadata.hpp"
+#include "containers/clone_ptr.hpp"
 #include "containers/cow_ptr.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
+#include "concurrency/watchable.hpp"
 #include "protocol_api.hpp"
+
+template <class protocol_t> class master_access_t;
+template <class protocol_t> class resource_access_t;
+class resource_lost_exc_t;
 
 template <class protocol_t, class value_t>
 class region_map_set_membership_t {
