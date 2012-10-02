@@ -1343,6 +1343,12 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
     } break;
     case WriteQuery::POINTDELETE: { //TODO: enforce primary key
         int deleted = -1;
+        std::string pk = get_primary_key(w->mutable_point_delete()->mutable_table_ref(), env, backtrace);
+        std::string attr = w->mutable_point_delete()->attrname();
+        if (attr != "" && attr != pk) {
+            throw runtime_exc_t(strprintf("Attribute %s is not a primary key (options: %s).", attr.c_str(), pk.c_str()),
+                                backtrace.with("keyname"));
+        }
         namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(w->mutable_point_delete()->mutable_table_ref(), env, backtrace);
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_delete()->mutable_key(), env, scopes, backtrace.with("key"));
         point_delete(ns_access, id, env, backtrace, &deleted);

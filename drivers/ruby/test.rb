@@ -442,6 +442,12 @@ class ClientTest < Test::Unit::TestCase
                   {"a"=>18, "id"=>9}])
   end
 
+  def test_attr_stuff
+    assert_raise(RuntimeError){rdb.get(0, :fake).run}
+    assert_raise(RuntimeError){rdb.get(0, :fake).update{{}}.run}
+    assert_raise(RuntimeError){rdb.get(0, :fake).mutate{nil}.run}
+    assert_raise(RuntimeError){rdb.get(0, :fake).delete.run}
+  end
   def test_groupby
     assert_equal(rdb.orderby(:id).run.to_a, $data)
     assert_equal(rdb.update{|row| {:gb => row[:id] % 3}}.run,
