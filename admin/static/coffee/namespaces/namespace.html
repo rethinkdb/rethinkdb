@@ -1,36 +1,29 @@
 <script id="namespace_view-container-template" type="text/x-handlebars-template">
     <div id="table-view">
+        <div class="operations btn-group">
+            <button class="btn dropdown-toggle" data-toggle="dropdown">Operations <span class="caret"></span></button>
+            <ul class="dropdown-menu">
+                <li><a href="#">Import data</a></li>
+                <li><a href="#">Export data</a></li>
+                <li><a href="#">Rename table</a></li>
+                <li><a href-"#">Delete table</a></li> 
+            </ul>
+        </div>
         <div class="main_title"></div>
-        <div class="section">
+        <div id="user-alert-space"></div>
+        <div class="section statistics">
             <div class="row-fluid">
-                <div class="span6 profile"></div>
-                <div class="span6 performance-graph"></div>
+                <div class="span4 profile"></div>
+                <div class="span8 performance-graph"></div>
             </div>
         </div>
 
-        <div class="section">
-            <ul class="nav nav-pills">
-                <li class="active"><a href="#tables/{{namespace_id}}/shards" data-target="#namespace-sharding" id="namespace-overview-sharding" class="tab-link" data-toggle="tab">Shards</a></li>
-                <li><a href="#tables/{{namespace_id}}/replication" data-target="#namespace-replication" id="namespace-replication-link" class="tab-link" data-toggle="tab">Replication</a></li>
-                <li><a href="#tables/{{namespace_id}}/assignments" data-target="#namespace-pinning" id="namespace-pinning-link" class="tab-link" data-toggle="tab">Server assignments</a></li>
-                <li><a href="#tables/{{namespace_id}}/other" data-target="#namespace-other" id="namespace-other-link" class="tab-link" data-toggle="tab">Other operations</a></li>
-            </ul>
-
-            <div id="user-alert-space"></div>
-
-            <div class="tab-content">  
-                <div class="tab-pane active" id="namespace-sharding">
-                    <div class="sharding"></div>
-                </div>
-                <div class="tab-pane" id="namespace-replication">
-                    <div class="replication"></div>
-                </div>
-                <div class="tab-pane" id="namespace-pinning">
-                    <div class="pinning"></div>
-                </div>
-                <div class="tab-pane" id="namespace-other">
-                    <div class="other"></div>
-                </div>
+        <div class="row">
+            <div class="span5">
+                <div class="section sharding"></div>
+            </div>
+            <div class="span7">
+                <div class="section replication"></div>
             </div>
         </div>
     </div>
@@ -43,46 +36,34 @@
 <script id="namespace_view-profile-template" type="text/x-handlebars-template">
     <h2 class="title">Table profile</h3>
     <div class="summary">
-        <p class="protocol">Protocol: {{protocol}}</p>
-    </div>
+        <div class="stat-row">
+            <div class="availability-icon"></div>
+            <p><img src="https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png" /><span class="big">{{humanize_namespace_reachability reachability}} </span></p>
+        </div>
+        <div class="stat-row">
+            <div class="masters-icon"></div>
+            <p><img src="https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png" /><span class="big">{{nashards}}/{{nshards}} </span> masters reachable</p>
+        </div>
+        <div class="stat-row">
+            <div class="replicas-icon"></div>
+            <p><img src="https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png" /><span class="big">{{nareplicas}}/{{nreplicas}} </span> replicas reachable</p>
+        </div>
+        <div class="stat-row">
+            <div class="documents-icon"></div>
+            {{#if total_keys}}
+            <p><img src="https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png" /><span class="big">{{total_keys}} </span> documents</p>
+            {{else}}
+            <p><img src="https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png" />Loading...</p>
 
-    <div class="summary">
-        <p>Status: {{humanize_namespace_reachability reachability}}</p>
-        <p>Shards: {{nshards}}</p>
-        <p>Masters: {{nashards}} of {{nshards}} reachable</p>
-        <p>Replicas: {{nareplicas}} of {{nreplicas}} reachable</p>
-        {{#if total_keys}}
-        <p>Data: {{total_keys}} documents</p>
-        {{else}}
-        <p>Data: Loading...</p>
-        {{/if}}
+            {{/if}}
+        </div>
+        <!--
+            TODO: review and remove this info. ALSO: reachability of masters and replicas were removed
         <p>Replication: {{> backfill_progress_summary}}</p>
         {{#unless stats_up_to_date}}
         <p>The stats displayed might not be up to date<br />
-            (One server might be overload with queries).</p>
+            (One server might be overloaded with queries).</p>
         {{/unless}}
-    </div>
-</script>
-
-
-<script id="namespace_other-template" type="text/x-handlebars-template">
-    <h3 class="title">Other operations</h3>
-    <div class="other_section rename_namespace">
-        <input type="button" class="btn other_button rename_namespace-button" value="Rename"/>
-        <p>Rename the table</p>
-    </div>
-    {{!
-    <div class="other_section import_data">
-        <input type="button" class="btn other_button import_data-button" value="Import"/>
-        <p>Import data</p>
-    </div>
-    <div class="other_section export_data-container">
-        <input type="button" class="btn other_button export_data-button" value="Export"/>
-        <p>Export data</p>
-    </div>
-    }}
-    <div class="other_section delete_namespace-container">
-        <input type="button" class="btn other_button delete_namespace-button" value="Delete"/>
-        <p>Delete the table</p>
+        -->
     </div>
 </script>

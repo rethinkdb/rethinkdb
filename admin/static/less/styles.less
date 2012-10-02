@@ -1039,6 +1039,26 @@ body:before {
         font-size: 19px;
         margin-bottom: 25px;
     }
+    .operations { float: right; }
+    .section.statistics {
+        .stat-row {
+            @height: 80px;
+            height: @height;
+            border-bottom: thin solid #e0e0e0;
+            p {
+                margin: 0;
+                line-height: @height;
+                font-family: @sans;
+                font-size: 16px;
+                color: #CCC;
+                img { margin-right: 12px; }
+                span.big {
+                    font-size: 24px;
+                    color: #4D535C;
+                }
+            }
+        }
+    }
 }
 
 
