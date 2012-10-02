@@ -178,6 +178,9 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
                                  &write_token,
                                  &dummy_interruptor);
     }
+
+    stores_out->serializer()->init(serializer.release());
+    stores_out->multiplexer()->init(multiplexer.release());
 }
 
 template <class protocol_t>
