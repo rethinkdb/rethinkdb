@@ -23,6 +23,7 @@ module 'NamespaceView', ->
             'click .close': 'close_alert'
             'click .change_shards-link': 'change_shards'
             'click .namespace-pinning-link': 'change_pinning'
+            'click .view-assignments': 'view_assignments'
             # operations in the dropdown menu
             'click .rename_namespace-button': 'rename_namespace'
             'click .import_data-button': 'import_data'
@@ -64,7 +65,7 @@ module 'NamespaceView', ->
             # Because we are using bootstrap tab. We should remove them later. TODO
             window.router.navigate @.$(event.target).attr('href')
  
-        render: (tab) =>
+        render: =>
             log_render '(rendering) namespace view: container'
 
             @.$el.html @template
@@ -89,24 +90,6 @@ module 'NamespaceView', ->
 
             @.$('.nav-tabs').tab()
             
-            if tab?
-                @.$('.active').removeClass('active')
-                switch tab
-                    when 'shards'
-                        @.$('#namespace-sharding').addClass('active')
-                        @.$('#namespace-sharding-link').tab('show')
-                    when 'replication'
-                        @.$('#namespace-replication').addClass('active')
-                        @.$('#namespace-replication-link').tab('show')
-                    when 'assignments'
-                        @.$('#namespace-pinning').addClass('active')
-                        @.$('#namespace-pinning-link').tab('show')
-                    when 'other'
-                        @.$('#namespace-other').addClass('active')
-                        @.$('#namespace-other-link').tab('show')
-                    else
-                        @.$('#namespace-sharding').addClass('active')
-                        @.$('#namespace-sharding-link').tab('show')
             return @
 
         close_alert: (event) ->
@@ -121,6 +104,11 @@ module 'NamespaceView', ->
             event.preventDefault()
             @.$('#namespace-pinning-link').tab('show')
             $(event.currentTarget).parent().parent().slideUp('fast', -> $(this).remove())
+
+        # TODO: fill in
+        view_assignments: (event) =>
+            event.preventDefault()
+            console.log 'pop up a modal here to show pins'
 
         # Rename operation
         rename_namespace: (event) ->
