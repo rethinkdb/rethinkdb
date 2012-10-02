@@ -303,20 +303,65 @@ form_data_as_object = (form) ->
         formdata[x.name] = x.value
     return formdata
 
-# TODO: This should be a handlebars helper, please only use for templates!
-# Shards aren't pretty to print, let's change that
+
+# Awful things because /ajax/distribution is bad. We should feel bad too.
+pretty_key = (s) ->
+    if s is null
+        return "+∞"
+    else if s is ""
+        return "+∞"
+    else if typeof s is "string" and s[0]? and s[0] is 'N'
+        s = s.slice(s.indexOf("%23")+3)
+        if _.isNaN(parseFloat(s)) is false
+            return parseFloat(s)
+        else
+            return NaN
+    else if typeof s is "string" and s[0]? and s[0] is 'S'
+        s = s.slice(1)
+        s = s.replace(/%21/g, '!')
+        s = s.replace(/%22/g, '"')
+        s = s.replace(/%23/g, '#')
+        s = s.replace(/%24/g, '$')
+        s = s.replace(/%25/g, '%')
+        s = s.replace(/%26/g, '&')
+        s = s.replace(/%27/g, '\'')
+        s = s.replace(/%28/g, '(')
+        s = s.replace(/%29/g, ')')
+        s = s.replace(/%2A/g, '*')
+        s = s.replace(/%2B/g, '+')
+        s = s.replace(/%2C/g, ',')
+        s = s.replace(/%2D/g, '-')
+        s = s.replace(/%2E/g, '.')
+        s = s.replace(/%2F/g, '/')
+        s = s.replace(/%3A/g, ':')
+        s = s.replace(/%3B/g, ';')
+        s = s.replace(/%3C/g, '<')
+        s = s.replace(/%3D/g, '=')
+        s = s.replace(/%3E/g, '>')
+        s = s.replace(/%3F/g, '?')
+        s = s.replace(/%40/g, '@')
+        s = s.replace(/%5B/g, '[')
+        s = s.replace(/%5C/g, '\\')
+        s = s.replace(/%5D/g, ']')
+        s = s.replace(/%60/g, '`')
+        s = s.replace(/%7B/g, '{')
+        s = s.replace(/%7C/g, '|')
+        s = s.replace(/%7D/g, '}')
+        s = s.replace(/%7E/g, '}')
+        s = s.replace(/%7F/g, '}')
+        return s
+    else
+        return s
+
 human_readable_shard = (shard) ->
-    # Shard may be null, in which case we need to return the empty
-    # string. Please do not fuck with this code, Michael, as you
-    # removed it once already and it broke shit.
-    if not shard?
-        return ""
     json_shard = $.parseJSON(shard)
     res = ""
-    res += if json_shard[0] == "" then "&minus;&infin;" else json_shard[0]
+    res += pretty_key(json_shard[0])
     res += " to "
-    res += if json_shard[1] == null then "+&infin;" else json_shard[1]
+    res += pretty_key(json_shard[1])
     return res
+
+
 
 # Utils to print units
 units_space = ["B", "KB", "MB", "GB", "TB", "PB"]

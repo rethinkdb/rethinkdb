@@ -43,6 +43,7 @@ class Namespace extends Backbone.Model
 
         return a_new
 
+
     compare_keys: (a, b) =>
         #return 1 if a > b
         a_new = @transform_key(a)
