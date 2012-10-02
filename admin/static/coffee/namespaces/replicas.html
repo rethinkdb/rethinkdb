@@ -1,5 +1,55 @@
 <script id="namespace_view-replica-template" type="text/x-handlebars-template">
-    <h3 class="title">Replication settings</h3>
+    <h2 class="title">Replication settings</h2>
+    <div class="row-fluid">
+        <div class="span3">
+            <div class="tabbable tabs-left">
+                <ul class="nav nav-tabs">
+                    <li class="active"><a href="#tab1" data-toggle="tab">Europe</a></li>
+                    <li><a href="#tab2" data-toggle="tab">Universe</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="span9">
+            <div class="tab-content">
+                <div class="tab-pane active" id="tab1">
+                    <div class="dc-info">
+                        <p class="caption">Datacenter</p>
+                        <p class="value">North America</p>
+                    </div>
+                    <div class="dc-info">
+                        <p class="caption">Role</p>
+                        <p class="value">Primary</p>
+                    </div>
+                    <div class="dc-info">
+                        <p class="caption">Replicas</p>
+                        <p class="value">6</p>
+                    </div>
+                    <div class="dc-info">
+                        <p class="caption">Status</p>
+                        <p class="value">6 replicas</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="tab2">
+                    <div class="dc-info">
+                        <p class="caption">Datacenter</p>
+                        <p class="value">Universe</p>
+                    </div>
+                    <div class="dc-info">
+                        <p class="caption">Role</p>
+                        <p class="value">The almighty universe</p>
+                    </div>
+                    <div class="dc-info">
+                        <p class="caption">Replicas</p>
+                        <p class="value">8</p>
+                    </div>
+                    <div class="dc-info">
+                        <p class="caption">Status</p>
+                        <p class="value">8 replicas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <table class="datacenters table">
         <tr>
             <th>Datacenter</th>

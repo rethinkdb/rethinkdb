@@ -30,7 +30,6 @@ module 'NamespaceView', ->
             'click .export_data-button': 'export_data'
             'click .delete_namespace-button': 'delete_namespace'
 
-
         initialize: ->
             log_initial '(initializing) namespace view: container'
 
@@ -88,8 +87,6 @@ module 'NamespaceView', ->
             # REMOVED FOR NOW, moving to a modal TODO
             #@.$('.pinning').html @pins.render().el
 
-            @.$('.nav-tabs').tab()
-            
             return @
 
         close_alert: (event) ->

@@ -1,44 +1,21 @@
 <script id="shards_container-template" type="text/x-handlebars-template">
+    <h2 class="title">Sharding settings</h2>
     <div class="user-alert-space"></div>
-    <h3>Shards for this table</h3>
-
+    <div class="data_repartition-legend"></div>
     <div class="data_repartition-container">
         <p>Loading...</p>
     </div>
-    <div class="data_repartition-legend"></div>
 </script>
 
 <script id="status_shard-template" type="text/x-handlebars-template">
-    <ul>
-        <li class="title-legend"><h4>Operations on shards</h4></li>
-        {{#if has_unsatisfiable_goals}} 
-        <li>Solve the unsatisfiable goals before sharding.</li>
+    {{#if has_unsatisfiable_goals}} 
+        <h3>Solve the unsatisfiable goals before sharding.</h3>
         {{else}}
-        <li class="rebalance_container"><button class="btn change_shards-button">Rebalance</button> number of shards <input type="text" class="num_shards" value="{{num_shards}}" /></li>
-        {{/if}}
-    </ul>
-
-    <ul>
-        <li class="title-legend"><h4>More statistics</h4></li>
-        <li class="more_statistics">
-        This table has {{num_shards}} {{pluralize_noun "shard" num_shards}}{{#unless total_keys}}.{{/unless}}
-        {{#if total_keys}}and contains {{total_keys}} keys.{{/if}}
-        </li>
-        <li class="more_statistics">
-            {{#if max_keys_defined}}
-            The biggest shard has {{max_keys}} keys
-            {{else}}
-            Loading stats for biggest shards
-            {{/if}}
-        </li>
-        <li class="more_statistics">
-            {{#if min_keys_defined}}
-            The smallest shard has {{min_keys}} keys
-            {{else}}
-            Loading stats for smallest shards
-            {{/if}}
-        </li>
-    </ul>
+        <div class="rebalance_container">
+            <button class="btn change_shards-button">Rebalance</button> number of shards
+            <input type="text" class="num_shards" value="{{num_shards}}" />
+        </div>
+    {{/if}}
 </script>
 
 <script id="change_shards-success-alert-template" type="text/x-handlebars-template">
