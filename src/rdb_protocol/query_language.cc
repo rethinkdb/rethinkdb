@@ -142,12 +142,15 @@ term_info_t get_term_type(const Term &t, type_checking_environment_t *env, const
             check_protobuf(t.has_let());
             new_scope_t scope_maker(&env->scope); //create a new scope
             for (int i = 0; i < t.let().binds_size(); ++i) {
-                env->scope.put_in_scope(
-                    t.let().binds(i).var(),
-                    get_term_type(
-                        t.let().binds(i).term(),
-                        env,
-                        backtrace.with(strprintf("bind:%s", t.let().binds(i).var().c_str()))));
+                term_info_t argtype = get_term_type(t.let().binds(i).term(), env,
+                                                    backtrace.with(strprintf("bind:%s", t.let().binds(i).var().c_str())));
+                if (argtype.type != TERM_TYPE_JSON) {
+                    throw bad_query_exc_t("Only JSON objects can be stored in variables.  If you must store a stream, "
+                                          "use `STREAMTOARRAY` to convert it explicitly (note that this requires loading "
+                                          "the entire stream into memory).",
+                                          backtrace.with(strprintf("bind:%s", t.let().binds(i).var().c_str())));
+                }
+                env->scope.put_in_scope(t.let().binds(i).var(), argtype);
             }
             term_info_t res = get_term_type(t.let().expr(), env, backtrace.with("expr"));
             return res;
