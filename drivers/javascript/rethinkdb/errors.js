@@ -95,17 +95,23 @@ function makeFormat_(thingName, leftThing, var_args) {
                 // This whole function is the error
                 return carrotify_(result);
             } else {
-                var a = bt[0].split(':');
-                bt.shift();
-                if (a[0] === 'arg') {
-                    a[1] = parseInt(a[1], 10);
+                var a = bt.shift();
+                if (a === 'lowerbound') {
+                    a = 'arg:1';
+                } else if (a === 'upperbound') {
+                    a = 'arg:2';
+                }
+
+                var b = a.split(':');
+                if (b[0] === 'arg') {
+                    b[1] = parseInt(b[1], 10);
                     var argSpaces = strArgs.map(spaceify_);
                     var left;
-                    if (a[1] === 0) {
+                    if (b[1] === 0) {
                         left = leftThing.formatQuery(bt);
                     } else {
                         left = spaceify_(leftThing.formatQuery());
-                        var index = a[1] - 1;
+                        var index = b[1] - 1;
                         var carrotedThing = args[index].formatQuery(bt);
                         argSpaces[index] = carrotedThing;
                     }
@@ -115,10 +121,6 @@ function makeFormat_(thingName, leftThing, var_args) {
             }
         }
     };
-}
-
-function formatTodo_() {
-    return ' todo ';
 }
 
 function spaceify_(str) {

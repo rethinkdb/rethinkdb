@@ -326,6 +326,7 @@ rethinkdb.FunctionExpression = function(args, body) {
     this.body = body;
 };
 
+/** @param {Array=} bt */
 rethinkdb.FunctionExpression.prototype.formatQuery = function(bt) {
     if(!bt) {
         return 'function('+this.args.join(', ')+') {return '+this.body.formatQuery()+'}';
@@ -636,7 +637,7 @@ rethinkdb.Expression.prototype.between =
     var keyName = opt_keyName ? opt_keyName : 'id';
 
     return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.RANGE, [this],
-        makeFormat_('between', this, startKey, endKey, keyName),
+        makeFormat_('between', this, startKey, endKey, "'"+keyName+"'"),
             function(builtin, opt_buildOpts) {
                 var range = new Builtin.Range();
                 range.setAttrname(keyName);
@@ -792,22 +793,6 @@ rethinkdb.Expression.prototype.filter = function(selector) {
                         return fomatted.join('      ');
                     }
                  }));
-        /*
-        predicateFunction.formatQuery =  function(bt) {
-            var pairs = [];
-            for (var key in selector) {
-                if (selector.hasOwnProperty(key)) {
-                    pairs.push("'"+key+"':"+selector[key].formatQuery());
-                }
-            }
-
-            if (!bt) {
-                return '{'+pairs.join(', ')+'}';
-            } else {
-                return '???';
-            }
-         };
-         */
     } else {
         predicateFunction = functionWrap_(selector);
     }
@@ -1710,6 +1695,17 @@ rethinkdb.ForEachQuery.prototype.buildQuery = function(opt_buildOpts) {
     query.setWriteQuery(write);
 
     return query;
+};
+
+/** @override */
+rethinkdb.ForEachQuery.prototype.formatQuery = function(bt) {
+    if (!bt) {
+        return this.leftExpr_.formatQuery()+".forEach("+this.fun_.formatQuery()+")";
+    } else {
+        var a = bt.shift();
+        goog.asserts.assert(a === 'stream');
+        return this.leftExpr_.formatQuery(bt)+spaceify_(".forEach("+this.fun_.formatQuery()+")");
+    }
 };
 
 /**
