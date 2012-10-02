@@ -2071,6 +2071,26 @@ void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t:
     }
 }
 
+void admin_cluster_link_t::do_admin_unset_datacenter(const admin_command_parser_t::command_data& data) {
+    metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
+        change_request(&mailbox_manager, choose_sync_peer());
+    cluster_semilattice_metadata_t cluster_metadata = change_request.get();
+    std::string obj_id = guarantee_param_0(data.params, "machine");
+    metadata_info_t *obj_info = get_info_from_id(obj_id);
+    datacenter_id_t datacenter_uuid = nil_uuid();
+
+    if (obj_info->path[0] == "machines") {
+        do_admin_set_datacenter_machine(obj_info->uuid, datacenter_uuid, &cluster_metadata.machines.machines, &cluster_metadata);
+    } else {
+        throw admin_cluster_exc_t("target object is not a machine");
+    }
+
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    if (!change_request.update(cluster_metadata)) {
+        throw admin_retry_exc_t();
+    }
+}
+
 void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
@@ -2106,8 +2126,8 @@ void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::c
 }
 
 template <class obj_map>
-void admin_cluster_link_t::do_admin_set_datacenter_namespace(const uuid_t obj_uuid,
-                                                             const datacenter_id_t dc,
+void admin_cluster_link_t::do_admin_set_datacenter_namespace(const uuid_t &obj_uuid,
+                                                             const datacenter_id_t &dc,
                                                              obj_map *metadata) {
     typename obj_map::iterator i = metadata->find(obj_uuid);
     if (i == metadata->end() || i->second.is_deleted()) {
@@ -2147,8 +2167,8 @@ void admin_cluster_link_t::do_admin_set_datacenter_machine(const uuid_t obj_uuid
 }
 
 template <class obj_map>
-void admin_cluster_link_t::do_admin_set_database_table(const namespace_id_t table_uuid,
-                                                       const database_id_t db,
+void admin_cluster_link_t::do_admin_set_database_table(const namespace_id_t &table_uuid,
+                                                       const database_id_t &db,
                                                        obj_map *metadata) {
     typename obj_map::iterator i = metadata->find(table_uuid);
     if (i == metadata->end() || i->second.is_deleted()) {
@@ -2328,12 +2348,21 @@ void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& dat
     }
 
     // Make sure the selected datacenter is assigned to the namespace and that the number of replicas is less than or equal to the number of acks
-    const std::map<datacenter_id_t, int> replica_affinities_value = ns->replica_affinities.get();
-    std::map<datacenter_id_t, int>::const_iterator i = replica_affinities_value.find(datacenter);
+    const std::map<datacenter_id_t, int> replica_affinities = ns->replica_affinities.get();
+    std::map<datacenter_id_t, int>::const_iterator i = replica_affinities.find(datacenter);
     bool is_primary = (datacenter == ns->primary_datacenter.get());
-    if ((i == replica_affinities_value.end() || i->second == 0) && !is_primary) {
-        throw admin_cluster_exc_t("the specified datacenter has no replica affinities with the given table");
-    } else if (num_acks > i->second + (is_primary ? 1 : 0)) {
+    int replicas = (is_primary ? 1 : 0);
+    if (i == replica_affinities.end() || i->second == 0) {
+        if (!is_primary) {
+            throw admin_cluster_exc_t("the specified datacenter has no replica affinities with the given table");
+        }
+
+        if (i != replica_affinities.end()) {
+            replicas += i->second;
+        }
+    }
+
+    if (num_acks > replicas) {
         throw admin_cluster_exc_t("cannot assign more ack expectations than replicas in a datacenter");
     }
 
@@ -2366,33 +2395,15 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
 
     if (ns_info->path[0] == "rdb_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
-        namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(ns_info->uuid);
-        if (i == cluster_metadata.rdb_namespaces->namespaces.end()) {
-            throw admin_parse_exc_t("unexpected error, table not found");
-        } else if (i->second.is_deleted()) {
-            throw admin_cluster_exc_t("unexpected error, table has been deleted");
-        }
-        do_admin_set_replicas_internal(datacenter, num_replicas, &i->second.get_mutable());
+        do_admin_set_replicas_internal(ns_info->uuid, datacenter, num_replicas, change.get()->namespaces);
 
     } else if (ns_info->path[0] == "dummy_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
-        namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(ns_info->uuid);
-        if (i == cluster_metadata.dummy_namespaces->namespaces.end()) {
-            throw admin_parse_exc_t("unexpected error, table not found");
-        } else if (i->second.is_deleted()) {
-            throw admin_cluster_exc_t("unexpected error, table has been deleted");
-        }
-        do_admin_set_replicas_internal(datacenter, num_replicas, &i->second.get_mutable());
+        do_admin_set_replicas_internal(ns_info->uuid, datacenter, num_replicas, change.get()->namespaces);
 
     } else if (ns_info->path[0] == "memcached_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(ns_info->uuid);
-        if (i == cluster_metadata.memcached_namespaces->namespaces.end()) {
-            throw admin_parse_exc_t("unexpected error, table not found");
-        } else if (i->second.is_deleted()) {
-            throw admin_cluster_exc_t("unexpected error, table has been deleted");
-        }
-        do_admin_set_replicas_internal(datacenter, num_replicas, &i->second.get_mutable());
+        do_admin_set_replicas_internal(ns_info->uuid, datacenter, num_replicas, change.get()->namespaces);
 
     } else {
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");  // TODO(sam): Check if this function body is copy/paste'd.
@@ -2404,34 +2415,47 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
     }
 }
 
-template <class protocol_t>
-void admin_cluster_link_t::do_admin_set_replicas_internal(const datacenter_id_t& datacenter, int num_replicas, namespace_semilattice_metadata_t<protocol_t> *ns) {
-    if (ns->primary_datacenter.in_conflict()) {
+template <class map_type>
+void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& ns_id,
+                                                          const datacenter_id_t& dc_id,
+                                                          int num_replicas,
+                                                          map_type &ns_map) {
+    typename map_type::iterator ns_iter = ns_map.find(ns_id);
+
+    if (ns_iter == ns_map.end()) {
+        throw admin_parse_exc_t("unexpected error, table not found");
+    } else if (ns_iter->second.is_deleted()) {
+        throw admin_cluster_exc_t("unexpected error, table has been deleted");
+    }
+
+    typename map_type::mapped_type::value_t &ns = ns_iter->second.get_mutable();
+
+    if (ns.primary_datacenter.in_conflict()) {
         throw admin_cluster_exc_t("the specified table's primary datacenter is in conflict, run 'help resolve' for more information");
     }
 
-    if (ns->replica_affinities.in_conflict()) {
+    if (ns.replica_affinities.in_conflict()) {
         throw admin_cluster_exc_t("the specified table's replica affinities are in conflict, run 'help resolve' for more information");
     }
 
-    if (ns->ack_expectations.in_conflict()) {
+    if (ns.ack_expectations.in_conflict()) {
         throw admin_cluster_exc_t("the specified table's ack expectations are in conflict, run 'help resolve' for more information");
     }
 
-    bool is_primary = (datacenter == ns->primary_datacenter.get_mutable());
+    bool is_primary = (dc_id == ns.primary_datacenter.get());
     if (is_primary && num_replicas == 0) {
         throw admin_cluster_exc_t("the number of replicas for the primary datacenter cannot be 0");
     }
 
-    std::map<datacenter_id_t, int>::iterator i = ns->ack_expectations.get_mutable().find(datacenter);
-    if (i == ns->ack_expectations.get_mutable().end()) {
-        ns->ack_expectations.get_mutable()[datacenter] = 0;
-    } else if (i->second > num_replicas) {
+    std::map<datacenter_id_t, int>::iterator ack_iter = ns.ack_expectations.get_mutable().find(dc_id);
+    if (ack_iter == ns.ack_expectations.get_mutable().end()) {
+        ns.ack_expectations.get_mutable()[dc_id] = 0;
+    } else if (ack_iter->second > num_replicas) {
         throw admin_cluster_exc_t("the number of replicas for this datacenter cannot be less than the number of acks, run 'help set acks' for more information");
     }
 
-    ns->replica_affinities.get_mutable()[datacenter] = num_replicas - (is_primary ? 1 : 0);
-    ns->replica_affinities.upgrade_version(change_request_id);
+    ns.replica_affinities.get_mutable()[dc_id] = num_replicas - (is_primary ? 1 : 0);
+    ns.replica_affinities.upgrade_version(change_request_id);
 }
 
 void admin_cluster_link_t::do_admin_remove_machine(const admin_command_parser_t::command_data& data) {
@@ -2682,50 +2706,66 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             table.push_back(delta);
         }
 
+        const std::map<datacenter_id_t, int> replica_affinities = ns.replica_affinities.get();
+        const std::map<datacenter_id_t, int> ack_expectations = ns.ack_expectations.get();
+
         for (datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator i = cluster_metadata.datacenters.datacenters.begin();
              i != cluster_metadata.datacenters.datacenters.end(); ++i) {
             if (!i->second.is_deleted()) {
-                bool affinity = false;
+                bool affinity = true;
                 std::vector<std::string> delta;
 
                 delta.push_back(uuid_to_str(i->first));
                 delta.push_back(i->second.get().name.in_conflict() ? "<conflict>" : i->second.get().name.get());
 
+                std::map<datacenter_id_t, int>::const_iterator replica_it = replica_affinities.find(i->first);
+                int replicas = 0;
                 if (!ns.primary_datacenter.in_conflict() && ns.primary_datacenter.get() == i->first) {
-                    const std::map<datacenter_id_t, int> replica_affinities_value = ns.replica_affinities.get();
-                    std::map<datacenter_id_t, int>::const_iterator jt = replica_affinities_value.find(i->first);
-
-                    if (jt != replica_affinities_value.end()) {
-                        delta.push_back(strprintf("%d", jt->second + 1));
-                    } else {
-                        delta.push_back("1");
-                    }
-
-                    affinity = true;
+                    replicas = 1 + (replica_it != replica_affinities.end() ? replica_it->second : 0);
+                } else if (replica_it != replica_affinities.end()) {
+                    replicas = replica_it->second;
                 } else {
-                    const std::map<datacenter_id_t, int> replica_affinities_value = ns.replica_affinities.get();
-                    std::map<datacenter_id_t, int>::const_iterator jt = replica_affinities_value.find(i->first);
-                    if (jt != replica_affinities_value.end()) {
-                        delta.push_back(strprintf("%d", jt->second));
-                        affinity = true;
-                    } else {
-                        delta.push_back("0");
-                    }
+                    affinity = false;
                 }
+                delta.push_back(strprintf("%d", replicas));
 
-                const std::map<datacenter_id_t, int> ack_expectations = ns.ack_expectations.get();
-                std::map<datacenter_id_t, int>::const_iterator jt = ack_expectations.find(i->first);
-                if (jt != ack_expectations.end()) {
-                    delta.push_back(strprintf("%d", jt->second));
-                    affinity = true;
+                std::map<datacenter_id_t, int>::const_iterator ack_it = ack_expectations.find(i->first);
+                int acks = 0;
+                if (ack_it != ack_expectations.end()) {
+                    acks = ack_it->second;
                 } else {
-                    delta.push_back("0");
+                    affinity = false;
                 }
+                delta.push_back(strprintf("%d", acks));
 
                 if (affinity) {
                     table.push_back(delta);
                 }
             }
+        }
+
+        // Special case: nil affinity replicas
+        bool nil_is_primary = (!ns.primary_datacenter.in_conflict() && ns.primary_datacenter.get() == nil_uuid());
+        if (nil_is_primary || replica_affinities.find(nil_uuid()) != replica_affinities.end()) {
+            std::vector<std::string> delta;
+            delta.push_back(uuid_to_str(nil_uuid()));
+            delta.push_back("universe");
+
+            std::map<datacenter_id_t, int>::const_iterator replica_it = replica_affinities.find(nil_uuid());
+            int replicas = (nil_is_primary ? 1 : 0);
+            if (replica_it != replica_affinities.end()) {
+                replicas += replica_it->second;
+            }
+            delta.push_back(strprintf("%d", replicas));
+
+            std::map<datacenter_id_t, int>::const_iterator ack_it = ack_expectations.find(nil_uuid());
+            int acks = 0;
+            if (ack_it != ack_expectations.end()) {
+                acks = ack_it->second;
+            }
+            delta.push_back(strprintf("%d", acks));
+
+            table.push_back(delta);
         }
 
         printf("affinity with %ld datacenter%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
@@ -3287,8 +3327,12 @@ size_t admin_cluster_link_t::machine_count() const {
 }
 
 size_t admin_cluster_link_t::get_machine_count_in_datacenter(const cluster_semilattice_metadata_t& cluster_metadata, const datacenter_id_t& datacenter) {
-    size_t count = 0;
+    // If this is the nil datacenter, we instead want the count of all machines in the cluster
+    if (datacenter.is_nil()) {
+        return machine_count();
+    }
 
+    size_t count = 0;
     for (machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.begin();
          i != cluster_metadata.machines.machines.end(); ++i) {
         if (!i->second.is_deleted() &&
