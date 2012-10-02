@@ -67,8 +67,8 @@ const char *pin_shard_usage = "<TABLE> <SHARD> [--master <MACHINE>] [--replicas 
 const char *split_shard_usage = "<TABLE> <SPLIT-POINT>...";
 const char *merge_shard_usage = "<TABLE> <SPLIT-POINT>...";
 const char *set_name_usage = "<ID> <NEW-NAME>";
-const char *set_acks_usage = "<TABLE> <DATACENTER> <NUM-ACKS>";
-const char *set_replicas_usage = "<TABLE> <DATACENTER> <NUM-REPLICAS>";
+const char *set_acks_usage = "<TABLE> <NUM-ACKS> [<DATACENTER>]";
+const char *set_replicas_usage = "<TABLE> <NUM-REPLICAS> [<DATACENTER>]";
 const char *set_primary_usage = "<TABLE> <DATACENTER>";
 const char *unset_primary_usage = "<TABLE>";
 const char *set_datacenter_usage = "<MACHINE> <DATACENTER>";
@@ -144,10 +144,10 @@ const char *merge_shard_split_point_option_desc = "the shard boundary to remove,
 const char *set_name_id_option_desc = "a machine, datacenter, or table to change the name of";
 const char *set_name_new_name_option_desc = "the new name for the specified object";
 const char *set_acks_table_option_desc = "the table to change the acks for";
-const char *set_acks_datacenter_option_desc = "a datacenter hosting the table to change the acks for";
+const char *set_acks_datacenter_option_desc = "a datacenter hosting the table to change the acks for, defaults to 'universe' if not specified";
 const char *set_acks_num_acks_option_desc = "the number of acknowledgements required from the replicas in a datacenter for a write operation to be considered successful, this value should not exceed the number of replicas of the specified table for the specified datacenter";
 const char *set_replicas_table_option_desc = "the table to change the number of replicas of";
-const char *set_replicas_datacenter_option_desc = "the datacenter which will host the replicas";
+const char *set_replicas_datacenter_option_desc = "the datacenter which will host the replicas, defaults to 'universe' if not specified";
 const char *set_replicas_num_replicas_option_desc = "the number of replicas of the specified table to host in the specified datacenter, this value should not exceed the number of machines in the datacenter";
 const char *set_primary_table_option_desc = "the table which will have its shards' master replicas moved to the specified datacenter";
 const char *set_primary_datacenter_option_desc = "the datacenter to move to";
@@ -535,13 +535,13 @@ void admin_command_parser_t::build_command_descriptions() {
 
     info = add_command(set_acks_command, set_acks_command, set_acks_usage, &admin_cluster_link_t::do_admin_set_acks, &commands);
     info->add_positional("table", 1, true)->add_option("!namespace");
-    info->add_positional("datacenter", 1, true)->add_option("!datacenter");
     info->add_positional("num-acks", 1, true);
+    info->add_positional("datacenter", 1, false)->add_option("!datacenter");
 
     info = add_command(set_replicas_command, set_replicas_command, set_replicas_usage, &admin_cluster_link_t::do_admin_set_replicas, &commands);
     info->add_positional("table", 1, true)->add_option("!namespace");
-    info->add_positional("datacenter", 1, true)->add_option("!datacenter");
     info->add_positional("num-replicas", 1, true);
+    info->add_positional("datacenter", 1, false)->add_option("!datacenter");
 
     info = add_command(set_primary_command, set_primary_command, set_primary_usage, &admin_cluster_link_t::do_admin_set_primary, &commands);
     info->add_positional("table", 1, true)->add_option("!namespace");

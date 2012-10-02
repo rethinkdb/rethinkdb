@@ -2136,6 +2136,8 @@ void admin_cluster_link_t::do_admin_set_datacenter_namespace(const uuid_t &obj_u
         throw admin_cluster_exc_t("table's primary datacenter is in conflict, run 'help resolve' for more information");
     }
 
+    // TODO: check that changing the primary will not result in invalid number of acks or replicas
+
     i->second.get_mutable().primary_datacenter.get_mutable() = dc;
     i->second.get_mutable().primary_datacenter.upgrade_version(change_request_id);
 }
@@ -2150,6 +2152,8 @@ void admin_cluster_link_t::do_admin_set_datacenter_machine(const uuid_t obj_uuid
     } else if (i->second.get_mutable().datacenter.in_conflict()) {
         throw admin_cluster_exc_t("machine's datacenter is in conflict, run 'help resolve' for more information");
     }
+
+    // TODO: check that changing the datacenter won't violate goals (not enough machines to host n replicas)
 
     datacenter_id_t old_datacenter(i->second.get_mutable().datacenter.get());
     i->second.get_mutable().datacenter.get_mutable() = dc;
@@ -2280,7 +2284,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     metadata_info_t *ns_info(get_info_from_id(guarantee_param_0(data.params, "table")));
-    metadata_info_t *dc_info(get_info_from_id(guarantee_param_0(data.params, "datacenter")));
+    datacenter_id_t dc_id = nil_uuid();
     std::string acks_str = guarantee_param_0(data.params, "num-acks").c_str();
     uint64_t acks_num;
 
@@ -2289,8 +2293,12 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         throw admin_parse_exc_t("num-acks is not a number");
     }
 
-    if (dc_info->path[0] != "datacenters") {
-        throw admin_parse_exc_t(guarantee_param_0(data.params, "datacenter") + " is not a datacenter");
+    if (data.params.count("datacenter") != 0) {
+        metadata_info_t *dc_info(get_info_from_id(guarantee_param_0(data.params, "datacenter")));
+        dc_id = dc_info->uuid;
+        if (dc_info->path[0] != "datacenters") {
+            throw admin_parse_exc_t(guarantee_param_0(data.params, "datacenter") + " is not a datacenter");
+        }
     }
 
     if (ns_info->path[0] == "rdb_namespaces") {
@@ -2301,7 +2309,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         } else if (i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected error, table has been deleted");
         }
-        do_admin_set_acks_internal(dc_info->uuid, acks_num, &i->second.get_mutable());
+        do_admin_set_acks_internal(dc_id, acks_num, &i->second.get_mutable());
 
     } else if (ns_info->path[0] == "dummy_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
@@ -2311,7 +2319,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         } else if (i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected error, table has been deleted");
         }
-        do_admin_set_acks_internal(dc_info->uuid, acks_num, &i->second.get_mutable());
+        do_admin_set_acks_internal(dc_id, acks_num, &i->second.get_mutable());
 
     } else if (ns_info->path[0] == "memcached_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
@@ -2321,7 +2329,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         } else if (i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected error, table has been deleted");
         }
-        do_admin_set_acks_internal(dc_info->uuid, acks_num, &i->second.get_mutable());
+        do_admin_set_acks_internal(dc_id, acks_num, &i->second.get_mutable());
 
     } else {
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");
@@ -2356,10 +2364,10 @@ void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& dat
         if (!is_primary) {
             throw admin_cluster_exc_t("the specified datacenter has no replica affinities with the given table");
         }
+    }
 
-        if (i != replica_affinities.end()) {
-            replicas += i->second;
-        }
+    if (i != replica_affinities.end()) {
+        replicas += i->second;
     }
 
     if (num_acks > replicas) {
@@ -2375,7 +2383,7 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     metadata_info_t *ns_info = get_info_from_id(guarantee_param_0(data.params, "table"));
-    metadata_info_t *dc_info = get_info_from_id(guarantee_param_0(data.params, "datacenter"));
+    datacenter_id_t dc_id = nil_uuid();
     std::string replicas_str = guarantee_param_0(data.params, "num-replicas").c_str();
     uint64_t num_replicas;
 
@@ -2384,26 +2392,29 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
         throw admin_parse_exc_t("num-replicas is not a number");
     }
 
-    if (dc_info->path[0] != "datacenters") {
-        throw admin_parse_exc_t(guarantee_param_0(data.params, "datacenter") + " is not a datacenter");
+    if (data.params.count("datacenter") != 0) {
+        metadata_info_t *dc_info(get_info_from_id(guarantee_param_0(data.params, "datacenter")));
+        dc_id = dc_info->uuid;
+        if (dc_info->path[0] != "datacenters") {
+            throw admin_parse_exc_t(guarantee_param_0(data.params, "datacenter") + " is not a datacenter");
+        }
     }
 
-    datacenter_id_t datacenter(dc_info->uuid);
-    if (get_machine_count_in_datacenter(cluster_metadata, datacenter) < (size_t)num_replicas) {
+    if (get_machine_count_in_datacenter(cluster_metadata, dc_id) < (size_t)num_replicas) {
         throw admin_cluster_exc_t("the number of replicas cannot be more than the number of machines in the datacenter");
     }
 
     if (ns_info->path[0] == "rdb_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
-        do_admin_set_replicas_internal(ns_info->uuid, datacenter, num_replicas, change.get()->namespaces);
+        do_admin_set_replicas_internal(ns_info->uuid, dc_id, num_replicas, change.get()->namespaces);
 
     } else if (ns_info->path[0] == "dummy_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
-        do_admin_set_replicas_internal(ns_info->uuid, datacenter, num_replicas, change.get()->namespaces);
+        do_admin_set_replicas_internal(ns_info->uuid, dc_id, num_replicas, change.get()->namespaces);
 
     } else if (ns_info->path[0] == "memcached_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        do_admin_set_replicas_internal(ns_info->uuid, datacenter, num_replicas, change.get()->namespaces);
+        do_admin_set_replicas_internal(ns_info->uuid, dc_id, num_replicas, change.get()->namespaces);
 
     } else {
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");  // TODO(sam): Check if this function body is copy/paste'd.
@@ -2694,7 +2705,6 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
 
     {
         std::vector<std::vector<std::string> > table;
-
         {
             std::vector<std::string> delta;
 
@@ -2712,7 +2722,6 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
         for (datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator i = cluster_metadata.datacenters.datacenters.begin();
              i != cluster_metadata.datacenters.datacenters.end(); ++i) {
             if (!i->second.is_deleted()) {
-                bool affinity = true;
                 std::vector<std::string> delta;
 
                 delta.push_back(uuid_to_str(i->first));
@@ -2724,8 +2733,6 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                     replicas = 1 + (replica_it != replica_affinities.end() ? replica_it->second : 0);
                 } else if (replica_it != replica_affinities.end()) {
                     replicas = replica_it->second;
-                } else {
-                    affinity = false;
                 }
                 delta.push_back(strprintf("%d", replicas));
 
@@ -2733,12 +2740,10 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                 int acks = 0;
                 if (ack_it != ack_expectations.end()) {
                     acks = ack_it->second;
-                } else {
-                    affinity = false;
                 }
                 delta.push_back(strprintf("%d", acks));
 
-                if (affinity) {
+                if (replicas != 0 || acks != 0) {
                     table.push_back(delta);
                 }
             }
