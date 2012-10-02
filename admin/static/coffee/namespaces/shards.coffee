@@ -166,7 +166,6 @@ module 'NamespaceView', ->
                 @.$('.data_repartition-graph').css('width', container_width+'px')
                 y = d3.scale.linear().domain([0, max_keys]).range([1, svg_height-margin_height*2.5])
 
-                transform_key = @model.transform_key
                 svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
                 svg.selectAll('rect').data(shards)
                     .enter()
@@ -180,7 +179,7 @@ module 'NamespaceView', ->
                     .attr( 'title', (d) ->
                         keys = $.parseJSON(d.boundaries)
                         for key, i in keys
-                            keys[i] = transform_key key
+                            keys[i] = pretty_key key
                             if typeof keys[i] is 'number'
                                 keys[i] = keys[i].toString()
                             if typeof keys[i] is 'string'

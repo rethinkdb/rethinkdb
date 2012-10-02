@@ -8,7 +8,6 @@
 
 #include "clustering/generic/multi_throttling_metadata.hpp"
 #include "clustering/generic/registration_metadata.hpp"
-#include "clustering/generic/resource.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "rpc/mailbox/typed.hpp"

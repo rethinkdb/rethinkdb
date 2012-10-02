@@ -364,12 +364,16 @@ module 'ResolveIssuesView', ->
                     @contestants = _.map response, (x, index) -> { value: x[1], contestant_id: index }
 
             # renderevsky
+            if @model.get('object_id') is universe_datacenter.get('id')
+                datacenter_name = universe_datacenter.get('name')
+            else
+                datacenter_name = datacenters.get(@model.get('object_id')).get('name')
             json =
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
                 object_type: @model.get('object_type')
                 object_id: @model.get('object_id')
-                object_name: datacenters.get(@model.get('object_id')).get('name')
+                object_name: datacenter_name
                 field: @model.get('field')
                 name_contest: @model.get('field') is 'name'
                 contestants: @contestants
@@ -398,11 +402,16 @@ module 'ResolveIssuesView', ->
             else
                 for datacenter_id of @model.get('replica_affinities')
                     number_replicas = if datacenter_id is @model.get('primary_datacenter') then @model.get('replica_affinities')[datacenter_id]+1 else @model.get('replica_affinities')[datacenter_id]
-                    
+
+                    if datacenter_id is universe_datacenter.get('id')
+                        datacenter_name = universe_datacenter.get('name')
+                    else
+                        datacenter_name = datacenters.get(datacenter_id).get('name')
+
                     if number_replicas > @model.get('actual_machines_in_datacenters')[datacenter_id]
                         json.datacenters_with_issues.push
                             datacenter_id: datacenter_id
-                            datacenter_name: datacenters.get(datacenter_id).get('name')
+                            datacenter_name: datacenter_name
                             num_replicas: number_replicas
                             num_machines: @model.get('actual_machines_in_datacenters')[datacenter_id]
 

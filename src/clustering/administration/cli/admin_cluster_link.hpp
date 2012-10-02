@@ -74,6 +74,7 @@ public:
     void do_admin_set_primary(const admin_command_parser_t::command_data& data);
     void do_admin_unset_primary(const admin_command_parser_t::command_data& data);
     void do_admin_set_datacenter(const admin_command_parser_t::command_data& data);
+    void do_admin_unset_datacenter(const admin_command_parser_t::command_data& data);
     void do_admin_set_database(const admin_command_parser_t::command_data& data);
     void do_admin_create_datacenter(const admin_command_parser_t::command_data& data);
     void do_admin_create_database(const admin_command_parser_t::command_data& data);
@@ -124,10 +125,11 @@ private:
     void do_admin_set_acks_internal(const datacenter_id_t& datacenter,
                                     int num_acks,
                                     namespace_semilattice_metadata_t<protocol_t> *ns);
-    template <class protocol_t>
-    void do_admin_set_replicas_internal(const datacenter_id_t& datacenter,
+    template <class map_type>
+    void do_admin_set_replicas_internal(const namespace_id_t& ns_id,
+                                        const datacenter_id_t& dc_id,
                                         int num_replicas,
-                                        namespace_semilattice_metadata_t<protocol_t> *ns);
+                                        map_type &ns_map);
 
     template <class obj_map>
     void do_admin_set_name_internal(const uuid_t& uuid,
@@ -151,13 +153,13 @@ private:
                                                   namespaces_semilattice_metadata_t<protocol_t> *ns);
 
     template <class obj_map>
-    void do_admin_set_database_table(const namespace_id_t table_uuid,
-                                     const database_id_t db,
+    void do_admin_set_database_table(const namespace_id_t &table_uuid,
+                                     const database_id_t &db,
                                      obj_map *metadata);
 
     template <class obj_map>
-    void do_admin_set_datacenter_namespace(const uuid_t obj_uuid,
-                                           const datacenter_id_t dc,
+    void do_admin_set_datacenter_namespace(const uuid_t &obj_uuid,
+                                           const datacenter_id_t &dc,
                                            obj_map *metadata);
 
     void do_admin_set_datacenter_machine(const uuid_t obj_uuid,

@@ -1,5 +1,9 @@
 #include "clustering/reactor/namespace_interface.hpp"
 
+#include "clustering/immediate_consistency/query/master_access.hpp"
+#include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/watchable.hpp"
+
 template <class protocol_t>
 cluster_namespace_interface_t<protocol_t>::cluster_namespace_interface_t(
         mailbox_manager_t *mm,
@@ -9,11 +13,12 @@ cluster_namespace_interface_t<protocol_t>::cluster_namespace_interface_t(
       directory_view(dv),
       ctx(_ctx),
       start_count(0),
-      watcher_subscription(boost::bind(&cluster_namespace_interface_t::update_registrants, this, false)) {
+      watcher_subscription(new watchable_subscription_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > >(boost::bind(&cluster_namespace_interface_t::update_registrants, this, false))) {
     {
         typename watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > >::freeze_t freeze(directory_view);
         update_registrants(true);
-        watcher_subscription.reset(directory_view, &freeze);
+        // TODO: See if this watcher_subscription use is a significant use.
+        watcher_subscription->reset(directory_view, &freeze);
     }
     if (start_count == 0) {
         start_cond.pulse();

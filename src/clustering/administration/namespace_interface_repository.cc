@@ -4,6 +4,7 @@
 #include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
+#include "arch/timing.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 

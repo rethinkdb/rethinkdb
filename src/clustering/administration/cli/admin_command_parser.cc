@@ -33,10 +33,11 @@ const char *split_shard_command = "split shard";
 const char *merge_shard_command = "merge shard";
 const char *set_name_command = "set name";
 const char *set_acks_command = "set acks";
+const char *set_replicas_command = "set replicas";
 const char *set_primary_command = "set primary";
 const char *unset_primary_command = "unset primary";
-const char *set_replicas_command = "set replicas";
 const char *set_datacenter_command = "set datacenter";
+const char *unset_datacenter_command = "unset datacenter";
 const char *set_database_command = "set database";
 const char *create_table_command = "create table";
 const char *create_datacenter_command = "create datacenter";
@@ -66,15 +67,16 @@ const char *pin_shard_usage = "<TABLE> <SHARD> [--master <MACHINE>] [--replicas 
 const char *split_shard_usage = "<TABLE> <SPLIT-POINT>...";
 const char *merge_shard_usage = "<TABLE> <SPLIT-POINT>...";
 const char *set_name_usage = "<ID> <NEW-NAME>";
-const char *set_acks_usage = "<TABLE> <DATACENTER> <NUM-ACKS>";
-const char *set_replicas_usage = "<TABLE> <DATACENTER> <NUM-REPLICAS>";
+const char *set_acks_usage = "<TABLE> <NUM-ACKS> [<DATACENTER>]";
+const char *set_replicas_usage = "<TABLE> <NUM-REPLICAS> [<DATACENTER>]";
 const char *set_primary_usage = "<TABLE> <DATACENTER>";
 const char *unset_primary_usage = "<TABLE>";
 const char *set_datacenter_usage = "<MACHINE> <DATACENTER>";
+const char *unset_datacenter_usage = "<MACHINE>";
 const char *set_database_usage = "<TABLE> <DATABASE>";
 // TODO: fix this once multiple protocols are supported again
-const char *create_table_usage = "<NAME> --primary <DATACENTER>";
-// const char *create_table_usage = "<NAME> --port <PORT> --protocol <PROTOCOL> --primary <DATACENTER>";
+const char *create_table_usage = "<NAME> --database <DATABASE> [--primary <DATACENTER>]";
+// const char *create_table_usage = "<NAME> --port <PORT> --protocol <PROTOCOL> --database <DATABASE> [--primary <DATACENTER>]";
 const char *create_datacenter_usage = "<NAME>";
 const char *create_database_usage = "<NAME>";
 const char *remove_usage = "<ID>...";
@@ -108,6 +110,7 @@ const char *set_primary_datacenter_option = "<DATACENTER>";
 const char *unset_primary_table_option = "<TABLE>";
 const char *set_datacenter_machine_option = "<MACHINE>";
 const char *set_datacenter_datacenter_option = "<DATACENTER>";
+const char *unset_datacenter_machine_option = "<MACHINE>";
 const char *set_database_table_option = "<TABLE>";
 const char *set_database_database_option = "<DATABASE>";
 const char *create_table_name_option = "<NAME>";
@@ -141,16 +144,17 @@ const char *merge_shard_split_point_option_desc = "the shard boundary to remove,
 const char *set_name_id_option_desc = "a machine, datacenter, or table to change the name of";
 const char *set_name_new_name_option_desc = "the new name for the specified object";
 const char *set_acks_table_option_desc = "the table to change the acks for";
-const char *set_acks_datacenter_option_desc = "a datacenter hosting the table to change the acks for";
+const char *set_acks_datacenter_option_desc = "a datacenter hosting the table to change the acks for, defaults to 'universe' if not specified";
 const char *set_acks_num_acks_option_desc = "the number of acknowledgements required from the replicas in a datacenter for a write operation to be considered successful, this value should not exceed the number of replicas of the specified table for the specified datacenter";
 const char *set_replicas_table_option_desc = "the table to change the number of replicas of";
-const char *set_replicas_datacenter_option_desc = "the datacenter which will host the replicas";
+const char *set_replicas_datacenter_option_desc = "the datacenter which will host the replicas, defaults to 'universe' if not specified";
 const char *set_replicas_num_replicas_option_desc = "the number of replicas of the specified table to host in the specified datacenter, this value should not exceed the number of machines in the datacenter";
 const char *set_primary_table_option_desc = "the table which will have its shards' master replicas moved to the specified datacenter";
 const char *set_primary_datacenter_option_desc = "the datacenter to move to";
 const char *unset_primary_table_option_desc = "the table which will have its shards' master replicas automatically redistributed across the cluster";
 const char *set_datacenter_machine_option_desc = "the machine to move to the specified datacenter";
 const char *set_datacenter_datacenter_option_desc = "the datacenter to move to";
+const char *unset_datacenter_machine_option_desc = "the machine to move out of any datacenter";
 const char *set_database_table_option_desc = "the table to move to the specified database";
 const char *set_database_database_option_desc = "the database to move to";
 const char *create_table_name_option_desc = "the name of the new table";
@@ -185,9 +189,10 @@ const char *set_replicas_description = "Set the replica affinities of a table.  
 const char *set_primary_description = "Set the primary datacenter of a table, which will move the master replicas to this datacenter.";
 const char *unset_primary_description = "Clear the primary datacenter of a table, which will allow the cluster to automatically distribute replicas.";
 const char *set_datacenter_description = "Set the datacenter that a machine belongs to.";
+const char *unset_datacenter_description = "Clear the datacenter of a machine.";
 const char *set_database_description = "Set the database that a table belongs to.";
 // TODO: fix this once multiple protocols are supported again
-const char *create_table_description = "Create a new table in the given primary datacenter.";
+const char *create_table_description = "Create a new table in the given database and primary datacenter.";
 // const char *create_table_description = "Create a new table with the given protocol.  The table's primary datacenter and listening port must be specified.";
 const char *create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
 const char *create_database_description = "Create a new database with the given name.  Tables may be assigned to the database.";
@@ -530,13 +535,13 @@ void admin_command_parser_t::build_command_descriptions() {
 
     info = add_command(set_acks_command, set_acks_command, set_acks_usage, &admin_cluster_link_t::do_admin_set_acks, &commands);
     info->add_positional("table", 1, true)->add_option("!namespace");
-    info->add_positional("datacenter", 1, true)->add_option("!datacenter");
     info->add_positional("num-acks", 1, true);
+    info->add_positional("datacenter", 1, false)->add_option("!datacenter");
 
     info = add_command(set_replicas_command, set_replicas_command, set_replicas_usage, &admin_cluster_link_t::do_admin_set_replicas, &commands);
     info->add_positional("table", 1, true)->add_option("!namespace");
-    info->add_positional("datacenter", 1, true)->add_option("!datacenter");
     info->add_positional("num-replicas", 1, true);
+    info->add_positional("datacenter", 1, false)->add_option("!datacenter");
 
     info = add_command(set_primary_command, set_primary_command, set_primary_usage, &admin_cluster_link_t::do_admin_set_primary, &commands);
     info->add_positional("table", 1, true)->add_option("!namespace");
@@ -548,6 +553,9 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(set_datacenter_command, set_datacenter_command, set_datacenter_usage, &admin_cluster_link_t::do_admin_set_datacenter, &commands);
     info->add_positional("machine", 1, true)->add_option("!machine");
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
+
+    info = add_command(unset_datacenter_command, unset_datacenter_command, unset_datacenter_usage, &admin_cluster_link_t::do_admin_unset_datacenter, &commands);
+    info->add_positional("machine", 1, true)->add_option("!machine");
 
     info = add_command(set_database_command, set_database_command, set_database_usage, &admin_cluster_link_t::do_admin_set_database, &commands);
     info->add_positional("table", 1, true)->add_option("!namespace");
@@ -673,7 +681,7 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(comma
             std::map<std::string, param_options_t *>::iterator opt_iter = info->flags.find(line[index].substr(2));
             if (opt_iter != info->flags.end()) {
                 param_options_t *option = opt_iter->second;
-                if (option->count == 0) {  // Flag only
+                if (option->count == 0) { // Flag only, no extra parameters
                     data.params[option->name] = std::vector<std::string>();
                 } else {
                     size_t remaining = option->count;
@@ -1176,11 +1184,16 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
         } else if (command == "unset") {
             if (subcommand.empty()) {
                 helps.push_back(admin_help_info_t(unset_primary_command, unset_primary_usage, unset_primary_description));
+                helps.push_back(admin_help_info_t(unset_datacenter_command, unset_datacenter_usage, unset_datacenter_description));
                 do_usage_internal(helps, options, "unset - clear the value of a field in cluster metadata, run 'help unset <SUBCOMMAND>' for more information", console_mode);
             } else if (subcommand == "primary") {
                 helps.push_back(admin_help_info_t(unset_primary_command, unset_primary_usage, unset_primary_description));
                 options.push_back(std::make_pair(unset_primary_table_option, unset_primary_table_option_desc));
                 do_usage_internal(helps, options, "unset primary - clear the primary datacenter for a table", console_mode);
+            } else if (subcommand == "datacenter") {
+                helps.push_back(admin_help_info_t(unset_datacenter_command, unset_datacenter_usage, unset_datacenter_description));
+                options.push_back(std::make_pair(unset_datacenter_machine_option, unset_datacenter_machine_option_desc));
+                do_usage_internal(helps, options, "unset datacenter - clear the datacenter for a machine", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }
