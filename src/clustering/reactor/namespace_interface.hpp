@@ -19,12 +19,13 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
-#include "concurrency/watchable.hpp"
 #include "protocol_api.hpp"
 
 template <class protocol_t> class master_access_t;
 template <class protocol_t> class resource_access_t;
 class resource_lost_exc_t;
+template <class> class watchable_t;
+template <class> class watchable_subscription_t;
 
 template <class protocol_t, class value_t>
 class region_map_set_membership_t {
@@ -175,7 +176,7 @@ private:
 
     auto_drainer_t relationship_coroutine_auto_drainer;
 
-    typename watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t watcher_subscription;
+    scoped_ptr_t<watchable_subscription_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > > watcher_subscription;
 
     DISABLE_COPYING(cluster_namespace_interface_t);
 };
