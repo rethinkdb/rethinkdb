@@ -28,9 +28,7 @@
                 {{/if}}
             </td>
             <td>
-                {{#unless is_universe}}
                 <a class="edit_replicas" href="#" data-id="{{id}}">Edit replicas</a>
-                {{/unless}}
             </td>
         </tr>
         {{/with}}
@@ -48,9 +46,7 @@
                 {{/with}}
             </td>
             <td>
-                {{#unless is_universe}}
                 <a class="edit_replicas" href="#" data-id="{{id}}">Edit replicas</a> |
-                {{/unless}}
                 <a class="make_primary" href="#" data-id="{{id}}">Make primary</a>
             </td>
 
@@ -63,9 +59,7 @@
             <td>None</td>
             <td colspan="3">N/A</td>
             <td>
-                {{#unless is_universe}}
                 <a class="edit_replicas" href="#" data-id="{{id}}">Edit replicas</a>
-                {{/unless}}
             </td>
         </tr>
         {{/each}}
@@ -103,7 +97,7 @@
           <div class="input">
               <input class="xlarge" id="focus_num_replicas" name="num_replicas" type="text" value="{{#if nreplicas_input}}{{nreplicas_input}}{{else}}{{num_replicas}}{{/if}}"/>
             <p class="current">Current replicas: {{num_replicas}}</p>
-            <p class="max">Max replicas: {{total_machines}}</p>
+            <p class="max">Max replicas: {{max_machines}}{{#if need_explanation}}The maximum of machines you can set is less than the number of machines in the datacenter because you set a high number of replicas in Universe{{/if}}</p>
           </div>
         </div>
         <hr />

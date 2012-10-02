@@ -9,7 +9,7 @@ clear_modals = ->
 register_modal = (modal) -> modal_registry.push(modal)
 
 #TODO Just for development, CHANGE IT BACK TO 5000
-updateInterval = 50000
+updateInterval = 5000
 statUpdateInterval = 1000
 
 declare_client_connected = ->

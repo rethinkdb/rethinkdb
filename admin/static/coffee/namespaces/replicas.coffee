@@ -13,8 +13,11 @@ module 'NamespaceView', ->
 
         modify_replicas: (event) =>
             event.preventDefault()
-            datacenter_id = @.$(event.target).data 'id' #We do not let people change the number of replicas of Universe.
-            datacenter = datacenters.get datacenter_id
+            datacenter_id = @.$(event.target).data 'id'
+            if datacenter_id is universe_datacenter.get('id')
+                datacenter = universe_datacenter
+            else
+                datacenter = datacenters.get datacenter_id
             modal = new NamespaceView.ModifyReplicasModal @model, datacenter
             modal.render()
 
@@ -46,10 +49,9 @@ module 'NamespaceView', ->
             new_affinities = {}
             if @model.get('primary_uuid') is universe_datacenter.get('id')
                 old_dc = universe_datacenter
-                new_affinities[old_dc.get('id')] = 0
             else
                 old_dc = datacenters.get(@model.get('primary_uuid'))
-                new_affinities[old_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), old_dc.get('id')) + 1
+            new_affinities[old_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), old_dc.get('id')) + 1
 
             new_affinities[new_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), new_dc.get('id')) - 1
             primary_pinnings = {}
@@ -81,26 +83,23 @@ module 'NamespaceView', ->
         render: =>
             found_universe = false
             data = @model.toJSON()
+            if not @model.get('primary_uuid')?
+                primary_replica_count = 0
+            else
+                primary_replica_count = @model.get('replica_affinities')[@model.get('primary_uuid')]
+                if not primary_replica_count?
+                    primary_replica_count = 0
             if @model.get('primary_uuid') is universe_datacenter.get('id')
                 found_universe = true
                 data = _.extend data,
                     primary:
                         id: @model.get('primary_uuid')
                         name: universe_datacenter.get('name')
-                        replicas: 1 # we're adding one because primary is also a replica
+                        replicas: primary_replica_count + 1 # we're adding one because primary is also a replica
                         total_machines: machines.length
                         acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
-                        is_universe: true
                         #status: DataUtils.get_namespace_status(@model.get('id'), @model.get('primary_uuid'))
-
             else
-                if not @model.get('primary_uuid')?
-                    primary_replica_count = 0
-                else
-                    primary_replica_count = @model.get('replica_affinities')[@model.get('primary_uuid')]
-                    if not primary_replica_count?
-                        primary_replica_count = 0
-
                 data = _.extend data,
                     primary:
                         id: @model.get('primary_uuid')
@@ -169,7 +168,25 @@ module 'NamespaceView', ->
             log_initial '(initializing) modal dialog: modify replicas'
             @namespace = namespace
             @datacenter = datacenter
-            @total_machines = DataUtils.get_datacenter_machines(@datacenter.get('id')).length
+
+            if @datacenter is universe_datacenter
+                @max_machines = machines.length
+                for datacenter_id of @namespace.get('replica_affinities')
+                    if datacenter_id isnt universe_datacenter.get('id')
+                        @max_machines -= @namespace.get('replica_affinities')[datacenter_id]
+                if @namespace.get('primary_uuid') isnt universe_datacenter.get('id')
+                    @max_machines -= 1
+            else
+                @max_machines = machines.length
+                for datacenter_id of @namespace.get('replica_affinities')
+                    if datacenter_id isnt @datacenter.get('id')
+                        @max_machines -= @namespace.get('replica_affinities')[datacenter_id]
+                if @namespace.get('primary_uuid') isnt @datacenter.get('id')
+                    @max_machines -= 1
+                
+                @need_explanation = @max_machines > DataUtils.get_datacenter_machines(@datacenter.get('id')).length
+                @max_machines = Math.min @max_machines, DataUtils.get_datacenter_machines(@datacenter.get('id')).length
+
             @nreplicas = @adjustReplicaCount(DataUtils.get_replica_affinities(@namespace.get('id'), @datacenter.id), true)
             @nacks = DataUtils.get_ack_expectations(@namespace.get('id'), @datacenter.get('id'))
             super
@@ -192,14 +209,16 @@ module 'NamespaceView', ->
                 return numreplicas
 
         compute_json: ->
+
             json =
                 namespace: @namespace.toJSON()
                 datacenter: @datacenter.toJSON()
                 num_replicas: @nreplicas
-                total_machines: @total_machines
+                max_machines: @max_machines
                 num_acks: @nacks
                 modal_title: 'Modify replica settings'
                 btn_primary_text: 'Commit'
+                need_explanation: @need_explanation if @need_explanation?
             return json
 
         render_inner: (error_msg, nreplicas_input, nacks_input) ->
@@ -246,8 +265,8 @@ module 'NamespaceView', ->
             nacks_input = parseInt(formdata.num_acks)
 
             msg_error = []
-            if nreplicas_input > @total_machines
-                msg_error.push('The number of replicas (' + nreplicas_input + ') cannot exceed the total number of machines (' + @total_machines + ').')
+            if nreplicas_input > @max_machines
+                msg_error.push('The number of replicas (' + nreplicas_input + ') cannot exceed the total number of machines (' + @max_machines + ').')
             if nreplicas_input is 0 and @namespace.get('primary_uuid') is @datacenter.get('id')
                 msg_error.push('The number of replicas must be at least one because ' + @datacenter.get('name') + ' is the primary datacenter for this namespace.')
             if nacks_input > nreplicas_input
@@ -272,7 +291,10 @@ module 'NamespaceView', ->
             @old_acks = DataUtils.get_ack_expectations(@namespace.get('id'), @datacenter.id)
             @modified_acks = @nacks isnt @old_acks
             @datacenter_uuid = formdata.datacenter
-            @datacenter_name = datacenters.get(@datacenter_uuid).get('name')
+            if @datacenter_uuid is universe_datacenter.get('id')
+                @datacenter_name = universe_datacenter.get('name')
+            else
+                @datacenter_name = datacenters.get(@datacenter_uuid).get('name')
 
             $.ajax
                 processData: false
