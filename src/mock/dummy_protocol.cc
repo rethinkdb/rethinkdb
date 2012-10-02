@@ -8,6 +8,7 @@
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/file_stream.hpp"
 #include "containers/printf_buffer.hpp"
+#include "mock/serializer_filestream.hpp"
 
 namespace mock {
 
@@ -195,17 +196,19 @@ dummy_protocol_t::region_t dummy_protocol_t::cpu_sharding_subspace(int subregion
 }
 
 
-dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename("") {
+dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), serializer(NULL) {
     initialize_empty();
 }
 
-dummy_protocol_t::store_t::store_t(UNUSED io_backender_t *io_backend, const std::string& fn, UNUSED int64_t cache_size, bool create, perfmon_collection_t *, UNUSED context_t *) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
+dummy_protocol_t::store_t::store_t(serializer_t *_serializer, UNUSED const std::string& hash_shard_name,
+                                   UNUSED int64_t cache_size, bool create,
+                                   UNUSED perfmon_collection_t *perfmon_collection, UNUSED context_t *ctx) :
+    store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')),
+    serializer(_serializer) {
     if (create) {
         initialize_empty();
     } else {
-        blocking_read_file_stream_t stream;
-        DEBUG_VAR bool success = stream.init(filename.c_str());
-        rassert(success);
+        serializer_file_read_stream_t stream(serializer);
         archive_result_t res = deserialize(&stream, &metainfo);
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(&stream, &values);
@@ -216,10 +219,8 @@ dummy_protocol_t::store_t::store_t(UNUSED io_backender_t *io_backend, const std:
 }
 
 dummy_protocol_t::store_t::~store_t() {
-    if (filename != "") {
-        blocking_write_file_stream_t stream;
-        DEBUG_VAR bool success = stream.init(filename.c_str());
-        rassert(success);
+    if (serializer) {
+        serializer_file_write_stream_t stream(serializer);
         write_message_t msg;
         msg << metainfo;
         msg << values;

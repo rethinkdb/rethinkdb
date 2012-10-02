@@ -3,8 +3,8 @@
 
 #include <vector>
 
-#include "serializer/serializer.hpp"
 #include "buffer_cache/types.hpp"
+#include "serializer/serializer.hpp"
 
 /* Facilities for treating N serializers as M serializers. */
 class translator_serializer_t;
@@ -94,7 +94,7 @@ private:
     serializer_read_ahead_callback_t *read_ahead_callback;
 
 public:
-    virtual ~translator_serializer_t() {}
+    virtual ~translator_serializer_t() { }
 
     // Translates a block id from external (meaningful to the translator_serializer_t) to internal
     // (meaningful to the underlying inner serializer) given the particular parameters. This needs

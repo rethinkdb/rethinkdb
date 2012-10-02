@@ -18,6 +18,8 @@
  * destroy reactors based on blueprints given to the server. */
 
 class perfmon_collection_repo_t;
+class serializer_t;
+class serializer_multiplexer_t;
 
 template <class> class watchable_and_reactor_t;
 
@@ -39,11 +41,16 @@ public:
         }
     }
 
+    scoped_ptr_t<serializer_t> *serializer() { return &serializer_; }
+    scoped_ptr_t<serializer_multiplexer_t> *multiplexer() { return &multiplexer_; }    
+
     scoped_array_t<scoped_ptr_t<typename protocol_t::store_t> > *stores() {
         return &stores_;
     }
 
 private:
+    scoped_ptr_t<serializer_t> serializer_;
+    scoped_ptr_t<serializer_multiplexer_t> multiplexer_;
     scoped_array_t<scoped_ptr_t<typename protocol_t::store_t> > stores_;
 
     DISABLE_COPYING(stores_lifetimer_t);
