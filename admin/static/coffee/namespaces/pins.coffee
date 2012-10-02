@@ -4,7 +4,7 @@ Handlebars.registerPartial 'shard_name', $('#shard_name-partial').html()
 # Namespace view
 module 'NamespaceView', ->
     class @Pinning extends Backbone.View
-        className: 'assignments_container'
+        className: 'assignments_container modal overwrite_modal'
         template: Handlebars.compile $('#namespace_view-assignments_container-template').html()
 
         initialize: =>

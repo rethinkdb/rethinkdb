@@ -8,8 +8,14 @@ module 'NamespaceView', ->
         alert_tmpl: Handlebars.compile $('#changed_primary_dc-replica-template').html()
 
         events:
+            'click .view-assignments': 'show_assignments'
             'click .edit_replicas': 'modify_replicas'
             'click .make_primary': 'make_primary'
+
+        show_assignments: (event) =>
+            event.preventDefault()
+            modal = new NamespaceView.MachinesAssignmentsModal model: @model
+            modal.render()
 
         modify_replicas: (event) =>
             event.preventDefault()
@@ -321,4 +327,22 @@ module 'NamespaceView', ->
                     datacenter_uuid: @datacenter_uuid
                     datacenter_name: @datacenter_name
                     )
+
+
+
+    class @MachinesAssignmentsModal extends UIComponents.AbstractModal
+        template: Handlebars.compile $('#machine_assignments-modal-template').html()
+        className: 'modal overwrite_modal'
+        render: =>
+            @pins = new NamespaceView.Pinning(model: @model)
+            $('#modal-dialog').html @pins.render().$el
+            modal = $('.modal').modal
+                'show': true
+                'backdrop': true
+                'keyboard': true
+
+            modal.on 'hidden', =>
+                modal.remove()
+
+
 
