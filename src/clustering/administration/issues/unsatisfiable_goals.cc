@@ -44,7 +44,6 @@ static bool is_satisfiable(
         }
         std::map<datacenter_id_t, int>::const_iterator jt = actual_machines_in_datacenters.find(it->first);
         if (jt == actual_machines_in_datacenters.end() || jt->second < need) {
-            debugf("Not enough secondaries for %s\n", uuid_to_str(it->first).c_str());
             return false;
         } else {
             extra_machines += need - jt->second;
@@ -59,13 +58,11 @@ static bool is_satisfiable(
 
     if (primary_datacenter.is_nil()) {
         if (extra_machines == 0) {
-            debugf("No extra machines\n");
             return false;
         }
     } else if (replica_affinities.find(primary_datacenter) == replica_affinities.end()) {
         std::map<datacenter_id_t, int>::const_iterator jt = actual_machines_in_datacenters.find(primary_datacenter);
         if (jt == actual_machines_in_datacenters.end() || jt->second < 1) {
-            debugf("No space in primary datacenter\n");
             return false;
         }
     }
