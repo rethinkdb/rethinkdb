@@ -142,12 +142,15 @@ term_info_t get_term_type(const Term &t, type_checking_environment_t *env, const
             check_protobuf(t.has_let());
             new_scope_t scope_maker(&env->scope); //create a new scope
             for (int i = 0; i < t.let().binds_size(); ++i) {
-                env->scope.put_in_scope(
-                    t.let().binds(i).var(),
-                    get_term_type(
-                        t.let().binds(i).term(),
-                        env,
-                        backtrace.with(strprintf("bind:%s", t.let().binds(i).var().c_str()))));
+                term_info_t argtype = get_term_type(t.let().binds(i).term(), env,
+                                                    backtrace.with(strprintf("bind:%s", t.let().binds(i).var().c_str())));
+                if (!term_type_is_convertible(argtype.type, TERM_TYPE_JSON)) {
+                    throw bad_query_exc_t("Only JSON objects can be stored in variables.  If you must store a stream, "
+                                          "use `STREAMTOARRAY` to convert it explicitly (note that this requires loading "
+                                          "the entire stream into memory).",
+                                          backtrace.with(strprintf("bind:%s", t.let().binds(i).var().c_str())));
+                }
+                env->scope.put_in_scope(t.let().binds(i).var(), argtype);
             }
             term_info_t res = get_term_type(t.let().expr(), env, backtrace.with("expr"));
             return res;
@@ -560,7 +563,6 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             {
                 check_arg_count(c, 1, backtrace);
                 {
-                    implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
                     check_mapping_type(b.grouped_map_reduce().group_mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("group_mapping"));
                     check_mapping_type(b.grouped_map_reduce().value_mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("value_mapping"));
                     check_reduction_type(b.grouped_map_reduce().reduction(), env, &deterministic, deterministic, backtrace.with("reduction"));

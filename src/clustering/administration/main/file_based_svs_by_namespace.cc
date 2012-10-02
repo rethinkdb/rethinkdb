@@ -3,6 +3,8 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "db_thread_info.hpp"
+#include "serializer/log/log_serializer.hpp"
+#include "serializer/translator.hpp"
 
 /* This object serves mostly as a container for arguments to the
  * do_construct_existing_store function because we hit the boost::bind argument
@@ -25,9 +27,10 @@ struct store_args_t {
 };
 
 template <class protocol_t>
-void do_construct_existing_store(int i, 
+void do_construct_existing_store(int i,
                                  store_args_t<protocol_t> store_args,
                                  file_based_svs_by_namespace_t<protocol_t> *fbssvsbn,
+                                 serializer_multiplexer_t *multiplexer,
                                  int num_db_threads,
                                  stores_lifetimer_t<protocol_t> *stores_out,
                                  store_view_t<protocol_t> **store_views) {
@@ -42,11 +45,11 @@ void do_construct_existing_store(int i,
     // threads.
     on_thread_t th(i % num_db_threads);
 
-    std::string file_name = fbssvsbn->file_name_for(store_args.namespace_id, i);
+    std::string hash_shard_name = fbssvsbn->hash_shard_name_for(store_args.namespace_id, i);
 
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
-    typename protocol_t::store_t *store = new typename protocol_t::store_t(store_args.io_backender, file_name, 
-                                                                           store_args.cache_size, false, store_args.serializers_perfmon_collection, 
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(multiplexer->proxies[i], hash_shard_name,
+                                                                           store_args.cache_size, false, store_args.serializers_perfmon_collection,
                                                                            store_args.ctx);
     (*stores_out->stores())[i].init(store);
     store_views[i] = store;
@@ -56,16 +59,17 @@ template <class protocol_t>
 void do_create_new_store(int i,
                          store_args_t<protocol_t> store_args,
                          file_based_svs_by_namespace_t<protocol_t> *fbssvsbn,
+                         serializer_multiplexer_t *multiplexer,
                          int num_db_threads,
                          stores_lifetimer_t<protocol_t> *stores_out,
                          store_view_t<protocol_t> **store_views) {
     // TODO: See the todo about thread distribution in do_construct_existing_store.  It is applicable here, too.
     on_thread_t th(i % num_db_threads);
 
-    std::string file_name = fbssvsbn->file_name_for(store_args.namespace_id, i);
+    std::string hash_shard_name = fbssvsbn->hash_shard_name_for(store_args.namespace_id, i);
 
-    typename protocol_t::store_t *store = new typename protocol_t::store_t(store_args.io_backender, file_name, 
-                                                                           store_args.cache_size, true, store_args.serializers_perfmon_collection, 
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(multiplexer->proxies[i], hash_shard_name,
+                                                                           store_args.cache_size, true, store_args.serializers_perfmon_collection,
                                                                            store_args.ctx);
     (*stores_out->stores())[i].init(store);
     store_views[i] = store;
@@ -93,14 +97,25 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     // TODO: We should use N slices on M serializers, not N slices
     // on N serializers.
 
-    int res = access(this->file_name_for(namespace_id, 0).c_str(), R_OK | W_OK);
+    const int num_stores = CLUSTER_CPU_SHARDING_FACTOR;
+
+    scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<serializer_multiplexer_t> multiplexer;
+    std::string serializer_filepath = file_name_for(namespace_id);
+
+    int res = access(serializer_filepath.c_str(), R_OK | W_OK);
     store_args_t<protocol_t> store_args(io_backender_, namespace_id, cache_size, serializers_perfmon_collection, ctx);
     if (res == 0) {
-        int num_stores = 1;
-        while (0 == access(file_name_for(namespace_id, num_stores).c_str(), R_OK | W_OK)) {
-            ++num_stores;
-        }
-        guarantee(num_stores == CLUSTER_CPU_SHARDING_FACTOR);
+
+        // TODO: Could we handle failure when loading the serializer?  Right now, we don't.
+        serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                                  io_backender_,
+                                                  standard_serializer_t::private_dynamic_config_t(serializer_filepath),
+                                                  serializers_perfmon_collection));
+
+        std::vector<standard_serializer_t *> ptrs;
+        ptrs.push_back(serializer.get());
+        multiplexer.init(new serializer_multiplexer_t(ptrs));
 
         // The files already exist, thus we don't create them.
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
@@ -112,13 +127,27 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         // them in the pmap?  No.
 
         pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>,
-                                     _1, store_args, this,
+                                     _1, store_args, this, multiplexer.get(),
                                      num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
     } else {
-        const int num_stores = CLUSTER_CPU_SHARDING_FACTOR;
         stores_out->stores()->init(num_stores);
+
+        standard_serializer_t::create(io_backender_,
+                                      standard_serializer_t::private_dynamic_config_t(serializer_filepath),
+                                      standard_serializer_t::static_config_t());
+
+        serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                                  io_backender_,
+                                                  standard_serializer_t::private_dynamic_config_t(serializer_filepath),
+                                                  serializers_perfmon_collection));
+
+        std::vector<standard_serializer_t *> ptrs;
+        ptrs.push_back(serializer.get());
+        serializer_multiplexer_t::create(ptrs, num_stores);
+        multiplexer.init(new serializer_multiplexer_t(ptrs));
+
 
         // TODO: How do we specify what the stores' regions are?
 
@@ -129,7 +158,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
 
         pmap(num_stores, boost::bind(do_create_new_store<protocol_t>,
-                                     _1,  store_args, this,
+                                     _1,  store_args, this, multiplexer.get(),
                                      num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
@@ -149,20 +178,25 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
                                  &write_token,
                                  &dummy_interruptor);
     }
+
+    stores_out->serializer()->init(serializer.release());
+    stores_out->multiplexer()->init(multiplexer.release());
 }
 
 template <class protocol_t>
 void file_based_svs_by_namespace_t<protocol_t>::destroy_svs(namespace_id_t namespace_id) {
-    for(int i = 0; access(file_name_for(namespace_id, i).c_str(), R_OK | W_OK) == 0; ++i) {
-        unlink(file_name_for(namespace_id, i).c_str());
-    }
+    // TODO: Handle errors?  It seems like we can't really handle the error so let's just ignore it?
+    unlink(file_name_for(namespace_id).c_str());
 }
 
 template <class protocol_t>
-std::string file_based_svs_by_namespace_t<protocol_t>::file_name_for(
-                                            namespace_id_t namespace_id, int i) {
-    const std::string file_name_base = file_path_ + "/" + uuid_to_str(namespace_id);
-    return file_name_base + "_" + strprintf("%d", i);
+std::string file_based_svs_by_namespace_t<protocol_t>::file_name_for(namespace_id_t namespace_id) {
+    return file_path_ + "/" + uuid_to_str(namespace_id);
+}
+
+template <class protocol_t>
+std::string file_based_svs_by_namespace_t<protocol_t>::hash_shard_name_for(namespace_id_t namespace_id, int shardnum) {
+    return file_name_for(namespace_id) + strprintf("_%d", shardnum);
 }
 
 #include "mock/dummy_protocol.hpp"

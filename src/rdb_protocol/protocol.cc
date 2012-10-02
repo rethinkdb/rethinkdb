@@ -489,13 +489,13 @@ void write_t::unshard(const write_response_t *responses, size_t count, write_res
     *response = responses[0];
 }
 
-store_t::store_t(io_backender_t *io_backend,
-                 const std::string& filename,
+store_t::store_t(serializer_t *serializer,
+                 const std::string &hash_shard_name,
                  int64_t cache_target,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
                  context_t *_ctx) :
-    btree_store_t<rdb_protocol_t>(io_backend, filename, cache_target, create, parent_perfmon_collection, _ctx),
+    btree_store_t<rdb_protocol_t>(serializer, hash_shard_name, cache_target, create, parent_perfmon_collection, _ctx),
     ctx(_ctx)
 { }
 
