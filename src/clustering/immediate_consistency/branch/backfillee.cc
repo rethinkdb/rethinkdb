@@ -1,7 +1,6 @@
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 
 #include "clustering/immediate_consistency/branch/history.hpp"
-#include "clustering/generic/resource.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/fifo_enforcer_queue.hpp"

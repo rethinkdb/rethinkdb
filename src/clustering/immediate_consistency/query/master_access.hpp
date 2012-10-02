@@ -5,6 +5,7 @@
 #include <boost/optional.hpp>
 
 #include "clustering/generic/multi_throttling_client.hpp"
+#include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/query/master_metadata.hpp"
 #include "protocol_api.hpp"
 

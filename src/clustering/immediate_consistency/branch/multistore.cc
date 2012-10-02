@@ -6,7 +6,6 @@
 #include "btree/parallel_traversal.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
-#include "concurrency/wait_any.hpp"
 #include "protocol_api.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 
