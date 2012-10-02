@@ -234,9 +234,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         for (std::set<machine_id_t>::const_iterator mt  = unused_machines.begin();
                                                     mt != unused_machines.end();
                                                     ++mt) {
-            if (machine_data_centers.find(*mt)->second == primary_datacenter) {
-                primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *primary_usage, directory, shard));
-            }
+            primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *primary_usage, directory, shard));
         }
 
         machine_id_t primary = pick_n_best(&primary_candidates, 1, primary_datacenter).front();
@@ -251,9 +249,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         for (std::set<machine_id_t>::const_iterator mt  = unused_machines.begin();
                                                     mt != unused_machines.end();
                                                     ++mt) {
-            if (machine_data_centers.find(*mt)->second == nil_uuid()) {
-                secondary_candidates.push(priority_for_machine(*mt, secondary_pinnings, primary_pinnings, *secondary_usage, directory, shard));
-            }
+            secondary_candidates.push(priority_for_machine(*mt, secondary_pinnings, primary_pinnings, *secondary_usage, directory, shard));
         }
         std::vector<machine_id_t> secondaries = pick_n_best(&secondary_candidates, datacenter_affinities.find(nil_uuid())->second, nil_uuid());
 
