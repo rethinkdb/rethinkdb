@@ -122,7 +122,7 @@
       {{/if}}
     </div>
     <hr />
-    <h4>{{pluralize_noun type num_contestants true}} with the name {{name}}:</h4>
+    <h4>{{capitalize type}} with the name {{name}}:</h4>
     <ul>
       {{#each contestants}}
       <li><a href="#{{pluralize_noun type 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a id="rename_{{uuid}}" href="#">rename</a>)</li>
