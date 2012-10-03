@@ -45,7 +45,7 @@ class extent_zone_t {
 private:
     int held_extents_;
 public:
-    int held_extents() {
+    int held_extents() const {
         return held_extents_;
     }
 
