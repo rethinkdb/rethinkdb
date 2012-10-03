@@ -14,6 +14,8 @@
 #include "rpc/directory/read_manager.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 
+
+//TODO: why is this not in the query_language namespace?
 void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, namespace_id_t namespace_id, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     /* The following is an ugly hack, but it's probably what we want.  It
        takes about a third of a second for the new namespace to get to the
@@ -24,7 +26,9 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, nam
     // This read won't succeed, but we care whether it fails with an exception.
     // It must be an rget to make sure that access is available to all shards.
 
+    //TODO: lower this for release?
     const int poll_ms = 100; //with this value, usually polls twice
+    //TODO: why is this still named bad*_read?  It looks like a valid read to me.
     rdb_protocol_t::rget_read_t bad_rget_read(hash_region_t<key_range_t>::universe());
     rdb_protocol_t::read_t bad_read(bad_rget_read);
     for (;;) {
@@ -46,14 +50,16 @@ cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
     if (!isfinite(d)) throw runtime_exc_t(strprintf("Illegal numeric value %e.", d), backtrace);
     return cJSON_CreateNumber(d);
 }
-
+#define cJSON_CreateNumber(...) CT_ASSERT(!"Use safe_cJSON_CreateNumber")
+#ifdef cJSON_CreateNumber //So the compiler won't complain that it's unused
+#endif
 
 /* Convenience function for making the horrible easy. */
 boost::shared_ptr<scoped_cJSON_t> shared_scoped_json(cJSON *json) {
     return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(json));
 }
 
-
+//TODO: this should really return more information
 void check_protobuf(bool cond) {
     if (!cond) {
         throw broken_client_exc_t("bad protocol buffer; client is buggy");
@@ -1262,8 +1268,8 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 
         /* Construct a response. */
         boost::shared_ptr<scoped_cJSON_t> res_json(new scoped_cJSON_t(cJSON_CreateObject()));
-        res_json->AddItemToObject("inserted", cJSON_CreateNumber(inserted));
-        res_json->AddItemToObject("errors", cJSON_CreateNumber(errors));
+        res_json->AddItemToObject("inserted", safe_cJSON_CreateNumber(inserted, backtrace));
+        res_json->AddItemToObject("errors", safe_cJSON_CreateNumber(errors, backtrace));
 
         if (first_error != "") res_json->AddItemToObject("first_error", cJSON_CreateString(first_error.c_str()));
         if (!generated_keys.empty()) {

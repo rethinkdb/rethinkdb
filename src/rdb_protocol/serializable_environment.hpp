@@ -10,6 +10,7 @@ enum term_type_t {
     TERM_TYPE_STREAM,
     TERM_TYPE_VIEW,
 
+    // TODO: in the clients errors are just JSON for simplicity.  Maybe we should do that here too?
     /* This is the type of `Error` terms. It's called "arbitrary" because an
     `Error` term can be either a stream or an object. It is a subtype of every
     type. */
