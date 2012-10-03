@@ -290,17 +290,13 @@ class Connection():
 
         serialized = protobuf.SerializeToString()
 
-        try:
-            header = struct.pack("<L", len(serialized))
-            self.socket.sendall(header + serialized)
-            resp_header = self._recvall(4)
-            msglen = struct.unpack("<L", resp_header)[0]
-            response_serialized = self._recvall(msglen)
-            response = p.Response()
-            response.ParseFromString(response_serialized)
-        except KeyboardInterrupt as ki:
-            self.reconnect()
-            raise ki
+        header = struct.pack("<L", len(serialized))
+        self.socket.sendall(header + serialized)
+        resp_header = self._recvall(4)
+        msglen = struct.unpack("<L", resp_header)[0]
+        response_serialized = self._recvall(msglen)
+        response = p.Response()
+        response.ParseFromString(response_serialized)
 
         if debug:
             print "response:", response
