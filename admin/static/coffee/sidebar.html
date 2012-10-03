@@ -42,7 +42,6 @@
                     <div class="critical-issues">
                         {{#each critical_issues.types}}
                             <div class="critical-issues">
-                                <div class="priority"></div>
                                 <div class="message">
                                     {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "server" num}} {{pluralize_verb_to_be num}} down{{/if}}
                                     {{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}
@@ -58,7 +57,6 @@
                 {{#if other_issues.exist}}
                     {{#each other_issues.types}}
                         <div class="other-issues">
-                            <div class="priority"></div>
                             <div class="message">
                                 {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "server" num}} {{pluralize_verb_to_be num}} down{{/if}}
                                 {{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}
