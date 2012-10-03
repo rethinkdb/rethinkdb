@@ -56,7 +56,10 @@ public:
         size_t get_count() const { return this->u.c.nbytes; }
         void set_successful_due_to_conflict() { io_result = this->u.c.nbytes; }
         bool get_succeeded() const { return io_result == static_cast<int64_t>(this->u.c.nbytes); }
-        int get_errno() const { return -io_result; }
+        int get_errno() const {
+            rassert(-io_result);
+            return -io_result;
+        }
 
 
     private:
