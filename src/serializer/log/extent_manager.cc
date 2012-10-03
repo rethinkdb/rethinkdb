@@ -186,9 +186,7 @@ void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) 
 
     rassert(state == state_reserving_extents);
     current_transaction = NULL;
-    for (boost::ptr_vector<extent_zone_t>::iterator it  = zones.begin();
-                                                      it != zones.end();
-                                                      it++) {
+    for (boost::ptr_vector<extent_zone_t>::iterator it = zones.begin(); it != zones.end(); ++it) {
         it->reconstruct_free_list();
     }
     state = state_running;
