@@ -41,9 +41,7 @@ public:
 
     // TODO: We're _subclassing_ iocb?  This is insanity.
     struct action_t : private iocb {
-        action_t()
-            : successful_due_to_conflict(false)
-        { }
+        action_t() { }
         void make_write(fd_t fd, const void *buf, size_t count, off_t offset) {
             io_prep_pwrite(this, fd, const_cast<void*>(buf), count, offset);
         }
@@ -56,8 +54,8 @@ public:
         bool get_is_write() const { return !get_is_read(); }
         off_t get_offset() const { return this->u.c.offset; }
         size_t get_count() const { return this->u.c.nbytes; }
-        void set_successful_due_to_conflict() { successful_due_to_conflict = true; }
-        bool get_succeeded() const { return successful_due_to_conflict || io_result == static_cast<int64_t>(this->u.c.nbytes); }
+        void set_successful_due_to_conflict() { io_result = this->u.c.nbytes; }
+        bool get_succeeded() const { return io_result == static_cast<int64_t>(this->u.c.nbytes); }
         int get_errno() const { return -io_result; }
 
 
@@ -66,7 +64,8 @@ public:
 
         // Only valid on return. Can be used to determine success or failure.
         int64_t io_result;
-        bool successful_due_to_conflict;
+
+        DISABLE_COPYING(action_t);
     };
 
     linux_diskmgr_aio_t(
