@@ -86,39 +86,32 @@ struct rethinkdb_protocol_t : protocol_t {
         FD_SET(sockfd, &readfds);
 
         // set up base protocol buffers
-        response = new Response;
-        stop_response = new Response;
-        base_point_delete_query = new Query;
-        prepare_point_delete_query(base_point_delete_query);
-        base_point_update_query = new Query;
-        prepare_point_update_query(base_point_update_query);
-        base_insert_query = new Query;
-        prepare_insert_query(base_insert_query);
-        base_batched_read_query = new Query;
-        prepare_batched_read_query(base_batched_read_query);
-        base_read_query = new Query;
-        prepare_read_query(base_read_query);
-        base_range_read_query = new Query;
-        prepare_range_read_query(base_range_read_query);
-        base_stop_query = new Query;
-        prepare_stop_query(base_stop_query);
+        prepare_point_delete_query(&base_point_delete_query);
+        prepare_point_update_query(&base_point_update_query);
+        prepare_insert_query(&base_insert_query);
+        prepare_batched_read_query(&base_batched_read_query);
+        prepare_read_query(&base_read_query);
+        prepare_range_read_query(&base_range_read_query);
+        prepare_stop_query(&base_stop_query);
+
+        // Try to create the database used by the stress client - ignore failures (it may already exist)
+        Query create_database_query;
+        generate_create_database_query(&create_database_query);
+        send_query(&create_database_query);
+        get_response(&response);
 
         // Try to create the table used by the stress client - ignore failures (it may already exist)
-        Query *create_query = new Query;
-        generate_create_query(create_query);
-        send_query(create_query);
-        get_response(response);
+        Query create_table_query;
+        generate_create_table_query(&create_table_query);
+        send_query(&create_table_query);
+        get_response(&response);
 
         // wait until started up (by inserting until one is successful)
-        bool success = false;
         do {
-            finalize_insert_query(base_insert_query, "0", 1, "0", 1);
-
-            send_query(base_insert_query);
-
-            get_response(response);
-            success = response->status_code() == Response::SUCCESS_JSON;
-        } while (!success);
+            finalize_insert_query(&base_insert_query, "0", 1, "0", 1);
+            send_query(&base_insert_query);
+            get_response(&response);
+        } while (response.status_code() != Response::SUCCESS_JSON);
         remove("0", 1);
     }
 
@@ -137,20 +130,20 @@ struct rethinkdb_protocol_t : protocol_t {
         assert(!exist_outstanding_pipeline_reads());
 
         // generate query
-        finalize_point_delete_query(base_point_delete_query, key, key_size);
+        finalize_point_delete_query(&base_point_delete_query, key, key_size);
 
-        send_query(base_point_delete_query);
+        send_query(&base_point_delete_query);
 
         // get response
-        get_response(response);
+        get_response(&response);
 
-        if (response->token() != base_point_delete_query->token()) {
-            fprintf(stderr, "Delete response token %ld did not match query token %ld.\n", response->token(), base_point_delete_query->token());
+        if (response.token() != base_point_delete_query.token()) {
+            fprintf(stderr, "Delete response token %ld did not match query token %ld.\n", response.token(), base_point_delete_query.token());
             throw protocol_error_t("Delete response token mismatch.");
         }
 
-        if (response->status_code() != Response::SUCCESS_JSON) {
-            fprintf(stderr, "Failed to remove key %s: %s\n", key, response->error_message().c_str());
+        if (response.status_code() != Response::SUCCESS_JSON) {
+            fprintf(stderr, "Failed to remove key %s: %s\n", key, response.error_message().c_str());
             throw protocol_error_t("Failed to successfully delete.");
         }
     }
@@ -160,20 +153,20 @@ struct rethinkdb_protocol_t : protocol_t {
         assert(!exist_outstanding_pipeline_reads());
 
         // generate query
-        finalize_point_update_query(base_point_update_query, key, key_size, value, value_size);
+        finalize_point_update_query(&base_point_update_query, key, key_size, value, value_size);
 
-        send_query(base_point_update_query);
+        send_query(&base_point_update_query);
 
         // get response
-        get_response(response);
+        get_response(&response);
 
-        if (response->token() != base_point_update_query->token()) {
-            fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), base_point_update_query->token());
+        if (response.token() != base_point_update_query.token()) {
+            fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response.token(), base_point_update_query.token());
             throw protocol_error_t("Update response token mismatch.");
         }
 
-        if (response->status_code() != Response::SUCCESS_JSON) {
-            fprintf(stderr, "Failed to insert key %s, value %s: %s\n", key, value, response->error_message().c_str());
+        if (response.status_code() != Response::SUCCESS_JSON) {
+            fprintf(stderr, "Failed to insert key %s, value %s: %s\n", key, value, response.error_message().c_str());
             throw protocol_error_t("Failed to successfully update.");
         }
     }
@@ -183,20 +176,20 @@ struct rethinkdb_protocol_t : protocol_t {
         assert(!exist_outstanding_pipeline_reads());
 
         // generate query
-        finalize_insert_query(base_insert_query, key, key_size, value, value_size);
+        finalize_insert_query(&base_insert_query, key, key_size, value, value_size);
 
-        send_query(base_insert_query);
+        send_query(&base_insert_query);
 
         // get response
-        get_response(response);
+        get_response(&response);
 
-        if (response->token() != base_insert_query->token()) {
-            fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response->token(), base_insert_query->token());
+        if (response.token() != base_insert_query.token()) {
+            fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response.token(), base_insert_query.token());
             throw protocol_error_t("Insert response token mismatch.");
         }
 
-        if (response->status_code() != Response::SUCCESS_JSON) {
-            fprintf(stderr, "Failed to insert key %s, value %s: %s\n", key, value, response->error_message().c_str());
+        if (response.status_code() != Response::SUCCESS_JSON) {
+            fprintf(stderr, "Failed to insert key %s, value %s: %s\n", key, value, response.error_message().c_str());
             throw protocol_error_t("Failed to successfully insert.");
         }
     }
@@ -204,31 +197,31 @@ struct rethinkdb_protocol_t : protocol_t {
     virtual void read(payload_t *keys, int count, payload_t *values = NULL) {
         assert(!exist_outstanding_pipeline_reads());
 
-        finalize_batched_read_query(base_batched_read_query, keys, count);
+        finalize_batched_read_query(&base_batched_read_query, keys, count);
 
-        send_query(base_batched_read_query);
+        send_query(&base_batched_read_query);
 
-        get_response(response);
+        get_response(&response);
 
-        if (response->token() != base_batched_read_query->token()) {
-            fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), base_batched_read_query->token());
+        if (response.token() != base_batched_read_query.token()) {
+            fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response.token(), base_batched_read_query.token());
             throw protocol_error_t("Read response token mismatch.");
         }
 
-        if (response->status_code() != Response::SUCCESS_JSON) {
-            fprintf(stderr, "Failed to read a batch of %d keys: %s\n", count, response->error_message().c_str());
+        if (response.status_code() != Response::SUCCESS_JSON) {
+            fprintf(stderr, "Failed to read a batch of %d keys: %s\n", count, response.error_message().c_str());
             throw protocol_error_t("Failed to successfully read.");
         }
 
         if (values) {
-            int last = response->response(0).find_last_of("}");
+            int last = response.response(0).find_last_of("}");
             for (int i = count - 1; i >= 0; i--) {
-                assert(last >= 0 && last < response->response(0).length());
-                std::string result = get_value(response->response(0), last);
+                assert(last >= 0 && last < response.response(0).length());
+                std::string result = get_value(response.response(0), last);
                 if (std::string(values[i].first, values[i].second) != result) {
                     fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
                 }
-                last = response->response(0).find_last_of("}", last - 1);
+                last = response.response(0).find_last_of("}", last - 1);
             }
         }
     }
@@ -236,40 +229,40 @@ struct rethinkdb_protocol_t : protocol_t {
     virtual void enqueue_read(payload_t *keys, int count, payload_t *values = NULL) {
         assert(!exist_outstanding_pipeline_reads());
 
-        generate_batched_read_query(base_batched_read_query, keys, count);
+        generate_batched_read_query(&base_batched_read_query, keys, count);
 
-        send_query(base_batched_read_query);
+        send_query(&base_batched_read_query);
 
-        queued_read = base_batched_read_query->token();
+        queued_read = base_batched_read_query.token();
     }
 
     // returns whether all the reads were completed
     virtual bool dequeue_read_maybe(payload_t *keys, int count, payload_t *values = NULL) { 
         bool done = true;
 
-        bool received = get_response_maybe(response);
+        bool received = get_response_maybe(&response);
         if (!received) {
             done = false;
         } else {
-            if (response->token() != queued_read) {
-                fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), queued_read);
+            if (response.token() != queued_read) {
+                fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response.token(), queued_read);
                 throw protocol_error_t("Read response token mismatch.");
             }
 
-            if (response->status_code() != Response::SUCCESS_JSON) {
-                fprintf(stderr, "Failed to read a batch of %d keys: %s\n", count, response->error_message().c_str());
+            if (response.status_code() != Response::SUCCESS_JSON) {
+                fprintf(stderr, "Failed to read a batch of %d keys: %s\n", count, response.error_message().c_str());
                 throw protocol_error_t("Failed to successfully read.");
             }
 
             if (values) {
-                int last = response->response(0).find_last_of("}");
+                int last = response.response(0).find_last_of("}");
                 for (int i = count - 1; i >= 0; i--) {
-                    assert(last >= 0 && last < response->response(0).length());
-                    std::string result = get_value(response->response(0), last);
+                    assert(last >= 0 && last < response.response(0).length());
+                    std::string result = get_value(response.response(0), last);
                     if (std::string(values[i].first, values[i].second) != result) {
                         fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
                     }
-                    last = response->response(0).find_last_of("}", last);
+                    last = response.response(0).find_last_of("}", last);
                 }
             }
             queued_read = -1;
@@ -279,27 +272,27 @@ struct rethinkdb_protocol_t : protocol_t {
     }
 
     virtual void dequeue_read(payload_t *keys, int count, payload_t *values = NULL) {
-        get_response(response);
+        get_response(&response);
 
-        if (response->token() != queued_read) {
-            fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response->token(), queued_read);
+        if (response.token() != queued_read) {
+            fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response.token(), queued_read);
             throw protocol_error_t("Read response token mismatch.");
         }
 
-        if (response->status_code() != Response::SUCCESS_JSON) {
-            fprintf(stderr, "Failed to read a batch of %d keys: %s\n", count, response->error_message().c_str());
+        if (response.status_code() != Response::SUCCESS_JSON) {
+            fprintf(stderr, "Failed to read a batch of %d keys: %s\n", count, response.error_message().c_str());
             throw protocol_error_t("Failed to successfully read.");
         }
 
         if (values) {
-            int last = response->response(0).find_last_of("}");
+            int last = response.response(0).find_last_of("}");
             for (int i = count - 1; i >= 0; i--) {
-                assert(last >= 0 && last < response->response(0).length());
-                std::string result = get_value(response->response(0), last);
+                assert(last >= 0 && last < response.response(0).length());
+                std::string result = get_value(response.response(0), last);
                 if (std::string(values[i].first, values[i].second) != result) {
                     fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
                 }
-                last = response->response(0).find_last_of("}", last);
+                last = response.response(0).find_last_of("}", last);
             }
         }
 
@@ -310,40 +303,40 @@ struct rethinkdb_protocol_t : protocol_t {
         assert(!exist_outstanding_pipeline_reads());
 
         // generate query
-        finalize_range_read_query(base_range_read_query, lkey, lkey_size, rkey, rkey_size, count_limit);
+        finalize_range_read_query(&base_range_read_query, lkey, lkey_size, rkey, rkey_size, count_limit);
 
-        send_query(base_range_read_query);
+        send_query(&base_range_read_query);
 
         // get response
-        get_response(response);
-        if (response->token() != base_range_read_query->token()) {
-            fprintf(stderr, "Range read response token %ld did not match query token %ld.\n", response->token(), base_range_read_query->token());
+        get_response(&response);
+        if (response.token() != base_range_read_query.token()) {
+            fprintf(stderr, "Range read response token %ld did not match query token %ld.\n", response.token(), base_range_read_query.token());
             throw protocol_error_t("Range read response token mismatch.");
         }
 
-        if (response->status_code() == Response::SUCCESS_PARTIAL) {
-            finalize_stop_query(base_stop_query);
-            send_query(base_stop_query, base_range_read_query->token());
+        if (response.status_code() == Response::SUCCESS_PARTIAL) {
+            finalize_stop_query(&base_stop_query);
+            send_query(&base_stop_query, base_range_read_query.token());
 
-            get_response(stop_response);
+            get_response(&stop_response);
 
-            if (stop_response->token() != base_stop_query->token()) {
-                fprintf(stderr, "Stop response token %ld did not match query token %ld.\n", stop_response->token(), base_stop_query->token());
+            if (stop_response.token() != base_stop_query.token()) {
+                fprintf(stderr, "Stop response token %ld did not match query token %ld.\n", stop_response.token(), base_stop_query.token());
                 throw protocol_error_t("Stop response token mismatch.");
             }
 
-            if (stop_response->status_code() != Response::SUCCESS_EMPTY) {
+            if (stop_response.status_code() != Response::SUCCESS_EMPTY) {
                 fprintf(stderr, "Failed to stop partial stream.");
                 throw protocol_error_t("Failed to successfully stop.");
             }
-        } else if (response->status_code() != Response::SUCCESS_STREAM) {
-            fprintf(stderr, "Failed to range read key %s to key %s: %s\n", lkey, rkey, response->error_message().c_str());
+        } else if (response.status_code() != Response::SUCCESS_STREAM) {
+            fprintf(stderr, "Failed to range read key %s to key %s: %s\n", lkey, rkey, response.error_message().c_str());
             throw protocol_error_t("Failed to successfully range read.");
         }
 
         if (values) {
             for (int i = 0; i < count_limit; i++) {
-                std::string result = get_value(response->response(i));
+                std::string result = get_value(response.response(i));
                 if (std::string(values[i].first, values[i].second) != result) {
                     fprintf(stderr, "Range read failed: wanted %s but got %s for some key.\n", values[i].first, result.c_str());
                 }
@@ -546,7 +539,15 @@ private:
         }
     }
 
-    void generate_create_query(Query *query) {
+    void generate_create_database_query(Query *query) {
+        query->set_type(Query::META);
+
+        MetaQuery *metaquery = query->mutable_meta_query();
+        metaquery->set_type(MetaQuery::CREATE_DB);
+        metaquery->set_db_name(DB_NAME);
+    }
+
+    void generate_create_table_query(Query *query) {
         query->set_type(Query::META);
 
         MetaQuery *metaquery = query->mutable_meta_query();
@@ -637,9 +638,9 @@ private:
         }
     }
 
-    bool get_response_maybe(Response *response) {
+    bool get_response_maybe(Response *maybe_response) {
         if (socket_ready()) {
-            get_response(response);
+            get_response(maybe_response);
         } else {
             return false;
         }
@@ -673,15 +674,15 @@ private:
     char buffer[MAX_PROTOBUF_SIZE];
 
     // the following are used to lower the extra time used to create each query before sending
-    Response *response;
-    Response *stop_response;
-    Query *base_point_delete_query;
-    Query *base_point_update_query;
-    Query *base_insert_query;
-    Query *base_batched_read_query;
-    Query *base_read_query;
-    Query *base_range_read_query;
-    Query *base_stop_query;
+    Response response;
+    Response stop_response;
+    Query base_point_delete_query;
+    Query base_point_update_query;
+    Query base_insert_query;
+    Query base_batched_read_query;
+    Query base_read_query;
+    Query base_range_read_query;
+    Query base_stop_query;
 } ;
 
 #endif // __STRESS_CLIENT_PROTOCOLS_RETHINKDB_PROTOCOL_HPP__

@@ -4,9 +4,6 @@
 #include <map>
 #include <string>
 
-#include "errors.hpp"
-#include <boost/function.hpp>
-
 #include "containers/archive/archive.hpp"
 #include "rpc/connectivity/cluster.hpp"
 

@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "utils.hpp"
 #include "rdb_protocol/backtrace.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -52,6 +53,11 @@ public:
 
     std::string what() const throw() {
         return message;
+    }
+
+    std::string as_str() const throw() {
+        return strprintf("%s\nBacktrace:\n%s",
+                         message.c_str(), backtrace.print().c_str());
     }
 
     std::string message;

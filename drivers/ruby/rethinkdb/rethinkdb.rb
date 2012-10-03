@@ -8,6 +8,7 @@ load 'protob_compiler.rb'
 
 load 'net.rb'
 
+load 'data_collectors.rb'
 load 'base_classes.rb'
 load 'query.rb'
 load 'rql.rb'

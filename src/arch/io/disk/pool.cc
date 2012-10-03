@@ -23,9 +23,17 @@ pool_diskmgr_t::~pool_diskmgr_t() {
 
 void pool_diskmgr_t::action_t::run() {
     if (is_read) {
-        io_result = pread(fd, buf, count, offset);
+        ssize_t res;
+        do {
+            res = pread(fd, buf, count, offset);
+        } while (res == -1 && errno == EINTR);
+        io_result = res >= 0 ? res : -errno;
     } else {
-        io_result = pwrite(fd, buf, count, offset);
+        ssize_t res;
+        do {
+            res = pwrite(fd, buf, count, offset);
+        } while (res == -1 && errno == EINTR);
+        io_result = res >= 0 ? res : -errno;
     }
 }
 

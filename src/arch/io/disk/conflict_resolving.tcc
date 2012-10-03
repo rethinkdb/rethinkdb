@@ -108,6 +108,7 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
                    reinterpret_cast<const char*>(latest_write->get_buf()) + action->get_offset() - latest_write->get_offset(),
                    action->get_count());
 
+            action->set_successful_due_to_conflict();
             done_fun(action);
             return;
         }
@@ -142,7 +143,6 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
         // TODO: Refine the perfmon such that it measures the actual time that ops spend
         // in a waiting state
         conflict_sampler.record(1);
-        action->set_successful_due_to_conflict();
     }
 }
 
@@ -195,6 +195,8 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
                     memcpy(waiter->get_buf(),
                            reinterpret_cast<const char*>(action->get_buf()) + waiter->get_offset() - action->get_offset(),
                            waiter->get_count());
+
+                    waiter->set_successful_due_to_conflict();
 
                     /* Recursively calling done() is safe. "waiter" must end at or before
                     our current location, or else its conflict_count would still be nonzero.
