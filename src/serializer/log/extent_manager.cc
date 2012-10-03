@@ -299,9 +299,7 @@ void extent_manager_t::commit_transaction(transaction_t *t) {
 int extent_manager_t::held_extents() {
     int total = 0;
 
-    for (boost::ptr_vector<extent_zone_t>::iterator it  = zones.begin();
-                                                    it != zones.end();
-                                                    it++) {
+    for (boost::ptr_vector<extent_zone_t>::iterator it = zones.begin(); it != zones.end(); ++it) {
         total += it->held_extents();
     }
     return total;
