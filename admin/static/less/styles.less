@@ -1060,6 +1060,54 @@ body:before {
 
 /*
     ----------------------------
+    Resolve Issues
+    ----------------------------
+*/
+#resolve-issues{
+     h1.title {
+        font-family: @serif;
+        color: #4d535c;
+        font-size: 19px;
+        margin-bottom: 25px;
+    }
+    .issue-container{
+        overflow: auto;
+        border-top: thin solid #f0f0f0;
+        padding: 10px 0px;
+        .btn-solve{
+            float: left;
+            padding: 3px 4px;
+            margin: 3px 3px;
+            font-size: @baseFontSize;
+            line-height: @baseLineHeight;
+            color: @grayDark;
+            text-align: center;
+            text-shadow: 0 1px 1px rgba(255,255,255,.75);
+            vertical-align: middle;
+            .buttonBackground(@btnBackground, @btnBackgroundHighlight);
+            border: 1px solid @btnBorder;
+            border-bottom-color: darken(@btnBorder, 10%);
+            .border-radius(3px);
+            cursor: pointer;
+        }
+        p{
+            font-family: @sans;
+            font-size: 13px;
+        }
+        .datetime {
+            float: right;
+            width: 194px;
+            background: left center no-repeat url('https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png');
+            text-align: right;
+            color: #c4c4c4;
+            font-family: @serif;
+        }
+    }
+}
+
+
+/*
+    ----------------------------
     Element views
     ----------------------------
 */

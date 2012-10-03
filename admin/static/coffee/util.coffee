@@ -7,7 +7,8 @@ Handlebars.registerHelper 'debug', (inputs..., options) ->
 
 # Prettifies a date given in ISO 8601 format
 Handlebars.registerHelper 'prettify_date', (date) ->
-    (Date.parse date).toString 'MMMM dS, H:mm:ss' if date?
+    return new XDate(date*1000).toString("HH:mm - MMMM dd, yyyy")
+
 
 # Returns a comma-separated list of the provided array
 Handlebars.registerHelper 'comma_separated', (context, block) ->

@@ -71,117 +71,88 @@
 
 
 <script id="resolve_issues-machine_down-template" type="text/x-handlebars-template">
-  <div class="issue {{#if critical }}critical{{/if}}">
-    <div class="header">
-      <h3 class="title">Server {{name}} is unreachable.</h3>
-      {{#if datetime}}
-      <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
-      {{/if}}
+    <div class="issue {{#if critical }}critical{{/if}}">
+        <p class="datetime">{{prettify_date datetime}}</p>
+        <h3 class="title">Server {{name}} is unreachable.</h3>
+        {{#if no_responsibilities}}
+            <p>This server has no master or replica responsibilities.</p>
+        {{else}}
+            {{#if masters}}
+            <p>This server is responsible for the following shards:</p>
+            <ul>
+            {{#each masters}}
+                <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+            {{/each}}
+            </ul>
+            {{/if}}
+
+            {{#if replicas}}
+            <p>This server is a secondary for the following shards:</p>
+            <ul>
+            {{#each replicas}}
+                <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+            {{/each}}
+            </ul>
+            {{/if}}
+        {{/if}}
+        <p><button class="btn-solve">Declare Dead</button></p>
     </div>
-    <hr />
-    {{#if no_responsibilities}}
-    <h4>This server has no master or replica responsibilities.</h4>
-
-    {{else}}
-
-    <!-- Masters -->
-    {{#if masters}}
-    <h4>This server is responsible for the following masters:</h4>
-    <ul>
-      {{#each masters}}
-      <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
-      {{/each}}
-    </ul>
-    {{else}}
-    <h4>This server has no master responsibilities.</h4>
-    {{/if}}
-
-    <!-- Replicas -->
-    {{#if replicas}}
-    <h4>This server is responsible for the following replicas:</h4>
-    <ul>
-      {{#each replicas}}
-      <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
-      {{/each}}
-    </ul>
-    {{else}}
-    <h4>This server has no replica responsibilities.</h4>
-    {{/if}}
-
-    {{/if}}
-
-    <p><a class="btn large danger">Declare Dead</a></p>
-  </div>
 </script>
+
 <script id="resolve_issues-name_conflict-template" type="text/x-handlebars-template">
-  <div class="issue {{#if critical }}critical{{/if}} name-conflict">
-    <div class="header">
-      <h3 class="title">The name {{name}} is used by more than one {{type}}.</h3>
-      {{#if datetime}}
-      <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
-      {{/if}}
+    <div class="issue {{#if critical }}critical{{/if}} name-conflict">
+        <p class="datetime">{{prettify_date datetime}}</p>
+        <h3 class="title">The name {{name}} is used by more than one {{type}}.</h3>
+
+        <p>{{capitalize type}} with the name {{name}}:</p>
+        <ul>
+        {{#each contestants}}
+        <li><a href="#{{pluralize_noun type 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a id="rename_{{uuid}}" href="#">rename</a>)</li>
+        {{/each}}
+        </ul>
     </div>
-    <hr />
-    <h4>{{capitalize type}} with the name {{name}}:</h4>
-    <ul>
-      {{#each contestants}}
-      <li><a href="#{{pluralize_noun type 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a id="rename_{{uuid}}" href="#">rename</a>)</li>
-      {{/each}}
-    </ul>
-  </div>
 </script>
+
 <script id="resolve_issues-logfile_write-template" type="text/x-handlebars-template">
-  <div class="issue {{#if critical }}critical{{/if}}">
-    <div class="header">
-      <h3 class="title">Can't write logs.</h3>
-      {{#if datetime}}
-      <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
-      {{/if}}
+    <div class="issue {{#if critical }}critical{{/if}}">
+        <p class="datetime">{{prettify_date datetime}}</p>
+        <h3 class="title">Can't write logs.</h3>
+
+        <p>Log file is inaccessible on server <a href="/#servers/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the server, or declare it dead.<p>
+        <p><button class="btn-solve">Declare Dead</button></p>
     </div>
-    <hr />
-    <p>Log file is inaccessible on server <a href="/#servers/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the server, or declare it dead.<p>
-    <p><a class="btn large danger">Declare Dead</a></p>
-  </div>
 </script>
 <script id="resolve_issues-vclock_conflict-template" type="text/x-handlebars-template">
-  <div class="issue {{#if critical }}critical{{/if}} vclock-conflict">
-    <div class="header">
-      <h3 class="title">Cluster configuration conflict.</h3>
-      {{#if datetime}}
-      <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
-      {{/if}}
+    <div class="issue {{#if critical }}critical{{/if}} vclock-conflict">
+        <p class="datetime">{{prettify_date datetime}}</p>
+        <h3 class="title">Cluster configuration conflict.</h3>
+
+        <p>This issue is caused by making changes to the cluster configuration on both sides of an intermittent network connection.</p>
+        <p>{{capitalize field}} of {{object_type}} <a href="">{{#if name_contest}}{{humanize_uuid object_id}}{{else}}{{object_name}}{{/if}}</a> has the following conflicting values:</h4>
+        <ul>
+            {{#each contestants}}
+            <li>{{value}} (<a id="resolve_{{contestant_id}}" href="#">use this value</a>)</li>
+            {{/each}}
+        </ul>
     </div>
-    <hr />
-    <p>This issue is caused by making changes to the cluster configuration on both sides of an intermittent network connection.</p>
-    <h4>{{capitalize field}} of {{object_type}} <a href="">{{#if name_contest}}{{humanize_uuid object_id}}{{else}}{{object_name}}{{/if}}</a> has the following conflicting values:</h4>
-    <ul>
-      {{#each contestants}}
-      <li>{{value}} (<a id="resolve_{{contestant_id}}" href="#">use this value</a>)</li>
-      {{/each}}
-    </ul>
-  </div>
 </script>
 
 <script id="resolve_issues-unsatisfiable_goals-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}}">
-        <div class="header">
-            <h3 class="title">Unsatisfiable goals</h3>
-            {{#if datetime}}
-            <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
-        {{/if}}
-        </div>
-        <hr />
-        <h4>The goals you have specified are impossible for the table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a></h4>
-        {{#if no_primary}}You have to <a href="#tables/{{namespace_id}}/replication">choose</a> a primary datacenter to make this table works.{{/if}}
+        <p class="datetime">{{prettify_date datetime}}</p>
+        <h3 class="title">Unsatisfiable goals</h3>
+
+        <p>The goals you have specified are impossible for the table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a></p>
+        {{#if no_primary}}<p>You have to <a href="#tables/{{namespace_id}}/replication">choose</a> a primary datacenter to make this table works.</p>{{/if}}
+
         {{#each datacenters_with_issues}}
         <p class="description">You require {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} for the datacenter <a href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> but you only have {{num_machines}} {{pluralize_noun "server" this.num_machines}} available.</p>
         {{/each}}
         {{#if datacenters_with_issues}}
         <p class="description">To solve this issue, you can lower the number of replicas or connect a new server to the datacenter.</p>
 
-        <p><a class="btn large danger solve_unsatisfiable_goals">Lower the number of replicas</a></p>
+        <p><button class="btn-solve">Lower the number of replicas</button></p>
         {{/if}}
-
   </div>
 </script>
 
@@ -189,14 +160,10 @@
 
 <script id="resolve_issues-machine_ghost-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}}">
-        <div class="header">
-            <h3 class="title">Zombie server</h3>
-            {{#if datetime}}
-            <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
-        {{/if}}
-        </div>
-        <hr />
-        <h4>A server was declared dead, but is now connected to the cluster.</h4>
+        <p class="datetime">{{prettify_date datetime}}</p>
+        <h3 class="title">Zombie server</h3>
+
+        <p>A server was declared dead, but is now connected to the cluster.</p>
         <p class="description">Server's id: <a href="#servers/{{machine_id}}">{{machine_name}}</a><br/>
         Please manually remove it (by killing the rethinkDB instance for example)</p>
   </div>
@@ -204,30 +171,24 @@
 
 <script id="resolve_issues-port_conflict-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}}">
-        <div class="header">
-            <h3 class="title">Could not bind to port</h3>
-            {{#if datetime}}
-            <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
-            {{/if}}
-        </div>
-        <hr />
-        <h4>A necessary port is already in use on this server</h4>
-        <p class="description">Server <a href="#servers/{{machine_id}}">{{machine_name}}</a> {{description}}.<br/>
-        Some other process is likely using this port. Kill it or instruct it to release the port in order to resolve this issue.</p>
+        <p class="datetime">{{prettify_date datetime}}</p>
+        <h3 class="title">Could not bind to port</h3>
+
+        <p>A necessary port is already in use on this server</p>
+        <p class="description">
+        Server <a href="#servers/{{machine_id}}">{{machine_name}}</a> {{description}}.<br/>
+        Some other process is likely using this port. Kill it or instruct it to release the port in order to resolve this issue.
+        </p>
     </div>
 </script>
 
 
 <script id="resolve_issues-unknown-template" type="text/x-handlebars-template">
-  <div class="issue {{#if critical }}critical{{/if}}">
-    <div class="header">
-      <h3 class="title">Unknown issue: {{issue_type}}</h3>
-      {{#if datetime}}
-      <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
-      {{/if}}
+    <div class="issue {{#if critical }}critical{{/if}}">
+        <p class="datetime">{{prettify_date datetime}}</p>
+        <h3 class="title">Unknown issue: {{issue_type}}</h3>
+
+        <p>An issue was sent by the server, but we could not parse it.</p>
     </div>
-    <hr />
-    <h4>Whoops, this shouldn't happen. Please contact support and hope for the best.</h4>
-  </div>
 </script>
 
