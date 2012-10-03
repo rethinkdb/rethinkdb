@@ -6,15 +6,7 @@ module 'Sidebar', ->
         template: Handlebars.compile $('#sidebar-container-template').html()
         template_dataexplorer: Handlebars.compile $('#sidebar-dataexplorer_container-template').html()
 
-        type_view: 'default'
-        previous_queries: []
-        events:
-            'click .namespace_query': 'write_query_namespace'
-            'click .old_query': 'write_query_old'
-
         initialize: =>
-            log_initial '(initializing) sidebar view: container'
-
             @client_connectivity_status = new Sidebar.ClientConnectionStatus()
             @servers_connected = new Sidebar.ServersConnected()
             @datacenters_connected = new Sidebar.DatacentersConnected()
@@ -22,29 +14,6 @@ module 'Sidebar', ->
             @issues_banner = new Sidebar.IssuesBanner()
 
             window.app.on 'all', @render
-
-        set_type_view: (type = 'default') =>
-            if type isnt @type_view
-                @type_view = type
-                @render()
-
-        add_query: (query) =>
-            if query.length > 17
-                query_summary = query.slice(0, 5) + '...' + query.slice(query.length-10)
-            else
-                query_summary = query
-
-            @previous_queries.unshift
-                query: query
-                query_summary: query_summary
-
-            @render()
-
-        write_query_namespace: (event) ->
-            window.router.current_view.write_query_namespace(event)
-
-        write_query_old: (event) ->
-            window.router.current_view.write_query_old(event)
 
         compute_data: =>
             data_temp = {}
@@ -61,36 +30,21 @@ module 'Sidebar', ->
                 if data_temp[database_id].length > 0
                     data['databases'].push
                         name: databases.get(database_id).get 'name'
-                        namespaces: data_temp[database_id] 
+                        namespaces: data_temp[database_id]
 
             return data
 
         render: =>
-            if @type_view is 'default'
-                @.$('.recent-log-entries').html ''
-                @.$el.html @template({})
-    
-                # Render connectivity status
-                @.$('.client-connection-status').html @client_connectivity_status.render().el
-                @.$('.servers-connected').html @servers_connected.render().el
-                @.$('.datacenters-connected').html @datacenters_connected.render().el
-    
-                # Render issue summary and issue banner
-                @.$('.issues').html @issues.render().el
-                @.$('.issues-banner').html @issues_banner.render().el
+            @.$el.html @template({})
 
-                return @
-            else
-                data = @compute_data()
-                data['previous_queries'] = @previous_queries
-                data['has_namespaces'] = data['databases'].length > 0
-                data['has_previous_queries'] = @previous_queries.length > 0
-                @.$el.html @template_dataexplorer data
+            # Render connectivity status
+            @.$('.client-connection-status').html @client_connectivity_status.render().el
+            @.$('.servers-connected').html @servers_connected.render().el
+            @.$('.datacenters-connected').html @datacenters_connected.render().el
 
-                # Render issue summary
-                @.$('.issues').html @issues.render().el
-
-                return @
+            # Render issue summary and issue banner
+            @.$('.issues').html @issues.render().el
+            @.$('.issues-banner').html @issues_banner.render().el
 
         destroy: =>
             window.app.off 'all', @render
@@ -106,7 +60,6 @@ module 'Sidebar', ->
             machines.on 'all', @render
 
         render: =>
-            log_render '(rendering) status panel view'
             connected_machine = machines.get(connection_status.get('contact_machine_id'))
             json =
                 disconnected: connection_status.get('client_disconnected')
@@ -194,7 +147,6 @@ module 'Sidebar', ->
         template: Handlebars.compile $('#sidebar-issues-template').html()
 
         initialize: =>
-            log_initial '(initializing) sidebar view: issues'
             issues.on 'all', @render
 
         render: =>

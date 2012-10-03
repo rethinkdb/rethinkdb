@@ -555,9 +555,6 @@ module 'DataExplorerView', ->
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
             
-            # Display query in sidebar
-            window.app.sidebar.add_query @codemirror.getValue()
-
         paginating_keypress: (event) =>
             if event.which is 13
                 @paginating_custom event
