@@ -41,13 +41,15 @@
                 {{#if critical_issues.exist}}
                 <div class="critical-issues">
                     <p><strong>Critical {{pluralize_noun "issue" critical_issues.num}} detected:</strong>
-                        {{#each critical_issues.data}}{{#unless is_first}}, {{/unless}}{{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "server" num}} {{pluralize_verb_to_be num}} down{{/if}}{{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}{{#if LOGFILE_WRITE_ERROR}}{{num}} {{pluralize_noun "log file" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}{{#if VCLOCK_CONFLICT}}{{num}} {{pluralize_noun "vector conflict" num}}{{/if}}{{#if UNSATISFIABLE_GOALS}}{{num}} {{pluralize_noun "unsatisfiable goal" num}}{{/if}}{{#if MACHINE_GHOST}}{{num}} {{pluralize_noun "zombie server" num}}{{/if}}{{/each}}
+                    {{!Inline to avoid space before comma}}    
+                    {{#each critical_issues.data}}{{#unless is_first}}, {{/unless}}{{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "server" num}} {{pluralize_verb_to_be num}} down{{/if}}{{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}{{#if LOGFILE_WRITE_ERROR}}{{num}} {{pluralize_noun "log file" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}{{#if VCLOCK_CONFLICT}}{{num}} {{pluralize_noun "vector conflict" num}}{{/if}}{{#if UNSATISFIABLE_GOALS}}{{num}} {{pluralize_noun "unsatisfiable goal" num}}{{/if}}{{#if MACHINE_GHOST}}{{num}} {{pluralize_noun "zombie server" num}}{{/if}}{{/each}}
                     </p>
                 </div>
                 {{/if}}
                 {{#if other_issues.exist}}
                     <p><strong>Non critical {{pluralize_noun "issue" other_issues.num}} detected:</strong>
-                        {{#each other_issues.data}}{{#unless is_first}}, {{/unless}}{{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "server" num}} {{pluralize_verb_to_be num}} down{{/if}}{{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}{{#if LOGFILE_WRITE_ERROR}}{{num}} {{pluralize_noun "log file" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}{{#if VCLOCK_CONFLICT}}{{num}} {{pluralize_noun "vector conflict" num}}{{/if}}{{#if UNSATISFIABLE_GOALS}}{{num}} {{pluralize_noun "unsatisfiable goal" num}}{{/if}}{{#if MACHINE_GHOST}}{{num}} {{pluralize_noun "zombie server" num}}{{/if}}{{/each}}
+                    {{!Inline to avoid space before comma}}    
+                    {{#each other_issues.data}}{{#unless is_first}}, {{/unless}}{{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "server" num}} {{pluralize_verb_to_be num}} down{{/if}}{{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}{{#if LOGFILE_WRITE_ERROR}}{{num}} {{pluralize_noun "log file" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}{{#if VCLOCK_CONFLICT}}{{num}} {{pluralize_noun "vector conflict" num}}{{/if}}{{#if UNSATISFIABLE_GOALS}}{{num}} {{pluralize_noun "unsatisfiable goal" num}}{{/if}}{{#if MACHINE_GHOST}}{{num}} {{pluralize_noun "zombie server" num}}{{/if}}{{/each}}
                     </p>
                 {{/if}}
             </div>
